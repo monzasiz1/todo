@@ -2,11 +2,12 @@
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
   "installCommand": "npm install",
-  "rewrites": [
-    { "source": "/api/auth/:path*", "destination": "/api/auth?__path=:path*" },
-    { "source": "/api/tasks/:path*", "destination": "/api/tasks?__path=:path*" },
-    { "source": "/api/ai/:path*", "destination": "/api/ai?__path=:path*" },
-    { "source": "/api/categories/:path*", "destination": "/api/categories?__path=:path*" },
-    { "source": "/(.*)", "destination": "/index.html" }
+  "routes": [
+    { "src": "/api/auth/(.*)", "dest": "/api/auth.js?__path=$1" },
+    { "src": "/api/tasks/(.*)", "dest": "/api/tasks.js?__path=$1" },
+    { "src": "/api/ai/(.*)", "dest": "/api/ai.js?__path=$1" },
+    { "src": "/api/categories/(.*)", "dest": "/api/categories.js?__path=$1" },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
