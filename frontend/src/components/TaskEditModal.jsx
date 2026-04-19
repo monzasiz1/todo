@@ -6,7 +6,7 @@ import { api } from '../utils/api';
 import {
   X, Calendar, Clock, Tag, Flag, FileText, Bell,
   Save, Users, UserCheck, Lock, Eye, Edit3,
-  ChevronDown, Sparkles, Loader2, AlertTriangle
+  ChevronDown, Sparkles, Loader2, AlertTriangle, UsersRound
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
@@ -46,6 +46,11 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
   const [loadingPerms, setLoadingPerms] = useState(false);
   const [showSharing, setShowSharing] = useState(false);
 
+  // Group state
+  const [userGroups, setUserGroups] = useState([]);
+  const [taskGroupId, setTaskGroupId] = useState(task.group_id || null);
+  const [showGroups, setShowGroups] = useState(!!task.group_id);
+
   const [saving, setSaving] = useState(false);
   const [showDateEnd, setShowDateEnd] = useState(!!task.date_end);
   const [showTimeEnd, setShowTimeEnd] = useState(!!task.time_end);
@@ -54,7 +59,17 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
     if (categories.length === 0) fetchCategories();
     fetchFriends();
     loadPermissions();
+    loadUserGroups();
   }, []);
+
+  const loadUserGroups = async () => {
+    try {
+      const data = await api.getGroups();
+      setUserGroups(data.groups || []);
+    } catch {
+      // Groups might not exist yet
+    }
+  };
 
   const loadPermissions = async () => {
     if (!task.id) return;
@@ -128,6 +143,24 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
         });
       } catch {
         // Ignore if collaboration tables don't exist
+      }
+
+      // 3. Update group assignment
+      try {
+        const oldGroupId = task.group_id || null;
+        const newGroupId = taskGroupId || null;
+        if (oldGroupId !== newGroupId) {
+          // Remove from old group
+          if (oldGroupId) {
+            await api.removeGroupTask(oldGroupId, task.id);
+          }
+          // Add to new group
+          if (newGroupId) {
+            await api.addGroupTask(newGroupId, { existing_task_id: task.id });
+          }
+        }
+      } catch {
+        // Ignore if group tables don't exist
       }
 
       addToast('✅ Änderungen gespeichert');
@@ -299,6 +332,67 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
               className="task-edit-input"
             />
           </div>
+
+          {/* Group Assignment */}
+          {userGroups.length > 0 && (
+            <div className="task-edit-sharing">
+              <button
+                className="task-edit-sharing-toggle"
+                onClick={() => setShowGroups(!showGroups)}
+              >
+                <div className="task-edit-sharing-toggle-left">
+                  <UsersRound size={16} />
+                  <span>Gruppe zuweisen</span>
+                  {taskGroupId && (
+                    <span className="task-edit-sharing-count">1</span>
+                  )}
+                </div>
+                <ChevronDown size={16} className={`task-edit-chevron ${showGroups ? 'open' : ''}`} />
+              </button>
+
+              <AnimatePresence>
+                {showGroups && (
+                  <motion.div
+                    className="task-edit-sharing-content"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 0' }}>
+                      {/* None option */}
+                      <div
+                        className={`task-edit-shared-item addable ${!taskGroupId ? 'selected' : ''}`}
+                        onClick={() => setTaskGroupId(null)}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <div style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)' }}>
+                          <X size={14} />
+                        </div>
+                        <span className="task-edit-friend-name">Keine Gruppe</span>
+                        {!taskGroupId && <span style={{ marginLeft: 'auto', color: 'var(--primary)', fontSize: 12, fontWeight: 600 }}>✓</span>}
+                      </div>
+                      {/* Groups */}
+                      {userGroups.map((g) => (
+                        <div
+                          key={g.id}
+                          className={`task-edit-shared-item addable ${taskGroupId === g.id ? 'selected' : ''}`}
+                          onClick={() => setTaskGroupId(g.id)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <div style={{ width: 32, height: 32, borderRadius: 10, background: g.color || '#007AFF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 13, fontWeight: 700 }}>
+                            {g.name?.charAt(0)?.toUpperCase()}
+                          </div>
+                          <span className="task-edit-friend-name">{g.name}</span>
+                          <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{g.member_count} Mitglieder</span>
+                          {taskGroupId === g.id && <span style={{ marginLeft: 'auto', color: 'var(--primary)', fontSize: 12, fontWeight: 600 }}>✓</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
 
           {/* Sharing Section */}
           <div className="task-edit-sharing">

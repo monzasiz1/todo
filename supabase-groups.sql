@@ -5,22 +5,22 @@
 
 -- 1. Gruppen-Tabelle
 CREATE TABLE IF NOT EXISTS groups (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  id SERIAL PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
   description TEXT DEFAULT '',
   color VARCHAR(7) DEFAULT '#007AFF',
   icon VARCHAR(20) DEFAULT 'users',
   invite_code VARCHAR(8) UNIQUE,
-  created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- 2. Gruppen-Mitglieder
 CREATE TABLE IF NOT EXISTS group_members (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  group_id UUID REFERENCES groups(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  id SERIAL PRIMARY KEY,
+  group_id INTEGER REFERENCES groups(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
   role VARCHAR(20) DEFAULT 'member' CHECK (role IN ('owner', 'admin', 'member')),
   joined_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(group_id, user_id)
@@ -28,10 +28,10 @@ CREATE TABLE IF NOT EXISTS group_members (
 
 -- 3. Gruppen-Aufgaben (verknüpft bestehende Tasks mit Gruppen)
 CREATE TABLE IF NOT EXISTS group_tasks (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  group_id UUID REFERENCES groups(id) ON DELETE CASCADE,
-  task_id UUID REFERENCES tasks(id) ON DELETE CASCADE,
-  created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  id SERIAL PRIMARY KEY,
+  group_id INTEGER REFERENCES groups(id) ON DELETE CASCADE,
+  task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
+  created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(group_id, task_id)
 );

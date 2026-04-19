@@ -26,7 +26,14 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ error: 'Eingabe ist erforderlich' });
       }
 
-      const parsed = await parseTaskWithAI(input);
+      // Get user's groups for recognition
+      const groupsRes = await pool.query(
+        `SELECT g.name FROM groups g JOIN group_members gm ON gm.group_id = g.id WHERE gm.user_id = $1`,
+        [user.id]
+      );
+      const groupNames = groupsRes.rows.map(g => g.name);
+
+      const parsed = await parseTaskWithAI(input, { groupNames });
       return res.json({ parsed });
     } catch (err) {
       console.error('AI parse error:', err);
@@ -111,7 +118,14 @@ module.exports = async function handler(req, res) {
         [user.id]
       );
 
-      const parsed = await parseTaskWithAI(input);
+      // Get user's groups for recognition
+      const groupsRes = await pool.query(
+        `SELECT g.id, g.name FROM groups g JOIN group_members gm ON gm.group_id = g.id WHERE gm.user_id = $1`,
+        [user.id]
+      );
+      const groupNames = groupsRes.rows.map(g => g.name);
+
+      const parsed = await parseTaskWithAI(input, { groupNames });
       if (!parsed || !parsed.title) {
         return res.status(400).json({ error: 'Aufgabe konnte nicht erkannt werden' });
       }
@@ -190,10 +204,28 @@ module.exports = async function handler(req, res) {
         }
       }
 
+      // Auto-link to group if AI recognized a group name
+      let groupInfo = null;
+      if (parsed.group_name) {
+        const matchedGroup = groupsRes.rows.find(
+          (g) => g.name.toLowerCase() === parsed.group_name.toLowerCase()
+            || g.name.toLowerCase().includes(parsed.group_name.toLowerCase())
+            || parsed.group_name.toLowerCase().includes(g.name.toLowerCase())
+        );
+        if (matchedGroup) {
+          await pool.query(
+            `INSERT INTO group_tasks (group_id, task_id, created_by) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
+            [matchedGroup.id, taskId, user.id]
+          );
+          groupInfo = { id: matchedGroup.id, name: matchedGroup.name };
+        }
+      }
+
       return res.status(201).json({
         task: result.rows[0],
         parsed,
         shared_with: sharedWithNames,
+        group: groupInfo,
       });
     } catch (err) {
       console.error('AI parse-and-create error:', err);

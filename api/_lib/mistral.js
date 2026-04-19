@@ -1,8 +1,10 @@
 const MISTRAL_API_URL = 'https://api.mistral.ai/v1/chat/completions';
 
-async function parseTaskWithAI(input) {
+async function parseTaskWithAI(input, options = {}) {
   const key = process.env.MISTRAL_API_KEY;
   if (!key) throw new Error('MISTRAL_API_KEY nicht konfiguriert');
+
+  const { groupNames = [] } = options;
 
   const now = new Date();
   const days = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
@@ -51,6 +53,14 @@ Berechne Wochentage korrekt:
 - Wenn Teilen erkannt wird: Extrahiere die Namen in "share_with" als Array
 - Erkenne auch: "nicht teilen", "nur für mich", "privat" → share_with: null
 - Der Titel soll NICHT den Teilen-Wunsch enthalten (z.B. "Einkaufen mit Max teilen" → title: "Einkaufen", share_with: ["Max"])
+${groupNames.length > 0 ? `
+- GRUPPEN-ERKENNUNG: Der User ist Mitglied folgender Gruppen: ${groupNames.join(', ')}
+- Wenn der Text einen Gruppennamen enthält (fuzzy match, z.B. "family" → "Family", "arbeit" → "Arbeit Team"), setze "group_name" auf den erkannten Gruppennamen
+- Beispiele: "mit Family morgen schwimmen gehen" → title: "Schwimmen gehen", group_name: "Family", date: morgen
+- "Team Meeting Freitag 10 Uhr" (Gruppe "Team" existiert) → title: "Meeting", group_name: "Team", date: Freitag, time: "10:00"
+- Der Gruppenname soll NICHT im Titel erscheinen
+- Wenn keine Gruppe erkannt wird: group_name: null
+` : ''}
 
 Beispiele:
 - "Peter kommt nicht zur Probe am Mittwoch 18 Uhr" → title: "Probe", description: "Peter kommt nicht zur Probe", date: Mittwoch-Datum, time: "18:00"
@@ -74,6 +84,7 @@ JSON Format:
   "priority": "low|medium|high|urgent",
   "hasReminder": true/false,
   "share_with": ["Name1", "Name2"] oder null,
+  "group_name": "Gruppenname" oder null,
   "confidence": 0.0-1.0
 }`;
 
@@ -117,6 +128,7 @@ JSON Format:
       priority: parsed.priority || 'medium',
       hasReminder: parsed.hasReminder || false,
       share_with: parsed.share_with || null,
+      group_name: parsed.group_name || null,
       confidence: parsed.confidence || 0.8,
     };
   } catch {
@@ -131,6 +143,7 @@ JSON Format:
       priority: 'medium',
       hasReminder: false,
       share_with: null,
+      group_name: null,
       confidence: 0.3,
     };
   }

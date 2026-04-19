@@ -407,6 +407,7 @@ input, textarea, select {
 .ai-tag.date { background: rgba(52, 199, 89, 0.1); color: var(--success); }
 .ai-tag.time { background: rgba(255, 149, 0, 0.1); color: var(--warning); }
 .ai-tag.priority { background: rgba(255, 45, 85, 0.1); color: var(--urgent); }
+.ai-tag.group { background: rgba(88, 86, 214, 0.1); color: #5856D6; }
 .ai-tag.category { background: rgba(88, 86, 214, 0.1); color: var(--purple); }
 
 .ai-input-hint {

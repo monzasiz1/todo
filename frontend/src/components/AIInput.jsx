@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTaskStore } from '../store/taskStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ArrowUp, Calendar, Clock, Tag, Flag, Loader2 } from 'lucide-react';
+import { Sparkles, ArrowUp, Calendar, Clock, Tag, Flag, Loader2, UsersRound } from 'lucide-react';
 
 export default function AIInput({ onTaskCreated }) {
   const [input, setInput] = useState('');
@@ -134,6 +134,12 @@ export default function AIInput({ onTaskCreated }) {
                   <span className="ai-tag priority">
                     <Flag size={12} />
                     {priorityLabels[preview.priority] || preview.priority}
+                  </span>
+                )}
+                {preview.group_name && (
+                  <span className="ai-tag group">
+                    <UsersRound size={12} />
+                    {preview.group_name}
                   </span>
                 )}
               </motion.div>

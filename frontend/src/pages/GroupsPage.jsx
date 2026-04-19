@@ -542,9 +542,9 @@ function AddGroupTask({ groupId, onClose, onAdd }) {
         onClick={(e) => e.stopPropagation()}
         onSubmit={handleSubmit}
       >
-        <div className="group-add-form-header">
-          <h3>Neue Gruppenaufgabe</h3>
-          <button type="button" className="task-edit-close" onClick={onClose}><X size={18} /></button>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+          <h4 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>Neue Gruppenaufgabe</h4>
+          <button type="button" onClick={onClose} style={{ background: 'var(--hover)', border: 'none', borderRadius: 10, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-secondary)' }}><X size={18} /></button>
         </div>
 
         <input
@@ -552,36 +552,38 @@ function AddGroupTask({ groupId, onClose, onAdd }) {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Was muss erledigt werden?"
-          className="task-edit-input"
           autoFocus
         />
 
-        <div className="task-edit-row">
-          <div className="task-edit-field flex-1">
-            <label><Calendar size={12} /> Datum</label>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="task-edit-input" />
+        <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}><Calendar size={12} /> Datum</label>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </div>
-          <div className="task-edit-field flex-1">
-            <label><Clock size={12} /> Uhrzeit</label>
-            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="task-edit-input" />
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}><Clock size={12} /> Uhrzeit</label>
+            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
           </div>
         </div>
 
-        <div className="task-edit-priority-pills">
-          {[
-            { v: 'low', l: 'Niedrig', c: 'var(--success)' },
-            { v: 'medium', l: 'Mittel', c: 'var(--primary)' },
-            { v: 'high', l: 'Hoch', c: 'var(--warning)' },
-            { v: 'urgent', l: 'Dringend', c: 'var(--danger)' },
-          ].map((p) => (
-            <button
-              key={p.v}
-              type="button"
-              className={`task-edit-pill ${priority === p.v ? 'active' : ''}`}
-              style={priority === p.v ? { background: p.c, color: '#fff' } : {}}
-              onClick={() => setPriority(p.v)}
-            >{p.l}</button>
-          ))}
+        <div>
+          <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6 }}><Flag size={12} /> Priorität</label>
+          <div className="group-priority-pills">
+            {[
+              { v: 'low', l: 'Niedrig', c: 'var(--success)' },
+              { v: 'medium', l: 'Mittel', c: 'var(--primary)' },
+              { v: 'high', l: 'Hoch', c: 'var(--warning)' },
+              { v: 'urgent', l: 'Dringend', c: 'var(--danger)' },
+            ].map((p) => (
+              <button
+                key={p.v}
+                type="button"
+                className={`group-priority-pill ${priority === p.v ? 'selected' : ''}`}
+                style={priority === p.v ? { background: p.c, color: '#fff', borderColor: p.c } : {}}
+                onClick={() => setPriority(p.v)}
+              >{p.l}</button>
+            ))}
+          </div>
         </div>
 
         <button type="submit" className="group-submit-btn" disabled={!title.trim() || saving}>

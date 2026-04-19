@@ -60,8 +60,9 @@ export const useTaskStore = create((set, get) => ({
       const shared = data.shared_with && data.shared_with.length > 0
         ? ` 👥 Geteilt mit ${data.shared_with.join(', ')}`
         : '';
+      const groupMsg = data.group ? ` 📋 Gruppe: ${data.group.name}` : '';
       const shareErr = data.parsed.share_error ? `\n⚠️ ${data.parsed.share_error}` : '';
-      get().addToast(`✅ "${data.parsed.title}"${cat}${range}${shared} gespeichert${shareErr}`);
+      get().addToast(`✅ "${data.parsed.title}"${cat}${range}${shared}${groupMsg} gespeichert${shareErr}`);
       return data;
     } catch (err) {
       get().addToast('❌ ' + err.message, 'error');

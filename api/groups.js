@@ -216,25 +216,39 @@ module.exports = async function handler(req, res) {
         // Members can only add tasks, not restricted further for now
       }
 
-      const { title, description, date, date_end, time, time_end, priority, category_id, reminder_at } = req.body;
-      if (!title) return res.status(400).json({ error: 'Titel erforderlich' });
+      const { existing_task_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at } = req.body;
 
-      // Create the task owned by the user
-      const taskResult = await pool.query(
-        `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-           (SELECT COALESCE(MAX(sort_order),0)+1 FROM tasks WHERE user_id = $1))
-         RETURNING *`,
-        [user.id, title.trim(), description || null, date || null, date_end || null,
-         time || null, time_end || null, priority || 'medium', category_id || null, reminder_at || null]
-      );
-      const task = taskResult.rows[0];
+      let task;
 
-      // Link to group
-      await pool.query(
-        'INSERT INTO group_tasks (group_id, task_id, created_by) VALUES ($1, $2, $3)',
-        [groupId, task.id, user.id]
-      );
+      if (existing_task_id) {
+        // Link an existing task to this group
+        const existing = await pool.query('SELECT * FROM tasks WHERE id = $1 AND user_id = $2', [existing_task_id, user.id]);
+        if (existing.rows.length === 0) return res.status(404).json({ error: 'Aufgabe nicht gefunden' });
+        task = existing.rows[0];
+        await pool.query(
+          'INSERT INTO group_tasks (group_id, task_id, created_by) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
+          [groupId, task.id, user.id]
+        );
+      } else {
+        if (!title) return res.status(400).json({ error: 'Titel erforderlich' });
+
+        // Create the task owned by the user
+        const taskResult = await pool.query(
+          `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+             (SELECT COALESCE(MAX(sort_order),0)+1 FROM tasks WHERE user_id = $1))
+           RETURNING *`,
+          [user.id, title.trim(), description || null, date || null, date_end || null,
+           time || null, time_end || null, priority || 'medium', category_id || null, reminder_at || null]
+        );
+        task = taskResult.rows[0];
+
+        // Link to group
+        await pool.query(
+          'INSERT INTO group_tasks (group_id, task_id, created_by) VALUES ($1, $2, $3)',
+          [groupId, task.id, user.id]
+        );
+      }
 
       await pool.query('UPDATE groups SET updated_at = NOW() WHERE id = $1', [groupId]);
 
