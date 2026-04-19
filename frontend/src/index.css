@@ -1326,3 +1326,229 @@ input, textarea, select {
 .scale-in {
   animation: scaleIn 0.3s ease forwards;
 }
+
+/* ========== TASK DETAIL MODAL ========== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.task-detail-modal {
+  background: var(--card-solid);
+  border-radius: var(--radius-xl);
+  width: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-xl);
+  position: relative;
+}
+
+.task-detail-header {
+  position: relative;
+  padding: 0;
+}
+
+.task-detail-priority-bar {
+  height: 4px;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+
+.task-detail-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.task-detail-close:hover {
+  background: var(--border-strong);
+  color: var(--text);
+}
+
+.task-detail-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 24px 24px 0;
+}
+
+.task-detail-checkbox {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  margin-top: 2px;
+}
+.task-detail-checkbox.checked {
+  color: var(--success);
+}
+
+.task-detail-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+}
+.task-detail-title.completed {
+  text-decoration: line-through;
+  color: var(--text-tertiary);
+}
+
+.task-detail-status {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  margin-top: 6px;
+}
+.task-detail-status.done {
+  background: rgba(52, 199, 89, 0.12);
+  color: var(--success);
+}
+.task-detail-status.overdue {
+  background: rgba(255, 59, 48, 0.12);
+  color: var(--danger);
+}
+
+.task-detail-section {
+  padding: 16px 24px 0;
+}
+
+.task-detail-description {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.task-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  margin: 20px 24px;
+  background: var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.task-detail-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--card-solid);
+}
+
+.task-detail-item-icon {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.task-detail-item-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-tertiary);
+  margin-bottom: 2px;
+}
+
+.task-detail-item-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.task-detail-category-badge {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 8px;
+}
+
+.task-detail-footer-info {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  padding: 0 24px 8px;
+}
+
+.task-detail-actions {
+  display: flex;
+  gap: 10px;
+  padding: 16px 24px 24px;
+}
+
+.task-detail-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.task-detail-btn.complete {
+  background: var(--success);
+  color: white;
+}
+.task-detail-btn.complete:hover {
+  filter: brightness(1.1);
+}
+
+.task-detail-btn.reopen {
+  background: var(--primary-bg);
+  color: var(--primary);
+}
+.task-detail-btn.reopen:hover {
+  background: rgba(0, 122, 255, 0.15);
+}
+
+.task-detail-btn.delete {
+  background: rgba(255, 59, 48, 0.08);
+  color: var(--danger);
+  flex: 0;
+  padding: 12px 20px;
+}
+.task-detail-btn.delete:hover {
+  background: rgba(255, 59, 48, 0.15);
+}
+
+@media (max-width: 500px) {
+  .task-detail-grid {
+    grid-template-columns: 1fr;
+  }
+  .task-detail-modal {
+    max-height: 90vh;
+    border-radius: var(--radius-lg);
+  }
+}
