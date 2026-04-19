@@ -101,7 +101,7 @@ module.exports = async function handler(req, res) {
   // POST /api/ai/parse-and-create
   if (action === 'parse-and-create') {
     try {
-      const { input, visibility, permissions } = req.body;
+      const { input, visibility: reqVisibility, permissions: reqPermissions } = req.body;
       if (!input) {
         return res.status(400).json({ error: 'Eingabe ist erforderlich' });
       }
@@ -125,6 +125,41 @@ module.exports = async function handler(req, res) {
         if (match) categoryId = match.id;
       }
 
+      // Determine visibility and permissions
+      let finalVisibility = reqVisibility || 'private';
+      let permissions = reqPermissions || [];
+      let sharedWithNames = [];
+
+      // If AI detected share_with names, auto-resolve to friends
+      if (parsed.share_with && Array.isArray(parsed.share_with) && parsed.share_with.length > 0) {
+        const friends = await pool.query(
+          `SELECT u.id, u.name FROM friends f
+           JOIN users u ON u.id = CASE WHEN f.user_id = $1 THEN f.friend_id ELSE f.user_id END
+           WHERE (f.user_id = $1 OR f.friend_id = $1) AND f.status = 'accepted'`,
+          [user.id]
+        );
+
+        const resolvedPerms = [];
+        for (const name of parsed.share_with) {
+          const friend = friends.rows.find(
+            (f) => f.name.toLowerCase().includes(name.toLowerCase()) ||
+                   name.toLowerCase().includes(f.name.split(' ')[0].toLowerCase())
+          );
+          if (friend) {
+            resolvedPerms.push({ user_id: friend.id, can_view: true, can_edit: true });
+            sharedWithNames.push(friend.name);
+          }
+        }
+
+        if (resolvedPerms.length > 0) {
+          finalVisibility = 'selected_users';
+          permissions = resolvedPerms;
+        } else {
+          // Names given but no matching friends found
+          parsed.share_error = `Kein Freund gefunden für: ${parsed.share_with.join(', ')}. Füge sie zuerst als Freund hinzu!`;
+        }
+      }
+
       const maxOrder = await pool.query(
         'SELECT COALESCE(MAX(sort_order), 0) + 1 as next_order FROM tasks WHERE user_id = $1',
         [user.id]
@@ -137,13 +172,13 @@ module.exports = async function handler(req, res) {
         [user.id, parsed.title, parsed.description || null, parsed.date || null,
          parsed.date_end || null, parsed.time || null, parsed.time_end || null,
          parsed.priority || 'medium', categoryId,
-         null, maxOrder.rows[0].next_order, visibility || 'private']
+         null, maxOrder.rows[0].next_order, finalVisibility]
       );
 
       const taskId = result.rows[0].id;
 
-      // Set permissions if provided
-      if (permissions && Array.isArray(permissions)) {
+      // Set permissions
+      if (permissions && Array.isArray(permissions) && permissions.length > 0) {
         for (const perm of permissions) {
           if (!perm.user_id) continue;
           await pool.query(
@@ -155,7 +190,11 @@ module.exports = async function handler(req, res) {
         }
       }
 
-      return res.status(201).json({ task: result.rows[0], parsed });
+      return res.status(201).json({
+        task: result.rows[0],
+        parsed,
+        shared_with: sharedWithNames,
+      });
     } catch (err) {
       console.error('AI parse-and-create error:', err);
       return res.status(500).json({ error: 'KI-Erstellung fehlgeschlagen' });

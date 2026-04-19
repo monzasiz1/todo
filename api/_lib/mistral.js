@@ -47,12 +47,20 @@ Berechne Wochentage korrekt:
 - "morgen" → ${tomorrow}
 - "übermorgen" → ${dayAfter}
 
+- Erkenne ob der Nutzer die Aufgabe mit jemandem TEILEN möchte: "mit Max teilen", "für Anna", "zeig das Lisa", "teile mit Max und Anna"
+- Wenn Teilen erkannt wird: Extrahiere die Namen in "share_with" als Array
+- Erkenne auch: "nicht teilen", "nur für mich", "privat" → share_with: null
+- Der Titel soll NICHT den Teilen-Wunsch enthalten (z.B. "Einkaufen mit Max teilen" → title: "Einkaufen", share_with: ["Max"])
+
 Beispiele:
 - "Peter kommt nicht zur Probe am Mittwoch 18 Uhr" → title: "Probe", description: "Peter kommt nicht zur Probe", date: Mittwoch-Datum, time: "18:00"
 - "Einkaufen Milch Eier Butter Brot morgen" → title: "Einkaufen", description: "• Milch\\n• Eier\\n• Butter\\n• Brot", date: morgen, category: "Einkaufen"
 - "Kirmes vom 20. bis 24. April" → title: "Kirmes", date: "2026-04-20", date_end: "2026-04-24"
 - "Meeting morgen von 14 bis 16 Uhr" → title: "Meeting", date: morgen, time: "14:00", time_end: "16:00"
 - "Arzttermin Dienstag 10-11:30 Uhr Zahnarzt Dr. Mueller" → title: "Arzttermin", description: "Zahnarzt Dr. Mueller", date: Dienstag, time: "10:00", time_end: "11:30"
+- "Einkaufen mit Melanie teilen" → title: "Einkaufen", share_with: ["Melanie"], category: "Einkaufen"
+- "Projekt für Max und Anna sichtbar machen morgen" → title: "Projekt", share_with: ["Max", "Anna"], date: morgen
+- "mit Melanie teilen Geburtstagsparty am Samstag" → title: "Geburtstagsparty", share_with: ["Melanie"], date: Samstag-Datum
 
 JSON Format:
 {
@@ -65,6 +73,7 @@ JSON Format:
   "category": "string",
   "priority": "low|medium|high|urgent",
   "hasReminder": true/false,
+  "share_with": ["Name1", "Name2"] oder null,
   "confidence": 0.0-1.0
 }`;
 
@@ -107,6 +116,7 @@ JSON Format:
       category: parsed.category || 'Persönlich',
       priority: parsed.priority || 'medium',
       hasReminder: parsed.hasReminder || false,
+      share_with: parsed.share_with || null,
       confidence: parsed.confidence || 0.8,
     };
   } catch {
@@ -120,6 +130,7 @@ JSON Format:
       category: 'Persönlich',
       priority: 'medium',
       hasReminder: false,
+      share_with: null,
       confidence: 0.3,
     };
   }
