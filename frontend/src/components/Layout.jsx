@@ -1,11 +1,22 @@
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import FeedbackToast from './FeedbackToast';
-import { useState } from 'react';
+import BottomNav from './BottomNav';
+import { useState, useRef } from 'react';
 import { Menu, X, CheckSquare } from 'lucide-react';
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const aiInputRef = useRef(null);
+
+  const handleFabClick = () => {
+    // Focus the AI input field when FAB is pressed
+    const aiInput = document.querySelector('.ai-input-field');
+    if (aiInput) {
+      aiInput.focus();
+      aiInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
 
   return (
     <div className="app-layout">
@@ -35,6 +46,9 @@ export default function Layout() {
       <main className="app-main">
         <Outlet />
       </main>
+
+      {/* Bottom Navigation (mobile) */}
+      <BottomNav onAddClick={handleFabClick} />
 
       {/* Toast Notifications */}
       <FeedbackToast />
