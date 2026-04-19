@@ -54,14 +54,19 @@ export const useTaskStore = create((set, get) => ({
   aiCreateTask: async (input) => {
     try {
       const data = await api.parseAndCreateTask(input);
-      set((s) => ({ tasks: [data.task, ...s.tasks] }));
+      const created = Array.isArray(data.created_tasks) && data.created_tasks.length > 0
+        ? data.created_tasks
+        : [data.task];
+      set((s) => ({ tasks: [...created, ...s.tasks] }));
       const cat = data.parsed.category ? ` → ${data.parsed.category}` : '';
       const range = data.parsed.date_end ? ` (${data.parsed.date} bis ${data.parsed.date_end})` : '';
       const shared = data.shared_with && data.shared_with.length > 0
         ? ` 👥 Geteilt mit ${data.shared_with.join(', ')}`
         : '';
       const groupMsg = data.group ? ` 📋 Gruppe: ${data.group.name}` : '';
-      const recMsg = data.parsed.recurrence_rule ? ' 🔄 Wiederkehrend' : '';
+      const recMsg = (data.created_count || 0) > 1
+        ? ` 🔄 ${data.created_count} Termine erstellt`
+        : (data.parsed.recurrence_rule ? ' 🔄 Wiederkehrend' : '');
       const shareErr = data.parsed.share_error ? `\n⚠️ ${data.parsed.share_error}` : '';
       get().addToast(`✅ "${data.parsed.title}"${cat}${range}${shared}${groupMsg}${recMsg} gespeichert${shareErr}`);
       return data;

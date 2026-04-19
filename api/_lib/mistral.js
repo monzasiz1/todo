@@ -50,7 +50,8 @@ Regeln:
   - "jährlich", "jedes Jahr" → recurrence_rule: "yearly"
   - "werktags", "unter der Woche", "Montag bis Freitag" → recurrence_rule: "weekdays"
   - "alle X Tage/Wochen/Monate" → recurrence_rule: passendes + recurrence_interval: X
-  - Wenn ein Enddatum für die Wiederholung erkannt wird ("bis Ende Juni", "bis 31.12.") → recurrence_end: YYYY-MM-DD
+  - Wenn ein Enddatum für die Wiederholung erkannt wird ("bis Ende Juni", "bis Ende Mai", "bis 31.12.") → recurrence_end: YYYY-MM-DD
+  - "Ende <Monat>" = letzter Kalendertag dieses Monats im aktuellen Jahr (oder nächstes Jahr, falls Monat schon vorbei)
   - Wenn KEINE Wiederholung erkannt wird → recurrence_rule: null
 - Antworte NUR mit validem JSON, kein anderer Text
 
@@ -86,6 +87,7 @@ Beispiele:
 - "alle 2 Wochen Putzen" → title: "Putzen", date: heute, recurrence_rule: "biweekly"
 - "monatlich Miete überweisen am 1." → title: "Miete überweisen", recurrence_rule: "monthly"
 - "werktags Standup 9 Uhr" → title: "Standup", date: nächster-Werktag, time: "09:00", recurrence_rule: "weekdays"
+- "jeden Mittwoch bis Ende Mai ist mittwochs Probe von 19:00 bis 21:00 Uhr" → title: "Probe", date: nächster-Mittwoch, time: "19:00", time_end: "21:00", recurrence_rule: "weekly", recurrence_end: "YYYY-05-31"
 
 JSON Format:
 {

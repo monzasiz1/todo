@@ -2,6 +2,72 @@ const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
 const { parseTaskWithAI, parsePermissionsWithAI } = require('./_lib/mistral');
 
+function toDateOnly(value) {
+  if (!value) return null;
+  return new Date(value + 'T00:00:00');
+}
+
+function formatDateOnly(dateObj) {
+  return dateObj.toISOString().split('T')[0];
+}
+
+function shiftDate(dateValue, days) {
+  const d = toDateOnly(dateValue);
+  if (!d) return null;
+  d.setDate(d.getDate() + days);
+  return formatDateOnly(d);
+}
+
+function nextOccurrenceDate(currentDate, rule, interval = 1) {
+  const d = toDateOnly(currentDate);
+  if (!d || !rule) return null;
+
+  switch (rule) {
+    case 'daily':
+      d.setDate(d.getDate() + interval);
+      break;
+    case 'weekly':
+      d.setDate(d.getDate() + 7 * interval);
+      break;
+    case 'biweekly':
+      d.setDate(d.getDate() + 14);
+      break;
+    case 'monthly':
+      d.setMonth(d.getMonth() + interval);
+      break;
+    case 'yearly':
+      d.setFullYear(d.getFullYear() + interval);
+      break;
+    case 'weekdays':
+      do {
+        d.setDate(d.getDate() + 1);
+      } while (d.getDay() === 0 || d.getDay() === 6);
+      break;
+    default:
+      return null;
+  }
+
+  return formatDateOnly(d);
+}
+
+function buildRecurringDates(startDate, rule, interval, endDate) {
+  if (!startDate || !rule || !endDate) return [];
+
+  const dates = [];
+  let cursor = startDate;
+  let guard = 0;
+
+  while (guard < 366) {
+    const next = nextOccurrenceDate(cursor, rule, interval);
+    if (!next || next > endDate) break;
+    dates.push(next);
+    cursor = next;
+    guard += 1;
+  }
+
+  return dates;
+}
+
 module.exports = async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -179,6 +245,20 @@ module.exports = async function handler(req, res) {
         [user.id]
       );
 
+      const recurrenceRule = parsed.recurrence_rule || null;
+      const recurrenceInterval = Math.max(1, Number(parsed.recurrence_interval) || 1);
+      const recurrenceEnd = parsed.recurrence_end || null;
+      const extraDates = buildRecurringDates(parsed.date || null, recurrenceRule, recurrenceInterval, recurrenceEnd);
+
+      let spanDays = 0;
+      if (parsed.date && parsed.date_end) {
+        const start = toDateOnly(parsed.date);
+        const end = toDateOnly(parsed.date_end);
+        if (start && end) {
+          spanDays = Math.max(0, Math.round((end - start) / 86400000));
+        }
+      }
+
       const result = await pool.query(
         `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order, visibility,
          recurrence_rule, recurrence_interval, recurrence_end)
@@ -188,21 +268,45 @@ module.exports = async function handler(req, res) {
          parsed.date_end || null, parsed.time || null, parsed.time_end || null,
          parsed.priority || 'medium', categoryId,
          null, maxOrder.rows[0].next_order, finalVisibility,
-         parsed.recurrence_rule || null, parsed.recurrence_interval || 1, parsed.recurrence_end || null]
+         recurrenceRule, recurrenceInterval, recurrenceEnd]
       );
 
-      const taskId = result.rows[0].id;
+      const firstTask = result.rows[0];
+      const createdTasks = [firstTask];
+      const taskIds = [firstTask.id];
+
+      for (let i = 0; i < extraDates.length; i++) {
+        const occurrenceDate = extraDates[i];
+        const occurrenceDateEnd = spanDays > 0 ? shiftDate(occurrenceDate, spanDays) : null;
+
+        const ins = await pool.query(
+          `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order, visibility,
+           recurrence_rule, recurrence_interval, recurrence_end, recurrence_parent_id)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+           RETURNING *`,
+          [user.id, parsed.title, parsed.description || null, occurrenceDate,
+           occurrenceDateEnd, parsed.time || null, parsed.time_end || null,
+           parsed.priority || 'medium', categoryId,
+           null, maxOrder.rows[0].next_order + i + 1, finalVisibility,
+           recurrenceRule, recurrenceInterval, recurrenceEnd, firstTask.id]
+        );
+
+        createdTasks.push(ins.rows[0]);
+        taskIds.push(ins.rows[0].id);
+      }
 
       // Set permissions
       if (permissions && Array.isArray(permissions) && permissions.length > 0) {
-        for (const perm of permissions) {
-          if (!perm.user_id) continue;
-          await pool.query(
-            `INSERT INTO task_permissions (task_id, user_id, can_view, can_edit)
-             VALUES ($1, $2, $3, $4)
-             ON CONFLICT (task_id, user_id) DO UPDATE SET can_view = $3, can_edit = $4`,
-            [taskId, perm.user_id, perm.can_view !== false, perm.can_edit === true]
-          );
+        for (const currentTaskId of taskIds) {
+          for (const perm of permissions) {
+            if (!perm.user_id) continue;
+            await pool.query(
+              `INSERT INTO task_permissions (task_id, user_id, can_view, can_edit)
+               VALUES ($1, $2, $3, $4)
+               ON CONFLICT (task_id, user_id) DO UPDATE SET can_view = $3, can_edit = $4`,
+              [currentTaskId, perm.user_id, perm.can_view !== false, perm.can_edit === true]
+            );
+          }
         }
       }
 
@@ -215,16 +319,20 @@ module.exports = async function handler(req, res) {
             || parsed.group_name.toLowerCase().includes(g.name.toLowerCase())
         );
         if (matchedGroup) {
-          await pool.query(
-            `INSERT INTO group_tasks (group_id, task_id, created_by) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
-            [matchedGroup.id, taskId, user.id]
-          );
+          for (const currentTaskId of taskIds) {
+            await pool.query(
+              `INSERT INTO group_tasks (group_id, task_id, created_by) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
+              [matchedGroup.id, currentTaskId, user.id]
+            );
+          }
           groupInfo = { id: matchedGroup.id, name: matchedGroup.name };
         }
       }
 
       return res.status(201).json({
-        task: result.rows[0],
+        task: firstTask,
+        created_tasks: createdTasks,
+        created_count: createdTasks.length,
         parsed,
         shared_with: sharedWithNames,
         group: groupInfo,
