@@ -4831,3 +4831,814 @@ input, textarea, select {
     transform: none;
   }
 }
+
+/* ===== GROUPS ===== */
+
+/* --- Group Actions Row --- */
+.group-actions-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.group-action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.group-action-btn.primary {
+  background: var(--primary);
+  color: #fff;
+}
+.group-action-btn.primary:hover {
+  filter: brightness(1.1);
+}
+.group-action-btn.secondary {
+  background: var(--surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+.group-action-btn.secondary:hover {
+  background: var(--hover);
+}
+
+/* --- Group List --- */
+.group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.group-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid var(--border);
+}
+.group-card:hover {
+  background: var(--hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+.group-card-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.group-card-info {
+  flex: 1;
+  min-width: 0;
+}
+.group-card-info h4 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.group-card-info span {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.group-card-role {
+  flex-shrink: 0;
+}
+
+/* --- Group Role Badge --- */
+.group-role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.group-role-badge.owner {
+  background: rgba(255,215,0,0.15);
+  color: #B8860B;
+}
+.group-role-badge.admin {
+  background: var(--primary-bg);
+  color: var(--primary);
+}
+.group-role-badge.member {
+  background: var(--hover);
+  color: var(--text-secondary);
+}
+
+/* --- Group Empty --- */
+.group-empty {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text-secondary);
+}
+.group-empty-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  background: var(--primary-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  color: var(--primary);
+}
+.group-empty h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+}
+.group-empty p {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* --- Sub Header / Back --- */
+.group-sub-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.group-back-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  border: none;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: background 0.2s;
+}
+.group-back-btn:hover {
+  background: var(--hover);
+}
+.group-sub-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* --- Create / Join Form --- */
+.group-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 480px;
+}
+.group-form label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+.group-form input,
+.group-form textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 15px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+.group-form input:focus,
+.group-form textarea:focus {
+  border-color: var(--primary);
+}
+.group-form textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+.group-big-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 28px;
+  margin: 0 auto;
+}
+.group-color-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+.group-color-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 3px solid transparent;
+  transition: all 0.2s;
+}
+.group-color-dot:hover {
+  transform: scale(1.15);
+}
+.group-color-dot.selected {
+  border-color: var(--text-primary);
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px currentColor;
+}
+.group-submit-btn {
+  padding: 14px;
+  border-radius: 14px;
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.group-submit-btn:hover {
+  filter: brightness(1.1);
+}
+.group-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --- Join Group --- */
+.group-join-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  background: var(--primary-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  color: var(--primary);
+}
+.group-join-input {
+  text-align: center;
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+}
+.group-error {
+  background: rgba(255,59,48,0.1);
+  color: var(--danger);
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* --- Group Detail Header --- */
+.group-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: var(--surface);
+  border-radius: 18px;
+  border: 1px solid var(--border);
+}
+.group-detail-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.group-detail-info {
+  flex: 1;
+  min-width: 0;
+}
+.group-detail-info h3 {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0 0 2px;
+}
+.group-detail-info p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* --- Invite Code --- */
+.group-invite-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+.group-invite-row span:first-child {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.group-invite-code {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--primary);
+  flex: 1;
+}
+.group-invite-copy {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: var(--primary-bg);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.group-invite-copy:hover {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* --- Group Tabs --- */
+.group-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border);
+}
+.group-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.group-tab:hover {
+  color: var(--text-primary);
+}
+.group-tab.active {
+  background: var(--primary);
+  color: #fff;
+}
+.group-tab-count {
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(255,255,255,0.2);
+}
+.group-tab:not(.active) .group-tab-count {
+  background: var(--hover);
+  color: var(--text-secondary);
+}
+
+/* --- Group Tab Content --- */
+.group-tab-content {
+  min-height: 100px;
+}
+.group-empty-tab {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+.group-empty-tab svg {
+  display: block;
+  margin: 0 auto 10px;
+  opacity: 0.4;
+}
+
+/* --- Add Task Button --- */
+.group-add-task-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 14px;
+  border: 2px dashed var(--border);
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 16px;
+}
+.group-add-task-btn:hover {
+  border-color: var(--primary);
+  background: var(--primary-bg);
+}
+
+/* --- Group Task List --- */
+.group-task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.group-task-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  transition: all 0.2s;
+}
+.group-task-card:hover {
+  background: var(--hover);
+}
+.group-task-priority {
+  width: 4px;
+  border-radius: 2px;
+  align-self: stretch;
+  flex-shrink: 0;
+}
+.group-task-content {
+  flex: 1;
+  min-width: 0;
+}
+.group-task-content h5 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+.group-task-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.group-task-meta span {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.group-task-creator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+}
+.group-task-creator-avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+}
+.group-task-remove {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.group-task-remove:hover {
+  background: rgba(255,59,48,0.1);
+  color: var(--danger);
+}
+
+/* --- Group Members --- */
+.group-member-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+.group-member-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.group-member-info {
+  flex: 1;
+  min-width: 0;
+}
+.group-member-info h5 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 2px;
+}
+.group-member-info span {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.group-member-actions {
+  display: flex;
+  gap: 4px;
+}
+.group-member-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: var(--hover);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.group-member-action-btn:hover {
+  background: var(--primary-bg);
+  color: var(--primary);
+}
+.group-member-action-btn.danger:hover {
+  background: rgba(255,59,48,0.1);
+  color: var(--danger);
+}
+
+/* --- Leave Button --- */
+.group-leave-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--danger);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+  margin-top: 12px;
+}
+.group-leave-btn:hover {
+  background: rgba(255,59,48,0.08);
+}
+
+/* --- Group Settings --- */
+.group-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.group-danger-zone {
+  margin-top: 24px;
+  padding: 16px;
+  border: 1px solid rgba(255,59,48,0.2);
+  border-radius: 16px;
+  background: rgba(255,59,48,0.04);
+}
+.group-danger-zone h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--danger);
+  margin: 0 0 8px;
+}
+.group-danger-zone p {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+.group-delete-btn {
+  padding: 10px 20px;
+  border-radius: 12px;
+  border: none;
+  background: var(--danger);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.2s;
+}
+.group-delete-btn:hover {
+  filter: brightness(1.1);
+}
+
+/* --- Add Task Overlay --- */
+.group-add-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+.group-add-form {
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 24px;
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.group-add-form h4 {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0;
+}
+.group-add-form input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-size: 15px;
+  color: var(--text-primary);
+  outline: none;
+  font-family: inherit;
+}
+.group-add-form input:focus {
+  border-color: var(--primary);
+}
+.group-priority-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.group-priority-pill {
+  padding: 7px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.group-priority-pill.selected {
+  color: #fff;
+  border-color: transparent;
+}
+.group-add-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+.group-add-actions button {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.group-add-actions .cancel {
+  background: var(--hover);
+  color: var(--text-secondary);
+}
+.group-add-actions .submit {
+  background: var(--primary);
+  color: #fff;
+}
+.group-add-actions .submit:disabled {
+  opacity: 0.5;
+}
+
+/* --- Task Group Badge (on TaskCard) --- */
+.task-group-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* --- Calendar Group Task Indicator --- */
+.calendar-day-task.group-task {
+  position: relative;
+}
+.calendar-week-task.group-task {
+  border-left-width: 3px;
+  border-left-style: solid;
+}
+
+/* ===== GROUPS RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .group-detail-header {
+    padding: 12px;
+  }
+  .group-detail-avatar {
+    width: 44px;
+    height: 44px;
+    font-size: 18px;
+    border-radius: 14px;
+  }
+  .group-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .group-tab {
+    white-space: nowrap;
+    min-width: 0;
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+  .group-add-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .group-add-form {
+    border-radius: 20px 20px 0 0;
+    max-width: 100%;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  }
+  .group-actions-row {
+    gap: 8px;
+  }
+  .group-action-btn {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+}

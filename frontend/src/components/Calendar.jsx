@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../store/taskStore';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, UsersRound } from 'lucide-react';
 import TaskDetailModal from './TaskDetailModal';
 import {
   format,
@@ -92,14 +92,19 @@ export default function Calendar({ onDayClick }) {
                   {dayTasks.slice(0, 2).map((t) => (
                     <div
                       key={t.id}
-                      className={`calendar-day-task ${t.completed ? 'completed' : ''}`}
+                      className={`calendar-day-task ${t.completed ? 'completed' : ''} ${t.group_id ? 'group-task' : ''}`}
                       style={{
-                        background: t.category_color ? `${t.category_color}20` : 'var(--primary-bg)',
-                        color: t.category_color || 'var(--primary)',
-                        borderLeft: `2px solid ${t.category_color || 'var(--primary)'}`,
+                        background: t.group_id
+                          ? `${t.group_color || '#5856D6'}15`
+                          : t.category_color ? `${t.category_color}20` : 'var(--primary-bg)',
+                        color: t.group_id
+                          ? (t.group_color || '#5856D6')
+                          : t.category_color || 'var(--primary)',
+                        borderLeft: `2px solid ${t.group_id ? (t.group_color || '#5856D6') : (t.category_color || 'var(--primary)')}`,
                       }}
                       onClick={(e) => { e.stopPropagation(); setDetailTask(t); }}
                     >
+                      {t.group_id && <UsersRound size={10} style={{ flexShrink: 0, opacity: 0.8 }} />}
                       {t.time && <span className="calendar-day-task-time">{t.time.slice(0, 5)}</span>}
                       <span className="calendar-day-task-title">{t.title}</span>
                     </div>
@@ -142,14 +147,20 @@ export default function Calendar({ onDayClick }) {
                 {dayTasks.map((t) => (
                   <div
                     key={t.id}
-                    className={`calendar-week-task ${t.completed ? 'completed' : ''}`}
+                    className={`calendar-week-task ${t.completed ? 'completed' : ''} ${t.group_id ? 'group-task' : ''}`}
                     style={{
-                      background: t.category_color ? `${t.category_color}18` : 'var(--primary-bg)',
-                      color: t.category_color || 'var(--primary)',
+                      background: t.group_id
+                        ? `${t.group_color || '#5856D6'}15`
+                        : t.category_color ? `${t.category_color}18` : 'var(--primary-bg)',
+                      color: t.group_id
+                        ? (t.group_color || '#5856D6')
+                        : t.category_color || 'var(--primary)',
                       cursor: 'pointer',
+                      borderLeft: t.group_id ? `3px solid ${t.group_color || '#5856D6'}` : undefined,
                     }}
                     onClick={(e) => { e.stopPropagation(); setDetailTask(t); }}
                   >
+                    {t.group_id && <UsersRound size={11} style={{ flexShrink: 0, opacity: 0.7 }} />}
                     {t.time && <span style={{ opacity: 0.7 }}>{t.time.slice(0, 5)}</span>}
                     {t.title}
                   </div>

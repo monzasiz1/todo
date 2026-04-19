@@ -176,4 +176,48 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ input }),
     }),
+
+  // Groups
+  getGroups: () => request('/groups'),
+
+  createGroup: (data) =>
+    request('/groups', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  joinGroup: (code) =>
+    request('/groups/join', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    }),
+
+  getGroup: (id) => request(`/groups/${id}`),
+
+  updateGroup: (id, data) =>
+    request(`/groups/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  deleteGroup: (id) =>
+    request(`/groups/${id}`, { method: 'DELETE' }),
+
+  addGroupTask: (groupId, task) =>
+    request(`/groups/${groupId}/tasks`, {
+      method: 'POST',
+      body: JSON.stringify(task),
+    }),
+
+  removeGroupTask: (groupId, taskId) =>
+    request(`/groups/${groupId}/tasks/${taskId}`, { method: 'DELETE' }),
+
+  changeGroupMemberRole: (groupId, userId, role) =>
+    request(`/groups/${groupId}/members/${userId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role }),
+    }),
+
+  removeGroupMember: (groupId, userId) =>
+    request(`/groups/${groupId}/members/${userId}`, { method: 'DELETE' }),
 };

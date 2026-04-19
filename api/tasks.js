@@ -20,8 +20,11 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ error: 'Start- und Enddatum erforderlich' });
       }
       const result = await pool.query(
-        `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon
+        `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
+           gt.group_id, grp.name as group_name, grp.color as group_color
          FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
+         LEFT JOIN group_tasks gt ON gt.task_id = t.id
+         LEFT JOIN groups grp ON grp.id = gt.group_id
          WHERE t.user_id = $1 AND (
            (t.date >= $2 AND t.date <= $3)
            OR (t.date_end IS NOT NULL AND t.date <= $3 AND t.date_end >= $2)
@@ -158,6 +161,7 @@ module.exports = async function handler(req, res) {
              editor.name as last_editor_name,
              CASE WHEN t.user_id = $1 THEN true ELSE false END as is_owner,
              COALESCE(tp.can_edit, false) as can_edit,
+             gt.group_id, grp.name as group_name, grp.color as group_color,
              (SELECT COALESCE(json_agg(json_build_object('name', su.name, 'color', su.avatar_color)), '[]'::json)
               FROM task_permissions tp2 JOIN users su ON tp2.user_id = su.id
               WHERE tp2.task_id = t.id) as shared_with_users
@@ -166,21 +170,28 @@ module.exports = async function handler(req, res) {
            LEFT JOIN users u ON t.user_id = u.id
            LEFT JOIN users editor ON t.last_edited_by = editor.id
            LEFT JOIN task_permissions tp ON tp.task_id = t.id AND tp.user_id = $1
+           LEFT JOIN group_tasks gt ON gt.task_id = t.id
+           LEFT JOIN groups grp ON grp.id = gt.group_id
            WHERE t.user_id = $1
              OR (t.visibility = 'shared' AND EXISTS (
                SELECT 1 FROM friends f WHERE f.status = 'accepted'
                AND ((f.user_id = t.user_id AND f.friend_id = $1) OR (f.user_id = $1 AND f.friend_id = t.user_id))
              ))
              OR (t.visibility = 'selected_users' AND tp.can_view = true)
+             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
            ORDER BY t.sort_order ASC, t.created_at DESC`,
           [user.id]
         );
       } else {
         // Simple query without collaboration
         result = await pool.query(
-          `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon
+          `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
+             gt.group_id, grp.name as group_name, grp.color as group_color
            FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
+           LEFT JOIN group_tasks gt ON gt.task_id = t.id
+           LEFT JOIN groups grp ON grp.id = gt.group_id
            WHERE t.user_id = $1
+             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
            ORDER BY t.sort_order ASC, t.created_at DESC`,
           [user.id]
         );

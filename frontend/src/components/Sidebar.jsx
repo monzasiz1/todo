@@ -10,6 +10,7 @@ import {
   Sparkles,
   Users,
   UserCircle,
+  UsersRound,
 } from 'lucide-react';
 import FriendsList from './FriendsList';
 import { useFriendsStore } from '../store/friendsStore';
@@ -29,6 +30,7 @@ export default function Sidebar({ isOpen, onClose }) {
   const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/calendar', icon: CalendarDays, label: 'Kalender' },
+    { to: '/groups', icon: UsersRound, label: 'Gruppen' },
   ];
 
   const getTaskCount = (categoryId) => {

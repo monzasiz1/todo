@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTaskStore } from '../store/taskStore';
-import { Check, Trash2, Clock, Calendar, GripVertical, Lock, Users, UserCheck } from 'lucide-react';
+import { Check, Trash2, Clock, Calendar, GripVertical, Lock, Users, UserCheck, UsersRound } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
 import TaskDetailModal from './TaskDetailModal';
@@ -77,6 +77,18 @@ export default function TaskCard({ task, index }) {
           </div>
         )}
         <SharedTaskBadge task={task} />
+        {task.group_name && (
+          <span
+            className="task-group-badge"
+            style={{
+              background: task.group_color ? `${task.group_color}18` : 'rgba(88,86,214,0.1)',
+              color: task.group_color || '#5856D6',
+            }}
+          >
+            <UsersRound size={12} />
+            {task.group_name}
+          </span>
+        )}
         <div className="task-meta">
           {task.date && (
             <span className="task-meta-item" style={isOverdue ? { color: 'var(--danger)' } : {}}>
