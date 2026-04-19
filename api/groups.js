@@ -32,14 +32,14 @@ module.exports = async function handler(req, res) {
   // ============================================
   if (segments.length === 0 && req.method === 'POST') {
     try {
-      const { name, description, color, icon } = req.body;
+      const { name, description, color, icon, image_url } = req.body;
       if (!name || !name.trim()) return res.status(400).json({ error: 'Gruppenname erforderlich' });
 
       const inviteCode = generateInviteCode();
       const result = await pool.query(
-        `INSERT INTO groups (name, description, color, icon, invite_code, created_by)
-         VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-        [name.trim(), description || '', color || '#007AFF', icon || 'users', inviteCode, user.id]
+        `INSERT INTO groups (name, description, color, icon, image_url, invite_code, created_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+        [name.trim(), description || '', color || '#007AFF', icon || 'users', image_url || null, inviteCode, user.id]
       );
       const group = result.rows[0];
 
@@ -172,12 +172,12 @@ module.exports = async function handler(req, res) {
       if (!membership || membership.role === 'member') {
         return res.status(403).json({ error: 'Nur Admins können die Gruppe bearbeiten' });
       }
-      const { name, description, color, icon } = req.body;
+      const { name, description, color, icon, image_url } = req.body;
       const result = await pool.query(
         `UPDATE groups SET name = COALESCE($1, name), description = COALESCE($2, description),
-         color = COALESCE($3, color), icon = COALESCE($4, icon), updated_at = NOW()
-         WHERE id = $5 RETURNING *`,
-        [name, description, color, icon, groupId]
+         color = COALESCE($3, color), icon = COALESCE($4, icon), image_url = $5, updated_at = NOW()
+         WHERE id = $6 RETURNING *`,
+        [name, description, color, icon, image_url || null, groupId]
       );
       return res.json({ group: result.rows[0] });
     } catch (err) {

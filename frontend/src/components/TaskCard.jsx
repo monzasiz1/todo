@@ -2,11 +2,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTaskStore } from '../store/taskStore';
-import { Check, Trash2, Clock, Calendar, GripVertical, Lock, Users, UserCheck, UsersRound, Repeat } from 'lucide-react';
+import { Check, Trash2, Clock, Calendar, GripVertical, Lock, Users, UserCheck, Repeat } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
 import TaskDetailModal from './TaskDetailModal';
 import SharedTaskBadge from './SharedTaskBadge';
+import AvatarBadge from './AvatarBadge';
 
 export default function TaskCard({ task, index }) {
   const { toggleTask, deleteTask } = useTaskStore();
@@ -85,7 +86,12 @@ export default function TaskCard({ task, index }) {
               color: task.group_color || '#5856D6',
             }}
           >
-            <UsersRound size={12} />
+            <AvatarBadge
+              name={task.group_name}
+              color={task.group_color || '#5856D6'}
+              avatarUrl={task.group_image_url}
+              size={12}
+            />
             {task.group_name}
           </span>
         )}

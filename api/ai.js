@@ -94,12 +94,25 @@ module.exports = async function handler(req, res) {
 
       // Get user's groups for recognition
       const groupsRes = await pool.query(
-        `SELECT g.name FROM groups g JOIN group_members gm ON gm.group_id = g.id WHERE gm.user_id = $1`,
+        `SELECT g.id, g.name, g.color, g.image_url FROM groups g JOIN group_members gm ON gm.group_id = g.id WHERE gm.user_id = $1`,
         [user.id]
       );
       const groupNames = groupsRes.rows.map(g => g.name);
 
       const parsed = await parseTaskWithAI(input, { groupNames });
+      let matchedGroup = null;
+      if (parsed.group_name) {
+        matchedGroup = groupsRes.rows.find(
+          (g) => g.name.toLowerCase() === parsed.group_name.toLowerCase()
+            || g.name.toLowerCase().includes(parsed.group_name.toLowerCase())
+            || parsed.group_name.toLowerCase().includes(g.name.toLowerCase())
+        ) || null;
+      }
+      if (matchedGroup) {
+        parsed.group_id = matchedGroup.id;
+        parsed.group_color = matchedGroup.color || null;
+        parsed.group_image_url = matchedGroup.image_url || null;
+      }
       return res.json({ parsed });
     } catch (err) {
       console.error('AI parse error:', err);
@@ -186,7 +199,7 @@ module.exports = async function handler(req, res) {
 
       // Get user's groups for recognition
       const groupsRes = await pool.query(
-        `SELECT g.id, g.name FROM groups g JOIN group_members gm ON gm.group_id = g.id WHERE gm.user_id = $1`,
+        `SELECT g.id, g.name, g.color, g.image_url FROM groups g JOIN group_members gm ON gm.group_id = g.id WHERE gm.user_id = $1`,
         [user.id]
       );
       const groupNames = groupsRes.rows.map(g => g.name);
@@ -325,7 +338,12 @@ module.exports = async function handler(req, res) {
               [matchedGroup.id, currentTaskId, user.id]
             );
           }
-          groupInfo = { id: matchedGroup.id, name: matchedGroup.name };
+          groupInfo = {
+            id: matchedGroup.id,
+            name: matchedGroup.name,
+            color: matchedGroup.color || null,
+            image_url: matchedGroup.image_url || null,
+          };
         }
       }
 

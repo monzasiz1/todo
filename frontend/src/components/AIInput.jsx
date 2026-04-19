@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useTaskStore } from '../store/taskStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, ArrowUp, Calendar, Clock, Tag, Flag, Loader2, UsersRound } from 'lucide-react';
+import AvatarBadge from './AvatarBadge';
 
 export default function AIInput({ onTaskCreated }) {
   const [input, setInput] = useState('');
@@ -138,7 +139,16 @@ export default function AIInput({ onTaskCreated }) {
                 )}
                 {preview.group_name && (
                   <span className="ai-tag group">
-                    <UsersRound size={12} />
+                    {preview.group_image_url ? (
+                      <AvatarBadge
+                        name={preview.group_name}
+                        color={preview.group_color || '#5856D6'}
+                        avatarUrl={preview.group_image_url}
+                        size={12}
+                      />
+                    ) : (
+                      <UsersRound size={12} />
+                    )}
                     {preview.group_name}
                   </span>
                 )}

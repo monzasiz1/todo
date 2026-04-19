@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS groups (
   name VARCHAR(100) NOT NULL,
   description TEXT DEFAULT '',
   color VARCHAR(7) DEFAULT '#007AFF',
+  image_url TEXT DEFAULT NULL,
   icon VARCHAR(20) DEFAULT 'users',
   invite_code VARCHAR(8) UNIQUE,
   created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,

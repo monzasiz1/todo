@@ -431,9 +431,12 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
                           onClick={() => setTaskGroupId(g.id)}
                           style={{ cursor: 'pointer' }}
                         >
-                          <div style={{ width: 32, height: 32, borderRadius: 10, background: g.color || '#007AFF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 13, fontWeight: 700 }}>
-                            {g.name?.charAt(0)?.toUpperCase()}
-                          </div>
+                          <AvatarBadge
+                            name={g.name}
+                            color={g.color || '#007AFF'}
+                            avatarUrl={g.image_url}
+                            size={32}
+                          />
                           <span className="task-edit-friend-name">{g.name}</span>
                           <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{g.member_count} Mitglieder</span>
                           {taskGroupId === g.id && <span style={{ marginLeft: 'auto', color: 'var(--primary)', fontSize: 12, fontWeight: 600 }}>✓</span>}

@@ -21,6 +21,37 @@ const ROLE_CONFIG = {
   member: { label: 'Mitglied', icon: Users, color: '#8E8E93' },
 };
 
+async function fileToResizedDataUrl(file, maxSize = 320) {
+  const dataUrl = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let w = img.width;
+      let h = img.height;
+      if (w > h) {
+        h = (h / w) * maxSize;
+        w = maxSize;
+      } else {
+        w = (w / h) * maxSize;
+        h = maxSize;
+      }
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', 0.85));
+    };
+    img.src = dataUrl;
+  });
+}
+
 export default function GroupsPage() {
   const { groups, fetchGroups, createGroup, joinGroup, loading } = useGroupStore();
   const [view, setView] = useState('list'); // 'list' | 'create' | 'join' | 'detail'
@@ -116,9 +147,13 @@ function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick })
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
             >
-              <div className="group-card-avatar" style={{ background: g.color || '#007AFF' }}>
-                {g.name?.[0]?.toUpperCase()}
-              </div>
+              <AvatarBadge
+                className="group-card-avatar"
+                name={g.name}
+                color={g.color || '#007AFF'}
+                avatarUrl={g.image_url}
+                size={44}
+              />
               <div className="group-card-info">
                 <h3>{g.name}</h3>
                 <div className="group-card-meta">
@@ -148,6 +183,7 @@ function CreateGroup({ onBack, onCreate }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [color, setColor] = useState('#007AFF');
+  const [imageUrl, setImageUrl] = useState(null);
   const [saving, setSaving] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -155,10 +191,18 @@ function CreateGroup({ onBack, onCreate }) {
     if (!name.trim()) return;
     setSaving(true);
     try {
-      await onCreate({ name: name.trim(), description: description.trim(), color });
+      await onCreate({ name: name.trim(), description: description.trim(), color, image_url: imageUrl });
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleImageChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return;
+    const resized = await fileToResizedDataUrl(file, 320);
+    setImageUrl(resized);
   };
 
   return (
@@ -170,9 +214,23 @@ function CreateGroup({ onBack, onCreate }) {
 
       <form className="group-form" onSubmit={handleSubmit}>
         <div className="group-form-preview">
-          <div className="group-big-avatar" style={{ background: color }}>
-            {name ? name[0].toUpperCase() : '?'}
-          </div>
+          <AvatarBadge
+            className="group-big-avatar"
+            name={name || '?'}
+            color={color}
+            avatarUrl={imageUrl}
+            size={68}
+          />
+        </div>
+
+        <div className="task-edit-field">
+          <label>Gruppenbild (optional)</label>
+          <input type="file" accept="image/*" onChange={handleImageChange} className="task-edit-input" />
+          {imageUrl && (
+            <button type="button" className="group-cancel-btn" onClick={() => setImageUrl(null)} style={{ marginTop: 8 }}>
+              Bild entfernen
+            </button>
+          )}
         </div>
 
         <div className="task-edit-field">
@@ -318,9 +376,13 @@ function GroupDetail({ groupId, onBack }) {
       {/* Header */}
       <div className="group-detail-header">
         <button className="group-back-btn" onClick={onBack}><ArrowLeft size={20} /></button>
-        <div className="group-detail-avatar" style={{ background: currentGroup.color }}>
-          {currentGroup.name?.[0]?.toUpperCase()}
-        </div>
+        <AvatarBadge
+          className="group-detail-avatar"
+          name={currentGroup.name}
+          color={currentGroup.color || '#007AFF'}
+          avatarUrl={currentGroup.image_url}
+          size={54}
+        />
         <div className="group-detail-info">
           <h2>{currentGroup.name}</h2>
           {currentGroup.description && <p>{currentGroup.description}</p>}
@@ -612,21 +674,50 @@ function GroupSettings({ group, onUpdate, onDelete, isOwner }) {
   const [name, setName] = useState(group.name);
   const [description, setDescription] = useState(group.description || '');
   const [color, setColor] = useState(group.color);
+  const [imageUrl, setImageUrl] = useState(group.image_url || null);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await onUpdate({ name, description, color });
+      await onUpdate({ name, description, color, image_url: imageUrl });
     } finally {
       setSaving(false);
     }
   };
 
+  const handleImageChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return;
+    const resized = await fileToResizedDataUrl(file, 320);
+    setImageUrl(resized);
+  };
+
   return (
     <div className="group-tab-content">
       <div className="group-form">
+        <div className="group-form-preview">
+          <AvatarBadge
+            className="group-big-avatar"
+            name={name || '?'}
+            color={color || '#007AFF'}
+            avatarUrl={imageUrl}
+            size={68}
+          />
+        </div>
+
+        <div className="task-edit-field">
+          <label>Gruppenbild</label>
+          <input type="file" accept="image/*" onChange={handleImageChange} className="task-edit-input" />
+          {imageUrl && (
+            <button type="button" className="group-cancel-btn" onClick={() => setImageUrl(null)} style={{ marginTop: 8 }}>
+              Bild entfernen
+            </button>
+          )}
+        </div>
+
         <div className="task-edit-field">
           <label>Gruppenname</label>
           <input

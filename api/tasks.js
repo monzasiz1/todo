@@ -54,7 +54,7 @@ module.exports = async function handler(req, res) {
       }
       const result = await pool.query(
         `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
-           gt.group_id, grp.name as group_name, grp.color as group_color,
+           gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url,
            gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color
          FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
          LEFT JOIN group_tasks gt ON gt.task_id = t.id
@@ -263,7 +263,7 @@ module.exports = async function handler(req, res) {
              editor.name as last_editor_name,
              CASE WHEN t.user_id = $1 THEN true ELSE false END as is_owner,
              COALESCE(tp.can_edit, false) as can_edit,
-             gt.group_id, grp.name as group_name, grp.color as group_color,
+             gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url,
              gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color, gtc.avatar_url as group_task_creator_avatar_url,
              (SELECT COALESCE(json_agg(json_build_object('name', su.name, 'color', su.avatar_color, 'avatar_url', su.avatar_url)), '[]'::json)
               FROM task_permissions tp2 JOIN users su ON tp2.user_id = su.id
@@ -290,7 +290,7 @@ module.exports = async function handler(req, res) {
         // Simple query without collaboration
         result = await pool.query(
           `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
-             gt.group_id, grp.name as group_name, grp.color as group_color,
+             gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url,
              gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color, gtc.avatar_url as group_task_creator_avatar_url
            FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
            LEFT JOIN group_tasks gt ON gt.task_id = t.id

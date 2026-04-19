@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../store/taskStore';
-import { ChevronLeft, ChevronRight, UsersRound } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import TaskDetailModal from './TaskDetailModal';
+import AvatarBadge from './AvatarBadge';
 import {
   format,
   startOfMonth,
@@ -104,7 +105,14 @@ export default function Calendar({ onDayClick }) {
                       }}
                       onClick={(e) => { e.stopPropagation(); setDetailTask(t); }}
                     >
-                      {t.group_id && <UsersRound size={10} style={{ flexShrink: 0, opacity: 0.8 }} />}
+                      {t.group_id && (
+                        <AvatarBadge
+                          name={t.group_name}
+                          color={t.group_color || '#5856D6'}
+                          avatarUrl={t.group_image_url}
+                          size={10}
+                        />
+                      )}
                       {t.time && <span className="calendar-day-task-time">{t.time.slice(0, 5)}</span>}
                       <span className="calendar-day-task-title">{t.title}</span>
                     </div>
@@ -160,7 +168,14 @@ export default function Calendar({ onDayClick }) {
                     }}
                     onClick={(e) => { e.stopPropagation(); setDetailTask(t); }}
                   >
-                    {t.group_id && <UsersRound size={11} style={{ flexShrink: 0, opacity: 0.7 }} />}
+                    {t.group_id && (
+                      <AvatarBadge
+                        name={t.group_name}
+                        color={t.group_color || '#5856D6'}
+                        avatarUrl={t.group_image_url}
+                        size={11}
+                      />
+                    )}
                     {t.time && <span style={{ opacity: 0.7 }}>{t.time.slice(0, 5)}</span>}
                     {t.title}
                   </div>
