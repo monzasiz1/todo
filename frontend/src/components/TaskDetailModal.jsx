@@ -125,6 +125,18 @@ export default function TaskDetailModal({ task, onClose }) {
                 {task.visibility === 'shared' ? <Users size={16} /> : <UserCheck size={16} />}
                 <span>{task.visibility === 'shared' ? 'Mit allen Freunden geteilt' : 'Mit ausgewählten Personen geteilt'}</span>
               </div>
+              {Array.isArray(task.shared_with_users) && task.shared_with_users.length > 0 && (
+                <div className="task-detail-shared-users">
+                  {task.shared_with_users.map((u, i) => (
+                    <div key={i} className="task-detail-shared-user">
+                      <span className="collab-avatar" style={{ background: u.color || '#007AFF' }}>
+                        {u.name?.[0]?.toUpperCase()}
+                      </span>
+                      <span>{u.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
               {!task.is_owner && task.creator_name && (
                 <div className="task-detail-collab-info">
                   <span className="collab-avatar" style={{ background: task.creator_color || '#007AFF' }}>

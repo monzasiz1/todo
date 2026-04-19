@@ -3,7 +3,7 @@ import { Lock, Users, UserCheck, Eye } from 'lucide-react';
 export default function SharedTaskBadge({ task }) {
   if (!task) return null;
 
-  const { visibility, is_owner, creator_name, creator_color, can_edit, last_editor_name } = task;
+  const { visibility, is_owner, creator_name, creator_color, can_edit, last_editor_name, shared_with_users } = task;
 
   if (visibility === 'private' || !visibility) return null;
 
@@ -23,12 +23,24 @@ export default function SharedTaskBadge({ task }) {
     }
   };
 
+  const sharedUsers = Array.isArray(shared_with_users) ? shared_with_users : [];
+
   return (
     <div className="shared-task-badge">
       <span className={`visibility-badge ${visibility}`}>
         {getVisibilityIcon()}
         {getVisibilityLabel()}
       </span>
+      {sharedUsers.length > 0 && (
+        <div className="shared-users-chips">
+          {sharedUsers.map((u, i) => (
+            <span key={i} className="shared-user-chip">
+              <span className="shared-user-dot" style={{ background: u.color || '#007AFF' }} />
+              {u.name}
+            </span>
+          ))}
+        </div>
+      )}
       {!is_owner && creator_name && (
         <span className="creator-badge">
           <span

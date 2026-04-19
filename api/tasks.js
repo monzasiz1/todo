@@ -157,7 +157,10 @@ module.exports = async function handler(req, res) {
              u.name as creator_name, u.avatar_color as creator_color,
              editor.name as last_editor_name,
              CASE WHEN t.user_id = $1 THEN true ELSE false END as is_owner,
-             COALESCE(tp.can_edit, false) as can_edit
+             COALESCE(tp.can_edit, false) as can_edit,
+             (SELECT COALESCE(json_agg(json_build_object('name', su.name, 'color', su.avatar_color)), '[]'::json)
+              FROM task_permissions tp2 JOIN users su ON tp2.user_id = su.id
+              WHERE tp2.task_id = t.id) as shared_with_users
            FROM tasks t
            LEFT JOIN categories c ON t.category_id = c.id
            LEFT JOIN users u ON t.user_id = u.id

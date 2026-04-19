@@ -3421,4 +3421,57 @@ input, textarea, select {
   cursor: not-allowed;
 }
 
+/* Shared Users Chips (TaskCard badge) */
+.shared-users-chips {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.shared-user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: rgba(0, 122, 255, 0.08);
+  padding: 2px 8px 2px 6px;
+  border-radius: 10px;
+}
+
+.shared-user-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Shared Users in Detail Modal */
+.task-detail-shared-users {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.task-detail-shared-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 122, 255, 0.08);
+  padding: 6px 12px 6px 6px;
+  border-radius: 20px;
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.task-detail-shared-user .collab-avatar {
+  width: 26px;
+  height: 26px;
+  font-size: 12px;
+}
+
 /* Collab mobile handled in main responsive section */
