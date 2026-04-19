@@ -23,7 +23,7 @@ export default function CalendarPage() {
   };
 
   const selectedTasks = selectedDate
-    ? tasks.filter((t) => t.date === format(selectedDate, 'yyyy-MM-dd'))
+    ? tasks.filter((t) => t.date && t.date.substring(0, 10) === format(selectedDate, 'yyyy-MM-dd'))
     : [];
 
   return (
