@@ -18,22 +18,28 @@ async function parseTaskWithAI(input) {
     nextWeekdays[days[d.getDay()]] = d.toISOString().split('T')[0];
   }
 
-  const systemPrompt = `Du bist ein Task-Parser. Analysiere die Eingabe und extrahiere strukturierte Daten.
+  const systemPrompt = `Du bist ein intelligenter Task-Parser. Analysiere die Eingabe und extrahiere strukturierte Daten.
 
 Aktuelles Datum: ${currentDate} (${currentDay})
+Aktuelles Jahr: ${now.getFullYear()}
 
 Nächste Wochentage ab heute:
 ${Object.entries(nextWeekdays).map(([day, date]) => `- ${day} → ${date}`).join('\n')}
 
 Regeln:
-- Erkenne den Aufgabentitel (was getan werden soll)
+- Erkenne den Aufgabentitel (kurz und prägnant, was getan werden soll)
+- Erkenne Beschreibung/Details: Wenn der Nutzer zusätzliche Infos gibt (z.B. "Peter kommt nicht zur Probe", "Milch, Eier, Butter kaufen"), extrahiere diese als description
+- Bei Einkaufslisten oder Aufzählungen: Formatiere die Items als "• Item1\\n• Item2\\n• Item3" in der description
 - Erkenne Datumsangaben: heute, morgen, übermorgen, Wochentage (nächsten Montag etc.), konkrete Daten
+- Erkenne DATUMSBEREICHE: "vom 20. bis 24. April", "20.-24.04", "Montag bis Freitag" → setze date als Startdatum und date_end als Enddatum
 - Erkenne Uhrzeiten (18 Uhr, 14:30, nachmittags etc.)
+- Erkenne ZEITBEREICHE: "von 14 bis 16 Uhr", "9-12 Uhr", "14:00-15:30" → setze time als Startzeit und time_end als Endzeit
 - Wähle eine passende Kategorie aus: Arbeit, Persönlich, Gesundheit, Finanzen, Einkaufen, Haushalt, Bildung, Soziales
 - Bestimme die Priorität: low, medium, high, urgent
 - Erkenne ob eine Erinnerung gewünscht ist ("erinnere mich", "reminder" etc.)
-- Wenn ein Wochentag genannt wird (z.B. "Mittwoch", "kommenden Mittwoch", "jeden Mittwoch"), verwende das nächste passende Datum aus der Liste oben
+- Wenn ein Wochentag genannt wird, verwende das nächste passende Datum aus der Liste oben
 - WICHTIG: Wenn ein Datum erkennbar ist, gib es IMMER im Format YYYY-MM-DD zurück, niemals null
+- WICHTIG: Trenne Titel und Beschreibung intelligent. Der Titel soll kurz sein (z.B. "Einkaufen"), Details kommen in description
 - Antworte NUR mit validem JSON, kein anderer Text
 
 Berechne Wochentage korrekt:
@@ -41,11 +47,21 @@ Berechne Wochentage korrekt:
 - "morgen" → ${tomorrow}
 - "übermorgen" → ${dayAfter}
 
+Beispiele:
+- "Peter kommt nicht zur Probe am Mittwoch 18 Uhr" → title: "Probe", description: "Peter kommt nicht zur Probe", date: Mittwoch-Datum, time: "18:00"
+- "Einkaufen Milch Eier Butter Brot morgen" → title: "Einkaufen", description: "• Milch\\n• Eier\\n• Butter\\n• Brot", date: morgen, category: "Einkaufen"
+- "Kirmes vom 20. bis 24. April" → title: "Kirmes", date: "2026-04-20", date_end: "2026-04-24"
+- "Meeting morgen von 14 bis 16 Uhr" → title: "Meeting", date: morgen, time: "14:00", time_end: "16:00"
+- "Arzttermin Dienstag 10-11:30 Uhr Zahnarzt Dr. Mueller" → title: "Arzttermin", description: "Zahnarzt Dr. Mueller", date: Dienstag, time: "10:00", time_end: "11:30"
+
 JSON Format:
 {
-  "title": "string",
+  "title": "string (kurz, max 5-6 Wörter)",
+  "description": "string oder null (Details, Listen, zusätzliche Infos)",
   "date": "YYYY-MM-DD oder null",
+  "date_end": "YYYY-MM-DD oder null (nur bei mehrtägigen Events)",
   "time": "HH:MM oder null",
+  "time_end": "HH:MM oder null (nur bei Zeitbereichen)",
   "category": "string",
   "priority": "low|medium|high|urgent",
   "hasReminder": true/false,
@@ -83,8 +99,11 @@ JSON Format:
     const parsed = JSON.parse(content);
     return {
       title: parsed.title || input,
+      description: parsed.description || null,
       date: parsed.date || null,
+      date_end: parsed.date_end || null,
       time: parsed.time || null,
+      time_end: parsed.time_end || null,
       category: parsed.category || 'Persönlich',
       priority: parsed.priority || 'medium',
       hasReminder: parsed.hasReminder || false,
@@ -93,8 +112,11 @@ JSON Format:
   } catch {
     return {
       title: input,
+      description: null,
       date: null,
+      date_end: null,
       time: null,
+      time_end: null,
       category: 'Persönlich',
       priority: 'medium',
       hasReminder: false,
