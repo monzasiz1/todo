@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserPlus, UserCheck, UserX, Copy, Check, X, Mail, Hash, Users, Clock, Trash2 } from 'lucide-react';
 import { useFriendsStore } from '../store/friendsStore';
@@ -51,7 +52,7 @@ export default function FriendsList({ onClose }) {
   const incomingPending = pending.filter(p => p.direction === 'incoming');
   const outgoingPending = pending.filter(p => p.direction === 'outgoing');
 
-  return (
+  return createPortal(
     <motion.div
       className="friends-overlay"
       initial={{ opacity: 0 }}
@@ -274,6 +275,7 @@ export default function FriendsList({ onClose }) {
           )}
         </div>
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body
   );
 }

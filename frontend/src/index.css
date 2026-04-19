@@ -2835,10 +2835,11 @@ input, textarea, select {
   width: 380px;
   max-width: 90vw;
   height: 100vh;
-  background: var(--bg-primary);
+  background: var(--card-solid);
   display: flex;
   flex-direction: column;
   box-shadow: -8px 0 32px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
 }
 
 .friends-header {
@@ -2868,8 +2869,8 @@ input, textarea, select {
 }
 
 .friends-close:hover {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
+  background: var(--bg);
+  color: var(--text);
 }
 
 /* Friends Tabs */
@@ -2981,12 +2982,12 @@ input, textarea, select {
   gap: 12px;
   padding: 12px;
   border-radius: 12px;
-  background: var(--bg-secondary);
+  background: var(--bg);
   transition: all 0.2s;
 }
 
 .friend-card:hover {
-  background: var(--bg-tertiary);
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .friend-avatar {
@@ -3013,7 +3014,7 @@ input, textarea, select {
 .friend-name {
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-primary);
+  color: var(--text);
 }
 
 .friend-email {
@@ -3065,7 +3066,7 @@ input, textarea, select {
   font-size: 11px;
   color: var(--text-tertiary);
   padding: 4px 10px;
-  background: var(--bg-tertiary);
+  background: rgba(0, 0, 0, 0.04);
   border-radius: 8px;
 }
 
@@ -3102,8 +3103,8 @@ input, textarea, select {
   padding: 10px 14px;
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: var(--bg-secondary);
-  color: var(--text-primary);
+  background: var(--bg);
+  color: var(--text);
   font-size: 14px;
   outline: none;
   transition: border-color 0.2s;
@@ -3161,7 +3162,7 @@ input, textarea, select {
 .visibility-pills {
   display: flex;
   gap: 6px;
-  background: var(--bg-tertiary);
+  background: rgba(0, 0, 0, 0.04);
   padding: 4px;
   border-radius: 12px;
 }
@@ -3188,12 +3189,12 @@ input, textarea, select {
 }
 
 .visibility-pill:not(.active):hover {
-  background: var(--bg-secondary);
+  background: var(--bg);
 }
 
 /* User Select in Visibility */
 .visibility-user-select {
-  background: var(--bg-secondary);
+  background: var(--bg);
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--border);
@@ -3216,7 +3217,7 @@ input, textarea, select {
   flex: 1;
   background: none;
   border: none;
-  color: var(--text-primary);
+  color: var(--text);
   font-size: 13px;
   outline: none;
 }
@@ -3256,7 +3257,7 @@ input, textarea, select {
 }
 
 .visibility-friend-item:hover {
-  background: var(--bg-tertiary);
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .visibility-friend-item.selected {
@@ -3292,7 +3293,7 @@ input, textarea, select {
   height: 28px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--bg-primary);
+  background: var(--card-solid);
   cursor: pointer;
   font-size: 12px;
   display: flex;
@@ -3370,7 +3371,7 @@ input, textarea, select {
   gap: 3px;
   font-size: 10px;
   color: var(--text-tertiary);
-  background: var(--bg-tertiary);
+  background: rgba(0, 0, 0, 0.04);
   padding: 2px 6px;
   border-radius: 4px;
 }
