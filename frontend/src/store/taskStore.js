@@ -54,9 +54,15 @@ export const useTaskStore = create((set, get) => ({
   aiCreateTask: async (input) => {
     try {
       const data = await api.parseAndCreateTask(input);
-      set((s) => ({ tasks: [data.task, ...s.tasks] }));
-      const cat = data.parsed.category ? ` → ${data.parsed.category}` : '';
-      get().addToast(`✅ "${data.parsed.title}"${cat} gespeichert`);
+      // Handle date range → multiple tasks created
+      if (data.tasks && data.tasks.length > 1) {
+        set((s) => ({ tasks: [...data.tasks, ...s.tasks] }));
+        get().addToast(`✅ "${data.parsed.title}" — ${data.tasks.length} Tage erstellt`);
+      } else {
+        set((s) => ({ tasks: [data.task, ...s.tasks] }));
+        const cat = data.parsed.category ? ` → ${data.parsed.category}` : '';
+        get().addToast(`✅ "${data.parsed.title}"${cat} gespeichert`);
+      }
       return data;
     } catch (err) {
       get().addToast('❌ ' + err.message, 'error');
