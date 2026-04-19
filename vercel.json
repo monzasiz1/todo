@@ -3,7 +3,10 @@
   "outputDirectory": "frontend/dist",
   "installCommand": "npm install",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/api/auth/:path*", "destination": "/api/auth?__path=:path*" },
+    { "source": "/api/tasks/:path*", "destination": "/api/tasks?__path=:path*" },
+    { "source": "/api/ai/:path*", "destination": "/api/ai?__path=:path*" },
+    { "source": "/api/categories/:path*", "destination": "/api/categories?__path=:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
