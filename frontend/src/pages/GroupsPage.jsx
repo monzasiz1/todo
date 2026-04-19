@@ -8,6 +8,7 @@ import {
   Shield, UserMinus, Settings, Trash2, LogOut, X,
   Calendar, Clock, Flag, Search, ArrowLeft
 } from 'lucide-react';
+import AvatarBadge from '../components/AvatarBadge';
 
 const GROUP_COLORS = [
   '#007AFF', '#5856D6', '#34C759', '#FF9500', '#FF3B30',
@@ -395,9 +396,13 @@ function GroupDetail({ groupId, onBack }) {
             const RoleIcon = ROLE_CONFIG[m.role]?.icon || Users;
             return (
               <div key={m.user_id} className="group-member-card">
-                <div className="group-member-avatar" style={{ background: m.avatar_color || '#007AFF' }}>
-                  {m.name?.[0]?.toUpperCase()}
-                </div>
+                <AvatarBadge
+                  className="group-member-avatar"
+                  name={m.name}
+                  color={m.avatar_color || '#007AFF'}
+                  avatarUrl={m.avatar_url}
+                  size={40}
+                />
                 <div className="group-member-info">
                   <span className="group-member-name">
                     {m.name} {m.user_id === user?.id && <span className="group-member-you">(Du)</span>}
@@ -485,7 +490,13 @@ function GroupTaskCard({ task, groupId, canRemove, onRemove }) {
         <div className="group-task-meta">
           {task.creator_name && (
             <span className="group-task-creator">
-              <span className="group-task-creator-dot" style={{ background: task.creator_color || '#007AFF' }} />
+              <AvatarBadge
+                className="group-task-creator-dot"
+                name={task.creator_name}
+                color={task.creator_color || '#007AFF'}
+                avatarUrl={task.creator_avatar_url}
+                size={12}
+              />
               {task.creator_name}
             </span>
           )}

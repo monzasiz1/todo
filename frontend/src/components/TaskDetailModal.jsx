@@ -10,6 +10,7 @@ import {
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
 import TaskEditModal from './TaskEditModal';
+import AvatarBadge from './AvatarBadge';
 
 const priorityConfig = {
   low: { label: 'Niedrig', color: 'var(--success)', icon: Flag },
@@ -140,9 +141,13 @@ export default function TaskDetailModal({ task, onClose }) {
                 <div className="task-detail-shared-users">
                   {task.shared_with_users.map((u, i) => (
                     <div key={i} className="task-detail-shared-user">
-                      <span className="collab-avatar" style={{ background: u.color || '#007AFF' }}>
-                        {u.name?.[0]?.toUpperCase()}
-                      </span>
+                      <AvatarBadge
+                        className="collab-avatar"
+                        name={u.name}
+                        color={u.color || '#007AFF'}
+                        avatarUrl={u.avatar_url}
+                        size={22}
+                      />
                       <span>{u.name}</span>
                     </div>
                   ))}
@@ -150,9 +155,13 @@ export default function TaskDetailModal({ task, onClose }) {
               )}
               {!task.is_owner && task.creator_name && (
                 <div className="task-detail-collab-info">
-                  <span className="collab-avatar" style={{ background: task.creator_color || '#007AFF' }}>
-                    {task.creator_name[0]?.toUpperCase()}
-                  </span>
+                  <AvatarBadge
+                    className="collab-avatar"
+                    name={task.creator_name}
+                    color={task.creator_color || '#007AFF'}
+                    avatarUrl={task.creator_avatar_url}
+                    size={22}
+                  />
                   <span>Erstellt von <strong>{task.creator_name}</strong></span>
                 </div>
               )}
@@ -194,14 +203,12 @@ export default function TaskDetailModal({ task, onClose }) {
                   <span style={{ fontWeight: 600, fontSize: 14 }}>{task.group_name}</span>
                   {task.group_task_creator_name && (
                     <span style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <span style={{
-                        width: 16, height: 16, borderRadius: '50%',
-                        background: task.group_task_creator_color || '#007AFF',
-                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                        color: '#fff', fontSize: 8, fontWeight: 700, flexShrink: 0,
-                      }}>
-                        {task.group_task_creator_name.charAt(0).toUpperCase()}
-                      </span>
+                      <AvatarBadge
+                        name={task.group_task_creator_name}
+                        color={task.group_task_creator_color || '#007AFF'}
+                        avatarUrl={task.group_task_creator_avatar_url}
+                        size={16}
+                      />
                       Erstellt von {task.group_task_creator_name}
                     </span>
                   )}

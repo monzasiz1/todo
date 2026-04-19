@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Lock, Users, UserCheck, Sparkles, ChevronDown } from 'lucide-react';
 import { useFriendsStore } from '../store/friendsStore';
 import { api } from '../utils/api';
+import AvatarBadge from './AvatarBadge';
 
 const VISIBILITY_OPTIONS = [
   { value: 'private', label: 'Privat', icon: Lock, color: '#8E8E93' },
@@ -141,12 +142,13 @@ export default function VisibilityToggle({ value = 'private', selectedUsers = []
                     key={friend.friend_user_id}
                     className={`visibility-friend-item ${isSelected ? 'selected' : ''}`}
                   >
-                    <div
+                    <AvatarBadge
                       className="visibility-friend-avatar"
-                      style={{ background: friend.avatar_color || '#007AFF' }}
-                    >
-                      {friend.name?.[0]?.toUpperCase() || '?'}
-                    </div>
+                      name={friend.name}
+                      color={friend.avatar_color || '#007AFF'}
+                      avatarUrl={friend.avatar_url}
+                      size={30}
+                    />
                     <span className="visibility-friend-name">{friend.name}</span>
                     <div className="visibility-friend-controls">
                       <button

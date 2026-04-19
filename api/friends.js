@@ -19,7 +19,7 @@ module.exports = async function handler(req, res) {
         `SELECT f.id, f.status, f.created_at,
            CASE WHEN f.user_id = $1 THEN f.friend_id ELSE f.user_id END as friend_user_id,
            CASE WHEN f.user_id = $1 THEN 'outgoing' ELSE 'incoming' END as direction,
-           u.name, u.email, u.avatar_color
+           u.name, u.email, u.avatar_color, u.avatar_url
          FROM friends f
          JOIN users u ON u.id = CASE WHEN f.user_id = $1 THEN f.friend_id ELSE f.user_id END
          WHERE (f.user_id = $1 OR f.friend_id = $1)
@@ -46,7 +46,7 @@ module.exports = async function handler(req, res) {
 
       // Find user by email
       const friendUser = await pool.query(
-        'SELECT id, name, email, avatar_color FROM users WHERE LOWER(email) = LOWER($1)',
+        'SELECT id, name, email, avatar_color, avatar_url FROM users WHERE LOWER(email) = LOWER($1)',
         [email]
       );
       if (friendUser.rows.length === 0) {
@@ -84,6 +84,7 @@ module.exports = async function handler(req, res) {
           friend_name: friendUser.rows[0].name,
           friend_email: friendUser.rows[0].email,
           avatar_color: friendUser.rows[0].avatar_color,
+          avatar_url: friendUser.rows[0].avatar_url,
         },
       });
     } catch (err) {

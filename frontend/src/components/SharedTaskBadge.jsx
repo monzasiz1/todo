@@ -1,4 +1,5 @@
 import { Lock, Users, UserCheck, Eye } from 'lucide-react';
+import AvatarBadge from './AvatarBadge';
 
 export default function SharedTaskBadge({ task }) {
   if (!task) return null;
@@ -35,7 +36,13 @@ export default function SharedTaskBadge({ task }) {
         <div className="shared-users-chips">
           {sharedUsers.map((u, i) => (
             <span key={i} className="shared-user-chip">
-              <span className="shared-user-dot" style={{ background: u.color || '#007AFF' }} />
+              <AvatarBadge
+                className="shared-user-dot"
+                name={u.name}
+                color={u.color || '#007AFF'}
+                avatarUrl={u.avatar_url}
+                size={12}
+              />
               {u.name}
             </span>
           ))}
@@ -43,9 +50,12 @@ export default function SharedTaskBadge({ task }) {
       )}
       {!is_owner && creator_name && (
         <span className="creator-badge">
-          <span
+          <AvatarBadge
             className="creator-dot"
-            style={{ background: creator_color || '#007AFF' }}
+            name={creator_name}
+            color={creator_color || '#007AFF'}
+            avatarUrl={task.creator_avatar_url}
+            size={12}
           />
           {creator_name}
         </span>

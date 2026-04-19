@@ -9,6 +9,7 @@ import {
   ChevronDown, Sparkles, Loader2, AlertTriangle, UsersRound, Repeat
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import AvatarBadge from './AvatarBadge';
 
 const PRIORITIES = [
   { value: 'low', label: 'Niedrig', color: 'var(--success)' },
@@ -98,6 +99,7 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
           can_edit: p.can_edit,
           name: p.user_name,
           avatar_color: p.avatar_color,
+          avatar_url: p.avatar_url,
         }))
       );
     } catch {
@@ -107,7 +109,7 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
     }
   };
 
-  const toggleFriendPermission = (friendUserId, friendName, friendColor, action) => {
+  const toggleFriendPermission = (friendUserId, friendName, friendColor, friendAvatarUrl, action) => {
     setPermissions(prev => {
       const existing = prev.find(p => p.user_id === friendUserId);
       if (action === 'remove') {
@@ -115,7 +117,14 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
       }
       if (action === 'add') {
         if (existing) return prev;
-        return [...prev, { user_id: friendUserId, can_view: true, can_edit: false, name: friendName, avatar_color: friendColor }];
+        return [...prev, {
+          user_id: friendUserId,
+          can_view: true,
+          can_edit: false,
+          name: friendName,
+          avatar_color: friendColor,
+          avatar_url: friendAvatarUrl,
+        }];
       }
       if (action === 'toggle_edit') {
         if (!existing) return prev;
@@ -493,15 +502,19 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
                             <div key={p.user_id} className="task-edit-shared-item">
                               <div
                                 className="task-edit-friend-avatar"
-                                style={{ background: p.avatar_color || '#007AFF' }}
                               >
-                                {p.name?.[0]?.toUpperCase() || '?'}
+                                <AvatarBadge
+                                  name={p.name}
+                                  color={p.avatar_color || '#007AFF'}
+                                  avatarUrl={p.avatar_url}
+                                  size={28}
+                                />
                               </div>
                               <span className="task-edit-friend-name">{p.name}</span>
                               <div className="task-edit-friend-controls">
                                 <button
                                   className={`task-edit-perm-btn ${p.can_edit ? 'active' : ''}`}
-                                  onClick={() => toggleFriendPermission(p.user_id, p.name, p.avatar_color, 'toggle_edit')}
+                                  onClick={() => toggleFriendPermission(p.user_id, p.name, p.avatar_color, p.avatar_url, 'toggle_edit')}
                                   title={p.can_edit ? 'Kann bearbeiten' : 'Nur lesen'}
                                 >
                                   {p.can_edit ? <Edit3 size={12} /> : <Eye size={12} />}
@@ -509,7 +522,7 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
                                 </button>
                                 <button
                                   className="task-edit-perm-btn remove"
-                                  onClick={() => toggleFriendPermission(p.user_id, null, null, 'remove')}
+                                  onClick={() => toggleFriendPermission(p.user_id, null, null, null, 'remove')}
                                   title="Entfernen"
                                 >
                                   <X size={12} />
@@ -528,11 +541,13 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
                             .filter(f => !permissions.find(p => p.user_id === f.friend_user_id))
                             .map((friend) => (
                               <div key={friend.friend_user_id} className="task-edit-shared-item addable">
-                                <div
-                                  className="task-edit-friend-avatar"
-                                  style={{ background: friend.avatar_color || '#007AFF' }}
-                                >
-                                  {friend.name?.[0]?.toUpperCase() || '?'}
+                                <div className="task-edit-friend-avatar">
+                                  <AvatarBadge
+                                    name={friend.name}
+                                    color={friend.avatar_color || '#007AFF'}
+                                    avatarUrl={friend.avatar_url}
+                                    size={28}
+                                  />
                                 </div>
                                 <span className="task-edit-friend-name">{friend.name}</span>
                                 <button
@@ -541,6 +556,7 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
                                     friend.friend_user_id,
                                     friend.name,
                                     friend.avatar_color,
+                                    friend.avatar_url,
                                     'add'
                                   )}
                                 >

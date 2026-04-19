@@ -23,7 +23,7 @@ module.exports = async function handler(req, res) {
       if (task.rows[0].user_id !== user.id) return res.status(403).json({ error: 'Keine Berechtigung' });
 
       const result = await pool.query(
-        `SELECT tp.*, u.name as user_name, u.email as user_email, u.avatar_color
+        `SELECT tp.*, u.name as user_name, u.email as user_email, u.avatar_color, u.avatar_url
          FROM task_permissions tp
          JOIN users u ON u.id = tp.user_id
          WHERE tp.task_id = $1
@@ -78,7 +78,7 @@ module.exports = async function handler(req, res) {
 
       // Return updated permissions
       const result = await pool.query(
-        `SELECT tp.*, u.name as user_name, u.email as user_email, u.avatar_color
+        `SELECT tp.*, u.name as user_name, u.email as user_email, u.avatar_color, u.avatar_url
          FROM task_permissions tp
          JOIN users u ON u.id = tp.user_id
          WHERE tp.task_id = $1`,

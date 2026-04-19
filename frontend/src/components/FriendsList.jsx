@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserPlus, UserCheck, UserX, Copy, Check, X, Mail, Hash, Users, Clock, Trash2 } from 'lucide-react';
 import { useFriendsStore } from '../store/friendsStore';
+import AvatarBadge from './AvatarBadge';
 
 export default function FriendsList({ onClose }) {
   const { friends, pending, loading, fetchFriends, inviteFriend, acceptFriend, declineFriend, removeFriend, redeemInviteCode } = useFriendsStore();
@@ -42,11 +43,6 @@ export default function FriendsList({ onClose }) {
       setMessage({ type: 'error', text: result.error || 'Ungültiger Code' });
     }
     setTimeout(() => setMessage(null), 3000);
-  };
-
-  const getInitials = (name) => {
-    if (!name) return '?';
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
   const incomingPending = pending.filter(p => p.direction === 'incoming');
@@ -130,12 +126,13 @@ export default function FriendsList({ onClose }) {
                     animate={{ opacity: 1, y: 0 }}
                     layout
                   >
-                    <div
+                    <AvatarBadge
                       className="friend-avatar"
-                      style={{ background: friend.avatar_color || '#007AFF' }}
-                    >
-                      {getInitials(friend.name)}
-                    </div>
+                      name={friend.name}
+                      color={friend.avatar_color || '#007AFF'}
+                      avatarUrl={friend.avatar_url}
+                      size={42}
+                    />
                     <div className="friend-info">
                       <span className="friend-name">{friend.name}</span>
                       <span className="friend-email">{friend.email}</span>
@@ -165,12 +162,13 @@ export default function FriendsList({ onClose }) {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                     >
-                      <div
+                      <AvatarBadge
                         className="friend-avatar"
-                        style={{ background: req.avatar_color || '#FF9500' }}
-                      >
-                        {getInitials(req.name)}
-                      </div>
+                        name={req.name}
+                        color={req.avatar_color || '#FF9500'}
+                        avatarUrl={req.avatar_url}
+                        size={42}
+                      />
                       <div className="friend-info">
                         <span className="friend-name">{req.name}</span>
                         <span className="friend-email">{req.email}</span>
@@ -205,12 +203,13 @@ export default function FriendsList({ onClose }) {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                     >
-                      <div
+                      <AvatarBadge
                         className="friend-avatar"
-                        style={{ background: '#8E8E93' }}
-                      >
-                        {getInitials(req.name)}
-                      </div>
+                        name={req.name}
+                        color="#8E8E93"
+                        avatarUrl={req.avatar_url}
+                        size={42}
+                      />
                       <div className="friend-info">
                         <span className="friend-name">{req.name}</span>
                         <span className="friend-email">{req.email}</span>

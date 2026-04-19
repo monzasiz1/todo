@@ -130,7 +130,7 @@ module.exports = async function handler(req, res) {
       if (groupResult.rows.length === 0) return res.status(404).json({ error: 'Gruppe nicht gefunden' });
 
       const membersResult = await pool.query(
-        `SELECT gm.role, gm.joined_at, u.id as user_id, u.name, u.email, u.avatar_color
+        `SELECT gm.role, gm.joined_at, u.id as user_id, u.name, u.email, u.avatar_color, u.avatar_url
          FROM group_members gm JOIN users u ON u.id = gm.user_id
          WHERE gm.group_id = $1
          ORDER BY CASE gm.role WHEN 'owner' THEN 1 WHEN 'admin' THEN 2 ELSE 3 END, gm.joined_at`,
@@ -139,7 +139,7 @@ module.exports = async function handler(req, res) {
 
       const tasksResult = await pool.query(
         `SELECT t.*, c.name as category_name, c.color as category_color,
-           u.name as creator_name, u.avatar_color as creator_color,
+           u.name as creator_name, u.avatar_color as creator_color, u.avatar_url as creator_avatar_url,
            gt.created_at as added_to_group_at
          FROM group_tasks gt
          JOIN tasks t ON t.id = gt.task_id

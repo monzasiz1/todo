@@ -91,7 +91,11 @@ export default function ProfilePage() {
         // Resize image to max 200x200
         const resized = await resizeImage(reader.result, 400);
         await api.updateAvatar(resized);
-        setProfile(prev => ({ ...prev, avatar_url: resized }));
+        setProfile(prev => {
+          const next = { ...prev, avatar_url: resized };
+          setUser(next);
+          return next;
+        });
         showToast('Profilbild aktualisiert');
       } catch (err) {
         showToast(err.message, 'error');
@@ -124,7 +128,11 @@ export default function ProfilePage() {
     try {
       setSaving(true);
       await api.updateAvatar(null);
-      setProfile(prev => ({ ...prev, avatar_url: null }));
+      setProfile(prev => {
+        const next = { ...prev, avatar_url: null };
+        setUser(next);
+        return next;
+      });
       showToast('Profilbild entfernt');
     } catch (err) {
       showToast(err.message, 'error');
