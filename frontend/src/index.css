@@ -3477,6 +3477,464 @@ input, textarea, select {
 /* Collab mobile handled in main responsive section */
 
 /* ============================================
+   TASK EDIT MODAL
+   ============================================ */
+
+.task-edit-modal {
+  background: var(--card-solid);
+  border-radius: 20px;
+  width: 95%;
+  max-width: 520px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.task-edit-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.task-edit-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.task-edit-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: none;
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.task-edit-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.task-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.task-edit-field.flex-1 {
+  flex: 1;
+  min-width: 0;
+}
+
+.task-edit-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.task-edit-input {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.02);
+  font-size: 14px;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.task-edit-input:focus {
+  border-color: var(--primary);
+}
+
+.task-edit-textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.task-edit-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238E8E93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 34px;
+}
+
+.task-edit-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.task-edit-removable {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.task-edit-removable .task-edit-input {
+  flex: 1;
+}
+
+.task-edit-remove-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(255, 59, 48, 0.1);
+  color: var(--danger);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.task-edit-add-btn {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  background: none;
+  border: 1.5px dashed rgba(0, 122, 255, 0.3);
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  align-self: flex-end;
+}
+
+.task-edit-add-btn:hover {
+  background: rgba(0, 122, 255, 0.05);
+  border-color: var(--primary);
+}
+
+/* Priority Pills */
+.task-edit-priority-pills,
+.task-edit-visibility-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.task-edit-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.02);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.task-edit-pill:hover {
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+.task-edit-pill.active {
+  border-color: transparent;
+}
+
+/* Sharing Section */
+.task-edit-sharing {
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  padding-top: 10px;
+}
+
+.task-edit-sharing-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.task-edit-sharing-toggle-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.task-edit-sharing-count {
+  background: var(--primary);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.task-edit-chevron {
+  color: var(--text-tertiary);
+  transition: transform 0.3s;
+}
+
+.task-edit-chevron.open {
+  transform: rotate(180deg);
+}
+
+.task-edit-sharing-content {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 4px;
+}
+
+/* Friends Section */
+.task-edit-friends-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.task-edit-shared-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 2px;
+}
+
+.task-edit-shared-list,
+.task-edit-add-friends {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.task-edit-shared-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.task-edit-shared-item.addable {
+  background: none;
+  border: 1px dashed rgba(0, 0, 0, 0.08);
+}
+
+.task-edit-friend-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.task-edit-friend-name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.task-edit-friend-controls {
+  display: flex;
+  gap: 4px;
+}
+
+.task-edit-perm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.02);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.task-edit-perm-btn.active {
+  background: rgba(0, 122, 255, 0.1);
+  color: var(--primary);
+  border-color: rgba(0, 122, 255, 0.2);
+}
+
+.task-edit-perm-btn.add {
+  background: rgba(52, 199, 89, 0.1);
+  color: var(--success);
+  border-color: rgba(52, 199, 89, 0.2);
+}
+
+.task-edit-perm-btn.remove {
+  background: rgba(255, 59, 48, 0.1);
+  color: var(--danger);
+  border-color: rgba(255, 59, 48, 0.2);
+  padding: 4px 6px;
+}
+
+.task-edit-no-friends,
+.task-edit-all-added {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  padding: 10px;
+  text-align: center;
+  font-style: italic;
+}
+
+/* Footer */
+.task-edit-footer {
+  display: flex;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.task-edit-cancel {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(0, 0, 0, 0.08);
+  background: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.task-edit-save {
+  flex: 2;
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  background: var(--primary);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: inherit;
+  transition: opacity 0.2s;
+}
+
+.task-edit-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.task-edit-save .spin {
+  animation: spin 0.6s linear infinite;
+}
+
+/* Detail Modal Edit Button */
+.task-detail-edit-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: none;
+  background: rgba(0, 122, 255, 0.1);
+  color: var(--primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  margin-right: 8px;
+  transition: all 0.2s;
+}
+
+.task-detail-edit-btn:hover {
+  background: rgba(0, 122, 255, 0.18);
+}
+
+.task-detail-btn.edit {
+  background: rgba(0, 122, 255, 0.1);
+  color: var(--primary);
+}
+
+/* Edit modal mobile */
+@media (max-width: 768px) {
+  .task-edit-modal {
+    width: 100%;
+    max-width: none;
+    max-height: 95vh;
+    border-radius: 20px 20px 0 0;
+    margin-top: auto;
+  }
+
+  .task-edit-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .task-edit-add-btn {
+    align-self: stretch;
+    text-align: center;
+  }
+
+  .task-edit-priority-pills,
+  .task-edit-visibility-pills {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .task-edit-pill {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .task-edit-friend-controls {
+    flex-wrap: wrap;
+  }
+}
+
+/* ============================================
    PROFILE PAGE
    ============================================ */
 

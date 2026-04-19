@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../store/taskStore';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import TaskDetailModal from './TaskDetailModal';
 import {
   format,
   startOfMonth,
@@ -24,6 +26,7 @@ export default function Calendar({ onDayClick }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState('month'); // 'month' | 'week'
   const [selectedDate, setSelectedDate] = useState(null);
+  const [detailTask, setDetailTask] = useState(null);
   const { tasks } = useTaskStore();
 
   const getTasksForDate = (date) => {
@@ -95,6 +98,7 @@ export default function Calendar({ onDayClick }) {
                         color: t.category_color || 'var(--primary)',
                         borderLeft: `2px solid ${t.category_color || 'var(--primary)'}`,
                       }}
+                      onClick={(e) => { e.stopPropagation(); setDetailTask(t); }}
                     >
                       {t.time && <span className="calendar-day-task-time">{t.time.slice(0, 5)}</span>}
                       <span className="calendar-day-task-title">{t.title}</span>
@@ -142,7 +146,9 @@ export default function Calendar({ onDayClick }) {
                     style={{
                       background: t.category_color ? `${t.category_color}18` : 'var(--primary-bg)',
                       color: t.category_color || 'var(--primary)',
+                      cursor: 'pointer',
                     }}
+                    onClick={(e) => { e.stopPropagation(); setDetailTask(t); }}
                   >
                     {t.time && <span style={{ opacity: 0.7 }}>{t.time.slice(0, 5)}</span>}
                     {t.title}
@@ -206,6 +212,11 @@ export default function Calendar({ onDayClick }) {
         <div className="calendar-grid">{renderMonthView()}</div>
       ) : (
         renderWeekView()
+      )}
+
+      {detailTask && createPortal(
+        <TaskDetailModal task={detailTask} onClose={() => setDetailTask(null)} />,
+        document.body
       )}
     </motion.div>
   );

@@ -1,12 +1,15 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTaskStore } from '../store/taskStore';
 import {
   X, Calendar, Clock, Tag, Flag, CheckCircle2, Circle,
   Trash2, AlertTriangle, Repeat, Bell, FileText, ListChecks,
-  Lock, Users, UserCheck, Eye, Edit3
+  Lock, Users, UserCheck, Eye, Edit3, Pencil
 } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
+import TaskEditModal from './TaskEditModal';
 
 const priorityConfig = {
   low: { label: 'Niedrig', color: 'var(--success)', icon: Flag },
@@ -16,7 +19,8 @@ const priorityConfig = {
 };
 
 export default function TaskDetailModal({ task, onClose }) {
-  const { toggleTask, deleteTask } = useTaskStore();
+  const { toggleTask, deleteTask, fetchTasks } = useTaskStore();
+  const [showEdit, setShowEdit] = useState(false);
 
   if (!task) return null;
 
@@ -72,6 +76,11 @@ export default function TaskDetailModal({ task, onClose }) {
               className="task-detail-priority-bar"
               style={{ background: priority.color }}
             />
+            {canEdit && (
+              <button className="task-detail-edit-btn" onClick={() => setShowEdit(true)} title="Bearbeiten">
+                <Pencil size={18} />
+              </button>
+            )}
             <button className="task-detail-close" onClick={onClose}>
               <X size={20} />
             </button>
@@ -250,6 +259,15 @@ export default function TaskDetailModal({ task, onClose }) {
           <div className="task-detail-actions">
             {canEdit && (
               <motion.button
+                className="task-detail-btn edit"
+                onClick={() => setShowEdit(true)}
+                whileTap={{ scale: 0.97 }}
+              >
+                <Pencil size={18} /> Bearbeiten
+              </motion.button>
+            )}
+            {canEdit && (
+              <motion.button
                 className={`task-detail-btn ${task.completed ? 'reopen' : 'complete'}`}
                 onClick={handleToggle}
                 whileTap={{ scale: 0.97 }}
@@ -273,6 +291,16 @@ export default function TaskDetailModal({ task, onClose }) {
           </div>
         </motion.div>
       </motion.div>
+
+      {/* Edit Modal */}
+      {showEdit && createPortal(
+        <TaskEditModal
+          task={task}
+          onClose={() => setShowEdit(false)}
+          onSaved={() => { fetchTasks(); onClose(); }}
+        />,
+        document.body
+      )}
     </AnimatePresence>
   );
 }
