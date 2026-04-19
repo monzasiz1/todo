@@ -19,7 +19,7 @@ module.exports = async function handler(req, res) {
         'SELECT * FROM categories WHERE user_id = $1 ORDER BY name ASC',
         [user.id]
       );
-      return res.json(result.rows);
+      return res.json({ categories: result.rows });
     } catch (err) {
       console.error('Categories list error:', err);
       return res.status(500).json({ error: 'Fehler beim Laden der Kategorien' });
@@ -37,7 +37,7 @@ module.exports = async function handler(req, res) {
         'INSERT INTO categories (user_id, name, color, icon) VALUES ($1, $2, $3, $4) RETURNING *',
         [user.id, name, color || '#007AFF', icon || 'folder']
       );
-      return res.status(201).json(result.rows[0]);
+      return res.status(201).json({ category: result.rows[0] });
     } catch (err) {
       console.error('Create category error:', err);
       return res.status(500).json({ error: 'Fehler beim Erstellen der Kategorie' });
