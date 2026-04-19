@@ -1,5 +1,6 @@
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTaskStore } from '../store/taskStore';
 import { Check, Trash2, Clock, Calendar, GripVertical } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
@@ -34,6 +35,7 @@ export default function TaskCard({ task, index }) {
   const isOverdue = task.date && !task.completed && isPast(parseISO(task.date)) && !isToday(parseISO(task.date));
 
   return (
+    <>
     <motion.div
       className={`task-card ${task.completed ? 'completed' : ''}`}
       layout
@@ -41,7 +43,6 @@ export default function TaskCard({ task, index }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -100, height: 0, marginBottom: 0, padding: 0 }}
       transition={{ duration: 0.3, delay: index * 0.03 }}
-      whileHover={{ scale: 1.005 }}
       onClick={() => setShowDetail(true)}
       style={{ cursor: 'pointer' }}
     >
@@ -106,11 +107,13 @@ export default function TaskCard({ task, index }) {
           <Trash2 size={16} />
         </motion.button>
       </div>
-
-      {/* Detail Modal */}
-      {showDetail && (
-        <TaskDetailModal task={task} onClose={() => setShowDetail(false)} />
-      )}
     </motion.div>
+
+    {/* Detail Modal — rendered via portal outside the card */}
+    {showDetail && createPortal(
+      <TaskDetailModal task={task} onClose={() => setShowDetail(false)} />,
+      document.body
+    )}
+    </>
   );
 }
