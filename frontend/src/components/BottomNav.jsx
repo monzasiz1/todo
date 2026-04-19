@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, CalendarDays, Users, Plus } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Users, Plus, UserCircle } from 'lucide-react';
 import { useState } from 'react';
 import { useFriendsStore } from '../store/friendsStore';
 import FriendsList from './FriendsList';
@@ -37,8 +37,9 @@ export default function BottomNav({ onAddClick }) {
           <span>Freunde</span>
         </button>
 
-        <NavLink to="/calendar" className="bottom-nav-item" style={{ visibility: 'hidden' }}>
-          <span>_</span>
+        <NavLink to="/profile" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
+          <UserCircle size={22} />
+          <span>Profil</span>
         </NavLink>
       </nav>
 

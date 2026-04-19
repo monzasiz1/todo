@@ -6,6 +6,7 @@ import CalendarPage from './pages/CalendarPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import LandingPage from './pages/LandingPage';
+import ProfilePage from './pages/ProfilePage';
 import { useEffect } from 'react';
 
 function ProtectedRoute({ children }) {
@@ -42,6 +43,7 @@ export default function App() {
         >
           <Route index element={<Dashboard />} />
           <Route path="calendar" element={<CalendarPage />} />
+          <Route path="profile" element={<ProfilePage />} />
         </Route>
         <Route path="*" element={<Navigate to="/landing" replace />} />
       </Routes>

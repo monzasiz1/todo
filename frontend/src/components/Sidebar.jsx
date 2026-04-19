@@ -9,6 +9,7 @@ import {
   LogOut,
   Sparkles,
   Users,
+  UserCircle,
 } from 'lucide-react';
 import FriendsList from './FriendsList';
 import { useFriendsStore } from '../store/friendsStore';
@@ -122,18 +123,18 @@ export default function Sidebar({ isOpen, onClose }) {
 
       {/* User */}
       <div className="sidebar-bottom">
-        <div className="sidebar-user">
-          <div className="sidebar-avatar">
+        <NavLink to="/profile" className="sidebar-user" onClick={onClose} style={{ textDecoration: 'none' }}>
+          <div className="sidebar-avatar" style={{ background: user?.avatar_color || '#007AFF' }}>
             {user?.name?.charAt(0)?.toUpperCase() || '?'}
           </div>
           <div className="sidebar-user-info">
             <div className="sidebar-user-name">{user?.name || 'Benutzer'}</div>
             <div className="sidebar-user-email">{user?.email || ''}</div>
           </div>
-          <button className="sidebar-logout" onClick={logout} title="Abmelden">
-            <LogOut size={18} />
-          </button>
-        </div>
+        </NavLink>
+        <button className="sidebar-logout" onClick={logout} title="Abmelden">
+          <LogOut size={18} />
+        </button>
       </div>
 
       {/* Friends Panel */}

@@ -53,5 +53,10 @@ export const useAuthStore = create((set) => ({
     window.location.href = '/login';
   },
 
+  setUser: (user) => {
+    localStorage.setItem('user', JSON.stringify(user));
+    set({ user });
+  },
+
   clearError: () => set({ error: null }),
 }));

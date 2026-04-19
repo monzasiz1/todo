@@ -47,6 +47,35 @@ export const api = {
 
   getMe: () => request('/auth/me'),
 
+  // Profile
+  getProfile: () => request('/profile'),
+
+  updateProfile: (data) =>
+    request('/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  updateAvatar: (avatar_url) =>
+    request('/profile/avatar', {
+      method: 'PUT',
+      body: JSON.stringify({ avatar_url }),
+    }),
+
+  changePassword: (current_password, new_password) =>
+    request('/profile/password', {
+      method: 'PUT',
+      body: JSON.stringify({ current_password, new_password }),
+    }),
+
+  exportProfile: () => request('/profile/export'),
+
+  deleteAccount: (password) =>
+    request('/profile', {
+      method: 'DELETE',
+      body: JSON.stringify({ password }),
+    }),
+
   // Tasks
   getTasks: (params = {}) => {
     const query = new URLSearchParams(params).toString();
