@@ -1437,10 +1437,58 @@ input, textarea, select {
   padding: 16px 24px 0;
 }
 
+.task-detail-description-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
 .task-detail-description {
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   color: var(--text-secondary);
-  line-height: 1.6;
+  line-height: 1.7;
+  background: var(--bg);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+}
+
+.task-detail-desc-line {
+  margin-bottom: 4px;
+}
+
+.task-detail-list-item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+}
+.task-detail-list-item:last-child {
+  border-bottom: none;
+}
+
+.task-detail-bullet {
+  color: var(--primary);
+  font-size: 1.1rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* Task card description preview */
+.task-description-preview {
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .task-detail-grid {
