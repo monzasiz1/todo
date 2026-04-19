@@ -69,6 +69,11 @@ export default function TaskCard({ task, index }) {
       {/* Content */}
       <div className="task-content">
         <div className="task-title">{task.title}</div>
+        {task.description && (
+          <div className="task-description-preview">
+            {task.description.length > 60 ? task.description.substring(0, 60) + '…' : task.description}
+          </div>
+        )}
         <div className="task-meta">
           {task.date && (
             <span className="task-meta-item" style={isOverdue ? { color: 'var(--danger)' } : {}}>
@@ -79,7 +84,7 @@ export default function TaskCard({ task, index }) {
           {task.time && (
             <span className="task-meta-item">
               <Clock size={14} />
-              {formatTime(task.time)}
+              {formatTime(task.time)}{task.time_end ? ` – ${formatTime(task.time_end)}` : ''}
             </span>
           )}
           {task.category_name && (
