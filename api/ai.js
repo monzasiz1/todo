@@ -27,7 +27,7 @@ module.exports = async function handler(req, res) {
       }
 
       const parsed = await parseTaskWithAI(input);
-      return res.json(parsed);
+      return res.json({ parsed });
     } catch (err) {
       console.error('AI parse error:', err);
       return res.status(500).json({ error: 'KI-Analyse fehlgeschlagen' });
