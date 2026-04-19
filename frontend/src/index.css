@@ -3480,11 +3480,12 @@ input, textarea, select {
   border-radius: 20px;
   width: 95%;
   max-width: 520px;
-  max-height: 90vh;
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
   overflow: hidden;
+  position: relative;
 }
 
 .task-edit-header {
@@ -3493,6 +3494,7 @@ input, textarea, select {
   justify-content: space-between;
   padding: 18px 20px 14px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  flex-shrink: 0;
 }
 
 .task-edit-header h2 {
@@ -3517,8 +3519,11 @@ input, textarea, select {
 
 .task-edit-body {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 16px 20px;
+  padding-bottom: 20px;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -3824,6 +3829,9 @@ input, textarea, select {
   gap: 10px;
   padding: 14px 20px;
   border-top: 1px solid rgba(0, 0, 0, 0.06);
+  flex-shrink: 0;
+  background: var(--card-solid);
+  padding-bottom: max(14px, env(safe-area-inset-bottom, 14px));
 }
 
 .task-edit-cancel {
@@ -3902,12 +3910,21 @@ input, textarea, select {
 
 /* Edit modal mobile */
 @media (max-width: 768px) {
+  .task-edit-overlay {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+
   .task-edit-modal {
     width: 100%;
     max-width: none;
-    max-height: 95vh;
+    max-height: 92vh;
+    max-height: 92dvh;
     border-radius: 20px 20px 0 0;
-    margin-top: auto;
+  }
+
+  .task-edit-header {
+    flex-shrink: 0;
   }
 
   .task-edit-row {

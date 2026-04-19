@@ -142,7 +142,7 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
 
   return (
     <motion.div
-      className="modal-overlay"
+      className="modal-overlay task-edit-overlay"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
