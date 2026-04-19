@@ -23,31 +23,12 @@ import { de } from 'date-fns/locale';
 export default function Calendar({ onDayClick }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState('month'); // 'month' | 'week'
-  const [calendarTasks, setCalendarTasks] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
-  const { tasks, fetchTasksRange } = useTaskStore();
-
-  useEffect(() => {
-    loadTasks();
-  }, [currentDate, view, tasks.length]);
-
-  const loadTasks = async () => {
-    let start, end;
-    if (view === 'month') {
-      const monthStart = startOfMonth(currentDate);
-      start = format(startOfWeek(monthStart, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-      end = format(endOfWeek(endOfMonth(currentDate), { weekStartsOn: 1 }), 'yyyy-MM-dd');
-    } else {
-      start = format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-      end = format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-    }
-    const tasks = await fetchTasksRange(start, end);
-    setCalendarTasks(tasks);
-  };
+  const { tasks } = useTaskStore();
 
   const getTasksForDate = (date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    return calendarTasks.filter((t) => t.date === dateStr);
+    return tasks.filter((t) => t.date === dateStr);
   };
 
   const navigate = (direction) => {
