@@ -670,17 +670,18 @@ input, textarea, select {
 }
 
 .calendar-day {
-  aspect-ratio: 1;
-  padding: 8px;
+  aspect-ratio: unset;
+  padding: 4px 4px 6px;
   border-top: 1px solid var(--border);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
+  align-items: stretch;
+  gap: 2px;
   cursor: pointer;
   transition: background var(--transition);
-  min-height: 80px;
+  min-height: 72px;
+  overflow: hidden;
 }
 
 .calendar-day:nth-child(7n) {
@@ -705,15 +706,17 @@ input, textarea, select {
 }
 
 .calendar-day-number {
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   transition: all var(--transition);
+  align-self: flex-start;
+  flex-shrink: 0;
 }
 
 .calendar-day-dots {
@@ -727,6 +730,54 @@ input, textarea, select {
   width: 5px;
   height: 5px;
   border-radius: 50%;
+}
+
+/* Calendar Day Task Entries */
+.calendar-day-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  margin-top: 2px;
+  overflow: hidden;
+}
+
+.calendar-day-task {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  padding: 1px 4px;
+  border-radius: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+
+.calendar-day-task.completed {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+.calendar-day-task-time {
+  opacity: 0.7;
+  flex-shrink: 0;
+  font-size: 0.58rem;
+}
+
+.calendar-day-task-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calendar-day-more {
+  font-size: 0.58rem;
+  color: var(--text-tertiary);
+  font-weight: 600;
+  text-align: center;
+  padding-top: 1px;
 }
 
 /* Calendar Week View */

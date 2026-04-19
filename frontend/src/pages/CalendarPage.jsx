@@ -23,7 +23,13 @@ export default function CalendarPage() {
   };
 
   const selectedTasks = selectedDate
-    ? tasks.filter((t) => t.date && t.date.substring(0, 10) === format(selectedDate, 'yyyy-MM-dd'))
+    ? tasks.filter((t) => {
+        if (!t.date) return false;
+        const dateStr = format(selectedDate, 'yyyy-MM-dd');
+        const taskStart = t.date.substring(0, 10);
+        const taskEnd = t.date_end ? t.date_end.substring(0, 10) : taskStart;
+        return dateStr >= taskStart && dateStr <= taskEnd;
+      })
     : [];
 
   return (

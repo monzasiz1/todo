@@ -85,14 +85,24 @@ export default function Calendar({ onDayClick }) {
             >
               <span className="calendar-day-number">{format(d, 'd')}</span>
               {dayTasks.length > 0 && (
-                <div className="calendar-day-dots">
-                  {dayTasks.slice(0, 3).map((t) => (
+                <div className="calendar-day-tasks">
+                  {dayTasks.slice(0, 2).map((t) => (
                     <div
                       key={t.id}
-                      className="calendar-day-dot"
-                      style={{ background: t.category_color || 'var(--primary)' }}
-                    />
+                      className={`calendar-day-task ${t.completed ? 'completed' : ''}`}
+                      style={{
+                        background: t.category_color ? `${t.category_color}20` : 'var(--primary-bg)',
+                        color: t.category_color || 'var(--primary)',
+                        borderLeft: `2px solid ${t.category_color || 'var(--primary)'}`,
+                      }}
+                    >
+                      {t.time && <span className="calendar-day-task-time">{t.time.slice(0, 5)}</span>}
+                      <span className="calendar-day-task-title">{t.title}</span>
+                    </div>
                   ))}
+                  {dayTasks.length > 2 && (
+                    <div className="calendar-day-more">+{dayTasks.length - 2} mehr</div>
+                  )}
                 </div>
               )}
             </motion.div>
