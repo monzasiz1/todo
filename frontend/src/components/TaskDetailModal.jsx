@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../store/taskStore';
 import {
   X, Calendar, Clock, Tag, Flag, CheckCircle2, Circle,
-  Trash2, AlertTriangle, Repeat, Bell
+  Trash2, AlertTriangle, Repeat, Bell, FileText, ListChecks
 } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -96,10 +96,22 @@ export default function TaskDetailModal({ task, onClose }) {
             </div>
           </div>
 
-          {/* Description */}
+          {/* Description / Details */}
           {task.description && (
             <div className="task-detail-section">
-              <p className="task-detail-description">{task.description}</p>
+              <div className="task-detail-description-header">
+                {task.description.includes('•') ? <ListChecks size={16} /> : <FileText size={16} />}
+                <span>{task.description.includes('•') ? 'Liste' : 'Details'}</span>
+              </div>
+              <div className="task-detail-description">
+                {task.description.split('\n').map((line, i) => (
+                  <div key={i} className={line.startsWith('•') ? 'task-detail-list-item' : 'task-detail-desc-line'}>
+                    {line.startsWith('•') ? (
+                      <><span className="task-detail-bullet">•</span>{line.substring(1).trim()}</>
+                    ) : line}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -126,7 +138,9 @@ export default function TaskDetailModal({ task, onClose }) {
                 </div>
                 <div>
                   <div className="task-detail-item-label">Uhrzeit</div>
-                  <div className="task-detail-item-value">{formatTime(task.time)}</div>
+                  <div className="task-detail-item-value">
+                    {formatTime(task.time)}{task.time_end ? ` – ${formatTime(task.time_end)}` : ''}
+                  </div>
                 </div>
               </div>
             )}
