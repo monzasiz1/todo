@@ -28,7 +28,7 @@ export default function Calendar({ onDayClick }) {
 
   const getTasksForDate = (date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    return tasks.filter((t) => t.date === dateStr);
+    return tasks.filter((t) => t.date && t.date.substring(0, 10) === dateStr);
   };
 
   const navigate = (direction) => {
