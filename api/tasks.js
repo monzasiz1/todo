@@ -26,7 +26,7 @@ module.exports = async function handler(req, res) {
          ORDER BY t.date ASC, t.sort_order ASC`,
         [user.id, start, end]
       );
-      return res.json(result.rows);
+      return res.json({ tasks: result.rows });
     } catch (err) {
       console.error('Tasks range error:', err);
       return res.status(500).json({ error: 'Fehler beim Laden der Aufgaben' });
@@ -64,7 +64,7 @@ module.exports = async function handler(req, res) {
          ORDER BY t.reminder_at ASC`,
         [user.id]
       );
-      return res.json(result.rows);
+      return res.json({ tasks: result.rows });
     } catch (err) {
       console.error('Reminders error:', err);
       return res.status(500).json({ error: 'Fehler beim Laden der Erinnerungen' });
@@ -84,7 +84,7 @@ module.exports = async function handler(req, res) {
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Aufgabe nicht gefunden' });
       }
-      return res.json(result.rows[0]);
+      return res.json({ task: result.rows[0] });
     } catch (err) {
       console.error('Toggle error:', err);
       return res.status(500).json({ error: 'Fehler beim Umschalten' });
@@ -108,7 +108,7 @@ module.exports = async function handler(req, res) {
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Aufgabe nicht gefunden' });
       }
-      return res.json(result.rows[0]);
+      return res.json({ task: result.rows[0] });
     } catch (err) {
       console.error('Update error:', err);
       return res.status(500).json({ error: 'Fehler beim Aktualisieren' });
@@ -143,7 +143,7 @@ module.exports = async function handler(req, res) {
          ORDER BY t.sort_order ASC, t.created_at DESC`,
         [user.id]
       );
-      return res.json(result.rows);
+      return res.json({ tasks: result.rows });
     } catch (err) {
       console.error('Tasks list error:', err);
       return res.status(500).json({ error: 'Fehler beim Laden der Aufgaben' });
@@ -171,7 +171,7 @@ module.exports = async function handler(req, res) {
          priority || 'medium', category_id || null, reminder_at || null,
          maxOrder.rows[0].next_order]
       );
-      return res.status(201).json(result.rows[0]);
+      return res.status(201).json({ task: result.rows[0] });
     } catch (err) {
       console.error('Create task error:', err);
       return res.status(500).json({ error: 'Fehler beim Erstellen der Aufgabe' });
