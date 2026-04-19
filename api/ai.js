@@ -66,12 +66,37 @@ module.exports = async function handler(req, res) {
         [user.id]
       );
 
+      // Check for date range → create one task per day
+      const createdTasks = [];
+      if (parsed.date && parsed.date_end && parsed.date !== parsed.date_end) {
+        const startDate = new Date(parsed.date);
+        const endDate = new Date(parsed.date_end);
+        let dayOffset = 0;
+        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+          const dateStr = d.toISOString().split('T')[0];
+          const result = await pool.query(
+            `INSERT INTO tasks (user_id, title, description, date, time, time_end, priority, category_id, reminder_at, sort_order)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+             RETURNING *`,
+            [user.id, parsed.title, parsed.description || null, dateStr,
+             parsed.time || null, parsed.time_end || null,
+             parsed.priority || 'medium', categoryId,
+             null, maxOrder.rows[0].next_order + dayOffset]
+          );
+          createdTasks.push(result.rows[0]);
+          dayOffset++;
+        }
+        return res.status(201).json({ task: createdTasks[0], tasks: createdTasks, parsed });
+      }
+
+      // Single task
       const result = await pool.query(
-        `INSERT INTO tasks (user_id, title, description, date, time, priority, category_id, reminder_at, sort_order)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        `INSERT INTO tasks (user_id, title, description, date, time, time_end, priority, category_id, reminder_at, sort_order)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
          RETURNING *`,
-        [user.id, parsed.title, null, parsed.date || null,
-         parsed.time || null, parsed.priority || 'medium', categoryId,
+        [user.id, parsed.title, parsed.description || null, parsed.date || null,
+         parsed.time || null, parsed.time_end || null,
+         parsed.priority || 'medium', categoryId,
          null, maxOrder.rows[0].next_order]
       );
 
