@@ -1,6 +1,39 @@
 const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
 
+function calcNextDate(currentDate, rule, interval) {
+  if (!currentDate) return null;
+  const d = new Date(currentDate);
+  switch (rule) {
+    case 'daily':
+      d.setDate(d.getDate() + interval);
+      break;
+    case 'weekly':
+      d.setDate(d.getDate() + 7 * interval);
+      break;
+    case 'biweekly':
+      d.setDate(d.getDate() + 14);
+      break;
+    case 'monthly':
+      d.setMonth(d.getMonth() + interval);
+      break;
+    case 'yearly':
+      d.setFullYear(d.getFullYear() + interval);
+      break;
+    case 'weekdays': {
+      // Next weekday (Mon-Fri)
+      let next = new Date(d);
+      do {
+        next.setDate(next.getDate() + 1);
+      } while (next.getDay() === 0 || next.getDay() === 6);
+      return next.toISOString().split('T')[0];
+    }
+    default:
+      return null;
+  }
+  return d.toISOString().split('T')[0];
+}
+
 module.exports = async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -96,7 +129,71 @@ module.exports = async function handler(req, res) {
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Aufgabe nicht gefunden oder keine Berechtigung' });
       }
-      return res.json({ task: result.rows[0] });
+
+      const toggled = result.rows[0];
+      let nextTask = null;
+
+      // If a recurring task was just completed, auto-create next occurrence
+      if (toggled.completed && toggled.recurrence_rule) {
+        const nextDate = calcNextDate(toggled.date, toggled.recurrence_rule, toggled.recurrence_interval || 1);
+        // Only create if within recurrence end (or no end set)
+        if (nextDate && (!toggled.recurrence_end || nextDate <= toggled.recurrence_end)) {
+          // Calculate date_end offset
+          let nextDateEnd = null;
+          if (toggled.date_end && toggled.date) {
+            const diffMs = new Date(toggled.date_end) - new Date(toggled.date);
+            const diffDays = Math.round(diffMs / 86400000);
+            const nd = new Date(nextDate);
+            nd.setDate(nd.getDate() + diffDays);
+            nextDateEnd = nd.toISOString().split('T')[0];
+          }
+
+          const parentId = toggled.recurrence_parent_id || toggled.id;
+
+          const existingNext = await pool.query(
+            `SELECT id FROM tasks
+             WHERE user_id = $1 AND recurrence_parent_id = $2 AND date = $3
+             LIMIT 1`,
+            [toggled.user_id, parentId, nextDate]
+          );
+
+          if (existingNext.rows.length > 0) {
+            return res.json({ task: toggled, nextTask: null });
+          }
+
+          const maxOrder = await pool.query(
+            'SELECT COALESCE(MAX(sort_order), 0) + 1 as next_order FROM tasks WHERE user_id = $1',
+            [toggled.user_id]
+          );
+
+          const ins = await pool.query(
+            `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order, visibility,
+             recurrence_rule, recurrence_interval, recurrence_end, recurrence_parent_id)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+             RETURNING *`,
+            [toggled.user_id, toggled.title, toggled.description,
+             nextDate, nextDateEnd, toggled.time, toggled.time_end,
+             toggled.priority, toggled.category_id, toggled.reminder_at,
+             maxOrder.rows[0].next_order, toggled.visibility || 'private',
+             toggled.recurrence_rule, toggled.recurrence_interval || 1,
+             toggled.recurrence_end, parentId]
+          );
+          nextTask = ins.rows[0];
+
+          // Copy group assignment if exists
+          try {
+            const gt = await pool.query('SELECT group_id, created_by FROM group_tasks WHERE task_id = $1', [toggled.id]);
+            if (gt.rows.length > 0) {
+              await pool.query(
+                'INSERT INTO group_tasks (group_id, task_id, created_by) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING',
+                [gt.rows[0].group_id, nextTask.id, gt.rows[0].created_by]
+              );
+            }
+          } catch { /* ignore if group tables don't exist */ }
+        }
+      }
+
+      return res.json({ task: toggled, nextTask });
     } catch (err) {
       console.error('Toggle error:', err);
       return res.status(500).json({ error: 'Fehler beim Umschalten' });
@@ -107,15 +204,18 @@ module.exports = async function handler(req, res) {
   if (segments.length === 1 && segments[0] !== 'range' && segments[0] !== 'reorder' && req.method === 'PUT') {
     try {
       const taskId = segments[0];
-      const { title, description, date, date_end, time, time_end, priority, category_id, reminder_at } = req.body;
+      const { title, description, date, date_end, time, time_end, priority, category_id, reminder_at,
+              recurrence_rule, recurrence_interval, recurrence_end } = req.body;
       const result = await pool.query(
         `UPDATE tasks SET title = COALESCE($1, title), description = COALESCE($2, description),
          date = COALESCE($3, date), date_end = $4, time = COALESCE($5, time), time_end = $6,
          priority = COALESCE($7, priority), category_id = $8,
-         reminder_at = $9, updated_at = NOW()
+         reminder_at = $9, recurrence_rule = $12, recurrence_interval = COALESCE($13, 1),
+         recurrence_end = $14, updated_at = NOW()
          WHERE id = $10 AND user_id = $11
          RETURNING *`,
-        [title, description, date, date_end || null, time, time_end || null, priority, category_id, reminder_at, taskId, user.id]
+        [title, description, date, date_end || null, time, time_end || null, priority, category_id, reminder_at,
+         taskId, user.id, recurrence_rule || null, recurrence_interval || 1, recurrence_end || null]
       );
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Aufgabe nicht gefunden' });
@@ -212,7 +312,8 @@ module.exports = async function handler(req, res) {
   // POST /api/tasks
   if (segments.length === 0 && req.method === 'POST') {
     try {
-      const { title, description, date, date_end, time, time_end, priority, category_id, reminder_at } = req.body;
+      const { title, description, date, date_end, time, time_end, priority, category_id, reminder_at,
+              recurrence_rule, recurrence_interval, recurrence_end } = req.body;
       if (!title) {
         return res.status(400).json({ error: 'Titel ist erforderlich' });
       }
@@ -223,12 +324,13 @@ module.exports = async function handler(req, res) {
       );
 
       const result = await pool.query(
-        `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order,
+         recurrence_rule, recurrence_interval, recurrence_end)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
          RETURNING *`,
         [user.id, title, description || null, date || null, date_end || null, time || null, time_end || null,
          priority || 'medium', category_id || null, reminder_at || null,
-         maxOrder.rows[0].next_order]
+         maxOrder.rows[0].next_order, recurrence_rule || null, recurrence_interval || 1, recurrence_end || null]
       );
       return res.status(201).json({ task: result.rows[0] });
     } catch (err) {

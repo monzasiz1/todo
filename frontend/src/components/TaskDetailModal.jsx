@@ -287,6 +287,21 @@ export default function TaskDetailModal({ task, onClose }) {
                 </div>
               </div>
             )}
+
+            {task.recurrence_rule && (
+              <div className="task-detail-item">
+                <div className="task-detail-item-icon" style={{ color: '#007AFF' }}>
+                  <Repeat size={18} />
+                </div>
+                <div>
+                  <div className="task-detail-item-label">Wiederholung</div>
+                  <div className="task-detail-item-value" style={{ color: '#007AFF' }}>
+                    {{ daily: 'Täglich', weekly: 'Wöchentlich', biweekly: 'Alle 2 Wochen', monthly: 'Monatlich', yearly: 'Jährlich', weekdays: 'Werktags (Mo–Fr)' }[task.recurrence_rule] || task.recurrence_rule}
+                    {task.recurrence_end && ` bis ${format(parseISO(task.recurrence_end), 'd. MMM yyyy', { locale: de })}`}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Created */}

@@ -6,7 +6,7 @@ import { api } from '../utils/api';
 import {
   X, Calendar, Clock, Tag, Flag, FileText, Bell,
   Save, Users, UserCheck, Lock, Eye, Edit3,
-  ChevronDown, Sparkles, Loader2, AlertTriangle, UsersRound
+  ChevronDown, Sparkles, Loader2, AlertTriangle, UsersRound, Repeat
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
@@ -15,6 +15,16 @@ const PRIORITIES = [
   { value: 'medium', label: 'Mittel', color: 'var(--primary)' },
   { value: 'high', label: 'Hoch', color: 'var(--warning)' },
   { value: 'urgent', label: 'Dringend', color: 'var(--danger)' },
+];
+
+const RECURRENCE_OPTIONS = [
+  { value: '', label: 'Nie' },
+  { value: 'daily', label: 'Täglich' },
+  { value: 'weekdays', label: 'Werktags (Mo–Fr)' },
+  { value: 'weekly', label: 'Wöchentlich' },
+  { value: 'biweekly', label: 'Alle 2 Wochen' },
+  { value: 'monthly', label: 'Monatlich' },
+  { value: 'yearly', label: 'Jährlich' },
 ];
 
 const VISIBILITY_OPTIONS = [
@@ -39,6 +49,10 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
   const [reminderAt, setReminderAt] = useState(
     task.reminder_at ? format(parseISO(task.reminder_at), "yyyy-MM-dd'T'HH:mm") : ''
   );
+
+  // Recurrence state
+  const [recurrenceRule, setRecurrenceRule] = useState(task.recurrence_rule || '');
+  const [recurrenceEnd, setRecurrenceEnd] = useState(task.recurrence_end ? task.recurrence_end.substring(0, 10) : '');
 
   // Sharing state
   const [visibility, setVisibility] = useState(task.visibility || 'private');
@@ -130,6 +144,9 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
         priority,
         category_id: categoryId || null,
         reminder_at: reminderAt || null,
+        recurrence_rule: recurrenceRule || null,
+        recurrence_interval: 1,
+        recurrence_end: recurrenceEnd || null,
       };
       const updatedTask = await updateTask(task.id, updates);
 
@@ -331,6 +348,32 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
               onChange={(e) => setReminderAt(e.target.value)}
               className="task-edit-input"
             />
+          </div>
+
+          {/* Recurrence */}
+          <div className="task-edit-field">
+            <label><Repeat size={14} /> Wiederholung</label>
+            <select
+              value={recurrenceRule}
+              onChange={(e) => setRecurrenceRule(e.target.value)}
+              className="task-edit-input task-edit-select"
+            >
+              {RECURRENCE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+            {recurrenceRule && (
+              <div style={{ marginTop: 8 }}>
+                <label style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Wiederholen bis (optional)</label>
+                <input
+                  type="date"
+                  value={recurrenceEnd}
+                  onChange={(e) => setRecurrenceEnd(e.target.value)}
+                  className="task-edit-input"
+                  style={{ marginTop: 4 }}
+                />
+              </div>
+            )}
           </div>
 
           {/* Group Assignment */}

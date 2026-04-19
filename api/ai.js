@@ -180,13 +180,15 @@ module.exports = async function handler(req, res) {
       );
 
       const result = await pool.query(
-        `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order, visibility)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order, visibility,
+         recurrence_rule, recurrence_interval, recurrence_end)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
          RETURNING *`,
         [user.id, parsed.title, parsed.description || null, parsed.date || null,
          parsed.date_end || null, parsed.time || null, parsed.time_end || null,
          parsed.priority || 'medium', categoryId,
-         null, maxOrder.rows[0].next_order, finalVisibility]
+         null, maxOrder.rows[0].next_order, finalVisibility,
+         parsed.recurrence_rule || null, parsed.recurrence_interval || 1, parsed.recurrence_end || null]
       );
 
       const taskId = result.rows[0].id;

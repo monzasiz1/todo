@@ -61,8 +61,9 @@ export const useTaskStore = create((set, get) => ({
         ? ` 👥 Geteilt mit ${data.shared_with.join(', ')}`
         : '';
       const groupMsg = data.group ? ` 📋 Gruppe: ${data.group.name}` : '';
+      const recMsg = data.parsed.recurrence_rule ? ' 🔄 Wiederkehrend' : '';
       const shareErr = data.parsed.share_error ? `\n⚠️ ${data.parsed.share_error}` : '';
-      get().addToast(`✅ "${data.parsed.title}"${cat}${range}${shared}${groupMsg} gespeichert${shareErr}`);
+      get().addToast(`✅ "${data.parsed.title}"${cat}${range}${shared}${groupMsg}${recMsg} gespeichert${shareErr}`);
       return data;
     } catch (err) {
       get().addToast('❌ ' + err.message, 'error');
@@ -102,11 +103,18 @@ export const useTaskStore = create((set, get) => ({
     }));
     try {
       const data = await api.toggleTask(id);
-      set((s) => ({
-        tasks: s.tasks.map((t) => (t.id === id ? data.task : t)),
-      }));
+      let tasks = get().tasks.map((t) => (t.id === id ? data.task : t));
+      // If a recurring task generated a next occurrence, add it
+      if (data.nextTask) {
+        tasks = [data.nextTask, ...tasks];
+      }
+      set({ tasks });
       const task = data.task;
-      get().addToast(task.completed ? '✅ Erledigt!' : '↩️ Wieder offen');
+      if (task.completed && data.nextTask) {
+        get().addToast('✅ Erledigt! 🔄 Nächste Wiederholung erstellt');
+      } else {
+        get().addToast(task.completed ? '✅ Erledigt!' : '↩️ Wieder offen');
+      }
     } catch (err) {
       // Revert
       set((s) => ({

@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTaskStore } from '../store/taskStore';
-import { Check, Trash2, Clock, Calendar, GripVertical, Lock, Users, UserCheck, UsersRound } from 'lucide-react';
+import { Check, Trash2, Clock, Calendar, GripVertical, Lock, Users, UserCheck, UsersRound, Repeat } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
 import TaskDetailModal from './TaskDetailModal';
@@ -87,6 +87,18 @@ export default function TaskCard({ task, index }) {
           >
             <UsersRound size={12} />
             {task.group_name}
+          </span>
+        )}
+        {task.recurrence_rule && (
+          <span
+            className="task-group-badge"
+            style={{
+              background: 'rgba(0,122,255,0.1)',
+              color: '#007AFF',
+            }}
+          >
+            <Repeat size={12} />
+            {{ daily: 'Täglich', weekly: 'Wöchentlich', biweekly: 'Alle 2 Wo.', monthly: 'Monatlich', yearly: 'Jährlich', weekdays: 'Werktags' }[task.recurrence_rule] || task.recurrence_rule}
           </span>
         )}
         <div className="task-meta">

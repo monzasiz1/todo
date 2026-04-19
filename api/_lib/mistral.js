@@ -42,6 +42,16 @@ Regeln:
 - Wenn ein Wochentag genannt wird, verwende das nächste passende Datum aus der Liste oben
 - WICHTIG: Wenn ein Datum erkennbar ist, gib es IMMER im Format YYYY-MM-DD zurück, niemals null
 - WICHTIG: Trenne Titel und Beschreibung intelligent. Der Titel soll kurz sein (z.B. "Einkaufen"), Details kommen in description
+- WIEDERKEHRENDE AUFGABEN erkennen:
+  - "täglich", "jeden Tag" → recurrence_rule: "daily"
+  - "wöchentlich", "jede Woche", "jeden Montag", "jeden Dienstag" etc. → recurrence_rule: "weekly" (und setze date auf den nächsten passenden Wochentag)
+  - "alle 2 Wochen", "zweiwöchentlich" → recurrence_rule: "biweekly"
+  - "monatlich", "jeden Monat", "jeden 1." → recurrence_rule: "monthly"
+  - "jährlich", "jedes Jahr" → recurrence_rule: "yearly"
+  - "werktags", "unter der Woche", "Montag bis Freitag" → recurrence_rule: "weekdays"
+  - "alle X Tage/Wochen/Monate" → recurrence_rule: passendes + recurrence_interval: X
+  - Wenn ein Enddatum für die Wiederholung erkannt wird ("bis Ende Juni", "bis 31.12.") → recurrence_end: YYYY-MM-DD
+  - Wenn KEINE Wiederholung erkannt wird → recurrence_rule: null
 - Antworte NUR mit validem JSON, kein anderer Text
 
 Berechne Wochentage korrekt:
@@ -71,6 +81,11 @@ Beispiele:
 - "Einkaufen mit Melanie teilen" → title: "Einkaufen", share_with: ["Melanie"], category: "Einkaufen"
 - "Projekt für Max und Anna sichtbar machen morgen" → title: "Projekt", share_with: ["Max", "Anna"], date: morgen
 - "mit Melanie teilen Geburtstagsparty am Samstag" → title: "Geburtstagsparty", share_with: ["Melanie"], date: Samstag-Datum
+- "jeden Montag Joggen 7 Uhr" → title: "Joggen", date: nächsten-Montag, time: "07:00", recurrence_rule: "weekly"
+- "täglich Medikamente nehmen" → title: "Medikamente nehmen", date: heute, recurrence_rule: "daily"
+- "alle 2 Wochen Putzen" → title: "Putzen", date: heute, recurrence_rule: "biweekly"
+- "monatlich Miete überweisen am 1." → title: "Miete überweisen", recurrence_rule: "monthly"
+- "werktags Standup 9 Uhr" → title: "Standup", date: nächster-Werktag, time: "09:00", recurrence_rule: "weekdays"
 
 JSON Format:
 {
@@ -83,6 +98,9 @@ JSON Format:
   "category": "string",
   "priority": "low|medium|high|urgent",
   "hasReminder": true/false,
+  "recurrence_rule": "daily|weekly|biweekly|monthly|yearly|weekdays" oder null,
+  "recurrence_interval": 1 (Zahl, Standard 1),
+  "recurrence_end": "YYYY-MM-DD oder null",
   "share_with": ["Name1", "Name2"] oder null,
   "group_name": "Gruppenname" oder null,
   "confidence": 0.0-1.0
@@ -127,6 +145,9 @@ JSON Format:
       category: parsed.category || 'Persönlich',
       priority: parsed.priority || 'medium',
       hasReminder: parsed.hasReminder || false,
+      recurrence_rule: parsed.recurrence_rule || null,
+      recurrence_interval: parsed.recurrence_interval || 1,
+      recurrence_end: parsed.recurrence_end || null,
       share_with: parsed.share_with || null,
       group_name: parsed.group_name || null,
       confidence: parsed.confidence || 0.8,
@@ -142,6 +163,9 @@ JSON Format:
       category: 'Persönlich',
       priority: 'medium',
       hasReminder: false,
+      recurrence_rule: null,
+      recurrence_interval: 1,
+      recurrence_end: null,
       share_with: null,
       group_name: null,
       confidence: 0.3,
