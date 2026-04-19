@@ -5,7 +5,7 @@ import { useTaskStore } from '../store/taskStore';
 import {
   X, Calendar, Clock, Tag, Flag, CheckCircle2, Circle,
   Trash2, AlertTriangle, Repeat, Bell, FileText, ListChecks,
-  Lock, Users, UserCheck, Eye, Edit3, Pencil
+  Lock, Users, UserCheck, Eye, Edit3, Pencil, UsersRound
 } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -168,6 +168,30 @@ export default function TaskDetailModal({ task, onClose }) {
                   <span>Zuletzt bearbeitet von <strong>{task.last_editor_name}</strong></span>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Group Info */}
+          {task.group_name && (
+            <div className="task-detail-section task-detail-collab">
+              <div className="task-detail-description-header">
+                <UsersRound size={16} style={{ color: task.group_color || '#5856D6' }} />
+                <span>Gruppe</span>
+              </div>
+              <div className="task-detail-group-badge" style={{
+                background: task.group_color ? `${task.group_color}15` : 'rgba(88,86,214,0.1)',
+                borderLeft: `3px solid ${task.group_color || '#5856D6'}`,
+              }}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: 10,
+                  background: task.group_color || '#5856D6',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#fff', fontWeight: 700, fontSize: 14, flexShrink: 0,
+                }}>
+                  {task.group_name.charAt(0).toUpperCase()}
+                </div>
+                <span style={{ fontWeight: 600, fontSize: 14 }}>{task.group_name}</span>
+              </div>
             </div>
           )}
 

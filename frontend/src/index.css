@@ -3422,6 +3422,15 @@ input, textarea, select {
   color: var(--text-tertiary);
 }
 
+.task-detail-group-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin-top: 8px;
+}
+
 .collab-avatar {
   width: 24px;
   height: 24px;
