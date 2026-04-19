@@ -79,8 +79,8 @@ export default function ProfilePage() {
       return;
     }
 
-    if (file.size > 500 * 1024) {
-      showToast('Bild zu groß (max. 500KB)', 'error');
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('Bild zu groß (max. 10MB)', 'error');
       return;
     }
 
@@ -89,7 +89,7 @@ export default function ProfilePage() {
       try {
         setSaving(true);
         // Resize image to max 200x200
-        const resized = await resizeImage(reader.result, 200);
+        const resized = await resizeImage(reader.result, 400);
         await api.updateAvatar(resized);
         setProfile(prev => ({ ...prev, avatar_url: resized }));
         showToast('Profilbild aktualisiert');

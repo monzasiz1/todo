@@ -165,9 +165,9 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ error: 'Ungültiges Bildformat' });
       }
 
-      // Max ~500KB base64
-      if (avatar_url.length > 700000) {
-        return res.status(400).json({ error: 'Bild zu groß (max. 500KB)' });
+      // Max ~2MB base64
+      if (avatar_url.length > 2800000) {
+        return res.status(400).json({ error: 'Bild zu groß (max. 2MB)' });
       }
 
       await pool.query(
