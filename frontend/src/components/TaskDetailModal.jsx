@@ -1,0 +1,215 @@
+import { motion, AnimatePresence } from 'framer-motion';
+import { useTaskStore } from '../store/taskStore';
+import {
+  X, Calendar, Clock, Tag, Flag, CheckCircle2, Circle,
+  Trash2, AlertTriangle, Repeat, Bell
+} from 'lucide-react';
+import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
+import { de } from 'date-fns/locale';
+
+const priorityConfig = {
+  low: { label: 'Niedrig', color: 'var(--success)', icon: Flag },
+  medium: { label: 'Mittel', color: 'var(--primary)', icon: Flag },
+  high: { label: 'Hoch', color: 'var(--warning)', icon: Flag },
+  urgent: { label: 'Dringend', color: 'var(--danger)', icon: AlertTriangle },
+};
+
+export default function TaskDetailModal({ task, onClose }) {
+  const { toggleTask, deleteTask } = useTaskStore();
+
+  if (!task) return null;
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return null;
+    const date = parseISO(dateStr);
+    if (isToday(date)) return 'Heute';
+    if (isTomorrow(date)) return 'Morgen';
+    return format(date, 'EEEE, d. MMMM yyyy', { locale: de });
+  };
+
+  const formatTime = (timeStr) => {
+    if (!timeStr) return null;
+    const [h, m] = timeStr.split(':');
+    return `${h}:${m} Uhr`;
+  };
+
+  const isOverdue = task.date && !task.completed && isPast(parseISO(task.date)) && !isToday(parseISO(task.date));
+  const priority = priorityConfig[task.priority] || priorityConfig.medium;
+  const PriorityIcon = priority.icon;
+
+  const handleToggle = () => {
+    toggleTask(task.id);
+  };
+
+  const handleDelete = () => {
+    deleteTask(task.id);
+    onClose();
+  };
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        className="modal-overlay"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+      >
+        <motion.div
+          className="task-detail-modal"
+          initial={{ opacity: 0, y: 60, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 40, scale: 0.95 }}
+          transition={{ type: 'spring', damping: 28, stiffness: 350 }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="task-detail-header">
+            <div
+              className="task-detail-priority-bar"
+              style={{ background: priority.color }}
+            />
+            <button className="task-detail-close" onClick={onClose}>
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Status + Title */}
+          <div className="task-detail-title-row">
+            <motion.div
+              className={`task-detail-checkbox ${task.completed ? 'checked' : ''}`}
+              onClick={handleToggle}
+              whileTap={{ scale: 0.85 }}
+            >
+              {task.completed ? <CheckCircle2 size={28} /> : <Circle size={28} />}
+            </motion.div>
+            <div>
+              <h2 className={`task-detail-title ${task.completed ? 'completed' : ''}`}>
+                {task.title}
+              </h2>
+              {task.completed && (
+                <span className="task-detail-status done">Erledigt</span>
+              )}
+              {isOverdue && (
+                <span className="task-detail-status overdue">Überfällig</span>
+              )}
+            </div>
+          </div>
+
+          {/* Description */}
+          {task.description && (
+            <div className="task-detail-section">
+              <p className="task-detail-description">{task.description}</p>
+            </div>
+          )}
+
+          {/* Details Grid */}
+          <div className="task-detail-grid">
+            {task.date && (
+              <div className="task-detail-item">
+                <div className="task-detail-item-icon" style={isOverdue ? { color: 'var(--danger)' } : {}}>
+                  <Calendar size={18} />
+                </div>
+                <div>
+                  <div className="task-detail-item-label">Datum</div>
+                  <div className="task-detail-item-value" style={isOverdue ? { color: 'var(--danger)' } : {}}>
+                    {formatDate(task.date)}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {task.time && (
+              <div className="task-detail-item">
+                <div className="task-detail-item-icon">
+                  <Clock size={18} />
+                </div>
+                <div>
+                  <div className="task-detail-item-label">Uhrzeit</div>
+                  <div className="task-detail-item-value">{formatTime(task.time)}</div>
+                </div>
+              </div>
+            )}
+
+            <div className="task-detail-item">
+              <div className="task-detail-item-icon" style={{ color: priority.color }}>
+                <PriorityIcon size={18} />
+              </div>
+              <div>
+                <div className="task-detail-item-label">Priorität</div>
+                <div className="task-detail-item-value" style={{ color: priority.color }}>
+                  {priority.label}
+                </div>
+              </div>
+            </div>
+
+            {task.category_name && (
+              <div className="task-detail-item">
+                <div className="task-detail-item-icon" style={{ color: task.category_color || 'var(--primary)' }}>
+                  <Tag size={18} />
+                </div>
+                <div>
+                  <div className="task-detail-item-label">Kategorie</div>
+                  <div className="task-detail-item-value">
+                    <span
+                      className="task-detail-category-badge"
+                      style={{
+                        background: task.category_color ? `${task.category_color}18` : 'var(--primary-bg)',
+                        color: task.category_color || 'var(--primary)',
+                      }}
+                    >
+                      {task.category_name}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {task.reminder_at && (
+              <div className="task-detail-item">
+                <div className="task-detail-item-icon" style={{ color: 'var(--warning)' }}>
+                  <Bell size={18} />
+                </div>
+                <div>
+                  <div className="task-detail-item-label">Erinnerung</div>
+                  <div className="task-detail-item-value">
+                    {format(parseISO(task.reminder_at), 'd. MMM, HH:mm', { locale: de })} Uhr
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Created */}
+          {task.created_at && (
+            <div className="task-detail-footer-info">
+              Erstellt am {format(parseISO(task.created_at), 'd. MMMM yyyy, HH:mm', { locale: de })} Uhr
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="task-detail-actions">
+            <motion.button
+              className={`task-detail-btn ${task.completed ? 'reopen' : 'complete'}`}
+              onClick={handleToggle}
+              whileTap={{ scale: 0.97 }}
+            >
+              {task.completed ? (
+                <><Circle size={18} /> Wieder öffnen</>
+              ) : (
+                <><CheckCircle2 size={18} /> Als erledigt markieren</>
+              )}
+            </motion.button>
+            <motion.button
+              className="task-detail-btn delete"
+              onClick={handleDelete}
+              whileTap={{ scale: 0.97 }}
+            >
+              <Trash2 size={18} /> Löschen
+            </motion.button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
