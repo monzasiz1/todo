@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import CalendarPage from './pages/CalendarPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import LandingPage from './pages/LandingPage';
 import { useEffect } from 'react';
 
 function ProtectedRoute({ children }) {
@@ -14,7 +15,13 @@ function ProtectedRoute({ children }) {
     if (token) checkAuth();
   }, []);
 
-  if (!token) return <Navigate to="/login" replace />;
+  if (!token) return <Navigate to="/landing" replace />;
+  return children;
+}
+
+function PublicRoute({ children }) {
+  const { token } = useAuthStore();
+  if (token) return <Navigate to="/" replace />;
   return children;
 }
 
@@ -22,8 +29,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        <Route path="/landing" element={<PublicRoute><LandingPage /></PublicRoute>} />
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
         <Route
           path="/"
           element={
@@ -35,7 +43,7 @@ export default function App() {
           <Route index element={<Dashboard />} />
           <Route path="calendar" element={<CalendarPage />} />
         </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/landing" replace />} />
       </Routes>
     </BrowserRouter>
   );
