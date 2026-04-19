@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, Calendar, Clock, FileText, Flag, Plus, Repeat, Save, Tag, UsersRound } from 'lucide-react';
+import { Bell, Calendar, ChevronDown, Clock, Edit3, Eye, FileText, Flag, Lock, Plus, Repeat, Save, Tag, UserCheck, Users, UsersRound, X } from 'lucide-react';
 import { useTaskStore } from '../store/taskStore';
 import { api } from '../utils/api';
 import AvatarBadge from './AvatarBadge';
+import { useFriendsStore } from '../store/friendsStore';
 
 const PRIORITIES = [
   { value: 'low', label: 'Niedrig', color: 'var(--success)' },
@@ -22,6 +23,12 @@ const RECURRENCE_OPTIONS = [
   { value: 'yearly', label: 'Jährlich' },
 ];
 
+const VISIBILITY_OPTIONS = [
+  { value: 'private', label: 'Privat', icon: Lock, color: '#8E8E93' },
+  { value: 'shared', label: 'Alle Freunde', icon: Users, color: '#007AFF' },
+  { value: 'selected_users', label: 'Auswahl', icon: UserCheck, color: '#34C759' },
+];
+
 function toDateValue(value) {
   if (!value) return '';
   if (typeof value === 'string') return value.substring(0, 10);
@@ -30,6 +37,7 @@ function toDateValue(value) {
 
 export default function ManualTaskForm({ onTaskCreated, defaultDate = null }) {
   const { createTask, categories, fetchCategories } = useTaskStore();
+  const { friends, fetchFriends } = useFriendsStore();
   const [isOpen, setIsOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -44,11 +52,15 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null }) {
   const [recurrenceEnd, setRecurrenceEnd] = useState('');
   const [groups, setGroups] = useState([]);
   const [groupId, setGroupId] = useState('');
+  const [visibility, setVisibility] = useState('private');
+  const [permissions, setPermissions] = useState([]);
+  const [showSharing, setShowSharing] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (categories.length === 0) fetchCategories();
     loadGroups();
+    fetchFriends();
   }, []);
 
   const loadGroups = async () => {
@@ -78,6 +90,38 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null }) {
     setRecurrenceRule('');
     setRecurrenceEnd('');
     setGroupId('');
+    setVisibility('private');
+    setPermissions([]);
+    setShowSharing(false);
+  };
+
+  const toggleFriendPermission = (friendUserId, friendName, friendColor, friendAvatarUrl, action) => {
+    setPermissions((prev) => {
+      const existing = prev.find((permission) => permission.user_id === friendUserId);
+      if (action === 'remove') {
+        return prev.filter((permission) => permission.user_id !== friendUserId);
+      }
+      if (action === 'add') {
+        if (existing) return prev;
+        return [...prev, {
+          user_id: friendUserId,
+          can_view: true,
+          can_edit: false,
+          name: friendName,
+          avatar_color: friendColor,
+          avatar_url: friendAvatarUrl,
+        }];
+      }
+      if (action === 'toggle_edit') {
+        if (!existing) return prev;
+        return prev.map((permission) => (
+          permission.user_id === friendUserId
+            ? { ...permission, can_edit: !permission.can_edit }
+            : permission
+        ));
+      }
+      return prev;
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -100,6 +144,14 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null }) {
         recurrence_interval: recurrenceRule ? 1 : null,
         recurrence_end: recurrenceEnd || null,
         group_id: groupId || null,
+        visibility,
+        permissions: visibility === 'selected_users'
+          ? permissions.map((permission) => ({
+              user_id: permission.user_id,
+              can_view: permission.can_view,
+              can_edit: permission.can_edit,
+            }))
+          : [],
       });
 
       if (result) {
@@ -143,6 +195,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null }) {
               flexDirection: 'column',
               gap: 14,
             }}
+            className="manual-task-form-panel"
           >
             <div>
               <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Manuell erstellen</div>
@@ -174,7 +227,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null }) {
               />
             </div>
 
-            <div className="task-edit-row">
+            <div className="task-edit-row manual-task-two-col">
               <div className="task-edit-field flex-1" style={{ marginBottom: 0 }}>
                 <label><Calendar size={14} /> Datum</label>
                 <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="task-edit-input" />
@@ -185,7 +238,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null }) {
               </div>
             </div>
 
-            <div className="task-edit-row">
+            <div className="task-edit-row manual-task-two-col">
               <div className="task-edit-field flex-1" style={{ marginBottom: 0 }}>
                 <label><Clock size={14} /> Uhrzeit</label>
                 <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="task-edit-input" />
@@ -237,7 +290,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null }) {
               />
             </div>
 
-            <div className="task-edit-row">
+            <div className="task-edit-row manual-task-two-col">
               <div className="task-edit-field flex-1" style={{ marginBottom: 0 }}>
                 <label><Repeat size={14} /> Wiederholung</label>
                 <select
@@ -264,7 +317,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null }) {
 
             <div className="task-edit-field" style={{ marginBottom: 0 }}>
               <label><UsersRound size={14} /> Gruppe</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="manual-task-stack">
                 <div
                   className={`task-edit-shared-item addable ${!groupId ? 'selected' : ''}`}
                   onClick={() => setGroupId('')}
@@ -296,6 +349,129 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null }) {
                   <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Keine Gruppen vorhanden.</div>
                 )}
               </div>
+            </div>
+
+            <div className="task-edit-sharing" style={{ marginTop: 2 }}>
+              <button
+                type="button"
+                className="task-edit-sharing-toggle"
+                onClick={() => setShowSharing(!showSharing)}
+              >
+                <div className="task-edit-sharing-toggle-left">
+                  <Users size={16} />
+                  <span>Teilen & Berechtigungen</span>
+                  {permissions.length > 0 && (
+                    <span className="task-edit-sharing-count">{permissions.length}</span>
+                  )}
+                </div>
+                <ChevronDown size={16} className={`task-edit-chevron ${showSharing ? 'open' : ''}`} />
+              </button>
+
+              <AnimatePresence>
+                {showSharing && (
+                  <motion.div
+                    className="task-edit-sharing-content"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                  >
+                    <div className="task-edit-visibility-pills">
+                      {VISIBILITY_OPTIONS.map((option) => {
+                        const Icon = option.icon;
+                        const isActive = visibility === option.value;
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            className={`task-edit-pill ${isActive ? 'active' : ''}`}
+                            style={isActive ? { background: option.color, color: '#fff' } : {}}
+                            onClick={() => {
+                              setVisibility(option.value);
+                              if (option.value !== 'selected_users') setPermissions([]);
+                            }}
+                          >
+                            <Icon size={14} /> {option.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {visibility === 'selected_users' && (
+                      <div className="task-edit-friends-section">
+                        {permissions.length > 0 && (
+                          <div className="task-edit-shared-list">
+                            <div className="task-edit-shared-label">Geteilt mit:</div>
+                            {permissions.map((permission) => (
+                              <div key={permission.user_id} className="task-edit-shared-item">
+                                <div className="task-edit-friend-avatar">
+                                  <AvatarBadge
+                                    name={permission.name}
+                                    color={permission.avatar_color || '#007AFF'}
+                                    avatarUrl={permission.avatar_url}
+                                    size={28}
+                                  />
+                                </div>
+                                <span className="task-edit-friend-name">{permission.name}</span>
+                                <div className="task-edit-friend-controls">
+                                  <button
+                                    type="button"
+                                    className={`task-edit-perm-btn ${permission.can_edit ? 'active' : ''}`}
+                                    onClick={() => toggleFriendPermission(permission.user_id, permission.name, permission.avatar_color, permission.avatar_url, 'toggle_edit')}
+                                  >
+                                    {permission.can_edit ? <Edit3 size={12} /> : <Eye size={12} />}
+                                    {permission.can_edit ? 'Bearbeiten' : 'Lesen'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="task-edit-perm-btn remove"
+                                    onClick={() => toggleFriendPermission(permission.user_id, null, null, null, 'remove')}
+                                  >
+                                    <X size={12} />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {friends.length > 0 && (
+                          <div className="task-edit-add-friends">
+                            <div className="task-edit-shared-label">Freund hinzufügen:</div>
+                            {friends
+                              .filter((friend) => !permissions.find((permission) => permission.user_id === friend.friend_user_id))
+                              .map((friend) => (
+                                <div key={friend.friend_user_id} className="task-edit-shared-item addable">
+                                  <div className="task-edit-friend-avatar">
+                                    <AvatarBadge
+                                      name={friend.name}
+                                      color={friend.avatar_color || '#007AFF'}
+                                      avatarUrl={friend.avatar_url}
+                                      size={28}
+                                    />
+                                  </div>
+                                  <span className="task-edit-friend-name">{friend.name}</span>
+                                  <button
+                                    type="button"
+                                    className="task-edit-perm-btn add"
+                                    onClick={() => toggleFriendPermission(friend.friend_user_id, friend.name, friend.avatar_color, friend.avatar_url, 'add')}
+                                  >
+                                    + Hinzufügen
+                                  </button>
+                                </div>
+                              ))}
+                          </div>
+                        )}
+
+                        {friends.length === 0 && (
+                          <div className="task-edit-no-friends">
+                            Noch keine Freunde. Füge zuerst Freunde hinzu, um einzelne Personen auszuwählen.
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>

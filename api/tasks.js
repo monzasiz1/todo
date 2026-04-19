@@ -347,10 +347,17 @@ module.exports = async function handler(req, res) {
   if (segments.length === 0 && req.method === 'POST') {
     try {
       const { title, description, date, date_end, time, time_end, priority, category_id, reminder_at,
-              recurrence_rule, recurrence_interval, recurrence_end, group_id } = req.body;
+              recurrence_rule, recurrence_interval, recurrence_end, group_id,
+              visibility, permissions } = req.body;
       if (!title) {
         return res.status(400).json({ error: 'Titel ist erforderlich' });
       }
+
+      const visibilityResult = await pool.query(
+        `SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tasks' AND column_name = 'visibility') as has_visibility`
+      );
+      const collabEnabled = visibilityResult.rows[0]?.has_visibility === true;
+      const finalVisibility = collabEnabled ? (visibility || 'private') : 'private';
 
       let groupInfo = null;
       if (group_id) {
@@ -389,12 +396,12 @@ module.exports = async function handler(req, res) {
 
       const result = await pool.query(
         `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order,
-         recurrence_rule, recurrence_interval, recurrence_end)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        recurrence_rule, recurrence_interval, recurrence_end, visibility)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
          RETURNING *`,
         [user.id, title, description || null, date || null, date_end || null, time || null, time_end || null,
          priority || 'medium', category_id || null, reminder_at || null,
-         maxOrder.rows[0].next_order, recurrenceRule, recurrenceInterval, recurrenceEnd]
+        maxOrder.rows[0].next_order, recurrenceRule, recurrenceInterval, recurrenceEnd, finalVisibility]
       );
 
       const firstTask = result.rows[0];
@@ -406,15 +413,29 @@ module.exports = async function handler(req, res) {
         const occurrenceDateEnd = spanDays > 0 ? shiftDate(occurrenceDate, spanDays) : null;
         const ins = await pool.query(
           `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order,
-           recurrence_rule, recurrence_interval, recurrence_end, recurrence_parent_id)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+           recurrence_rule, recurrence_interval, recurrence_end, recurrence_parent_id, visibility)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
            RETURNING *`,
           [user.id, title, description || null, occurrenceDate, occurrenceDateEnd, time || null, time_end || null,
            priority || 'medium', category_id || null, reminder_at || null,
-           maxOrder.rows[0].next_order + i + 1, recurrenceRule, recurrenceInterval, recurrenceEnd, firstTask.id]
+           maxOrder.rows[0].next_order + i + 1, recurrenceRule, recurrenceInterval, recurrenceEnd, firstTask.id, finalVisibility]
         );
         createdTasks.push(ins.rows[0]);
         taskIds.push(ins.rows[0].id);
+      }
+
+      if (collabEnabled && Array.isArray(permissions) && permissions.length > 0) {
+        for (const currentTaskId of taskIds) {
+          for (const perm of permissions) {
+            if (!perm.user_id) continue;
+            await pool.query(
+              `INSERT INTO task_permissions (task_id, user_id, can_view, can_edit)
+               VALUES ($1, $2, $3, $4)
+               ON CONFLICT (task_id, user_id) DO UPDATE SET can_view = $3, can_edit = $4`,
+              [currentTaskId, perm.user_id, perm.can_view !== false, perm.can_edit === true]
+            );
+          }
+        }
       }
 
       if (groupInfo) {
@@ -430,6 +451,7 @@ module.exports = async function handler(req, res) {
 
       const decoratedTasks = createdTasks.map((task) => ({
         ...task,
+        visibility: finalVisibility,
         group_id: groupInfo?.id || null,
         group_name: groupInfo?.name || null,
         group_color: groupInfo?.color || null,
