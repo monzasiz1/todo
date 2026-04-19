@@ -164,6 +164,12 @@ input, textarea, select {
   font-size: 15px;
   color: var(--text-secondary);
   transition: all var(--transition);
+  border: none;
+  background: none;
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
 }
 
 .sidebar-link:hover {
@@ -236,6 +242,9 @@ input, textarea, select {
   margin-top: auto;
   padding-top: 16px;
   border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .sidebar-user {
@@ -244,6 +253,11 @@ input, textarea, select {
   gap: 12px;
   padding: 12px;
   border-radius: var(--radius-sm);
+  transition: background 0.2s;
+}
+
+.sidebar-user:hover {
+  background: var(--hover);
 }
 
 .sidebar-avatar {
@@ -281,14 +295,24 @@ input, textarea, select {
 }
 
 .sidebar-logout {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
   color: var(--text-tertiary);
-  padding: 8px;
-  border-radius: 8px;
+  cursor: pointer;
   transition: all var(--transition);
 }
 
 .sidebar-logout:hover {
-  background: rgba(255, 59, 48, 0.1);
+  background: rgba(255, 59, 48, 0.08);
   color: var(--danger);
 }
 

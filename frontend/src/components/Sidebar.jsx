@@ -61,22 +61,19 @@ export default function Sidebar({ isOpen, onClose }) {
             {item.label}
           </NavLink>
         ))}
+        <button
+          className="sidebar-link"
+          onClick={() => setShowFriends(true)}
+        >
+          <Users size={20} />
+          Freunde
+          {pending.filter(p => p.direction === 'incoming').length > 0 && (
+            <span className="friends-badge" style={{ marginLeft: 'auto' }}>
+              {pending.filter(p => p.direction === 'incoming').length}
+            </span>
+          )}
+        </button>
       </nav>
-
-      {/* Friends Button */}
-      <button
-        className="sidebar-link"
-        onClick={() => setShowFriends(true)}
-        style={{ border: 'none', background: 'none', width: '100%', cursor: 'pointer', textAlign: 'left' }}
-      >
-        <Users size={20} />
-        Freunde
-        {pending.filter(p => p.direction === 'incoming').length > 0 && (
-          <span className="friends-badge" style={{ marginLeft: 'auto' }}>
-            {pending.filter(p => p.direction === 'incoming').length}
-          </span>
-        )}
-      </button>
 
       {/* KI Feature Hint */}
       <div style={{
@@ -135,7 +132,8 @@ export default function Sidebar({ isOpen, onClose }) {
           </div>
         </NavLink>
         <button className="sidebar-logout" onClick={logout} title="Abmelden">
-          <LogOut size={18} />
+          <LogOut size={16} />
+          <span>Abmelden</span>
         </button>
       </div>
 
