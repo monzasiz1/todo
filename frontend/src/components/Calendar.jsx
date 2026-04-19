@@ -28,7 +28,12 @@ export default function Calendar({ onDayClick }) {
 
   const getTasksForDate = (date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    return tasks.filter((t) => t.date && t.date.substring(0, 10) === dateStr);
+    return tasks.filter((t) => {
+      if (!t.date) return false;
+      const taskStart = t.date.substring(0, 10);
+      const taskEnd = t.date_end ? t.date_end.substring(0, 10) : taskStart;
+      return dateStr >= taskStart && dateStr <= taskEnd;
+    });
   };
 
   const navigate = (direction) => {

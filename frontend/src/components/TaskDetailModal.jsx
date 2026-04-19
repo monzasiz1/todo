@@ -123,9 +123,9 @@ export default function TaskDetailModal({ task, onClose }) {
                   <Calendar size={18} />
                 </div>
                 <div>
-                  <div className="task-detail-item-label">Datum</div>
+                  <div className="task-detail-item-label">{task.date_end && task.date_end !== task.date ? 'Zeitraum' : 'Datum'}</div>
                   <div className="task-detail-item-value" style={isOverdue ? { color: 'var(--danger)' } : {}}>
-                    {formatDate(task.date)}
+                    {formatDate(task.date)}{task.date_end && task.date_end !== task.date ? ` – ${formatDate(task.date_end)}` : ''}
                   </div>
                 </div>
               </div>

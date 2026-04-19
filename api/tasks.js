@@ -22,7 +22,10 @@ module.exports = async function handler(req, res) {
       const result = await pool.query(
         `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon
          FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
-         WHERE t.user_id = $1 AND t.date >= $2 AND t.date <= $3
+         WHERE t.user_id = $1 AND (
+           (t.date >= $2 AND t.date <= $3)
+           OR (t.date_end IS NOT NULL AND t.date <= $3 AND t.date_end >= $2)
+         )
          ORDER BY t.date ASC, t.sort_order ASC`,
         [user.id, start, end]
       );
@@ -95,15 +98,15 @@ module.exports = async function handler(req, res) {
   if (segments.length === 1 && segments[0] !== 'range' && segments[0] !== 'reorder' && req.method === 'PUT') {
     try {
       const taskId = segments[0];
-      const { title, description, date, time, time_end, priority, category_id, reminder_at } = req.body;
+      const { title, description, date, date_end, time, time_end, priority, category_id, reminder_at } = req.body;
       const result = await pool.query(
         `UPDATE tasks SET title = COALESCE($1, title), description = COALESCE($2, description),
-         date = COALESCE($3, date), time = COALESCE($4, time), time_end = $5,
-         priority = COALESCE($6, priority), category_id = $7,
-         reminder_at = $8, updated_at = NOW()
-         WHERE id = $9 AND user_id = $10
+         date = COALESCE($3, date), date_end = $4, time = COALESCE($5, time), time_end = $6,
+         priority = COALESCE($7, priority), category_id = $8,
+         reminder_at = $9, updated_at = NOW()
+         WHERE id = $10 AND user_id = $11
          RETURNING *`,
-        [title, description, date, time, time_end || null, priority, category_id, reminder_at, taskId, user.id]
+        [title, description, date, date_end || null, time, time_end || null, priority, category_id, reminder_at, taskId, user.id]
       );
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Aufgabe nicht gefunden' });
@@ -153,7 +156,7 @@ module.exports = async function handler(req, res) {
   // POST /api/tasks
   if (segments.length === 0 && req.method === 'POST') {
     try {
-      const { title, description, date, time, time_end, priority, category_id, reminder_at } = req.body;
+      const { title, description, date, date_end, time, time_end, priority, category_id, reminder_at } = req.body;
       if (!title) {
         return res.status(400).json({ error: 'Titel ist erforderlich' });
       }
@@ -164,10 +167,10 @@ module.exports = async function handler(req, res) {
       );
 
       const result = await pool.query(
-        `INSERT INTO tasks (user_id, title, description, date, time, time_end, priority, category_id, reminder_at, sort_order)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
          RETURNING *`,
-        [user.id, title, description || null, date || null, time || null, time_end || null,
+        [user.id, title, description || null, date || null, date_end || null, time || null, time_end || null,
          priority || 'medium', category_id || null, reminder_at || null,
          maxOrder.rows[0].next_order]
       );

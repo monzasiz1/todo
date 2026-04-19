@@ -78,7 +78,7 @@ export default function TaskCard({ task, index }) {
           {task.date && (
             <span className="task-meta-item" style={isOverdue ? { color: 'var(--danger)' } : {}}>
               <Calendar size={14} />
-              {formatDate(task.date)}
+              {formatDate(task.date)}{task.date_end && task.date_end !== task.date ? ` – ${formatDate(task.date_end)}` : ''}
             </span>
           )}
           {task.time && (
