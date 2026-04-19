@@ -3938,6 +3938,110 @@ input, textarea, select {
 }
 
 /* ============================================
+   PWA INSTALL BANNER
+   ============================================ */
+
+.install-banner {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 420px;
+  background: var(--card-solid);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  z-index: 10000;
+}
+
+.install-banner-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.install-banner-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #007AFF, #5856D6);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.install-banner-icon.ios-guide {
+  background: linear-gradient(135deg, #34C759, #30D158);
+}
+
+.install-banner-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.install-banner-text strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  display: block;
+}
+
+.install-banner-text p {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 2px 0 0;
+  line-height: 1.5;
+}
+
+.install-banner-btn {
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: none;
+  background: var(--primary);
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-family: inherit;
+  transition: opacity 0.2s;
+}
+
+.install-banner-btn:hover {
+  opacity: 0.9;
+}
+
+@media (max-width: 480px) {
+  .install-banner {
+    bottom: 80px;
+    width: calc(100% - 24px);
+    padding: 14px;
+  }
+
+  .install-banner-btn {
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+}
+
+/* ============================================
    PROFILE PAGE
    ============================================ */
 

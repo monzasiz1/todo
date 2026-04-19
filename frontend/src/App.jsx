@@ -7,6 +7,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import LandingPage from './pages/LandingPage';
 import ProfilePage from './pages/ProfilePage';
+import InstallPrompt from './components/InstallPrompt';
 import { useEffect } from 'react';
 
 function ProtectedRoute({ children }) {
@@ -29,6 +30,7 @@ function PublicRoute({ children }) {
 export default function App() {
   return (
     <BrowserRouter>
+      <InstallPrompt />
       <Routes>
         <Route path="/landing" element={<PublicRoute><LandingPage /></PublicRoute>} />
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
