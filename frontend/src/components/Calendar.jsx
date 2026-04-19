@@ -25,11 +25,11 @@ export default function Calendar({ onDayClick }) {
   const [view, setView] = useState('month'); // 'month' | 'week'
   const [calendarTasks, setCalendarTasks] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
-  const { fetchTasksRange } = useTaskStore();
+  const { tasks, fetchTasksRange } = useTaskStore();
 
   useEffect(() => {
     loadTasks();
-  }, [currentDate, view]);
+  }, [currentDate, view, tasks.length]);
 
   const loadTasks = async () => {
     let start, end;
