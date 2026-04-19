@@ -2,10 +2,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTaskStore } from '../store/taskStore';
-import { Check, Trash2, Clock, Calendar, GripVertical } from 'lucide-react';
+import { Check, Trash2, Clock, Calendar, GripVertical, Lock, Users, UserCheck } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
 import TaskDetailModal from './TaskDetailModal';
+import SharedTaskBadge from './SharedTaskBadge';
 
 export default function TaskCard({ task, index }) {
   const { toggleTask, deleteTask } = useTaskStore();
@@ -33,6 +34,7 @@ export default function TaskCard({ task, index }) {
   };
 
   const isOverdue = task.date && !task.completed && isPast(parseISO(task.date)) && !isToday(parseISO(task.date));
+  const canEdit = task.is_owner !== false && task.can_edit !== false;
 
   return (
     <>
@@ -59,9 +61,9 @@ export default function TaskCard({ task, index }) {
 
       {/* Checkbox */}
       <motion.div
-        className={`task-checkbox ${task.completed ? 'checked' : ''}`}
-        onClick={(e) => { e.stopPropagation(); toggleTask(task.id); }}
-        whileTap={{ scale: 0.85 }}
+        className={`task-checkbox ${task.completed ? 'checked' : ''} ${!canEdit ? 'disabled' : ''}`}
+        onClick={(e) => { e.stopPropagation(); if (canEdit) toggleTask(task.id); }}
+        whileTap={canEdit ? { scale: 0.85 } : {}}
       >
         {task.completed && <Check size={14} strokeWidth={3} />}
       </motion.div>
@@ -74,6 +76,7 @@ export default function TaskCard({ task, index }) {
             {task.description.length > 60 ? task.description.substring(0, 60) + '…' : task.description}
           </div>
         )}
+        <SharedTaskBadge task={task} />
         <div className="task-meta">
           {task.date && (
             <span className="task-meta-item" style={isOverdue ? { color: 'var(--danger)' } : {}}>
@@ -102,16 +105,18 @@ export default function TaskCard({ task, index }) {
       </div>
 
       {/* Actions */}
-      <div className="task-actions" onClick={(e) => e.stopPropagation()}>
-        <motion.button
-          className="task-action-btn delete"
-          onClick={() => deleteTask(task.id)}
-          whileTap={{ scale: 0.85 }}
-          title="Löschen"
-        >
-          <Trash2 size={16} />
-        </motion.button>
-      </div>
+      {canEdit && (
+        <div className="task-actions" onClick={(e) => e.stopPropagation()}>
+          <motion.button
+            className="task-action-btn delete"
+            onClick={() => deleteTask(task.id)}
+            whileTap={{ scale: 0.85 }}
+            title="Löschen"
+          >
+            <Trash2 size={16} />
+          </motion.button>
+        </div>
+      )}
     </motion.div>
 
     {/* Detail Modal — rendered via portal outside the card */}

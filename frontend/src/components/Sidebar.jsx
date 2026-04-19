@@ -1,22 +1,28 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useTaskStore } from '../store/taskStore';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   LayoutDashboard,
   CalendarDays,
   CheckSquare,
   LogOut,
   Sparkles,
+  Users,
 } from 'lucide-react';
+import FriendsList from './FriendsList';
+import { useFriendsStore } from '../store/friendsStore';
 
 export default function Sidebar({ isOpen, onClose }) {
   const { user, logout } = useAuthStore();
   const { categories, fetchCategories, tasks, filter, setFilter, clearFilters } = useTaskStore();
+  const { pending, fetchFriends } = useFriendsStore();
+  const [showFriends, setShowFriends] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
     fetchCategories();
+    fetchFriends();
   }, []);
 
   const navItems = [
@@ -53,6 +59,21 @@ export default function Sidebar({ isOpen, onClose }) {
           </NavLink>
         ))}
       </nav>
+
+      {/* Friends Button */}
+      <button
+        className="sidebar-link"
+        onClick={() => setShowFriends(true)}
+        style={{ border: 'none', background: 'none', width: '100%', cursor: 'pointer', textAlign: 'left' }}
+      >
+        <Users size={20} />
+        Freunde
+        {pending.filter(p => p.direction === 'incoming').length > 0 && (
+          <span className="friends-badge" style={{ marginLeft: 'auto' }}>
+            {pending.filter(p => p.direction === 'incoming').length}
+          </span>
+        )}
+      </button>
 
       {/* KI Feature Hint */}
       <div style={{
@@ -114,6 +135,9 @@ export default function Sidebar({ isOpen, onClose }) {
           </button>
         </div>
       </div>
+
+      {/* Friends Panel */}
+      {showFriends && <FriendsList onClose={() => setShowFriends(false)} />}
     </aside>
   );
 }

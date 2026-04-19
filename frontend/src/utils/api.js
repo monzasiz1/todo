@@ -106,4 +106,45 @@ export const api = {
 
   deleteCategory: (id) =>
     request(`/categories/${id}`, { method: 'DELETE' }),
+
+  // Friends
+  getFriends: () => request('/friends'),
+
+  inviteFriend: (email) =>
+    request('/friends/invite', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+
+  acceptFriend: (id) =>
+    request(`/friends/${id}/accept`, { method: 'PATCH' }),
+
+  declineFriend: (id) =>
+    request(`/friends/${id}/decline`, { method: 'PATCH' }),
+
+  removeFriend: (id) =>
+    request(`/friends/${id}`, { method: 'DELETE' }),
+
+  redeemInviteCode: (code) =>
+    request('/friends/invite-code', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    }),
+
+  // Permissions
+  getPermissions: (taskId) =>
+    request(`/permissions/${taskId}`),
+
+  setPermissions: (taskId, data) =>
+    request(`/permissions/${taskId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  // AI Permissions
+  parsePermissions: (input) =>
+    request('/ai/permissions', {
+      method: 'POST',
+      body: JSON.stringify({ input }),
+    }),
 };

@@ -2,7 +2,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../store/taskStore';
 import {
   X, Calendar, Clock, Tag, Flag, CheckCircle2, Circle,
-  Trash2, AlertTriangle, Repeat, Bell, FileText, ListChecks
+  Trash2, AlertTriangle, Repeat, Bell, FileText, ListChecks,
+  Lock, Users, UserCheck, Eye, Edit3
 } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -36,6 +37,8 @@ export default function TaskDetailModal({ task, onClose }) {
   const isOverdue = task.date && !task.completed && isPast(parseISO(task.date)) && !isToday(parseISO(task.date));
   const priority = priorityConfig[task.priority] || priorityConfig.medium;
   const PriorityIcon = priority.icon;
+  const canEdit = task.is_owner !== false && task.can_edit !== false;
+  const isShared = task.visibility && task.visibility !== 'private';
 
   const handleToggle = () => {
     toggleTask(task.id);
@@ -115,7 +118,37 @@ export default function TaskDetailModal({ task, onClose }) {
             </div>
           )}
 
-          {/* Details Grid */}
+          {/* Collaboration Info */}
+          {isShared && (
+            <div className="task-detail-section task-detail-collab">
+              <div className="task-detail-description-header">
+                {task.visibility === 'shared' ? <Users size={16} /> : <UserCheck size={16} />}
+                <span>{task.visibility === 'shared' ? 'Mit allen Freunden geteilt' : 'Mit ausgewählten Personen geteilt'}</span>
+              </div>
+              {!task.is_owner && task.creator_name && (
+                <div className="task-detail-collab-info">
+                  <span className="collab-avatar" style={{ background: task.creator_color || '#007AFF' }}>
+                    {task.creator_name[0]?.toUpperCase()}
+                  </span>
+                  <span>Erstellt von <strong>{task.creator_name}</strong></span>
+                </div>
+              )}
+              {!canEdit && (
+                <div className="task-detail-collab-info readonly">
+                  <Eye size={14} />
+                  <span>Du hast nur Leserechte</span>
+                </div>
+              )}
+              {task.last_editor_name && (
+                <div className="task-detail-collab-info">
+                  <Edit3 size={14} />
+                  <span>Zuletzt bearbeitet von <strong>{task.last_editor_name}</strong></span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Details Grid */}}
           <div className="task-detail-grid">
             {task.date && (
               <div className="task-detail-item">
@@ -203,24 +236,28 @@ export default function TaskDetailModal({ task, onClose }) {
 
           {/* Actions */}
           <div className="task-detail-actions">
-            <motion.button
-              className={`task-detail-btn ${task.completed ? 'reopen' : 'complete'}`}
-              onClick={handleToggle}
-              whileTap={{ scale: 0.97 }}
-            >
-              {task.completed ? (
-                <><Circle size={18} /> Wieder öffnen</>
-              ) : (
-                <><CheckCircle2 size={18} /> Als erledigt markieren</>
-              )}
-            </motion.button>
-            <motion.button
-              className="task-detail-btn delete"
-              onClick={handleDelete}
-              whileTap={{ scale: 0.97 }}
-            >
-              <Trash2 size={18} /> Löschen
-            </motion.button>
+            {canEdit && (
+              <motion.button
+                className={`task-detail-btn ${task.completed ? 'reopen' : 'complete'}`}
+                onClick={handleToggle}
+                whileTap={{ scale: 0.97 }}
+              >
+                {task.completed ? (
+                  <><Circle size={18} /> Wieder öffnen</>
+                ) : (
+                  <><CheckCircle2 size={18} /> Als erledigt markieren</>
+                )}
+              </motion.button>
+            )}
+            {(task.is_owner !== false) && (
+              <motion.button
+                className="task-detail-btn delete"
+                onClick={handleDelete}
+                whileTap={{ scale: 0.97 }}
+              >
+                <Trash2 size={18} /> Löschen
+              </motion.button>
+            )}
           </div>
         </motion.div>
       </motion.div>

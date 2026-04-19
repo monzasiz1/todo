@@ -7,6 +7,9 @@
     { "src": "/api/tasks/(.*)", "dest": "/api/tasks.js?__path=$1" },
     { "src": "/api/ai/(.*)", "dest": "/api/ai.js?__path=$1" },
     { "src": "/api/categories/(.*)", "dest": "/api/categories.js?__path=$1" },
+    { "src": "/api/friends/(.*)", "dest": "/api/friends.js?__path=$1" },
+    { "src": "/api/friends", "dest": "/api/friends.js?__path=" },
+    { "src": "/api/permissions/(.*)", "dest": "/api/permissions.js?__path=$1" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]

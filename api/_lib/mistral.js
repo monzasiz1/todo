@@ -125,4 +125,72 @@ JSON Format:
   }
 }
 
-module.exports = { parseTaskWithAI };
+async function parsePermissionsWithAI(input, friendNames) {
+  const key = process.env.MISTRAL_API_KEY;
+  if (!key) throw new Error('MISTRAL_API_KEY nicht konfiguriert');
+
+  const systemPrompt = `Du bist ein Berechtigungs-Parser für eine To-Do App. Analysiere die Eingabe und erkenne Berechtigungs-Anweisungen.
+
+Verfügbare Freunde des Users: ${friendNames.join(', ')}
+
+Regeln:
+- Erkenne wer etwas SEHEN darf (visible_to)
+- Erkenne wer etwas BEARBEITEN darf (editable_by)
+- Erkenne Sichtbarkeits-Level: "private" (nur ich), "shared" (alle Freunde), "selected_users" (bestimmte Personen)
+- "Nur für mich" → visibility: "private"
+- "Alle können das sehen" → visibility: "shared"
+- "Max soll das sehen" → visibility: "selected_users", visible_to: ["Max"]
+- "Alle können bearbeiten" → editable_by: "all"
+- "Max und Anna sollen das bearbeiten können" → editable_by: ["Max", "Anna"]
+- "Max soll das sehen aber Anna nicht" → visible_to: ["Max"], excluded: ["Anna"]
+- Matche Freundesnamen fuzzy (z.B. "max" → "Max", "anna" → "Anna")
+- Antworte NUR mit validem JSON
+
+JSON Format:
+{
+  "visibility": "private|shared|selected_users",
+  "visible_to": ["Name1", "Name2"] oder null,
+  "editable_by": ["Name1"] oder "all" oder null,
+  "excluded": ["Name"] oder null,
+  "confidence": 0.0-1.0
+}`;
+
+  const response = await fetch(MISTRAL_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify({
+      model: 'mistral-small-latest',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: input },
+      ],
+      temperature: 0.1,
+      max_tokens: 300,
+      response_format: { type: 'json_object' },
+    }),
+  });
+
+  if (!response.ok) throw new Error(`Mistral API Fehler: ${response.status}`);
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error('Keine Antwort von Mistral');
+
+  try {
+    const parsed = JSON.parse(content);
+    return {
+      visibility: parsed.visibility || 'private',
+      visible_to: parsed.visible_to || null,
+      editable_by: parsed.editable_by || null,
+      excluded: parsed.excluded || null,
+      confidence: parsed.confidence || 0.5,
+    };
+  } catch {
+    return { visibility: 'private', visible_to: null, editable_by: null, excluded: null, confidence: 0.2 };
+  }
+}
+
+module.exports = { parseTaskWithAI, parsePermissionsWithAI };

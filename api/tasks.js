@@ -78,14 +78,18 @@ module.exports = async function handler(req, res) {
   if (segments.length === 2 && segments[1] === 'toggle' && req.method === 'PATCH') {
     try {
       const taskId = segments[0];
+      // Owner or has edit permission
       const result = await pool.query(
-        `UPDATE tasks SET completed = NOT completed, updated_at = NOW()
-         WHERE id = $1 AND user_id = $2
+        `UPDATE tasks SET completed = NOT completed, updated_at = NOW(), last_edited_by = $3
+         WHERE id = $1 AND (
+           user_id = $2
+           OR EXISTS (SELECT 1 FROM task_permissions WHERE task_id = $1 AND user_id = $2 AND can_edit = true)
+         )
          RETURNING *`,
-        [taskId, user.id]
+        [taskId, user.id, user.id]
       );
       if (result.rows.length === 0) {
-        return res.status(404).json({ error: 'Aufgabe nicht gefunden' });
+        return res.status(404).json({ error: 'Aufgabe nicht gefunden oder keine Berechtigung' });
       }
       return res.json({ task: result.rows[0] });
     } catch (err) {
@@ -139,10 +143,24 @@ module.exports = async function handler(req, res) {
   // GET /api/tasks
   if (segments.length === 0 && req.method === 'GET') {
     try {
+      // Own tasks + shared tasks user can view
       const result = await pool.query(
-        `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon
-         FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
+        `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
+           u.name as creator_name, u.avatar_color as creator_color,
+           editor.name as last_editor_name,
+           CASE WHEN t.user_id = $1 THEN true ELSE false END as is_owner,
+           COALESCE(tp.can_edit, false) as can_edit
+         FROM tasks t
+         LEFT JOIN categories c ON t.category_id = c.id
+         LEFT JOIN users u ON t.user_id = u.id
+         LEFT JOIN users editor ON t.last_edited_by = editor.id
+         LEFT JOIN task_permissions tp ON tp.task_id = t.id AND tp.user_id = $1
          WHERE t.user_id = $1
+           OR (t.visibility = 'shared' AND EXISTS (
+             SELECT 1 FROM friends f WHERE f.status = 'accepted'
+             AND ((f.user_id = t.user_id AND f.friend_id = $1) OR (f.user_id = $1 AND f.friend_id = t.user_id))
+           ))
+           OR (t.visibility = 'selected_users' AND tp.can_view = true)
          ORDER BY t.sort_order ASC, t.created_at DESC`,
         [user.id]
       );
