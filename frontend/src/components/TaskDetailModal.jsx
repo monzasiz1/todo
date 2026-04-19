@@ -54,7 +54,7 @@ export default function TaskDetailModal({ task, onClose }) {
   };
 
   return (
-    <AnimatePresence>
+    <>
       <motion.div
         className="modal-overlay"
         initial={{ opacity: 0 }}
@@ -76,14 +76,16 @@ export default function TaskDetailModal({ task, onClose }) {
               className="task-detail-priority-bar"
               style={{ background: priority.color }}
             />
-            {canEdit && (
-              <button className="task-detail-edit-btn" onClick={() => setShowEdit(true)} title="Bearbeiten">
-                <Pencil size={18} />
+            <div className="task-detail-header-actions">
+              {canEdit && (
+                <button className="task-detail-edit-btn" onClick={() => setShowEdit(true)} title="Bearbeiten">
+                  <Pencil size={18} />
+                </button>
+              )}
+              <button className="task-detail-close" onClick={onClose}>
+                <X size={20} />
               </button>
-            )}
-            <button className="task-detail-close" onClick={onClose}>
-              <X size={20} />
-            </button>
+            </div>
           </div>
 
           {/* Status + Title */}
@@ -259,15 +261,6 @@ export default function TaskDetailModal({ task, onClose }) {
           <div className="task-detail-actions">
             {canEdit && (
               <motion.button
-                className="task-detail-btn edit"
-                onClick={() => setShowEdit(true)}
-                whileTap={{ scale: 0.97 }}
-              >
-                <Pencil size={18} /> Bearbeiten
-              </motion.button>
-            )}
-            {canEdit && (
-              <motion.button
                 className={`task-detail-btn ${task.completed ? 'reopen' : 'complete'}`}
                 onClick={handleToggle}
                 whileTap={{ scale: 0.97 }}
@@ -301,6 +294,6 @@ export default function TaskDetailModal({ task, onClose }) {
         />,
         document.body
       )}
-    </AnimatePresence>
+    </>
   );
 }

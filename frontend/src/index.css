@@ -1675,8 +1675,6 @@ input, textarea, select {
   }
 
   .task-detail-close {
-    top: 10px;
-    right: 10px;
     width: 36px;
     height: 36px;
   }
@@ -1966,9 +1964,6 @@ input, textarea, select {
 }
 
 .task-detail-close {
-  position: absolute;
-  top: 12px;
-  right: 12px;
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -3872,6 +3867,16 @@ input, textarea, select {
 }
 
 /* Detail Modal Edit Button */
+.task-detail-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: absolute;
+  right: 16px;
+  top: 16px;
+  z-index: 2;
+}
+
 .task-detail-edit-btn {
   width: 36px;
   height: 36px;
@@ -3883,8 +3888,6 @@ input, textarea, select {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-left: auto;
-  margin-right: 8px;
   transition: all 0.2s;
 }
 
