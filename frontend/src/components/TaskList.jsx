@@ -76,7 +76,7 @@ export default function TaskList() {
             <ClipboardList size={36} />
           </div>
           <h3>Keine Aufgaben</h3>
-          <p>Nutze die KI-Eingabe oben, um deine erste Aufgabe zu erstellen.</p>
+          <p>Nutze die KI-Eingabe oder die manuelle Eingabe oben, um deine erste Aufgabe zu erstellen.</p>
         </div>
       )}
 

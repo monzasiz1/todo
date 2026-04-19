@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useTaskStore } from '../store/taskStore';
 import AIInput from '../components/AIInput';
+import ManualTaskForm from '../components/ManualTaskForm';
 import TaskList from '../components/TaskList';
 import { CheckCircle2, Circle, Clock, Flame } from 'lucide-react';
 import { isToday, parseISO } from 'date-fns';
@@ -68,6 +69,7 @@ export default function Dashboard() {
 
       {/* AI Input */}
       <AIInput />
+      <ManualTaskForm onTaskCreated={() => fetchTasks()} />
 
       {/* Stats */}
       <div className="stats-row">
