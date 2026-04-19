@@ -11,10 +11,16 @@ import { CalendarDays } from 'lucide-react';
 export default function CalendarPage() {
   const { tasks, fetchTasks } = useTaskStore();
   const [selectedDate, setSelectedDate] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     fetchTasks();
   }, []);
+
+  const handleTaskCreated = () => {
+    fetchTasks();
+    setRefreshKey((k) => k + 1);
+  };
 
   const selectedTasks = selectedDate
     ? tasks.filter((t) => t.date === format(selectedDate, 'yyyy-MM-dd'))
@@ -32,7 +38,7 @@ export default function CalendarPage() {
         <p>Überblick über alle deine Aufgaben</p>
       </motion.div>
 
-      <AIInput />
+      <AIInput onTaskCreated={handleTaskCreated} />
 
       <Calendar onDayClick={setSelectedDate} />
 
