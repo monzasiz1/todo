@@ -11,9 +11,19 @@ async function parseTaskWithAI(input) {
   const tomorrow = new Date(now.getTime() + 86400000).toISOString().split('T')[0];
   const dayAfter = new Date(now.getTime() + 172800000).toISOString().split('T')[0];
 
+  // Compute next occurrence of each weekday
+  const nextWeekdays = {};
+  for (let i = 1; i <= 7; i++) {
+    const d = new Date(now.getTime() + i * 86400000);
+    nextWeekdays[days[d.getDay()]] = d.toISOString().split('T')[0];
+  }
+
   const systemPrompt = `Du bist ein Task-Parser. Analysiere die Eingabe und extrahiere strukturierte Daten.
 
 Aktuelles Datum: ${currentDate} (${currentDay})
+
+Nächste Wochentage ab heute:
+${Object.entries(nextWeekdays).map(([day, date]) => `- ${day} → ${date}`).join('\n')}
 
 Regeln:
 - Erkenne den Aufgabentitel (was getan werden soll)
@@ -22,7 +32,8 @@ Regeln:
 - Wähle eine passende Kategorie aus: Arbeit, Persönlich, Gesundheit, Finanzen, Einkaufen, Haushalt, Bildung, Soziales
 - Bestimme die Priorität: low, medium, high, urgent
 - Erkenne ob eine Erinnerung gewünscht ist ("erinnere mich", "reminder" etc.)
-- Wenn ein Wochentag genannt wird, berechne das nächste entsprechende Datum ab heute
+- Wenn ein Wochentag genannt wird (z.B. "Mittwoch", "kommenden Mittwoch", "jeden Mittwoch"), verwende das nächste passende Datum aus der Liste oben
+- WICHTIG: Wenn ein Datum erkennbar ist, gib es IMMER im Format YYYY-MM-DD zurück, niemals null
 - Antworte NUR mit validem JSON, kein anderer Text
 
 Berechne Wochentage korrekt:
