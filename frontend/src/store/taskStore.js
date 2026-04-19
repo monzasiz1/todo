@@ -42,9 +42,16 @@ export const useTaskStore = create((set, get) => ({
   createTask: async (task) => {
     try {
       const data = await api.createTask(task);
-      set((s) => ({ tasks: [data.task, ...s.tasks] }));
-      get().addToast('✅ Aufgabe erstellt');
-      return data.task;
+      const created = Array.isArray(data.created_tasks) && data.created_tasks.length > 0
+        ? data.created_tasks
+        : [data.task];
+      set((s) => ({ tasks: [...created, ...s.tasks] }));
+      const groupMsg = data.group?.name ? ` · Gruppe: ${data.group.name}` : '';
+      const recurrenceMsg = (data.created_count || 0) > 1
+        ? ` · ${data.created_count} Termine erstellt`
+        : '';
+      get().addToast(`✅ Aufgabe erstellt${groupMsg}${recurrenceMsg}`);
+      return data;
     } catch (err) {
       get().addToast('❌ ' + err.message, 'error');
       return null;

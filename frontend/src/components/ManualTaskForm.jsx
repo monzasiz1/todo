@@ -1,13 +1,25 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Calendar, Clock, FileText, Flag, Plus, Save, Tag } from 'lucide-react';
+import { Bell, Calendar, Clock, FileText, Flag, Plus, Repeat, Save, Tag, UsersRound } from 'lucide-react';
 import { useTaskStore } from '../store/taskStore';
+import { api } from '../utils/api';
+import AvatarBadge from './AvatarBadge';
 
 const PRIORITIES = [
   { value: 'low', label: 'Niedrig', color: 'var(--success)' },
   { value: 'medium', label: 'Mittel', color: 'var(--primary)' },
   { value: 'high', label: 'Hoch', color: 'var(--warning)' },
   { value: 'urgent', label: 'Dringend', color: 'var(--danger)' },
+];
+
+const RECURRENCE_OPTIONS = [
+  { value: '', label: 'Keine Wiederholung' },
+  { value: 'daily', label: 'Täglich' },
+  { value: 'weekdays', label: 'Werktags (Mo-Fr)' },
+  { value: 'weekly', label: 'Wöchentlich' },
+  { value: 'biweekly', label: 'Alle 2 Wochen' },
+  { value: 'monthly', label: 'Monatlich' },
+  { value: 'yearly', label: 'Jährlich' },
 ];
 
 function toDateValue(value) {
@@ -27,11 +39,26 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null }) {
   const [timeEnd, setTimeEnd] = useState('');
   const [priority, setPriority] = useState('medium');
   const [categoryId, setCategoryId] = useState('');
+  const [reminderAt, setReminderAt] = useState('');
+  const [recurrenceRule, setRecurrenceRule] = useState('');
+  const [recurrenceEnd, setRecurrenceEnd] = useState('');
+  const [groups, setGroups] = useState([]);
+  const [groupId, setGroupId] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (categories.length === 0) fetchCategories();
+    loadGroups();
   }, []);
+
+  const loadGroups = async () => {
+    try {
+      const data = await api.getGroups();
+      setGroups(data.groups || []);
+    } catch {
+      setGroups([]);
+    }
+  };
 
   useEffect(() => {
     if (!defaultDate) return;
@@ -47,6 +74,10 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null }) {
     setTimeEnd('');
     setPriority('medium');
     setCategoryId('');
+    setReminderAt('');
+    setRecurrenceRule('');
+    setRecurrenceEnd('');
+    setGroupId('');
   };
 
   const handleSubmit = async (e) => {
@@ -55,7 +86,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null }) {
 
     setSaving(true);
     try {
-      const task = await createTask({
+      const result = await createTask({
         title: title.trim(),
         description: description.trim() || null,
         date: date || null,
@@ -64,12 +95,17 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null }) {
         time_end: timeEnd || null,
         priority,
         category_id: categoryId || null,
+        reminder_at: reminderAt || null,
+        recurrence_rule: recurrenceRule || null,
+        recurrence_interval: recurrenceRule ? 1 : null,
+        recurrence_end: recurrenceEnd || null,
+        group_id: groupId || null,
       });
 
-      if (task) {
+      if (result) {
         resetForm();
         setIsOpen(false);
-        onTaskCreated?.(task);
+        onTaskCreated?.(result);
       }
     } finally {
       setSaving(false);
@@ -111,7 +147,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null }) {
             <div>
               <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Manuell erstellen</div>
               <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                Für Aufgaben und Termine mit Datum, Uhrzeit und optionalem Zeitraum.
+                Für Aufgaben und Termine mit Datum, Uhrzeit, Erinnerung, Wiederholung und Gruppe.
               </div>
             </div>
 
@@ -189,6 +225,77 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null }) {
                   <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
               </select>
+            </div>
+
+            <div className="task-edit-field" style={{ marginBottom: 0 }}>
+              <label><Bell size={14} /> Erinnerung</label>
+              <input
+                type="datetime-local"
+                value={reminderAt}
+                onChange={(e) => setReminderAt(e.target.value)}
+                className="task-edit-input"
+              />
+            </div>
+
+            <div className="task-edit-row">
+              <div className="task-edit-field flex-1" style={{ marginBottom: 0 }}>
+                <label><Repeat size={14} /> Wiederholung</label>
+                <select
+                  value={recurrenceRule}
+                  onChange={(e) => setRecurrenceRule(e.target.value)}
+                  className="task-edit-input task-edit-select"
+                >
+                  {RECURRENCE_OPTIONS.map((item) => (
+                    <option key={item.value} value={item.value}>{item.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="task-edit-field flex-1" style={{ marginBottom: 0 }}>
+                <label><Calendar size={14} /> Wiederholen bis</label>
+                <input
+                  type="date"
+                  value={recurrenceEnd}
+                  onChange={(e) => setRecurrenceEnd(e.target.value)}
+                  className="task-edit-input"
+                  disabled={!recurrenceRule}
+                />
+              </div>
+            </div>
+
+            <div className="task-edit-field" style={{ marginBottom: 0 }}>
+              <label><UsersRound size={14} /> Gruppe</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div
+                  className={`task-edit-shared-item addable ${!groupId ? 'selected' : ''}`}
+                  onClick={() => setGroupId('')}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <div style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)' }}>
+                    <Plus size={14} style={{ transform: 'rotate(45deg)' }} />
+                  </div>
+                  <span className="task-edit-friend-name">Keine Gruppe</span>
+                </div>
+                {groups.map((group) => (
+                  <div
+                    key={group.id}
+                    className={`task-edit-shared-item addable ${String(groupId) === String(group.id) ? 'selected' : ''}`}
+                    onClick={() => setGroupId(String(group.id))}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <AvatarBadge
+                      name={group.name}
+                      color={group.color || '#007AFF'}
+                      avatarUrl={group.image_url}
+                      size={32}
+                    />
+                    <span className="task-edit-friend-name">{group.name}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{group.member_count} Mitglieder</span>
+                  </div>
+                ))}
+                {groups.length === 0 && (
+                  <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Keine Gruppen vorhanden.</div>
+                )}
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>

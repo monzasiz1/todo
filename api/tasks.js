@@ -34,6 +34,40 @@ function calcNextDate(currentDate, rule, interval) {
   return d.toISOString().split('T')[0];
 }
 
+function toDateOnly(value) {
+  if (!value) return null;
+  return new Date(value + 'T00:00:00');
+}
+
+function formatDateOnly(dateObj) {
+  return dateObj.toISOString().split('T')[0];
+}
+
+function shiftDate(dateValue, days) {
+  const d = toDateOnly(dateValue);
+  if (!d) return null;
+  d.setDate(d.getDate() + days);
+  return formatDateOnly(d);
+}
+
+function buildRecurringDates(startDate, rule, interval, endDate) {
+  if (!startDate || !rule || !endDate) return [];
+
+  const dates = [];
+  let cursor = startDate;
+  let guard = 0;
+
+  while (guard < 366) {
+    const next = calcNextDate(cursor, rule, interval || 1);
+    if (!next || next > endDate) break;
+    dates.push(next);
+    cursor = next;
+    guard += 1;
+  }
+
+  return dates;
+}
+
 module.exports = async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -313,15 +347,45 @@ module.exports = async function handler(req, res) {
   if (segments.length === 0 && req.method === 'POST') {
     try {
       const { title, description, date, date_end, time, time_end, priority, category_id, reminder_at,
-              recurrence_rule, recurrence_interval, recurrence_end } = req.body;
+              recurrence_rule, recurrence_interval, recurrence_end, group_id } = req.body;
       if (!title) {
         return res.status(400).json({ error: 'Titel ist erforderlich' });
+      }
+
+      let groupInfo = null;
+      if (group_id) {
+        const groupAccess = await pool.query(
+          `SELECT g.id, g.name, g.color, g.image_url
+           FROM groups g
+           JOIN group_members gm ON gm.group_id = g.id
+           WHERE g.id = $1 AND gm.user_id = $2
+           LIMIT 1`,
+          [group_id, user.id]
+        );
+        if (groupAccess.rows.length === 0) {
+          return res.status(403).json({ error: 'Keine Berechtigung für diese Gruppe' });
+        }
+        groupInfo = groupAccess.rows[0];
       }
 
       const maxOrder = await pool.query(
         'SELECT COALESCE(MAX(sort_order), 0) + 1 as next_order FROM tasks WHERE user_id = $1',
         [user.id]
       );
+
+      const recurrenceRule = recurrence_rule || null;
+      const recurrenceInterval = Math.max(1, Number(recurrence_interval) || 1);
+      const recurrenceEnd = recurrence_end || null;
+      const extraDates = buildRecurringDates(date || null, recurrenceRule, recurrenceInterval, recurrenceEnd);
+
+      let spanDays = 0;
+      if (date && date_end) {
+        const start = toDateOnly(date);
+        const end = toDateOnly(date_end);
+        if (start && end) {
+          spanDays = Math.max(0, Math.round((end - start) / 86400000));
+        }
+      }
 
       const result = await pool.query(
         `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order,
@@ -330,9 +394,54 @@ module.exports = async function handler(req, res) {
          RETURNING *`,
         [user.id, title, description || null, date || null, date_end || null, time || null, time_end || null,
          priority || 'medium', category_id || null, reminder_at || null,
-         maxOrder.rows[0].next_order, recurrence_rule || null, recurrence_interval || 1, recurrence_end || null]
+         maxOrder.rows[0].next_order, recurrenceRule, recurrenceInterval, recurrenceEnd]
       );
-      return res.status(201).json({ task: result.rows[0] });
+
+      const firstTask = result.rows[0];
+      const createdTasks = [firstTask];
+      const taskIds = [firstTask.id];
+
+      for (let i = 0; i < extraDates.length; i++) {
+        const occurrenceDate = extraDates[i];
+        const occurrenceDateEnd = spanDays > 0 ? shiftDate(occurrenceDate, spanDays) : null;
+        const ins = await pool.query(
+          `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order,
+           recurrence_rule, recurrence_interval, recurrence_end, recurrence_parent_id)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+           RETURNING *`,
+          [user.id, title, description || null, occurrenceDate, occurrenceDateEnd, time || null, time_end || null,
+           priority || 'medium', category_id || null, reminder_at || null,
+           maxOrder.rows[0].next_order + i + 1, recurrenceRule, recurrenceInterval, recurrenceEnd, firstTask.id]
+        );
+        createdTasks.push(ins.rows[0]);
+        taskIds.push(ins.rows[0].id);
+      }
+
+      if (groupInfo) {
+        for (const currentTaskId of taskIds) {
+          await pool.query(
+            `INSERT INTO group_tasks (group_id, task_id, created_by)
+             VALUES ($1, $2, $3)
+             ON CONFLICT DO NOTHING`,
+            [groupInfo.id, currentTaskId, user.id]
+          );
+        }
+      }
+
+      const decoratedTasks = createdTasks.map((task) => ({
+        ...task,
+        group_id: groupInfo?.id || null,
+        group_name: groupInfo?.name || null,
+        group_color: groupInfo?.color || null,
+        group_image_url: groupInfo?.image_url || null,
+      }));
+
+      return res.status(201).json({
+        task: decoratedTasks[0],
+        created_tasks: decoratedTasks,
+        created_count: decoratedTasks.length,
+        group: groupInfo,
+      });
     } catch (err) {
       console.error('Create task error:', err);
       return res.status(500).json({ error: 'Fehler beim Erstellen der Aufgabe' });
