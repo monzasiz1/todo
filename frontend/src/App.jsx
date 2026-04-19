@@ -18,7 +18,7 @@ function ProtectedRoute({ children }) {
     if (token) checkAuth();
   }, []);
 
-  if (!token) return <Navigate to="/landing" replace />;
+  if (!token) return <Navigate to="/login" replace />;
   return children;
 }
 
@@ -49,7 +49,7 @@ export default function App() {
           <Route path="groups" element={<GroupsPage />} />
           <Route path="profile" element={<ProfilePage />} />
         </Route>
-        <Route path="*" element={<Navigate to="/landing" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );
