@@ -45,8 +45,10 @@ export default function CalendarPage() {
         <p>Überblick über alle deine Aufgaben</p>
       </motion.div>
 
-      <AIInput onTaskCreated={handleTaskCreated} />
-  <ManualTaskForm onTaskCreated={handleTaskCreated} defaultDate={selectedDate} />
+      <div className="task-creation-stack">
+        <AIInput onTaskCreated={handleTaskCreated} />
+        <ManualTaskForm onTaskCreated={handleTaskCreated} defaultDate={selectedDate} />
+      </div>
 
       <Calendar onDayClick={setSelectedDate} />
 

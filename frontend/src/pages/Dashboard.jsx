@@ -67,9 +67,11 @@ export default function Dashboard() {
         <p>Was steht heute an?</p>
       </motion.div>
 
-      {/* AI Input */}
-      <AIInput />
-      <ManualTaskForm onTaskCreated={() => fetchTasks()} />
+      {/* Task Creation */}
+      <div className="task-creation-stack">
+        <AIInput />
+        <ManualTaskForm onTaskCreated={() => fetchTasks()} />
+      </div>
 
       {/* Stats */}
       <div className="stats-row">

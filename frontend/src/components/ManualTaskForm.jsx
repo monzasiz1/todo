@@ -165,14 +165,22 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null }) {
   };
 
   return (
-    <div style={{ marginTop: 16, marginBottom: 20 }}>
+    <div className="manual-task-attachment">
       <button
-        className="group-action-btn"
+        type="button"
+        className={`manual-task-launcher ${isOpen ? 'open' : ''}`}
         onClick={() => setIsOpen((current) => !current)}
-        style={{ width: '100%', justifyContent: 'center' }}
       >
-        <Plus size={18} />
-        {isOpen ? 'Manuelle Eingabe schließen' : 'Aufgabe / Termin manuell erstellen'}
+        <span className="manual-task-launcher-left">
+          <div className="manual-task-launcher-icon">
+            <Plus size={16} />
+          </div>
+          <div className="manual-task-launcher-copy">
+            <strong>Manuell erstellen</strong>
+            <span>Aufgabe oder Termin ohne KI anlegen</span>
+          </div>
+        </span>
+        <ChevronDown size={18} className={`manual-task-launcher-chevron ${isOpen ? 'open' : ''}`} />
       </button>
 
       <AnimatePresence initial={false}>
@@ -183,18 +191,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null }) {
             animate={{ opacity: 1, height: 'auto', y: 0 }}
             exit={{ opacity: 0, height: 0, y: -8 }}
             transition={{ duration: 0.2 }}
-            style={{
-              overflow: 'hidden',
-              marginTop: 12,
-              padding: 18,
-              borderRadius: 20,
-              background: 'var(--card-bg)',
-              border: '1px solid var(--border)',
-              boxShadow: 'var(--shadow-sm)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 14,
-            }}
+            style={{ overflow: 'hidden' }}
             className="manual-task-form-panel"
           >
             <div>
