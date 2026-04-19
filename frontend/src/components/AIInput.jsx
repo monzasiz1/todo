@@ -3,7 +3,7 @@ import { useTaskStore } from '../store/taskStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, ArrowUp, Calendar, Clock, Tag, Flag, Loader2 } from 'lucide-react';
 
-export default function AIInput() {
+export default function AIInput({ onTaskCreated }) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState(null);
@@ -46,6 +46,7 @@ export default function AIInput() {
     if (result) {
       setInput('');
       setPreview(null);
+      onTaskCreated?.();
     }
 
     setLoading(false);
