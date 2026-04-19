@@ -190,7 +190,22 @@ export default function TaskDetailModal({ task, onClose }) {
                 }}>
                   {task.group_name.charAt(0).toUpperCase()}
                 </div>
-                <span style={{ fontWeight: 600, fontSize: 14 }}>{task.group_name}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span style={{ fontWeight: 600, fontSize: 14 }}>{task.group_name}</span>
+                  {task.group_task_creator_name && (
+                    <span style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{
+                        width: 16, height: 16, borderRadius: '50%',
+                        background: task.group_task_creator_color || '#007AFF',
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        color: '#fff', fontSize: 8, fontWeight: 700, flexShrink: 0,
+                      }}>
+                        {task.group_task_creator_name.charAt(0).toUpperCase()}
+                      </span>
+                      Erstellt von {task.group_task_creator_name}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           )}

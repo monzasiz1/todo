@@ -21,10 +21,12 @@ module.exports = async function handler(req, res) {
       }
       const result = await pool.query(
         `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
-           gt.group_id, grp.name as group_name, grp.color as group_color
+           gt.group_id, grp.name as group_name, grp.color as group_color,
+           gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color
          FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
          LEFT JOIN group_tasks gt ON gt.task_id = t.id
          LEFT JOIN groups grp ON grp.id = gt.group_id
+         LEFT JOIN users gtc ON gtc.id = gt.created_by
          WHERE t.user_id = $1 AND (
            (t.date >= $2 AND t.date <= $3)
            OR (t.date_end IS NOT NULL AND t.date <= $3 AND t.date_end >= $2)
@@ -162,6 +164,7 @@ module.exports = async function handler(req, res) {
              CASE WHEN t.user_id = $1 THEN true ELSE false END as is_owner,
              COALESCE(tp.can_edit, false) as can_edit,
              gt.group_id, grp.name as group_name, grp.color as group_color,
+             gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color,
              (SELECT COALESCE(json_agg(json_build_object('name', su.name, 'color', su.avatar_color)), '[]'::json)
               FROM task_permissions tp2 JOIN users su ON tp2.user_id = su.id
               WHERE tp2.task_id = t.id) as shared_with_users
@@ -172,6 +175,7 @@ module.exports = async function handler(req, res) {
            LEFT JOIN task_permissions tp ON tp.task_id = t.id AND tp.user_id = $1
            LEFT JOIN group_tasks gt ON gt.task_id = t.id
            LEFT JOIN groups grp ON grp.id = gt.group_id
+           LEFT JOIN users gtc ON gtc.id = gt.created_by
            WHERE t.user_id = $1
              OR (t.visibility = 'shared' AND EXISTS (
                SELECT 1 FROM friends f WHERE f.status = 'accepted'
@@ -186,10 +190,12 @@ module.exports = async function handler(req, res) {
         // Simple query without collaboration
         result = await pool.query(
           `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
-             gt.group_id, grp.name as group_name, grp.color as group_color
+             gt.group_id, grp.name as group_name, grp.color as group_color,
+             gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color
            FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
            LEFT JOIN group_tasks gt ON gt.task_id = t.id
            LEFT JOIN groups grp ON grp.id = gt.group_id
+           LEFT JOIN users gtc ON gtc.id = gt.created_by
            WHERE t.user_id = $1
              OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
            ORDER BY t.sort_order ASC, t.created_at DESC`,
