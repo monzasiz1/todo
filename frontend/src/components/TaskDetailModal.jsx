@@ -37,7 +37,7 @@ export default function TaskDetailModal({ task, onClose }) {
   const isOverdue = task.date && !task.completed && isPast(parseISO(task.date)) && !isToday(parseISO(task.date));
   const priority = priorityConfig[task.priority] || priorityConfig.medium;
   const PriorityIcon = priority.icon;
-  const canEdit = task.is_owner !== false && task.can_edit !== false;
+  const canEdit = task.is_owner === false ? (task.can_edit === true) : true;
   const isShared = task.visibility && task.visibility !== 'private';
 
   const handleToggle = () => {
@@ -148,7 +148,7 @@ export default function TaskDetailModal({ task, onClose }) {
             </div>
           )}
 
-          {/* Details Grid */}}
+          {/* Details Grid */}
           <div className="task-detail-grid">
             {task.date && (
               <div className="task-detail-item">

@@ -143,27 +143,45 @@ module.exports = async function handler(req, res) {
   // GET /api/tasks
   if (segments.length === 0 && req.method === 'GET') {
     try {
-      // Own tasks + shared tasks user can view
-      const result = await pool.query(
-        `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
-           u.name as creator_name, u.avatar_color as creator_color,
-           editor.name as last_editor_name,
-           CASE WHEN t.user_id = $1 THEN true ELSE false END as is_owner,
-           COALESCE(tp.can_edit, false) as can_edit
-         FROM tasks t
-         LEFT JOIN categories c ON t.category_id = c.id
-         LEFT JOIN users u ON t.user_id = u.id
-         LEFT JOIN users editor ON t.last_edited_by = editor.id
-         LEFT JOIN task_permissions tp ON tp.task_id = t.id AND tp.user_id = $1
-         WHERE t.user_id = $1
-           OR (t.visibility = 'shared' AND EXISTS (
-             SELECT 1 FROM friends f WHERE f.status = 'accepted'
-             AND ((f.user_id = t.user_id AND f.friend_id = $1) OR (f.user_id = $1 AND f.friend_id = t.user_id))
-           ))
-           OR (t.visibility = 'selected_users' AND tp.can_view = true)
-         ORDER BY t.sort_order ASC, t.created_at DESC`,
-        [user.id]
+      // Check if collaboration tables exist
+      const hasCollab = await pool.query(
+        `SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tasks' AND column_name = 'visibility') as has_visibility`
       );
+      const collabEnabled = hasCollab.rows[0]?.has_visibility === true;
+
+      let result;
+      if (collabEnabled) {
+        // Full query with collaboration support
+        result = await pool.query(
+          `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
+             u.name as creator_name, u.avatar_color as creator_color,
+             editor.name as last_editor_name,
+             CASE WHEN t.user_id = $1 THEN true ELSE false END as is_owner,
+             COALESCE(tp.can_edit, false) as can_edit
+           FROM tasks t
+           LEFT JOIN categories c ON t.category_id = c.id
+           LEFT JOIN users u ON t.user_id = u.id
+           LEFT JOIN users editor ON t.last_edited_by = editor.id
+           LEFT JOIN task_permissions tp ON tp.task_id = t.id AND tp.user_id = $1
+           WHERE t.user_id = $1
+             OR (t.visibility = 'shared' AND EXISTS (
+               SELECT 1 FROM friends f WHERE f.status = 'accepted'
+               AND ((f.user_id = t.user_id AND f.friend_id = $1) OR (f.user_id = $1 AND f.friend_id = t.user_id))
+             ))
+             OR (t.visibility = 'selected_users' AND tp.can_view = true)
+           ORDER BY t.sort_order ASC, t.created_at DESC`,
+          [user.id]
+        );
+      } else {
+        // Simple query without collaboration
+        result = await pool.query(
+          `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon
+           FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
+           WHERE t.user_id = $1
+           ORDER BY t.sort_order ASC, t.created_at DESC`,
+          [user.id]
+        );
+      }
       return res.json({ tasks: result.rows });
     } catch (err) {
       console.error('Tasks list error:', err);

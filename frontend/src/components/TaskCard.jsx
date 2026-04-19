@@ -34,7 +34,7 @@ export default function TaskCard({ task, index }) {
   };
 
   const isOverdue = task.date && !task.completed && isPast(parseISO(task.date)) && !isToday(parseISO(task.date));
-  const canEdit = task.is_owner !== false && task.can_edit !== false;
+  const canEdit = task.is_owner === false ? (task.can_edit === true) : true;
 
   return (
     <>
