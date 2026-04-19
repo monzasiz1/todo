@@ -67,12 +67,12 @@ module.exports = async function handler(req, res) {
       );
 
       const result = await pool.query(
-        `INSERT INTO tasks (user_id, title, description, due_date, due_time, priority, category_id, reminder_at, recurring, sort_order)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        `INSERT INTO tasks (user_id, title, description, date, time, priority, category_id, reminder_at, sort_order)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          RETURNING *`,
         [user.id, parsed.title, null, parsed.date || null,
          parsed.time || null, parsed.priority || 'medium', categoryId,
-         null, 'none', maxOrder.rows[0].next_order]
+         null, maxOrder.rows[0].next_order]
       );
 
       return res.status(201).json({ task: result.rows[0], parsed });
