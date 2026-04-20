@@ -2289,6 +2289,13 @@ input, textarea, select {
   .stat-card:active {
     transform: scale(0.97);
   }
+
+  /* On touch devices, day cell tasks shouldn't intercept taps – 
+     let all taps go to the day cell to open the DayCreateModal */
+  .calendar-day-task,
+  .calendar-day-more {
+    pointer-events: none;
+  }
 }
 
 /* ========== ANIMATIONS ========== */
@@ -6794,7 +6801,16 @@ input, textarea, select {
   padding: 8px 12px;
   border-radius: var(--radius-md);
   font-size: 13px;
-  transition: var(--transition);
+  transition: all 0.15s;
+  cursor: pointer;
+}
+
+.day-create-task-item:hover {
+  filter: brightness(0.96);
+}
+
+.day-create-task-item:active {
+  transform: scale(0.98);
 }
 
 .day-create-task-item.completed {

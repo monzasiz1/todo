@@ -7,6 +7,7 @@ import { de } from 'date-fns/locale';
 import { useTaskStore } from '../store/taskStore';
 import ManualTaskForm from './ManualTaskForm';
 import TaskCard from './TaskCard';
+import TaskDetailModal from './TaskDetailModal';
 import AvatarBadge from './AvatarBadge';
 
 const priorityLabels = {
@@ -22,6 +23,7 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated }) 
   const [aiLoading, setAiLoading] = useState(false);
   const [preview, setPreview] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [detailTask, setDetailTask] = useState(null);
   const inputRef = useRef(null);
   const debounceRef = useRef(null);
   const { aiCreateTask, aiParseOnly } = useTaskStore();
@@ -130,7 +132,9 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated }) 
                   background: task.group_id
                     ? `${task.group_color || '#5856D6'}10`
                     : task.category_color ? `${task.category_color}10` : 'var(--hover)',
+                  cursor: 'pointer',
                 }}
+                onClick={() => setDetailTask(task)}
               >
                 <div className="day-create-task-info">
                   {task.type === 'event' && (
@@ -316,6 +320,9 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated }) 
           )}
         </AnimatePresence>
       </motion.div>
+      {detailTask && (
+        <TaskDetailModal task={detailTask} onClose={() => setDetailTask(null)} />
+      )}
     </motion.div>,
     document.body
   );
