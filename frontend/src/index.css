@@ -573,7 +573,6 @@ input, textarea, select {
   font-size: 13px;
   color: var(--text-tertiary);
 }
-}
 
 .manual-task-attachment {
   margin-top: -1px;
