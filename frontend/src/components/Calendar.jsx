@@ -34,9 +34,16 @@ export default function Calendar({ onDayClick }) {
   const [detailTask, setDetailTask] = useState(null);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [pickerYear, setPickerYear] = useState(getYear(new Date()));
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
   const triggerRef = useRef(null);
   const dropdownRef = useRef(null);
   const { tasks } = useTaskStore();
+
+  useEffect(() => {
+    const handler = () => setIsDesktop(window.innerWidth >= 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
 
   useEffect(() => {
     if (!showMonthPicker) return;
@@ -112,7 +119,7 @@ export default function Calendar({ onDayClick }) {
               <span className="calendar-day-number">{format(d, 'd')}</span>
               {dayTasks.length > 0 && (
                 <div className="calendar-day-tasks">
-                  {dayTasks.slice(0, 2).map((t) => (
+                  {dayTasks.slice(0, isDesktop ? 4 : 2).map((t) => (
                     <div
                       key={t.id}
                       className={`calendar-day-task ${t.completed ? 'completed' : ''} ${t.group_id ? 'group-task' : ''}`}
@@ -140,7 +147,7 @@ export default function Calendar({ onDayClick }) {
                     </div>
                   ))}
                   {dayTasks.length > 2 && (
-                    <div className="calendar-day-more">+{dayTasks.length - 2} mehr</div>
+                    <div className="calendar-day-more">+{dayTasks.length - (isDesktop ? 4 : 2)} mehr</div>
                   )}
                 </div>
               )}
