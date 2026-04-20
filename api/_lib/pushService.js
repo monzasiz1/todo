@@ -4,10 +4,19 @@ const { getPool } = require('./db');
 // VAPID keys aus Environment Variables
 const VAPID_PUBLIC = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY;
-const VAPID_EMAIL = process.env.VAPID_EMAIL || 'mailto:admin@taski.app';
+let VAPID_EMAIL = process.env.VAPID_EMAIL || 'mailto:admin@taski.app';
+
+// Sicherstellen dass mailto: Prefix vorhanden ist
+if (VAPID_EMAIL && !VAPID_EMAIL.startsWith('mailto:') && !VAPID_EMAIL.startsWith('https://')) {
+  VAPID_EMAIL = `mailto:${VAPID_EMAIL}`;
+}
 
 if (VAPID_PUBLIC && VAPID_PRIVATE) {
-  webpush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC, VAPID_PRIVATE);
+  try {
+    webpush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC, VAPID_PRIVATE);
+  } catch (err) {
+    console.error('VAPID setup error:', err.message);
+  }
 }
 
 /**

@@ -5,6 +5,7 @@ import BottomNav from './BottomNav';
 import { useState, useRef } from 'react';
 import { Menu, X, CheckSquare } from 'lucide-react';
 import NotificationBell from './NotificationBell';
+import ReminderChecker from './ReminderChecker';
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -56,6 +57,9 @@ export default function Layout() {
 
       {/* Toast Notifications */}
       <FeedbackToast />
+
+      {/* Client-side Reminder Checker */}
+      <ReminderChecker />
     </div>
   );
 }
