@@ -307,6 +307,7 @@ module.exports = async function handler(req, res) {
              COALESCE(tp.can_edit, false) as can_edit,
              gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url,
              gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color, gtc.avatar_url as group_task_creator_avatar_url,
+             (SELECT COUNT(*) FROM task_attachments ta WHERE ta.task_id = t.id)::int as attachment_count,
              (SELECT COALESCE(json_agg(json_build_object('name', su.name, 'color', su.avatar_color, 'avatar_url', su.avatar_url)), '[]'::json)
               FROM task_permissions tp2 JOIN users su ON tp2.user_id = su.id
               WHERE tp2.task_id = t.id) as shared_with_users
@@ -333,7 +334,8 @@ module.exports = async function handler(req, res) {
         result = await pool.query(
           `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
              gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url,
-             gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color, gtc.avatar_url as group_task_creator_avatar_url
+             gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color, gtc.avatar_url as group_task_creator_avatar_url,
+             (SELECT COUNT(*) FROM task_attachments ta WHERE ta.task_id = t.id)::int as attachment_count
            FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
            LEFT JOIN group_tasks gt ON gt.task_id = t.id
            LEFT JOIN groups grp ON grp.id = gt.group_id

@@ -141,6 +141,23 @@ export const api = {
       body: JSON.stringify({ input }),
     }),
 
+  // Attachments
+  getAttachments: (taskId) => request(`/attachments/${taskId}`),
+
+  uploadAttachment: (taskId, { file_name, file_type, file_data }) =>
+    request(`/attachments/${taskId}`, {
+      method: 'POST',
+      body: JSON.stringify({ file_name, file_type, file_data }),
+    }),
+
+  deleteAttachment: (taskId, attachmentId) =>
+    request(`/attachments/${taskId}/${attachmentId}`, { method: 'DELETE' }),
+
+  getAttachmentUrl: (taskId, attachmentId) => {
+    const token = localStorage.getItem('token');
+    return `${API_URL}/attachments/${taskId}/${attachmentId}${token ? `?token=${token}` : ''}`;
+  },
+
   // Categories
   getCategories: () => request('/categories'),
 

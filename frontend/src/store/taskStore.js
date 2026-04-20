@@ -101,6 +101,18 @@ export const useTaskStore = create((set, get) => ({
         return smart;
       }
 
+      // Attach – return task info so frontend can open file picker
+      if (smart.intent === 'attach') {
+        if (smart.success && smart.task) {
+          get().addToast(`📎 ${smart.message}`);
+        } else {
+          get().addToast(`⚠️ ${smart.message}`, 'error');
+        }
+        return smart;
+      }
+        return smart;
+      }
+
       // Create (default / redirect)
       const data = await api.parseAndCreateTask(input);
       const created = Array.isArray(data.created_tasks) && data.created_tasks.length > 0

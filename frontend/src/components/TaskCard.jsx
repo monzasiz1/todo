@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTaskStore } from '../store/taskStore';
-import { Check, Trash2, Clock, Calendar, CalendarCheck, GripVertical, Lock, Users, UserCheck, Repeat } from 'lucide-react';
+import { Check, Trash2, Clock, Calendar, CalendarCheck, GripVertical, Lock, Users, UserCheck, Repeat, Paperclip } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
 import TaskDetailModal from './TaskDetailModal';
@@ -139,6 +139,12 @@ export default function TaskCard({ task, index }) {
               }}
             >
               {task.category_name}
+            </span>
+          )}
+          {task.attachment_count > 0 && (
+            <span className="task-meta-item" style={{ color: 'var(--text-tertiary)' }}>
+              <Paperclip size={12} />
+              {task.attachment_count}
             </span>
           )}
         </div>

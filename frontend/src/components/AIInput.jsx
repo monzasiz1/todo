@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTaskStore } from '../store/taskStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ArrowUp, Calendar, CalendarCheck, Clock, Tag, Flag, Loader2, UsersRound, ListTodo, Trash2, MoveRight, Pencil } from 'lucide-react';
+import { Sparkles, ArrowUp, Calendar, CalendarCheck, Clock, Tag, Flag, Loader2, UsersRound, ListTodo, Trash2, MoveRight, Pencil, Paperclip } from 'lucide-react';
+import { api } from '../utils/api';
 import AvatarBadge from './AvatarBadge';
 
 export default function AIInput({ onTaskCreated }) {
@@ -11,7 +12,9 @@ export default function AIInput({ onTaskCreated }) {
   const [showPreview, setShowPreview] = useState(false);
   const inputRef = useRef(null);
   const debounceRef = useRef(null);
-  const { aiCreateTask, aiParseOnly } = useTaskStore();
+  const attachFileRef = useRef(null);
+  const attachTaskRef = useRef(null);
+  const { aiCreateTask, aiParseOnly, addToast, fetchTasks } = useTaskStore();
 
   // Debounced preview
   useEffect(() => {
@@ -47,11 +50,52 @@ export default function AIInput({ onTaskCreated }) {
     if (result) {
       setInput('');
       setPreview(null);
-      onTaskCreated?.();
+
+      // If attach intent: open file picker for the matched task
+      if (result.intent === 'attach' && result.success && result.task) {
+        attachTaskRef.current = result.task;
+        attachFileRef.current?.click();
+      } else {
+        onTaskCreated?.();
+      }
     }
 
     setLoading(false);
     inputRef.current?.focus();
+  };
+
+  const handleAttachFile = async (e) => {
+    const file = e.target.files?.[0];
+    const task = attachTaskRef.current;
+    if (!file || !task) return;
+
+    if (file.size > 4 * 1024 * 1024) {
+      addToast('Datei zu groß (max. 4 MB)', 'error');
+      return;
+    }
+
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      await api.uploadAttachment(task.id, {
+        file_name: file.name,
+        file_type: file.type || 'application/octet-stream',
+        file_data: base64,
+      });
+
+      addToast(`📎 "${file.name}" an "${task.title}" angehängt`);
+      fetchTasks();
+    } catch (err) {
+      addToast('❌ ' + (err.message || 'Upload fehlgeschlagen'), 'error');
+    } finally {
+      if (attachFileRef.current) attachFileRef.current.value = '';
+      attachTaskRef.current = null;
+    }
   };
 
   const priorityLabels = {
@@ -164,11 +208,20 @@ export default function AIInput({ onTaskCreated }) {
 
           {!showPreview && !loading && (
             <div className="ai-input-hint">
-              💡 "Freitag Reinigung 18 Uhr" · "Lösche Zahnarzt" · "Verschiebe Meeting auf Montag" · "Erinnere mich morgen an Rechnung"
+              💡 "Freitag Reinigung 18 Uhr" · "Lösche Zahnarzt" · "Verschiebe Meeting auf Montag" · "Hänge Datei an Rechnung"
             </div>
           )}
         </motion.div>
       </form>
+
+      {/* Hidden file input for AI attach intent */}
+      <input
+        ref={attachFileRef}
+        type="file"
+        onChange={handleAttachFile}
+        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+        style={{ display: 'none' }}
+      />
     </div>
   );
 }

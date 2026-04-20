@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import AvatarBadge from './AvatarBadge';
+import TaskAttachments from './TaskAttachments';
 
 const PRIORITIES = [
   { value: 'low', label: 'Niedrig', color: 'var(--success)' },
@@ -414,6 +415,9 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
               </div>
             )}
           </div>
+
+          {/* Attachments */}
+          <TaskAttachments taskId={task.id} canEdit={true} />
 
           {/* Group Assignment */}
           {userGroups.length > 0 && (

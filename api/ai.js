@@ -518,6 +518,24 @@ module.exports = async function handler(req, res) {
         });
       }
 
+      // === ATTACH ===
+      if (intent.intent === 'attach') {
+        if (!matchedTask) {
+          return res.json({
+            intent: 'attach',
+            success: false,
+            message: `Aufgabe "${intent.task_title}" nicht gefunden.`,
+          });
+        }
+
+        return res.json({
+          intent: 'attach',
+          success: true,
+          task: { id: matchedTask.id, title: matchedTask.title },
+          message: `Wähle eine Datei für "${matchedTask.title}"`,
+        });
+      }
+
       // Fallback
       return res.json({ intent: 'create', redirect: true });
 

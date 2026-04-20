@@ -298,8 +298,15 @@ INTENT ERKENNUNG:
 3. "move" - Aufgabe/Termin verschieben (Datum/Zeit ändern)
    - "Verschiebe Zahnarzt auf Freitag", "Reinigung auf morgen", "Meeting auf 15 Uhr", "Arzttermin von Montag auf Mittwoch"
    - "Zahnarzt statt Montag lieber Dienstag", "Probe eine Stunde später", "verschieb das auf nächste Woche"
+   - "verschiebe zahnarzt termin morgen auf freitag" → intent: "move", task_title: "Zahnarzt", new_date: Freitag-Datum
+   - "Meeting von 14 auf 16 Uhr" → intent: "move", task_title: "Meeting", new_time: "16:00"
+   - "den Arzt morgen auf nächste Woche" → intent: "move", new_date: nächste-Woche-gleicher-Tag
+   - WICHTIG: Bei "verschiebe X morgen auf Y" bedeutet "morgen" wann der Termin AKTUELL ist, "auf Y" ist das NEUE Datum
 4. "update" - Aufgabe/Termin ändern (Titel, Priorität, Beschreibung etc.)
    - "Ändere Einkaufen zu dringend", "Zahnarzt Beschreibung: Raum 3"
+5. "attach" - Datei an Aufgabe anhängen
+   - "Hänge Datei an Rechnung bezahlen", "Datei anhängen an Meeting", "Bild an Einkaufsliste", "Foto zu Zahnarzt hinzufügen"
+   - Erkenne den Aufgabentitel aus der Liste
 
 Regeln:
 - Matche den Task-Titel FUZZY aus der Liste (z.B. "zahnarzt" → "Zahnarzt", "reinigung" → "Reinigung")
@@ -347,7 +354,7 @@ Antworte NUR mit validem JSON:
   try {
     const parsed = JSON.parse(content);
     return {
-      intent: ['create', 'delete', 'move', 'update'].includes(parsed.intent) ? parsed.intent : 'create',
+      intent: ['create', 'delete', 'move', 'update', 'attach'].includes(parsed.intent) ? parsed.intent : 'create',
       task_title: parsed.task_title || null,
       new_date: parsed.new_date || null,
       new_time: parsed.new_time || null,

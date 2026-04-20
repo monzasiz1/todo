@@ -10,6 +10,7 @@ import {
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
 import TaskEditModal from './TaskEditModal';
+import TaskAttachments from './TaskAttachments';
 import AvatarBadge from './AvatarBadge';
 
 const priorityConfig = {
@@ -323,6 +324,9 @@ export default function TaskDetailModal({ task, onClose }) {
               </div>
             )}
           </div>
+
+          {/* Attachments */}
+          <TaskAttachments taskId={task.id} canEdit={canEdit} />
 
           {/* Created */}
           {task.created_at && (
