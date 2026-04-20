@@ -38,8 +38,9 @@ export default function Calendar({ onDayClick }) {
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
   // Drag state
   const [dragTaskId, setDragTaskId] = useState(null);
-  const [dragOverDate, setDragOverDate] = useState(null);
   const dragTask = useRef(null);
+  const dragOverEl = useRef(null);   // currently highlighted DOM element
+  const dragTargetDate = useRef(null); // target date for drop
 
   const triggerRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -90,40 +91,54 @@ export default function Calendar({ onDayClick }) {
 
   // ── Drag & Drop handlers ──────────────────────────────────────────
   const handleDragStart = useCallback((e, task) => {
-    if (!isDesktop) return;
     dragTask.current = task;
     setDragTaskId(task.id);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', String(task.id));
-    // Ghost image: semi-transparent
-    e.target.style.opacity = '0.5';
-  }, [isDesktop]);
+    // Delay so opacity change doesn't affect ghost image
+    requestAnimationFrame(() => { e.target.style.opacity = '0.4'; });
+  }, []);
 
   const handleDragEnd = useCallback((e) => {
     e.target.style.opacity = '';
     setDragTaskId(null);
-    setDragOverDate(null);
     dragTask.current = null;
+    dragTargetDate.current = null;
+    if (dragOverEl.current) {
+      dragOverEl.current.classList.remove('drag-over');
+      dragOverEl.current = null;
+    }
   }, []);
 
   const handleDragOver = useCallback((e, date) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    setDragOverDate(format(date, 'yyyy-MM-dd'));
-  }, []);
-
-  const handleDragLeave = useCallback((e) => {
-    // Only clear if leaving the cell entirely (not entering a child)
-    if (!e.currentTarget.contains(e.relatedTarget)) {
-      setDragOverDate(null);
+    dragTargetDate.current = date;
+    // Only update DOM class, never setState → no re-render during drag
+    const el = e.currentTarget;
+    if (dragOverEl.current !== el) {
+      if (dragOverEl.current) dragOverEl.current.classList.remove('drag-over');
+      el.classList.add('drag-over');
+      dragOverEl.current = el;
     }
   }, []);
 
-  const handleDrop = useCallback(async (e, targetDate) => {
+  const handleDragLeave = useCallback((e) => {
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      e.currentTarget.classList.remove('drag-over');
+      if (dragOverEl.current === e.currentTarget) dragOverEl.current = null;
+    }
+  }, []);
+
+  const handleDrop = useCallback(async (e) => {
     e.preventDefault();
-    setDragOverDate(null);
+    const targetDate = dragTargetDate.current;
     const task = dragTask.current;
-    if (!task) return;
+    if (dragOverEl.current) {
+      dragOverEl.current.classList.remove('drag-over');
+      dragOverEl.current = null;
+    }
+    if (!task || !targetDate) return;
 
     const newDateStr = format(targetDate, 'yyyy-MM-dd');
     const oldDateStr = task.date ? task.date.substring(0, 10) : null;
@@ -137,10 +152,7 @@ export default function Calendar({ onDayClick }) {
       newDateEnd = format(addDays(oldEnd, delta), 'yyyy-MM-dd');
     }
 
-    await updateTask(task.id, {
-      date: newDateStr,
-      date_end: newDateEnd,
-    });
+    await updateTask(task.id, { date: newDateStr, date_end: newDateEnd });
   }, [updateTask]);
 
   // ── Month view ────────────────────────────────────────────────────
@@ -168,17 +180,15 @@ export default function Calendar({ onDayClick }) {
           const dayTasks = getTasksForDate(d);
           const isCurrentMonth = isSameMonth(d, currentDate);
           const isSelected = selectedDate && isSameDay(d, selectedDate);
-          const dateStr = format(d, 'yyyy-MM-dd');
-          const isDragOver = dragOverDate === dateStr;
 
           return (
             <div
               key={d.toISOString()}
-              className={`calendar-day ${!isCurrentMonth ? 'other-month' : ''} ${isToday(d) ? 'today' : ''} ${isSelected ? 'selected' : ''} ${isDragOver ? 'drag-over' : ''}`}
+              className={`calendar-day ${!isCurrentMonth ? 'other-month' : ''} ${isToday(d) ? 'today' : ''} ${isSelected ? 'selected' : ''}`}
               onClick={() => handleDayClick(d)}
               onDragOver={isDesktop ? (e) => handleDragOver(e, d) : undefined}
               onDragLeave={isDesktop ? handleDragLeave : undefined}
-              onDrop={isDesktop ? (e) => handleDrop(e, d) : undefined}
+              onDrop={isDesktop ? handleDrop : undefined}
             >
               <span className="calendar-day-number">{format(d, 'd')}</span>
               {dayTasks.length > 0 && (
@@ -197,10 +207,10 @@ export default function Calendar({ onDayClick }) {
                         borderLeft: `2px solid ${t.group_id ? (t.group_color || '#5856D6') : (t.category_color || 'var(--primary)')}`,
                         cursor: isDesktop ? 'grab' : 'pointer',
                       }}
-                      draggable={isDesktop}
-                      onDragStart={isDesktop ? (e) => handleDragStart(e, t) : undefined}
+                      draggable={isDesktop ? true : undefined}
+                      onDragStart={isDesktop ? (e) => { e.stopPropagation(); handleDragStart(e, t); } : undefined}
                       onDragEnd={isDesktop ? handleDragEnd : undefined}
-                      onClick={(e) => { e.stopPropagation(); if (!dragTaskId) setDetailTask(t); }}
+                      onClick={(e) => { e.stopPropagation(); if (!dragTask.current) setDetailTask(t); }}
                     >
                       {t.group_id && (
                         <AvatarBadge
@@ -238,16 +248,14 @@ export default function Calendar({ onDayClick }) {
       <div className="calendar-week">
         {days.map((d) => {
           const dayTasks = getTasksForDate(d);
-          const dateStr = format(d, 'yyyy-MM-dd');
-          const isDragOver = dragOverDate === dateStr;
           return (
             <div
               key={d.toISOString()}
-              className={`calendar-week-day ${isToday(d) ? 'today' : ''} ${isDragOver ? 'drag-over' : ''}`}
+              className={`calendar-week-day ${isToday(d) ? 'today' : ''}`}
               onClick={() => handleDayClick(d)}
               onDragOver={isDesktop ? (e) => handleDragOver(e, d) : undefined}
               onDragLeave={isDesktop ? handleDragLeave : undefined}
-              onDrop={isDesktop ? (e) => handleDrop(e, d) : undefined}
+              onDrop={isDesktop ? handleDrop : undefined}
             >
               <div className="calendar-week-day-label">
                 <span className="calendar-week-day-name">{format(d, 'EEE', { locale: de })}</span>
@@ -268,10 +276,10 @@ export default function Calendar({ onDayClick }) {
                       cursor: isDesktop ? 'grab' : 'pointer',
                       borderLeft: t.group_id ? `3px solid ${t.group_color || '#5856D6'}` : undefined,
                     }}
-                    draggable={isDesktop}
-                    onDragStart={isDesktop ? (e) => handleDragStart(e, t) : undefined}
+                    draggable={isDesktop ? true : undefined}
+                    onDragStart={isDesktop ? (e) => { e.stopPropagation(); handleDragStart(e, t); } : undefined}
                     onDragEnd={isDesktop ? handleDragEnd : undefined}
-                    onClick={(e) => { e.stopPropagation(); if (!dragTaskId) setDetailTask(t); }}
+                    onClick={(e) => { e.stopPropagation(); if (!dragTask.current) setDetailTask(t); }}
                   >
                     {t.group_id && (
                       <AvatarBadge
