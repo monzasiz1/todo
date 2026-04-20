@@ -619,6 +619,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Export */}
+      <div className="profile-section-card">
         <button className="profile-action-row" onClick={exportData}>
           <div className="profile-action-left">
             <div className="profile-action-icon" style={{ background: 'rgba(0,199,190,0.1)', color: '#00C7BE' }}>
