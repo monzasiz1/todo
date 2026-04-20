@@ -225,37 +225,6 @@ export default function Calendar({ onDayClick }) {
             <span style={{ textTransform: 'capitalize' }}>{headerText}</span>
             <ChevronDown size={16} className={`cal-mp-chevron ${showMonthPicker ? 'open' : ''}`} />
           </button>
-          <AnimatePresence>
-            {showMonthPicker && (
-              <motion.div
-                className="cal-mp-dropdown"
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.15 }}
-              >
-                <div className="cal-mp-year-nav">
-                  <button onClick={() => setPickerYear(y => y - 1)}><ChevronLeft size={16} /></button>
-                  <span>{pickerYear}</span>
-                  <button onClick={() => setPickerYear(y => y + 1)}><ChevronRight size={16} /></button>
-                </div>
-                <div className="cal-mp-months">
-                  {Array.from({ length: 12 }, (_, i) => (
-                    <button
-                      key={i}
-                      className={`cal-mp-m${getMonth(currentDate) === i && getYear(currentDate) === pickerYear ? ' active' : ''}${getMonth(new Date()) === i && getYear(new Date()) === pickerYear ? ' now' : ''}`}
-                      onClick={() => {
-                        setCurrentDate(setYear(setMonth(currentDate, i), pickerYear));
-                        setShowMonthPicker(false);
-                      }}
-                    >
-                      {format(new Date(2024, i, 1), 'MMM', { locale: de })}
-                    </button>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <div className="calendar-view-toggle">
@@ -289,6 +258,40 @@ export default function Calendar({ onDayClick }) {
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {showMonthPicker && (
+          <motion.div
+            className="cal-mp-dropdown"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="cal-mp-inner">
+              <div className="cal-mp-year-nav">
+                <button onClick={() => setPickerYear(y => y - 1)}><ChevronLeft size={16} /></button>
+                <span>{pickerYear}</span>
+                <button onClick={() => setPickerYear(y => y + 1)}><ChevronRight size={16} /></button>
+              </div>
+              <div className="cal-mp-months">
+                {Array.from({ length: 12 }, (_, i) => (
+                  <button
+                    key={i}
+                    className={`cal-mp-m${getMonth(currentDate) === i && getYear(currentDate) === pickerYear ? ' active' : ''}${getMonth(new Date()) === i && getYear(new Date()) === pickerYear ? ' now' : ''}`}
+                    onClick={() => {
+                      setCurrentDate(setYear(setMonth(currentDate, i), pickerYear));
+                      setShowMonthPicker(false);
+                    }}
+                  >
+                    {format(new Date(2024, i, 1), 'MMM', { locale: de })}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {view === 'month' ? (
         <div className="calendar-grid">{renderMonthView()}</div>
