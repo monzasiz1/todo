@@ -402,9 +402,24 @@ module.exports = async function handler(req, res) {
       let matchedTask = null;
       if (intent.task_title) {
         const search = intent.task_title.toLowerCase();
-        matchedTask = userTasks.find(t => t.title.toLowerCase() === search)
-          || userTasks.find(t => t.title.toLowerCase().includes(search))
-          || userTasks.find(t => search.includes(t.title.toLowerCase()));
+
+        // If scope=single and target_date provided: prefer matching by title + exact date
+        if (intent.scope === 'single' && intent.target_date) {
+          matchedTask = userTasks.find(t =>
+            t.date === intent.target_date && (
+              t.title.toLowerCase() === search ||
+              t.title.toLowerCase().includes(search) ||
+              search.includes(t.title.toLowerCase())
+            )
+          );
+        }
+
+        // Fallback: match by title only
+        if (!matchedTask) {
+          matchedTask = userTasks.find(t => t.title.toLowerCase() === search)
+            || userTasks.find(t => t.title.toLowerCase().includes(search))
+            || userTasks.find(t => search.includes(t.title.toLowerCase()));
+        }
       }
 
       // === DELETE ===
@@ -463,6 +478,28 @@ module.exports = async function handler(req, res) {
         const setClauses = Object.keys(updates).map((k, i) => `${k} = $${i + 2}`);
         const values = Object.values(updates);
 
+        // scope=all → update all occurrences (parent + children)
+        if (intent.scope === 'all') {
+          const parentId = matchedTask.recurrence_parent_id || matchedTask.id;
+          await pool.query(
+            `UPDATE tasks SET ${setClauses.join(', ')}, updated_at = NOW() WHERE (id = $1 OR recurrence_parent_id = $1)`,
+            [parentId, ...values]
+          );
+          const updatedCount = await pool.query(
+            'SELECT COUNT(*) FROM tasks WHERE id = $1 OR recurrence_parent_id = $1',
+            [parentId]
+          );
+          return res.json({
+            intent: 'move',
+            success: true,
+            task: { id: matchedTask.id, title: matchedTask.title, ...updates },
+            scope: 'all',
+            updated_count: parseInt(updatedCount.rows[0].count),
+            message: `Alle Termine "${matchedTask.title}" aktualisiert${updates.date ? ` auf ${updates.date}` : ''}${updates.time ? ` um ${updates.time}` : ''}`,
+          });
+        }
+
+        // scope=single (default) → nur diesen einen Termin
         await pool.query(
           `UPDATE tasks SET ${setClauses.join(', ')}, updated_at = NOW() WHERE id = $1`,
           [matchedTask.id, ...values]
@@ -472,6 +509,7 @@ module.exports = async function handler(req, res) {
           intent: 'move',
           success: true,
           task: { id: matchedTask.id, title: matchedTask.title, ...updates },
+          scope: 'single',
           message: `"${matchedTask.title}" verschoben${updates.date ? ` auf ${updates.date}` : ''}${updates.time ? ` um ${updates.time}` : ''}`,
         });
       }
@@ -505,6 +543,28 @@ module.exports = async function handler(req, res) {
         const setClauses = Object.keys(updates).map((k, i) => `${k} = $${i + 2}`);
         const values = Object.values(updates);
 
+        // scope=all → update all occurrences (parent + children)
+        if (intent.scope === 'all') {
+          const parentId = matchedTask.recurrence_parent_id || matchedTask.id;
+          await pool.query(
+            `UPDATE tasks SET ${setClauses.join(', ')}, updated_at = NOW() WHERE (id = $1 OR recurrence_parent_id = $1)`,
+            [parentId, ...values]
+          );
+          const updatedCount = await pool.query(
+            'SELECT COUNT(*) FROM tasks WHERE id = $1 OR recurrence_parent_id = $1',
+            [parentId]
+          );
+          return res.json({
+            intent: 'update',
+            success: true,
+            task: { id: matchedTask.id, title: matchedTask.title, ...updates },
+            scope: 'all',
+            updated_count: parseInt(updatedCount.rows[0].count),
+            message: `Alle Termine "${matchedTask.title}" wurden aktualisiert`,
+          });
+        }
+
+        // scope=single (default) → nur diesen einen Termin
         await pool.query(
           `UPDATE tasks SET ${setClauses.join(', ')}, updated_at = NOW() WHERE id = $1`,
           [matchedTask.id, ...values]
@@ -514,6 +574,7 @@ module.exports = async function handler(req, res) {
           intent: 'update',
           success: true,
           task: { id: matchedTask.id, title: matchedTask.title, ...updates },
+          scope: 'single',
           message: `"${matchedTask.title}" wurde aktualisiert`,
         });
       }

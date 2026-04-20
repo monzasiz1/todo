@@ -302,11 +302,24 @@ INTENT ERKENNUNG:
    - "Meeting von 14 auf 16 Uhr" → intent: "move", task_title: "Meeting", new_time: "16:00"
    - "den Arzt morgen auf nächste Woche" → intent: "move", new_date: nächste-Woche-gleicher-Tag
    - WICHTIG: Bei "verschiebe X morgen auf Y" bedeutet "morgen" wann der Termin AKTUELL ist, "auf Y" ist das NEUE Datum
-4. "update" - Aufgabe/Termin ändern (Titel, Priorität, Beschreibung etc.)
+4. "update" - Aufgabe/Termin ändern (Titel, Priorität, Uhrzeit, Beschreibung etc.)
    - "Ändere Einkaufen zu dringend", "Zahnarzt Beschreibung: Raum 3"
+   - "ändere Uhrzeit zu 8:30", "Zeit auf 10 Uhr setzen", "Uhrzeit ändern"
 5. "attach" - Datei an Aufgabe anhängen
    - "Hänge Datei an Rechnung bezahlen", "Datei anhängen an Meeting", "Bild an Einkaufsliste", "Foto zu Zahnarzt hinzufügen"
    - Erkenne den Aufgabentitel aus der Liste
+
+SCOPE - Gilt die Änderung für ALLE Vorkommen oder nur EINEN Termin?
+- scope: "single" → Nur DIESEN einen Termin ändern
+  - Signalwörter: "nur am [Datum]", "nur diesen", "nicht wiederkehrend", "nur einmal", "nur den am [Datum]"
+  - Beispiel: "ändere Uhrzeit zu 8:30 nur am 18. Mai" → scope: "single", target_date: "2026-05-18"
+  - Beispiel: "verschiebe Probe am 20. Mai auf 10 Uhr, nicht die anderen" → scope: "single", target_date: "2026-05-20"
+- scope: "all" → Alle Vorkommen / die ganze Terminserie ändern
+  - Signalwörter: "alle", "immer", "jedes Mal", "die ganze Serie", "fortlaufend", "wiederkehrend"
+  - Beispiel: "ändere alle Probe Termine auf 8:30" → scope: "all"
+  - Wenn kein Datum und kein Scope-Hinweis erkennbar ist: scope: "all" (Standard für Änderungen)
+- Wenn ein SPEZIFISCHES Datum genannt wird OHNE "alle"/"immer" → scope: "single", target_date = dieses Datum
+- Wenn KEIN spezifisches Datum genannt wird → scope: "all"
 
 Regeln:
 - Matche den Task-Titel FUZZY aus der Liste (z.B. "zahnarzt" → "Zahnarzt", "reinigung" → "Reinigung")
@@ -315,15 +328,18 @@ Regeln:
 - Bei "move" ohne explizites Datum/Zeit: Versuche es aus dem Kontext zu erkennen
 - Wenn der Nutzer sagt "auf morgen" → new_date: ${tomorrow}
 - Wochentage korrekt berechnen aus der Liste oben
+- Bei "update" mit Uhrzeit (z.B. "ändere Zeit zu 8:30", "Uhrzeit auf 10:00"): updates.time = "HH:MM"
 - Im Zweifel: intent "create" (Standardfall)
 
 Antworte NUR mit validem JSON:
 {
-  "intent": "create|delete|move|update",
+  "intent": "create|delete|move|update|attach",
   "task_title": "Erkannter Aufgabentitel aus der Liste (oder null bei create)",
   "new_date": "YYYY-MM-DD oder null (nur bei move)",
   "new_time": "HH:MM oder null (nur bei move)",
-  "updates": {} oder null (nur bei update: z.B. {"priority": "urgent", "description": "..."}),
+  "updates": {} oder null (nur bei update: z.B. {"time": "08:30", "priority": "urgent", "description": "..."}),
+  "scope": "single oder all",
+  "target_date": "YYYY-MM-DD oder null (das Datum des spezifischen Vorkommens bei scope=single)",
   "confidence": 0.0-1.0
 }`;
 
@@ -359,10 +375,12 @@ Antworte NUR mit validem JSON:
       new_date: parsed.new_date || null,
       new_time: parsed.new_time || null,
       updates: parsed.updates || null,
+      scope: ['single', 'all'].includes(parsed.scope) ? parsed.scope : 'all',
+      target_date: parsed.target_date || null,
       confidence: parsed.confidence || 0.5,
     };
   } catch {
-    return { intent: 'create', task_title: null, new_date: null, new_time: null, updates: null, confidence: 0.2 };
+    return { intent: 'create', task_title: null, new_date: null, new_time: null, updates: null, scope: 'all', target_date: null, confidence: 0.2 };
   }
 }
 

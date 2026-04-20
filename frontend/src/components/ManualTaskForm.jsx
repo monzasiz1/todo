@@ -200,11 +200,11 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
         {isOpen && (
           <motion.form
             onSubmit={handleSubmit}
-            initial={{ opacity: 0, height: 0, y: -8 }}
+            initial={{ opacity: 0, height: 0, y: -12 }}
             animate={{ opacity: 1, height: 'auto', y: 0 }}
-            exit={{ opacity: 0, height: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            style={{ overflow: 'hidden' }}
+            exit={{ opacity: 0, height: 0, y: -12 }}
+            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+            style={{ overflow: 'hidden', transformOrigin: 'top' }}
             className="manual-task-form-panel"
           >
             <div>
