@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../store/taskStore';
@@ -20,6 +20,10 @@ import {
   isSameDay,
   isToday,
   parseISO,
+  setMonth,
+  setYear,
+  getMonth,
+  getYear,
 } from 'date-fns';
 import { de } from 'date-fns/locale';
 
@@ -28,7 +32,22 @@ export default function Calendar({ onDayClick }) {
   const [view, setView] = useState('month'); // 'month' | 'week'
   const [selectedDate, setSelectedDate] = useState(null);
   const [detailTask, setDetailTask] = useState(null);
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [pickerYear, setPickerYear] = useState(getYear(new Date()));
+  const monthPickerRef = useRef(null);
   const { tasks } = useTaskStore();
+
+  // Close picker on outside click
+  useEffect(() => {
+    if (!showMonthPicker) return;
+    const handleClick = (e) => {
+      if (monthPickerRef.current && !monthPickerRef.current.contains(e.target)) {
+        setShowMonthPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showMonthPicker]);
 
   const getTasksForDate = (date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
@@ -200,7 +219,55 @@ export default function Calendar({ onDayClick }) {
       transition={{ duration: 0.4 }}
     >
       <div className="calendar-header">
-        <h3 style={{ textTransform: 'capitalize' }}>{headerText}</h3>
+        <div className="cal-month-picker-wrap" ref={monthPickerRef}>
+          <h3
+            className="cal-header-title"
+            style={{ textTransform: 'capitalize', cursor: 'pointer' }}
+            onClick={() => { setPickerYear(getYear(currentDate)); setShowMonthPicker(!showMonthPicker); }}
+          >
+            {headerText}
+            <ChevronRight size={16} className={`cal-header-chevron ${showMonthPicker ? 'open' : ''}`} />
+          </h3>
+          <AnimatePresence>
+            {showMonthPicker && (
+              <motion.div
+                className="cal-month-picker"
+                initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+              >
+                <div className="cal-mp-year-row">
+                  <button className="cal-mp-year-btn" onClick={() => setPickerYear(y => y - 1)}>
+                    <ChevronLeft size={18} />
+                  </button>
+                  <span className="cal-mp-year">{pickerYear}</span>
+                  <button className="cal-mp-year-btn" onClick={() => setPickerYear(y => y + 1)}>
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+                <div className="cal-mp-grid">
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const isActive = getMonth(currentDate) === i && getYear(currentDate) === pickerYear;
+                    const isCurrent = getMonth(new Date()) === i && getYear(new Date()) === pickerYear;
+                    return (
+                      <button
+                        key={i}
+                        className={`cal-mp-month ${isActive ? 'active' : ''} ${isCurrent ? 'current' : ''}`}
+                        onClick={() => {
+                          setCurrentDate(setYear(setMonth(currentDate, i), pickerYear));
+                          setShowMonthPicker(false);
+                        }}
+                      >
+                        {format(new Date(2024, i, 1), 'MMM', { locale: de })}
+                      </button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <div className="calendar-view-toggle">
             <button
