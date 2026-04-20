@@ -42,7 +42,17 @@ Regeln:
 - Erkenne ZEITBEREICHE: "von 14 bis 16 Uhr", "9-12 Uhr", "14:00-15:30" → setze time als Startzeit und time_end als Endzeit
 - Wähle eine passende Kategorie aus: Arbeit, Persönlich, Gesundheit, Finanzen, Einkaufen, Haushalt, Bildung, Soziales
 - Bestimme die Priorität: low, medium, high, urgent
-- Erkenne ob eine Erinnerung gewünscht ist ("erinnere mich", "reminder" etc.)
+- Erkenne ob eine Erinnerung gewünscht ist ("erinnere mich", "reminder", "erinnern", "Erinnerung", "nicht vergessen", "denk dran" etc.)
+- ERINNERUNGEN: Wenn der Nutzer eine Erinnerung wünscht, berechne "reminder_at" als vollständigen ISO-8601-Zeitstempel:
+  - "heute Reinigung erinnern um 18:58" → hasReminder: true, reminder_at: "${currentDate}T18:58:00"
+  - "morgen um 9 Uhr erinnern Arzt" → hasReminder: true, reminder_at: "${tomorrow}T09:00:00"
+  - "erinnere mich Freitag 14:30" → hasReminder: true, reminder_at: "<Freitag-Datum>T14:30:00"
+  - Wenn eine Uhrzeit im Text steht aber keine separate Erinnerungs-Zeit: Nutze die Task-Uhrzeit als Erinnerungszeit
+  - Wenn "erinnern" + Datum + Uhrzeit: Berechne reminder_at aus dem erkannten Datum+Uhrzeit
+  - Wenn "erinnern" ohne Uhrzeit aber mit Datum: Setze reminder_at auf Datum mit 09:00 Uhr
+  - Wenn "erinnern" ohne Datum und Uhrzeit: Setze reminder_at auf heute 1 Stunde vor jetzt, oder 30 Min vor Taskzeit
+  - WICHTIG: reminder_at muss IMMER im Format "YYYY-MM-DDTHH:MM:00" sein wenn hasReminder true ist
+  - WICHTIG: Wörter wie "erinnern", "erinnere", "Erinnerung", "nicht vergessen" bedeuten IMMER hasReminder: true
 - Wenn ein Wochentag genannt wird, verwende das nächste passende Datum aus der Liste oben
 - WICHTIG: Wenn ein Datum erkennbar ist, gib es IMMER im Format YYYY-MM-DD zurück, niemals null
 - WICHTIG: Trenne Titel und Beschreibung intelligent. Der Titel soll kurz sein (z.B. "Einkaufen"), Details kommen in description
@@ -105,6 +115,7 @@ JSON Format:
   "category": "string",
   "priority": "low|medium|high|urgent",
   "hasReminder": true/false,
+  "reminder_at": "YYYY-MM-DDTHH:MM:00 oder null (nur wenn hasReminder true)",
   "recurrence_rule": "daily|weekly|biweekly|monthly|yearly|weekdays" oder null,
   "recurrence_interval": 1 (Zahl, Standard 1),
   "recurrence_end": "YYYY-MM-DD oder null",
@@ -153,6 +164,7 @@ JSON Format:
       category: parsed.category || 'Persönlich',
       priority: parsed.priority || 'medium',
       hasReminder: parsed.hasReminder || false,
+      reminder_at: parsed.reminder_at || null,
       recurrence_rule: parsed.recurrence_rule || null,
       recurrence_interval: parsed.recurrence_interval || 1,
       recurrence_end: parsed.recurrence_end || null,
@@ -172,6 +184,7 @@ JSON Format:
       category: 'Persönlich',
       priority: 'medium',
       hasReminder: false,
+      reminder_at: null,
       recurrence_rule: null,
       recurrence_interval: 1,
       recurrence_end: null,
@@ -250,4 +263,100 @@ JSON Format:
   }
 }
 
-module.exports = { parseTaskWithAI, parsePermissionsWithAI };
+async function classifyIntentWithAI(input, taskTitles = []) {
+  const key = process.env.MISTRAL_API_KEY;
+  if (!key) throw new Error('MISTRAL_API_KEY nicht konfiguriert');
+
+  const now = new Date();
+  const days = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+  const currentDate = now.toISOString().split('T')[0];
+  const currentDay = days[now.getDay()];
+  const tomorrow = new Date(now.getTime() + 86400000).toISOString().split('T')[0];
+
+  const nextWeekdays = {};
+  for (let i = 1; i <= 7; i++) {
+    const d = new Date(now.getTime() + i * 86400000);
+    nextWeekdays[days[d.getDay()]] = d.toISOString().split('T')[0];
+  }
+
+  const systemPrompt = `Du bist ein Intent-Classifier für eine To-Do/Kalender App.
+Analysiere die Eingabe und erkenne was der Nutzer tun möchte.
+
+Aktuelles Datum: ${currentDate} (${currentDay})
+Morgen: ${tomorrow}
+Nächste Wochentage:
+${Object.entries(nextWeekdays).map(([day, date]) => `- ${day} → ${date}`).join('\n')}
+
+Vorhandene Aufgaben/Termine des Nutzers:
+${taskTitles.length > 0 ? taskTitles.map((t, i) => `${i + 1}. "${t.title}" (Datum: ${t.date || 'keins'}, Zeit: ${t.time || 'keine'})`).join('\n') : '(keine)'}
+
+INTENT ERKENNUNG:
+1. "create" - Neue Aufgabe/Termin erstellen (Standard wenn nichts anderes erkannt)
+   - "Morgen Zahnarzt 10 Uhr", "Einkaufen", "Meeting Freitag"
+2. "delete" - Aufgabe/Termin löschen/entfernen
+   - "Lösche Zahnarzt", "Entferne den Termin Reinigung", "Streich Einkaufen", "weg mit Meeting", "Termin absagen", "cancel Probe"
+3. "move" - Aufgabe/Termin verschieben (Datum/Zeit ändern)
+   - "Verschiebe Zahnarzt auf Freitag", "Reinigung auf morgen", "Meeting auf 15 Uhr", "Arzttermin von Montag auf Mittwoch"
+   - "Zahnarzt statt Montag lieber Dienstag", "Probe eine Stunde später", "verschieb das auf nächste Woche"
+4. "update" - Aufgabe/Termin ändern (Titel, Priorität, Beschreibung etc.)
+   - "Ändere Einkaufen zu dringend", "Zahnarzt Beschreibung: Raum 3"
+
+Regeln:
+- Matche den Task-Titel FUZZY aus der Liste (z.B. "zahnarzt" → "Zahnarzt", "reinigung" → "Reinigung")
+- Bei "delete" und "move": task_title MUSS auf eine existierende Aufgabe verweisen
+- Bei "move": Erkenne new_date (YYYY-MM-DD) und/oder new_time (HH:MM)
+- Bei "move" ohne explizites Datum/Zeit: Versuche es aus dem Kontext zu erkennen
+- Wenn der Nutzer sagt "auf morgen" → new_date: ${tomorrow}
+- Wochentage korrekt berechnen aus der Liste oben
+- Im Zweifel: intent "create" (Standardfall)
+
+Antworte NUR mit validem JSON:
+{
+  "intent": "create|delete|move|update",
+  "task_title": "Erkannter Aufgabentitel aus der Liste (oder null bei create)",
+  "new_date": "YYYY-MM-DD oder null (nur bei move)",
+  "new_time": "HH:MM oder null (nur bei move)",
+  "updates": {} oder null (nur bei update: z.B. {"priority": "urgent", "description": "..."}),
+  "confidence": 0.0-1.0
+}`;
+
+  const response = await fetch(MISTRAL_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify({
+      model: 'mistral-small-latest',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: input },
+      ],
+      temperature: 0.1,
+      max_tokens: 300,
+      response_format: { type: 'json_object' },
+    }),
+  });
+
+  if (!response.ok) throw new Error(`Mistral API Fehler: ${response.status}`);
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error('Keine Antwort von Mistral');
+
+  try {
+    const parsed = JSON.parse(content);
+    return {
+      intent: ['create', 'delete', 'move', 'update'].includes(parsed.intent) ? parsed.intent : 'create',
+      task_title: parsed.task_title || null,
+      new_date: parsed.new_date || null,
+      new_time: parsed.new_time || null,
+      updates: parsed.updates || null,
+      confidence: parsed.confidence || 0.5,
+    };
+  } catch {
+    return { intent: 'create', task_title: null, new_date: null, new_time: null, updates: null, confidence: 0.2 };
+  }
+}
+
+module.exports = { parseTaskWithAI, parsePermissionsWithAI, classifyIntentWithAI };

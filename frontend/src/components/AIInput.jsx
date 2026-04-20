@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTaskStore } from '../store/taskStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ArrowUp, Calendar, CalendarCheck, Clock, Tag, Flag, Loader2, UsersRound, ListTodo } from 'lucide-react';
+import { Sparkles, ArrowUp, Calendar, CalendarCheck, Clock, Tag, Flag, Loader2, UsersRound, ListTodo, Trash2, MoveRight, Pencil } from 'lucide-react';
 import AvatarBadge from './AvatarBadge';
 
 export default function AIInput({ onTaskCreated }) {
@@ -164,7 +164,7 @@ export default function AIInput({ onTaskCreated }) {
 
           {!showPreview && !loading && (
             <div className="ai-input-hint">
-              💡 Beispiele: "Freitag Reinigung 18 Uhr" · "Erinnere mich morgen an Rechnung" · "Dringend: Meeting vorbereiten"
+              💡 "Freitag Reinigung 18 Uhr" · "Lösche Zahnarzt" · "Verschiebe Meeting auf Montag" · "Erinnere mich morgen an Rechnung"
             </div>
           )}
         </motion.div>

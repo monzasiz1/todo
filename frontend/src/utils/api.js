@@ -135,6 +135,12 @@ export const api = {
       body: JSON.stringify({ input }),
     }),
 
+  smartAction: (input) =>
+    request('/ai/smart', {
+      method: 'POST',
+      body: JSON.stringify({ input }),
+    }),
+
   // Categories
   getCategories: () => request('/categories'),
 

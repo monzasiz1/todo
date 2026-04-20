@@ -61,6 +61,47 @@ export const useTaskStore = create((set, get) => ({
 
   aiCreateTask: async (input) => {
     try {
+      // Step 1: Classify intent
+      const smart = await api.smartAction(input);
+
+      // Delete
+      if (smart.intent === 'delete') {
+        if (smart.success && smart.deleted_task) {
+          set((s) => ({ tasks: s.tasks.filter((t) => t.id !== smart.deleted_task.id && t.recurrence_parent_id !== smart.deleted_task.id) }));
+          get().addToast(`🗑️ ${smart.message}`);
+        } else {
+          get().addToast(`⚠️ ${smart.message}`, 'error');
+        }
+        return smart;
+      }
+
+      // Move
+      if (smart.intent === 'move') {
+        if (smart.success && smart.task) {
+          set((s) => ({
+            tasks: s.tasks.map((t) => t.id === smart.task.id ? { ...t, ...smart.task } : t),
+          }));
+          get().addToast(`📅 ${smart.message}`);
+        } else {
+          get().addToast(`⚠️ ${smart.message}`, 'error');
+        }
+        return smart;
+      }
+
+      // Update
+      if (smart.intent === 'update') {
+        if (smart.success && smart.task) {
+          set((s) => ({
+            tasks: s.tasks.map((t) => t.id === smart.task.id ? { ...t, ...smart.task } : t),
+          }));
+          get().addToast(`✏️ ${smart.message}`);
+        } else {
+          get().addToast(`⚠️ ${smart.message}`, 'error');
+        }
+        return smart;
+      }
+
+      // Create (default / redirect)
       const data = await api.parseAndCreateTask(input);
       const created = Array.isArray(data.created_tasks) && data.created_tasks.length > 0
         ? data.created_tasks
@@ -79,7 +120,7 @@ export const useTaskStore = create((set, get) => ({
       get().addToast(`✅ "${data.parsed.title}"${cat}${range}${shared}${groupMsg}${recMsg} gespeichert${shareErr}`);
       return data;
     } catch (err) {
-      get().addToast('❌ ' + err.message, 'error');
+      get().addToast('❌ ' + (err.message || 'Fehler'), 'error');
       return null;
     }
   },

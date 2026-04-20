@@ -1,6 +1,6 @@
 const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
-const { parseTaskWithAI, parsePermissionsWithAI } = require('./_lib/mistral');
+const { parseTaskWithAI, parsePermissionsWithAI, classifyIntentWithAI } = require('./_lib/mistral');
 
 function toDateOnly(value) {
   if (!value) return null;
@@ -274,6 +274,15 @@ module.exports = async function handler(req, res) {
 
       const taskType = parsed.type === 'event' ? 'event' : 'task';
 
+      // Compute reminder_at from AI response or from date+time when hasReminder
+      let reminderAt = null;
+      if (parsed.reminder_at) {
+        reminderAt = new Date(parsed.reminder_at).toISOString();
+      } else if (parsed.hasReminder && parsed.date) {
+        const rTime = parsed.time || '09:00';
+        reminderAt = new Date(`${parsed.date}T${rTime}:00`).toISOString();
+      }
+
       const result = await pool.query(
         `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order, visibility,
          recurrence_rule, recurrence_interval, recurrence_end, type)
@@ -282,7 +291,7 @@ module.exports = async function handler(req, res) {
         [user.id, parsed.title, parsed.description || null, parsed.date || null,
          parsed.date_end || null, parsed.time || null, parsed.time_end || null,
          parsed.priority || 'medium', categoryId,
-         null, maxOrder.rows[0].next_order, finalVisibility,
+         reminderAt, maxOrder.rows[0].next_order, finalVisibility,
          recurrenceRule, recurrenceInterval, recurrenceEnd, taskType]
       );
 
@@ -302,7 +311,8 @@ module.exports = async function handler(req, res) {
           [user.id, parsed.title, parsed.description || null, occurrenceDate,
            occurrenceDateEnd, parsed.time || null, parsed.time_end || null,
            parsed.priority || 'medium', categoryId,
-           null, maxOrder.rows[0].next_order + i + 1, finalVisibility,
+           parsed.hasReminder ? new Date(`${occurrenceDate}T${parsed.time || '09:00'}:00`).toISOString() : null,
+           maxOrder.rows[0].next_order + i + 1, finalVisibility,
            recurrenceRule, recurrenceInterval, recurrenceEnd, firstTask.id, taskType]
         );
 
@@ -360,6 +370,160 @@ module.exports = async function handler(req, res) {
     } catch (err) {
       console.error('AI parse-and-create error:', err);
       return res.status(500).json({ error: 'KI-Erstellung fehlgeschlagen' });
+    }
+  }
+
+  // POST /api/ai/smart – Unified smart action (create, delete, move, update)
+  if (action === 'smart') {
+    try {
+      const { input } = req.body;
+      if (!input) return res.status(400).json({ error: 'Eingabe ist erforderlich' });
+
+      // Fetch user's tasks for matching
+      const { rows: userTasks } = await pool.query(
+        `SELECT id, title, date, time, time_end, priority, completed, category_id, recurrence_parent_id
+         FROM tasks WHERE user_id = $1 AND completed = false
+         ORDER BY date DESC NULLS LAST LIMIT 100`,
+        [user.id]
+      );
+
+      const intent = await classifyIntentWithAI(input, userTasks.map(t => ({
+        title: t.title,
+        date: t.date,
+        time: t.time,
+      })));
+
+      // === CREATE → delegate to parse-and-create logic ===
+      if (intent.intent === 'create') {
+        return res.json({ intent: 'create', redirect: true });
+      }
+
+      // Find matching task by fuzzy title
+      let matchedTask = null;
+      if (intent.task_title) {
+        const search = intent.task_title.toLowerCase();
+        matchedTask = userTasks.find(t => t.title.toLowerCase() === search)
+          || userTasks.find(t => t.title.toLowerCase().includes(search))
+          || userTasks.find(t => search.includes(t.title.toLowerCase()));
+      }
+
+      // === DELETE ===
+      if (intent.intent === 'delete') {
+        if (!matchedTask) {
+          return res.json({
+            intent: 'delete',
+            success: false,
+            message: `Aufgabe "${intent.task_title}" nicht gefunden. Hast du den Namen richtig geschrieben?`,
+          });
+        }
+
+        // Delete the task and all recurring children
+        await pool.query('DELETE FROM tasks WHERE id = $1 OR recurrence_parent_id = $1', [matchedTask.id]);
+
+        return res.json({
+          intent: 'delete',
+          success: true,
+          deleted_task: { id: matchedTask.id, title: matchedTask.title },
+          message: `"${matchedTask.title}" wurde gelöscht`,
+        });
+      }
+
+      // === MOVE ===
+      if (intent.intent === 'move') {
+        if (!matchedTask) {
+          return res.json({
+            intent: 'move',
+            success: false,
+            message: `Aufgabe "${intent.task_title}" nicht gefunden.`,
+          });
+        }
+
+        const updates = {};
+        if (intent.new_date) updates.date = intent.new_date;
+        if (intent.new_time) updates.time = intent.new_time;
+
+        if (Object.keys(updates).length === 0) {
+          return res.json({
+            intent: 'move',
+            success: false,
+            message: 'Kein neues Datum oder neue Uhrzeit erkannt. Wohin soll verschoben werden?',
+          });
+        }
+
+        // Update reminder_at if task has one
+        const { rows: [fullTask] } = await pool.query('SELECT reminder_at FROM tasks WHERE id = $1', [matchedTask.id]);
+        if (fullTask?.reminder_at) {
+          const newDate = updates.date || matchedTask.date;
+          const newTime = updates.time || matchedTask.time || '09:00';
+          if (newDate) {
+            updates.reminder_at = new Date(`${newDate}T${newTime}:00`).toISOString();
+          }
+        }
+
+        const setClauses = Object.keys(updates).map((k, i) => `${k} = $${i + 2}`);
+        const values = Object.values(updates);
+
+        await pool.query(
+          `UPDATE tasks SET ${setClauses.join(', ')}, updated_at = NOW() WHERE id = $1`,
+          [matchedTask.id, ...values]
+        );
+
+        return res.json({
+          intent: 'move',
+          success: true,
+          task: { id: matchedTask.id, title: matchedTask.title, ...updates },
+          message: `"${matchedTask.title}" verschoben${updates.date ? ` auf ${updates.date}` : ''}${updates.time ? ` um ${updates.time}` : ''}`,
+        });
+      }
+
+      // === UPDATE ===
+      if (intent.intent === 'update') {
+        if (!matchedTask) {
+          return res.json({
+            intent: 'update',
+            success: false,
+            message: `Aufgabe "${intent.task_title}" nicht gefunden.`,
+          });
+        }
+
+        const allowed = ['title', 'description', 'priority', 'date', 'time', 'time_end', 'date_end'];
+        const updates = {};
+        if (intent.updates && typeof intent.updates === 'object') {
+          for (const [k, v] of Object.entries(intent.updates)) {
+            if (allowed.includes(k) && v != null) updates[k] = v;
+          }
+        }
+
+        if (Object.keys(updates).length === 0) {
+          return res.json({
+            intent: 'update',
+            success: false,
+            message: 'Keine Änderungen erkannt.',
+          });
+        }
+
+        const setClauses = Object.keys(updates).map((k, i) => `${k} = $${i + 2}`);
+        const values = Object.values(updates);
+
+        await pool.query(
+          `UPDATE tasks SET ${setClauses.join(', ')}, updated_at = NOW() WHERE id = $1`,
+          [matchedTask.id, ...values]
+        );
+
+        return res.json({
+          intent: 'update',
+          success: true,
+          task: { id: matchedTask.id, title: matchedTask.title, ...updates },
+          message: `"${matchedTask.title}" wurde aktualisiert`,
+        });
+      }
+
+      // Fallback
+      return res.json({ intent: 'create', redirect: true });
+
+    } catch (err) {
+      console.error('AI smart error:', err);
+      return res.status(500).json({ error: 'KI-Aktion fehlgeschlagen' });
     }
   }
 
