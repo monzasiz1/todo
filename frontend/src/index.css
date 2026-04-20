@@ -348,35 +348,94 @@ input, textarea, select {
   margin-bottom: 0;
 }
 
+.ai-input-glow-wrap {
+  position: relative;
+  border-radius: calc(var(--radius-lg) + 2px);
+  padding: 2px;
+  background: conic-gradient(
+    from var(--ai-angle, 0deg),
+    #007AFF, #5856D6, #AF52DE, #FF2D55, #FF9500, #34C759, #007AFF
+  );
+  background-size: 100% 100%;
+  animation: aiRotate 4s linear infinite;
+  isolation: isolate;
+}
+
+.ai-input-glow-wrap::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: calc(var(--radius-lg) + 6px);
+  background: conic-gradient(
+    from var(--ai-angle, 0deg),
+    #007AFF44, #5856D644, #AF52DE44, #FF2D5544, #FF950044, #34C75944, #007AFF44
+  );
+  filter: blur(12px);
+  animation: aiRotate 4s linear infinite;
+  z-index: -1;
+  opacity: 0.6;
+  transition: opacity 0.4s;
+}
+
+.ai-input-glow-wrap:focus-within::before {
+  opacity: 1;
+  filter: blur(18px);
+}
+
+@property --ai-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes aiRotate {
+  to { --ai-angle: 360deg; }
+}
+
+/* Fallback for browsers without @property */
+@supports not (background: conic-gradient(from 0deg, red, blue)) {
+  .ai-input-glow-wrap {
+    background: linear-gradient(135deg, #007AFF, #5856D6, #AF52DE, #007AFF);
+    background-size: 300% 300%;
+    animation: aiFallbackGlow 4s ease-in-out infinite;
+  }
+  @keyframes aiFallbackGlow {
+    0%, 100% { background-position: 0% 50%; }
+    50%      { background-position: 100% 50%; }
+  }
+}
+
 .ai-input-card {
   background: var(--card-solid);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(0, 122, 255, 0.15);
   overflow: hidden;
-  border: 1.5px solid transparent;
-  border-image: linear-gradient(135deg, rgba(0,122,255,0.3), rgba(88,86,214,0.3), rgba(175,82,222,0.3)) 1;
-  border-image: none;
+  border: none;
+  position: relative;
   transition: all 0.3s ease;
-  animation: aiGlow 4s ease-in-out infinite;
 }
 
-.ai-input-card:focus-within {
-  box-shadow: var(--shadow-xl), 0 0 24px rgba(0, 122, 255, 0.18), 0 0 0 2px rgba(88, 86, 214, 0.25);
-  animation: aiGlowFocus 3s ease-in-out infinite;
+.ai-input-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -50%;
+  width: 200%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(255, 255, 255, 0.06) 50%,
+    rgba(255, 255, 255, 0.03) 75%,
+    transparent 100%
+  );
+  animation: aiInnerShimmer 6s ease-in-out infinite;
+  pointer-events: none;
 }
 
-@keyframes aiGlow {
-  0%   { box-shadow: var(--shadow-lg), 0 0 0 1px rgba(0, 122, 255, 0.15); }
-  33%  { box-shadow: var(--shadow-lg), 0 0 0 1px rgba(88, 86, 214, 0.25); }
-  66%  { box-shadow: var(--shadow-lg), 0 0 0 1px rgba(175, 82, 222, 0.2); }
-  100% { box-shadow: var(--shadow-lg), 0 0 0 1px rgba(0, 122, 255, 0.15); }
-}
-
-@keyframes aiGlowFocus {
-  0%   { box-shadow: var(--shadow-xl), 0 0 20px rgba(0, 122, 255, 0.15), 0 0 0 2px rgba(0, 122, 255, 0.3); }
-  33%  { box-shadow: var(--shadow-xl), 0 0 24px rgba(88, 86, 214, 0.18), 0 0 0 2px rgba(88, 86, 214, 0.35); }
-  66%  { box-shadow: var(--shadow-xl), 0 0 20px rgba(175, 82, 222, 0.15), 0 0 0 2px rgba(175, 82, 222, 0.3); }
-  100% { box-shadow: var(--shadow-xl), 0 0 20px rgba(0, 122, 255, 0.15), 0 0 0 2px rgba(0, 122, 255, 0.3); }
+@keyframes aiInnerShimmer {
+  0%   { transform: translateX(-30%); }
+  100% { transform: translateX(30%); }
 }
 
 .ai-input-main {
@@ -512,17 +571,8 @@ input, textarea, select {
 .ai-input-hint {
   padding: 0 24px 16px;
   font-size: 13px;
-  background: linear-gradient(90deg, var(--text-tertiary), var(--primary), var(--purple), var(--text-tertiary));
-  background-size: 300% auto;
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: aiHintShimmer 8s linear infinite;
+  color: var(--text-tertiary);
 }
-
-@keyframes aiHintShimmer {
-  0%   { background-position: 0% center; }
-  100% { background-position: 300% center; }
 }
 
 .manual-task-attachment {
@@ -2112,6 +2162,14 @@ input, textarea, select {
   }
 
   /* AI Input */
+  .ai-input-glow-wrap {
+    border-radius: calc(var(--radius-md) + 2px);
+  }
+
+  .ai-input-glow-wrap::before {
+    border-radius: calc(var(--radius-md) + 6px);
+  }
+
   .ai-input-card {
     border-radius: var(--radius-md);
   }
