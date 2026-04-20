@@ -162,9 +162,18 @@ export default function Dashboard() {
 
   const handleStatClick = (stat) => {
     if (stat.filterKey === 'today') {
-      // Scroll to today section
+      // Show today's tasks: set date filter to today only
+      // If "today" section exists scroll to it, otherwise show all and scroll to top
       const el = document.querySelector('[data-section="today"]');
-      el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (el) {
+        const offset = 80; // account for fixed header on mobile
+        const top = el.getBoundingClientRect().top + window.scrollY - offset;
+        window.scrollTo({ top, behavior: 'smooth' });
+      } else {
+        // No tasks today – reset all filters and scroll to top so user sees the empty state
+        clearFilters();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     } else if (stat.filterKey === 'completed') {
       setFilter('completed', filter.completed === stat.filterVal ? null : stat.filterVal);
     } else {
