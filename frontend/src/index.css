@@ -1540,6 +1540,31 @@ input, textarea, select {
   cursor: pointer;
 }
 
+/* ── Drag & Drop ── */
+.calendar-day.drag-over,
+.calendar-week-day.drag-over {
+  background: var(--primary-bg) !important;
+  outline: 2px dashed var(--primary);
+  outline-offset: -2px;
+}
+
+.calendar-day-task.dragging,
+.calendar-week-task.dragging {
+  opacity: 0.4 !important;
+  pointer-events: none;
+}
+
+@media (min-width: 768px) {
+  .calendar-day-task[draggable="true"],
+  .calendar-week-task[draggable="true"] {
+    cursor: grab;
+  }
+  .calendar-day-task[draggable="true"]:active,
+  .calendar-week-task[draggable="true"]:active {
+    cursor: grabbing;
+  }
+}
+
 /* ---- Week View ---- */
 .calendar-week {
   display: flex;
