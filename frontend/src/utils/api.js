@@ -111,6 +111,17 @@ export const api = {
 
   getDueReminders: () => request('/tasks/reminders/due'),
 
+  // Notifications
+  getVapidKey: () => request('/notifications/vapid-key'),
+  subscribePush: (sub) =>
+    request('/notifications/subscribe', { method: 'POST', body: JSON.stringify(sub) }),
+  unsubscribePush: (data) =>
+    request('/notifications/subscribe', { method: 'DELETE', body: JSON.stringify(data) }),
+  getNotificationStatus: () => request('/notifications/status'),
+  getNotificationLog: () => request('/notifications/log'),
+  updateNotificationPrefs: (prefs) =>
+    request('/notifications/prefs', { method: 'PUT', body: JSON.stringify({ prefs }) }),
+
   // AI
   parseInput: (input) =>
     request('/ai/parse', {

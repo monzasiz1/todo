@@ -4,6 +4,7 @@ import FeedbackToast from './FeedbackToast';
 import BottomNav from './BottomNav';
 import { useState, useRef } from 'react';
 import { Menu, X, CheckSquare } from 'lucide-react';
+import NotificationBell from './NotificationBell';
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -28,9 +29,12 @@ export default function Layout() {
           </div>
           Taski
         </div>
-        <button className="hamburger" onClick={() => setSidebarOpen(!sidebarOpen)}>
-          {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <NotificationBell />
+          <button className="hamburger" onClick={() => setSidebarOpen(!sidebarOpen)}>
+            {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </div>
 
       {/* Overlay */}

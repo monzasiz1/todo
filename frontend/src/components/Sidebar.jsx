@@ -15,6 +15,7 @@ import FriendsList from './FriendsList';
 import CategoryManager from './CategoryManager';
 import { useFriendsStore } from '../store/friendsStore';
 import AvatarBadge from './AvatarBadge';
+import NotificationBell from './NotificationBell';
 
 export default function Sidebar({ isOpen, onClose }) {
   const { user, logout } = useAuthStore();
@@ -78,6 +79,10 @@ export default function Sidebar({ isOpen, onClose }) {
       </nav>
 
       {/* KI Feature Hint */}
+      <div className="sidebar-notif-row">
+        <NotificationBell />
+      </div>
+
       <div style={{
         background: 'linear-gradient(135deg, rgba(0,122,255,0.08), rgba(88,86,214,0.08))',
         borderRadius: 12,

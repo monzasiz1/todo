@@ -34,13 +34,18 @@ export default function Calendar({ onDayClick }) {
   const [detailTask, setDetailTask] = useState(null);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [pickerYear, setPickerYear] = useState(getYear(new Date()));
-  const mpRef = useRef(null);
+  const triggerRef = useRef(null);
+  const dropdownRef = useRef(null);
   const { tasks } = useTaskStore();
 
   useEffect(() => {
     if (!showMonthPicker) return;
     const handler = (e) => {
-      if (mpRef.current && !mpRef.current.contains(e.target)) setShowMonthPicker(false);
+      if (
+        (triggerRef.current && triggerRef.current.contains(e.target)) ||
+        (dropdownRef.current && dropdownRef.current.contains(e.target))
+      ) return;
+      setShowMonthPicker(false);
     };
     document.addEventListener('mousedown', handler);
     document.addEventListener('touchstart', handler);
@@ -217,8 +222,9 @@ export default function Calendar({ onDayClick }) {
       transition={{ duration: 0.4 }}
     >
       <div className="calendar-header">
-        <div className="cal-mp-wrap" ref={mpRef}>
+        <div className="cal-mp-wrap">
           <button
+            ref={triggerRef}
             className="cal-mp-trigger"
             onClick={() => { setPickerYear(getYear(currentDate)); setShowMonthPicker(v => !v); }}
           >
@@ -259,39 +265,32 @@ export default function Calendar({ onDayClick }) {
         </div>
       </div>
 
-      <AnimatePresence>
-        {showMonthPicker && (
-          <motion.div
-            className="cal-mp-dropdown"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div className="cal-mp-inner">
-              <div className="cal-mp-year-nav">
-                <button onClick={() => setPickerYear(y => y - 1)}><ChevronLeft size={16} /></button>
-                <span>{pickerYear}</span>
-                <button onClick={() => setPickerYear(y => y + 1)}><ChevronRight size={16} /></button>
-              </div>
-              <div className="cal-mp-months">
-                {Array.from({ length: 12 }, (_, i) => (
-                  <button
-                    key={i}
-                    className={`cal-mp-m${getMonth(currentDate) === i && getYear(currentDate) === pickerYear ? ' active' : ''}${getMonth(new Date()) === i && getYear(new Date()) === pickerYear ? ' now' : ''}`}
-                    onClick={() => {
-                      setCurrentDate(setYear(setMonth(currentDate, i), pickerYear));
-                      setShowMonthPicker(false);
-                    }}
-                  >
-                    {format(new Date(2024, i, 1), 'MMM', { locale: de })}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <div
+        ref={dropdownRef}
+        className={`cal-mp-dropdown ${showMonthPicker ? 'open' : ''}`}
+      >
+        <div className="cal-mp-inner">
+          <div className="cal-mp-year-nav">
+            <button onClick={() => setPickerYear(y => y - 1)}><ChevronLeft size={16} /></button>
+            <span>{pickerYear}</span>
+            <button onClick={() => setPickerYear(y => y + 1)}><ChevronRight size={16} /></button>
+          </div>
+          <div className="cal-mp-months">
+            {Array.from({ length: 12 }, (_, i) => (
+              <button
+                key={i}
+                className={`cal-mp-m${getMonth(currentDate) === i && getYear(currentDate) === pickerYear ? ' active' : ''}${getMonth(new Date()) === i && getYear(new Date()) === pickerYear ? ' now' : ''}`}
+                onClick={() => {
+                  setCurrentDate(setYear(setMonth(currentDate, i), pickerYear));
+                  setShowMonthPicker(false);
+                }}
+              >
+                {format(new Date(2024, i, 1), 'MMM', { locale: de })}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {view === 'month' ? (
         <div className="calendar-grid">{renderMonthView()}</div>
