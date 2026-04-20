@@ -112,7 +112,6 @@ const useNotificationStore = create((set, get) => ({
       set({ prefs: { ...newPrefs, [type]: !enabled } });
     }
   },
-  },
 }));
 
 export { useNotificationStore };
