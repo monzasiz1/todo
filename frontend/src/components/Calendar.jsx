@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../store/taskStore';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import TaskDetailModal from './TaskDetailModal';
 import AvatarBadge from './AvatarBadge';
 import {
@@ -106,7 +106,18 @@ export default function Calendar({ onDayClick }) {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              <span className="calendar-day-number">{format(d, 'd')}</span>
+              <div className="calendar-day-top">
+                <span className="calendar-day-number">{format(d, 'd')}</span>
+                {dayTasks.length > 0 && (
+                  <button
+                    className="calendar-day-add"
+                    onClick={(e) => { e.stopPropagation(); handleDayClick(d); }}
+                    aria-label="Neu erstellen"
+                  >
+                    <Plus size={12} />
+                  </button>
+                )}
+              </div>
               {dayTasks.length > 0 && (
                 <div className="calendar-day-tasks">
                   {dayTasks.slice(0, 2).map((t) => (

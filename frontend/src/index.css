@@ -1074,6 +1074,39 @@ input, textarea, select {
   flex-shrink: 0;
 }
 
+.calendar-day-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.calendar-day-add {
+  display: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: var(--primary);
+  color: white;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+
+.calendar-day-add:active {
+  transform: scale(0.9);
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .calendar-day-add {
+    display: flex;
+  }
+}
+
 .calendar-day-dots {
   display: flex;
   gap: 3px;
