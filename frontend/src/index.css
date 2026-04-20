@@ -119,14 +119,12 @@ input, textarea, select {
 /* Calendar page gets more horizontal space */
 @media (min-width: 1024px) {
   .calendar-page-wrap {
-    margin-left: -40px;
     margin-right: -40px;
-    width: calc(100% + 80px);
+    width: calc(100% + 40px);
   }
 
   .calendar-page-wrap .page-header,
   .calendar-page-wrap .task-creation-stack {
-    padding-left: 40px;
     padding-right: 40px;
   }
 }
