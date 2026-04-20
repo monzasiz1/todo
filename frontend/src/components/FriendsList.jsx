@@ -352,10 +352,10 @@ export default function FriendsList({ onClose }) {
 
             <div className="friend-profile-stats">
               {[
-                { label: 'Aufgaben', value: viewProfile.data.stats.total },
-                { label: 'Erledigt', value: viewProfile.data.stats.completed },
-                { label: 'Diese Woche', value: viewProfile.data.stats.week },
-                { label: 'Quote', value: `${viewProfile.data.stats.rate}%` },
+                { label: 'Aufgaben', value: viewProfile.data.stats.total_tasks },
+                { label: 'Erledigt', value: viewProfile.data.stats.completed_tasks },
+                { label: 'Diese Woche', value: viewProfile.data.stats.week_completed },
+                { label: 'Quote', value: `${viewProfile.data.stats.completion_rate}%` },
               ].map((s) => (
                 <div key={s.label} className="friend-profile-stat">
                   <div className="friend-profile-stat-value">{s.value}</div>
