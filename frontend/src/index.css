@@ -1520,29 +1520,22 @@ input, textarea, select {
 }
 
 /* ── Drag & Drop ── */
-.calendar-day.drag-over,
-.calendar-week-day.drag-over {
+.calendar-day.cal-drag-over,
+.calendar-week-day.cal-drag-over {
   background: var(--primary-bg) !important;
   outline: 2px dashed var(--primary);
   outline-offset: -2px;
 }
 
-.calendar-day-task.dragging,
-.calendar-week-task.dragging {
-  opacity: 0.4 !important;
-  pointer-events: none;
+.calendar-day-task.cal-dragging,
+.calendar-week-task.cal-dragging {
+  opacity: 0.3 !important;
 }
 
 @media (min-width: 768px) {
-  .calendar-day-task[draggable],
-  .calendar-week-task[draggable] {
+  .calendar-day-task[data-drag],
+  .calendar-week-task[data-drag] {
     cursor: grab;
-    -webkit-user-drag: element;
-    user-select: none;
-  }
-  .calendar-day-task[draggable]:active,
-  .calendar-week-task[draggable]:active {
-    cursor: grabbing;
   }
 }
 
