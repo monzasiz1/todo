@@ -391,6 +391,15 @@ input, textarea, select {
   flex-shrink: 0;
   display: flex;
   align-items: center;
+  animation: aiSparkle 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 6px rgba(0, 122, 255, 0.4));
+}
+
+@keyframes aiSparkle {
+  0%, 100% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 6px rgba(0, 122, 255, 0.4)); }
+  25%  { transform: scale(1.15) rotate(-8deg); filter: drop-shadow(0 0 10px rgba(88, 86, 214, 0.6)); }
+  50%  { transform: scale(1.05) rotate(4deg); filter: drop-shadow(0 0 8px rgba(175, 82, 222, 0.5)); }
+  75%  { transform: scale(1.1) rotate(-4deg); filter: drop-shadow(0 0 10px rgba(0, 122, 255, 0.6)); }
 }
 
 .ai-input-field {
@@ -402,8 +411,19 @@ input, textarea, select {
 }
 
 .ai-input-field::placeholder {
-  color: var(--text-tertiary);
+  color: transparent;
+  background: linear-gradient(90deg, #8E8E93, #007AFF, #5856D6, #8E8E93);
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: aiPlaceholderShimmer 6s linear infinite;
   font-weight: 400;
+}
+
+@keyframes aiPlaceholderShimmer {
+  0%   { background-position: 0% center; }
+  100% { background-position: 200% center; }
 }
 
 .ai-input-submit {
@@ -411,6 +431,8 @@ input, textarea, select {
   height: 48px;
   border-radius: 14px;
   background: linear-gradient(135deg, var(--primary), var(--purple));
+  background-size: 200% 200%;
+  animation: aiButtonShift 4s ease-in-out infinite;
   color: white;
   display: flex;
   align-items: center;
@@ -418,6 +440,27 @@ input, textarea, select {
   transition: all var(--spring);
   flex-shrink: 0;
   box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.ai-input-submit::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 30%, rgba(255,255,255,0.2) 50%, transparent 70%);
+  background-size: 200% 200%;
+  animation: aiShine 3s ease-in-out infinite;
+}
+
+@keyframes aiButtonShift {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+
+@keyframes aiShine {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .ai-input-submit:hover {
@@ -452,6 +495,12 @@ input, textarea, select {
   font-weight: 500;
   background: var(--primary-bg);
   color: var(--primary);
+  animation: aiTagAppear 0.4s ease-out both;
+}
+
+@keyframes aiTagAppear {
+  from { opacity: 0; transform: scale(0.8) translateY(4px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 .ai-tag.date { background: rgba(52, 199, 89, 0.1); color: var(--success); }
@@ -463,7 +512,17 @@ input, textarea, select {
 .ai-input-hint {
   padding: 0 24px 16px;
   font-size: 13px;
-  color: var(--text-tertiary);
+  background: linear-gradient(90deg, var(--text-tertiary), var(--primary), var(--purple), var(--text-tertiary));
+  background-size: 300% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: aiHintShimmer 8s linear infinite;
+}
+
+@keyframes aiHintShimmer {
+  0%   { background-position: 0% center; }
+  100% { background-position: 300% center; }
 }
 
 .manual-task-attachment {
