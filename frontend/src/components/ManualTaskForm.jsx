@@ -35,10 +35,10 @@ function toDateValue(value) {
   return value.toISOString().split('T')[0];
 }
 
-export default function ManualTaskForm({ onTaskCreated, defaultDate = null }) {
+export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embedded = false, onCancel }) {
   const { createTask, categories, fetchCategories } = useTaskStore();
   const { friends, fetchFriends } = useFriendsStore();
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(embedded);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(toDateValue(defaultDate));
@@ -165,23 +165,25 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null }) {
   };
 
   return (
-    <div className="manual-task-attachment">
-      <button
-        type="button"
-        className={`manual-task-launcher ${isOpen ? 'open' : ''}`}
-        onClick={() => setIsOpen((current) => !current)}
-      >
-        <span className="manual-task-launcher-left">
-          <div className="manual-task-launcher-icon">
-            <Plus size={16} />
-          </div>
-          <div className="manual-task-launcher-copy">
-            <strong>Manuell erstellen</strong>
-            <span>Aufgabe oder Termin ohne KI anlegen</span>
-          </div>
-        </span>
-        <ChevronDown size={18} className={`manual-task-launcher-chevron ${isOpen ? 'open' : ''}`} />
-      </button>
+    <div className={`manual-task-attachment ${embedded ? 'embedded' : ''}`}>
+      {!embedded && (
+        <button
+          type="button"
+          className={`manual-task-launcher ${isOpen ? 'open' : ''}`}
+          onClick={() => setIsOpen((current) => !current)}
+        >
+          <span className="manual-task-launcher-left">
+            <div className="manual-task-launcher-icon">
+              <Plus size={16} />
+            </div>
+            <div className="manual-task-launcher-copy">
+              <strong>Manuell erstellen</strong>
+              <span>Aufgabe oder Termin ohne KI anlegen</span>
+            </div>
+          </span>
+          <ChevronDown size={18} className={`manual-task-launcher-chevron ${isOpen ? 'open' : ''}`} />
+        </button>
+      )}
 
       <AnimatePresence initial={false}>
         {isOpen && (
@@ -477,7 +479,11 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null }) {
                 className="task-edit-cancel"
                 onClick={() => {
                   resetForm();
-                  setIsOpen(false);
+                  if (embedded) {
+                    onCancel?.();
+                  } else {
+                    setIsOpen(false);
+                  }
                 }}
               >
                 Abbrechen

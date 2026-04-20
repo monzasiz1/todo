@@ -3,15 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Calendar from '../components/Calendar';
 import AIInput from '../components/AIInput';
 import ManualTaskForm from '../components/ManualTaskForm';
+import DayCreateModal from '../components/DayCreateModal';
 import { useTaskStore } from '../store/taskStore';
-import TaskCard from '../components/TaskCard';
-import { format, parseISO } from 'date-fns';
-import { de } from 'date-fns/locale';
-import { CalendarDays } from 'lucide-react';
+import { format } from 'date-fns';
 
 export default function CalendarPage() {
   const { tasks, fetchTasks } = useTaskStore();
   const [selectedDate, setSelectedDate] = useState(null);
+  const [showDayModal, setShowDayModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -21,6 +20,11 @@ export default function CalendarPage() {
   const handleTaskCreated = () => {
     fetchTasks();
     setRefreshKey((k) => k + 1);
+  };
+
+  const handleDayClick = (date) => {
+    setSelectedDate(date);
+    setShowDayModal(true);
   };
 
   const selectedTasks = selectedDate
@@ -42,7 +46,7 @@ export default function CalendarPage() {
         transition={{ duration: 0.4 }}
       >
         <h2>Kalender</h2>
-        <p>Überblick über alle deine Aufgaben</p>
+        <p>Klicke auf einen Tag, um Aufgaben zu sehen oder zu erstellen</p>
       </motion.div>
 
       <div className="task-creation-stack">
@@ -50,40 +54,16 @@ export default function CalendarPage() {
         <ManualTaskForm onTaskCreated={handleTaskCreated} defaultDate={selectedDate} />
       </div>
 
-      <Calendar onDayClick={setSelectedDate} />
+      <Calendar onDayClick={handleDayClick} />
 
-      {/* Selected Day Tasks */}
       <AnimatePresence>
-        {selectedDate && (
-          <motion.div
-            style={{ marginTop: 24 }}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-          >
-            <div className="task-section-header" style={{ marginBottom: 12 }}>
-              <span className="task-section-title">
-                Aufgaben am {format(selectedDate, 'd. MMMM yyyy', { locale: de })}
-              </span>
-              <span className="task-section-count">{selectedTasks.length}</span>
-            </div>
-
-            {selectedTasks.length > 0 ? (
-              <div className="task-list">
-                {selectedTasks.map((task, i) => (
-                  <TaskCard key={task.id} task={task} index={i} />
-                ))}
-              </div>
-            ) : (
-              <div className="empty-state" style={{ padding: '40px 24px' }}>
-                <div className="empty-state-icon">
-                  <CalendarDays size={32} />
-                </div>
-                <h3>Keine Aufgaben</h3>
-                <p>An diesem Tag sind keine Aufgaben geplant.</p>
-              </div>
-            )}
-          </motion.div>
+        {showDayModal && selectedDate && (
+          <DayCreateModal
+            date={selectedDate}
+            tasks={selectedTasks}
+            onClose={() => setShowDayModal(false)}
+            onTaskCreated={handleTaskCreated}
+          />
         )}
       </AnimatePresence>
     </div>

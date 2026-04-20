@@ -6449,3 +6449,345 @@ input, textarea, select {
     padding: 14px 0;
   }
 }
+
+
+/* ========================================
+   DAY CREATE MODAL
+   ======================================== */
+
+.day-create-modal {
+  background: var(--card-solid);
+  border-radius: var(--radius-xl);
+  width: 100%;
+  max-width: 520px;
+  max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-xl);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.day-create-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--card-solid);
+  z-index: 2;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+
+.day-create-date {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: capitalize;
+  line-height: 1.3;
+}
+
+.day-create-count {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.day-create-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--hover);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+
+.day-create-close:hover {
+  background: var(--border-strong);
+  color: var(--text);
+}
+
+/* Existing Tasks */
+.day-create-tasks {
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.day-create-task-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  transition: var(--transition);
+}
+
+.day-create-task-item.completed {
+  opacity: 0.5;
+}
+
+.day-create-task-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.day-create-task-title {
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.day-create-task-title.completed {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.day-create-task-time {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* Action Buttons */
+.day-create-actions {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.day-create-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.day-create-action-btn:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+}
+
+.day-create-action-btn.ai:hover {
+  border-color: rgba(88, 86, 214, 0.3);
+  background: rgba(88, 86, 214, 0.04);
+}
+
+.day-create-action-btn.manual:hover {
+  border-color: rgba(0, 122, 255, 0.3);
+  background: rgba(0, 122, 255, 0.04);
+}
+
+.day-create-action-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.day-create-action-icon.ai {
+  background: linear-gradient(135deg, #5856D6, #AF52DE);
+  color: #fff;
+}
+
+.day-create-action-icon.manual {
+  background: linear-gradient(135deg, #007AFF, #5AC8FA);
+  color: #fff;
+}
+
+.day-create-action-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.day-create-action-text strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.day-create-action-text span {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+/* Form Section */
+.day-create-form-section {
+  padding: 16px 24px 24px;
+}
+
+.day-create-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 0;
+  margin-bottom: 12px;
+  border: none;
+  background: none;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.day-create-back:hover {
+  opacity: 0.7;
+}
+
+/* AI Form */
+.day-create-ai-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.day-create-ai-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  transition: all 0.2s ease;
+}
+
+.day-create-ai-input-row:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+}
+
+.day-create-ai-icon {
+  color: #5856D6;
+  flex-shrink: 0;
+  display: flex;
+}
+
+.day-create-ai-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  color: var(--text);
+  outline: none;
+  font-family: inherit;
+}
+
+.day-create-ai-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.day-create-ai-submit {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.day-create-ai-submit:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.day-create-ai-submit:not(:disabled):hover {
+  background: var(--primary-hover);
+  transform: scale(1.05);
+}
+
+.day-create-ai-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 0 0;
+  overflow: hidden;
+}
+
+/* ManualTaskForm embedded overrides */
+.manual-task-attachment.embedded {
+  margin-top: 0;
+}
+
+.manual-task-attachment.embedded .manual-task-form-panel {
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  background: transparent;
+}
+
+.manual-task-attachment.embedded .manual-task-form-panel > div:first-child {
+  display: none;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .day-create-modal {
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    position: fixed;
+    bottom: 0;
+    margin: 0;
+  }
+
+  .day-create-header {
+    padding: 20px 18px 14px;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+
+  .day-create-tasks {
+    padding: 12px 18px;
+  }
+
+  .day-create-actions {
+    padding: 16px 18px;
+  }
+
+  .day-create-form-section {
+    padding: 14px 18px 20px;
+  }
+
+  .day-create-action-btn {
+    padding: 14px 16px;
+  }
+}
