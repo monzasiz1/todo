@@ -9,22 +9,32 @@ import { isToday, isTomorrow, isThisWeek, isPast, parseISO, format, startOfDay, 
 import { de } from 'date-fns/locale';
 
 function getSeriesKey(task) {
-  // Parent-Task: hat recurrence_rule aber keine recurrence_parent_id → Key = eigene ID
-  // Kind-Task: hat recurrence_parent_id → Key = Parent-ID
-  // Beide ergeben denselben Key damit sie als eine Serie behandelt werden
-  if (task.recurrence_parent_id) return String(task.recurrence_parent_id);
-  if (task.recurrence_rule) return String(task.id);
-  return null;
+  // Use user_id + normalized title + recurrence_rule as key.
+  // This groups ALL instances of the same series regardless of whether they are
+  // properly linked via recurrence_parent_id or are standalone roots (legacy data).
+  if (!task.recurrence_rule) return null;
+  const ownerId = task.user_id || 'u';
+  const title = (task.title || '').toLowerCase().trim();
+  return `${ownerId}::${title}::${task.recurrence_rule}`;
 }
 
 function deduplicateRecurring(tasks) {
-  // Pro Wiederkehr-Serie nur die nächste anstehende Instanz im Dashboard zeigen
   const today = startOfDay(new Date());
-  const seriesMap = new Map(); // seriesKey → beste Instanz
 
-  for (const task of tasks) {
+  // Step 1: Remove duplicate task rows caused by SQL JOIN on group_tasks/permissions
+  const seenIds = new Set();
+  const uniqueTasks = tasks.filter((t) => {
+    if (seenIds.has(t.id)) return false;
+    seenIds.add(t.id);
+    return true;
+  });
+
+  // Step 2: Per recurring series keep only the next upcoming (or most recent past) instance
+  const seriesMap = new Map(); // seriesKey → best task
+
+  for (const task of uniqueTasks) {
     const seriesKey = getSeriesKey(task);
-    if (!seriesKey) continue; // standalone, kein Dedup nötig
+    if (!seriesKey) continue;
 
     const existing = seriesMap.get(seriesKey);
     if (!existing) {
@@ -32,12 +42,14 @@ function deduplicateRecurring(tasks) {
       continue;
     }
 
-    // Vergleiche: Bevorzuge nächste zukünftige (oder heutige) Instanz
-    const tDate = task.date ? parseISO(String(task.date).substring(0, 10)) : null;
-    const eDate = existing.date ? parseISO(String(existing.date).substring(0, 10)) : null;
+    const tDateStr = task.date ? String(task.date).substring(0, 10) : null;
+    const eDateStr = existing.date ? String(existing.date).substring(0, 10) : null;
 
-    if (!tDate) continue;
-    if (!eDate) { seriesMap.set(seriesKey, task); continue; }
+    const tDate = tDateStr ? parseISO(tDateStr) : null;
+    const eDate = eDateStr ? parseISO(eDateStr) : null;
+
+    if (!tDate || isNaN(tDate.getTime())) continue;
+    if (!eDate || isNaN(eDate.getTime())) { seriesMap.set(seriesKey, task); continue; }
 
     const tFuture = tDate >= today;
     const eFuture = eDate >= today;
@@ -51,7 +63,7 @@ function deduplicateRecurring(tasks) {
     }
   }
 
-  return tasks.filter((t) => {
+  return uniqueTasks.filter((t) => {
     const seriesKey = getSeriesKey(t);
     if (!seriesKey) return true;
     return seriesMap.get(seriesKey)?.id === t.id;
@@ -121,6 +133,12 @@ export default function Dashboard() {
   useEffect(() => {
     fetchTasks();
     fetchCategories();
+
+    // Auto-refresh every 60 s so newly shared/group tasks appear without manual reload
+    const interval = setInterval(() => {
+      if (!document.hidden) fetchTasks();
+    }, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   const filtered = getFilteredTasks();
