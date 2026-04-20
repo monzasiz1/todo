@@ -141,6 +141,13 @@ export const api = {
       body: JSON.stringify({ input }),
     }),
 
+  // Help Chat
+  helpChat: (message, history = []) =>
+    request('/help/chat', {
+      method: 'POST',
+      body: JSON.stringify({ message, history }),
+    }),
+
   // Attachments
   getAttachments: (taskId) => request(`/attachments/${taskId}`),
 

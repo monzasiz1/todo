@@ -37,6 +37,7 @@
     { "src": "/api/groups", "dest": "/api/groups.js?__path=" },
     { "src": "/api/notifications/(.*)", "dest": "/api/notifications.js?__path=$1" },
     { "src": "/api/notifications", "dest": "/api/notifications.js?__path=" },
+    { "src": "/api/help/(.*)", "dest": "/api/help.js?__path=$1" },
     { "src": "/api/attachments/(.*)", "dest": "/api/attachments.js?__path=$1" },
     { "src": "/api/cron/notifications", "dest": "/api/cron/notifications.js" },
     { "handle": "filesystem" },

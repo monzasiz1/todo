@@ -6,6 +6,7 @@ import { useState, useRef } from 'react';
 import { Menu, X, CheckSquare } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import ReminderChecker from './ReminderChecker';
+import HelpChat from './HelpChat';
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -60,6 +61,9 @@ export default function Layout() {
 
       {/* Client-side Reminder Checker */}
       <ReminderChecker />
+
+      {/* Help Chat */}
+      <HelpChat />
     </div>
   );
 }
