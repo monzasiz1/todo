@@ -1318,7 +1318,7 @@ input, textarea, select {
 /* Desktop: tall cells with room for tasks */
 @media (min-width: 768px) {
   .calendar-day {
-    min-height: 150px !important;
+    min-height: 110px !important;
     padding: 10px 10px 12px;
   }
 
@@ -1349,21 +1349,6 @@ input, textarea, select {
     padding-left: 2px;
   }
 
-  /* Grid fills available vertical space evenly */
-  .calendar-grid {
-    grid-template-rows: auto repeat(6, 1fr);
-  }
-
-  .calendar-wrapper {
-    min-height: calc(100vh - 320px);
-    display: flex;
-    flex-direction: column;
-  }
-
-  .calendar-wrapper .calendar-grid {
-    flex: 1;
-  }
-
   .calendar-wrapper .cal-mp-dropdown {
     flex: none;
   }
@@ -1371,7 +1356,7 @@ input, textarea, select {
 
 @media (min-width: 1100px) {
   .calendar-day {
-    min-height: 160px !important;
+    min-height: 120px !important;
     padding: 12px 14px 14px;
   }
 
@@ -1394,11 +1379,7 @@ input, textarea, select {
 
 @media (min-width: 1440px) {
   .calendar-day {
-    min-height: 180px !important;
-  }
-
-  .calendar-wrapper {
-    min-height: calc(100vh - 280px);
+    min-height: 130px !important;
   }
 }
 
