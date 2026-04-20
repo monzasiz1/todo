@@ -12,12 +12,33 @@ function urlBase64ToUint8Array(base64String) {
   return outputArray;
 }
 
+function getLastSeenAt() {
+  try {
+    const v = localStorage.getItem('notif_last_seen');
+    return v ? parseInt(v, 10) : 0;
+  } catch { return 0; }
+}
+
 const useNotificationStore = create((set, get) => ({
   permission: typeof Notification !== 'undefined' ? Notification.permission : 'denied',
   subscribed: false,
   notifications: [],
   loading: false,
+  lastSeenAt: getLastSeenAt(),
   prefs: { reminder: true, daily_tasks: true, engagement: true, team_task: true },
+
+  // Mark all current notifications as seen
+  markAsSeen: () => {
+    const now = Date.now();
+    set({ lastSeenAt: now });
+    try { localStorage.setItem('notif_last_seen', String(now)); } catch {}
+  },
+
+  // Get only unseen notifications
+  getUnseenNotifications: () => {
+    const { notifications, lastSeenAt } = get();
+    return notifications.filter((n) => new Date(n.sent_at).getTime() > lastSeenAt);
+  },
 
   // Add a local notification (shown immediately in bell)
   addLocalNotification: (notification) => {

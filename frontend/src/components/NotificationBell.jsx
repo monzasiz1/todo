@@ -13,7 +13,7 @@ const TYPE_CONFIG = {
 };
 
 export default function NotificationBell() {
-  const { permission, subscribed, notifications, prefs, subscribe, unsubscribe, fetchLog, checkStatus, updatePref } = useNotificationStore();
+  const { permission, subscribed, notifications, prefs, subscribe, unsubscribe, fetchLog, checkStatus, updatePref, markAsSeen, getUnseenNotifications } = useNotificationStore();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState('list'); // 'list' | 'settings'
   const ref = useRef(null);
@@ -24,6 +24,13 @@ export default function NotificationBell() {
 
   useEffect(() => {
     if (open) fetchLog();
+  }, [open]);
+
+  // Mark as seen when dropdown closes
+  useEffect(() => {
+    if (!open && notifications.length > 0) {
+      markAsSeen();
+    }
   }, [open]);
 
   // Close on outside click
@@ -48,18 +55,15 @@ export default function NotificationBell() {
     if (!open) setView('list');
   };
 
-  const recentCount = notifications.filter((n) => {
-    const sent = new Date(n.sent_at);
-    const ago = Date.now() - sent.getTime();
-    return ago < 24 * 60 * 60 * 1000; // last 24h
-  }).length;
+  const unseenNotifications = getUnseenNotifications();
+  const unseenCount = unseenNotifications.length;
 
   return (
     <div className="notif-wrap" ref={ref}>
       <button className="notif-bell" onClick={handleToggle} aria-label="Benachrichtigungen">
-        {recentCount > 0 ? <BellRing size={20} /> : <Bell size={20} />}
-        {recentCount > 0 && (
-          <span className="notif-badge">{recentCount > 9 ? '9+' : recentCount}</span>
+        {unseenCount > 0 ? <BellRing size={20} /> : <Bell size={20} />}
+        {unseenCount > 0 && (
+          <span className="notif-badge">{unseenCount > 9 ? '9+' : unseenCount}</span>
         )}
       </button>
 
@@ -155,13 +159,13 @@ export default function NotificationBell() {
 
                 {/* Notification List */}
                 <div className="notif-list">
-                  {notifications.length === 0 ? (
+                  {unseenNotifications.length === 0 ? (
                     <div className="notif-empty">
                       <Bell size={28} strokeWidth={1.5} />
-                      <span>Noch keine Benachrichtigungen</span>
+                      <span>Keine neuen Benachrichtigungen</span>
                     </div>
                   ) : (
-                    notifications.map((n) => {
+                    unseenNotifications.map((n) => {
                       const config = TYPE_CONFIG[n.type] || TYPE_CONFIG.reminder;
                       const Icon = config.icon;
                       return (
