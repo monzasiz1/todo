@@ -4884,10 +4884,7 @@ input, textarea, select {
 
 @media (max-width: 600px) {
   .help-fab {
-    bottom: calc(74px + env(safe-area-inset-bottom, 0px));
-    right: 14px;
-    width: 46px;
-    height: 46px;
+    display: none;
   }
 
   .help-chat {
@@ -4905,6 +4902,17 @@ input, textarea, select {
 
   .help-chat-input {
     padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Help button in profile - only visible on mobile */
+.help-profile-card {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .help-profile-card {
+    display: block;
   }
 }
 

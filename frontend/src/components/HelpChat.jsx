@@ -12,6 +12,13 @@ export default function HelpChat() {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
+  // Listen for open event from profile page (mobile)
+  useEffect(() => {
+    const handleOpen = () => setOpen(true);
+    window.addEventListener('open-help-chat', handleOpen);
+    return () => window.removeEventListener('open-help-chat', handleOpen);
+  }, []);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);

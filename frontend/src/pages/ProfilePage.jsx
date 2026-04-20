@@ -6,7 +6,7 @@ import {
   Camera, User, Mail, Lock, Shield, Palette, Download,
   Trash2, Check, X, ChevronRight, AlertTriangle, Flame,
   Target, Calendar, CheckCircle2, Clock, TrendingUp,
-  Award, Star, Edit3, Eye, EyeOff, ArrowLeft
+  Award, Star, Edit3, Eye, EyeOff, ArrowLeft, MessageCircleQuestion
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -574,6 +574,22 @@ export default function ProfilePage() {
             <div>
               <div className="profile-action-title">Daten exportieren</div>
               <div className="profile-action-subtitle">Alle Aufgaben als JSON herunterladen</div>
+            </div>
+          </div>
+          <ChevronRight size={18} />
+        </button>
+      </div>
+
+      {/* KI-Hilfe (mobile only) */}
+      <div className="profile-section-card help-profile-card">
+        <button className="profile-action-row" onClick={() => window.dispatchEvent(new Event('open-help-chat'))}>
+          <div className="profile-action-left">
+            <div className="profile-action-icon" style={{ background: 'rgba(88,86,214,0.1)', color: '#5856D6' }}>
+              <MessageCircleQuestion size={18} />
+            </div>
+            <div>
+              <div className="profile-action-title">KI-Hilfe</div>
+              <div className="profile-action-subtitle">Fragen zur App-Nutzung</div>
             </div>
           </div>
           <ChevronRight size={18} />
