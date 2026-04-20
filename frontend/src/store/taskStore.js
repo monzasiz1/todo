@@ -110,8 +110,6 @@ export const useTaskStore = create((set, get) => ({
         }
         return smart;
       }
-        return smart;
-      }
 
       // Create (default / redirect)
       const data = await api.parseAndCreateTask(input);
