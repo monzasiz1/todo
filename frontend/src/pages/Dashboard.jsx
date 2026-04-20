@@ -232,11 +232,11 @@ export default function Dashboard() {
               whileTap={{ scale: 0.97 }}
               onClick={() => handleStatClick(stat)}
             >
-              <div className="stat-card-icon">{stat.icon}</div>
-              <div className="stat-card-body">
-                <span className="stat-card-value">{stat.value}</span>
-                <span className="stat-card-label">{stat.label}</span>
-              </div>
+              <span className="stat-card-value">{stat.value}</span>
+              <span className="stat-card-label">
+                <span className="stat-card-label-dot" />
+                {stat.label}
+              </span>
             </motion.button>
           );
         })}
