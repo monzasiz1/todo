@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import api from '../utils/api';
+import { api } from '../utils/api';
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
