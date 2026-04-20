@@ -6903,3 +6903,265 @@ input, textarea, select {
     padding: 14px 16px;
   }
 }
+
+/* ===== Category Manager ===== */
+.catm-manage-btn {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.catm-manage-btn:hover {
+  background: rgba(0, 122, 255, 0.1);
+}
+
+.catm-panel {
+  width: 380px;
+}
+
+.catm-content {
+  flex: 1;
+  padding: 16px 20px;
+  overflow-y: auto;
+}
+
+.catm-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 14px;
+  background: rgba(0, 122, 255, 0.08);
+  color: var(--primary);
+  border: 1.5px dashed rgba(0, 122, 255, 0.3);
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+  margin-bottom: 16px;
+}
+
+.catm-add-btn:hover {
+  background: rgba(0, 122, 255, 0.14);
+  border-color: var(--primary);
+}
+
+.catm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.catm-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  transition: background 0.15s;
+}
+
+.catm-item:hover {
+  background: var(--bg);
+}
+
+.catm-item-color {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.catm-item-name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.catm-item-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.catm-item:hover .catm-item-actions {
+  opacity: 1;
+}
+
+.catm-item-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.catm-item-btn.edit:hover {
+  background: rgba(0, 122, 255, 0.1);
+  color: var(--primary);
+}
+
+.catm-item-btn.delete:hover {
+  background: rgba(255, 59, 48, 0.1);
+  color: var(--danger);
+}
+
+.catm-item-btn.delete.confirm {
+  background: var(--danger);
+  color: white;
+}
+
+.catm-empty {
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 14px;
+  padding: 32px 16px;
+}
+
+.catm-form-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--text);
+}
+
+.catm-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.catm-form-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.catm-form-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.catm-form-input:focus {
+  border-color: var(--primary);
+}
+
+.catm-color-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.catm-color-swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2.5px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  padding: 0;
+}
+
+.catm-color-swatch:hover {
+  transform: scale(1.15);
+}
+
+.catm-color-swatch.active {
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px var(--card-solid), 0 0 0 4px currentColor;
+}
+
+.catm-color-custom {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.catm-color-picker {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 0;
+  background: none;
+}
+
+.catm-color-hex {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-family: monospace;
+}
+
+.catm-form-actions {
+  display: flex;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.catm-btn-cancel {
+  flex: 1;
+  padding: 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.catm-btn-cancel:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.catm-btn-save {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  background: var(--primary);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.catm-btn-save:hover {
+  filter: brightness(1.1);
+}
+
+.catm-btn-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -133,6 +133,12 @@ export const api = {
       body: JSON.stringify(category),
     }),
 
+  updateCategory: (id, updates) =>
+    request(`/categories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    }),
+
   deleteCategory: (id) =>
     request(`/categories/${id}`, { method: 'DELETE' }),
 

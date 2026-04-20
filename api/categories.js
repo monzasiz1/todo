@@ -66,5 +66,27 @@ module.exports = async function handler(req, res) {
     }
   }
 
+  // PUT /api/categories/:id
+  if (segments.length === 1 && req.method === 'PUT') {
+    try {
+      const catId = segments[0];
+      const { name, color, icon } = req.body;
+      if (!name) {
+        return res.status(400).json({ error: 'Name ist erforderlich' });
+      }
+      const result = await pool.query(
+        'UPDATE categories SET name = $1, color = COALESCE($2, color), icon = COALESCE($3, icon) WHERE id = $4 AND user_id = $5 RETURNING *',
+        [name, color || null, icon || null, catId, user.id]
+      );
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Kategorie nicht gefunden' });
+      }
+      return res.json({ category: result.rows[0] });
+    } catch (err) {
+      console.error('Update category error:', err);
+      return res.status(500).json({ error: 'Fehler beim Aktualisieren der Kategorie' });
+    }
+  }
+
   return res.status(404).json({ error: 'Route nicht gefunden' });
 };

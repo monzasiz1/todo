@@ -170,6 +170,47 @@ export const useTaskStore = create((set, get) => ({
     }
   },
 
+  createCategory: async (category) => {
+    try {
+      const data = await api.createCategory(category);
+      set((s) => ({ categories: [...s.categories, data.category].sort((a, b) => a.name.localeCompare(b.name)) }));
+      get().addToast('✅ Kategorie erstellt');
+      return data.category;
+    } catch (err) {
+      get().addToast('❌ ' + err.message, 'error');
+      return null;
+    }
+  },
+
+  updateCategory: async (id, updates) => {
+    try {
+      const data = await api.updateCategory(id, updates);
+      set((s) => ({
+        categories: s.categories.map((c) => (c.id === id ? data.category : c)).sort((a, b) => a.name.localeCompare(b.name)),
+      }));
+      get().addToast('✅ Kategorie aktualisiert');
+      return data.category;
+    } catch (err) {
+      get().addToast('❌ ' + err.message, 'error');
+      return null;
+    }
+  },
+
+  deleteCategory: async (id) => {
+    try {
+      await api.deleteCategory(id);
+      set((s) => ({
+        categories: s.categories.filter((c) => c.id !== id),
+        tasks: s.tasks.map((t) => (t.category_id === id ? { ...t, category_id: null, category_name: null, category_color: null } : t)),
+      }));
+      get().addToast('🗑️ Kategorie gelöscht');
+      return true;
+    } catch (err) {
+      get().addToast('❌ ' + err.message, 'error');
+      return false;
+    }
+  },
+
   // Filters
   setFilter: (key, value) => {
     set((s) => ({ filter: { ...s.filter, [key]: value } }));

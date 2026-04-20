@@ -12,6 +12,7 @@ import {
   UsersRound,
 } from 'lucide-react';
 import FriendsList from './FriendsList';
+import CategoryManager from './CategoryManager';
 import { useFriendsStore } from '../store/friendsStore';
 import AvatarBadge from './AvatarBadge';
 
@@ -20,6 +21,7 @@ export default function Sidebar({ isOpen, onClose }) {
   const { categories, fetchCategories, tasks, filter, setFilter, clearFilters } = useTaskStore();
   const { pending, fetchFriends } = useFriendsStore();
   const [showFriends, setShowFriends] = useState(false);
+  const [showCategories, setShowCategories] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
@@ -92,7 +94,16 @@ export default function Sidebar({ isOpen, onClose }) {
       </div>
 
       {/* Categories */}
-      <div className="sidebar-section-title">Kategorien</div>
+      <div className="sidebar-section-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        Kategorien
+        <button
+          className="catm-manage-btn"
+          onClick={() => setShowCategories(true)}
+          title="Kategorien verwalten"
+        >
+          Verwalten
+        </button>
+      </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 16, overflowY: 'auto' }}>
         <div
           className={`sidebar-category ${!filter.category ? 'active' : ''}`}
@@ -143,6 +154,7 @@ export default function Sidebar({ isOpen, onClose }) {
 
       {/* Friends Panel */}
       {showFriends && <FriendsList onClose={() => setShowFriends(false)} />}
+      {showCategories && <CategoryManager onClose={() => setShowCategories(false)} />}
     </aside>
   );
 }
