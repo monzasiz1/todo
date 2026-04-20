@@ -246,6 +246,89 @@ module.exports = async function handler(req, res) {
     }
   }
 
+  // PATCH /api/profile/visibility — Update profile_visibility setting
+  if (action === 'visibility' && req.method === 'PATCH') {
+    try {
+      const { profile_visibility } = req.body;
+      const allowed = ['everyone', 'nobody'];
+      if (!allowed.includes(profile_visibility)) {
+        return res.status(400).json({ error: 'Ungültiger Wert. Erlaubt: everyone, nobody' });
+      }
+      await pool.query(
+        'UPDATE users SET profile_visibility = $2 WHERE id = $1',
+        [user.id, profile_visibility]
+      );
+      return res.json({ success: true, profile_visibility });
+    } catch (err) {
+      console.error('Visibility update error:', err);
+      return res.status(500).json({ error: 'Einstellung konnte nicht gespeichert werden' });
+    }
+  }
+
+  // GET /api/profile/user/:id — View another user's profile (friends only, respects visibility)
+  if (action === 'user' && segments[1] && req.method === 'GET') {
+    try {
+      const targetId = parseInt(segments[1]);
+      if (isNaN(targetId)) return res.status(400).json({ error: 'Ungültige ID' });
+      if (targetId === user.id) return res.status(400).json({ error: 'Eigenes Profil über /api/profile abrufen' });
+
+      // Check friendship
+      const friendship = await pool.query(
+        `SELECT id FROM friends
+         WHERE ((user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1))
+         AND status = 'accepted'`,
+        [user.id, targetId]
+      );
+      if (friendship.rows.length === 0) {
+        return res.status(403).json({ error: 'Nur Freunde können Profile einsehen' });
+      }
+
+      // Check target user's visibility setting
+      const targetUser = await pool.query(
+        `SELECT id, name, email, avatar_url, avatar_color, bio, profile_visibility, created_at
+         FROM users WHERE id = $1`,
+        [targetId]
+      );
+      if (targetUser.rows.length === 0) return res.status(404).json({ error: 'Nutzer nicht gefunden' });
+
+      const t = targetUser.rows[0];
+      if (t.profile_visibility === 'nobody') {
+        return res.status(403).json({ error: 'Dieser Nutzer hat sein Profil auf privat gestellt' });
+      }
+
+      // Public stats only (no sensitive data)
+      const stats = await pool.query(
+        `SELECT
+           COUNT(*) as total_tasks,
+           COUNT(*) FILTER (WHERE completed = true) as completed_tasks,
+           COUNT(*) FILTER (WHERE completed = true AND updated_at >= NOW() - INTERVAL '7 days') as week_completed
+         FROM tasks WHERE user_id = $1`,
+        [targetId]
+      );
+      const s = stats.rows[0];
+
+      return res.json({
+        user: {
+          id: t.id,
+          name: t.name,
+          avatar_url: t.avatar_url,
+          avatar_color: t.avatar_color,
+          bio: t.bio,
+          member_since: t.created_at,
+        },
+        stats: {
+          total_tasks: parseInt(s.total_tasks),
+          completed_tasks: parseInt(s.completed_tasks),
+          completion_rate: s.total_tasks > 0 ? Math.round((s.completed_tasks / s.total_tasks) * 100) : 0,
+          week_completed: parseInt(s.week_completed),
+        },
+      });
+    } catch (err) {
+      console.error('Friend profile error:', err);
+      return res.status(500).json({ error: 'Profil konnte nicht geladen werden' });
+    }
+  }
+
   // DELETE /api/profile — Delete account
   if (!action && req.method === 'DELETE') {
     try {

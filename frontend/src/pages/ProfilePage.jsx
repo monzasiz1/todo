@@ -41,6 +41,10 @@ export default function ProfilePage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletePw, setDeletePw] = useState('');
 
+  // Visibility
+  const [visibility, setVisibility] = useState('everyone');
+  const [savingVisibility, setSavingVisibility] = useState(false);
+
   // Feedback
   const [toast, setToast] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -63,6 +67,7 @@ export default function ProfilePage() {
       setStats(data.stats);
       setNameValue(data.user.name || '');
       setBioValue(data.user.bio || '');
+      setVisibility(data.user.profile_visibility || 'everyone');
     } catch (err) {
       showToast('Profil konnte nicht geladen werden', 'error');
     } finally {
@@ -217,6 +222,32 @@ export default function ProfilePage() {
       showToast('Daten exportiert');
     } catch (err) {
       showToast(err.message, 'error');
+    }
+  };
+
+  const saveVisibility = async (val) => {
+    setVisibility(val);
+    setSavingVisibility(true);
+    try {
+      await api.request('/profile/visibility', { method: 'PATCH', body: JSON.stringify({ profile_visibility: val }) });
+      showToast('Sichtbarkeit gespeichert');
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      setSavingVisibility(false);
+    }
+  };
+
+  const saveVisibility = async (val) => {
+    setVisibility(val);
+    setSavingVisibility(true);
+    try {
+      await api.updateVisibility(val);
+      showToast('Sichtbarkeit gespeichert');
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      setSavingVisibility(false);
     }
   };
 
@@ -564,8 +595,43 @@ export default function ProfilePage() {
         </AnimatePresence>
       </div>
 
-      {/* Export */}
+      {/* Visibility */}
       <div className="profile-section-card">
+        <div className="profile-action-row" style={{ cursor: 'default' }}>
+          <div className="profile-action-left">
+            <div className="profile-action-icon" style={{ background: 'rgba(0,122,255,0.1)', color: '#007AFF' }}>
+              <Shield size={18} />
+            </div>
+            <div>
+              <div className="profile-action-title">Profil-Sichtbarkeit</div>
+              <div className="profile-action-subtitle">Wer darf dein Profil sehen?</div>
+            </div>
+          </div>
+        </div>
+        <div className="profile-visibility-options">
+          {[
+            { value: 'everyone', label: 'Alle Freunde', desc: 'Freunde können dein Profil und Statistiken sehen' },
+            { value: 'nobody',   label: 'Niemand',      desc: 'Dein Profil ist für andere verborgen' },
+          ].map((opt) => (
+            <button
+              key={opt.value}
+              className={`profile-visibility-opt ${visibility === opt.value ? 'active' : ''}`}
+              onClick={() => saveVisibility(opt.value)}
+              disabled={savingVisibility}
+            >
+              <div className="profile-visibility-radio">
+                {visibility === opt.value && <div className="profile-visibility-radio-dot" />}
+              </div>
+              <div>
+                <div className="profile-visibility-label">{opt.label}</div>
+                <div className="profile-visibility-desc">{opt.desc}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Export */}
         <button className="profile-action-row" onClick={exportData}>
           <div className="profile-action-left">
             <div className="profile-action-icon" style={{ background: 'rgba(0,199,190,0.1)', color: '#00C7BE' }}>

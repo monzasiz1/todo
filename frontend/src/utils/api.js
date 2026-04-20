@@ -70,6 +70,14 @@ export const api = {
 
   exportProfile: () => request('/profile/export'),
 
+  updateVisibility: (profile_visibility) =>
+    request('/profile/visibility', {
+      method: 'PATCH',
+      body: JSON.stringify({ profile_visibility }),
+    }),
+
+  getFriendProfile: (id) => request(`/profile/user/${id}`),
+
   deleteAccount: (password) =>
     request('/profile', {
       method: 'DELETE',

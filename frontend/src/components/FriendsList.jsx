@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UserPlus, UserCheck, UserX, Copy, Check, X, Mail, Hash, Users, Clock, Trash2 } from 'lucide-react';
+import { UserPlus, UserCheck, UserX, Copy, Check, X, Mail, Hash, Users, Clock, Trash2, Eye, ChevronLeft, CheckCircle2, BarChart2, Lock } from 'lucide-react';
 import { useFriendsStore } from '../store/friendsStore';
+import { api } from '../utils/api';
 import AvatarBadge from './AvatarBadge';
 
 export default function FriendsList({ onClose }) {
@@ -12,6 +13,17 @@ export default function FriendsList({ onClose }) {
   const [inviteCode, setInviteCode] = useState('');
   const [message, setMessage] = useState(null);
   const [sending, setSending] = useState(false);
+  const [viewProfile, setViewProfile] = useState(null); // { loading, data, error }
+
+  const openFriendProfile = async (friend) => {
+    setViewProfile({ loading: true, friend });
+    try {
+      const data = await api.getFriendProfile(friend.friend_user_id);
+      setViewProfile({ loading: false, friend, data });
+    } catch (err) {
+      setViewProfile({ loading: false, friend, error: err.message });
+    }
+  };
 
   useEffect(() => { fetchFriends(); }, []);
 
@@ -48,7 +60,7 @@ export default function FriendsList({ onClose }) {
   const incomingPending = pending.filter(p => p.direction === 'incoming');
   const outgoingPending = pending.filter(p => p.direction === 'outgoing');
 
-  return createPortal(
+  const friendsPanel = createPortal(
     <motion.div
       className="friends-overlay"
       initial={{ opacity: 0 }}
@@ -137,6 +149,13 @@ export default function FriendsList({ onClose }) {
                       <span className="friend-name">{friend.name}</span>
                       <span className="friend-email">{friend.email}</span>
                     </div>
+                    <button
+                      className="friend-action-btn"
+                      onClick={() => openFriendProfile(friend)}
+                      title="Profil ansehen"
+                    >
+                      <Eye size={16} />
+                    </button>
                     <button
                       className="friend-action-btn danger"
                       onClick={() => removeFriend(friend.id)}
@@ -277,4 +296,79 @@ export default function FriendsList({ onClose }) {
     </motion.div>,
     document.body
   );
+
+  const profileModal = viewProfile ? createPortal(
+    <motion.div
+      className="friends-overlay"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={() => setViewProfile(null)}
+    >
+      <motion.div
+        className="friend-profile-modal"
+        initial={{ scale: 0.92, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.92, opacity: 0 }}
+        transition={{ type: 'spring', damping: 22 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="friend-profile-header">
+          <button className="friend-profile-back" onClick={() => setViewProfile(null)}>
+            <ChevronLeft size={20} />
+          </button>
+          <div className="friend-profile-title">Profil</div>
+        </div>
+
+        {viewProfile.loading && (
+          <div className="friend-profile-loading">
+            <div className="friend-profile-spinner" />
+          </div>
+        )}
+
+        {viewProfile.error && (
+          <div className="friend-profile-error">
+            <Lock size={32} strokeWidth={1.5} />
+            <p>Profil nicht sichtbar</p>
+            <span>{viewProfile.friend?.name} hat ihr Profil auf privat gestellt.</span>
+          </div>
+        )}
+
+        {viewProfile.data && (
+          <>
+            <div className="friend-profile-hero">
+              <AvatarBadge
+                name={viewProfile.data.user.name}
+                color={viewProfile.data.user.avatar_color || '#007AFF'}
+                avatarUrl={viewProfile.data.user.avatar_url}
+                size={72}
+              />
+              <div className="friend-profile-name">{viewProfile.data.user.name}</div>
+              {viewProfile.data.user.bio && <div className="friend-profile-bio">{viewProfile.data.user.bio}</div>}
+              <div className="friend-profile-since">
+                Dabei seit {new Date(viewProfile.data.user.member_since).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}
+              </div>
+            </div>
+
+            <div className="friend-profile-stats">
+              {[
+                { label: 'Aufgaben', value: viewProfile.data.stats.total },
+                { label: 'Erledigt', value: viewProfile.data.stats.completed },
+                { label: 'Diese Woche', value: viewProfile.data.stats.week },
+                { label: 'Quote', value: `${viewProfile.data.stats.rate}%` },
+              ].map((s) => (
+                <div key={s.label} className="friend-profile-stat">
+                  <div className="friend-profile-stat-value">{s.value}</div>
+                  <div className="friend-profile-stat-label">{s.label}</div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </motion.div>
+    </motion.div>,
+    document.body
+  ) : null;
+
+  return <>{friendsPanel}{profileModal}</>;
 }
