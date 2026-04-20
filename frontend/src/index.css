@@ -116,6 +116,21 @@ input, textarea, select {
   max-width: 1200px;
 }
 
+/* Calendar page gets more horizontal space */
+@media (min-width: 1024px) {
+  .calendar-page-wrap {
+    margin-left: -40px;
+    margin-right: -40px;
+    width: calc(100% + 80px);
+  }
+
+  .calendar-page-wrap .page-header,
+  .calendar-page-wrap .task-creation-stack {
+    padding-left: 40px;
+    padding-right: 40px;
+  }
+}
+
 /* ========== SIDEBAR ========== */
 .sidebar-logo {
   display: flex;
@@ -1303,8 +1318,8 @@ input, textarea, select {
 /* Desktop: tall cells with room for tasks */
 @media (min-width: 768px) {
   .calendar-day {
-    min-height: 120px;
-    padding: 8px 8px 10px;
+    min-height: 130px;
+    padding: 8px 10px 10px;
   }
 
   .calendar-day-tasks {
@@ -1313,7 +1328,7 @@ input, textarea, select {
   }
 
   .calendar-day-task {
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     padding: 2px 6px;
     border-radius: 4px;
   }
@@ -1337,7 +1352,30 @@ input, textarea, select {
 
 @media (min-width: 1100px) {
   .calendar-day {
-    min-height: 140px;
+    min-height: 160px;
+    padding: 10px 12px 12px;
+  }
+
+  .calendar-day-task {
+    font-size: 0.75rem;
+    padding: 3px 7px;
+  }
+
+  .calendar-day-number {
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
+  }
+
+  .calendar-day-header {
+    padding: 12px 16px;
+    font-size: 12px;
+  }
+}
+
+@media (min-width: 1440px) {
+  .calendar-day {
+    min-height: 190px;
   }
 }
 

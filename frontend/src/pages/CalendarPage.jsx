@@ -38,7 +38,7 @@ export default function CalendarPage() {
     : [];
 
   return (
-    <div>
+    <div className="calendar-page-wrap">
       <motion.div
         className="page-header"
         initial={{ opacity: 0, y: -10 }}
