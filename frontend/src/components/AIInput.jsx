@@ -108,12 +108,13 @@ export default function AIInput({ onTaskCreated }) {
   return (
     <div className="ai-input-wrapper">
       <form onSubmit={handleSubmit}>
-        <motion.div
-          className="ai-input-card"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-        >
+        <div className="ai-input-glow-wrap">
+          <motion.div
+            className="ai-input-card"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
           <div className="ai-input-main">
             <div className="ai-input-icon">
               <Sparkles size={22} />
@@ -212,6 +213,7 @@ export default function AIInput({ onTaskCreated }) {
             </div>
           )}
         </motion.div>
+        </div>
       </form>
 
       {/* Hidden file input for AI attach intent */}
