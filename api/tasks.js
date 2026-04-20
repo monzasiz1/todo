@@ -36,10 +36,19 @@ function calcNextDate(currentDate, rule, interval) {
 
 function toDateOnly(value) {
   if (!value) return null;
-  return new Date(value + 'T00:00:00');
+  if (value instanceof Date) {
+    if (isNaN(value.getTime())) return null;
+    const iso = value.toISOString().split('T')[0];
+    return new Date(iso + 'T00:00:00');
+  }
+  const str = String(value).substring(0, 10);
+  const d = new Date(str + 'T00:00:00');
+  if (isNaN(d.getTime())) return null;
+  return d;
 }
 
 function formatDateOnly(dateObj) {
+  if (!dateObj || isNaN(dateObj.getTime())) return null;
   return dateObj.toISOString().split('T')[0];
 }
 
