@@ -189,11 +189,11 @@ export default function Dashboard() {
   };
 
   const priorities = [
-    { value: null, label: 'Alle' },
-    { value: 'urgent', label: '🔴 Dringend' },
-    { value: 'high', label: '🟠 Hoch' },
-    { value: 'medium', label: '🔵 Mittel' },
-    { value: 'low', label: '🟢 Niedrig' },
+    { value: null,     label: 'Alle',     color: null },
+    { value: 'urgent', label: 'Dringend', color: '#FF3B30' },
+    { value: 'high',   label: 'Hoch',     color: '#FF9500' },
+    { value: 'medium', label: 'Mittel',   color: '#007AFF' },
+    { value: 'low',    label: 'Niedrig',  color: '#34C759' },
   ];
 
   return (
@@ -248,15 +248,17 @@ export default function Dashboard() {
           <button
             key={p.value || 'all'}
             className={`filter-btn ${filter.priority === p.value ? 'active' : ''}`}
+            style={p.color ? { '--dot-color': p.color } : {}}
             onClick={() => setFilter('priority', p.value)}
           >
+            {p.color && <span className="filter-dot" />}
             {p.label}
           </button>
         ))}
         <input
           type="text"
           className="filter-search"
-          placeholder="🔍 Suchen..."
+          placeholder="Suchen..."
           value={filter.search}
           onChange={(e) => setFilter('search', e.target.value)}
         />
