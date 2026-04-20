@@ -3100,6 +3100,7 @@ input, textarea, select {
   align-items: center;
   justify-content: space-between;
   padding: 20px;
+  padding-top: calc(20px + env(safe-area-inset-top, 0px));
   border-bottom: 1px solid var(--border);
 }
 
