@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UserPlus, UserCheck, UserX, Copy, Check, X, Mail, Hash, Users, Clock, Trash2, Eye, ChevronLeft, CheckCircle2, BarChart2, Lock } from 'lucide-react';
+import { UserPlus, UserCheck, UserX, Copy, Check, X, Mail, Hash, Users, Clock, Trash2, Eye, ChevronLeft, CheckCircle2, BarChart2, Lock, Target, Flame, TrendingUp, Calendar, Award, Star } from 'lucide-react';
 import { useFriendsStore } from '../store/friendsStore';
 import { api } from '../utils/api';
 import AvatarBadge from './AvatarBadge';
@@ -334,37 +334,113 @@ export default function FriendsList({ onClose }) {
           </div>
         )}
 
-        {viewProfile.data && (
-          <>
-            <div className="friend-profile-hero">
-              <AvatarBadge
-                name={viewProfile.data.user.name}
-                color={viewProfile.data.user.avatar_color || '#007AFF'}
-                avatarUrl={viewProfile.data.user.avatar_url}
-                size={72}
-              />
-              <div className="friend-profile-name">{viewProfile.data.user.name}</div>
-              {viewProfile.data.user.bio && <div className="friend-profile-bio">{viewProfile.data.user.bio}</div>}
-              <div className="friend-profile-since">
-                Dabei seit {new Date(viewProfile.data.user.member_since).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}
-              </div>
-            </div>
-
-            <div className="friend-profile-stats">
-              {[
-                { label: 'Aufgaben', value: viewProfile.data.stats.total_tasks },
-                { label: 'Erledigt', value: viewProfile.data.stats.completed_tasks },
-                { label: 'Diese Woche', value: viewProfile.data.stats.week_completed },
-                { label: 'Quote', value: `${viewProfile.data.stats.completion_rate}%` },
-              ].map((s) => (
-                <div key={s.label} className="friend-profile-stat">
-                  <div className="friend-profile-stat-value">{s.value}</div>
-                  <div className="friend-profile-stat-label">{s.label}</div>
+        {viewProfile.data && (() => {
+          const d = viewProfile.data;
+          const memberSince = new Date(d.user.member_since).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+          const rate = d.stats.completion_rate;
+          const circumference = 2 * Math.PI * 44;
+          return (
+            <div className="friend-profile-body">
+              {/* Hero */}
+              <div className="friend-profile-hero">
+                <AvatarBadge
+                  name={d.user.name}
+                  color={d.user.avatar_color || '#007AFF'}
+                  avatarUrl={d.user.avatar_url}
+                  size={80}
+                />
+                <div className="friend-profile-name">{d.user.name}</div>
+                {d.user.bio && <div className="friend-profile-bio">{d.user.bio}</div>}
+                <div className="friend-profile-since">
+                  <Calendar size={12} /> Dabei seit {memberSince}
                 </div>
-              ))}
+              </div>
+
+              {/* Stats Grid */}
+              <div className="friend-profile-stats-grid">
+                <div className="friend-profile-stat-card">
+                  <div className="friend-profile-stat-icon" style={{ background: 'rgba(0,122,255,0.1)', color: '#007AFF' }}><Target size={18} /></div>
+                  <div className="friend-profile-stat-value">{d.stats.total_tasks}</div>
+                  <div className="friend-profile-stat-label">Gesamt</div>
+                </div>
+                <div className="friend-profile-stat-card">
+                  <div className="friend-profile-stat-icon" style={{ background: 'rgba(52,199,89,0.1)', color: '#34C759' }}><CheckCircle2 size={18} /></div>
+                  <div className="friend-profile-stat-value">{d.stats.completed_tasks}</div>
+                  <div className="friend-profile-stat-label">Erledigt</div>
+                </div>
+                <div className="friend-profile-stat-card">
+                  <div className="friend-profile-stat-icon" style={{ background: 'rgba(255,149,0,0.1)', color: '#FF9500' }}><Flame size={18} /></div>
+                  <div className="friend-profile-stat-value">{d.stats.streak}</div>
+                  <div className="friend-profile-stat-label">Streak</div>
+                </div>
+                <div className="friend-profile-stat-card">
+                  <div className="friend-profile-stat-icon" style={{ background: 'rgba(88,86,214,0.1)', color: '#5856D6' }}><TrendingUp size={18} /></div>
+                  <div className="friend-profile-stat-value">{rate}%</div>
+                  <div className="friend-profile-stat-label">Quote</div>
+                </div>
+              </div>
+
+              {/* Progress Ring */}
+              <div className="friend-profile-progress">
+                <div className="friend-profile-ring-wrap">
+                  <svg viewBox="0 0 100 100" className="friend-profile-ring">
+                    <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(0,0,0,0.06)" strokeWidth="8" />
+                    <circle
+                      cx="50" cy="50" r="44" fill="none"
+                      stroke="var(--primary)"
+                      strokeWidth="8"
+                      strokeLinecap="round"
+                      strokeDasharray={circumference}
+                      strokeDashoffset={circumference * (1 - rate / 100)}
+                      transform="rotate(-90 50 50)"
+                      style={{ transition: 'stroke-dashoffset 1s ease' }}
+                    />
+                  </svg>
+                  <div className="friend-profile-ring-center">
+                    <span className="friend-profile-ring-value">{rate}%</span>
+                    <span className="friend-profile-ring-label">Produktiv</span>
+                  </div>
+                </div>
+                <div className="friend-profile-progress-details">
+                  <div className="friend-profile-progress-item">
+                    <Clock size={13} />
+                    <span>{d.stats.week_completed} diese Woche</span>
+                  </div>
+                  <div className="friend-profile-progress-item">
+                    <Calendar size={13} />
+                    <span>{d.stats.active_days} aktive Tage</span>
+                  </div>
+                  <div className="friend-profile-progress-item">
+                    <Award size={13} />
+                    <span>Seit {memberSince}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Category Breakdown */}
+              {d.stats.category_breakdown?.length > 0 && (
+                <div className="friend-profile-categories">
+                  <div className="friend-profile-section-title">Top Kategorien</div>
+                  {d.stats.category_breakdown.map((cat, i) => (
+                    <div key={i} className="friend-profile-cat-bar">
+                      <div className="friend-profile-cat-info">
+                        <span className="friend-profile-cat-dot" style={{ background: cat.color }} />
+                        <span className="friend-profile-cat-name">{cat.name}</span>
+                        <span className="friend-profile-cat-count">{cat.done}/{cat.count}</span>
+                      </div>
+                      <div className="friend-profile-cat-track">
+                        <div
+                          className="friend-profile-cat-fill"
+                          style={{ background: cat.color, width: `${cat.count > 0 ? (cat.done / cat.count) * 100 : 0}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          </>
-        )}
+          );
+        })()}
       </motion.div>
     </motion.div>,
     document.body

@@ -6050,8 +6050,11 @@ input, textarea, select {
   background: var(--card-solid);
   border-radius: 20px;
   width: 100%;
-  max-width: 340px;
+  max-width: 360px;
+  max-height: 85vh;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 20px 60px rgba(0,0,0,0.18);
 }
 
@@ -6105,8 +6108,174 @@ input, textarea, select {
 .friend-profile-since {
   font-size: 12px;
   color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
+/* Scrollable body */
+.friend-profile-body {
+  overflow-y: auto;
+  flex: 1;
+  padding-bottom: 20px;
+}
+
+/* Stats Grid (like own profile) */
+.friend-profile-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+
+.friend-profile-stat-card {
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.friend-profile-stat-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.friend-profile-stat-value {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.3px;
+}
+
+.friend-profile-stat-label {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+/* Progress Ring */
+.friend-profile-progress {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 16px 16px;
+  background: var(--bg);
+  border-radius: 14px;
+  margin: 0 16px 16px;
+  padding: 14px;
+}
+
+.friend-profile-ring-wrap {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+}
+
+.friend-profile-ring {
+  width: 80px;
+  height: 80px;
+}
+
+.friend-profile-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.friend-profile-ring-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.3px;
+}
+
+.friend-profile-ring-label {
+  font-size: 9px;
+  color: var(--text-tertiary);
+}
+
+.friend-profile-progress-details {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.friend-profile-progress-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Categories */
+.friend-profile-categories {
+  padding: 0 16px 8px;
+}
+
+.friend-profile-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.friend-profile-cat-bar {
+  margin-bottom: 10px;
+}
+
+.friend-profile-cat-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.friend-profile-cat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.friend-profile-cat-name {
+  flex: 1;
+}
+
+.friend-profile-cat-count {
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+
+.friend-profile-cat-track {
+  height: 5px;
+  background: rgba(0,0,0,0.06);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.friend-profile-cat-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.8s ease;
+}
+
+/* OLD flat stats strip – no longer used but kept for compat */
 .friend-profile-stats {
   display: flex;
   border-top: 1px solid var(--border);
@@ -6123,19 +6292,6 @@ input, textarea, select {
 
 .friend-profile-stat:last-child {
   border-right: none;
-}
-
-.friend-profile-stat-value {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: -0.5px;
-}
-
-.friend-profile-stat-label {
-  font-size: 11px;
-  color: var(--text-tertiary);
-  margin-top: 2px;
 }
 
 .friend-profile-loading {

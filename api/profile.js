@@ -296,16 +296,56 @@ module.exports = async function handler(req, res) {
         return res.status(403).json({ error: 'Dieser Nutzer hat sein Profil auf privat gestellt' });
       }
 
-      // Public stats only (no sensitive data)
+      // Full stats (same as own profile)
       const stats = await pool.query(
         `SELECT
            COUNT(*) as total_tasks,
            COUNT(*) FILTER (WHERE completed = true) as completed_tasks,
-           COUNT(*) FILTER (WHERE completed = true AND updated_at >= NOW() - INTERVAL '7 days') as week_completed
+           COUNT(DISTINCT date) as active_days
          FROM tasks WHERE user_id = $1`,
         [targetId]
       );
+
+      const streakResult = await pool.query(
+        `WITH completed_dates AS (
+           SELECT DISTINCT DATE(updated_at) as d
+           FROM tasks
+           WHERE user_id = $1 AND completed = true
+           ORDER BY d DESC
+         ),
+         numbered AS (
+           SELECT d, d - (ROW_NUMBER() OVER (ORDER BY d DESC))::int * INTERVAL '1 day' as grp
+           FROM completed_dates
+         )
+         SELECT COUNT(*) as streak
+         FROM numbered
+         WHERE grp = (SELECT grp FROM numbered LIMIT 1)`,
+        [targetId]
+      );
+
+      const weekResult = await pool.query(
+        `SELECT COUNT(*) as week_completed
+         FROM tasks
+         WHERE user_id = $1 AND completed = true
+         AND updated_at >= NOW() - INTERVAL '7 days'`,
+        [targetId]
+      );
+
+      const categoryStats = await pool.query(
+        `SELECT c.name, c.color, COUNT(*) as count,
+           COUNT(*) FILTER (WHERE t.completed = true) as done
+         FROM tasks t JOIN categories c ON t.category_id = c.id
+         WHERE t.user_id = $1
+         GROUP BY c.name, c.color
+         ORDER BY count DESC
+         LIMIT 5`,
+        [targetId]
+      );
+
       const s = stats.rows[0];
+      const completionRate = s.total_tasks > 0
+        ? Math.round((s.completed_tasks / s.total_tasks) * 100)
+        : 0;
 
       return res.json({
         user: {
@@ -319,8 +359,11 @@ module.exports = async function handler(req, res) {
         stats: {
           total_tasks: parseInt(s.total_tasks),
           completed_tasks: parseInt(s.completed_tasks),
-          completion_rate: s.total_tasks > 0 ? Math.round((s.completed_tasks / s.total_tasks) * 100) : 0,
-          week_completed: parseInt(s.week_completed),
+          active_days: parseInt(s.active_days),
+          completion_rate: completionRate,
+          streak: parseInt(streakResult.rows[0]?.streak || 0),
+          week_completed: parseInt(weekResult.rows[0]?.week_completed || 0),
+          category_breakdown: categoryStats.rows,
         },
       });
     } catch (err) {
