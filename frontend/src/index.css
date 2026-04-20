@@ -1973,6 +1973,10 @@ input, textarea, select {
     transform: translateX(-100%);
     width: 300px;
     padding-top: calc(16px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    padding-left: calc(16px + env(safe-area-inset-left, 0px));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .app-sidebar.open {
@@ -4878,10 +4882,10 @@ input, textarea, select {
 
 @media (max-width: 600px) {
   .help-fab {
-    bottom: 80px;
+    bottom: calc(74px + env(safe-area-inset-bottom, 0px));
     right: 14px;
-    width: 48px;
-    height: 48px;
+    width: 46px;
+    height: 46px;
   }
 
   .help-chat {
@@ -4891,6 +4895,14 @@ input, textarea, select {
     width: 100%;
     height: 100%;
     border-radius: 0;
+  }
+
+  .help-chat-header {
+    padding-top: calc(14px + env(safe-area-inset-top, 0px));
+  }
+
+  .help-chat-input {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   }
 }
 

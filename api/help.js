@@ -88,7 +88,8 @@ HINWEISE:
 - Halte Antworten kompakt (max 3-4 Sätze wenn möglich)`;
 
 module.exports = async (req, res) => {
-  if (cors(req, res)) return;
+  cors(res);
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
   const user = verifyToken(req);
   if (!user) return res.status(401).json({ error: 'Nicht autorisiert' });
