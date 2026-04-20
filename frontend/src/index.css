@@ -1318,7 +1318,7 @@ input, textarea, select {
 /* Desktop: tall cells with room for tasks */
 @media (min-width: 768px) {
   .calendar-day {
-    min-height: 150px;
+    min-height: 150px !important;
     padding: 10px 10px 12px;
   }
 
@@ -1371,7 +1371,7 @@ input, textarea, select {
 
 @media (min-width: 1100px) {
   .calendar-day {
-    min-height: 0; /* let 1fr handle the height */
+    min-height: 160px !important;
     padding: 12px 14px 14px;
   }
 
@@ -1393,6 +1393,10 @@ input, textarea, select {
 }
 
 @media (min-width: 1440px) {
+  .calendar-day {
+    min-height: 180px !important;
+  }
+
   .calendar-wrapper {
     min-height: calc(100vh - 280px);
   }
@@ -1408,7 +1412,7 @@ input, textarea, select {
   gap: 2px;
   cursor: pointer;
   transition: background var(--transition);
-  min-height: 72px;
+  min-height: 90px;
   overflow: hidden;
   position: relative;
 }
@@ -2453,7 +2457,7 @@ input, textarea, select {
   }
 
   .calendar-day {
-    min-height: 52px;
+    min-height: 52px !important;
     padding: 2px;
   }
 
@@ -2652,7 +2656,7 @@ input, textarea, select {
   }
 
   .calendar-day {
-    min-height: 44px;
+    min-height: 44px !important;
   }
 
   .calendar-day-number {
@@ -2700,7 +2704,7 @@ input, textarea, select {
   }
 
   .calendar-day {
-    min-height: 64px;
+    min-height: 64px !important;
   }
 
   .task-detail-modal {
