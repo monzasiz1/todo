@@ -35,6 +35,14 @@ function toDateValue(value) {
   return value.toISOString().split('T')[0];
 }
 
+// Wandelt datetime-local Wert in ISO mit Timezone-Offset um
+function localToISO(dtLocal) {
+  if (!dtLocal) return null;
+  const d = new Date(dtLocal);
+  if (isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
+
 export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embedded = false, onCancel }) {
   const { createTask, categories, fetchCategories } = useTaskStore();
   const { friends, fetchFriends } = useFriendsStore();
@@ -142,7 +150,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
         time_end: timeEnd || null,
         priority,
         category_id: categoryId || null,
-        reminder_at: reminderAt || null,
+        reminder_at: localToISO(reminderAt),
         recurrence_rule: recurrenceRule || null,
         recurrence_interval: recurrenceRule ? 1 : null,
         recurrence_end: recurrenceEnd || null,

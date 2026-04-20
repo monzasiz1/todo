@@ -52,6 +52,14 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
     task.reminder_at ? format(parseISO(task.reminder_at), "yyyy-MM-dd'T'HH:mm") : ''
   );
 
+  // Wandelt datetime-local Wert in ISO mit Timezone-Offset um
+  function localToISO(dtLocal) {
+    if (!dtLocal) return null;
+    const d = new Date(dtLocal);
+    if (isNaN(d.getTime())) return null;
+    return d.toISOString();
+  }
+
   // Recurrence state
   const [recurrenceRule, setRecurrenceRule] = useState(task.recurrence_rule || '');
   const [recurrenceEnd, setRecurrenceEnd] = useState(task.recurrence_end ? task.recurrence_end.substring(0, 10) : '');
@@ -154,7 +162,7 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
         time_end: timeEnd || null,
         priority,
         category_id: categoryId || null,
-        reminder_at: reminderAt || null,
+        reminder_at: localToISO(reminderAt),
         recurrence_rule: recurrenceRule || null,
         recurrence_interval: 1,
         recurrence_end: recurrenceEnd || null,
