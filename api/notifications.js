@@ -1,18 +1,20 @@
 const { getPool } = require('./_lib/db');
-const { authenticate } = require('./_lib/auth');
+const { verifyToken, cors } = require('./_lib/auth');
 
 module.exports = async function handler(req, res) {
+  cors(res);
+
   // CORS
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  const user = authenticate(req);
+  const user = verifyToken(req);
   if (!user) return res.status(401).json({ error: 'Nicht autorisiert' });
 
   const pool = getPool();
-  const url = new URL(req.url, `http://${req.headers.host}`);
-  const segments = url.pathname.replace('/api/notifications/', '').split('/').filter(Boolean);
+  const subPath = req.query.__path || '';
+  const segments = subPath.split('/').filter(Boolean);
 
   // Update last_active_at on every authenticated request
   pool.query('UPDATE users SET last_active_at = NOW() WHERE id = $1', [user.id]).catch(() => {});

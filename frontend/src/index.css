@@ -7539,14 +7539,14 @@ input, textarea, select {
 @media (max-width: 768px) {
   .notif-dropdown {
     position: fixed !important;
-    top: auto !important;
+    top: 64px !important;
+    bottom: auto !important;
     right: 12px !important;
     left: 12px !important;
-    bottom: 80px !important;
     width: auto !important;
-    max-height: 65vh;
-    border-radius: 20px;
-    box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.18);
+    max-height: calc(100vh - 64px - 80px);
+    border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
   }
 }
 
