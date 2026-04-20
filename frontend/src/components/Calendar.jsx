@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../store/taskStore';
@@ -39,8 +39,7 @@ export default function Calendar({ onDayClick }) {
   // Drag state
   const [dragTaskId, setDragTaskId] = useState(null);
   const dragTask = useRef(null);
-  const dragOverEl = useRef(null);   // currently highlighted DOM element
-  const dragTargetDate = useRef(null); // target date for drop
+  const dragOverEl = useRef(null);
 
   const triggerRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -90,61 +89,49 @@ export default function Calendar({ onDayClick }) {
   };
 
   // ── Drag & Drop handlers ──────────────────────────────────────────
-  const handleDragStart = useCallback((e, task) => {
+  const handleDragStart = (e, task) => {
     dragTask.current = task;
     setDragTaskId(task.id);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', String(task.id));
-    // Delay so opacity change doesn't affect ghost image
-    requestAnimationFrame(() => { e.target.style.opacity = '0.4'; });
-  }, []);
+  };
 
-  const handleDragEnd = useCallback((e) => {
-    e.target.style.opacity = '';
+  const handleDragEnd = (e) => {
+    if (e.target) e.target.style.opacity = '';
     setDragTaskId(null);
     dragTask.current = null;
-    dragTargetDate.current = null;
-    if (dragOverEl.current) {
-      dragOverEl.current.classList.remove('drag-over');
-      dragOverEl.current = null;
-    }
-  }, []);
+    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    dragOverEl.current = null;
+  };
 
-  const handleDragOver = useCallback((e, date) => {
+  const handleDragOver = (e, date) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    dragTargetDate.current = date;
-    // Only update DOM class, never setState → no re-render during drag
     const el = e.currentTarget;
-    if (dragOverEl.current !== el) {
-      if (dragOverEl.current) dragOverEl.current.classList.remove('drag-over');
-      el.classList.add('drag-over');
-      dragOverEl.current = el;
+    if (dragOverEl.current && dragOverEl.current !== el) {
+      dragOverEl.current.classList.remove('drag-over');
     }
-  }, []);
+    el.classList.add('drag-over');
+    dragOverEl.current = el;
+  };
 
-  const handleDragLeave = useCallback((e) => {
+  const handleDragLeave = (e) => {
     if (!e.currentTarget.contains(e.relatedTarget)) {
       e.currentTarget.classList.remove('drag-over');
-      if (dragOverEl.current === e.currentTarget) dragOverEl.current = null;
     }
-  }, []);
+  };
 
-  const handleDrop = useCallback(async (e) => {
+  const handleDrop = async (e, targetDate) => {
     e.preventDefault();
-    const targetDate = dragTargetDate.current;
+    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    dragOverEl.current = null;
     const task = dragTask.current;
-    if (dragOverEl.current) {
-      dragOverEl.current.classList.remove('drag-over');
-      dragOverEl.current = null;
-    }
-    if (!task || !targetDate) return;
+    if (!task) return;
 
     const newDateStr = format(targetDate, 'yyyy-MM-dd');
     const oldDateStr = task.date ? task.date.substring(0, 10) : null;
     if (newDateStr === oldDateStr) return;
 
-    // Shift date_end by same delta if multi-day event
     let newDateEnd = task.date_end || null;
     if (task.date_end && oldDateStr) {
       const delta = differenceInCalendarDays(targetDate, parseISO(oldDateStr));
@@ -153,7 +140,7 @@ export default function Calendar({ onDayClick }) {
     }
 
     await updateTask(task.id, { date: newDateStr, date_end: newDateEnd });
-  }, [updateTask]);
+  };
 
   // ── Month view ────────────────────────────────────────────────────
   const renderMonthView = () => {
@@ -188,7 +175,7 @@ export default function Calendar({ onDayClick }) {
               onClick={() => handleDayClick(d)}
               onDragOver={isDesktop ? (e) => handleDragOver(e, d) : undefined}
               onDragLeave={isDesktop ? handleDragLeave : undefined}
-              onDrop={isDesktop ? handleDrop : undefined}
+              onDrop={isDesktop ? (e) => handleDrop(e, d) : undefined}
             >
               <span className="calendar-day-number">{format(d, 'd')}</span>
               {dayTasks.length > 0 && (
@@ -207,10 +194,10 @@ export default function Calendar({ onDayClick }) {
                         borderLeft: `2px solid ${t.group_id ? (t.group_color || '#5856D6') : (t.category_color || 'var(--primary)')}`,
                         cursor: isDesktop ? 'grab' : 'pointer',
                       }}
-                      draggable={isDesktop ? true : undefined}
-                      onDragStart={isDesktop ? (e) => { e.stopPropagation(); handleDragStart(e, t); } : undefined}
+                      draggable={isDesktop || undefined}
+                      onDragStart={isDesktop ? (e) => handleDragStart(e, t) : undefined}
                       onDragEnd={isDesktop ? handleDragEnd : undefined}
-                      onClick={(e) => { e.stopPropagation(); if (!dragTask.current) setDetailTask(t); }}
+                      onClick={(e) => { e.stopPropagation(); setDetailTask(t); }}
                     >
                       {t.group_id && (
                         <AvatarBadge
@@ -255,7 +242,7 @@ export default function Calendar({ onDayClick }) {
               onClick={() => handleDayClick(d)}
               onDragOver={isDesktop ? (e) => handleDragOver(e, d) : undefined}
               onDragLeave={isDesktop ? handleDragLeave : undefined}
-              onDrop={isDesktop ? handleDrop : undefined}
+              onDrop={isDesktop ? (e) => handleDrop(e, d) : undefined}
             >
               <div className="calendar-week-day-label">
                 <span className="calendar-week-day-name">{format(d, 'EEE', { locale: de })}</span>
@@ -276,10 +263,10 @@ export default function Calendar({ onDayClick }) {
                       cursor: isDesktop ? 'grab' : 'pointer',
                       borderLeft: t.group_id ? `3px solid ${t.group_color || '#5856D6'}` : undefined,
                     }}
-                    draggable={isDesktop ? true : undefined}
-                    onDragStart={isDesktop ? (e) => { e.stopPropagation(); handleDragStart(e, t); } : undefined}
+                    draggable={isDesktop || undefined}
+                    onDragStart={isDesktop ? (e) => handleDragStart(e, t) : undefined}
                     onDragEnd={isDesktop ? handleDragEnd : undefined}
-                    onClick={(e) => { e.stopPropagation(); if (!dragTask.current) setDetailTask(t); }}
+                    onClick={(e) => { e.stopPropagation(); setDetailTask(t); }}
                   >
                     {t.group_id && (
                       <AvatarBadge
