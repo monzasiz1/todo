@@ -154,11 +154,23 @@ export default function Dashboard() {
   const urgentCount = tasks.filter((t) => (t.priority === 'urgent' || t.priority === 'high') && !t.completed).length;
 
   const stats = [
-    { icon: <Circle size={20} />, value: totalOpen, label: 'Offen', color: 'var(--primary)', bg: 'rgba(0, 122, 255, 0.1)' },
-    { icon: <CheckCircle2 size={20} />, value: completedCount, label: 'Erledigt', color: 'var(--success)', bg: 'rgba(52, 199, 89, 0.1)' },
-    { icon: <Clock size={20} />, value: todayCount, label: 'Heute', color: 'var(--warning)', bg: 'rgba(255, 149, 0, 0.1)' },
-    { icon: <Flame size={20} />, value: urgentCount, label: 'Dringend', color: 'var(--danger)', bg: 'rgba(255, 59, 48, 0.1)' },
+    { icon: <Circle size={18} />, value: totalOpen, label: 'Offen', color: '#007AFF', accent: 'rgba(0,122,255,0.12)', filterKey: 'completed', filterVal: false },
+    { icon: <CheckCircle2 size={18} />, value: completedCount, label: 'Erledigt', color: '#34C759', accent: 'rgba(52,199,89,0.12)', filterKey: 'completed', filterVal: true },
+    { icon: <Clock size={18} />, value: todayCount, label: 'Heute', color: '#FF9500', accent: 'rgba(255,149,0,0.12)', filterKey: 'today', filterVal: null },
+    { icon: <Flame size={18} />, value: urgentCount, label: 'Dringend', color: '#FF3B30', accent: 'rgba(255,59,48,0.12)', filterKey: 'priority', filterVal: 'urgent' },
   ];
+
+  const handleStatClick = (stat) => {
+    if (stat.filterKey === 'today') {
+      // Scroll to today section
+      const el = document.querySelector('[data-section="today"]');
+      el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (stat.filterKey === 'completed') {
+      setFilter('completed', filter.completed === stat.filterVal ? null : stat.filterVal);
+    } else {
+      setFilter(stat.filterKey, filter[stat.filterKey] === stat.filterVal ? null : stat.filterVal);
+    }
+  };
 
   const greetingHour = new Date().getHours();
   const greeting = greetingHour < 12 ? 'Guten Morgen' : greetingHour < 18 ? 'Guten Tag' : 'Guten Abend';
@@ -196,21 +208,30 @@ export default function Dashboard() {
 
       {/* Stats */}
       <div className="stats-row">
-        {stats.map((stat, i) => (
-          <motion.div
-            key={stat.label}
-            className="stat-card"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.1 + i * 0.05 }}
-          >
-            <div className="stat-card-icon" style={{ background: stat.bg, color: stat.color }}>
-              {stat.icon}
-            </div>
-            <div className="stat-card-value" style={{ color: stat.color }}>{stat.value}</div>
-            <div className="stat-card-label">{stat.label}</div>
-          </motion.div>
-        ))}
+        {stats.map((stat, i) => {
+          const isActive =
+            stat.filterKey === 'today' ? false
+            : filter[stat.filterKey] === stat.filterVal;
+          return (
+            <motion.button
+              key={stat.label}
+              className={`stat-card ${isActive ? 'stat-card-active' : ''}`}
+              style={{ '--stat-color': stat.color, '--stat-accent': stat.accent }}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: 0.05 + i * 0.05 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => handleStatClick(stat)}
+            >
+              <div className="stat-card-top">
+                <div className="stat-card-icon">{stat.icon}</div>
+                <span className="stat-card-value">{stat.value}</span>
+              </div>
+              <span className="stat-card-label">{stat.label}</span>
+              <div className="stat-card-bar"><div className="stat-card-bar-fill" /></div>
+            </motion.button>
+          );
+        })}
       </div>
 
       {/* Filter Bar */}
@@ -239,7 +260,7 @@ export default function Dashboard() {
           const Icon = group.icon;
           const collapsed = collapsedSections[group.key];
           return (
-            <div key={group.key} className="dash-section">
+            <div key={group.key} className="dash-section" data-section={group.key}>
               <button
                 className="dash-section-header"
                 onClick={() => toggleSection(group.key)}
