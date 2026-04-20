@@ -111,6 +111,11 @@ export const useTaskStore = create((set, get) => ({
         return smart;
       }
 
+      // Query – return answer for UI to display as chat bubble
+      if (smart.intent === 'query') {
+        return smart;
+      }
+
       // Create (default / redirect)
       const data = await api.parseAndCreateTask(input);
       const created = Array.isArray(data.created_tasks) && data.created_tasks.length > 0

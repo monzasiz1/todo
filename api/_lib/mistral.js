@@ -321,6 +321,13 @@ INTENT ERKENNUNG:
 5. "attach" - Datei an Aufgabe anhängen
    - "Hänge Datei an Rechnung bezahlen", "Datei anhängen an Meeting", "Bild an Einkaufsliste", "Foto zu Zahnarzt hinzufügen"
    - Erkenne den Aufgabentitel aus der Liste
+6. "query" - Frage nach freier Zeit / Kapazitäten im Kalender (KEINE neue Aufgabe!)
+   - Signalwörter: "wann habe ich Zeit", "wo hab ich noch Platz", "wann bin ich frei", "kapazitäten",
+     "wann kann ich Sport machen", "welcher Tag ist frei", "wann habe ich keinen Termin",
+     "wo ist noch nichts eingetragen", "freie Slots", "wann könnte ich", "an welchem Tag",
+     "hab ich noch Platz", "wann passt es", "wann wäre ein guter Zeitpunkt"
+   - Beispiele: "Wo hab ich noch Kapazitäten?", "Wann kann ich zum Sport?", "Welcher Tag ist noch frei?"
+   - WICHTIG: Kein task_title nötig, kein new_date/time nötig
 
 SCOPE - Gilt die Änderung für ALLE Vorkommen oder nur EINEN Termin?
 - scope: "single" → Nur DIESEN einen Termin ändern
@@ -347,7 +354,7 @@ Regeln:
 
 Antworte NUR mit validem JSON:
 {
-  "intent": "create|delete|move|update|attach",
+  "intent": "create|delete|move|update|attach|query",
   "task_title": "Erkannter Aufgabentitel aus der Liste (oder null bei create)",
   "new_date": "YYYY-MM-DD oder null (nur bei move)",
   "new_time": "HH:MM oder null (nur bei move)",
@@ -384,7 +391,7 @@ Antworte NUR mit validem JSON:
   try {
     const parsed = JSON.parse(content);
     return {
-      intent: ['create', 'delete', 'move', 'update', 'attach'].includes(parsed.intent) ? parsed.intent : 'create',
+      intent: ['create', 'delete', 'move', 'update', 'attach', 'query'].includes(parsed.intent) ? parsed.intent : 'create',
       task_title: parsed.task_title || null,
       new_date: parsed.new_date || null,
       new_time: parsed.new_time || null,
@@ -398,4 +405,46 @@ Antworte NUR mit validem JSON:
   }
 }
 
-module.exports = { parseTaskWithAI, parsePermissionsWithAI, classifyIntentWithAI };
+async function answerCalendarQueryWithAI(question, calendarContext) {
+  const key = process.env.MISTRAL_API_KEY;
+  if (!key) throw new Error('MISTRAL_API_KEY nicht konfiguriert');
+
+  const systemPrompt = `Du bist ein hilfreicher Kalender-Assistent der Taski-App.
+Der Nutzer stellt eine Frage über seinen Kalender / seine freie Zeit.
+Antworte auf Deutsch, konkret, freundlich und kurz (max. 4 Sätze).
+Nenne spezifische Tage und Uhrzeiten. Wenn du Sport oder Aktivitäten empfiehlst, nenne den besten Tag dafür.
+Nutze keine Markdown-Formatierung, schreibe normalen Text.
+
+Heutiges Datum: ${calendarContext.today} (${calendarContext.todayName})
+
+Termine und Aufgaben der nächsten 14 Tage:
+${calendarContext.days.map(d => {
+  const events = d.tasks.length === 0
+    ? 'Nichts eingetragen – komplett frei'
+    : d.tasks.map(t => `  • ${t.title}${t.time ? ` um ${t.time}${t.time_end ? `–${t.time_end}` : ''}` : ' (ganztägig)'}`).join('\n');
+  return `${d.dayName}, ${d.date}:\n${events}`;
+}).join('\n\n')}`;
+
+  const response = await fetch(MISTRAL_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify({
+      model: 'mistral-small-latest',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: question },
+      ],
+      temperature: 0.4,
+      max_tokens: 250,
+    }),
+  });
+
+  if (!response.ok) throw new Error(`Mistral API Fehler: ${response.status}`);
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content?.trim() || 'Ich konnte deinen Kalender leider nicht analysieren.';
+}
+
+module.exports = { parseTaskWithAI, parsePermissionsWithAI, classifyIntentWithAI, answerCalendarQueryWithAI };

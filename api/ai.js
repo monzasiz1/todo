@@ -1,6 +1,6 @@
 const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
-const { parseTaskWithAI, parsePermissionsWithAI, classifyIntentWithAI } = require('./_lib/mistral');
+const { parseTaskWithAI, parsePermissionsWithAI, classifyIntentWithAI, answerCalendarQueryWithAI } = require('./_lib/mistral');
 
 function toDateOnly(value) {
   if (!value) return null;
@@ -413,6 +413,50 @@ module.exports = async function handler(req, res) {
       // === CREATE → delegate to parse-and-create logic ===
       if (intent.intent === 'create') {
         return res.json({ intent: 'create', redirect: true });
+      }
+
+      // === QUERY → answer free time / capacity question ===
+      if (intent.intent === 'query') {
+        const now = new Date();
+        const days = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+        const today = now.toISOString().split('T')[0];
+
+        // Fetch tasks for the next 14 days
+        const end = new Date(now.getTime() + 14 * 86400000).toISOString().split('T')[0];
+        const { rows: upcoming } = await pool.query(
+          `SELECT title, date, time, time_end, type
+           FROM tasks
+           WHERE user_id = $1
+             AND date >= $2 AND date <= $3
+             AND completed = false
+           ORDER BY date ASC, time ASC NULLS LAST`,
+          [user.id, today, end]
+        );
+
+        // Build per-day calendar context
+        const calDays = [];
+        for (let i = 0; i < 14; i++) {
+          const d = new Date(now.getTime() + i * 86400000);
+          const dateStr = d.toISOString().split('T')[0];
+          calDays.push({
+            date: dateStr,
+            dayName: days[d.getDay()],
+            tasks: upcoming.filter(t => {
+              const td = t.date instanceof Date
+                ? t.date.toISOString().split('T')[0]
+                : String(t.date).substring(0, 10);
+              return td === dateStr;
+            }).map(t => ({ title: t.title, time: t.time, time_end: t.time_end })),
+          });
+        }
+
+        const answer = await answerCalendarQueryWithAI(input, {
+          today,
+          todayName: days[now.getDay()],
+          days: calDays,
+        });
+
+        return res.json({ intent: 'query', answer });
       }
 
       // Find matching task by fuzzy title

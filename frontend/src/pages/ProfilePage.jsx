@@ -229,19 +229,6 @@ export default function ProfilePage() {
     setVisibility(val);
     setSavingVisibility(true);
     try {
-      await api.request('/profile/visibility', { method: 'PATCH', body: JSON.stringify({ profile_visibility: val }) });
-      showToast('Sichtbarkeit gespeichert');
-    } catch (err) {
-      showToast(err.message, 'error');
-    } finally {
-      setSavingVisibility(false);
-    }
-  };
-
-  const saveVisibility = async (val) => {
-    setVisibility(val);
-    setSavingVisibility(true);
-    try {
       await api.updateVisibility(val);
       showToast('Sichtbarkeit gespeichert');
     } catch (err) {

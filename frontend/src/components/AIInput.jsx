@@ -10,6 +10,7 @@ export default function AIInput({ onTaskCreated }) {
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [aiReply, setAiReply] = useState(null); // { question, answer } for query intent
   const inputRef = useRef(null);
   const debounceRef = useRef(null);
   const attachFileRef = useRef(null);
@@ -44,12 +45,22 @@ export default function AIInput({ onTaskCreated }) {
 
     setLoading(true);
     setShowPreview(false);
+    setAiReply(null);
 
-    const result = await aiCreateTask(input.trim());
+    const question = input.trim();
+    const result = await aiCreateTask(question);
 
     if (result) {
       setInput('');
       setPreview(null);
+
+      // Query: show answer as chat bubble
+      if (result.intent === 'query' && result.answer) {
+        setAiReply({ question, answer: result.answer });
+        setLoading(false);
+        inputRef.current?.focus();
+        return;
+      }
 
       // If attach intent: open file picker for the matched task
       if (result.intent === 'attach' && result.success && result.task) {
@@ -209,12 +220,32 @@ export default function AIInput({ onTaskCreated }) {
 
           {!showPreview && !loading && (
             <div className="ai-input-hint">
-              💡 "Freitag Reinigung 18 Uhr" · "Lösche Zahnarzt" · "Verschiebe Meeting auf Montag" · "Hänge Datei an Rechnung"
+              💡 "Freitag Reinigung 18 Uhr" · "Lösche Zahnarzt" · "Wo hab ich noch Kapazitäten?" · "Wann kann ich zum Sport?"
             </div>
           )}
         </div>
         </motion.div>
       </form>
+
+      {/* AI Calendar Query Reply Bubble */}
+      <AnimatePresence>
+        {aiReply && (
+          <motion.div
+            className="ai-reply-bubble"
+            initial={{ opacity: 0, y: -10, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.97 }}
+            transition={{ duration: 0.25 }}
+          >
+            <div className="ai-reply-question">{aiReply.question}</div>
+            <div className="ai-reply-answer">
+              <div className="ai-reply-icon"><Sparkles size={15} /></div>
+              <div className="ai-reply-text">{aiReply.answer}</div>
+            </div>
+            <button className="ai-reply-close" onClick={() => setAiReply(null)}>×</button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Hidden file input for AI attach intent */}
       <input

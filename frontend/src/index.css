@@ -524,6 +524,59 @@ input, textarea, select {
   color: var(--text-tertiary);
 }
 
+/* AI Calendar Query Reply */
+.ai-reply-bubble {
+  position: relative;
+  background: var(--card-solid);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px 36px 14px 16px;
+  margin-top: 10px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+}
+
+.ai-reply-question {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+  font-style: italic;
+}
+
+.ai-reply-answer {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.ai-reply-icon {
+  color: var(--primary);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.ai-reply-text {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.55;
+}
+
+.ai-reply-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+
+.ai-reply-close:hover {
+  color: var(--text);
+}
+
 .manual-task-attachment {
   margin-top: -1px;
 }
