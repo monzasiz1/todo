@@ -260,7 +260,13 @@ module.exports = async function handler(req, res) {
 
       const recurrenceRule = parsed.recurrence_rule || null;
       const recurrenceInterval = Math.max(1, Number(parsed.recurrence_interval) || 1);
-      const recurrenceEnd = parsed.recurrence_end || null;
+      // Wenn keine Enddatum für Wiederholung angegeben: Standard 5 Jahre
+      let recurrenceEnd = parsed.recurrence_end || null;
+      if (recurrenceRule && !recurrenceEnd && parsed.date) {
+        const defaultEnd = new Date(parsed.date + 'T00:00:00');
+        defaultEnd.setFullYear(defaultEnd.getFullYear() + 5);
+        recurrenceEnd = defaultEnd.toISOString().split('T')[0];
+      }
       const extraDates = buildRecurringDates(parsed.date || null, recurrenceRule, recurrenceInterval, recurrenceEnd);
 
       let spanDays = 0;
@@ -524,7 +530,7 @@ module.exports = async function handler(req, res) {
           });
         }
 
-        const allowed = ['title', 'description', 'priority', 'date', 'time', 'time_end', 'date_end'];
+        const allowed = ['title', 'description', 'priority', 'date', 'time', 'time_end', 'date_end', 'recurrence_rule', 'recurrence_interval', 'recurrence_end'];
         const updates = {};
         if (intent.updates && typeof intent.updates === 'object') {
           for (const [k, v] of Object.entries(intent.updates)) {
@@ -542,6 +548,57 @@ module.exports = async function handler(req, res) {
 
         const setClauses = Object.keys(updates).map((k, i) => `${k} = $${i + 2}`);
         const values = Object.values(updates);
+
+        // === SPECIAL: Nachträglich wiederkehrend machen ===
+        // Wenn recurrence_rule gesetzt wird und der Task noch KEINE Kinder hat → Folge-Einträge erstellen
+        if (updates.recurrence_rule && matchedTask.date) {
+          // Task hatte vorher keine Wiederholung → recurrence_parent_id ist null
+          const hasChildren = await pool.query(
+            'SELECT COUNT(*) FROM tasks WHERE recurrence_parent_id = $1',
+            [matchedTask.id]
+          );
+          const childCount = parseInt(hasChildren.rows[0].count);
+
+          // Update den bestehenden Task (wird Parent)
+          await pool.query(
+            `UPDATE tasks SET ${setClauses.join(', ')}, updated_at = NOW() WHERE id = $1`,
+            [matchedTask.id, ...values]
+          );
+
+          // Nur neue Kinder erstellen wenn noch keine existieren
+          if (childCount === 0) {
+            const rule = updates.recurrence_rule;
+            const interval = Math.max(1, Number(updates.recurrence_interval) || 1);
+            // Enddatum: wenn nicht angegeben, 5 Jahre in die Zukunft (für "ewig" wiederholende Termine)
+            const defaultEnd = new Date(matchedTask.date);
+            defaultEnd.setFullYear(defaultEnd.getFullYear() + 5);
+            const recEnd = updates.recurrence_end || defaultEnd.toISOString().split('T')[0];
+
+            const extraDates = buildRecurringDates(matchedTask.date, rule, interval, recEnd);
+            let createdCount = 0;
+
+            for (let i = 0; i < extraDates.length; i++) {
+              const oDate = extraDates[i];
+              await pool.query(
+                `INSERT INTO tasks (user_id, title, description, date, time, time_end, priority, category_id, sort_order, visibility,
+                 recurrence_rule, recurrence_interval, recurrence_end, recurrence_parent_id, type)
+                 SELECT user_id, title, description, $2, time, time_end, priority, category_id, sort_order + $3, visibility,
+                 $4, $5, $6, $1, type FROM tasks WHERE id = $1`,
+                [matchedTask.id, oDate, i + 1, rule, interval, recEnd]
+              );
+              createdCount++;
+            }
+
+            return res.json({
+              intent: 'update',
+              success: true,
+              task: { id: matchedTask.id, title: matchedTask.title, ...updates },
+              scope: 'all',
+              updated_count: createdCount + 1,
+              message: `"${matchedTask.title}" ist jetzt wiederkehrend (${rule}) – ${createdCount + 1} Termine insgesamt`,
+            });
+          }
+        }
 
         // scope=all → update all occurrences (parent + children)
         if (intent.scope === 'all') {

@@ -302,9 +302,22 @@ INTENT ERKENNUNG:
    - "Meeting von 14 auf 16 Uhr" → intent: "move", task_title: "Meeting", new_time: "16:00"
    - "den Arzt morgen auf nächste Woche" → intent: "move", new_date: nächste-Woche-gleicher-Tag
    - WICHTIG: Bei "verschiebe X morgen auf Y" bedeutet "morgen" wann der Termin AKTUELL ist, "auf Y" ist das NEUE Datum
-4. "update" - Aufgabe/Termin ändern (Titel, Priorität, Uhrzeit, Beschreibung etc.)
+4. "update" - Aufgabe/Termin ändern (Titel, Priorität, Uhrzeit, Beschreibung, Wiederholung etc.)
    - "Ändere Einkaufen zu dringend", "Zahnarzt Beschreibung: Raum 3"
    - "ändere Uhrzeit zu 8:30", "Zeit auf 10 Uhr setzen", "Uhrzeit ändern"
+   - WIEDERKEHREND MACHEN: Erkenne wenn ein bestehender Termin wiederkehrend werden soll
+     Signalwörter: "wiederkehrend", "wiederholen", "jedes Jahr", "jährlich", "jede Woche", "wöchentlich",
+     "täglich", "monatlich", "jeden Monat", "jährlich wiederholen", "soll sich wiederholen"
+     → intent: "update", updates.recurrence_rule, updates.recurrence_interval (Standard: 1)
+   - recurrence_rule Werte:
+     "täglich" / "jeden Tag" → "daily"
+     "wöchentlich" / "jede Woche" / "jeden [Wochentag]" → "weekly"
+     "alle 2 Wochen" / "jede zweite Woche" → "biweekly"
+     "monatlich" / "jeden Monat" / "monatlich" → "monthly"
+     "jährlich" / "jedes Jahr" / "einmal im Jahr" → "yearly"
+     "werktags" / "jeden Werktag" / "Montag bis Freitag" → "weekdays"
+   - recurrence_interval: Zahl (Standard 1, bei "alle 2 Wochen" → 2, bei "alle 3 Monate" → 3)
+   - recurrence_end: Enddatum falls angegeben (YYYY-MM-DD), sonst null (kein Ende)
 5. "attach" - Datei an Aufgabe anhängen
    - "Hänge Datei an Rechnung bezahlen", "Datei anhängen an Meeting", "Bild an Einkaufsliste", "Foto zu Zahnarzt hinzufügen"
    - Erkenne den Aufgabentitel aus der Liste
@@ -329,6 +342,7 @@ Regeln:
 - Wenn der Nutzer sagt "auf morgen" → new_date: ${tomorrow}
 - Wochentage korrekt berechnen aus der Liste oben
 - Bei "update" mit Uhrzeit (z.B. "ändere Zeit zu 8:30", "Uhrzeit auf 10:00"): updates.time = "HH:MM"
+- Bei "update" mit Wiederholung: updates.recurrence_rule = "yearly"/"monthly" etc., updates.recurrence_interval = 1
 - Im Zweifel: intent "create" (Standardfall)
 
 Antworte NUR mit validem JSON:
@@ -337,7 +351,7 @@ Antworte NUR mit validem JSON:
   "task_title": "Erkannter Aufgabentitel aus der Liste (oder null bei create)",
   "new_date": "YYYY-MM-DD oder null (nur bei move)",
   "new_time": "HH:MM oder null (nur bei move)",
-  "updates": {} oder null (nur bei update: z.B. {"time": "08:30", "priority": "urgent", "description": "..."}),
+  "updates": {} oder null (nur bei update: z.B. {"time": "08:30", "recurrence_rule": "yearly", "recurrence_interval": 1, "recurrence_end": null}),
   "scope": "single oder all",
   "target_date": "YYYY-MM-DD oder null (das Datum des spezifischen Vorkommens bei scope=single)",
   "confidence": 0.0-1.0

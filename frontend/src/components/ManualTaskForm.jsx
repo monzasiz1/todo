@@ -343,6 +343,11 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
                 />
               </div>
             </div>
+            {recurrenceRule && !recurrenceEnd && (
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: -4, paddingLeft: 2 }}>
+                Ohne Enddatum werden Termine für 5 Jahre erstellt.
+              </div>
+            )}
 
             <div className="task-edit-field" style={{ marginBottom: 0 }}>
               <label><UsersRound size={14} /> Gruppe</label>

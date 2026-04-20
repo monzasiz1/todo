@@ -394,7 +394,13 @@ module.exports = async function handler(req, res) {
 
       const recurrenceRule = recurrence_rule || null;
       const recurrenceInterval = Math.max(1, Number(recurrence_interval) || 1);
-      const recurrenceEnd = recurrence_end || null;
+      // Wenn keine Enddatum für Wiederholung angegeben: Standard 5 Jahre
+      let recurrenceEnd = recurrence_end || null;
+      if (recurrenceRule && !recurrenceEnd && date) {
+        const defaultEnd = new Date(date + 'T00:00:00');
+        defaultEnd.setFullYear(defaultEnd.getFullYear() + 5);
+        recurrenceEnd = defaultEnd.toISOString().split('T')[0];
+      }
       const extraDates = buildRecurringDates(date || null, recurrenceRule, recurrenceInterval, recurrenceEnd);
 
       let spanDays = 0;
