@@ -8,6 +8,62 @@ import { CheckCircle2, Circle, Clock, Flame, ChevronDown, CalendarDays, AlertTri
 import { isToday, isTomorrow, isThisWeek, isPast, parseISO, format, startOfDay, compareAsc } from 'date-fns';
 import { de } from 'date-fns/locale';
 
+function deduplicateRecurring(tasks) {
+  // Pro Wiederkehr-Serie nur die nächste anstehende Instanz im Dashboard zeigen
+  const today = startOfDay(new Date());
+  const seriesMap = new Map(); // seriesKey → beste Instanz
+
+  for (const task of tasks) {
+    // Keine Wiederkehr-Serie → direkt behalten
+    const seriesKey = task.recurrence_parent_id
+      ? String(task.recurrence_parent_id)
+      : task.recurrence_rule
+        ? `self-${task.id}`
+        : null;
+
+    if (!seriesKey) continue; // standalone, kein Dedup nötig
+
+    const existing = seriesMap.get(seriesKey);
+    if (!existing) {
+      seriesMap.set(seriesKey, task);
+      continue;
+    }
+
+    // Vergleiche: Bevorzuge nächste zukünftige (oder heutige) Instanz
+    const tDate = task.date ? parseISO(task.date) : null;
+    const eDate = existing.date ? parseISO(existing.date) : null;
+
+    if (!tDate) continue;
+    if (!eDate) { seriesMap.set(seriesKey, task); continue; }
+
+    const tFuture = tDate >= today;
+    const eFuture = eDate >= today;
+
+    if (tFuture && !eFuture) {
+      // task ist zukünftig, existing war vergangen → nimm task
+      seriesMap.set(seriesKey, task);
+    } else if (tFuture && eFuture) {
+      // Beide zukünftig → nimm das nähere
+      if (tDate < eDate) seriesMap.set(seriesKey, task);
+    }
+    // existing zukünftig, task vergangen → behalte existing (nichts tun)
+    // Beide vergangen → behalte das neuere (näher an heute)
+    else if (!tFuture && !eFuture) {
+      if (tDate > eDate) seriesMap.set(seriesKey, task);
+    }
+  }
+
+  return tasks.filter((t) => {
+    const seriesKey = t.recurrence_parent_id
+      ? String(t.recurrence_parent_id)
+      : t.recurrence_rule
+        ? `self-${t.id}`
+        : null;
+    if (!seriesKey) return true; // standalone immer zeigen
+    return seriesMap.get(seriesKey)?.id === t.id;
+  });
+}
+
 function groupTasksByDate(tasks) {
   const now = new Date();
   const todayStart = startOfDay(now);
@@ -74,7 +130,8 @@ export default function Dashboard() {
   }, []);
 
   const filtered = getFilteredTasks();
-  const groups = groupTasksByDate(filtered);
+  const deduplicated = deduplicateRecurring(filtered.filter((t) => !t.completed));
+  const groups = groupTasksByDate(deduplicated);
   const completedTasks = filtered.filter((t) => t.completed)
     .sort((a, b) => compareAsc(parseISO(b.updated_at || b.created_at), parseISO(a.updated_at || a.created_at)))
     .slice(0, 20);

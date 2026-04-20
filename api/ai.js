@@ -580,12 +580,17 @@ module.exports = async function handler(req, res) {
           if (childCount === 0) {
             const rule = updates.recurrence_rule;
             const interval = Math.max(1, Number(updates.recurrence_interval) || 1);
-            // Enddatum: wenn nicht angegeben, 5 Jahre in die Zukunft (für "ewig" wiederholende Termine)
-            const defaultEnd = new Date(matchedTask.date);
-            defaultEnd.setFullYear(defaultEnd.getFullYear() + 5);
-            const recEnd = updates.recurrence_end || defaultEnd.toISOString().split('T')[0];
+            // Enddatum: toDateOnly() damit Date-Objekte von PostgreSQL korrekt verarbeitet werden
+            const baseDate = toDateOnly(matchedTask.date);
+            if (!baseDate) {
+              return res.json({ intent: 'update', success: false, message: 'Termindatum ungültig.' });
+            }
+            const endFallback = new Date(baseDate.getTime());
+            endFallback.setFullYear(endFallback.getFullYear() + 5);
+            const recEnd = updates.recurrence_end || formatDateOnly(endFallback);
+            const startDateStr = formatDateOnly(baseDate);
 
-            const extraDates = buildRecurringDates(matchedTask.date, rule, interval, recEnd);
+            const extraDates = buildRecurringDates(startDateStr, rule, interval, recEnd);
             let createdCount = 0;
 
             for (let i = 0; i < extraDates.length; i++) {
