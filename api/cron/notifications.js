@@ -123,39 +123,46 @@ module.exports = async function handler(req, res) {
     }
 
     // ─── 4. Team-Aufgaben (neue Gruppen-Tasks der letzten 5 Minuten) ───
-    const { rows: newGroupTasks } = await pool.query(
-      `SELECT t.id, t.title, t.user_id as creator_id, g.id as group_id, g.name as group_name
-       FROM tasks t
-       INNER JOIN groups g ON t.group_id = g.id
-       WHERE t.created_at > NOW() - INTERVAL '6 minutes'
-       AND t.created_at <= NOW()`
+    // Only run if tasks table has group_id column
+    const { rows: colCheck } = await pool.query(
+      `SELECT 1 FROM information_schema.columns
+       WHERE table_name = 'tasks' AND column_name = 'group_id' LIMIT 1`
     );
 
-    for (const task of newGroupTasks) {
-      // Get all group members except the creator
-      const { rows: members } = await pool.query(
-        `SELECT user_id FROM group_members
-         WHERE group_id = $1 AND user_id != $2`,
-        [task.group_id, task.creator_id]
+    if (colCheck.length > 0) {
+      const { rows: newGroupTasks } = await pool.query(
+        `SELECT t.id, t.title, t.user_id as creator_id, g.id as group_id, g.name as group_name
+         FROM tasks t
+         INNER JOIN groups g ON t.group_id = g.id
+         WHERE t.created_at > NOW() - INTERVAL '6 minutes'
+         AND t.created_at <= NOW()`
       );
 
-      for (const member of members) {
-        if (!(await isTypeEnabled(member.user_id, 'team_task'))) continue;
-        const already = await wasTaskReminderSent(member.user_id, task.id);
-        if (already) continue;
-
-        await sendPushToUser(
-          member.user_id,
-          {
-            title: `👥 ${task.group_name}`,
-            body: `Neue Aufgabe: ${task.title}`,
-            tag: `team-${task.id}`,
-            url: '/groups',
-          },
-          'team_task',
-          task.id
+      for (const task of newGroupTasks) {
+        const { rows: members } = await pool.query(
+          `SELECT user_id FROM group_members
+           WHERE group_id = $1 AND user_id != $2`,
+          [task.group_id, task.creator_id]
         );
-        results.team++;
+
+        for (const member of members) {
+          if (!(await isTypeEnabled(member.user_id, 'team_task'))) continue;
+          const already = await wasTaskReminderSent(member.user_id, task.id);
+          if (already) continue;
+
+          await sendPushToUser(
+            member.user_id,
+            {
+              title: `👥 ${task.group_name}`,
+              body: `Neue Aufgabe: ${task.title}`,
+              tag: `team-${task.id}`,
+              url: '/groups',
+            },
+            'team_task',
+            task.id
+          );
+          results.team++;
+        }
       }
     }
 

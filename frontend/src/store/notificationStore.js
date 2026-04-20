@@ -19,6 +19,21 @@ const useNotificationStore = create((set, get) => ({
   loading: false,
   prefs: { reminder: true, daily_tasks: true, engagement: true, team_task: true },
 
+  // Add a local notification (shown immediately in bell)
+  addLocalNotification: (notification) => {
+    const entry = {
+      id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      type: notification.type || 'reminder',
+      title: notification.title,
+      body: notification.body,
+      task_id: notification.task_id || null,
+      sent_at: new Date().toISOString(),
+    };
+    set((s) => ({
+      notifications: [entry, ...s.notifications].slice(0, 50),
+    }));
+  },
+
   // Check current subscription status + load preferences
   checkStatus: async () => {
     try {

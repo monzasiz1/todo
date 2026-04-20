@@ -11,7 +11,7 @@ import { useNotificationStore } from '../store/notificationStore';
  */
 export default function ReminderChecker() {
   const { tasks, addToast } = useTaskStore();
-  const { fetchLog } = useNotificationStore();
+  const { fetchLog, addLocalNotification } = useNotificationStore();
   const firedRef = useRef(new Set()); // Track already-fired reminders
 
   useEffect(() => {
@@ -33,7 +33,15 @@ export default function ReminderChecker() {
           // 1. In-App Toast
           addToast(body, 'info');
 
-          // 2. Browser Notification (works without Push subscription)
+          // 2. Add to notification bell immediately
+          addLocalNotification({
+            type: 'reminder',
+            title,
+            body,
+            task_id: task.id,
+          });
+
+          // 3. Browser Notification (works without Push subscription)
           if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
             try {
               new Notification(title, {
@@ -57,7 +65,7 @@ export default function ReminderChecker() {
             }
           }
 
-          // 3. Refresh notification log
+          // 4. Refresh notification log from server
           fetchLog();
         }
       }
