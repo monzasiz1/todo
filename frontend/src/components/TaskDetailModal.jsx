@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTaskStore } from '../store/taskStore';
 import {
-  X, Calendar, Clock, Tag, Flag, CheckCircle2, Circle,
+  X, Calendar, CalendarCheck, Clock, Tag, Flag, CheckCircle2, Circle,
   Trash2, AlertTriangle, Repeat, Bell, FileText, ListChecks,
   Lock, Users, UserCheck, Eye, Edit3, Pencil
 } from 'lucide-react';
@@ -44,6 +44,7 @@ export default function TaskDetailModal({ task, onClose }) {
   const PriorityIcon = priority.icon;
   const canEdit = task.is_owner === false ? (task.can_edit === true) : true;
   const isShared = task.visibility && task.visibility !== 'private';
+  const isEvent = task.type === 'event';
 
   const handleToggle = () => {
     toggleTask(task.id);
@@ -91,21 +92,30 @@ export default function TaskDetailModal({ task, onClose }) {
 
           {/* Status + Title */}
           <div className="task-detail-title-row">
-            <motion.div
-              className={`task-detail-checkbox ${task.completed ? 'checked' : ''}`}
-              onClick={handleToggle}
-              whileTap={{ scale: 0.85 }}
-            >
-              {task.completed ? <CheckCircle2 size={28} /> : <Circle size={28} />}
-            </motion.div>
+            {isEvent ? (
+              <div className="task-detail-event-icon">
+                <CalendarCheck size={28} />
+              </div>
+            ) : (
+              <motion.div
+                className={`task-detail-checkbox ${task.completed ? 'checked' : ''}`}
+                onClick={handleToggle}
+                whileTap={{ scale: 0.85 }}
+              >
+                {task.completed ? <CheckCircle2 size={28} /> : <Circle size={28} />}
+              </motion.div>
+            )}
             <div>
-              <h2 className={`task-detail-title ${task.completed ? 'completed' : ''}`}>
+              <h2 className={`task-detail-title ${task.completed && !isEvent ? 'completed' : ''}`}>
                 {task.title}
               </h2>
-              {task.completed && (
+              {isEvent && (
+                <span className="task-detail-status event">Termin</span>
+              )}
+              {!isEvent && task.completed && (
                 <span className="task-detail-status done">Erledigt</span>
               )}
-              {isOverdue && (
+              {isOverdue && !isEvent && (
                 <span className="task-detail-status overdue">Überfällig</span>
               )}
             </div>
@@ -323,7 +333,7 @@ export default function TaskDetailModal({ task, onClose }) {
 
           {/* Actions */}
           <div className="task-detail-actions">
-            {canEdit && (
+            {canEdit && !isEvent && (
               <motion.button
                 className={`task-detail-btn ${task.completed ? 'reopen' : 'complete'}`}
                 onClick={handleToggle}

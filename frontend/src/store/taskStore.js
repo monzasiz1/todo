@@ -50,7 +50,8 @@ export const useTaskStore = create((set, get) => ({
       const recurrenceMsg = (data.created_count || 0) > 1
         ? ` · ${data.created_count} Termine erstellt`
         : '';
-      get().addToast(`✅ Aufgabe erstellt${groupMsg}${recurrenceMsg}`);
+      const typeMsg = task.type === 'event' ? '📅 Termin' : '✅ Aufgabe';
+      get().addToast(`${typeMsg} erstellt${groupMsg}${recurrenceMsg}`);
       return data;
     } catch (err) {
       get().addToast('❌ ' + err.message, 'error');

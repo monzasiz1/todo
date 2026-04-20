@@ -4,9 +4,9 @@ import { useTaskStore } from '../store/taskStore';
 import { useFriendsStore } from '../store/friendsStore';
 import { api } from '../utils/api';
 import {
-  X, Calendar, Clock, Tag, Flag, FileText, Bell,
+  X, Calendar, CalendarCheck, Clock, Tag, Flag, FileText, Bell,
   Save, Users, UserCheck, Lock, Eye, Edit3,
-  ChevronDown, Sparkles, Loader2, AlertTriangle, UsersRound, Repeat
+  ChevronDown, Sparkles, Loader2, AlertTriangle, UsersRound, Repeat, ListTodo
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import AvatarBadge from './AvatarBadge';
@@ -39,6 +39,7 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
   const { friends, fetchFriends } = useFriendsStore();
 
   // Form state
+  const [taskType, setTaskType] = useState(task.type || 'task');
   const [title, setTitle] = useState(task.title || '');
   const [description, setDescription] = useState(task.description || '');
   const [date, setDate] = useState(task.date ? task.date.substring(0, 10) : '');
@@ -144,6 +145,7 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
     try {
       // 1. Update task fields
       const updates = {
+        type: taskType,
         title: title.trim(),
         description: description.trim(),
         date: date || null,
@@ -225,6 +227,26 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
 
         {/* Scrollable content */}
         <div className="task-edit-body">
+          {/* Type Toggle */}
+          <div className="task-type-toggle">
+            <button
+              type="button"
+              className={`task-type-btn ${taskType === 'task' ? 'active' : ''}`}
+              onClick={() => setTaskType('task')}
+            >
+              <ListTodo size={16} />
+              Aufgabe
+            </button>
+            <button
+              type="button"
+              className={`task-type-btn event ${taskType === 'event' ? 'active' : ''}`}
+              onClick={() => setTaskType('event')}
+            >
+              <CalendarCheck size={16} />
+              Termin
+            </button>
+          </div>
+
           {/* Title */}
           <div className="task-edit-field">
             <label><FileText size={14} /> Titel</label>

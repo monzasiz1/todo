@@ -272,16 +272,18 @@ module.exports = async function handler(req, res) {
         }
       }
 
+      const taskType = parsed.type === 'event' ? 'event' : 'task';
+
       const result = await pool.query(
         `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order, visibility,
-         recurrence_rule, recurrence_interval, recurrence_end)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+         recurrence_rule, recurrence_interval, recurrence_end, type)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
          RETURNING *`,
         [user.id, parsed.title, parsed.description || null, parsed.date || null,
          parsed.date_end || null, parsed.time || null, parsed.time_end || null,
          parsed.priority || 'medium', categoryId,
          null, maxOrder.rows[0].next_order, finalVisibility,
-         recurrenceRule, recurrenceInterval, recurrenceEnd]
+         recurrenceRule, recurrenceInterval, recurrenceEnd, taskType]
       );
 
       const firstTask = result.rows[0];
@@ -294,14 +296,14 @@ module.exports = async function handler(req, res) {
 
         const ins = await pool.query(
           `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order, visibility,
-           recurrence_rule, recurrence_interval, recurrence_end, recurrence_parent_id)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+           recurrence_rule, recurrence_interval, recurrence_end, recurrence_parent_id, type)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
            RETURNING *`,
           [user.id, parsed.title, parsed.description || null, occurrenceDate,
            occurrenceDateEnd, parsed.time || null, parsed.time_end || null,
            parsed.priority || 'medium', categoryId,
            null, maxOrder.rows[0].next_order + i + 1, finalVisibility,
-           recurrenceRule, recurrenceInterval, recurrenceEnd, firstTask.id]
+           recurrenceRule, recurrenceInterval, recurrenceEnd, firstTask.id, taskType]
         );
 
         createdTasks.push(ins.rows[0]);

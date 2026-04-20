@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTaskStore } from '../store/taskStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ArrowUp, Calendar, Clock, Tag, Flag, Loader2, UsersRound } from 'lucide-react';
+import { Sparkles, ArrowUp, Calendar, CalendarCheck, Clock, Tag, Flag, Loader2, UsersRound, ListTodo } from 'lucide-react';
 import AvatarBadge from './AvatarBadge';
 
 export default function AIInput({ onTaskCreated }) {
@@ -108,6 +108,12 @@ export default function AIInput({ onTaskCreated }) {
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.2 }}
               >
+                {preview.type && (
+                  <span className={`ai-tag ${preview.type === 'event' ? 'event-type' : 'task-type'}`}>
+                    {preview.type === 'event' ? <CalendarCheck size={12} /> : <ListTodo size={12} />}
+                    {preview.type === 'event' ? 'Termin' : 'Aufgabe'}
+                  </span>
+                )}
                 {preview.title && (
                   <span className="ai-tag">
                     <Tag size={12} />

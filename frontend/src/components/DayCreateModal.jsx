@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, ArrowUp, Calendar, Clock, Tag, Flag, Loader2, Pencil, ChevronLeft } from 'lucide-react';
+import { X, Sparkles, ArrowUp, Calendar, CalendarCheck, Clock, Tag, Flag, Loader2, Pencil, ChevronLeft, ListTodo } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { useTaskStore } from '../store/taskStore';
@@ -133,6 +133,9 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated }) 
                 }}
               >
                 <div className="day-create-task-info">
+                  {task.type === 'event' && (
+                    <CalendarCheck size={14} style={{ color: '#AF52DE', flexShrink: 0 }} />
+                  )}
                   {task.group_id && (
                     <AvatarBadge
                       name={task.group_name}
@@ -248,6 +251,12 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated }) 
                       exit={{ opacity: 0, height: 0 }}
                       transition={{ duration: 0.2 }}
                     >
+                      {preview.type && (
+                        <span className={`ai-tag ${preview.type === 'event' ? 'event-type' : 'task-type'}`}>
+                          {preview.type === 'event' ? <CalendarCheck size={12} /> : <ListTodo size={12} />}
+                          {preview.type === 'event' ? 'Termin' : 'Aufgabe'}
+                        </span>
+                      )}
                       {preview.title && (
                         <span className="ai-tag"><Tag size={12} />{preview.title}</span>
                       )}

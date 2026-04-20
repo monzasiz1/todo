@@ -29,6 +29,10 @@ Nächste Wochentage ab heute:
 ${Object.entries(nextWeekdays).map(([day, date]) => `- ${day} → ${date}`).join('\n')}
 
 Regeln:
+- WICHTIG: Unterscheide ob es sich um einen TERMIN (type: "event") oder eine AUFGABE (type: "task") handelt:
+  - TERMIN (event): Feste Zeitpunkte wie Arzttermin, Meeting, Probe, Geburtstag, Konzert, Vorlesung, Kirmes, Feiertag, Urlaub. Termine haben typischerweise ein festes Datum/Uhrzeit und können NICHT abgehakt werden.
+  - AUFGABE (task): Dinge die erledigt werden müssen wie Einkaufen, Rechnung bezahlen, Wäsche waschen, E-Mail schreiben, Hausaufgaben. Aufgaben können als erledigt markiert werden.
+  - Im Zweifel: Wenn eine Uhrzeit/Zeitraum UND ein Ort oder Treffpunkt erkennbar ist → event. Wenn eine Tätigkeit beschrieben wird die abgearbeitet werden soll → task.
 - Erkenne den Aufgabentitel (kurz und prägnant, was getan werden soll)
 - Erkenne Beschreibung/Details: Wenn der Nutzer zusätzliche Infos gibt (z.B. "Peter kommt nicht zur Probe", "Milch, Eier, Butter kaufen"), extrahiere diese als description
 - Bei Einkaufslisten oder Aufzählungen: Formatiere die Items als "• Item1\\n• Item2\\n• Item3" in der description
@@ -91,6 +95,7 @@ Beispiele:
 
 JSON Format:
 {
+  "type": "task|event",
   "title": "string (kurz, max 5-6 Wörter)",
   "description": "string oder null (Details, Listen, zusätzliche Infos)",
   "date": "YYYY-MM-DD oder null",
@@ -138,6 +143,7 @@ JSON Format:
   try {
     const parsed = JSON.parse(content);
     return {
+      type: parsed.type === 'event' ? 'event' : 'task',
       title: parsed.title || input,
       description: parsed.description || null,
       date: parsed.date || null,
@@ -156,6 +162,7 @@ JSON Format:
     };
   } catch {
     return {
+      type: 'task',
       title: input,
       description: null,
       date: null,

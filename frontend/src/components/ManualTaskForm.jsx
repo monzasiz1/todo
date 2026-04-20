@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, Calendar, ChevronDown, Clock, Edit3, Eye, FileText, Flag, Lock, Plus, Repeat, Save, Tag, UserCheck, Users, UsersRound, X } from 'lucide-react';
+import { Bell, Calendar, CalendarCheck, ChevronDown, Clock, Edit3, Eye, FileText, Flag, ListTodo, Lock, Plus, Repeat, Save, Tag, UserCheck, Users, UsersRound, X } from 'lucide-react';
 import { useTaskStore } from '../store/taskStore';
 import { api } from '../utils/api';
 import AvatarBadge from './AvatarBadge';
@@ -39,6 +39,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
   const { createTask, categories, fetchCategories } = useTaskStore();
   const { friends, fetchFriends } = useFriendsStore();
   const [isOpen, setIsOpen] = useState(embedded);
+  const [taskType, setTaskType] = useState('task');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(toDateValue(defaultDate));
@@ -78,6 +79,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
   }, [defaultDate]);
 
   const resetForm = () => {
+    setTaskType('task');
     setTitle('');
     setDescription('');
     setDate(toDateValue(defaultDate));
@@ -131,6 +133,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
     setSaving(true);
     try {
       const result = await createTask({
+        type: taskType,
         title: title.trim(),
         description: description.trim() || null,
         date: date || null,
@@ -201,6 +204,25 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
               <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
                 Für Aufgaben und Termine mit Datum, Uhrzeit, Erinnerung, Wiederholung und Gruppe.
               </div>
+            </div>
+
+            <div className="task-type-toggle">
+              <button
+                type="button"
+                className={`task-type-btn ${taskType === 'task' ? 'active' : ''}`}
+                onClick={() => setTaskType('task')}
+              >
+                <ListTodo size={16} />
+                Aufgabe
+              </button>
+              <button
+                type="button"
+                className={`task-type-btn event ${taskType === 'event' ? 'active' : ''}`}
+                onClick={() => setTaskType('event')}
+              >
+                <CalendarCheck size={16} />
+                Termin
+              </button>
             </div>
 
             <div className="task-edit-field" style={{ marginBottom: 0 }}>

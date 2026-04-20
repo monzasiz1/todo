@@ -150,6 +150,13 @@ module.exports = async function handler(req, res) {
   if (segments.length === 2 && segments[1] === 'toggle' && req.method === 'PATCH') {
     try {
       const taskId = segments[0];
+
+      // Check if this is an event (events cannot be toggled)
+      const typeCheck = await pool.query('SELECT type FROM tasks WHERE id = $1', [taskId]);
+      if (typeCheck.rows.length > 0 && typeCheck.rows[0].type === 'event') {
+        return res.status(400).json({ error: 'Termine können nicht als erledigt markiert werden' });
+      }
+
       // Owner or has edit permission
       const result = await pool.query(
         `UPDATE tasks SET completed = NOT completed, updated_at = NOW(), last_edited_by = $3
@@ -202,15 +209,15 @@ module.exports = async function handler(req, res) {
 
           const ins = await pool.query(
             `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order, visibility,
-             recurrence_rule, recurrence_interval, recurrence_end, recurrence_parent_id)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+             recurrence_rule, recurrence_interval, recurrence_end, recurrence_parent_id, type)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
              RETURNING *`,
             [toggled.user_id, toggled.title, toggled.description,
              nextDate, nextDateEnd, toggled.time, toggled.time_end,
              toggled.priority, toggled.category_id, toggled.reminder_at,
              maxOrder.rows[0].next_order, toggled.visibility || 'private',
              toggled.recurrence_rule, toggled.recurrence_interval || 1,
-             toggled.recurrence_end, parentId]
+             toggled.recurrence_end, parentId, toggled.type || 'task']
           );
           nextTask = ins.rows[0];
 
@@ -239,17 +246,18 @@ module.exports = async function handler(req, res) {
     try {
       const taskId = segments[0];
       const { title, description, date, date_end, time, time_end, priority, category_id, reminder_at,
-              recurrence_rule, recurrence_interval, recurrence_end } = req.body;
+              recurrence_rule, recurrence_interval, recurrence_end, type } = req.body;
+      const taskType = type === 'event' ? 'event' : (type === 'task' ? 'task' : undefined);
       const result = await pool.query(
         `UPDATE tasks SET title = COALESCE($1, title), description = COALESCE($2, description),
          date = COALESCE($3, date), date_end = $4, time = COALESCE($5, time), time_end = $6,
          priority = COALESCE($7, priority), category_id = $8,
          reminder_at = $9, recurrence_rule = $12, recurrence_interval = COALESCE($13, 1),
-         recurrence_end = $14, updated_at = NOW()
+         recurrence_end = $14, type = COALESCE($15, type), updated_at = NOW()
          WHERE id = $10 AND user_id = $11
          RETURNING *`,
         [title, description, date, date_end || null, time, time_end || null, priority, category_id, reminder_at,
-         taskId, user.id, recurrence_rule || null, recurrence_interval || 1, recurrence_end || null]
+         taskId, user.id, recurrence_rule || null, recurrence_interval || 1, recurrence_end || null, taskType || null]
       );
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Aufgabe nicht gefunden' });
@@ -348,10 +356,12 @@ module.exports = async function handler(req, res) {
     try {
       const { title, description, date, date_end, time, time_end, priority, category_id, reminder_at,
               recurrence_rule, recurrence_interval, recurrence_end, group_id,
-              visibility, permissions } = req.body;
+              visibility, permissions, type } = req.body;
       if (!title) {
         return res.status(400).json({ error: 'Titel ist erforderlich' });
       }
+
+      const taskType = type === 'event' ? 'event' : 'task';
 
       const visibilityResult = await pool.query(
         `SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tasks' AND column_name = 'visibility') as has_visibility`
@@ -396,12 +406,12 @@ module.exports = async function handler(req, res) {
 
       const result = await pool.query(
         `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order,
-        recurrence_rule, recurrence_interval, recurrence_end, visibility)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        recurrence_rule, recurrence_interval, recurrence_end, visibility, type)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
          RETURNING *`,
         [user.id, title, description || null, date || null, date_end || null, time || null, time_end || null,
          priority || 'medium', category_id || null, reminder_at || null,
-        maxOrder.rows[0].next_order, recurrenceRule, recurrenceInterval, recurrenceEnd, finalVisibility]
+        maxOrder.rows[0].next_order, recurrenceRule, recurrenceInterval, recurrenceEnd, finalVisibility, taskType]
       );
 
       const firstTask = result.rows[0];
@@ -413,12 +423,12 @@ module.exports = async function handler(req, res) {
         const occurrenceDateEnd = spanDays > 0 ? shiftDate(occurrenceDate, spanDays) : null;
         const ins = await pool.query(
           `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order,
-           recurrence_rule, recurrence_interval, recurrence_end, recurrence_parent_id, visibility)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+           recurrence_rule, recurrence_interval, recurrence_end, recurrence_parent_id, visibility, type)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
            RETURNING *`,
           [user.id, title, description || null, occurrenceDate, occurrenceDateEnd, time || null, time_end || null,
            priority || 'medium', category_id || null, reminder_at || null,
-           maxOrder.rows[0].next_order + i + 1, recurrenceRule, recurrenceInterval, recurrenceEnd, firstTask.id, finalVisibility]
+           maxOrder.rows[0].next_order + i + 1, recurrenceRule, recurrenceInterval, recurrenceEnd, firstTask.id, finalVisibility, taskType]
         );
         createdTasks.push(ins.rows[0]);
         taskIds.push(ins.rows[0].id);
