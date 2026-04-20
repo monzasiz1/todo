@@ -1392,7 +1392,7 @@ input, textarea, select {
   cursor: pointer;
   transition: background var(--transition);
   min-height: 90px;
-  overflow: hidden;
+  overflow: clip;
   position: relative;
 }
 
@@ -1471,7 +1471,7 @@ input, textarea, select {
   gap: 2px;
   width: 100%;
   margin-top: 2px;
-  overflow: hidden;
+  overflow: clip;
 }
 
 .calendar-day-task {
@@ -1534,12 +1534,14 @@ input, textarea, select {
 }
 
 @media (min-width: 768px) {
-  .calendar-day-task[draggable="true"],
-  .calendar-week-task[draggable="true"] {
+  .calendar-day-task[draggable],
+  .calendar-week-task[draggable] {
     cursor: grab;
+    -webkit-user-drag: element;
+    user-select: none;
   }
-  .calendar-day-task[draggable="true"]:active,
-  .calendar-week-task[draggable="true"]:active {
+  .calendar-day-task[draggable]:active,
+  .calendar-week-task[draggable]:active {
     cursor: grabbing;
   }
 }
