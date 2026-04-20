@@ -225,10 +225,22 @@ module.exports = async function handler(req, res) {
         const existing = await pool.query('SELECT * FROM tasks WHERE id = $1 AND user_id = $2', [existing_task_id, user.id]);
         if (existing.rows.length === 0) return res.status(404).json({ error: 'Aufgabe nicht gefunden' });
         task = existing.rows[0];
-        await pool.query(
-          'INSERT INTO group_tasks (group_id, task_id, created_by) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
-          [groupId, task.id, user.id]
-        );
+
+        // If recurring: link all instances (parent + children)
+        const parentId = task.recurrence_parent_id || task.id;
+        const allTaskIds = task.recurrence_rule || task.recurrence_parent_id
+          ? (await pool.query(
+              'SELECT id FROM tasks WHERE (id = $1 OR recurrence_parent_id = $1) AND user_id = $2',
+              [parentId, user.id]
+            )).rows.map((r) => r.id)
+          : [task.id];
+
+        for (const tid of allTaskIds) {
+          await pool.query(
+            'INSERT INTO group_tasks (group_id, task_id, created_by) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
+            [groupId, tid, user.id]
+          );
+        }
       } else {
         if (!title) return res.status(400).json({ error: 'Titel erforderlich' });
 
@@ -283,6 +295,24 @@ module.exports = async function handler(req, res) {
         );
         if (check.rows[0]?.created_by !== user.id) {
           return res.status(403).json({ error: 'Du kannst nur eigene Aufgaben entfernen' });
+        }
+      }
+
+      // If recurring: remove all instances of the series from group
+      const taskRow = await pool.query('SELECT recurrence_rule, recurrence_parent_id FROM tasks WHERE id = $1', [taskId]);
+      if (taskRow.rows.length > 0) {
+        const row = taskRow.rows[0];
+        if (row.recurrence_rule || row.recurrence_parent_id) {
+          const parentId = row.recurrence_parent_id || taskId;
+          const allIds = (await pool.query(
+            'SELECT id FROM tasks WHERE id = $1 OR recurrence_parent_id = $1',
+            [parentId]
+          )).rows.map((r) => r.id);
+          await pool.query(
+            'DELETE FROM group_tasks WHERE group_id = $1 AND task_id = ANY($2::int[])',
+            [groupId, allIds]
+          );
+          return res.json({ success: true, removed_count: allIds.length });
         }
       }
 

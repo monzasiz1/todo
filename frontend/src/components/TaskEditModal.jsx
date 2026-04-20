@@ -436,6 +436,13 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
                 <ChevronDown size={16} className={`task-edit-chevron ${showGroups ? 'open' : ''}`} />
               </button>
 
+              {task.recurrence_rule && showGroups && (
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', padding: '6px 2px 0', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <Repeat size={12} />
+                  Alle Termine dieser Serie werden der Gruppe hinzugefügt.
+                </div>
+              )}
+
               <AnimatePresence>
                 {showGroups && (
                   <motion.div
@@ -498,6 +505,13 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
               </div>
               <ChevronDown size={16} className={`task-edit-chevron ${showSharing ? 'open' : ''}`} />
             </button>
+
+            {task.recurrence_rule && showSharing && (
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', padding: '6px 2px 0', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Repeat size={12} />
+                Freigabe gilt für alle Termine dieser Serie.
+              </div>
+            )}
 
             <AnimatePresence>
               {showSharing && (

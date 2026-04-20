@@ -8,19 +8,22 @@ import { CheckCircle2, Circle, Clock, Flame, ChevronDown, CalendarDays, AlertTri
 import { isToday, isTomorrow, isThisWeek, isPast, parseISO, format, startOfDay, compareAsc } from 'date-fns';
 import { de } from 'date-fns/locale';
 
+function getSeriesKey(task) {
+  // Parent-Task: hat recurrence_rule aber keine recurrence_parent_id → Key = eigene ID
+  // Kind-Task: hat recurrence_parent_id → Key = Parent-ID
+  // Beide ergeben denselben Key damit sie als eine Serie behandelt werden
+  if (task.recurrence_parent_id) return String(task.recurrence_parent_id);
+  if (task.recurrence_rule) return String(task.id);
+  return null;
+}
+
 function deduplicateRecurring(tasks) {
   // Pro Wiederkehr-Serie nur die nächste anstehende Instanz im Dashboard zeigen
   const today = startOfDay(new Date());
   const seriesMap = new Map(); // seriesKey → beste Instanz
 
   for (const task of tasks) {
-    // Keine Wiederkehr-Serie → direkt behalten
-    const seriesKey = task.recurrence_parent_id
-      ? String(task.recurrence_parent_id)
-      : task.recurrence_rule
-        ? `self-${task.id}`
-        : null;
-
+    const seriesKey = getSeriesKey(task);
     if (!seriesKey) continue; // standalone, kein Dedup nötig
 
     const existing = seriesMap.get(seriesKey);
@@ -30,8 +33,8 @@ function deduplicateRecurring(tasks) {
     }
 
     // Vergleiche: Bevorzuge nächste zukünftige (oder heutige) Instanz
-    const tDate = task.date ? parseISO(task.date) : null;
-    const eDate = existing.date ? parseISO(existing.date) : null;
+    const tDate = task.date ? parseISO(String(task.date).substring(0, 10)) : null;
+    const eDate = existing.date ? parseISO(String(existing.date).substring(0, 10)) : null;
 
     if (!tDate) continue;
     if (!eDate) { seriesMap.set(seriesKey, task); continue; }
@@ -40,26 +43,17 @@ function deduplicateRecurring(tasks) {
     const eFuture = eDate >= today;
 
     if (tFuture && !eFuture) {
-      // task ist zukünftig, existing war vergangen → nimm task
       seriesMap.set(seriesKey, task);
     } else if (tFuture && eFuture) {
-      // Beide zukünftig → nimm das nähere
       if (tDate < eDate) seriesMap.set(seriesKey, task);
-    }
-    // existing zukünftig, task vergangen → behalte existing (nichts tun)
-    // Beide vergangen → behalte das neuere (näher an heute)
-    else if (!tFuture && !eFuture) {
+    } else if (!tFuture && !eFuture) {
       if (tDate > eDate) seriesMap.set(seriesKey, task);
     }
   }
 
   return tasks.filter((t) => {
-    const seriesKey = t.recurrence_parent_id
-      ? String(t.recurrence_parent_id)
-      : t.recurrence_rule
-        ? `self-${t.id}`
-        : null;
-    if (!seriesKey) return true; // standalone immer zeigen
+    const seriesKey = getSeriesKey(t);
+    if (!seriesKey) return true;
     return seriesMap.get(seriesKey)?.id === t.id;
   });
 }
