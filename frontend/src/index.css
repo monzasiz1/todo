@@ -853,6 +853,150 @@ input, textarea, select {
   font-weight: 700;
 }
 
+/* Month/Year Picker */
+.cal-mp-wrap {
+  position: relative;
+}
+
+.cal-mp-trigger {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  padding: 4px 8px;
+  margin: -4px -8px;
+  border-radius: 10px;
+  transition: background 0.15s;
+}
+
+.cal-mp-trigger:hover {
+  background: var(--bg);
+}
+
+.cal-mp-chevron {
+  color: var(--text-tertiary);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.cal-mp-chevron.open {
+  transform: rotate(180deg);
+}
+
+.cal-mp-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 200;
+  background: var(--card-solid);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 10px;
+  width: 220px;
+}
+
+.cal-mp-year-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.cal-mp-year-nav span {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.cal-mp-year-nav button {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.15s;
+}
+
+.cal-mp-year-nav button:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.cal-mp-months {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.cal-mp-m {
+  padding: 8px 2px;
+  border-radius: 8px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  text-transform: capitalize;
+  transition: all 0.15s;
+  text-align: center;
+}
+
+.cal-mp-m:hover {
+  background: var(--bg);
+}
+
+.cal-mp-m.now {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.cal-mp-m.active {
+  background: var(--primary);
+  color: white;
+  font-weight: 700;
+}
+
+.cal-mp-m.active:hover {
+  filter: brightness(1.1);
+}
+
+@media (max-width: 768px) {
+  .cal-mp-trigger {
+    font-size: 17px;
+  }
+
+  .cal-mp-dropdown {
+    position: fixed;
+    top: auto;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100vw - 32px);
+    max-width: 280px;
+  }
+
+  .cal-mp-months {
+    gap: 6px;
+  }
+
+  .cal-mp-m {
+    padding: 10px 2px;
+    font-size: 14px;
+  }
+}
+
 .calendar-nav {
   display: flex;
   gap: 4px;
@@ -1801,6 +1945,12 @@ input, textarea, select {
     font-size: 17px;
     width: 100%;
     text-align: center;
+  }
+
+  .cal-mp-wrap {
+    width: 100%;
+    display: flex;
+    justify-content: center;
   }
 
   .calendar-nav {

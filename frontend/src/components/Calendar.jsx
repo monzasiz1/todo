@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../store/taskStore';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import TaskDetailModal from './TaskDetailModal';
 import AvatarBadge from './AvatarBadge';
 import {
@@ -20,15 +20,32 @@ import {
   isSameDay,
   isToday,
   parseISO,
+  setMonth,
+  setYear,
+  getMonth,
+  getYear,
 } from 'date-fns';
 import { de } from 'date-fns/locale';
 
 export default function Calendar({ onDayClick }) {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [view, setView] = useState('month'); // 'month' | 'week'
+  const [view, setView] = useState('month');
   const [selectedDate, setSelectedDate] = useState(null);
   const [detailTask, setDetailTask] = useState(null);
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [pickerYear, setPickerYear] = useState(getYear(new Date()));
+  const mpRef = useRef(null);
   const { tasks } = useTaskStore();
+
+  useEffect(() => {
+    if (!showMonthPicker) return;
+    const handler = (e) => {
+      if (mpRef.current && !mpRef.current.contains(e.target)) setShowMonthPicker(false);
+    };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler);
+    return () => { document.removeEventListener('mousedown', handler); document.removeEventListener('touchstart', handler); };
+  }, [showMonthPicker]);
 
   const getTasksForDate = (date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
@@ -200,7 +217,46 @@ export default function Calendar({ onDayClick }) {
       transition={{ duration: 0.4 }}
     >
       <div className="calendar-header">
-        <h3 style={{ textTransform: 'capitalize' }}>{headerText}</h3>
+        <div className="cal-mp-wrap" ref={mpRef}>
+          <button
+            className="cal-mp-trigger"
+            onClick={() => { setPickerYear(getYear(currentDate)); setShowMonthPicker(v => !v); }}
+          >
+            <span style={{ textTransform: 'capitalize' }}>{headerText}</span>
+            <ChevronDown size={16} className={`cal-mp-chevron ${showMonthPicker ? 'open' : ''}`} />
+          </button>
+          <AnimatePresence>
+            {showMonthPicker && (
+              <motion.div
+                className="cal-mp-dropdown"
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.15 }}
+              >
+                <div className="cal-mp-year-nav">
+                  <button onClick={() => setPickerYear(y => y - 1)}><ChevronLeft size={16} /></button>
+                  <span>{pickerYear}</span>
+                  <button onClick={() => setPickerYear(y => y + 1)}><ChevronRight size={16} /></button>
+                </div>
+                <div className="cal-mp-months">
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <button
+                      key={i}
+                      className={`cal-mp-m${getMonth(currentDate) === i && getYear(currentDate) === pickerYear ? ' active' : ''}${getMonth(new Date()) === i && getYear(new Date()) === pickerYear ? ' now' : ''}`}
+                      onClick={() => {
+                        setCurrentDate(setYear(setMonth(currentDate, i), pickerYear));
+                        setShowMonthPicker(false);
+                      }}
+                    >
+                      {format(new Date(2024, i, 1), 'MMM', { locale: de })}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <div className="calendar-view-toggle">
             <button
