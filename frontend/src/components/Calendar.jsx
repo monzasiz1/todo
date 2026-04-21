@@ -62,10 +62,11 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const [resizeInfo, setResizeInfo] = useState(null); // { task, edge, previewTime }
   const [dropFeedback, setDropFeedback] = useState(null); // { id, msg }
   const dragTaskRef = useRef(null);
-  const tasksRef = useRef(tasks);
+  const tasksRef = useRef([]);
   const wasDragging = useRef(false);
   const mobileDayRef = useRef(null);       // ref for mobile day-view time grid
   const mobileWeekColRefs = useRef({});   // ref map for mobile week columns
+  const desktopWeekColsRef = useRef(null);
   const resizeInfoRef = useRef(null);
 
   const triggerRef = useRef(null);
@@ -528,7 +529,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
 
       const previewDate = format(addDays(parseISO(baseDate), previewDelta), 'yyyy-MM-dd');
       previewLabel = format(parseISO(previewDate), 'EEE d. MMM', { locale: de });
-      setResizeInfo({ task, edge: edge === 'end' ? 'date-end' : 'date-start', previewTime: previewLabel });
+      setResizeInfo({ task, edge: edge === 'end' ? 'date-end' : 'date-start', previewTime: previewLabel, previewDelta });
     };
 
     const onUp = async () => {
@@ -693,6 +694,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const renderDesktopWeekView = () => {
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
     const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+    const weekStartStr = format(weekStart, 'yyyy-MM-dd');
+    const weekEndStr = format(days[6], 'yyyy-MM-dd');
 
     const startHour = WK_START;
     const endHour = WK_END;
@@ -700,6 +703,12 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     const totalHeight = (endHour - startHour) * hourHeight;
     const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
     const timeToMinutes = timeToMins;
+    const weekTimedTasks = filteredTasks.filter((t) => {
+      if (!t.time || !t.date) return false;
+      const taskStart = t.date.substring(0, 10);
+      const taskEnd = (t.date_end || t.date).substring(0, 10);
+      return taskStart <= weekEndStr && taskEnd >= weekStartStr;
+    });
 
     return (
       <div className="desktop-week-layout">
@@ -782,9 +791,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
               ))}
             </div>
 
-            <div className="desktop-week-columns">
+            <div className="desktop-week-columns" ref={desktopWeekColsRef}>
               {days.map((d) => {
-                const dayTasks = getTasksForDate(d).filter((t) => t.time);
                 return (
                   <div
                     key={`col-${d.toISOString()}`}
@@ -796,77 +804,101 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                     {hours.slice(0, -1).map((h) => (
                       <div key={`${d.toISOString()}-${h}`} className="desktop-week-hour-line" style={{ top: `${(h - startHour) * hourHeight}px` }} />
                     ))}
-
-                    {dayTasks.map((t) => {
-                      const startMins = timeToMinutes(t.time) ?? (startHour * 60);
-                      const rawEnd = timeToMinutes(t.time_end);
-                      const endMins = rawEnd && rawEnd > startMins ? rawEnd : startMins + 60;
-                      const clampedStart = Math.max(startHour * 60, startMins);
-                      const clampedEnd = Math.min(endHour * 60, endMins);
-
-                      // Live-resize preview
-                      let liveCStart = clampedStart; let liveCEnd = clampedEnd;
-                      const isResizingThis = resizeInfo?.task.id === t.id;
-                      if (isResizingThis) {
-                        const nm = timeToMins(resizeInfo.previewTime);
-                        if (nm != null) {
-                          if (resizeInfo.edge === 'end') liveCEnd = Math.max(clampedStart + 15, Math.min(endHour * 60, nm));
-                          else liveCStart = Math.min(clampedEnd - 15, Math.max(startHour * 60, nm));
-                        }
-                      }
-
-                      const top    = ((liveCStart - startHour * 60) / 60) * hourHeight;
-                      const height = Math.max(24, ((liveCEnd - liveCStart) / 60) * hourHeight - 2);
-
-                      return (
-                        <div
-                          key={t.id}
-                          className={`desktop-week-event${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
-                          style={{
-                            top: `${top}px`,
-                            height: `${height}px`,
-                            background: t.group_color || t.category_color || '#4C7BD9',
-                            touchAction: 'none',
-                          }}
-                          onPointerDown={(e) => {
-                            if (e.target.closest('.cal-resize-handle') || e.target.closest('.cal-date-extend-handle')) return;
-                            handlePointerDown(e, t);
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (!wasDragging.current) setDetailTask(t);
-                          }}
-                        >
-                          <div
-                            className="cal-resize-handle cal-resize-handle-top"
-                            onPointerDown={(e) => {
-                              const col = e.currentTarget.closest('.desktop-week-day-col');
-                              handleResizePointerDown(e, t, 'start', col, WK_H, WK_START);
-                            }}
-                          />
-                          <div
-                            className="cal-date-extend-handle cal-date-extend-left"
-                            onPointerDown={(e) => handleDateExtendPointerDown(e, t, 'start')}
-                          />
-                          <span className="desktop-week-event-title">{t.title}</span>
-                          <span className="desktop-week-event-time">{t.time?.slice(0, 5)}{t.time_end ? ` - ${t.time_end.slice(0, 5)}` : ''}</span>
-                          <div
-                            className="cal-date-extend-handle cal-date-extend-right"
-                            onPointerDown={(e) => handleDateExtendPointerDown(e, t, 'end')}
-                          />
-                          <div
-                            className="cal-resize-handle cal-resize-handle-bottom"
-                            onPointerDown={(e) => {
-                              const col = e.currentTarget.closest('.desktop-week-day-col');
-                              handleResizePointerDown(e, t, 'end', col, WK_H, WK_START);
-                            }}
-                          />
-                        </div>
-                      );
-                    })}
                   </div>
                 );
               })}
+
+              <div className="desktop-week-events-layer" style={{ height: `${totalHeight}px` }}>
+                {weekTimedTasks.map((t) => {
+                  const startMins = timeToMinutes(t.time) ?? (startHour * 60);
+                  const rawEnd = timeToMinutes(t.time_end);
+                  const endMins = rawEnd && rawEnd > startMins ? rawEnd : startMins + 60;
+                  const clampedStart = Math.max(startHour * 60, startMins);
+                  const clampedEnd = Math.min(endHour * 60, endMins);
+
+                  // Live-resize preview (time)
+                  let liveCStart = clampedStart;
+                  let liveCEnd = clampedEnd;
+                  const isResizingThis = resizeInfo?.task.id === t.id;
+                  if (isResizingThis) {
+                    const nm = timeToMins(resizeInfo.previewTime);
+                    if (nm != null) {
+                      if (resizeInfo.edge === 'end') liveCEnd = Math.max(clampedStart + 15, Math.min(endHour * 60, nm));
+                      else if (resizeInfo.edge === 'start') liveCStart = Math.min(clampedEnd - 15, Math.max(startHour * 60, nm));
+                    }
+                  }
+
+                  const taskStart = t.date?.substring(0, 10);
+                  const taskEnd = (t.date_end || t.date)?.substring(0, 10);
+                  if (!taskStart || !taskEnd) return null;
+
+                  let liveSpanStart = taskStart < weekStartStr ? weekStartStr : taskStart;
+                  let liveSpanEnd = taskEnd > weekEndStr ? weekEndStr : taskEnd;
+
+                  // Live-resize preview (date span)
+                  if (isResizingThis && (resizeInfo.edge === 'date-start' || resizeInfo.edge === 'date-end')) {
+                    const delta = Number(resizeInfo.previewDelta || 0);
+                    if (resizeInfo.edge === 'date-end' && delta !== 0) {
+                      const fullEnd = format(addDays(parseISO(taskEnd), delta), 'yyyy-MM-dd');
+                      liveSpanEnd = fullEnd > weekEndStr ? weekEndStr : fullEnd;
+                    }
+                    if (resizeInfo.edge === 'date-start' && delta !== 0) {
+                      const fullStart = format(addDays(parseISO(taskStart), -delta), 'yyyy-MM-dd');
+                      liveSpanStart = fullStart < weekStartStr ? weekStartStr : fullStart;
+                    }
+                    if (liveSpanStart > liveSpanEnd) return null;
+                  }
+
+                  const startIdx = differenceInCalendarDays(parseISO(liveSpanStart), parseISO(weekStartStr));
+                  const endIdx = differenceInCalendarDays(parseISO(liveSpanEnd), parseISO(weekStartStr));
+                  const spanDays = Math.max(1, endIdx - startIdx + 1);
+
+                  const top = ((liveCStart - startHour * 60) / 60) * hourHeight;
+                  const height = Math.max(24, ((liveCEnd - liveCStart) / 60) * hourHeight - 2);
+
+                  return (
+                    <div
+                      key={t.id}
+                      className={`desktop-week-event${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
+                      style={{
+                        left: `calc((100% / 7) * ${startIdx} + 4px)`,
+                        width: `calc((100% / 7) * ${spanDays} - 8px)`,
+                        top: `${top}px`,
+                        height: `${height}px`,
+                        background: t.group_color || t.category_color || '#4C7BD9',
+                        touchAction: 'none',
+                      }}
+                      onPointerDown={(e) => {
+                        if (e.target.closest('.cal-resize-handle') || e.target.closest('.cal-date-extend-handle')) return;
+                        handlePointerDown(e, t);
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!wasDragging.current) setDetailTask(t);
+                      }}
+                    >
+                      <div
+                        className="cal-resize-handle cal-resize-handle-top"
+                        onPointerDown={(e) => handleResizePointerDown(e, t, 'start', desktopWeekColsRef.current, WK_H, WK_START)}
+                      />
+                      <div
+                        className="cal-date-extend-handle cal-date-extend-left"
+                        onPointerDown={(e) => handleDateExtendPointerDown(e, t, 'start')}
+                      />
+                      <span className="desktop-week-event-title">{t.title}</span>
+                      <span className="desktop-week-event-time">{t.time?.slice(0, 5)}{t.time_end ? ` - ${t.time_end.slice(0, 5)}` : ''}</span>
+                      <div
+                        className="cal-date-extend-handle cal-date-extend-right"
+                        onPointerDown={(e) => handleDateExtendPointerDown(e, t, 'end')}
+                      />
+                      <div
+                        className="cal-resize-handle cal-resize-handle-bottom"
+                        onPointerDown={(e) => handleResizePointerDown(e, t, 'end', desktopWeekColsRef.current, WK_H, WK_START)}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>

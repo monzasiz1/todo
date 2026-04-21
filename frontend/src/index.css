@@ -5706,8 +5706,18 @@ body.cal-is-dragging * {
   }
 
   .desktop-week-columns {
+    position: relative;
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .desktop-week-events-layer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    pointer-events: none;
+    z-index: 3;
   }
 
   .desktop-week-day-col {
@@ -5734,8 +5744,7 @@ body.cal-is-dragging * {
 
   .desktop-week-event {
     position: absolute;
-    left: 4px;
-    right: 4px;
+    right: auto;
     border: none;
     border-radius: 6px;
     padding: 6px;
@@ -5743,6 +5752,7 @@ body.cal-is-dragging * {
     text-align: left;
     box-shadow: 0 3px 8px rgba(44, 66, 116, 0.18);
     overflow: hidden;
+    pointer-events: auto;
   }
 
   .desktop-week-event-title {
