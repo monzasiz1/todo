@@ -668,17 +668,9 @@ export default function LandingPage() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
-  );
-}
-                  <p>{item.text}</p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
 
-        <section id="trust" className="lpx-section">
+      {/* ──────────────────── TRUST SECTION ──────────────────── */}
+      <section id="trust" className="landing-section">
           <div className="lpx-container">
             <div className="lpx-head">
               <span className="lpx-kicker">Vertrauen und Reifegrad</span>
