@@ -706,6 +706,10 @@ input, textarea, select {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  /* Prevent any child from blowing out the panel width on iOS */
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 /* ========== TASK LIST ========== */
@@ -3664,6 +3668,11 @@ body.cal-is-dragging * {
   .manual-task-form-panel {
     padding: 16px;
     border-radius: 0 0 var(--radius-md) var(--radius-md);
+  }
+
+  /* Single column on narrow phones so date/time inputs don't overflow */
+  .manual-task-form-panel .manual-task-two-col {
+    grid-template-columns: 1fr;
   }
 
   .ai-input-main {
@@ -7068,6 +7077,8 @@ body.cal-is-dragging * {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   align-items: start;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Ganztägig toggle */
@@ -7126,6 +7137,10 @@ body.cal-is-dragging * {
 .manual-task-form-panel .task-edit-input[type="time"],
 .manual-task-form-panel .task-edit-input[type="datetime-local"] {
   min-height: 44px;
+  /* Prevent iOS from expanding these beyond their column width */
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 /* Detail Modal Edit Button */
