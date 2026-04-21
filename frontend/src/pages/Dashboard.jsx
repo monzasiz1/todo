@@ -213,7 +213,7 @@ export default function Dashboard() {
     // Auto-refresh every 60 s so newly shared/group tasks appear without manual reload
     const interval = setInterval(() => {
       if (!document.hidden) {
-        fetchTasks({ dashboard: 'true', limit: DASHBOARD_FETCH_LIMIT }, { force: true });
+        fetchTasks({ dashboard: 'true', limit: DASHBOARD_FETCH_LIMIT });
       }
     }, 60000);
     return () => clearInterval(interval);

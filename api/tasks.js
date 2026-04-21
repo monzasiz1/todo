@@ -467,6 +467,24 @@ module.exports = async function handler(req, res) {
              task_ids AS (
                SELECT DISTINCT id FROM visible_ids
              ),
+             ranked_tasks AS (
+               SELECT t.id, t.user_id, t.title, t.description, t.date, t.date_end, t.time, t.time_end,
+                      t.priority, t.completed, t.type, t.sort_order, t.created_at, t.updated_at, t.visibility,
+                      t.category_id,
+                      CASE WHEN t.user_id = $1 THEN true ELSE false END AS is_owner,
+                      CASE
+                        WHEN t.user_id = $1 THEN true
+                        ELSE EXISTS (
+                          SELECT 1 FROM task_permissions tp
+                          WHERE tp.task_id = t.id AND tp.user_id = $1 AND tp.can_edit = true
+                        )
+                      END AS can_edit
+               FROM task_ids ids
+               JOIN tasks t ON t.id = ids.id
+               WHERE ($2::boolean IS NULL OR t.completed = $2)
+               ${dashboardOrderBy}
+               LIMIT $3
+             ),
              shared_users AS (
                SELECT tp2.task_id,
                       COALESCE(
@@ -478,12 +496,13 @@ module.exports = async function handler(req, res) {
                       ) AS shared_with_users
                FROM task_permissions tp2
                JOIN users su ON tp2.user_id = su.id
-               JOIN task_ids ti ON ti.id = tp2.task_id
+               JOIN ranked_tasks rt ON rt.id = tp2.task_id
                WHERE tp2.can_view = true
                GROUP BY tp2.task_id
              )
-             SELECT t.id, t.user_id, t.title, t.description, t.date, t.date_end, t.time, t.time_end,
-                    t.priority, t.completed, t.type, t.sort_order, t.created_at, t.updated_at, t.visibility,
+             SELECT rt.id, rt.user_id, rt.title, rt.description, rt.date, rt.date_end, rt.time, rt.time_end,
+                    rt.priority, rt.completed, rt.type, rt.sort_order, rt.created_at, rt.updated_at, rt.visibility,
+                    rt.category_id,
                     c.name as category_name,
                     c.color as category_color,
                     c.icon as category_icon,
@@ -491,30 +510,35 @@ module.exports = async function handler(req, res) {
                     u.avatar_color as creator_color,
                     u.avatar_url as creator_avatar_url,
                     NULL::text AS last_editor_name,
-                    CASE WHEN t.user_id = $1 THEN true ELSE false END AS is_owner,
-                    CASE
-                      WHEN t.user_id = $1 THEN true
-                      ELSE EXISTS (
-                        SELECT 1 FROM task_permissions tp
-                        WHERE tp.task_id = t.id AND tp.user_id = $1 AND tp.can_edit = true
-                      )
-                    END AS can_edit,
-                    gt.group_id,
-                    grp.name as group_name,
-                    grp.color as group_color,
-                    grp.image_url as group_image_url,
+                    rt.is_owner,
+                    rt.can_edit,
+                    g.group_id,
+                    g.group_name,
+                    g.group_color,
+                    g.group_image_url,
                     0::int AS attachment_count,
                     COALESCE(sh.shared_with_users, '[]'::json) AS shared_with_users
-             FROM task_ids ids
-             JOIN tasks t ON t.id = ids.id
-             LEFT JOIN categories c ON t.category_id = c.id
-             LEFT JOIN users u ON t.user_id = u.id
-             LEFT JOIN shared_users sh ON sh.task_id = t.id
-             LEFT JOIN group_tasks gt ON gt.task_id = t.id
-             LEFT JOIN groups grp ON grp.id = gt.group_id
-             WHERE ($2::boolean IS NULL OR t.completed = $2)
-             ${dashboardOrderBy}
-             LIMIT $3`,
+             FROM ranked_tasks rt
+             LEFT JOIN categories c ON rt.category_id = c.id
+             LEFT JOIN users u ON rt.user_id = u.id
+             LEFT JOIN shared_users sh ON sh.task_id = rt.id
+             LEFT JOIN LATERAL (
+               SELECT gt.group_id,
+                      grp.name as group_name,
+                      grp.color as group_color,
+                      grp.image_url as group_image_url
+               FROM group_tasks gt
+               JOIN groups grp ON grp.id = gt.group_id
+               WHERE gt.task_id = rt.id
+               ORDER BY gt.group_id
+               LIMIT 1
+             ) g ON true
+             ORDER BY
+               CASE WHEN rt.date IS NULL THEN 1 ELSE 0 END ASC,
+               rt.date ASC NULLS LAST,
+               rt.time ASC NULLS LAST,
+               rt.sort_order ASC,
+               rt.created_at DESC`,
             [user.id, completedFilter, limit]
           );
         } else {
@@ -534,16 +558,27 @@ module.exports = async function handler(req, res) {
              ),
              uniq_ids AS (
                SELECT DISTINCT id FROM task_ids
+             ),
+             ranked_tasks AS (
+               SELECT t.id, t.user_id, t.title, t.description, t.date, t.date_end, t.time, t.time_end,
+                      t.priority, t.completed, t.type, t.sort_order, t.created_at, t.updated_at,
+                      t.category_id
+               FROM uniq_ids ids
+               JOIN tasks t ON t.id = ids.id
+               WHERE ($2::boolean IS NULL OR t.completed = $2)
+               ${dashboardOrderBy}
+               LIMIT $3
              )
-             SELECT t.id, t.user_id, t.title, t.description, t.date, t.date_end, t.time, t.time_end,
-                    t.priority, t.completed, t.type, t.sort_order, t.created_at, t.updated_at,
+             SELECT rt.id, rt.user_id, rt.title, rt.description, rt.date, rt.date_end, rt.time, rt.time_end,
+                    rt.priority, rt.completed, rt.type, rt.sort_order, rt.created_at, rt.updated_at,
+                    rt.category_id,
                     c.name as category_name,
                     c.color as category_color,
                     c.icon as category_icon,
-                    gt.group_id,
-                    grp.name as group_name,
-                    grp.color as group_color,
-                    grp.image_url as group_image_url,
+                    g.group_id,
+                    g.group_name,
+                    g.group_color,
+                    g.group_image_url,
                     0::int AS attachment_count,
                     '[]'::json AS shared_with_users,
                     true AS is_owner,
@@ -553,15 +588,26 @@ module.exports = async function handler(req, res) {
                     u.avatar_url as creator_avatar_url,
                     NULL::text AS last_editor_name,
                     'private'::text AS visibility
-             FROM uniq_ids ids
-             JOIN tasks t ON t.id = ids.id
-             LEFT JOIN categories c ON t.category_id = c.id
-                  LEFT JOIN users u ON t.user_id = u.id
-             LEFT JOIN group_tasks gt ON gt.task_id = t.id
-             LEFT JOIN groups grp ON grp.id = gt.group_id
-             WHERE ($2::boolean IS NULL OR t.completed = $2)
-             ${dashboardOrderBy}
-             LIMIT $3`,
+             FROM ranked_tasks rt
+             LEFT JOIN categories c ON rt.category_id = c.id
+             LEFT JOIN users u ON rt.user_id = u.id
+             LEFT JOIN LATERAL (
+               SELECT gt.group_id,
+                      grp.name as group_name,
+                      grp.color as group_color,
+                      grp.image_url as group_image_url
+               FROM group_tasks gt
+               JOIN groups grp ON grp.id = gt.group_id
+               WHERE gt.task_id = rt.id
+               ORDER BY gt.group_id
+               LIMIT 1
+             ) g ON true
+             ORDER BY
+               CASE WHEN rt.date IS NULL THEN 1 ELSE 0 END ASC,
+               rt.date ASC NULLS LAST,
+               rt.time ASC NULLS LAST,
+               rt.sort_order ASC,
+               rt.created_at DESC`,
             [user.id, completedFilter, limit]
           );
         }
