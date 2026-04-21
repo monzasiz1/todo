@@ -493,31 +493,33 @@ module.exports = async function handler(req, res) {
       if (collabEnabled) {
         result = await pool.query(
           `SELECT
-             COUNT(*) FILTER (WHERE t.completed = false) as open_count,
-             COUNT(*) FILTER (WHERE t.completed = true) as completed_count,
-             COUNT(*) FILTER (WHERE t.completed = false AND t.date = CURRENT_DATE) as today_count,
-             COUNT(*) FILTER (WHERE t.completed = false AND t.priority IN ('urgent', 'high')) as urgent_count
+             COUNT(*) FILTER (WHERE t.completed = false AND t.type != 'event') as open_count,
+             COUNT(*) FILTER (WHERE t.completed = true AND t.type != 'event') as completed_count,
+             COUNT(*) FILTER (WHERE t.completed = false AND t.date = CURRENT_DATE AND t.type != 'event') as today_count,
+             COUNT(*) FILTER (WHERE t.completed = false AND t.priority IN ('urgent', 'high') AND t.type != 'event') as urgent_count
            FROM tasks t
            LEFT JOIN task_permissions tp ON tp.task_id = t.id AND tp.user_id = $1
-           WHERE t.user_id = $1
+           WHERE (t.user_id = $1
              OR (t.visibility = 'shared' AND EXISTS (
                SELECT 1 FROM friends f WHERE f.status = 'accepted'
                AND ((f.user_id = t.user_id AND f.friend_id = $1) OR (f.user_id = $1 AND f.friend_id = t.user_id))
              ))
              OR (t.visibility = 'selected_users' AND tp.can_view = true)
-             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)`,
+             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1))
+             AND t.type != 'event'`,
           [user.id]
         );
       } else {
         result = await pool.query(
           `SELECT
-             COUNT(*) FILTER (WHERE t.completed = false) as open_count,
-             COUNT(*) FILTER (WHERE t.completed = true) as completed_count,
-             COUNT(*) FILTER (WHERE t.completed = false AND t.date = CURRENT_DATE) as today_count,
-             COUNT(*) FILTER (WHERE t.completed = false AND t.priority IN ('urgent', 'high')) as urgent_count
+             COUNT(*) FILTER (WHERE t.completed = false AND t.type != 'event') as open_count,
+             COUNT(*) FILTER (WHERE t.completed = true AND t.type != 'event') as completed_count,
+             COUNT(*) FILTER (WHERE t.completed = false AND t.date = CURRENT_DATE AND t.type != 'event') as today_count,
+             COUNT(*) FILTER (WHERE t.completed = false AND t.priority IN ('urgent', 'high') AND t.type != 'event') as urgent_count
            FROM tasks t
-           WHERE t.user_id = $1
-             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)`,
+           WHERE (t.user_id = $1
+             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1))
+             AND t.type != 'event'`,
           [user.id]
         );
       }
