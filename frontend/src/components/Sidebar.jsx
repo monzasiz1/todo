@@ -17,11 +17,13 @@ import CategoryManager from './CategoryManager';
 import { useFriendsStore } from '../store/friendsStore';
 import AvatarBadge from './AvatarBadge';
 import NotificationBell from './NotificationBell';
+import { usePlan } from '../hooks/usePlan';
 
 export default function Sidebar({ isOpen, onClose }) {
   const { user, logout } = useAuthStore();
   const { categories, fetchCategories, tasks, filter, setFilter, clearFilters } = useTaskStore();
   const { pending, fetchFriends } = useFriendsStore();
+  const { planId } = usePlan();
   const [showFriends, setShowFriends] = useState(false);
   const [showCategories, setShowCategories] = useState(false);
   const [categoriesCollapsed, setCategoriesCollapsed] = useState(false);
@@ -161,9 +163,23 @@ export default function Sidebar({ isOpen, onClose }) {
             size={36}
           />
           <div className="sidebar-user-info">
-            <div className="sidebar-user-name">{user?.name || 'Benutzer'}</div>
+            <div className="sidebar-user-name">
+              {user?.name || 'Benutzer'}
+              <span className={`plan-badge ${planId}`} style={{ marginLeft: 6 }}>
+                {planId === 'free' ? 'Free' : planId === 'pro' ? 'Pro' : 'Team'}
+              </span>
+            </div>
             <div className="sidebar-user-email">{user?.email || ''}</div>
           </div>
+        </NavLink>
+        <NavLink
+          to="/pricing"
+          className="sidebar-pricing-link"
+          onClick={onClose}
+          title="Pläne & Preise"
+        >
+          <Sparkles size={13} />
+          Upgrade
         </NavLink>
         <button className="sidebar-logout" onClick={logout} title="Abmelden">
           <LogOut size={16} />

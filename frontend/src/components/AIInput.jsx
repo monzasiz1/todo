@@ -1,21 +1,25 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTaskStore } from '../store/taskStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ArrowUp, Calendar, CalendarCheck, Clock, Tag, Flag, Loader2, UsersRound, ListTodo, Trash2, MoveRight, Pencil, Paperclip } from 'lucide-react';
+import { Sparkles, ArrowUp, Calendar, CalendarCheck, Clock, Tag, Flag, Loader2, UsersRound, ListTodo, Trash2, MoveRight, Pencil, Paperclip, Lock } from 'lucide-react';
 import { api } from '../utils/api';
 import AvatarBadge from './AvatarBadge';
+import { usePlan } from '../hooks/usePlan';
+import UpgradeModal from './UpgradeModal';
 
 export default function AIInput({ onTaskCreated }) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
-  const [aiReply, setAiReply] = useState(null); // { question, answer } for query intent
+  const [aiReply, setAiReply] = useState(null);
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const inputRef = useRef(null);
   const debounceRef = useRef(null);
   const attachFileRef = useRef(null);
   const attachTaskRef = useRef(null);
   const { aiCreateTask, aiParseOnly, addToast, fetchTasks } = useTaskStore();
+  const { can } = usePlan();
 
   // Debounced preview
   useEffect(() => {
@@ -42,6 +46,12 @@ export default function AIInput({ onTaskCreated }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!input.trim() || loading) return;
+
+    // Gate: free users see upgrade modal
+    if (!can('ai')) {
+      setShowUpgrade(true);
+      return;
+    }
 
     setLoading(true);
     setShowPreview(false);
@@ -122,6 +132,9 @@ export default function AIInput({ onTaskCreated }) {
 
   return (
     <div className="ai-input-wrapper">
+      {showUpgrade && (
+        <UpgradeModal feature="ai" onClose={() => setShowUpgrade(false)} />
+      )}
       <form onSubmit={handleSubmit}>
         <motion.div
           className="ai-input-glow-wrap"

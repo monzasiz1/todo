@@ -7,6 +7,8 @@ import TaskCard from '../components/TaskCard';
 import { CheckCircle2, Circle, Clock, ChevronDown, CalendarDays, AlertTriangle, Target } from 'lucide-react';
 import { isToday, isTomorrow, isThisWeek, isPast, parseISO, format, startOfDay, compareAsc } from 'date-fns';
 import { de } from 'date-fns/locale';
+import { usePlan } from '../hooks/usePlan';
+import UpgradeModal from '../components/UpgradeModal';
 
 function getSeriesKey(task) {
   // Use user_id + normalized title + recurrence_rule as key.
@@ -182,8 +184,10 @@ function buildSmartInsights({ overdueCount, todayCount, urgentTodayCount, freeHo
 
 export default function Dashboard() {
   const { tasks, fetchTasks, fetchCategories, filter, setFilter, getFilteredTasks } = useTaskStore();
+  const { limit, atLimit } = usePlan();
   const [showCompleted, setShowCompleted] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState({});
+  const [showTaskLimitModal, setShowTaskLimitModal] = useState(false);
 
   useEffect(() => {
     fetchTasks({ lite: 'true', completed: 'false' }, { force: true });
@@ -270,8 +274,22 @@ export default function Dashboard() {
         <p>Was steht heute an?</p>
       </motion.div>
 
+      {/* Task-Limit Warning / Upgrade Modal */}
+      {showTaskLimitModal && (
+        <UpgradeModal feature="tasks" onClose={() => setShowTaskLimitModal(false)} />
+      )}
+
       {/* Task Creation */}
       <div className="task-creation-stack">
+        {atLimit('tasks', tasks.filter(t => !t.completed).length) && (
+          <div
+            className="task-limit-banner"
+            onClick={() => setShowTaskLimitModal(true)}
+          >
+            Du hast das Limit von <strong>{limit('tasks')}</strong> aktiven Aufgaben erreicht.
+            <span className="task-limit-upgrade">Upgrade für unbegrenzte Aufgaben →</span>
+          </div>
+        )}
         <AIInput />
         <ManualTaskForm
           onTaskCreated={() => {

@@ -59,7 +59,7 @@ module.exports = async function handler(req, res) {
 
       const hashedPassword = await bcrypt.hash(password, 12);
       const result = await pool.query(
-        'INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id, name, email, avatar_url, avatar_color, created_at',
+        'INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id, name, email, avatar_url, avatar_color, plan, created_at',
         [name, email, hashedPassword]
       );
 
@@ -99,7 +99,7 @@ module.exports = async function handler(req, res) {
     try {
       const pool = getPool();
       const result = await pool.query(
-        'SELECT id, name, email, avatar_url, avatar_color, created_at FROM users WHERE id = $1',
+        'SELECT id, name, email, avatar_url, avatar_color, plan, created_at FROM users WHERE id = $1',
         [user.id]
       );
       if (result.rows.length === 0) {

@@ -9,6 +9,8 @@ import {
   Calendar, Clock, Flag, Search, ArrowLeft
 } from 'lucide-react';
 import AvatarBadge from '../components/AvatarBadge';
+import { usePlan } from '../hooks/usePlan';
+import UpgradeModal from '../components/UpgradeModal';
 
 const GROUP_COLORS = [
   '#007AFF', '#5856D6', '#34C759', '#FF9500', '#FF3B30',
@@ -54,8 +56,10 @@ async function fileToResizedDataUrl(file, maxSize = 320) {
 
 export default function GroupsPage() {
   const { groups, fetchGroups, createGroup, joinGroup, loading } = useGroupStore();
-  const [view, setView] = useState('list'); // 'list' | 'create' | 'join' | 'detail'
+  const [view, setView] = useState('list');
   const [selectedGroupId, setSelectedGroupId] = useState(null);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const { can, limit } = usePlan();
 
   useEffect(() => { fetchGroups(); }, []);
 
@@ -63,6 +67,33 @@ export default function GroupsPage() {
     setSelectedGroupId(id);
     setView('detail');
   };
+
+  // Gate: free users cannot use groups at all
+  if (!can('groups')) {
+    return (
+      <div>
+        {showUpgrade && (
+          <UpgradeModal feature="groups" onClose={() => setShowUpgrade(false)} />
+        )}
+        <div className="page-header">
+          <h2>Gruppen</h2>
+          <p>Arbeite gemeinsam mit anderen an Aufgaben.</p>
+        </div>
+        <div className="plan-gate-wrap" style={{ minHeight: 260 }}>
+          <div className="plan-gate-blur" style={{ filter: 'blur(4px)', padding: 24 }}>
+            <div style={{ height: 200, background: 'var(--bg)', borderRadius: 16 }} />
+          </div>
+          <div className="plan-gate-overlay" onClick={() => setShowUpgrade(true)}>
+            <div className="plan-gate-lock">
+              <Users size={22} />
+            </div>
+            <p className="plan-gate-label">Pro-Feature</p>
+            <button className="plan-gate-btn">Gruppen freischalten</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

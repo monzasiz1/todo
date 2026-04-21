@@ -277,4 +277,15 @@ export const api = {
 
   removeGroupMember: (groupId, userId) =>
     request(`/groups/${groupId}/members/${userId}`, { method: 'DELETE' }),
+
+  // Plans
+  getPlans: () => request('/plans'),
+
+  getMyPlan: () => request('/plans/me'),
+
+  upgradePlan: (plan) =>
+    request('/plans/upgrade', {
+      method: 'POST',
+      body: JSON.stringify({ plan }),
+    }),
 };

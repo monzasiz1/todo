@@ -8,6 +8,7 @@ import Register from './pages/Register';
 import LandingPage from './pages/LandingPage';
 import ProfilePage from './pages/ProfilePage';
 import GroupsPage from './pages/GroupsPage';
+import PricingPage from './pages/PricingPage';
 import InstallPrompt from './components/InstallPrompt';
 import { useEffect } from 'react';
 
@@ -48,6 +49,7 @@ export default function App() {
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="groups" element={<GroupsPage />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="pricing" element={<PricingPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
