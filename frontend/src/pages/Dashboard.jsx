@@ -206,16 +206,17 @@ export default function Dashboard() {
   const [showTaskLimitModal, setShowTaskLimitModal] = useState(false);
 
   useEffect(() => {
-    fetchTasks({ dashboard: 'true', completed: 'false', limit: '180' }, { force: true });
+    // Load all tasks (open AND closed), let frontend filter do the rest
+    fetchTasks({ dashboard: 'true', limit: '180' }, { force: true });
 
     // Auto-refresh every 60 s so newly shared/group tasks appear without manual reload
     const interval = setInterval(() => {
       if (!document.hidden) {
-        fetchTasks({ dashboard: 'true', completed: filter.completed === true ? 'true' : 'false', limit: '180' }, { force: true });
+        fetchTasks({ dashboard: 'true', limit: '180' }, { force: true });
       }
     }, 60000);
     return () => clearInterval(interval);
-  }, [filter.completed]);
+  }, []);
 
   const filtered = useMemo(() => {
     const search = (filter.search || '').toLowerCase();

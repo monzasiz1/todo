@@ -1,5 +1,6 @@
 const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
+const { cacheManager } = require('./_lib/cache');
 
 function calcNextDate(currentDate, rule, interval) {
   if (!currentDate) return null;
@@ -391,6 +392,15 @@ module.exports = async function handler(req, res) {
         ? Math.max(20, Math.min(400, requestedLimit))
         : 180;
 
+      // 🚀 CACHE: Check dashboard cache first
+      if (lite) {
+        const cacheKey = `dashboard:${user.id}:${completedFilter}:${limit}`;
+        const cached = cacheManager.get(cacheKey);
+        if (cached) {
+          return res.json(cached);
+        }
+      }
+
       // Check if collaboration columns exist
       const hasCollab = await pool.query(
         `SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tasks' AND column_name = 'visibility') as has_visibility`
@@ -516,7 +526,12 @@ module.exports = async function handler(req, res) {
           );
         }
 
-        return res.json({ tasks: result.rows, lite: true });
+        // 🚀 CACHE: Store result for 30 seconds
+        const response = { tasks: result.rows, lite: true };
+        const cacheKey = `dashboard:${user.id}:${completedFilter}:${limit}`;
+        cacheManager.set(cacheKey, response, 30000); // 30 second TTL
+
+        return res.json(response);
       }
 
       // Full query with collaboration support (existing behaviour)
@@ -703,6 +718,9 @@ module.exports = async function handler(req, res) {
         group_color: groupInfo?.color || null,
         group_image_url: groupInfo?.image_url || null,
       }));
+
+      // 🚀 CACHE: Invalidate dashboard cache when task is created
+      cacheManager.invalidate(`dashboard:${user.id}:*`);
 
       return res.status(201).json({
         task: decoratedTasks[0],
