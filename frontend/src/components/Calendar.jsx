@@ -30,6 +30,24 @@ import {
 } from 'date-fns';
 import { de } from 'date-fns/locale';
 
+// ── Desktop week-view grid constants (shared by renderer + drag handler) ──
+const WK_START = 7;    // first visible hour
+const WK_END   = 23;   // last visible hour
+const WK_H     = 52;   // px per hour
+
+const minsToTime = (mins) => {
+  const h = Math.floor(Math.max(0, mins) / 60);
+  const m = Math.floor(Math.max(0, mins) % 60);
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+};
+
+const timeToMins = (t) => {
+  if (!t) return null;
+  const [h, m] = String(t).split(':').map((v) => parseInt(v, 10));
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  return h * 60 + m;
+};
+
 export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeChange, onTaskUpdated }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState(window.innerWidth >= 768 ? 'week' : 'month');
@@ -198,15 +216,32 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     dragTaskRef.current = task;
     let moved = false;
 
+    // Record where inside the event card the pointer landed,
+    // so the ghost stays visually attached to the right spot
+    const cardRect = e.currentTarget.getBoundingClientRect();
+    const clickOffsetY = e.clientY - cardRect.top;
+
     const onMove = (ev) => {
       moved = true;
       wasDragging.current = true;
-      setDragInfo({ task, x: ev.clientX, y: ev.clientY });
-      // Highlight target cell via DOM (no React re-render needed for highlight)
+
+      // Calculate preview time based on current cursor position
       const under = document.elementFromPoint(ev.clientX, ev.clientY);
-      const cell = under?.closest('[data-caldate]');
+      const col = under?.closest('.desktop-week-day-col');
+      let previewTime = null;
+      if (col) {
+        const colRect = col.getBoundingClientRect();
+        const relY = Math.max(0, ev.clientY - colRect.top - clickOffsetY);
+        const rawMins = (relY / WK_H) * 60;
+        const snapped = Math.round(rawMins / 15) * 15;
+        const startMins = Math.max(WK_START * 60, Math.min(WK_END * 60 - 30, WK_START * 60 + snapped));
+        previewTime = minsToTime(startMins);
+      }
+
+      setDragInfo({ task, x: ev.clientX, y: ev.clientY, previewTime });
+
       document.querySelectorAll('.cal-drag-over').forEach(el => el.classList.remove('cal-drag-over'));
-      if (cell) cell.classList.add('cal-drag-over');
+      if (col) col.classList.add('cal-drag-over');
     };
 
     const onUp = async (ev) => {
@@ -220,20 +255,49 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       setTimeout(() => { wasDragging.current = false; }, 100);
 
       const under = document.elementFromPoint(ev.clientX, ev.clientY);
-      const cell = under?.closest('[data-caldate]');
-      if (!cell) return;
+      // Accept drops on time columns AND all-day cells
+      const col = under?.closest('.desktop-week-day-col') || under?.closest('[data-caldate]');
+      if (!col) return;
 
-      const targetDateStr = cell.dataset.caldate;
+      const targetDateStr = col.dataset.caldate;
+      if (!targetDateStr) return;
       const oldDateStr = droppedTask.date?.substring(0, 10);
-      if (targetDateStr === oldDateStr) return;
 
-      let newDateEnd = droppedTask.date_end || null;
-      if (droppedTask.date_end && oldDateStr) {
-        const delta = differenceInCalendarDays(parseISO(targetDateStr), parseISO(oldDateStr));
-        const oldEnd = parseISO(droppedTask.date_end.substring(0, 10));
-        newDateEnd = format(addDays(oldEnd, delta), 'yyyy-MM-dd');
+      const updates = {};
+
+      // ── Date shift ─────────────────────────────────────────────
+      if (targetDateStr !== oldDateStr) {
+        updates.date = targetDateStr;
+        if (droppedTask.date_end && oldDateStr) {
+          const delta = differenceInCalendarDays(parseISO(targetDateStr), parseISO(oldDateStr));
+          const oldEnd = parseISO(droppedTask.date_end.substring(0, 10));
+          updates.date_end = format(addDays(oldEnd, delta), 'yyyy-MM-dd');
+        }
       }
-      const updated = await updateTask(droppedTask.id, { date: targetDateStr, date_end: newDateEnd });
+
+      // ── Time shift (only in the timed grid, not the all-day strip) ─
+      const isTimeCol = col.classList.contains('desktop-week-day-col');
+      if (isTimeCol && droppedTask.time) {
+        const colRect = col.getBoundingClientRect();
+        const relY = Math.max(0, ev.clientY - colRect.top - clickOffsetY);
+        const rawMins = (relY / WK_H) * 60;
+        const snapped = Math.round(rawMins / 15) * 15;
+        const newStartMins = Math.max(WK_START * 60, Math.min(WK_END * 60 - 30, WK_START * 60 + snapped));
+
+        const oldStartMins = timeToMins(droppedTask.time) ?? (WK_START * 60);
+        if (newStartMins !== oldStartMins) {
+          updates.time = minsToTime(newStartMins);
+          if (droppedTask.time_end) {
+            const oldEndMins = timeToMins(droppedTask.time_end) ?? (oldStartMins + 60);
+            const duration = Math.max(30, oldEndMins - oldStartMins);
+            updates.time_end = minsToTime(Math.min(WK_END * 60, newStartMins + duration));
+          }
+        }
+      }
+
+      if (Object.keys(updates).length === 0) return;
+
+      const updated = await updateTask(droppedTask.id, updates);
       if (updated && onTaskUpdated) {
         onTaskUpdated(updated);
       }
@@ -328,18 +392,12 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
     const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
-    const startHour = 7;
-    const endHour = 23;
-    const hourHeight = 52;
+    const startHour = WK_START;
+    const endHour = WK_END;
+    const hourHeight = WK_H;
     const totalHeight = (endHour - startHour) * hourHeight;
     const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
-
-    const timeToMinutes = (timeStr) => {
-      if (!timeStr) return null;
-      const [h, m] = String(timeStr).split(':').map((v) => parseInt(v, 10));
-      if (Number.isNaN(h) || Number.isNaN(m)) return null;
-      return h * 60 + m;
-    };
+    const timeToMinutes = timeToMins;
 
     return (
       <div className="desktop-week-layout">
@@ -784,7 +842,10 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
           textOverflow: 'ellipsis',
           boxShadow: '0 6px 20px rgba(0,0,0,0.18)',
         }}>
-          {dragInfo.task.title}
+          <div style={{ fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis' }}>{dragInfo.task.title}</div>
+          {dragInfo.previewTime && (
+            <div style={{ fontSize: '0.68rem', opacity: 0.75, marginTop: 2 }}>{dragInfo.previewTime}</div>
+          )}
         </div>,
         document.body
       )}

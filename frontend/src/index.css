@@ -247,14 +247,16 @@ input, textarea, select {
 }
 
 .sidebar-categories-wrap {
-  overflow: hidden;
-  max-height: 420px;
+  overflow-y: auto;
+  max-height: 340px;
   opacity: 1;
   transition: max-height 0.24s ease, opacity 0.2s ease;
+  -webkit-overflow-scrolling: touch;
 }
 
 .sidebar-categories-wrap.collapsed {
   max-height: 0;
+  overflow: hidden;
   opacity: 0;
 }
 

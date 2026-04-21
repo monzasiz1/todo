@@ -122,7 +122,7 @@ export default function Sidebar({ isOpen, onClose }) {
         </div>
       </div>
       <div className={`sidebar-categories-wrap ${categoriesCollapsed ? 'collapsed' : 'open'}`}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 16, overflowY: 'auto' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 16 }}>
         <div
           className={`sidebar-category ${!filter.category ? 'active' : ''}`}
           onClick={() => { clearFilters(); onClose?.(); }}
