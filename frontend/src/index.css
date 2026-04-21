@@ -4172,6 +4172,34 @@ input, textarea, select {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    overflow: hidden;
+  }
+
+  .desktop-sidebar-section-toggle {
+    width: 100%;
+    border: 1px solid #e1e6f0;
+    background: #f4f7fc;
+    color: #2e3749;
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+  }
+
+  .desktop-sidebar-chevron {
+    color: #6c7891;
+    transition: transform 0.2s;
+  }
+
+  .desktop-sidebar-chevron.open {
+    transform: rotate(180deg);
   }
 
   .desktop-calendar-source-item {

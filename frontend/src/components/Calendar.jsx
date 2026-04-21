@@ -34,6 +34,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [detailTask, setDetailTask] = useState(null);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [showSidebarCategories, setShowSidebarCategories] = useState(true);
   const [pickerYear, setPickerYear] = useState(getYear(new Date()));
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
   // Drag state (Pointer Events based)
@@ -319,19 +320,33 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       <div className="desktop-week-layout">
         <aside className="desktop-calendar-sidebar">
           <div className="desktop-calendar-sidebar-title">Kalender</div>
-          <div className="desktop-calendar-source-list">
-            {calendarSources.map((source) => (
-              <label key={source.key} className="desktop-calendar-source-item">
-                <input
-                  type="checkbox"
-                  checked={visibleSources[source.key] !== false}
-                  onChange={(e) => setVisibleSources((s) => ({ ...s, [source.key]: e.target.checked }))}
-                />
-                <span className="desktop-calendar-source-dot" style={{ background: source.color }} />
-                <span className="desktop-calendar-source-name">{source.name}</span>
-              </label>
-            ))}
-          </div>
+          <button className="desktop-sidebar-section-toggle" onClick={() => setShowSidebarCategories((v) => !v)}>
+            <span>Kategorien</span>
+            <ChevronDown size={15} className={`desktop-sidebar-chevron ${showSidebarCategories ? 'open' : ''}`} />
+          </button>
+          <AnimatePresence initial={false}>
+            {showSidebarCategories && (
+              <motion.div
+                className="desktop-calendar-source-list"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                {calendarSources.map((source) => (
+                  <label key={source.key} className="desktop-calendar-source-item">
+                    <input
+                      type="checkbox"
+                      checked={visibleSources[source.key] !== false}
+                      onChange={(e) => setVisibleSources((s) => ({ ...s, [source.key]: e.target.checked }))}
+                    />
+                    <span className="desktop-calendar-source-dot" style={{ background: source.color }} />
+                    <span className="desktop-calendar-source-name">{source.name}</span>
+                  </label>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </aside>
 
         <div className="desktop-week-main">
