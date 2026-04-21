@@ -466,6 +466,21 @@ module.exports = async function handler(req, res) {
              ),
              task_ids AS (
                SELECT DISTINCT id FROM visible_ids
+             ),
+             shared_users AS (
+               SELECT tp2.task_id,
+                      COALESCE(
+                        json_agg(
+                          json_build_object('name', su.name, 'color', su.avatar_color, 'avatar_url', su.avatar_url)
+                          ORDER BY su.name
+                        ),
+                        '[]'::json
+                      ) AS shared_with_users
+               FROM task_permissions tp2
+               JOIN users su ON tp2.user_id = su.id
+               JOIN task_ids ti ON ti.id = tp2.task_id
+               WHERE tp2.can_view = true
+               GROUP BY tp2.task_id
              )
              SELECT t.id, t.user_id, t.title, t.description, t.date, t.date_end, t.time, t.time_end,
                     t.priority, t.completed, t.type, t.sort_order, t.created_at, t.updated_at, t.visibility,
@@ -489,20 +504,12 @@ module.exports = async function handler(req, res) {
                     grp.color as group_color,
                     grp.image_url as group_image_url,
                     0::int AS attachment_count,
-                    (SELECT COALESCE(
-                        json_agg(
-                          json_build_object('name', su.name, 'color', su.avatar_color, 'avatar_url', su.avatar_url)
-                          ORDER BY su.name
-                        ),
-                        '[]'::json
-                      )
-                     FROM task_permissions tp2
-                     JOIN users su ON tp2.user_id = su.id
-                     WHERE tp2.task_id = t.id AND tp2.can_view = true) AS shared_with_users
+                    COALESCE(sh.shared_with_users, '[]'::json) AS shared_with_users
              FROM task_ids ids
              JOIN tasks t ON t.id = ids.id
              LEFT JOIN categories c ON t.category_id = c.id
              LEFT JOIN users u ON t.user_id = u.id
+             LEFT JOIN shared_users sh ON sh.task_id = t.id
              LEFT JOIN group_tasks gt ON gt.task_id = t.id
              LEFT JOIN groups grp ON grp.id = gt.group_id
              WHERE ($2::boolean IS NULL OR t.completed = $2)
@@ -562,7 +569,9 @@ module.exports = async function handler(req, res) {
         // 🚀 CACHE: Store result for 30 seconds
         const response = { tasks: result.rows, lite: true };
         const cacheKey = buildDashboardCacheKey(user.id, completedFilter, limit);
-        await cacheManager.set(cacheKey, response, 30, String(user.id));
+        cacheManager
+          .set(cacheKey, response, 30, String(user.id))
+          .catch((error) => console.error('Dashboard cache set failed (non-blocking):', error));
 
         res.setHeader('X-Dashboard-Cache', `${cacheManager.backendName}-miss`);
         return res.json(response);
