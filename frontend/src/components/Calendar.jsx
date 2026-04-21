@@ -48,6 +48,18 @@ const timeToMins = (t) => {
   return h * 60 + m;
 };
 
+// ── Throttle helper for smooth drag ──
+const throttle = (fn, delay) => {
+  let lastRun = 0;
+  return (...args) => {
+    const now = Date.now();
+    if (now - lastRun >= delay) {
+      fn(...args);
+      lastRun = now;
+    }
+  };
+};
+
 export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeChange, onTaskUpdated }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState(window.innerWidth >= 768 ? 'week' : 'month');
@@ -570,19 +582,24 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const handleResizePointerDown = (e, task, edge, gridEl, hourH, startH) => {
     e.stopPropagation();
     e.preventDefault();
-    wasDragging.current = true; // block click immediately
+    wasDragging.current = true;
     const endH = 23;
     resizeInfoRef.current = null;
 
-    const onMove = (ev) => {
+    const onMove = throttle((ev) => {
       if (!gridEl) return;
       const gr = gridEl.getBoundingClientRect();
       const relY = Math.max(0, ev.clientY - gr.top);
-      const snapped = Math.round(((relY / hourH) * 60) / 15) * 15;
-      const totalMins = Math.max(startH * 60, Math.min(endH * 60, startH * 60 + snapped));
-      resizeInfoRef.current = { task, edge, previewTime: minsToTime(totalMins) };
-      setResizeInfo({ task, edge, previewTime: minsToTime(totalMins) });
-    };
+      
+      // Berechne die Minute exakt: relY ist Pixel ab startH
+      // Minuten ab startH = (relY / hourH) * 60
+      const minsFromStart = Math.round(((relY / hourH) * 60) / 15) * 15;
+      const totalMins = Math.max(startH * 60, Math.min(endH * 60, startH * 60 + minsFromStart));
+      
+      const newTime = minsToTime(totalMins);
+      resizeInfoRef.current = { task, edge, previewTime: newTime };
+      setResizeInfo({ task, edge, previewTime: newTime });
+    }, 40); // Throttle to 40ms for smooth performance
 
     const onUp = async () => {
       document.removeEventListener('pointermove', onMove);
@@ -591,15 +608,23 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       resizeInfoRef.current = null;
       setResizeInfo(null);
       if (!info) { setTimeout(() => { wasDragging.current = false; }, 350); return; }
+      
       const { task: t, edge: ed, previewTime } = info;
-      const sMins = timeToMins(t.time) ?? (startH * 60);
+      const sMins = timeToMins(t.time) ?? ((startH ?? 7) * 60);
       const eMins = timeToMins(t.time_end) ?? (sMins + 60);
       const newMins = timeToMins(previewTime);
+      
       if (newMins == null) { setTimeout(() => { wasDragging.current = false; }, 350); return; }
+      
       const updates = {};
-      if (ed === 'end' && newMins > sMins + 14) updates.time_end = previewTime;
-      else if (ed === 'start' && newMins < eMins - 14) updates.time = previewTime;
+      if (ed === 'end' && newMins > sMins + 14) {
+        updates.time_end = previewTime;
+      } else if (ed === 'start' && newMins < eMins - 14) {
+        updates.time = previewTime;
+      }
+      
       if (!Object.keys(updates).length) { setTimeout(() => { wasDragging.current = false; }, 350); return; }
+      
       const updated = await updateTask(t.id, updates);
       if (updated && onTaskUpdated) onTaskUpdated(updated);
       if (updated) triggerDropFeedback(t.id, 'Zeit angepasst');
