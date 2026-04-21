@@ -400,7 +400,7 @@ module.exports = async function handler(req, res) {
       let result;
       if (lite) {
         if (collabEnabled) {
-          // Optimized dashboard query: UNION ALL + tasks-only payload (no extra joins)
+          // Optimized dashboard query: UNION ALL + lightweight joins for critical metadata
           result = await pool.query(
             `WITH visible_ids AS (
                SELECT t.id
@@ -437,9 +437,9 @@ module.exports = async function handler(req, res) {
              )
              SELECT t.id, t.user_id, t.title, t.description, t.date, t.date_end, t.time, t.time_end,
                     t.priority, t.completed, t.type, t.sort_order, t.created_at, t.updated_at, t.visibility,
-                    NULL::text AS category_name,
-                    NULL::text AS category_color,
-                    NULL::text AS category_icon,
+                    c.name as category_name,
+                    c.color as category_color,
+                    c.icon as category_icon,
                     NULL::text AS creator_name,
                     NULL::text AS creator_color,
                     NULL::text AS creator_avatar_url,
@@ -452,21 +452,24 @@ module.exports = async function handler(req, res) {
                         WHERE tp.task_id = t.id AND tp.user_id = $1 AND tp.can_edit = true
                       )
                     END AS can_edit,
-                    NULL::int AS group_id,
-                    NULL::text AS group_name,
-                    NULL::text AS group_color,
-                    NULL::text AS group_image_url,
+                    gt.group_id,
+                    grp.name as group_name,
+                    grp.color as group_color,
+                    grp.image_url as group_image_url,
                     0::int AS attachment_count,
                     '[]'::json AS shared_with_users
              FROM task_ids ids
              JOIN tasks t ON t.id = ids.id
+             LEFT JOIN categories c ON t.category_id = c.id
+             LEFT JOIN group_tasks gt ON gt.task_id = t.id
+             LEFT JOIN groups grp ON grp.id = gt.group_id
              WHERE ($2::boolean IS NULL OR t.completed = $2)
              ORDER BY t.sort_order ASC, t.created_at DESC
              LIMIT $3`,
             [user.id, completedFilter, limit]
           );
         } else {
-          // Simple lite query without collaboration features and without extra joins
+          // Simple lite query without collaboration features, but with group/category joins
           result = await pool.query(
             `WITH task_ids AS (
                SELECT t.id
@@ -485,13 +488,13 @@ module.exports = async function handler(req, res) {
              )
              SELECT t.id, t.user_id, t.title, t.description, t.date, t.date_end, t.time, t.time_end,
                     t.priority, t.completed, t.type, t.sort_order, t.created_at, t.updated_at,
-                    NULL::text AS category_name,
-                    NULL::text AS category_color,
-                    NULL::text AS category_icon,
-                    NULL::int AS group_id,
-                    NULL::text AS group_name,
-                    NULL::text AS group_color,
-                    NULL::text AS group_image_url,
+                    c.name as category_name,
+                    c.color as category_color,
+                    c.icon as category_icon,
+                    gt.group_id,
+                    grp.name as group_name,
+                    grp.color as group_color,
+                    grp.image_url as group_image_url,
                     0::int AS attachment_count,
                     '[]'::json AS shared_with_users,
                     true AS is_owner,
@@ -503,6 +506,9 @@ module.exports = async function handler(req, res) {
                     'private'::text AS visibility
              FROM uniq_ids ids
              JOIN tasks t ON t.id = ids.id
+             LEFT JOIN categories c ON t.category_id = c.id
+             LEFT JOIN group_tasks gt ON gt.task_id = t.id
+             LEFT JOIN groups grp ON grp.id = gt.group_id
              WHERE ($2::boolean IS NULL OR t.completed = $2)
              ORDER BY t.sort_order ASC, t.created_at DESC
              LIMIT $3`,
