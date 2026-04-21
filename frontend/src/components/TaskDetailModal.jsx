@@ -368,7 +368,15 @@ export default function TaskDetailModal({ task, onClose }) {
         <TaskEditModal
           task={task}
           onClose={() => setShowEdit(false)}
-          onSaved={() => { fetchTasks({ dashboard: 'true', limit: '400' }, { force: true }); onClose(); }}
+          onSaved={() => {
+            fetchTasks({
+              dashboard: 'true',
+              limit: '400',
+              horizon_days: '56',
+              completed_lookback_days: '30',
+            }, { force: true });
+            onClose();
+          }}
         />,
         document.body
       )}

@@ -78,9 +78,9 @@ function buildRecurringDates(startDate, rule, interval, endDate) {
   return dates;
 }
 
-function buildDashboardCacheKey(userId, completedFilter, limit) {
+function buildDashboardCacheKey(userId, completedFilter, limit, horizonDays, completedLookbackDays) {
   const completedScope = completedFilter === null ? 'all' : String(completedFilter);
-  return `dashboard:user:${userId}:${completedScope}:${limit}`;
+  return `dashboard:user:${userId}:${completedScope}:${limit}:h${horizonDays}:c${completedLookbackDays}`;
 }
 
 function buildDashboardOrderByClause() {
@@ -406,8 +406,16 @@ module.exports = async function handler(req, res) {
       const completedRaw = req.query?.completed;
       const completedFilter = completedRaw === 'true' ? true : (completedRaw === 'false' ? false : null);
       const requestedLimit = parseInt(req.query?.limit, 10);
+      const requestedHorizonDays = parseInt(req.query?.horizon_days, 10);
+      const requestedCompletedLookbackDays = parseInt(req.query?.completed_lookback_days, 10);
       const defaultLimit = lite ? 400 : 180;
       const maxLimit = lite ? 1000 : 400;
+      const horizonDays = Number.isFinite(requestedHorizonDays)
+        ? Math.max(14, Math.min(365, requestedHorizonDays))
+        : 56;
+      const completedLookbackDays = Number.isFinite(requestedCompletedLookbackDays)
+        ? Math.max(7, Math.min(365, requestedCompletedLookbackDays))
+        : 30;
       const limit = Number.isFinite(requestedLimit)
         ? Math.max(20, Math.min(maxLimit, requestedLimit))
         : defaultLimit;
@@ -415,7 +423,7 @@ module.exports = async function handler(req, res) {
 
       // 🚀 CACHE: Check dashboard cache first
       if (lite) {
-        const cacheKey = buildDashboardCacheKey(user.id, completedFilter, limit);
+        const cacheKey = buildDashboardCacheKey(user.id, completedFilter, limit, horizonDays, completedLookbackDays);
         const cached = await cacheManager.get(cacheKey);
         if (cached) {
           res.setHeader('X-Dashboard-Cache', `${cacheManager.backendName}-hit`);
@@ -482,6 +490,11 @@ module.exports = async function handler(req, res) {
                FROM task_ids ids
                JOIN tasks t ON t.id = ids.id
                WHERE ($2::boolean IS NULL OR t.completed = $2)
+                 AND (
+                   t.date IS NULL
+                   OR (COALESCE(t.completed, false) = true AND t.date >= CURRENT_DATE - ($5::int * INTERVAL '1 day'))
+                   OR (COALESCE(t.completed, false) = false AND (t.date < CURRENT_DATE OR t.date <= CURRENT_DATE + ($4::int * INTERVAL '1 day')))
+                 )
                ${dashboardOrderBy}
                LIMIT $3
              ),
@@ -539,7 +552,7 @@ module.exports = async function handler(req, res) {
                rt.time ASC NULLS LAST,
                rt.sort_order ASC,
                rt.created_at DESC`,
-            [user.id, completedFilter, limit]
+            [user.id, completedFilter, limit, horizonDays, completedLookbackDays]
           );
         } else {
           // Simple lite query without collaboration features, but with group/category joins
@@ -566,6 +579,11 @@ module.exports = async function handler(req, res) {
                FROM uniq_ids ids
                JOIN tasks t ON t.id = ids.id
                WHERE ($2::boolean IS NULL OR t.completed = $2)
+                 AND (
+                   t.date IS NULL
+                   OR (COALESCE(t.completed, false) = true AND t.date >= CURRENT_DATE - ($5::int * INTERVAL '1 day'))
+                   OR (COALESCE(t.completed, false) = false AND (t.date < CURRENT_DATE OR t.date <= CURRENT_DATE + ($4::int * INTERVAL '1 day')))
+                 )
                ${dashboardOrderBy}
                LIMIT $3
              )
@@ -608,13 +626,13 @@ module.exports = async function handler(req, res) {
                rt.time ASC NULLS LAST,
                rt.sort_order ASC,
                rt.created_at DESC`,
-            [user.id, completedFilter, limit]
+            [user.id, completedFilter, limit, horizonDays, completedLookbackDays]
           );
         }
 
         // 🚀 CACHE: Store result for 30 seconds
         const response = { tasks: result.rows, lite: true };
-        const cacheKey = buildDashboardCacheKey(user.id, completedFilter, limit);
+        const cacheKey = buildDashboardCacheKey(user.id, completedFilter, limit, horizonDays, completedLookbackDays);
         cacheManager
           .set(cacheKey, response, 30, String(user.id))
           .catch((error) => console.error('Dashboard cache set failed (non-blocking):', error));
