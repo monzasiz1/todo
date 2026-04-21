@@ -60,6 +60,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   // Drag / Resize state
   const [dragInfo, setDragInfo] = useState(null);
   const [resizeInfo, setResizeInfo] = useState(null); // { task, edge, previewTime }
+  const [dropFeedback, setDropFeedback] = useState(null); // { id, msg }
   const dragTaskRef = useRef(null);
   const wasDragging = useRef(false);
   const mobileDayRef = useRef(null);       // ref for mobile day-view time grid
@@ -177,6 +178,11 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     });
   };
 
+  const triggerDropFeedback = (taskId, msg = 'Termin verschoben') => {
+    setDropFeedback({ id: taskId, msg });
+    setTimeout(() => setDropFeedback(null), 1400);
+  };
+
   const navigate = (direction) => {
     if (view === 'month') {
       const nextDate = direction === 'next' ? addMonths(currentDate, 1) : subMonths(currentDate, 1);
@@ -243,6 +249,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       }
 
       setDragInfo({ task, x: ev.clientX, y: ev.clientY, previewTime });
+      if (!moved) document.body.classList.add('cal-is-dragging');
 
       document.querySelectorAll('.cal-drag-over').forEach(el => el.classList.remove('cal-drag-over'));
       if (col) col.classList.add('cal-drag-over');
@@ -251,6 +258,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     const onUp = async (ev) => {
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onUp);
+      document.body.classList.remove('cal-is-dragging');
       document.querySelectorAll('.cal-drag-over').forEach(el => el.classList.remove('cal-drag-over'));
       const droppedTask = dragTaskRef.current;
       dragTaskRef.current = null;
@@ -305,6 +313,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       if (updated && onTaskUpdated) {
         onTaskUpdated(updated);
       }
+      if (updated) triggerDropFeedback(droppedTask.id);
     };
 
     document.addEventListener('pointermove', onMove);
@@ -325,6 +334,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       moved = true;
       wasDragging.current = true;
       if (!gridEl) return;
+      if (!moved) document.body.classList.add('cal-is-dragging');
       const gr = gridEl.getBoundingClientRect();
       const relY = Math.max(0, ev.clientY - gr.top - clickOffsetY);
       const snapped = Math.round(((relY / hourH) * 60) / 15) * 15;
@@ -335,6 +345,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     const onUp = async (ev) => {
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onUp);
+      document.body.classList.remove('cal-is-dragging');
       const dropped = dragTaskRef.current;
       dragTaskRef.current = null;
       setDragInfo(null);
@@ -354,6 +365,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       }
       const updated = await updateTask(dropped.id, updates);
       if (updated && onTaskUpdated) onTaskUpdated(updated);
+      if (updated) triggerDropFeedback(dropped.id);
     };
 
     document.addEventListener('pointermove', onMove);
@@ -392,6 +404,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       const snapped = Math.round(((relY / hourH) * 60) / 15) * 15;
       const sMins = Math.max(startH * 60, Math.min(endH * 60 - 30, startH * 60 + snapped));
       setDragInfo({ task, x: ev.clientX, y: ev.clientY, previewTime: minsToTime(sMins) });
+      if (!moved) document.body.classList.add('cal-is-dragging');
       document.querySelectorAll('.mobile-week-grid-col').forEach(el => el.classList.remove('cal-drag-over'));
       const hEl = mobileWeekColRefs.current[targetIdx];
       if (hEl) hEl.classList.add('cal-drag-over');
@@ -400,6 +413,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     const onUp = async (ev) => {
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onUp);
+      document.body.classList.remove('cal-is-dragging');
       document.querySelectorAll('.mobile-week-grid-col').forEach(el => el.classList.remove('cal-drag-over'));
       const dropped = dragTaskRef.current;
       dragTaskRef.current = null;
@@ -437,6 +451,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       if (!Object.keys(updates).length) return;
       const updated = await updateTask(dropped.id, updates);
       if (updated && onTaskUpdated) onTaskUpdated(updated);
+      if (updated) triggerDropFeedback(dropped.id);
     };
 
     document.addEventListener('pointermove', onMove);
@@ -478,6 +493,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       if (!Object.keys(updates).length) return;
       const updated = await updateTask(t.id, updates);
       if (updated && onTaskUpdated) onTaskUpdated(updated);
+      if (updated) triggerDropFeedback(t.id, 'Zeit angepasst');
     };
 
     document.addEventListener('pointermove', onMove);
@@ -696,7 +712,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       return (
                         <div
                           key={t.id}
-                          className={`desktop-week-event${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}`}
+                          className={`desktop-week-event${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
                           style={{
                             top: `${top}px`,
                             height: `${height}px`,
@@ -817,7 +833,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                     return (
                       <div
                         key={t.id}
-                        className={`mobile-week-event${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}`}
+                        className={`mobile-week-event${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
                         style={{
                           top: `${top}px`, height: `${height}px`,
                           background: t.group_color || t.category_color || '#4C7BD9',
@@ -931,7 +947,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
             return (
               <div
                 key={t.id}
-                className={`mobile-day-event${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}`}
+                className={`mobile-day-event${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
                 style={{
                   top: `${top}px`,
                   height: `${height}px`,
@@ -1139,6 +1155,14 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       {resizeInfo && createPortal(
         <div className="cal-resize-preview">
           {resizeInfo.edge === 'start' ? '▲' : '▼'} {resizeInfo.previewTime}
+        </div>,
+        document.body
+      )}
+
+      {/* Drop feedback toast */}
+      {dropFeedback && createPortal(
+        <div key={dropFeedback.id + dropFeedback.msg} className="cal-drop-toast">
+          ✓ {dropFeedback.msg}
         </div>,
         document.body
       )}
