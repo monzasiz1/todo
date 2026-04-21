@@ -296,10 +296,68 @@ module.exports = async function handler(req, res) {
     }
   }
 
+  // GET /api/tasks/summary
+  if (segments[0] === 'summary' && req.method === 'GET') {
+    try {
+      const hasCollab = await pool.query(
+        `SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tasks' AND column_name = 'visibility') as has_visibility`
+      );
+      const collabEnabled = hasCollab.rows[0]?.has_visibility === true;
+
+      let result;
+      if (collabEnabled) {
+        result = await pool.query(
+          `SELECT
+             COUNT(*) FILTER (WHERE t.completed = false) as open_count,
+             COUNT(*) FILTER (WHERE t.completed = true) as completed_count,
+             COUNT(*) FILTER (WHERE t.completed = false AND t.date = CURRENT_DATE) as today_count,
+             COUNT(*) FILTER (WHERE t.completed = false AND t.priority IN ('urgent', 'high')) as urgent_count
+           FROM tasks t
+           LEFT JOIN task_permissions tp ON tp.task_id = t.id AND tp.user_id = $1
+           WHERE t.user_id = $1
+             OR (t.visibility = 'shared' AND EXISTS (
+               SELECT 1 FROM friends f WHERE f.status = 'accepted'
+               AND ((f.user_id = t.user_id AND f.friend_id = $1) OR (f.user_id = $1 AND f.friend_id = t.user_id))
+             ))
+             OR (t.visibility = 'selected_users' AND tp.can_view = true)
+             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)`,
+          [user.id]
+        );
+      } else {
+        result = await pool.query(
+          `SELECT
+             COUNT(*) FILTER (WHERE t.completed = false) as open_count,
+             COUNT(*) FILTER (WHERE t.completed = true) as completed_count,
+             COUNT(*) FILTER (WHERE t.completed = false AND t.date = CURRENT_DATE) as today_count,
+             COUNT(*) FILTER (WHERE t.completed = false AND t.priority IN ('urgent', 'high')) as urgent_count
+           FROM tasks t
+           WHERE t.user_id = $1
+             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)`,
+          [user.id]
+        );
+      }
+
+      const s = result.rows[0] || {};
+      return res.json({
+        open: parseInt(s.open_count || 0),
+        completed: parseInt(s.completed_count || 0),
+        today: parseInt(s.today_count || 0),
+        urgent: parseInt(s.urgent_count || 0),
+      });
+    } catch (err) {
+      console.error('Tasks summary error:', err);
+      return res.status(500).json({ error: 'Fehler beim Laden der Zusammenfassung' });
+    }
+  }
+
   // GET /api/tasks
   if (segments.length === 0 && req.method === 'GET') {
     try {
       const lite = String(req.query?.lite || 'false') === 'true';
+      const completedRaw = req.query?.completed;
+      let completedClause = '';
+      if (completedRaw === 'true') completedClause = ' AND t.completed = true';
+      if (completedRaw === 'false') completedClause = ' AND t.completed = false';
 
       // Check if collaboration tables exist
       const hasCollab = await pool.query(
@@ -319,7 +377,7 @@ module.exports = async function handler(req, res) {
                COALESCE(tp.can_edit, false) as can_edit,
                gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url,
                gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color, gtc.avatar_url as group_task_creator_avatar_url,
-               (SELECT COUNT(*) FROM task_attachments ta WHERE ta.task_id = t.id)::int as attachment_count,
+               0::int as attachment_count,
                '[]'::json as shared_with_users
              FROM tasks t
              LEFT JOIN categories c ON t.category_id = c.id
@@ -336,6 +394,7 @@ module.exports = async function handler(req, res) {
                ))
                OR (t.visibility = 'selected_users' AND tp.can_view = true)
                OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
+             ${completedClause}
              ORDER BY t.sort_order ASC, t.created_at DESC`,
             [user.id]
           );
@@ -368,6 +427,7 @@ module.exports = async function handler(req, res) {
                ))
                OR (t.visibility = 'selected_users' AND tp.can_view = true)
                OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
+             ${completedClause}
              ORDER BY t.sort_order ASC, t.created_at DESC`,
             [user.id]
           );
@@ -385,6 +445,7 @@ module.exports = async function handler(req, res) {
            LEFT JOIN users gtc ON gtc.id = gt.created_by
            WHERE t.user_id = $1
              OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
+           ${completedClause}
            ORDER BY t.sort_order ASC, t.created_at DESC`,
           [user.id]
         );

@@ -3,6 +3,7 @@ import { api } from '../utils/api';
 
 export const useTaskStore = create((set, get) => ({
   tasks: [],
+  taskSummary: { open: 0, completed: 0, today: 0, urgent: 0 },
   categories: [],
   loading: false,
   error: null,
@@ -54,6 +55,24 @@ export const useTaskStore = create((set, get) => ({
     } catch (err) {
       set({ error: err.message });
       return [];
+    }
+  },
+
+  fetchTasksSummary: async () => {
+    try {
+      const data = await api.getTasksSummary();
+      set({
+        taskSummary: {
+          open: Number(data.open || 0),
+          completed: Number(data.completed || 0),
+          today: Number(data.today || 0),
+          urgent: Number(data.urgent || 0),
+        },
+      });
+      return data;
+    } catch (err) {
+      set({ error: err.message });
+      return null;
     }
   },
 

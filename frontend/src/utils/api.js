@@ -90,6 +90,8 @@ export const api = {
     return request(`/tasks${query ? `?${query}` : ''}`);
   },
 
+  getTasksSummary: () => request('/tasks/summary'),
+
   getTasksRange: (start, end) =>
     request(`/tasks/range?start=${start}&end=${end}`),
 

@@ -4,7 +4,7 @@ import { useTaskStore } from '../store/taskStore';
 import AIInput from '../components/AIInput';
 import ManualTaskForm from '../components/ManualTaskForm';
 import TaskCard from '../components/TaskCard';
-import { CheckCircle2, Circle, Clock, Flame, ChevronDown, CalendarDays, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, ChevronDown, CalendarDays, AlertTriangle, Sparkles, SlidersHorizontal } from 'lucide-react';
 import { isToday, isTomorrow, isThisWeek, isPast, parseISO, format, startOfDay, compareAsc } from 'date-fns';
 import { de } from 'date-fns/locale';
 
@@ -126,20 +126,25 @@ function groupTasksByDate(tasks) {
 }
 
 export default function Dashboard() {
-  const { tasks, fetchTasks, fetchCategories, filter, setFilter, clearFilters, getFilteredTasks } = useTaskStore();
+  const { tasks, taskSummary, fetchTasks, fetchTasksSummary, fetchCategories, filter, setFilter, getFilteredTasks } = useTaskStore();
   const [showCompleted, setShowCompleted] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState({});
 
   useEffect(() => {
-    fetchTasks({ lite: 'true' }, { force: true });
+    fetchTasks({ lite: 'true', completed: 'false' }, { force: true });
+    fetchTasksSummary();
     fetchCategories();
 
     // Auto-refresh every 60 s so newly shared/group tasks appear without manual reload
     const interval = setInterval(() => {
-      if (!document.hidden) fetchTasks({ lite: 'true' }, { force: true });
+      if (!document.hidden) {
+        fetchTasks({ lite: 'true', completed: filter.completed === true ? 'true' : 'false' }, { force: true });
+        fetchTasksSummary();
+      }
     }, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [filter.completed]);
 
   const filtered = getFilteredTasks();
   const deduplicated = deduplicateRecurring(filtered.filter((t) => !t.completed));
@@ -148,38 +153,31 @@ export default function Dashboard() {
     .sort((a, b) => compareAsc(parseISO(b.updated_at || b.created_at), parseISO(a.updated_at || a.created_at)))
     .slice(0, 20);
 
-  const totalOpen = tasks.filter((t) => !t.completed).length;
-  const completedCount = tasks.filter((t) => t.completed).length;
-  const todayCount = tasks.filter((t) => t.date && isToday(parseISO(t.date)) && !t.completed).length;
-  const urgentCount = tasks.filter((t) => (t.priority === 'urgent' || t.priority === 'high') && !t.completed).length;
+  const openTasks = tasks.filter((t) => !t.completed);
+  const importantToday = openTasks.filter((t) => t.date && isToday(parseISO(t.date)) && (t.priority === 'urgent' || t.priority === 'high')).length;
+  const overdueCount = openTasks.filter((t) => t.date && isPast(parseISO(t.date)) && !isToday(parseISO(t.date))).length;
+  const doableToday = openTasks.filter((t) => (!t.date || isToday(parseISO(t.date))) && t.priority !== 'urgent').length;
 
-  const stats = [
-    { icon: <Circle size={18} />, value: totalOpen, label: 'Offen', color: '#007AFF', accent: 'rgba(0,122,255,0.12)', filterKey: 'completed', filterVal: false },
-    { icon: <CheckCircle2 size={18} />, value: completedCount, label: 'Erledigt', color: '#34C759', accent: 'rgba(52,199,89,0.12)', filterKey: 'completed', filterVal: true },
-    { icon: <Clock size={18} />, value: todayCount, label: 'Heute', color: '#FF9500', accent: 'rgba(255,149,0,0.12)', filterKey: 'today', filterVal: null },
-    { icon: <Flame size={18} />, value: urgentCount, label: 'Dringend', color: '#FF3B30', accent: 'rgba(255,59,48,0.12)', filterKey: 'priority', filterVal: 'urgent' },
+  const insights = [
+    {
+      key: 'important',
+      icon: AlertTriangle,
+      color: '#FF3B30',
+      text: `Du hast heute ${importantToday} wichtige ${importantToday === 1 ? 'Aufgabe' : 'Aufgaben'}`,
+    },
+    {
+      key: 'overdue',
+      icon: Clock,
+      color: '#FF9500',
+      text: `${overdueCount} ${overdueCount === 1 ? 'Aufgabe ist' : 'Aufgaben sind'} überfällig`,
+    },
+    {
+      key: 'doable',
+      icon: CheckCircle2,
+      color: '#34C759',
+      text: `Heute machbar: ${doableToday} ${doableToday === 1 ? 'Task' : 'Tasks'}`,
+    },
   ];
-
-  const handleStatClick = (stat) => {
-    if (stat.filterKey === 'today') {
-      // Show today's tasks: set date filter to today only
-      // If "today" section exists scroll to it, otherwise show all and scroll to top
-      const el = document.querySelector('[data-section="today"]');
-      if (el) {
-        const offset = 80; // account for fixed header on mobile
-        const top = el.getBoundingClientRect().top + window.scrollY - offset;
-        window.scrollTo({ top, behavior: 'smooth' });
-      } else {
-        // No tasks today – reset all filters and scroll to top so user sees the empty state
-        clearFilters();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    } else if (stat.filterKey === 'completed') {
-      setFilter('completed', filter.completed === stat.filterVal ? null : stat.filterVal);
-    } else {
-      setFilter(stat.filterKey, filter[stat.filterKey] === stat.filterVal ? null : stat.filterVal);
-    }
-  };
 
   const greetingHour = new Date().getHours();
   const greeting = greetingHour < 12 ? 'Guten Morgen' : greetingHour < 18 ? 'Guten Tag' : 'Guten Abend';
@@ -212,57 +210,76 @@ export default function Dashboard() {
       {/* Task Creation */}
       <div className="task-creation-stack">
         <AIInput />
-        <ManualTaskForm onTaskCreated={() => fetchTasks({ lite: 'true' }, { force: true })} />
-      </div>
-
-      {/* Stats */}
-      <div className="stats-row">
-        {stats.map((stat, i) => {
-          const isActive =
-            stat.filterKey === 'today' ? false
-            : filter[stat.filterKey] === stat.filterVal;
-          return (
-            <motion.button
-              key={stat.label}
-              className={`stat-card ${isActive ? 'stat-card-active' : ''}`}
-              style={{ '--stat-color': stat.color, '--stat-accent': stat.accent }}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, delay: 0.05 + i * 0.05 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => handleStatClick(stat)}
-            >
-              <span className="stat-card-value">{stat.value}</span>
-              <span className="stat-card-label">
-                <span className="stat-card-label-dot" />
-                {stat.label}
-              </span>
-            </motion.button>
-          );
-        })}
-      </div>
-
-      {/* Filter Bar */}
-      <div className="filter-bar">
-        {priorities.map((p) => (
-          <button
-            key={p.value || 'all'}
-            className={`filter-btn ${filter.priority === p.value ? 'active' : ''}`}
-            style={p.color ? { '--dot-color': p.color } : {}}
-            onClick={() => setFilter('priority', p.value)}
-          >
-            {p.color && <span className="filter-dot" />}
-            {p.label}
-          </button>
-        ))}
-        <input
-          type="text"
-          className="filter-search"
-          placeholder="Suchen..."
-          value={filter.search}
-          onChange={(e) => setFilter('search', e.target.value)}
+        <ManualTaskForm
+          onTaskCreated={() => {
+            fetchTasks({ lite: 'true', completed: filter.completed === true ? 'true' : 'false' }, { force: true });
+            fetchTasksSummary();
+          }}
         />
       </div>
+
+      {/* Smart Insights */}
+      <div className="smart-insights">
+        <div className="smart-insights-head">
+          <div className="smart-insights-title"><Sparkles size={16} /> Smart Insights</div>
+          <div className="smart-insights-meta">{taskSummary?.open ?? openTasks.length} offen</div>
+        </div>
+        <div className="smart-insights-list">
+          {insights.map((item, i) => {
+            const Icon = item.icon;
+            return (
+              <motion.div
+                key={item.key}
+                className="smart-insight-item"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25, delay: i * 0.05 }}
+              >
+                <span className="smart-insight-icon" style={{ color: item.color, background: `${item.color}15` }}>
+                  <Icon size={14} />
+                </span>
+                <span>{item.text}</span>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Collapsible Categories/Filter */}
+      <button className="dash-filters-toggle" onClick={() => setShowFilters((v) => !v)}>
+        <span><SlidersHorizontal size={15} /> Kategorien & Filter</span>
+        <ChevronDown size={16} className={`dash-section-chevron ${showFilters ? 'open' : ''}`} />
+      </button>
+      <AnimatePresence initial={false}>
+        {showFilters && (
+          <motion.div
+            className="filter-bar"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            {priorities.map((p) => (
+              <button
+                key={p.value || 'all'}
+                className={`filter-btn ${filter.priority === p.value ? 'active' : ''}`}
+                style={p.color ? { '--dot-color': p.color } : {}}
+                onClick={() => setFilter('priority', p.value)}
+              >
+                {p.color && <span className="filter-dot" />}
+                {p.label}
+              </button>
+            ))}
+            <input
+              type="text"
+              className="filter-search"
+              placeholder="Suchen..."
+              value={filter.search}
+              onChange={(e) => setFilter('search', e.target.value)}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Date-Grouped Task Sections */}
       {groups.length > 0 ? (
