@@ -387,8 +387,10 @@ function GroupDetail({ groupId, onBack }) {
   const [tab, setTab] = useState('tasks'); // 'tasks' | 'members' | 'settings'
   const [showAddTask, setShowAddTask] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(15);
 
   useEffect(() => { fetchGroup(groupId); }, [groupId]);
+  useEffect(() => { setVisibleCount(15); }, [tab]);
 
   const copyCode = () => {
     if (!currentGroup?.invite_code) return;
@@ -456,7 +458,7 @@ function GroupDetail({ groupId, onBack }) {
             <div className="group-empty-tab">Noch keine Aufgaben in dieser Gruppe</div>
           ) : (
             <div className="group-task-list">
-              {groupTasks.map((task) => (
+              {groupTasks.slice(0, visibleCount).map((task) => (
                 <GroupTaskCard
                   key={task.id}
                   task={task}
@@ -465,6 +467,14 @@ function GroupDetail({ groupId, onBack }) {
                   onRemove={removeGroupTask}
                 />
               ))}
+              {visibleCount < groupTasks.length && (
+                <button
+                  className="group-load-more-btn"
+                  onClick={() => setVisibleCount(v => v + 15)}
+                >
+                  Mehr anzeigen ({groupTasks.length - visibleCount} weitere)
+                </button>
+              )}
             </div>
           )}
 
