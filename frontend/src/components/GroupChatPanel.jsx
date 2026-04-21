@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Send, Pin, ChevronDown, ChevronUp,
   MessageCircle, Users, Sparkles, Check,
-  Pencil, Trash2, Undo2, BarChart2
+  Pencil, Trash2, Undo2, BarChart2, AlertTriangle
 } from 'lucide-react';
 import { useGroupStore } from '../store/groupStore';
 import { useAuthStore } from '../store/authStore';
@@ -124,7 +124,9 @@ export default function GroupChatPanel({ open, onClose }) {
   const [ignoredCards, setIgnoredCards] = useState(new Set()); // msgIds of dismissed event cards
   const [eventModal, setEventModal] = useState(null);   // { msgId, title, date, time, location, description }
   const [submittingModal, setSubmittingModal] = useState(false);
+  const [conflictInfo, setConflictInfo] = useState(null);
   const undoTimerRef = useRef(null);
+  const conflictTimerRef = useRef(null);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -174,6 +176,11 @@ export default function GroupChatPanel({ open, onClose }) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => () => {
+    clearTimeout(undoTimerRef.current);
+    clearTimeout(conflictTimerRef.current);
+  }, []);
 
   // ── Send message ──────────────────────────────────────────────────────────
   const sendMessage = async (text) => {
@@ -279,6 +286,11 @@ export default function GroupChatPanel({ open, onClose }) {
       setUndoInfo({ taskId, label: `${typeLabel} erstellt` });
       clearTimeout(undoTimerRef.current);
       undoTimerRef.current = setTimeout(() => setUndoInfo(null), 8000);
+      if (data?.conflict_info?.has_conflict) {
+        setConflictInfo(data.conflict_info);
+        clearTimeout(conflictTimerRef.current);
+        conflictTimerRef.current = setTimeout(() => setConflictInfo(null), 12000);
+      }
     } catch {
       // ignore – API shows its own error
     } finally {
@@ -631,13 +643,7 @@ export default function GroupChatPanel({ open, onClose }) {
                                             disabled={!!creatingFor}
                                             onClick={() => openEventModal(msg, preview)}
                                           >
-                                            {creatingFor === `${msg.id}_termin` ? <span className="gchat-spinner-inline" /> : '➕ Erstellen'}
-                                          </button>
-                                          <button
-                                            className="gchat-event-card-btn gchat-event-card-btn--secondary"
-                                            onClick={() => openEventModal(msg, preview)}
-                                          >
-                                            ✏️ Bearbeiten
+                                            {creatingFor === `${msg.id}_termin` ? <span className="gchat-spinner-inline" /> : '➕ Termin erstellen'}
                                           </button>
                                           <button
                                             className="gchat-event-card-btn gchat-event-card-btn--ghost"
@@ -649,10 +655,11 @@ export default function GroupChatPanel({ open, onClose }) {
                                       </div>
                                     )}
                                     {/* ── Other chips ── */}
+                                    <div className="gchat-ai-subactions-title">Weitere Aktionen</div>
                                     <div className="gchat-type-chips gchat-type-chips--slim">
                                       {[
-                                        { type: 'aufgabe', label: '✅ Aufgabe' },
-                                        { type: 'erinnerung', label: '⏰ Erinnerung' },
+                                        { type: 'aufgabe', label: '✅ Als Aufgabe' },
+                                        { type: 'erinnerung', label: '⏰ Als Erinnerung' },
                                       ].map(({ type, label }) => (
                                         <button
                                           key={type}
@@ -802,6 +809,25 @@ export default function GroupChatPanel({ open, onClose }) {
                   <span>{undoInfo.label}</span>
                   <button className="gchat-undo-btn" onClick={undoCreate}>
                     <Undo2 size={13} /> Rückgängig
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* ── Conflict Toast ── */}
+            <AnimatePresence>
+              {conflictInfo?.has_conflict && (
+                <motion.div
+                  className="gchat-conflict-toast"
+                  initial={{ y: 60, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 60, opacity: 0 }}
+                  transition={{ type: 'spring', stiffness: 360, damping: 30 }}
+                >
+                  <AlertTriangle size={14} />
+                  <span>{conflictInfo.message}</span>
+                  <button className="gchat-undo-btn" onClick={() => setConflictInfo(null)}>
+                    Verstanden
                   </button>
                 </motion.div>
               )}

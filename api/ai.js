@@ -29,6 +29,121 @@ function shiftDate(dateValue, days) {
   return formatDateOnly(d);
 }
 
+function normalizeDateString(value) {
+  if (!value) return null;
+  if (value instanceof Date) return formatDateOnly(value);
+  return String(value).substring(0, 10);
+}
+
+function formatDateDe(value) {
+  const d = toDateOnly(value);
+  if (!d) return String(value || '');
+  return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function timeToMinutes(value) {
+  if (!value) return null;
+  const m = String(value).match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return null;
+  const hh = Number(m[1]);
+  const mm = Number(m[2]);
+  if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
+  return hh * 60 + mm;
+}
+
+function rangesOverlap(startA, endA, startB, endB) {
+  return startA < endB && startB < endA;
+}
+
+function taskOccursOnDate(task, dateStr) {
+  const start = normalizeDateString(task.date);
+  const end = normalizeDateString(task.date_end) || start;
+  if (!start || !end) return false;
+  return dateStr >= start && dateStr <= end;
+}
+
+function hasTimeConflict(newTask, existingTask) {
+  const newStart = timeToMinutes(newTask.time);
+  const existingStart = timeToMinutes(existingTask.time);
+
+  // If either side is all-day/without time, treat as overlap for that day.
+  if (newStart === null || existingStart === null) return true;
+
+  const newEnd = timeToMinutes(newTask.time_end) ?? (newStart + 60);
+  const existingEnd = timeToMinutes(existingTask.time_end) ?? (existingStart + 60);
+
+  return rangesOverlap(newStart, newEnd, existingStart, existingEnd);
+}
+
+function buildSuggestionLabel(dateStr, timeStr) {
+  const base = formatDateDe(dateStr);
+  return timeStr ? `${base} um ${String(timeStr).substring(0, 5)} Uhr` : base;
+}
+
+async function detectConflictWithSuggestion(pool, userId, parsedTask) {
+  if (!parsedTask?.date) return null;
+
+  const targetDate = normalizeDateString(parsedTask.date);
+  if (!targetDate) return null;
+
+  const horizonEnd = shiftDate(targetDate, 14) || targetDate;
+  const existingRes = await pool.query(
+    `SELECT id, title, date, date_end, time, time_end, type
+     FROM tasks
+     WHERE user_id = $1
+       AND completed = false
+       AND date IS NOT NULL
+       AND date <= $3
+       AND (date_end IS NULL OR date_end >= $2)
+     ORDER BY date ASC, time ASC NULLS LAST`,
+    [userId, targetDate, horizonEnd]
+  );
+
+  const tasksOnTargetDate = existingRes.rows.filter((t) => taskOccursOnDate(t, targetDate));
+  const conflicting = tasksOnTargetDate.filter((t) => hasTimeConflict(parsedTask, t));
+  if (conflicting.length === 0) return null;
+
+  let suggestedDate = null;
+  for (let offset = 1; offset <= 14; offset += 1) {
+    const candidateDate = shiftDate(targetDate, offset);
+    if (!candidateDate) continue;
+    const tasksOnCandidate = existingRes.rows.filter((t) => taskOccursOnDate(t, candidateDate));
+    const hasConflict = tasksOnCandidate.some((t) => hasTimeConflict(parsedTask, t));
+    if (!hasConflict) {
+      suggestedDate = candidateDate;
+      break;
+    }
+  }
+
+  const conflictTitles = conflicting.slice(0, 3).map((t) => t.title).filter(Boolean);
+  const suggestion = suggestedDate
+    ? {
+        date: suggestedDate,
+        time: parsedTask.time || null,
+        label: buildSuggestionLabel(suggestedDate, parsedTask.time || null),
+      }
+    : null;
+
+  const message = suggestion
+    ? `KI-Hinweis: Am ${formatDateDe(targetDate)} gibt es bereits Überschneidungen (${conflictTitles.join(', ') || `${conflicting.length} Termin(e)`}). Vorschlag: ${suggestion.label}.`
+    : `KI-Hinweis: Am ${formatDateDe(targetDate)} gibt es bereits Überschneidungen (${conflictTitles.join(', ') || `${conflicting.length} Termin(e)`}).`;
+
+  return {
+    has_conflict: true,
+    date: targetDate,
+    conflict_count: conflicting.length,
+    conflicts: conflicting.map((t) => ({
+      id: t.id,
+      title: t.title,
+      time: t.time,
+      time_end: t.time_end,
+      date: normalizeDateString(t.date),
+    })),
+    suggestion,
+    message,
+  };
+}
+
 function nextOccurrenceDate(currentDate, rule, interval = 1) {
   const d = toDateOnly(currentDate);
   if (!d || !rule) return null;
@@ -226,6 +341,13 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ error: 'Aufgabe konnte nicht erkannt werden' });
       }
 
+      // Chat-created entries should always be visible in calendar: if no date,
+      // assign today for this chat flow.
+      if (groupContext && !parsed.date) {
+        parsed.date = formatDateOnly(new Date());
+        parsed.auto_assigned_date = true;
+      }
+
       // Map AI category name to category_id
       let categoryId = null;
       if (parsed.category) {
@@ -296,6 +418,10 @@ module.exports = async function handler(req, res) {
       }
 
       const taskType = parsed.type === 'event' ? 'event' : 'task';
+
+      const conflictInfo = taskType === 'event'
+        ? await detectConflictWithSuggestion(pool, user.id, parsed)
+        : null;
 
       // Compute reminder_at from AI response or from date+time when hasReminder
       let reminderAt = null;
@@ -389,6 +515,7 @@ module.exports = async function handler(req, res) {
         parsed,
         shared_with: sharedWithNames,
         group: groupInfo,
+        conflict_info: conflictInfo,
       });
     } catch (err) {
       console.error('AI parse-and-create error:', err);

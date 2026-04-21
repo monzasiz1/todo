@@ -283,38 +283,100 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ error: 'Start- und Enddatum erforderlich' });
       }
 
-      // 1. Fetch all concrete rows in [start, end] (includes templates + any materialized overrides)
-      const concreteResult = await pool.query(
-        `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
-           gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url,
-           gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color
-         FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
-         LEFT JOIN group_tasks gt ON gt.task_id = t.id
-         LEFT JOIN groups grp ON grp.id = gt.group_id
-         LEFT JOIN users gtc ON gtc.id = gt.created_by
-         WHERE t.user_id = $1 AND (
-           (t.date >= $2 AND t.date <= $3)
-           OR (t.date_end IS NOT NULL AND t.date <= $3 AND t.date_end >= $2)
-         )
-         ORDER BY t.date ASC, t.sort_order ASC`,
-        [user.id, start, end]
+      const hasCollab = await pool.query(
+        `SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tasks' AND column_name = 'visibility') as has_visibility`
       );
+      const collabEnabled = hasCollab.rows[0]?.has_visibility === true;
+
+      // 1. Fetch all concrete rows in [start, end] (includes templates + any materialized overrides)
+      let concreteResult;
+      if (collabEnabled) {
+        concreteResult = await pool.query(
+          `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
+             gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url,
+             gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color
+           FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
+           LEFT JOIN task_permissions tp ON tp.task_id = t.id AND tp.user_id = $1
+           LEFT JOIN group_tasks gt ON gt.task_id = t.id
+           LEFT JOIN groups grp ON grp.id = gt.group_id
+           LEFT JOIN users gtc ON gtc.id = gt.created_by
+           WHERE (
+             t.user_id = $1
+             OR (t.visibility = 'shared' AND EXISTS (
+               SELECT 1 FROM friends f WHERE f.status = 'accepted'
+               AND ((f.user_id = t.user_id AND f.friend_id = $1) OR (f.user_id = $1 AND f.friend_id = t.user_id))
+             ))
+             OR (t.visibility = 'selected_users' AND tp.can_view = true)
+             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
+           ) AND (
+             (t.date >= $2 AND t.date <= $3)
+             OR (t.date_end IS NOT NULL AND t.date <= $3 AND t.date_end >= $2)
+           )
+           ORDER BY t.date ASC, t.sort_order ASC`,
+          [user.id, start, end]
+        );
+      } else {
+        concreteResult = await pool.query(
+          `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
+             gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url,
+             gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color
+           FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
+           LEFT JOIN group_tasks gt ON gt.task_id = t.id
+           LEFT JOIN groups grp ON grp.id = gt.group_id
+           LEFT JOIN users gtc ON gtc.id = gt.created_by
+           WHERE (t.user_id = $1
+             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1))
+             AND (
+               (t.date >= $2 AND t.date <= $3)
+               OR (t.date_end IS NOT NULL AND t.date <= $3 AND t.date_end >= $2)
+             )
+           ORDER BY t.date ASC, t.sort_order ASC`,
+          [user.id, start, end]
+        );
+      }
 
       // 2. Fetch all recurring templates (recurrence_rule set, no parent = they ARE the template)
       //    that are active during the range window
-      const templateResult = await pool.query(
-        `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
-           gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url
-         FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
-         LEFT JOIN group_tasks gt ON gt.task_id = t.id
-         LEFT JOIN groups grp ON grp.id = gt.group_id
-         WHERE t.user_id = $1
+      let templateResult;
+      if (collabEnabled) {
+        templateResult = await pool.query(
+          `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
+             gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url
+           FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
+           LEFT JOIN task_permissions tp ON tp.task_id = t.id AND tp.user_id = $1
+           LEFT JOIN group_tasks gt ON gt.task_id = t.id
+           LEFT JOIN groups grp ON grp.id = gt.group_id
+           WHERE (
+             t.user_id = $1
+             OR (t.visibility = 'shared' AND EXISTS (
+               SELECT 1 FROM friends f WHERE f.status = 'accepted'
+               AND ((f.user_id = t.user_id AND f.friend_id = $1) OR (f.user_id = $1 AND f.friend_id = t.user_id))
+             ))
+             OR (t.visibility = 'selected_users' AND tp.can_view = true)
+             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
+           )
            AND t.recurrence_rule IS NOT NULL
            AND t.recurrence_parent_id IS NULL
            AND t.date <= $3
            AND (t.recurrence_end IS NULL OR t.recurrence_end >= $2)`,
-        [user.id, start, end]
-      );
+          [user.id, start, end]
+        );
+      } else {
+        templateResult = await pool.query(
+          `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
+             gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url
+           FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
+           LEFT JOIN group_tasks gt ON gt.task_id = t.id
+           LEFT JOIN groups grp ON grp.id = gt.group_id
+           WHERE (t.user_id = $1
+             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1))
+           AND t.recurrence_rule IS NOT NULL
+           AND t.recurrence_parent_id IS NULL
+           AND t.date <= $3
+           AND (t.recurrence_end IS NULL OR t.recurrence_end >= $2)`,
+          [user.id, start, end]
+        );
+      }
 
       // 3. Merge concrete + virtual, deduplicating overrides
       const merged = mergeWithVirtual(

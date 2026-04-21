@@ -13872,6 +13872,28 @@ body.cal-is-dragging * {
 }
 .gchat-undo-toast svg { color: var(--success, #34C759); flex-shrink: 0; }
 .gchat-undo-toast span { flex: 1; }
+.gchat-conflict-toast {
+  position: absolute;
+  bottom: max(136px, calc(env(safe-area-inset-bottom) + 126px));
+  left: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 11px;
+  border-radius: 11px;
+  border: 1px solid rgba(245, 158, 11, 0.38);
+  background: rgba(245, 158, 11, 0.16);
+  backdrop-filter: blur(8px);
+  font-size: 12px;
+  color: var(--text);
+  z-index: 11;
+}
+.gchat-conflict-toast svg { color: #f59e0b; flex-shrink: 0; }
+.gchat-conflict-toast span {
+  flex: 1;
+  line-height: 1.35;
+}
 .gchat-undo-btn {
   display: inline-flex;
   align-items: center;
@@ -14083,7 +14105,7 @@ body.cal-is-dragging * {
 .gchat-bubble.own .gchat-event-card-meta span { color: rgba(255,255,255,0.7); }
 .gchat-event-card-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 5px;
   margin-top: 4px;
 }
@@ -14122,7 +14144,28 @@ body.cal-is-dragging * {
   border-color: rgba(255,255,255,0.3);
   color: rgba(255,255,255,0.65);
 }
-.gchat-type-chips--slim { margin-top: 6px; }
+.gchat-ai-subactions-title {
+  margin-top: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.gchat-bubble.own .gchat-ai-subactions-title { color: rgba(255,255,255,0.72); }
+.gchat-type-chips--slim {
+  margin-top: 4px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+.gchat-type-chips--slim .gchat-type-chip {
+  justify-content: center;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+}
 
 /* ── Event Modal ────────────────────────────────────────────────── */
 .gchat-modal-overlay {

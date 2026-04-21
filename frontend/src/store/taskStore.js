@@ -173,6 +173,9 @@ export const useTaskStore = create((set, get) => ({
         : (data.parsed.recurrence_rule ? ' 🔄 Wiederkehrend' : '');
       const shareErr = data.parsed.share_error ? `\n⚠️ ${data.parsed.share_error}` : '';
       get().addToast(`✅ "${data.parsed.title}"${cat}${range}${shared}${groupMsg}${recMsg} gespeichert${shareErr}`);
+      if (data.conflict_info?.has_conflict) {
+        get().addToast(`⚠️ ${data.conflict_info.message}`, 'error');
+      }
       return data;
     } catch (err) {
       get().addToast('❌ ' + (err.message || 'Fehler'), 'error');
