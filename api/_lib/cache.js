@@ -1,8 +1,56 @@
-const { Redis } = require('@upstash/redis');
-
 const DEFAULT_TTL_SECONDS = 30;
 const FALLBACK_MAX_CACHE_ITEMS = 1000;
 const FALLBACK_MAX_USER_ITEMS = 50;
+
+class UpstashRestRedis {
+  constructor(url, token) {
+    this.url = url.replace(/\/$/, '');
+    this.token = token;
+  }
+
+  async command(args) {
+    const response = await fetch(this.url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(args),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Upstash command failed: ${response.status}`);
+    }
+
+    const payload = await response.json();
+    return payload?.result;
+  }
+
+  async get(key) {
+    return this.command(['GET', key]);
+  }
+
+  async set(key, value, ttlSeconds) {
+    return this.command(['SET', key, JSON.stringify(value), 'EX', String(ttlSeconds)]);
+  }
+
+  async sadd(key, member) {
+    return this.command(['SADD', key, member]);
+  }
+
+  async smembers(key) {
+    return this.command(['SMEMBERS', key]);
+  }
+
+  async expire(key, ttlSeconds) {
+    return this.command(['EXPIRE', key, String(ttlSeconds)]);
+  }
+
+  async del(...keys) {
+    if (!keys.length) return 0;
+    return this.command(['DEL', ...keys]);
+  }
+}
 
 class MemoryFallbackCache {
   constructor() {
@@ -123,10 +171,10 @@ class CacheManager {
     this.redisEnabled = Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
 
     if (this.redisEnabled) {
-      this.redis = new Redis({
-        url: process.env.UPSTASH_REDIS_REST_URL,
-        token: process.env.UPSTASH_REDIS_REST_TOKEN,
-      });
+      this.redis = new UpstashRestRedis(
+        process.env.UPSTASH_REDIS_REST_URL,
+        process.env.UPSTASH_REDIS_REST_TOKEN
+      );
     }
   }
 
@@ -138,7 +186,7 @@ class CacheManager {
     if (this.redis) {
       try {
         const value = await this.redis.get(key);
-        return value === null ? undefined : value;
+        return value === null ? undefined : JSON.parse(value);
       } catch (error) {
         console.error('Redis get failed, falling back to memory:', error);
       }
@@ -150,13 +198,11 @@ class CacheManager {
   async set(key, value, ttlSeconds = DEFAULT_TTL_SECONDS, userId = null) {
     if (this.redis) {
       try {
-        const pipeline = this.redis.pipeline();
-        pipeline.set(key, value, { ex: ttlSeconds });
+        await this.redis.set(key, value, ttlSeconds);
         if (userId) {
-          pipeline.sadd(`dashboard:userkeys:${userId}`, key);
-          pipeline.expire(`dashboard:userkeys:${userId}`, ttlSeconds);
+          await this.redis.sadd(`dashboard:userkeys:${userId}`, key);
+          await this.redis.expire(`dashboard:userkeys:${userId}`, ttlSeconds);
         }
-        await pipeline.exec();
         return;
       } catch (error) {
         console.error('Redis set failed, falling back to memory:', error);

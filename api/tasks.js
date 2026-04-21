@@ -83,6 +83,15 @@ function buildDashboardCacheKey(userId, completedFilter, limit) {
   return `dashboard:user:${userId}:${completedScope}:${limit}`;
 }
 
+function buildDashboardOrderByClause() {
+  return `ORDER BY
+             CASE WHEN t.date IS NULL THEN 1 ELSE 0 END ASC,
+             t.date ASC NULLS LAST,
+             t.time ASC NULLS LAST,
+             t.sort_order ASC,
+             t.created_at DESC`;
+}
+
 module.exports = async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -397,9 +406,12 @@ module.exports = async function handler(req, res) {
       const completedRaw = req.query?.completed;
       const completedFilter = completedRaw === 'true' ? true : (completedRaw === 'false' ? false : null);
       const requestedLimit = parseInt(req.query?.limit, 10);
+      const defaultLimit = lite ? 1000 : 180;
+      const maxLimit = lite ? 1000 : 400;
       const limit = Number.isFinite(requestedLimit)
-        ? Math.max(20, Math.min(400, requestedLimit))
-        : 180;
+        ? Math.max(20, Math.min(maxLimit, requestedLimit))
+        : defaultLimit;
+      const dashboardOrderBy = buildDashboardOrderByClause();
 
       // 🚀 CACHE: Check dashboard cache first
       if (lite) {
@@ -484,7 +496,7 @@ module.exports = async function handler(req, res) {
              LEFT JOIN group_tasks gt ON gt.task_id = t.id
              LEFT JOIN groups grp ON grp.id = gt.group_id
              WHERE ($2::boolean IS NULL OR t.completed = $2)
-             ORDER BY t.sort_order ASC, t.created_at DESC
+             ${dashboardOrderBy}
              LIMIT $3`,
             [user.id, completedFilter, limit]
           );
@@ -530,7 +542,7 @@ module.exports = async function handler(req, res) {
              LEFT JOIN group_tasks gt ON gt.task_id = t.id
              LEFT JOIN groups grp ON grp.id = gt.group_id
              WHERE ($2::boolean IS NULL OR t.completed = $2)
-             ORDER BY t.sort_order ASC, t.created_at DESC
+             ${dashboardOrderBy}
              LIMIT $3`,
             [user.id, completedFilter, limit]
           );

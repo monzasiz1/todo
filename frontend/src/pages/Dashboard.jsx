@@ -207,12 +207,12 @@ export default function Dashboard() {
 
   useEffect(() => {
     // Load all tasks (open AND closed), let frontend filter do the rest
-    fetchTasks({ dashboard: 'true', limit: '180' }, { force: true });
+    fetchTasks({ dashboard: 'true', limit: '1000' }, { force: true });
 
     // Auto-refresh every 60 s so newly shared/group tasks appear without manual reload
     const interval = setInterval(() => {
       if (!document.hidden) {
-        fetchTasks({ dashboard: 'true', limit: '180' }, { force: true });
+        fetchTasks({ dashboard: 'true', limit: '1000' }, { force: true });
       }
     }, 60000);
     return () => clearInterval(interval);
@@ -342,7 +342,7 @@ export default function Dashboard() {
         <AIInput />
         <ManualTaskForm
           onTaskCreated={() => {
-            fetchTasks({ dashboard: 'true', completed: filter.completed === true ? 'true' : 'false', limit: '180' }, { force: true });
+            fetchTasks({ dashboard: 'true', limit: '1000' }, { force: true });
           }}
         />
       </div>
