@@ -131,6 +131,10 @@ module.exports = async function handler(req, res) {
           [i, taskIds[i], user.id]
         );
       }
+      
+      // 🚀 STUFE 3: Event-driven invalidation on task reorder
+      cacheManager.invalidateByEvent(user.id, 'task_updated');
+      
       return res.json({ success: true });
     } catch (err) {
       console.error('Reorder error:', err);
@@ -719,8 +723,8 @@ module.exports = async function handler(req, res) {
         group_image_url: groupInfo?.image_url || null,
       }));
 
-      // 🚀 CACHE: Invalidate dashboard cache when task is created
-      cacheManager.invalidate(`dashboard:${user.id}:*`);
+      // 🚀 STUFE 3: Event-driven invalidation (instead of pattern-based)
+      cacheManager.invalidateByEvent(user.id, 'task_created');
 
       return res.status(201).json({
         task: decoratedTasks[0],
