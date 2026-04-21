@@ -402,5 +402,102 @@ module.exports = async function handler(req, res) {
     }
   }
 
+  // ============================================
+  // GET /api/groups/:id/messages — Load chat messages
+  // ============================================
+  if (segments.length === 2 && segments[1] === 'messages' && req.method === 'GET') {
+    try {
+      const groupId = segments[0];
+      const membership = await getMembership(groupId);
+      if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
+
+      const result = await pool.query(
+        `SELECT m.id, m.group_id, m.user_id, m.content, m.is_pinned, m.pinned_at, m.created_at,
+                u.name as sender_name, u.avatar_color as sender_color, u.avatar_url as sender_avatar
+         FROM group_messages m
+         JOIN users u ON u.id = m.user_id
+         WHERE m.group_id = $1
+         ORDER BY m.created_at ASC
+         LIMIT 200`,
+        [groupId]
+      );
+      return res.json({ messages: result.rows });
+    } catch (err) {
+      console.error('Get messages error:', err);
+      return res.status(500).json({ error: 'Fehler beim Laden der Nachrichten' });
+    }
+  }
+
+  // ============================================
+  // POST /api/groups/:id/messages — Send a message
+  // ============================================
+  if (segments.length === 2 && segments[1] === 'messages' && req.method === 'POST') {
+    try {
+      const groupId = segments[0];
+      const membership = await getMembership(groupId);
+      if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
+
+      const { content } = req.body;
+      if (!content || !content.trim()) return res.status(400).json({ error: 'Nachricht darf nicht leer sein' });
+      if (content.trim().length > 2000) return res.status(400).json({ error: 'Nachricht zu lang (max. 2000 Zeichen)' });
+
+      const result = await pool.query(
+        `INSERT INTO group_messages (group_id, user_id, content)
+         VALUES ($1, $2, $3) RETURNING *`,
+        [groupId, user.id, content.trim()]
+      );
+      const msg = result.rows[0];
+
+      const senderResult = await pool.query(
+        'SELECT name, avatar_color, avatar_url FROM users WHERE id = $1',
+        [user.id]
+      );
+      const sender = senderResult.rows[0];
+
+      await pool.query('UPDATE groups SET updated_at = NOW() WHERE id = $1', [groupId]);
+
+      return res.status(201).json({
+        message: {
+          ...msg,
+          sender_name: sender.name,
+          sender_color: sender.avatar_color,
+          sender_avatar: sender.avatar_url,
+        },
+      });
+    } catch (err) {
+      console.error('Send message error:', err);
+      return res.status(500).json({ error: 'Fehler beim Senden der Nachricht' });
+    }
+  }
+
+  // ============================================
+  // PATCH /api/groups/:id/messages/:msgId/pin — Pin/unpin message
+  // ============================================
+  if (segments.length === 4 && segments[1] === 'messages' && segments[3] === 'pin' && req.method === 'PATCH') {
+    try {
+      const groupId = segments[0];
+      const msgId = segments[2];
+      const membership = await getMembership(groupId);
+      if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
+
+      const { pinned } = req.body;
+
+      const result = await pool.query(
+        `UPDATE group_messages
+         SET is_pinned = $1, pinned_at = $2, pinned_by = $3
+         WHERE id = $4 AND group_id = $5
+         RETURNING *`,
+        [pinned, pinned ? new Date() : null, pinned ? user.id : null, msgId, groupId]
+      );
+
+      if (result.rows.length === 0) return res.status(404).json({ error: 'Nachricht nicht gefunden' });
+
+      return res.json({ message: result.rows[0] });
+    } catch (err) {
+      console.error('Pin message error:', err);
+      return res.status(500).json({ error: 'Fehler beim Anpinnen' });
+    }
+  }
+
   return res.status(404).json({ error: 'Route nicht gefunden' });
 };

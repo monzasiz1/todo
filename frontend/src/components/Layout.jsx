@@ -3,13 +3,15 @@ import Sidebar from './Sidebar';
 import FeedbackToast from './FeedbackToast';
 import BottomNav from './BottomNav';
 import { useState, useRef } from 'react';
-import { Menu, X, CheckSquare } from 'lucide-react';
+import { Menu, X, CheckSquare, MessageCircle } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import ReminderChecker from './ReminderChecker';
 import HelpChat from './HelpChat';
+import GroupChatPanel from './GroupChatPanel';
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const aiInputRef = useRef(null);
 
   const handleFabClick = () => {
@@ -33,6 +35,13 @@ export default function Layout() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <NotificationBell />
+          <button
+            className="gchat-mobile-trigger"
+            onClick={() => setChatOpen(true)}
+            title="Gruppen-Chat"
+          >
+            <MessageCircle size={20} />
+          </button>
           <button className="hamburger" onClick={() => setSidebarOpen(!sidebarOpen)}>
             {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -66,6 +75,20 @@ export default function Layout() {
 
       {/* Help Chat */}
       <HelpChat />
+
+      {/* Group Chat Panel */}
+      <GroupChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />
+
+      {/* Group Chat FAB (desktop) */}
+      {!chatOpen && (
+        <button
+          className="gchat-fab"
+          onClick={() => setChatOpen(true)}
+          title="Gruppen-Chat öffnen"
+        >
+          <MessageCircle size={22} />
+        </button>
+      )}
     </div>
   );
 }

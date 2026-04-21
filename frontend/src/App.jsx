@@ -34,7 +34,7 @@ export default function App() {
     <BrowserRouter>
       <InstallPrompt />
       <Routes>
-        <Route path="/landing" element={<PublicRoute><LandingPage /></PublicRoute>} />
+        <Route path="/landing" element={<LandingPage />} />
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
         <Route

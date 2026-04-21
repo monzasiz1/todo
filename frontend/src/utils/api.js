@@ -283,6 +283,21 @@ export const api = {
   removeGroupMember: (groupId, userId) =>
     request(`/groups/${groupId}/members/${userId}`, { method: 'DELETE' }),
 
+  // Group Chat
+  getGroupMessages: (groupId) => request(`/groups/${groupId}/messages`),
+
+  sendGroupMessage: (groupId, content) =>
+    request(`/groups/${groupId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    }),
+
+  pinGroupMessage: (groupId, msgId, pinned) =>
+    request(`/groups/${groupId}/messages/${msgId}/pin`, {
+      method: 'PATCH',
+      body: JSON.stringify({ pinned }),
+    }),
+
   // Plans
   getPlans: () => request('/plans'),
 
