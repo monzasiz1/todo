@@ -2,10 +2,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTaskStore } from '../store/taskStore';
+import { api } from '../utils/api';
 import {
   X, Calendar, CalendarCheck, Clock, Tag, Flag, CheckCircle2, Circle,
   Trash2, AlertTriangle, Repeat, Bell, FileText, ListChecks,
-  Lock, Users, UserCheck, Eye, Edit3, Pencil
+  Lock, Users, UserCheck, Eye, Edit3, Pencil, Share2
 } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -21,8 +22,9 @@ const priorityConfig = {
 };
 
 export default function TaskDetailModal({ task, onClose }) {
-  const { toggleTask, deleteTask, fetchTasks } = useTaskStore();
+  const { toggleTask, deleteTask, fetchTasks, addToast } = useTaskStore();
   const [showEdit, setShowEdit] = useState(false);
+  const [sharingToChat, setSharingToChat] = useState(false);
 
   if (!task) return null;
 
@@ -54,6 +56,19 @@ export default function TaskDetailModal({ task, onClose }) {
   const handleDelete = () => {
     deleteTask(task.id);
     onClose();
+  };
+
+  const handleShareToGroupChat = async () => {
+    if (!task.group_id || sharingToChat) return;
+    setSharingToChat(true);
+    try {
+      await api.shareTaskToGroupChat(task.group_id, task.id);
+      addToast('📤 Termin wurde in den Gruppen-Chat geteilt');
+    } catch (err) {
+      addToast(`❌ ${err.message || 'Teilen fehlgeschlagen'}`, 'error');
+    } finally {
+      setSharingToChat(false);
+    }
   };
 
   return (
@@ -337,6 +352,16 @@ export default function TaskDetailModal({ task, onClose }) {
 
           {/* Actions */}
           <div className="task-detail-actions">
+            {isEvent && task.group_id && (
+              <motion.button
+                className="task-detail-btn edit"
+                onClick={handleShareToGroupChat}
+                whileTap={{ scale: 0.97 }}
+                disabled={sharingToChat}
+              >
+                <Share2 size={18} /> {sharingToChat ? 'Teile...' : 'In Chat teilen'}
+              </motion.button>
+            )}
             {canEdit && !isEvent && (
               <motion.button
                 className={`task-detail-btn ${task.completed ? 'reopen' : 'complete'}`}

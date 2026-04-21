@@ -80,6 +80,10 @@ function buildSuggestionLabel(dateStr, timeStr) {
   return timeStr ? `${base} um ${String(timeStr).substring(0, 5)} Uhr` : base;
 }
 
+function buildPermissionDeniedMessage(taskTitle, actionVerb) {
+  return `Du hast nicht die Rechte, die Aufgabe "${taskTitle}" zu ${actionVerb}.`;
+}
+
 async function detectConflictWithSuggestion(pool, userId, parsedTask) {
   if (!parsedTask?.date) return null;
 
@@ -529,13 +533,74 @@ module.exports = async function handler(req, res) {
       const { input } = req.body;
       if (!input) return res.status(400).json({ error: 'Eingabe ist erforderlich' });
 
-      // Fetch user's tasks for matching
-      const { rows: userTasks } = await pool.query(
-        `SELECT id, title, date, time, time_end, priority, completed, category_id, recurrence_parent_id
-         FROM tasks WHERE user_id = $1 AND completed = false
-         ORDER BY date DESC NULLS LAST LIMIT 100`,
-        [user.id]
+      const hasCollab = await pool.query(
+        `SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tasks' AND column_name = 'visibility') as has_visibility`
       );
+      const collabEnabled = hasCollab.rows[0]?.has_visibility === true;
+
+      // Fetch user's tasks for matching
+      let userTasks = [];
+      if (collabEnabled) {
+        const taskResult = await pool.query(
+          `WITH visible_ids AS (
+             SELECT t.id
+             FROM tasks t
+             WHERE t.user_id = $1
+
+             UNION ALL
+
+             SELECT t.id
+             FROM tasks t
+             WHERE t.visibility = 'shared'
+               AND EXISTS (
+                 SELECT 1
+                 FROM friends f
+                 WHERE f.status = 'accepted'
+                   AND ((f.user_id = t.user_id AND f.friend_id = $1) OR (f.user_id = $1 AND f.friend_id = t.user_id))
+               )
+
+             UNION ALL
+
+             SELECT tp.task_id AS id
+             FROM task_permissions tp
+             WHERE tp.user_id = $1 AND tp.can_view = true
+
+             UNION ALL
+
+             SELECT gt.task_id AS id
+             FROM group_tasks gt
+             JOIN group_members gm ON gm.group_id = gt.group_id
+             WHERE gm.user_id = $1
+           ),
+           task_ids AS (
+             SELECT DISTINCT id FROM visible_ids
+           )
+           SELECT t.id, t.title, t.date, t.time, t.time_end, t.priority, t.completed, t.category_id, t.recurrence_parent_id,
+                  CASE
+                    WHEN t.user_id = $1 THEN true
+                    ELSE EXISTS (
+                      SELECT 1 FROM task_permissions tp
+                      WHERE tp.task_id = t.id AND tp.user_id = $1 AND tp.can_edit = true
+                    )
+                  END AS can_edit
+           FROM task_ids ids
+           JOIN tasks t ON t.id = ids.id
+           WHERE t.completed = false
+           ORDER BY t.date DESC NULLS LAST
+           LIMIT 150`,
+          [user.id]
+        );
+        userTasks = taskResult.rows;
+      } else {
+        const taskResult = await pool.query(
+          `SELECT id, title, date, time, time_end, priority, completed, category_id, recurrence_parent_id,
+                  true AS can_edit
+           FROM tasks WHERE user_id = $1 AND completed = false
+           ORDER BY date DESC NULLS LAST LIMIT 150`,
+          [user.id]
+        );
+        userTasks = taskResult.rows;
+      }
 
       const intent = await classifyIntentWithAI(input, userTasks.map(t => ({
         title: t.title,
@@ -600,7 +665,7 @@ module.exports = async function handler(req, res) {
         // If scope=single and target_date provided: prefer matching by title + exact date
         if (intent.scope === 'single' && intent.target_date) {
           matchedTask = userTasks.find(t =>
-            t.date === intent.target_date && (
+            normalizeDateString(t.date) === intent.target_date && (
               t.title.toLowerCase() === search ||
               t.title.toLowerCase().includes(search) ||
               search.includes(t.title.toLowerCase())
@@ -616,6 +681,14 @@ module.exports = async function handler(req, res) {
         }
       }
 
+      const permissionDeniedResponse = (intentName, task, actionVerb) => ({
+        intent: intentName,
+        success: false,
+        permission_denied: true,
+        task: task ? { id: task.id, title: task.title } : null,
+        message: buildPermissionDeniedMessage(task?.title || intent.task_title || 'diese Aufgabe', actionVerb),
+      });
+
       // === DELETE ===
       if (intent.intent === 'delete') {
         if (!matchedTask) {
@@ -624,6 +697,10 @@ module.exports = async function handler(req, res) {
             success: false,
             message: `Aufgabe "${intent.task_title}" nicht gefunden. Hast du den Namen richtig geschrieben?`,
           });
+        }
+
+        if (!matchedTask.can_edit) {
+          return res.json(permissionDeniedResponse('delete', matchedTask, 'loeschen'));
         }
 
         // Delete the task and all recurring children
@@ -645,6 +722,10 @@ module.exports = async function handler(req, res) {
             success: false,
             message: `Aufgabe "${intent.task_title}" nicht gefunden.`,
           });
+        }
+
+        if (!matchedTask.can_edit) {
+          return res.json(permissionDeniedResponse('move', matchedTask, 'verschieben'));
         }
 
         const updates = {};
@@ -675,6 +756,27 @@ module.exports = async function handler(req, res) {
         // scope=all → update all occurrences (parent + children)
         if (intent.scope === 'all') {
           const parentId = matchedTask.recurrence_parent_id || matchedTask.id;
+
+          if (collabEnabled) {
+            const permissionScope = await pool.query(
+              `SELECT COUNT(*)::int AS total_count,
+                      COUNT(*) FILTER (
+                        WHERE t.user_id = $2
+                          OR EXISTS (
+                            SELECT 1 FROM task_permissions tp
+                            WHERE tp.task_id = t.id AND tp.user_id = $2 AND tp.can_edit = true
+                          )
+                      )::int AS editable_count
+               FROM tasks t
+               WHERE t.id = $1 OR t.recurrence_parent_id = $1`,
+              [parentId, user.id]
+            );
+            const scopeRow = permissionScope.rows[0] || { total_count: 0, editable_count: 0 };
+            if (scopeRow.total_count > 0 && scopeRow.editable_count < scopeRow.total_count) {
+              return res.json(permissionDeniedResponse('move', matchedTask, 'alle Wiederholungen verschieben'));
+            }
+          }
+
           await pool.query(
             `UPDATE tasks SET ${setClauses.join(', ')}, updated_at = NOW() WHERE (id = $1 OR recurrence_parent_id = $1)`,
             [parentId, ...values]
@@ -716,6 +818,10 @@ module.exports = async function handler(req, res) {
             success: false,
             message: `Aufgabe "${intent.task_title}" nicht gefunden.`,
           });
+        }
+
+        if (!matchedTask.can_edit) {
+          return res.json(permissionDeniedResponse('update', matchedTask, 'aendern'));
         }
 
         const allowed = ['title', 'description', 'priority', 'date', 'time', 'time_end', 'date_end', 'recurrence_rule', 'recurrence_interval', 'recurrence_end'];
@@ -796,6 +902,27 @@ module.exports = async function handler(req, res) {
         // scope=all → update all occurrences (parent + children)
         if (intent.scope === 'all') {
           const parentId = matchedTask.recurrence_parent_id || matchedTask.id;
+
+          if (collabEnabled) {
+            const permissionScope = await pool.query(
+              `SELECT COUNT(*)::int AS total_count,
+                      COUNT(*) FILTER (
+                        WHERE t.user_id = $2
+                          OR EXISTS (
+                            SELECT 1 FROM task_permissions tp
+                            WHERE tp.task_id = t.id AND tp.user_id = $2 AND tp.can_edit = true
+                          )
+                      )::int AS editable_count
+               FROM tasks t
+               WHERE t.id = $1 OR t.recurrence_parent_id = $1`,
+              [parentId, user.id]
+            );
+            const scopeRow = permissionScope.rows[0] || { total_count: 0, editable_count: 0 };
+            if (scopeRow.total_count > 0 && scopeRow.editable_count < scopeRow.total_count) {
+              return res.json(permissionDeniedResponse('update', matchedTask, 'alle Wiederholungen aendern'));
+            }
+          }
+
           await pool.query(
             `UPDATE tasks SET ${setClauses.join(', ')}, updated_at = NOW() WHERE (id = $1 OR recurrence_parent_id = $1)`,
             [parentId, ...values]
@@ -837,6 +964,10 @@ module.exports = async function handler(req, res) {
             success: false,
             message: `Aufgabe "${intent.task_title}" nicht gefunden.`,
           });
+        }
+
+        if (!matchedTask.can_edit) {
+          return res.json(permissionDeniedResponse('attach', matchedTask, 'Dateien anhaengen'));
         }
 
         return res.json({

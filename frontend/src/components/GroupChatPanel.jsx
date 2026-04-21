@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Send, Pin, ChevronDown, ChevronUp,
   MessageCircle, Users, Sparkles, Check,
-  Pencil, Trash2, Undo2, BarChart2, AlertTriangle
+  Pencil, Trash2, Undo2, BarChart2, AlertTriangle,
+  CalendarCheck, UserCheck, ThumbsUp, MessageSquare
 } from 'lucide-react';
 import { useGroupStore } from '../store/groupStore';
 import { useAuthStore } from '../store/authStore';
@@ -125,6 +126,8 @@ export default function GroupChatPanel({ open, onClose }) {
   const [eventModal, setEventModal] = useState(null);   // { msgId, title, date, time, location, description }
   const [submittingModal, setSubmittingModal] = useState(false);
   const [conflictInfo, setConflictInfo] = useState(null);
+  const [claimingMsgId, setClaimingMsgId] = useState(null);
+  const [rsvpMsgId, setRsvpMsgId] = useState(null);
   const undoTimerRef = useRef(null);
   const conflictTimerRef = useRef(null);
 
@@ -382,6 +385,42 @@ export default function GroupChatPanel({ open, onClose }) {
     }
   };
 
+  const claimEvent = async (msgId) => {
+    if (!selectedGroupId || claimingMsgId === msgId) return;
+    setClaimingMsgId(msgId);
+    try {
+      const data = await api.claimGroupEvent(selectedGroupId, msgId, 'organizer');
+      if (data?.message) {
+        setMessages(prev => prev.map(m => m.id === msgId ? { ...m, ...data.message } : m));
+      }
+    } catch {
+      // ignore
+    } finally {
+      setClaimingMsgId(null);
+    }
+  };
+
+  const rsvpEvent = async (msgId, status = 'yes') => {
+    if (!selectedGroupId || rsvpMsgId === msgId) return;
+    setRsvpMsgId(msgId);
+    try {
+      const data = await api.rsvpGroupEvent(selectedGroupId, msgId, status);
+      if (data?.message) {
+        setMessages(prev => prev.map(m => m.id === msgId ? { ...m, ...data.message } : m));
+      }
+    } catch {
+      // ignore
+    } finally {
+      setRsvpMsgId(null);
+    }
+  };
+
+  const commentOnEvent = (msg) => {
+    const title = msg.linked_task_title || msg.content || 'Termin';
+    setInput(`Zu "${title}": `);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
   // ── Derived data ──────────────────────────────────────────────────────────
   const pinnedMessages = messages.filter((m) => m.is_pinned);
   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
@@ -520,7 +559,8 @@ export default function GroupChatPanel({ open, onClose }) {
 
                   {messages.map((msg, idx) => {
                     const isOwn = msg.user_id === user?.id;
-                    const hasTime = !msg.is_poll && detectTimeHint(msg.content);
+                    const isEventMsg = msg.message_type === 'group_event';
+                    const hasTime = !msg.is_poll && !isEventMsg && detectTimeHint(msg.content);
                     const showSender =
                       !isOwn &&
                       (idx === 0 || messages[idx - 1].user_id !== msg.user_id);
@@ -590,6 +630,60 @@ export default function GroupChatPanel({ open, onClose }) {
                               <span className="gchat-poll-footer">
                                 {(msg.poll_options || []).reduce((s, o) => s + (msg.vote_data?.[o.id]?.count || 0), 0)} Stimmen
                               </span>
+                            </div>
+                          ) : isEventMsg ? (
+                            <div className={`gchat-shared-event ${isOwn ? 'own' : ''} ${msg.is_pinned ? 'pinned' : ''}`}>
+                              <div className="gchat-shared-event-head">
+                                <CalendarCheck size={14} />
+                                <span>Gruppen-Termin</span>
+                              </div>
+                              <p className="gchat-shared-event-title">{msg.linked_task_title || msg.content}</p>
+                              <div className="gchat-shared-event-meta">
+                                {msg.linked_task_date && <span>📆 {String(msg.linked_task_date).substring(0, 10)}</span>}
+                                {msg.linked_task_time && <span>🕕 {String(msg.linked_task_time).substring(0, 5)} Uhr</span>}
+                                <span>👤 erstellt von {msg.sender_name}</span>
+                              </div>
+                              {msg.responsible_name && (
+                                <div className="gchat-shared-event-owner">
+                                  <UserCheck size={13} />
+                                  <span>Organisiert von: <strong>{msg.responsible_name}</strong></span>
+                                </div>
+                              )}
+                              <div className="gchat-shared-event-actions">
+                                <button
+                                  className="gchat-shared-btn gchat-shared-btn--primary"
+                                  onClick={() => claimEvent(msg.id)}
+                                  disabled={claimingMsgId === msg.id}
+                                >
+                                  <UserCheck size={12} />
+                                  {msg.responsible_user_id === user?.id ? 'Du uebernimmst' : 'Uebernehmen'}
+                                </button>
+                                <button
+                                  className={`gchat-shared-btn ${msg.my_rsvp === 'yes' ? 'active' : ''}`}
+                                  onClick={() => rsvpEvent(msg.id, 'yes')}
+                                  disabled={rsvpMsgId === msg.id}
+                                >
+                                  <ThumbsUp size={12} />
+                                  Zusagen ({msg.rsvp_yes_count || 0})
+                                </button>
+                                <button
+                                  className="gchat-shared-btn"
+                                  onClick={() => commentOnEvent(msg)}
+                                >
+                                  <MessageSquare size={12} />
+                                  Kommentieren
+                                </button>
+                              </div>
+                              <div className="gchat-bubble-meta">
+                                <span className="gchat-time">{formatTime(msg.created_at)}</span>
+                                <button
+                                  className={`gchat-pin-btn ${msg.is_pinned ? 'active' : ''}`}
+                                  onClick={() => togglePin(msg)}
+                                  title={msg.is_pinned ? 'Losgelöst' : 'Anpinnen'}
+                                >
+                                  <Pin size={10} />
+                                </button>
+                              </div>
                             </div>
                           ) : (
                             <div className={`gchat-bubble ${isOwn ? 'own' : ''} ${msg.is_pinned ? 'pinned' : ''}`}>

@@ -313,6 +313,24 @@ export const api = {
       body: JSON.stringify({ content }),
     }),
 
+  shareTaskToGroupChat: (groupId, taskId) =>
+    request(`/groups/${groupId}/messages/share-task`, {
+      method: 'POST',
+      body: JSON.stringify({ task_id: taskId }),
+    }),
+
+  claimGroupEvent: (groupId, msgId, role = 'organizer') =>
+    request(`/groups/${groupId}/messages/${msgId}/claim`, {
+      method: 'POST',
+      body: JSON.stringify({ role }),
+    }),
+
+  rsvpGroupEvent: (groupId, msgId, status = 'yes') =>
+    request(`/groups/${groupId}/messages/${msgId}/rsvp`, {
+      method: 'POST',
+      body: JSON.stringify({ status }),
+    }),
+
   pinGroupMessage: (groupId, msgId, pinned) =>
     request(`/groups/${groupId}/messages/${msgId}/pin`, {
       method: 'PATCH',

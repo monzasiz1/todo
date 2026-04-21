@@ -27,6 +27,30 @@ module.exports = async function handler(req, res) {
     return crypto.randomBytes(4).toString('hex').toUpperCase();
   }
 
+  async function loadMessageWithMeta(groupId, messageId) {
+    const result = await pool.query(
+      `SELECT m.id, m.group_id, m.user_id, m.content, m.is_pinned, m.pinned_at, m.created_at,
+              m.edited_at, m.is_poll, m.poll_options, m.message_type, m.linked_task_id,
+              m.responsible_user_id, m.responsible_role,
+              u.name as sender_name, u.avatar_color as sender_color, u.avatar_url as sender_avatar,
+              ru.name as responsible_name,
+              t.title as linked_task_title, t.date as linked_task_date, t.time as linked_task_time,
+              t.time_end as linked_task_time_end, t.description as linked_task_description,
+              (SELECT COUNT(*)::int FROM group_event_rsvps r WHERE r.message_id = m.id AND r.status = 'yes') as rsvp_yes_count,
+              (SELECT COUNT(*)::int FROM group_event_rsvps r WHERE r.message_id = m.id AND r.status = 'maybe') as rsvp_maybe_count,
+              (SELECT COUNT(*)::int FROM group_event_rsvps r WHERE r.message_id = m.id AND r.status = 'no') as rsvp_no_count,
+              (SELECT status FROM group_event_rsvps r WHERE r.message_id = m.id AND r.user_id = $3 LIMIT 1) as my_rsvp
+       FROM group_messages m
+       JOIN users u ON u.id = m.user_id
+       LEFT JOIN users ru ON ru.id = m.responsible_user_id
+       LEFT JOIN tasks t ON t.id = m.linked_task_id
+       WHERE m.group_id = $1 AND m.id = $2
+       LIMIT 1`,
+      [groupId, messageId, user.id]
+    );
+    return result.rows[0] || null;
+  }
+
   // ============================================
   // POST /api/groups — Create group
   // ============================================
@@ -413,14 +437,24 @@ module.exports = async function handler(req, res) {
 
       const result = await pool.query(
         `SELECT m.id, m.group_id, m.user_id, m.content, m.is_pinned, m.pinned_at, m.created_at,
-                m.edited_at, m.is_poll, m.poll_options,
-                u.name as sender_name, u.avatar_color as sender_color, u.avatar_url as sender_avatar
+                m.edited_at, m.is_poll, m.poll_options, m.message_type, m.linked_task_id,
+                m.responsible_user_id, m.responsible_role,
+                u.name as sender_name, u.avatar_color as sender_color, u.avatar_url as sender_avatar,
+                ru.name as responsible_name,
+                t.title as linked_task_title, t.date as linked_task_date, t.time as linked_task_time,
+                t.time_end as linked_task_time_end, t.description as linked_task_description,
+                (SELECT COUNT(*)::int FROM group_event_rsvps r WHERE r.message_id = m.id AND r.status = 'yes') as rsvp_yes_count,
+                (SELECT COUNT(*)::int FROM group_event_rsvps r WHERE r.message_id = m.id AND r.status = 'maybe') as rsvp_maybe_count,
+                (SELECT COUNT(*)::int FROM group_event_rsvps r WHERE r.message_id = m.id AND r.status = 'no') as rsvp_no_count,
+                (SELECT status FROM group_event_rsvps r WHERE r.message_id = m.id AND r.user_id = $2 LIMIT 1) as my_rsvp
          FROM group_messages m
          JOIN users u ON u.id = m.user_id
+         LEFT JOIN users ru ON ru.id = m.responsible_user_id
+         LEFT JOIN tasks t ON t.id = m.linked_task_id
          WHERE m.group_id = $1
          ORDER BY m.created_at ASC
          LIMIT 200`,
-        [groupId]
+        [groupId, user.id]
       );
 
       const messages = result.rows;
@@ -453,6 +487,119 @@ module.exports = async function handler(req, res) {
     } catch (err) {
       console.error('Get messages error:', err);
       return res.status(500).json({ error: 'Fehler beim Laden der Nachrichten' });
+    }
+  }
+
+  // ============================================
+  // POST /api/groups/:id/messages/share-task — Share event/task card to chat
+  // ============================================
+  if (segments.length === 3 && segments[1] === 'messages' && segments[2] === 'share-task' && req.method === 'POST') {
+    try {
+      const groupId = segments[0];
+      const membership = await getMembership(groupId);
+      if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
+
+      const { task_id } = req.body;
+      if (!task_id) return res.status(400).json({ error: 'task_id fehlt' });
+
+      const taskResult = await pool.query(
+        `SELECT t.id, t.title, t.date, t.time, t.time_end, t.description, t.type,
+                gt.group_id
+         FROM tasks t
+         LEFT JOIN group_tasks gt ON gt.task_id = t.id AND gt.group_id = $2
+         WHERE t.id = $1
+         LIMIT 1`,
+        [task_id, groupId]
+      );
+      if (taskResult.rows.length === 0) return res.status(404).json({ error: 'Termin nicht gefunden' });
+
+      const task = taskResult.rows[0];
+      if (task.group_id !== Number(groupId)) {
+        return res.status(403).json({ error: 'Dieser Termin gehoert nicht zu dieser Gruppe' });
+      }
+
+      const content = task.title || 'Gruppen-Termin';
+      const ins = await pool.query(
+        `INSERT INTO group_messages (group_id, user_id, content, message_type, linked_task_id)
+         VALUES ($1, $2, $3, 'group_event', $4)
+         RETURNING id`,
+        [groupId, user.id, content, task.id]
+      );
+
+      await pool.query('UPDATE groups SET updated_at = NOW() WHERE id = $1', [groupId]);
+
+      const message = await loadMessageWithMeta(groupId, ins.rows[0].id);
+      return res.status(201).json({ message });
+    } catch (err) {
+      console.error('Share task to chat error:', err);
+      return res.status(500).json({ error: 'Fehler beim Teilen in den Chat' });
+    }
+  }
+
+  // ============================================
+  // POST /api/groups/:id/messages/:msgId/claim — Take responsibility
+  // ============================================
+  if (segments.length === 4 && segments[1] === 'messages' && segments[3] === 'claim' && req.method === 'POST') {
+    try {
+      const groupId = segments[0];
+      const msgId = segments[2];
+      const membership = await getMembership(groupId);
+      if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
+
+      const role = String(req.body?.role || 'organizer').toLowerCase();
+      const allowed = ['organizer', 'participant', 'watcher'];
+      const finalRole = allowed.includes(role) ? role : 'organizer';
+
+      const updated = await pool.query(
+        `UPDATE group_messages
+         SET responsible_user_id = $1, responsible_role = $2
+         WHERE id = $3 AND group_id = $4 AND message_type = 'group_event'
+         RETURNING id`,
+        [user.id, finalRole, msgId, groupId]
+      );
+      if (updated.rows.length === 0) return res.status(404).json({ error: 'Termin-Nachricht nicht gefunden' });
+
+      const message = await loadMessageWithMeta(groupId, msgId);
+      return res.json({ message });
+    } catch (err) {
+      console.error('Claim event error:', err);
+      return res.status(500).json({ error: 'Fehler beim Uebernehmen' });
+    }
+  }
+
+  // ============================================
+  // POST /api/groups/:id/messages/:msgId/rsvp — RSVP toggle
+  // ============================================
+  if (segments.length === 4 && segments[1] === 'messages' && segments[3] === 'rsvp' && req.method === 'POST') {
+    try {
+      const groupId = segments[0];
+      const msgId = segments[2];
+      const membership = await getMembership(groupId);
+      if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
+
+      const status = String(req.body?.status || 'yes').toLowerCase();
+      const allowed = ['yes', 'maybe', 'no'];
+      if (!allowed.includes(status)) return res.status(400).json({ error: 'Ungueltiger RSVP-Status' });
+
+      const msgCheck = await pool.query(
+        `SELECT id FROM group_messages WHERE id = $1 AND group_id = $2 AND message_type = 'group_event' LIMIT 1`,
+        [msgId, groupId]
+      );
+      if (msgCheck.rows.length === 0) return res.status(404).json({ error: 'Termin-Nachricht nicht gefunden' });
+
+      await pool.query(
+        `INSERT INTO group_event_rsvps (message_id, group_id, user_id, status)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (message_id, user_id)
+         DO UPDATE SET status = EXCLUDED.status, updated_at = NOW()`,
+        [msgId, groupId, user.id, status]
+      );
+
+      const message = await loadMessageWithMeta(groupId, msgId);
+      return res.json({ message });
+    } catch (err) {
+      console.error('RSVP event error:', err);
+      return res.status(500).json({ error: 'Fehler bei der Zusage' });
     }
   }
 
