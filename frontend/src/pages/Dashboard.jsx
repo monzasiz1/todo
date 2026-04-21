@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../store/taskStore';
 import AIInput from '../components/AIInput';
@@ -190,61 +190,85 @@ export default function Dashboard() {
   const [showTaskLimitModal, setShowTaskLimitModal] = useState(false);
 
   useEffect(() => {
-    fetchTasks({ lite: 'true', completed: 'false' }, { force: true });
+    fetchTasks({ dashboard: 'true', completed: 'false' }, { force: true });
     fetchCategories();
 
     // Auto-refresh every 60 s so newly shared/group tasks appear without manual reload
     const interval = setInterval(() => {
       if (!document.hidden) {
-        fetchTasks({ lite: 'true', completed: filter.completed === true ? 'true' : 'false' }, { force: true });
+        fetchTasks({ dashboard: 'true', completed: filter.completed === true ? 'true' : 'false' }, { force: true });
       }
     }, 60000);
     return () => clearInterval(interval);
   }, [filter.completed]);
 
-  const filtered = getFilteredTasks();
-  const deduplicated = deduplicateRecurring(filtered.filter((t) => !t.completed));
-  const groups = groupTasksByDate(deduplicated);
-  const completedTasks = filtered.filter((t) => t.completed)
-    .sort((a, b) => compareAsc(parseISO(b.updated_at || b.created_at), parseISO(a.updated_at || a.created_at)))
-    .slice(0, 20);
+  const filtered = useMemo(() => getFilteredTasks(), [getFilteredTasks, tasks, filter]);
 
-  const todayTasks = deduplicated.filter((t) => {
-    const d = parseTaskDate(t);
-    return d && isToday(d);
-  });
+  const deduplicated = useMemo(
+    () => deduplicateRecurring(filtered.filter((t) => !t.completed)),
+    [filtered]
+  );
 
-  const overdueCount = deduplicated.filter((t) => {
-    const d = parseTaskDate(t);
-    return d && isPast(d) && !isToday(d);
-  }).length;
+  const groups = useMemo(() => groupTasksByDate(deduplicated), [deduplicated]);
 
-  const urgentTodayCount = todayTasks.filter((t) => t.priority === 'urgent' || t.priority === 'high').length;
+  const completedTasks = useMemo(
+    () => filtered
+      .filter((t) => t.completed)
+      .sort((a, b) => compareAsc(parseISO(b.updated_at || b.created_at), parseISO(a.updated_at || a.created_at)))
+      .slice(0, 20),
+    [filtered]
+  );
 
-  const upcomingEventsCount = deduplicated.filter((t) => {
-    const d = parseTaskDate(t);
-    if (!d) return false;
-    return (t.type === 'event') && (isToday(d) || isTomorrow(d));
-  }).length;
+  const todayTasks = useMemo(
+    () => deduplicated.filter((t) => {
+      const d = parseTaskDate(t);
+      return d && isToday(d);
+    }),
+    [deduplicated]
+  );
 
-  const plannedHoursToday = getPlannedHoursToday(todayTasks);
-  const freeHours = Math.max(0, 8 - plannedHoursToday);
+  const overdueCount = useMemo(
+    () => deduplicated.filter((t) => {
+      const d = parseTaskDate(t);
+      return d && isPast(d) && !isToday(d);
+    }).length,
+    [deduplicated]
+  );
 
-  const weekTasks = tasks.filter((t) => {
-    const d = parseTaskDate(t);
-    return d && isThisWeek(d, { weekStartsOn: 1 });
-  });
-  const weekCompletionRate = weekTasks.length > 0
-    ? Math.round((weekTasks.filter((t) => t.completed).length / weekTasks.length) * 100)
-    : 0;
+  const urgentTodayCount = useMemo(
+    () => todayTasks.filter((t) => t.priority === 'urgent' || t.priority === 'high').length,
+    [todayTasks]
+  );
 
-  const insights = buildSmartInsights({
+  const upcomingEventsCount = useMemo(
+    () => deduplicated.filter((t) => {
+      const d = parseTaskDate(t);
+      if (!d) return false;
+      return (t.type === 'event') && (isToday(d) || isTomorrow(d));
+    }).length,
+    [deduplicated]
+  );
+
+  const plannedHoursToday = useMemo(() => getPlannedHoursToday(todayTasks), [todayTasks]);
+  const freeHours = useMemo(() => Math.max(0, 8 - plannedHoursToday), [plannedHoursToday]);
+
+  const weekCompletionRate = useMemo(() => {
+    const weekTasks = tasks.filter((t) => {
+      const d = parseTaskDate(t);
+      return d && isThisWeek(d, { weekStartsOn: 1 });
+    });
+    return weekTasks.length > 0
+      ? Math.round((weekTasks.filter((t) => t.completed).length / weekTasks.length) * 100)
+      : 0;
+  }, [tasks]);
+
+  const insights = useMemo(() => buildSmartInsights({
     overdueCount,
     todayCount: todayTasks.length,
     urgentTodayCount,
     freeHours,
     upcomingEventsCount,
-  });
+  }), [overdueCount, todayTasks.length, urgentTodayCount, freeHours, upcomingEventsCount]);
 
   const greetingHour = new Date().getHours();
   const greeting = greetingHour < 12 ? 'Guten Morgen' : greetingHour < 18 ? 'Guten Tag' : 'Guten Abend';
@@ -293,7 +317,7 @@ export default function Dashboard() {
         <AIInput />
         <ManualTaskForm
           onTaskCreated={() => {
-            fetchTasks({ lite: 'true', completed: filter.completed === true ? 'true' : 'false' }, { force: true });
+            fetchTasks({ dashboard: 'true', completed: filter.completed === true ? 'true' : 'false' }, { force: true });
           }}
         />
       </div>

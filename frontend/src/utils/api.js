@@ -90,6 +90,11 @@ export const api = {
     return request(`/tasks${query ? `?${query}` : ''}`);
   },
 
+  getDashboardTasks: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/tasks/dashboard${query ? `?${query}` : ''}`);
+  },
+
   getTasksSummary: () => request('/tasks/summary'),
 
   getTasksRange: (start, end) =>

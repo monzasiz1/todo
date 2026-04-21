@@ -36,7 +36,10 @@ export const useTaskStore = create((set, get) => ({
 
     set({ loading: true });
     try {
-      const data = await api.getTasks(params);
+      const useDashboardEndpoint = params?.dashboard === 'true' || params?.dashboard === true || params?.lite === 'true' || params?.lite === true;
+      const requestParams = { ...params };
+      delete requestParams.dashboard;
+      const data = useDashboardEndpoint ? await api.getDashboardTasks(requestParams) : await api.getTasks(requestParams);
       set({
         tasks: data.tasks,
         loading: false,
