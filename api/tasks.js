@@ -472,9 +472,9 @@ module.exports = async function handler(req, res) {
                     c.name as category_name,
                     c.color as category_color,
                     c.icon as category_icon,
-                    NULL::text AS creator_name,
-                    NULL::text AS creator_color,
-                    NULL::text AS creator_avatar_url,
+                    u.name as creator_name,
+                    u.avatar_color as creator_color,
+                    u.avatar_url as creator_avatar_url,
                     NULL::text AS last_editor_name,
                     CASE WHEN t.user_id = $1 THEN true ELSE false END AS is_owner,
                     CASE
@@ -489,10 +489,20 @@ module.exports = async function handler(req, res) {
                     grp.color as group_color,
                     grp.image_url as group_image_url,
                     0::int AS attachment_count,
-                    '[]'::json AS shared_with_users
+                    (SELECT COALESCE(
+                        json_agg(
+                          json_build_object('name', su.name, 'color', su.avatar_color, 'avatar_url', su.avatar_url)
+                          ORDER BY su.name
+                        ),
+                        '[]'::json
+                      )
+                     FROM task_permissions tp2
+                     JOIN users su ON tp2.user_id = su.id
+                     WHERE tp2.task_id = t.id AND tp2.can_view = true) AS shared_with_users
              FROM task_ids ids
              JOIN tasks t ON t.id = ids.id
              LEFT JOIN categories c ON t.category_id = c.id
+             LEFT JOIN users u ON t.user_id = u.id
              LEFT JOIN group_tasks gt ON gt.task_id = t.id
              LEFT JOIN groups grp ON grp.id = gt.group_id
              WHERE ($2::boolean IS NULL OR t.completed = $2)
@@ -531,14 +541,15 @@ module.exports = async function handler(req, res) {
                     '[]'::json AS shared_with_users,
                     true AS is_owner,
                     true AS can_edit,
-                    NULL::text AS creator_name,
-                    NULL::text AS creator_color,
-                    NULL::text AS creator_avatar_url,
+                    u.name as creator_name,
+                    u.avatar_color as creator_color,
+                    u.avatar_url as creator_avatar_url,
                     NULL::text AS last_editor_name,
                     'private'::text AS visibility
              FROM uniq_ids ids
              JOIN tasks t ON t.id = ids.id
              LEFT JOIN categories c ON t.category_id = c.id
+                  LEFT JOIN users u ON t.user_id = u.id
              LEFT JOIN group_tasks gt ON gt.task_id = t.id
              LEFT JOIN groups grp ON grp.id = gt.group_id
              WHERE ($2::boolean IS NULL OR t.completed = $2)
