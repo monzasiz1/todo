@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../store/taskStore';
-import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, Plus } from 'lucide-react';
 import TaskDetailModal from './TaskDetailModal';
 import AvatarBadge from './AvatarBadge';
 import {
@@ -164,6 +164,16 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const handleDayClick = (date) => {
     setSelectedDate(date);
     onDayClick?.(date);
+  };
+
+  const getTasksForSelectedDay = () => {
+    if (!selectedDate) return [];
+    return getTasksForDate(selectedDate).slice().sort((a, b) => {
+      if (a.time && b.time) return a.time.localeCompare(b.time);
+      if (a.time) return -1;
+      if (b.time) return 1;
+      return (a.sort_order || 0) - (b.sort_order || 0);
+    });
   };
 
   // ── Drag & Drop via Pointer Events ──────────────────────────────
@@ -516,11 +526,91 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     );
   };
 
+  const renderMobileDayView = () => {
+    const dayTasks = getTasksForSelectedDay();
+    const startHour = 7;
+    const endHour = 23;
+    const hourHeight = 56;
+    const totalHeight = (endHour - startHour) * hourHeight;
+    const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
+
+    const toMinutes = (time) => {
+      if (!time) return null;
+      const [h, m] = String(time).split(':').map((n) => parseInt(n, 10));
+      if (Number.isNaN(h) || Number.isNaN(m)) return null;
+      return h * 60 + m;
+    };
+
+    const now = new Date();
+    const selectedIsToday = selectedDate && isSameDay(selectedDate, now);
+    const nowTop = selectedIsToday
+      ? (((now.getHours() * 60 + now.getMinutes()) - (startHour * 60)) / 60) * hourHeight
+      : null;
+
+    return (
+      <div className="mobile-day-view">
+        <div className="mobile-day-grid" style={{ height: `${totalHeight}px` }}>
+          {hours.map((h) => (
+            <div key={`h-${h}`} className="mobile-day-hour-row" style={{ top: `${(h - startHour) * hourHeight}px` }}>
+              <span className="mobile-day-hour-label">{String(h).padStart(2, '0')}:00</span>
+            </div>
+          ))}
+
+          {selectedIsToday && nowTop !== null && nowTop >= 0 && nowTop <= totalHeight && (
+            <div className="mobile-day-now-line" style={{ top: `${nowTop}px` }}>
+              <span>{`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`}</span>
+            </div>
+          )}
+
+          {dayTasks.filter((t) => t.time).map((t) => {
+            const start = toMinutes(t.time) ?? (startHour * 60);
+            const endRaw = toMinutes(t.time_end);
+            const end = endRaw && endRaw > start ? endRaw : start + 60;
+            const clampedStart = Math.max(startHour * 60, start);
+            const clampedEnd = Math.min(endHour * 60, end);
+            const top = ((clampedStart - startHour * 60) / 60) * hourHeight;
+            const height = Math.max(36, ((clampedEnd - clampedStart) / 60) * hourHeight - 4);
+            return (
+              <button
+                key={t.id}
+                className="mobile-day-event"
+                style={{
+                  top: `${top}px`,
+                  height: `${height}px`,
+                  background: t.group_color || t.category_color || '#4C7BD9',
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDetailTask(t);
+                }}
+              >
+                <strong>{t.title}</strong>
+                <span>{t.time?.slice(0, 5)}{t.time_end ? `-${t.time_end.slice(0, 5)}` : ''}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {dayTasks.filter((t) => !t.time).length > 0 && (
+          <div className="mobile-day-allday">
+            {dayTasks.filter((t) => !t.time).map((t) => (
+              <button key={`ad-${t.id}`} className="mobile-day-allday-item" onClick={() => setDetailTask(t)}>
+                {t.title}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const headerText = view === 'month'
     ? (isDesktop
         ? format(currentDate, 'MMMM yyyy', { locale: de })
         : format(selectedDate || currentDate, 'EEEE, d. MMMM yyyy', { locale: de }))
-    : `KW ${format(currentDate, 'w')} · ${format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'd. MMM', { locale: de })} – ${format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'd. MMM yyyy', { locale: de })}`;
+    : view === 'day'
+      ? format(selectedDate || currentDate, 'EEEE, d. MMMM yyyy', { locale: de })
+      : `KW ${format(currentDate, 'w')} · ${format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'd. MMM', { locale: de })} – ${format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'd. MMM yyyy', { locale: de })}`;
 
   return (
     <motion.div
@@ -602,8 +692,23 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
 
       {view === 'month' ? (
         <div className="calendar-grid">{renderMonthView()}</div>
+      ) : view === 'day' ? (
+        renderMobileDayView()
       ) : (
         renderWeekView()
+      )}
+
+      {!isDesktop && (
+        <div className="mobile-calendar-modebar">
+          <div className="mobile-calendar-modebar-tabs">
+            <button className={view === 'day' ? 'active' : ''} onClick={() => setView('day')}>DAY</button>
+            <button className={view === 'week' ? 'active' : ''} onClick={() => setView('week')}>WEEK</button>
+            <button className={view === 'month' ? 'active' : ''} onClick={() => setView('month')}>MONTH</button>
+          </div>
+          <button className="mobile-calendar-add-btn" onClick={() => onDayClick?.(selectedDate || new Date())}>
+            <Plus size={18} />
+          </button>
+        </div>
       )}
 
       {detailTask && createPortal(

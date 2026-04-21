@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Calendar from '../components/Calendar';
-import AIInput from '../components/AIInput';
-import ManualTaskForm from '../components/ManualTaskForm';
 import DayCreateModal from '../components/DayCreateModal';
 import { useTaskStore } from '../store/taskStore';
 import { format } from 'date-fns';
@@ -65,11 +63,6 @@ export default function CalendarPage() {
         <h2>Kalender</h2>
         <p>Klicke auf einen Tag, um Aufgaben zu sehen oder zu erstellen</p>
       </motion.div>
-
-      <div className="task-creation-stack">
-        <AIInput onTaskCreated={handleTaskCreated} />
-        <ManualTaskForm onTaskCreated={handleTaskCreated} defaultDate={selectedDate} />
-      </div>
 
       <Calendar
         onDayClick={handleDayClick}
