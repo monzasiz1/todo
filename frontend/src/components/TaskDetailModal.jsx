@@ -371,8 +371,8 @@ export default function TaskDetailModal({ task, onClose }) {
           onSaved={() => {
             fetchTasks({
               dashboard: 'true',
-              limit: '400',
-              horizon_days: '56',
+              limit: '300',
+              horizon_days: '42',
               completed_lookback_days: '30',
             }, { force: true });
             onClose();

@@ -186,8 +186,8 @@ function buildSmartInsights({ overdueCount, todayCount, urgentTodayCount, freeHo
 const VIRTUAL_THRESHOLD = 24;
 const VIRTUAL_ITEM_SIZE = 112;
 const VIRTUAL_MAX_HEIGHT = 560;
-const DASHBOARD_FETCH_LIMIT = '400';
-const DASHBOARD_HORIZON_DAYS = '56';
+const DASHBOARD_FETCH_LIMIT = '300';
+const DASHBOARD_HORIZON_DAYS = '42';
 const DASHBOARD_COMPLETED_LOOKBACK_DAYS = '30';
 
 function TaskRow({ index, style, data }) {
