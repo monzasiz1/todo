@@ -13283,11 +13283,48 @@ body.cal-is-dragging * {
 .gchat-group-option:hover { background: var(--bg); }
 .gchat-group-option.active { color: var(--primary); font-weight: 500; }
 
+/* Drag target for dashboard->chat share */
+.gchat-dropzone {
+  margin: 8px 12px 6px;
+  border: 1.5px dashed rgba(0, 122, 255, 0.45);
+  background: rgba(0, 122, 255, 0.06);
+  color: var(--primary);
+  border-radius: 12px;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  padding: 8px 10px;
+}
+.gchat-dropzone.over {
+  background: rgba(0, 122, 255, 0.14);
+  border-color: var(--primary);
+  transform: scale(1.01);
+}
+@media (max-width: 768px) {
+  .gchat-dropzone {
+    margin: 8px 16px 6px;
+    min-height: 48px;
+    font-size: 12.5px;
+  }
+}
+
 /* Pinned messages */
 .gchat-pinned-section {
   background: rgba(255, 204, 0, 0.07);
   border-bottom: 1px solid rgba(255, 204, 0, 0.2);
   flex-shrink: 0;
+}
+
+.task-card.can-share-chat {
+  cursor: grab;
+}
+.task-card.can-share-chat:active {
+  cursor: grabbing;
 }
 .gchat-pinned-header {
   display: flex;

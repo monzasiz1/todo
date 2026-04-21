@@ -104,6 +104,21 @@ function initials(name = '') {
   return name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2);
 }
 
+function toLocalDateTimeInputValue(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  const hh = String(date.getHours()).padStart(2, '0');
+  const mm = String(date.getMinutes()).padStart(2, '0');
+  return `${y}-${m}-${d}T${hh}:${mm}`;
+}
+
+function formatReminderLabel(localDateTime) {
+  const dt = new Date(localDateTime);
+  if (isNaN(dt.getTime())) return 'Erinnerung erstellt';
+  return `Erinnerung am ${dt.toLocaleDateString('de-DE')} um ${dt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} erstellt`;
+}
+
 export default function GroupChatPanel({ open, onClose }) {
   const { groups, fetchGroups } = useGroupStore();
   const { user } = useAuthStore();
@@ -124,10 +139,17 @@ export default function GroupChatPanel({ open, onClose }) {
   const [pollBuilder, setPollBuilder] = useState(null);  // { msgId, question, options: string[] }
   const [ignoredCards, setIgnoredCards] = useState(new Set()); // msgIds of dismissed event cards
   const [eventModal, setEventModal] = useState(null);   // { msgId, title, date, time, location, description }
+  const [reminderModal, setReminderModal] = useState(null); // { msgId, content, remindAtLocal }
   const [submittingModal, setSubmittingModal] = useState(false);
+  const [submittingReminder, setSubmittingReminder] = useState(false);
   const [conflictInfo, setConflictInfo] = useState(null);
   const [claimingMsgId, setClaimingMsgId] = useState(null);
   const [rsvpMsgId, setRsvpMsgId] = useState(null);
+  const [dragShareActive, setDragShareActive] = useState(false);
+  const [dragShareOver, setDragShareOver] = useState(false);
+  const [dragShareTaskId, setDragShareTaskId] = useState(null);
+  const [dragShareGroupId, setDragShareGroupId] = useState(null);
+  const [sharingDroppedTask, setSharingDroppedTask] = useState(false);
   const undoTimerRef = useRef(null);
   const conflictTimerRef = useRef(null);
 
@@ -184,6 +206,68 @@ export default function GroupChatPanel({ open, onClose }) {
     clearTimeout(undoTimerRef.current);
     clearTimeout(conflictTimerRef.current);
   }, []);
+
+  const shareDroppedTaskToChat = useCallback(async (taskId, forcedGroupId = null) => {
+    const targetGroupId = Number(forcedGroupId || selectedGroupId);
+    if (!targetGroupId || !taskId || sharingDroppedTask) return;
+
+    if (selectedGroupId !== targetGroupId) {
+      setSelectedGroupId(targetGroupId);
+      setMessages([]);
+    }
+
+    setSharingDroppedTask(true);
+    try {
+      const data = await api.shareTaskToGroupChat(targetGroupId, taskId);
+      if (data?.message) {
+        setMessages((prev) => [...prev, data.message]);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setSharingDroppedTask(false);
+    }
+  }, [selectedGroupId, sharingDroppedTask]);
+
+  useEffect(() => {
+    const onStart = (e) => {
+      setDragShareActive(true);
+      setDragShareTaskId(e?.detail?.taskId || null);
+      setDragShareGroupId(e?.detail?.groupId || null);
+    };
+    const onEnd = () => {
+      setDragShareOver(false);
+      setDragShareActive(false);
+      setDragShareTaskId(null);
+      setDragShareGroupId(null);
+    };
+    const onHover = (e) => {
+      if (!dragShareActive) return;
+      setDragShareOver(!!e?.detail?.over);
+    };
+    const onTouchDrop = async (e) => {
+      const droppedOnChat = !!e?.detail?.droppedOnChat;
+      const taskId = e?.detail?.taskId;
+      const groupId = e?.detail?.groupId || dragShareGroupId;
+      if (!droppedOnChat || !taskId) return;
+      setDragShareOver(false);
+      await shareDroppedTaskToChat(taskId, groupId);
+      setDragShareActive(false);
+      setDragShareTaskId(null);
+      setDragShareGroupId(null);
+    };
+
+    window.addEventListener('task-share-drag-start', onStart);
+    window.addEventListener('task-share-drag-end', onEnd);
+    window.addEventListener('task-share-drag-hover', onHover);
+    window.addEventListener('task-share-touch-drop', onTouchDrop);
+    return () => {
+      window.removeEventListener('task-share-drag-start', onStart);
+      window.removeEventListener('task-share-drag-end', onEnd);
+      window.removeEventListener('task-share-drag-hover', onHover);
+      window.removeEventListener('task-share-touch-drop', onTouchDrop);
+    };
+  }, [dragShareActive, dragShareGroupId, shareDroppedTaskToChat]);
 
   // ── Send message ──────────────────────────────────────────────────────────
   const sendMessage = async (text) => {
@@ -343,6 +427,59 @@ export default function GroupChatPanel({ open, onClose }) {
       setEventModal(null);
     } catch { /* ignore */ } finally {
       setSubmittingModal(false);
+    }
+  };
+
+  const openReminderModal = (msg, preview = null) => {
+    let base = new Date();
+    if (preview?.dateISO) {
+      const [y, m, d] = preview.dateISO.split('-').map(Number);
+      const hh = preview.timeStr ? Number(preview.timeStr.split(':')[0]) : 9;
+      const mm = preview.timeStr ? Number(preview.timeStr.split(':')[1]) : 0;
+      base = new Date(y, (m || 1) - 1, d || 1, hh || 9, mm || 0, 0, 0);
+    } else {
+      base.setHours(base.getHours() + 1, 0, 0, 0);
+    }
+
+    setReminderModal({
+      msgId: msg.id,
+      content: msg.content,
+      remindAtLocal: toLocalDateTimeInputValue(base),
+    });
+  };
+
+  const submitReminderModal = async () => {
+    if (!reminderModal || !selectedGroupId) return;
+    const localVal = reminderModal.remindAtLocal;
+    if (!localVal) return;
+
+    const parsed = new Date(localVal);
+    if (isNaN(parsed.getTime())) return;
+
+    setSubmittingReminder(true);
+    const key = `${reminderModal.msgId}_erinnerung`;
+    setCreatingFor(key);
+    try {
+      const groupContext = selectedGroup
+        ? { groupId: selectedGroup.id, groupName: selectedGroup.name, memberCount: selectedGroup.member_count }
+        : null;
+
+      const data = await api.parseAndCreateTask(
+        reminderModal.content,
+        'erinnerung',
+        groupContext,
+        { reminder_at_override: parsed.toISOString() }
+      );
+
+      setUndoInfo({ taskId: data?.task?.id, label: `🔔 ${formatReminderLabel(localVal)}` });
+      clearTimeout(undoTimerRef.current);
+      undoTimerRef.current = setTimeout(() => setUndoInfo(null), 8000);
+      setReminderModal(null);
+    } catch {
+      // ignore
+    } finally {
+      setSubmittingReminder(false);
+      setCreatingFor(null);
     }
   };
 
@@ -510,6 +647,33 @@ export default function GroupChatPanel({ open, onClose }) {
                     )}
                   </AnimatePresence>
                 </div>
+
+                <AnimatePresence>
+                  {dragShareActive && (
+                    <motion.div
+                      className={`gchat-dropzone ${dragShareOver ? 'over' : ''}`}
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      onDragEnter={(e) => { e.preventDefault(); setDragShareOver(true); }}
+                      onDragOver={(e) => { e.preventDefault(); setDragShareOver(true); }}
+                      onDragLeave={() => setDragShareOver(false)}
+                      onDrop={async (e) => {
+                        e.preventDefault();
+                        setDragShareOver(false);
+                        const taskId = e.dataTransfer.getData('application/x-task-id') || dragShareTaskId;
+                        const groupId = e.dataTransfer.getData('application/x-task-group-id') || dragShareGroupId;
+                        if (taskId) await shareDroppedTaskToChat(taskId, groupId);
+                        setDragShareActive(false);
+                        setDragShareTaskId(null);
+                        setDragShareGroupId(null);
+                      }}
+                    >
+                      <MessageCircle size={14} />
+                      <span>{sharingDroppedTask ? 'Teile Termin…' : 'Termin hier ablegen, um im Chat zu teilen'}</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* ── Pinned Messages ── */}
                 {pinnedMessages.length > 0 && (
@@ -759,7 +923,13 @@ export default function GroupChatPanel({ open, onClose }) {
                                           key={type}
                                           className="gchat-type-chip"
                                           disabled={!!creatingFor}
-                                          onClick={() => createWithType(msg, type)}
+                                          onClick={() => {
+                                            if (type === 'erinnerung') {
+                                              openReminderModal(msg, preview);
+                                              return;
+                                            }
+                                            createWithType(msg, type);
+                                          }}
                                         >
                                           {creatingFor === `${msg.id}_${type}` ? (
                                             <span className="gchat-spinner-inline" />
@@ -1016,6 +1186,67 @@ export default function GroupChatPanel({ open, onClose }) {
                         disabled={submittingModal || !eventModal.title.trim()}
                       >
                         {submittingModal ? <span className="gchat-spinner-inline" /> : '➕ Termin erstellen'}
+                      </button>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* ── Reminder Modal ── */}
+            <AnimatePresence>
+              {reminderModal && (
+                <motion.div
+                  className="gchat-modal-overlay"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => !submittingReminder && setReminderModal(null)}
+                >
+                  <motion.div
+                    className="gchat-modal"
+                    initial={{ scale: 0.92, opacity: 0, y: 20 }}
+                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                    exit={{ scale: 0.92, opacity: 0, y: 20 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="gchat-modal-top">
+                      <span className="gchat-modal-icon">🔔</span>
+                      <h3 className="gchat-modal-title">Erinnerung planen</h3>
+                      <button className="gchat-modal-close" onClick={() => setReminderModal(null)}>
+                        <X size={16} />
+                      </button>
+                    </div>
+
+                    <div className="gchat-modal-fields">
+                      <label className="gchat-modal-label">Benachrichtigung</label>
+                      <input
+                        className="gchat-modal-input"
+                        type="datetime-local"
+                        value={reminderModal.remindAtLocal}
+                        onChange={(e) => setReminderModal(m => ({ ...m, remindAtLocal: e.target.value }))}
+                        autoFocus
+                      />
+                      <p className="gchat-reminder-note">
+                        Erinnerung am {reminderModal.remindAtLocal ? new Date(reminderModal.remindAtLocal).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' }) : '-'}
+                      </p>
+                    </div>
+
+                    <div className="gchat-modal-actions">
+                      <button
+                        className="gchat-modal-btn gchat-modal-btn--ghost"
+                        onClick={() => setReminderModal(null)}
+                        disabled={submittingReminder}
+                      >
+                        Abbrechen
+                      </button>
+                      <button
+                        className="gchat-modal-btn gchat-modal-btn--primary"
+                        onClick={submitReminderModal}
+                        disabled={submittingReminder || !reminderModal.remindAtLocal}
+                      >
+                        {submittingReminder ? <span className="gchat-spinner-inline" /> : '🔔 Erinnerung erstellen'}
                       </button>
                     </div>
                   </motion.div>

@@ -317,7 +317,14 @@ module.exports = async function handler(req, res) {
   // POST /api/ai/parse-and-create
   if (action === 'parse-and-create') {
     try {
-      const { input, visibility: reqVisibility, permissions: reqPermissions, type: typeHint, groupContext } = req.body;
+      const {
+        input,
+        visibility: reqVisibility,
+        permissions: reqPermissions,
+        type: typeHint,
+        groupContext,
+        reminder_at_override,
+      } = req.body;
       if (!input) {
         return res.status(400).json({ error: 'Eingabe ist erforderlich' });
       }
@@ -343,6 +350,20 @@ module.exports = async function handler(req, res) {
       const parsed = await parseTaskWithAI(enrichedInput, { groupNames, groupContext });
       if (!parsed || !parsed.title) {
         return res.status(400).json({ error: 'Aufgabe konnte nicht erkannt werden' });
+      }
+
+      // Reminder flow must never create events. It should always create a task
+      // with a notification timestamp chosen by the user when provided.
+      if (typeHint === 'erinnerung') {
+        parsed.type = 'task';
+        parsed.hasReminder = true;
+        if (reminder_at_override) {
+          const overridden = new Date(reminder_at_override);
+          if (!isNaN(overridden.getTime())) {
+            parsed.reminder_at = overridden.toISOString();
+            if (!parsed.date) parsed.date = overridden.toISOString().split('T')[0];
+          }
+        }
       }
 
       // Chat-created entries should always be visible in calendar: if no date,
@@ -421,7 +442,7 @@ module.exports = async function handler(req, res) {
         }
       }
 
-      const taskType = parsed.type === 'event' ? 'event' : 'task';
+      const taskType = (typeHint === 'erinnerung') ? 'task' : (parsed.type === 'event' ? 'event' : 'task');
 
       const conflictInfo = taskType === 'event'
         ? await detectConflictWithSuggestion(pool, user.id, parsed)

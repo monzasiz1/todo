@@ -2,7 +2,7 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import FeedbackToast from './FeedbackToast';
 import BottomNav from './BottomNav';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Menu, X, CheckSquare, MessageCircle } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import ReminderChecker from './ReminderChecker';
@@ -22,6 +22,12 @@ export default function Layout() {
       aiInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   };
+
+  useEffect(() => {
+    const onDragStart = () => setChatOpen(true);
+    window.addEventListener('task-share-drag-start', onDragStart);
+    return () => window.removeEventListener('task-share-drag-start', onDragStart);
+  }, []);
 
   return (
     <div className="app-layout">

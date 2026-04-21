@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { memo, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTaskStore } from '../store/taskStore';
 import { Check, Trash2, Clock, Calendar, CalendarCheck, GripVertical, Lock, Users, UserCheck, Repeat, Paperclip } from 'lucide-react';
@@ -13,6 +13,10 @@ function TaskCard({ task, index, disableLayout = false }) {
   const { toggleTask, deleteTask } = useTaskStore();
   const [showDetail, setShowDetail] = useState(false);
   const shouldAnimate = index < 10 && !disableLayout;
+  const touchDragRef = useRef({
+    active: false,
+    timer: null,
+  });
 
   const formatDate = (dateStr) => {
     if (!dateStr) return null;
@@ -38,11 +42,95 @@ function TaskCard({ task, index, disableLayout = false }) {
   const isOverdue = task.date && !task.completed && isPast(parseISO(task.date)) && !isToday(parseISO(task.date));
   const canEdit = task.is_owner === false ? (task.can_edit === true) : true;
   const isEvent = task.type === 'event';
+  const canShareToChat = isEvent && !!task.group_id;
+
+  useEffect(() => {
+    return () => {
+      if (touchDragRef.current.timer) clearTimeout(touchDragRef.current.timer);
+    };
+  }, []);
+
+  const dispatchShareEvent = (name, detail = {}) => {
+    window.dispatchEvent(new CustomEvent(name, { detail: { taskId: task.id, groupId: task.group_id, ...detail } }));
+  };
+
+  const startTouchDrag = () => {
+    touchDragRef.current.active = true;
+    dispatchShareEvent('task-share-drag-start', { source: 'touch' });
+  };
+
+  const endTouchDrag = (clientX, clientY) => {
+    const el = document.elementFromPoint(clientX, clientY);
+    const droppedOnChat = !!el?.closest('.gchat-dropzone');
+    dispatchShareEvent('task-share-touch-drop', { droppedOnChat });
+    dispatchShareEvent('task-share-drag-end', { source: 'touch', droppedOnChat });
+    touchDragRef.current.active = false;
+  };
+
+  const handleDragStart = (e) => {
+    if (!canShareToChat) return;
+    e.dataTransfer.setData('application/x-task-id', String(task.id));
+    if (task.group_id) {
+      e.dataTransfer.setData('application/x-task-group-id', String(task.group_id));
+    }
+    e.dataTransfer.effectAllowed = 'copy';
+    dispatchShareEvent('task-share-drag-start', { source: 'mouse' });
+  };
+
+  const handleDragEnd = () => {
+    if (!canShareToChat) return;
+    dispatchShareEvent('task-share-drag-end', { source: 'mouse' });
+  };
+
+  const handleTouchStart = (e) => {
+    if (!canShareToChat) return;
+    if (touchDragRef.current.timer) clearTimeout(touchDragRef.current.timer);
+    touchDragRef.current.timer = setTimeout(() => {
+      startTouchDrag();
+    }, 180);
+  };
+
+  const handleTouchMove = (e) => {
+    if (touchDragRef.current.timer) {
+      const t = e.touches?.[0];
+      if (!t) return;
+      const movedEnough = Math.abs(t.clientX) > 0 || Math.abs(t.clientY) > 0;
+      if (movedEnough && !touchDragRef.current.active) {
+        clearTimeout(touchDragRef.current.timer);
+        touchDragRef.current.timer = null;
+      }
+    }
+
+    if (!touchDragRef.current.active) return;
+    const t = e.touches?.[0];
+    if (!t) return;
+    e.preventDefault();
+    const over = !!document.elementFromPoint(t.clientX, t.clientY)?.closest('.gchat-dropzone');
+    dispatchShareEvent('task-share-drag-hover', { over });
+  };
+
+  const handleTouchEnd = (e) => {
+    if (touchDragRef.current.timer) {
+      clearTimeout(touchDragRef.current.timer);
+      touchDragRef.current.timer = null;
+    }
+    if (!touchDragRef.current.active) return;
+    const t = e.changedTouches?.[0];
+    if (!t) return;
+    endTouchDrag(t.clientX, t.clientY);
+  };
 
   return (
     <>
     <motion.div
-      className={`task-card ${task.completed ? 'completed' : ''}`}
+      className={`task-card ${task.completed ? 'completed' : ''} ${canShareToChat ? 'can-share-chat' : ''}`}
+      draggable={canShareToChat}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
       layout={!disableLayout}
       initial={shouldAnimate ? { opacity: 0, y: 8 } : false}
       animate={shouldAnimate ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
@@ -50,6 +138,7 @@ function TaskCard({ task, index, disableLayout = false }) {
       transition={shouldAnimate ? { duration: 0.18, delay: index * 0.01 } : { duration: 0.01 }}
       onClick={() => setShowDetail(true)}
       style={{ cursor: 'pointer' }}
+      title={canShareToChat ? 'In den Gruppen-Chat ziehen' : undefined}
     >
       {/* Priority Bar */}
       <div

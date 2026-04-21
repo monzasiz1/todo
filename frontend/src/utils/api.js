@@ -144,10 +144,10 @@ export const api = {
       body: JSON.stringify({ input }),
     }),
 
-  parseAndCreateTask: (input, type = null, groupContext = null) =>
+  parseAndCreateTask: (input, type = null, groupContext = null, options = {}) =>
     request('/ai/parse-and-create', {
       method: 'POST',
-      body: JSON.stringify({ input, type, groupContext }),
+      body: JSON.stringify({ input, type, groupContext, ...options }),
     }),
 
   createGroupPoll: (groupId, question, options) =>
