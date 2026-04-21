@@ -191,9 +191,10 @@ export const useTaskStore = create((set, get) => ({
     try {
       const data = await api.updateTask(id, updates);
       set((s) => ({
-        tasks: s.tasks.map((t) => (t.id === id ? data.task : t)),
+        tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...data.task } : t)),
       }));
-      return data.task;
+      const current = get().tasks.find((t) => t.id === id);
+      return current || data.task;
     } catch (err) {
       get().addToast('❌ ' + err.message, 'error');
       return null;

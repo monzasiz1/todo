@@ -47,6 +47,7 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
   const [dateEnd, setDateEnd] = useState(task.date_end ? task.date_end.substring(0, 10) : '');
   const [time, setTime] = useState(task.time ? task.time.substring(0, 5) : '');
   const [timeEnd, setTimeEnd] = useState(task.time_end ? task.time_end.substring(0, 5) : '');
+  const [allDay, setAllDay] = useState(Boolean(task.date && !task.time && !task.time_end));
   const [priority, setPriority] = useState(task.priority || 'medium');
   const [categoryId, setCategoryId] = useState(task.category_id || '');
   const [reminderAt, setReminderAt] = useState(
@@ -159,8 +160,8 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
         description: description.trim(),
         date: date || null,
         date_end: dateEnd || null,
-        time: time || null,
-        time_end: timeEnd || null,
+        time: allDay ? null : (time || null),
+        time_end: allDay ? null : (timeEnd || null),
         priority,
         category_id: categoryId || null,
         reminder_at: localToISO(reminderAt),
@@ -323,9 +324,11 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
                 className="task-edit-input"
+                disabled={allDay}
+                style={allDay ? { opacity: 0.45 } : undefined}
               />
             </div>
-            {showTimeEnd ? (
+            {!allDay && showTimeEnd ? (
               <div className="task-edit-field flex-1">
                 <label>Bis</label>
                 <div className="task-edit-removable">
@@ -340,11 +343,38 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
                   </button>
                 </div>
               </div>
-            ) : (
+            ) : !allDay ? (
               <button className="task-edit-add-btn" onClick={() => setShowTimeEnd(true)}>
                 + Endzeit
               </button>
+            ) : (
+              <div className="task-edit-field flex-1" style={{ marginBottom: 0, display: 'flex', alignItems: 'flex-end' }}>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', paddingBottom: 10 }}>
+                  Ganztägig ohne Uhrzeit
+                </div>
+              </div>
             )}
+          </div>
+
+          <div className="task-edit-field" style={{ marginTop: -8 }}>
+            <button
+              type="button"
+              className={`task-edit-pill ${allDay ? 'active' : ''}`}
+              style={allDay ? { background: 'var(--primary)', color: '#fff' } : undefined}
+              onClick={() => {
+                setAllDay((v) => {
+                  const next = !v;
+                  if (next) {
+                    setTime('');
+                    setTimeEnd('');
+                    setShowTimeEnd(false);
+                  }
+                  return next;
+                });
+              }}
+            >
+              Ganztägig
+            </button>
           </div>
 
           {/* Priority */}

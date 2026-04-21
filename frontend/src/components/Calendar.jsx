@@ -62,6 +62,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const [resizeInfo, setResizeInfo] = useState(null); // { task, edge, previewTime }
   const [dropFeedback, setDropFeedback] = useState(null); // { id, msg }
   const dragTaskRef = useRef(null);
+  const tasksRef = useRef(tasks);
   const wasDragging = useRef(false);
   const mobileDayRef = useRef(null);       // ref for mobile day-view time grid
   const mobileWeekColRefs = useRef({});   // ref map for mobile week columns
@@ -102,6 +103,10 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   }, [tasks]);
 
   const [visibleSources, setVisibleSources] = useState({});
+
+  useEffect(() => {
+    tasksRef.current = tasks;
+  }, [tasks]);
 
   useEffect(() => {
     setVisibleSources((prev) => {
@@ -265,6 +270,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       setDragInfo(null);
       if (!moved || !droppedTask) { wasDragging.current = false; return; }
       setTimeout(() => { wasDragging.current = false; }, 350);
+      const liveTask = tasksRef.current.find((t) => String(t.id) === String(droppedTask.id)) || droppedTask;
 
       const under = document.elementFromPoint(ev.clientX, ev.clientY);
       // Accept drops on time columns AND all-day cells
@@ -273,34 +279,34 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
 
       const targetDateStr = col.dataset.caldate;
       if (!targetDateStr) return;
-      const oldDateStr = droppedTask.date?.substring(0, 10);
+      const oldDateStr = liveTask.date?.substring(0, 10);
 
       const updates = {};
 
       // ── Date shift ─────────────────────────────────────────────
       if (targetDateStr !== oldDateStr) {
         updates.date = targetDateStr;
-        if (droppedTask.date_end && oldDateStr) {
+        if (liveTask.date_end && oldDateStr) {
           const delta = differenceInCalendarDays(parseISO(targetDateStr), parseISO(oldDateStr));
-          const oldEnd = parseISO(droppedTask.date_end.substring(0, 10));
+          const oldEnd = parseISO(liveTask.date_end.substring(0, 10));
           updates.date_end = format(addDays(oldEnd, delta), 'yyyy-MM-dd');
         }
       }
 
       // ── Time shift (only in the timed grid, not the all-day strip) ─
       const isTimeCol = col.classList.contains('desktop-week-day-col');
-      if (isTimeCol && droppedTask.time) {
+      if (isTimeCol && liveTask.time) {
         const colRect = col.getBoundingClientRect();
         const relY = Math.max(0, ev.clientY - colRect.top - clickOffsetY);
         const rawMins = (relY / WK_H) * 60;
         const snapped = Math.round(rawMins / 15) * 15;
         const newStartMins = Math.max(WK_START * 60, Math.min(WK_END * 60 - 30, WK_START * 60 + snapped));
 
-        const oldStartMins = timeToMins(droppedTask.time) ?? (WK_START * 60);
+        const oldStartMins = timeToMins(liveTask.time) ?? (WK_START * 60);
         if (newStartMins !== oldStartMins) {
           updates.time = minsToTime(newStartMins);
-          if (droppedTask.time_end) {
-            const oldEndMins = timeToMins(droppedTask.time_end) ?? (oldStartMins + 60);
+          if (liveTask.time_end) {
+            const oldEndMins = timeToMins(liveTask.time_end) ?? (oldStartMins + 60);
             const duration = Math.max(30, oldEndMins - oldStartMins);
             updates.time_end = minsToTime(Math.min(WK_END * 60, newStartMins + duration));
           }
@@ -309,11 +315,11 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
 
       if (Object.keys(updates).length === 0) return;
 
-      const updated = await updateTask(droppedTask.id, updates);
+      const updated = await updateTask(liveTask.id, updates);
       if (updated && onTaskUpdated) {
         onTaskUpdated(updated);
       }
-      if (updated) triggerDropFeedback(droppedTask.id);
+      if (updated) triggerDropFeedback(liveTask.id);
     };
 
     document.addEventListener('pointermove', onMove);
@@ -367,19 +373,20 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       setDragInfo(null);
       if (!moved || !dropped) { wasDragging.current = false; return; }
       setTimeout(() => { wasDragging.current = false; }, 350);
+      const liveTask = tasksRef.current.find((t) => String(t.id) === String(dropped.id)) || dropped;
 
       // Horizontal swipe → move to prev/next day
       if (swipeDay !== 0) {
-        const oldDate = dropped.date?.substring(0, 10);
+        const oldDate = liveTask.date?.substring(0, 10);
         if (!oldDate) return;
         const newDate = format(addDays(parseISO(oldDate), swipeDay), 'yyyy-MM-dd');
         const updates = { date: newDate };
-        if (dropped.date_end) {
-          updates.date_end = format(addDays(parseISO(dropped.date_end.substring(0, 10)), swipeDay), 'yyyy-MM-dd');
+        if (liveTask.date_end) {
+          updates.date_end = format(addDays(parseISO(liveTask.date_end.substring(0, 10)), swipeDay), 'yyyy-MM-dd');
         }
-        const updated = await updateTask(dropped.id, updates);
+        const updated = await updateTask(liveTask.id, updates);
         if (updated && onTaskUpdated) onTaskUpdated(updated);
-        if (updated) triggerDropFeedback(dropped.id, swipeDay < 0 ? 'Auf Vortag verschoben' : 'Auf nächsten Tag verschoben');
+        if (updated) triggerDropFeedback(liveTask.id, swipeDay < 0 ? 'Auf Vortag verschoben' : 'Auf nächsten Tag verschoben');
         const nd = parseISO(newDate);
         setSelectedDate(nd);
         setCurrentDate(nd);
@@ -391,16 +398,16 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       const relY = Math.max(0, ev.clientY - gr.top - clickOffsetY);
       const snapped = Math.round(((relY / hourH) * 60) / 15) * 15;
       const newStart = Math.max(startH * 60, Math.min(endH * 60 - 30, startH * 60 + snapped));
-      const oldStart = timeToMins(dropped.time) ?? (startH * 60);
+      const oldStart = timeToMins(liveTask.time) ?? (startH * 60);
       if (newStart === oldStart) return;
       const updates = { time: minsToTime(newStart) };
-      if (dropped.time_end) {
-        const dur = Math.max(30, (timeToMins(dropped.time_end) ?? (oldStart + 60)) - oldStart);
+      if (liveTask.time_end) {
+        const dur = Math.max(30, (timeToMins(liveTask.time_end) ?? (oldStart + 60)) - oldStart);
         updates.time_end = minsToTime(Math.min(endH * 60, newStart + dur));
       }
-      const updated = await updateTask(dropped.id, updates);
+      const updated = await updateTask(liveTask.id, updates);
       if (updated && onTaskUpdated) onTaskUpdated(updated);
-      if (updated) triggerDropFeedback(dropped.id);
+      if (updated) triggerDropFeedback(liveTask.id);
     };
 
     document.addEventListener('pointermove', onMove);
@@ -455,6 +462,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       setDragInfo(null);
       if (!moved || !dropped) { wasDragging.current = false; return; }
       setTimeout(() => { wasDragging.current = false; }, 350);
+      const liveTask = tasksRef.current.find((t) => String(t.id) === String(dropped.id)) || dropped;
 
       const targetIdx = getTargetCol(ev);
       const tEl = mobileWeekColRefs.current[targetIdx] || colEl;
@@ -462,31 +470,31 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       const relY = Math.max(0, ev.clientY - gr.top - clickOffsetY);
       const snapped = Math.round(((relY / hourH) * 60) / 15) * 15;
       const newStart = Math.max(startH * 60, Math.min(endH * 60 - 30, startH * 60 + snapped));
-      const oldStart = timeToMins(dropped.time) ?? (startH * 60);
+      const oldStart = timeToMins(liveTask.time) ?? (startH * 60);
       const updates = {};
 
       if (newStart !== oldStart) {
         updates.time = minsToTime(newStart);
-        if (dropped.time_end) {
-          const dur = Math.max(30, (timeToMins(dropped.time_end) ?? (oldStart + 60)) - oldStart);
+        if (liveTask.time_end) {
+          const dur = Math.max(30, (timeToMins(liveTask.time_end) ?? (oldStart + 60)) - oldStart);
           updates.time_end = minsToTime(Math.min(endH * 60, newStart + dur));
         }
       }
       if (targetIdx !== colIdx) {
         const newDate = format(days[targetIdx], 'yyyy-MM-dd');
-        const oldDate = dropped.date?.substring(0, 10);
+        const oldDate = liveTask.date?.substring(0, 10);
         if (newDate !== oldDate) {
           updates.date = newDate;
-          if (dropped.date_end && oldDate) {
+          if (liveTask.date_end && oldDate) {
             const delta = differenceInCalendarDays(parseISO(newDate), parseISO(oldDate));
-            updates.date_end = format(addDays(parseISO(dropped.date_end.substring(0, 10)), delta), 'yyyy-MM-dd');
+            updates.date_end = format(addDays(parseISO(liveTask.date_end.substring(0, 10)), delta), 'yyyy-MM-dd');
           }
         }
       }
       if (!Object.keys(updates).length) return;
-      const updated = await updateTask(dropped.id, updates);
+      const updated = await updateTask(liveTask.id, updates);
       if (updated && onTaskUpdated) onTaskUpdated(updated);
-      if (updated) triggerDropFeedback(dropped.id);
+      if (updated) triggerDropFeedback(liveTask.id);
     };
 
     document.addEventListener('pointermove', onMove);
