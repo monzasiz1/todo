@@ -2563,38 +2563,58 @@ input, textarea, select {
 
   /* Calendar */
   .calendar-wrapper {
-    border-radius: var(--radius-md);
+    border-radius: 20px;
+    background: #262233;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.28);
   }
 
   .calendar-header {
-    padding: 14px 16px;
+    padding: 14px 14px 10px;
     flex-wrap: wrap;
     gap: 10px;
-  }
-
-  .calendar-header h3 {
-    font-size: 17px;
-    width: 100%;
-    text-align: center;
+    background: #2f2a40;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .cal-mp-wrap {
     width: 100%;
-    display: flex;
-    justify-content: center;
+    display: block;
+  }
+
+  .cal-mp-trigger {
+    color: #f2edf9;
+    font-weight: 700;
+    font-size: 20px;
+    padding: 2px 0;
+    margin: 0;
+  }
+
+  .cal-mp-chevron {
+    color: rgba(242, 237, 249, 0.7);
   }
 
   .calendar-nav {
     order: -1;
+    width: 100%;
+    justify-content: flex-end;
   }
 
   .calendar-view-toggle {
-    order: 3;
+    display: none;
   }
 
   .calendar-nav-btn {
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
+    color: rgba(242, 237, 249, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+  }
+
+  .calendar-nav-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
   }
 
   .calendar-view-btn {
@@ -2602,15 +2622,50 @@ input, textarea, select {
     font-size: 12px;
   }
 
+  .calendar-grid {
+    background: #2f2a40;
+  }
+
+  .calendar-day-header {
+    border-bottom: none;
+    background: transparent;
+    color: rgba(242, 237, 249, 0.65);
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
+
   .calendar-day {
-    min-height: 52px !important;
-    padding: 2px;
+    min-height: 54px !important;
+    padding: 2px 3px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    background: transparent;
   }
 
   .calendar-day-number {
     width: 22px;
     height: 22px;
     font-size: 11px;
+    color: #f2edf9;
+  }
+
+  .calendar-day.other-month .calendar-day-number {
+    color: rgba(242, 237, 249, 0.35);
+  }
+
+  .calendar-day.today {
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .calendar-day.today .calendar-day-number,
+  .calendar-day.selected .calendar-day-number {
+    background: #f5dbd7;
+    color: #2b2537;
+    box-shadow: none;
+  }
+
+  .calendar-day.selected::after {
+    border-color: rgba(245, 219, 215, 0.45);
   }
 
   .calendar-day-tasks {
@@ -2619,20 +2674,104 @@ input, textarea, select {
 
   .calendar-day-task {
     font-size: 0.55rem;
-    padding: 1px 2px;
+    padding: 0;
+    border-radius: 999px;
+    min-height: 4px;
+    line-height: 1;
   }
 
   .calendar-day-task-time {
     display: none;
   }
 
+  .calendar-day-task-title {
+    display: none;
+  }
+
   .calendar-day-more {
     font-size: 0.5rem;
+    color: rgba(242, 237, 249, 0.6);
   }
 
   .calendar-day-header {
     padding: 8px 4px;
     font-size: 10px;
+  }
+
+  .mobile-calendar-agenda {
+    margin-top: 12px;
+    background: #11121a;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 10px;
+  }
+
+  .mobile-calendar-agenda-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .mobile-calendar-agenda-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f2edf9;
+    text-transform: capitalize;
+  }
+
+  .mobile-calendar-agenda-count {
+    font-size: 11px;
+    color: rgba(242, 237, 249, 0.7);
+  }
+
+  .mobile-calendar-empty {
+    font-size: 12px;
+    color: rgba(242, 237, 249, 0.65);
+    padding: 8px;
+  }
+
+  .mobile-calendar-agenda-list {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .mobile-calendar-agenda-item {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #1a1c27;
+    border-radius: 10px;
+    padding: 8px;
+    text-align: left;
+    color: #f2edf9;
+  }
+
+  .mobile-calendar-agenda-line {
+    width: 3px;
+    border-radius: 999px;
+    flex-shrink: 0;
+  }
+
+  .mobile-calendar-agenda-content {
+    min-width: 0;
+  }
+
+  .mobile-calendar-agenda-time {
+    font-size: 11px;
+    color: rgba(242, 237, 249, 0.7);
+    margin-bottom: 2px;
+  }
+
+  .mobile-calendar-agenda-task {
+    font-size: 13px;
+    font-weight: 600;
+    color: #f7f4fb;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* Calendar Week View */

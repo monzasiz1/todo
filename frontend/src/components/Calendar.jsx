@@ -31,7 +31,7 @@ import { de } from 'date-fns/locale';
 export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeChange, onTaskUpdated }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState('month');
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [detailTask, setDetailTask] = useState(null);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [pickerYear, setPickerYear] = useState(getYear(new Date()));
@@ -72,6 +72,13 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   }, []);
 
   useEffect(() => {
+    if (!isDesktop) {
+      setView('month');
+      if (!selectedDate) setSelectedDate(new Date());
+    }
+  }, [isDesktop, selectedDate]);
+
+  useEffect(() => {
     if (!showMonthPicker) return;
     const handler = (e) => {
       if (
@@ -105,8 +112,21 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
 
   const handleDayClick = (date) => {
     setSelectedDate(date);
-    onDayClick?.(date);
+    if (isDesktop) {
+      onDayClick?.(date);
+    }
   };
+
+  const mobileAgendaTasks = selectedDate
+    ? getTasksForDate(selectedDate)
+        .slice()
+        .sort((a, b) => {
+          if (a.time && b.time) return a.time.localeCompare(b.time);
+          if (a.time) return -1;
+          if (b.time) return 1;
+          return (a.sort_order || 0) - (b.sort_order || 0);
+        })
+    : [];
 
   // ── Drag & Drop via Pointer Events ──────────────────────────────
   const handlePointerDown = (e, task) => {
@@ -386,6 +406,44 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
         <div className="calendar-grid">{renderMonthView()}</div>
       ) : (
         renderWeekView()
+      )}
+
+      {!isDesktop && view === 'month' && (
+        <div className="mobile-calendar-agenda">
+          <div className="mobile-calendar-agenda-head">
+            <span className="mobile-calendar-agenda-title">{selectedDate ? format(selectedDate, 'EEEE, d. MMMM', { locale: de }) : 'Heute'}</span>
+            <span className="mobile-calendar-agenda-count">{mobileAgendaTasks.length} Termine</span>
+          </div>
+
+          {mobileAgendaTasks.length === 0 ? (
+            <div className="mobile-calendar-empty">Keine Termine an diesem Tag</div>
+          ) : (
+            <div className="mobile-calendar-agenda-list">
+              {mobileAgendaTasks.map((task) => (
+                <button
+                  key={task.id}
+                  className="mobile-calendar-agenda-item"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDetailTask(task);
+                  }}
+                >
+                  <div
+                    className="mobile-calendar-agenda-line"
+                    style={{ background: task.group_color || task.category_color || 'var(--primary)' }}
+                  />
+                  <div className="mobile-calendar-agenda-content">
+                    <div className="mobile-calendar-agenda-time">
+                      {task.time ? task.time.slice(0, 5) : 'Ganztag'}
+                      {task.time_end ? ` - ${task.time_end.slice(0, 5)}` : ''}
+                    </div>
+                    <div className="mobile-calendar-agenda-task">{task.title}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {detailTask && createPortal(
