@@ -502,12 +502,14 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     const PX_PER_DAY = 65; // pixels to drag before day changes
     let lastDelta = 0;
     let previewDelta = 0;
+    let previewLabel = edge === 'end' ? 'Enddatum' : 'Startdatum';
 
     const de = document.body.querySelectorAll ? null : null; // unused, just clarity
 
     const onMove = (ev) => {
       const dx = ev.clientX - startX;
       previewDelta = Math.round(dx / PX_PER_DAY) * (edge === 'end' ? 1 : -1);
+      setDragInfo({ task, x: ev.clientX, y: ev.clientY, previewTime: `${edge === 'end' ? '⇥' : '⇤'} ${previewLabel}` });
       if (previewDelta === lastDelta) return;
       lastDelta = previewDelta;
 
@@ -517,13 +519,14 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       if (!baseDate) return;
 
       const previewDate = format(addDays(parseISO(baseDate), previewDelta), 'yyyy-MM-dd');
-      const label = format(parseISO(previewDate), 'EEE d. MMM', { locale: de });
-      setResizeInfo({ task, edge: edge === 'end' ? 'date-end' : 'date-start', previewTime: label });
+      previewLabel = format(parseISO(previewDate), 'EEE d. MMM', { locale: de });
+      setResizeInfo({ task, edge: edge === 'end' ? 'date-end' : 'date-start', previewTime: previewLabel });
     };
 
     const onUp = async () => {
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onUp);
+      setDragInfo(null);
       setResizeInfo(null);
       if (previewDelta === 0) { setTimeout(() => { wasDragging.current = false; }, 350); return; }
       setTimeout(() => { wasDragging.current = false; }, 350);
