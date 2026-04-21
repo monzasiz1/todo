@@ -4,7 +4,7 @@ import { useTaskStore } from '../store/taskStore';
 import AIInput from '../components/AIInput';
 import ManualTaskForm from '../components/ManualTaskForm';
 import TaskCard from '../components/TaskCard';
-import { CheckCircle2, Circle, Clock, ChevronDown, CalendarDays } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, ChevronDown, CalendarDays, AlertTriangle } from 'lucide-react';
 import { isToday, isTomorrow, isThisWeek, isPast, parseISO, format, startOfDay, compareAsc } from 'date-fns';
 import { de } from 'date-fns/locale';
 
