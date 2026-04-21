@@ -78,6 +78,11 @@ function buildRecurringDates(startDate, rule, interval, endDate) {
   return dates;
 }
 
+function buildDashboardCacheKey(userId, completedFilter, limit) {
+  const completedScope = completedFilter === null ? 'all' : String(completedFilter);
+  return `dashboard:user:${userId}:${completedScope}:${limit}`;
+}
+
 module.exports = async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -398,9 +403,10 @@ module.exports = async function handler(req, res) {
 
       // 🚀 CACHE: Check dashboard cache first
       if (lite) {
-        const cacheKey = `dashboard:${user.id}:${completedFilter}:${limit}`;
+        const cacheKey = buildDashboardCacheKey(user.id, completedFilter, limit);
         const cached = cacheManager.get(cacheKey);
         if (cached) {
+          res.setHeader('X-Dashboard-Cache', 'HIT');
           return res.json(cached);
         }
       }
@@ -532,9 +538,10 @@ module.exports = async function handler(req, res) {
 
         // 🚀 CACHE: Store result for 30 seconds
         const response = { tasks: result.rows, lite: true };
-        const cacheKey = `dashboard:${user.id}:${completedFilter}:${limit}`;
-        cacheManager.set(cacheKey, response, 30000); // 30 second TTL
+        const cacheKey = buildDashboardCacheKey(user.id, completedFilter, limit);
+        cacheManager.set(cacheKey, response, 30000, String(user.id)); // 30 second TTL
 
+        res.setHeader('X-Dashboard-Cache', 'MISS');
         return res.json(response);
       }
 
