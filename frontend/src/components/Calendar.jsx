@@ -497,6 +497,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const handleDateExtendPointerDown = (e, task, edge) => {
     e.stopPropagation();
     e.preventDefault();
+    wasDragging.current = true; // block click immediately
     const startX = e.clientX;
     const PX_PER_DAY = 65; // pixels to drag before day changes
     let lastDelta = 0;
@@ -524,7 +525,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onUp);
       setResizeInfo(null);
-      if (previewDelta === 0) return;
+      if (previewDelta === 0) { setTimeout(() => { wasDragging.current = false; }, 350); return; }
       setTimeout(() => { wasDragging.current = false; }, 350);
       wasDragging.current = true;
 
@@ -557,6 +558,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const handleResizePointerDown = (e, task, edge, gridEl, hourH, startH) => {
     e.stopPropagation();
     e.preventDefault();
+    wasDragging.current = true; // block click immediately
     const endH = 23;
     resizeInfoRef.current = null;
 
@@ -576,19 +578,20 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       const info = resizeInfoRef.current;
       resizeInfoRef.current = null;
       setResizeInfo(null);
-      if (!info) return;
+      if (!info) { setTimeout(() => { wasDragging.current = false; }, 350); return; }
       const { task: t, edge: ed, previewTime } = info;
       const sMins = timeToMins(t.time) ?? (startH * 60);
       const eMins = timeToMins(t.time_end) ?? (sMins + 60);
       const newMins = timeToMins(previewTime);
-      if (newMins == null) return;
+      if (newMins == null) { setTimeout(() => { wasDragging.current = false; }, 350); return; }
       const updates = {};
       if (ed === 'end' && newMins > sMins + 14) updates.time_end = previewTime;
       else if (ed === 'start' && newMins < eMins - 14) updates.time = previewTime;
-      if (!Object.keys(updates).length) return;
+      if (!Object.keys(updates).length) { setTimeout(() => { wasDragging.current = false; }, 350); return; }
       const updated = await updateTask(t.id, updates);
       if (updated && onTaskUpdated) onTaskUpdated(updated);
       if (updated) triggerDropFeedback(t.id, 'Zeit angepasst');
+      setTimeout(() => { wasDragging.current = false; }, 350);
     };
 
     document.addEventListener('pointermove', onMove);
