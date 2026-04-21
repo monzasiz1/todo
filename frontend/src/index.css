@@ -7891,12 +7891,25 @@ body.cal-is-dragging * {
 }
 
 /* Friend profile modal */
+.friend-profile-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 1001;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: calc(8px + env(safe-area-inset-top, 0px)) 14px calc(8px + env(safe-area-inset-bottom, 0px));
+}
+
 .friend-profile-modal {
   background: var(--card-solid);
   border-radius: 20px;
   width: 100%;
   max-width: 360px;
-  max-height: 85vh;
+  max-height: calc(100dvh - 16px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -8466,6 +8479,16 @@ body.cal-is-dragging * {
     left: 16px;
     right: 16px;
     transform: none;
+  }
+
+  .friend-profile-overlay {
+    padding-left: 8px;
+    padding-right: 8px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .friend-profile-modal {
+    max-width: 100%;
   }
 }
 
