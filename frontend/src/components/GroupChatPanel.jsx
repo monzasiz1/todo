@@ -852,6 +852,16 @@ export default function GroupChatPanel({ open, onClose }) {
                               </div>
                               <div className="gchat-bubble-meta">
                                 <span className="gchat-time">{formatTime(msg.created_at)}</span>
+                                {isOwn && (
+                                  <button
+                                    className={`gchat-pin-btn gchat-delete-btn ${deletingMsgId === msg.id ? 'deleting' : ''}`}
+                                    onClick={() => deleteMessage(msg.id)}
+                                    title="Löschen"
+                                    disabled={deletingMsgId === msg.id}
+                                  >
+                                    <Trash2 size={10} />
+                                  </button>
+                                )}
                                 <button
                                   className={`gchat-pin-btn ${msg.is_pinned ? 'active' : ''}`}
                                   onClick={() => togglePin(msg)}

@@ -28,6 +28,10 @@ export default function Layout() {
     const onDragStart = (e) => {
       setChatOpen(true);
       const d = e?.detail || {};
+      if (d.source !== 'touch') {
+        setDragGhost(null);
+        return;
+      }
       setDragGhost({
         x: d.x || 24,
         y: d.y || 24,
