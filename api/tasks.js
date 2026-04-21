@@ -633,9 +633,13 @@ module.exports = async function handler(req, res) {
         // 🚀 CACHE: Store result for 30 seconds
         const response = { tasks: result.rows, lite: true };
         const cacheKey = buildDashboardCacheKey(user.id, completedFilter, limit, horizonDays, completedLookbackDays);
-        cacheManager
-          .set(cacheKey, response, 30, String(user.id))
-          .catch((error) => console.error('Dashboard cache set failed (non-blocking):', error));
+        try {
+          await cacheManager.set(cacheKey, response, 30, String(user.id));
+          res.setHeader('X-Dashboard-Cache-Store', 'ok');
+        } catch (error) {
+          console.error('Dashboard cache set failed:', error);
+          res.setHeader('X-Dashboard-Cache-Store', 'failed');
+        }
 
         res.setHeader('X-Dashboard-Cache', `${cacheManager.backendName}-miss`);
         return res.json(response);
