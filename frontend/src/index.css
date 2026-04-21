@@ -1749,6 +1749,8 @@ body.cal-is-dragging * {
   border-radius: 999px;
   background: rgba(255,255,255,0.6);
   pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
 }
 
 .cal-resize-handle::after {
@@ -1768,6 +1770,9 @@ body.cal-is-dragging * {
 
 /* visible on hover on desktop */
 .desktop-week-event:hover .cal-resize-handle::after { opacity: 1; }
+.desktop-week-event:hover .cal-date-extend-handle::after,
+.desktop-week-event.cal-dragging .cal-date-extend-handle::after,
+.cal-date-extend-handle:active::after { opacity: 1; }
 
 /* resize time badge (portal) */
 .cal-resize-preview {
