@@ -214,6 +214,50 @@ input, textarea, select {
   margin-top: 8px;
 }
 
+.sidebar-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebar-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sidebar-collapse-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  color: var(--text-tertiary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.sidebar-collapse-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-secondary);
+}
+
+.sidebar-collapse-btn.open {
+  transform: rotate(180deg);
+}
+
+.sidebar-categories-wrap {
+  overflow: hidden;
+  max-height: 420px;
+  opacity: 1;
+  transition: max-height 0.24s ease, opacity 0.2s ease;
+}
+
+.sidebar-categories-wrap.collapsed {
+  max-height: 0;
+  opacity: 0;
+}
+
 .sidebar-category {
   display: flex;
   align-items: center;
@@ -2573,6 +2617,7 @@ input, textarea, select {
     gap: 8px;
     background: linear-gradient(180deg, #f8f5ff 0%, #f4f0fb 100%);
     border-bottom: 1px solid #ebe6f5;
+    position: relative;
   }
 
   .cal-mp-wrap {
@@ -2581,14 +2626,21 @@ input, textarea, select {
   }
 
   .cal-mp-trigger {
-    font-size: 32px;
-    font-weight: 700;
+    font-size: 16px;
+    font-weight: 800;
     line-height: 1.15;
     color: #2f3342;
-    letter-spacing: -0.4px;
+    letter-spacing: -0.2px;
     justify-content: flex-start;
     margin: 0;
-    padding: 0;
+    padding: 2px 0;
+    width: calc(100% - 116px);
+  }
+
+  .cal-mp-trigger span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .cal-mp-chevron {
@@ -2597,10 +2649,12 @@ input, textarea, select {
   }
 
   .calendar-nav {
-    order: 2;
-    width: 100%;
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    width: auto;
     justify-content: flex-end;
-    margin-top: -34px;
+    margin-top: 0;
   }
 
   .calendar-view-toggle {

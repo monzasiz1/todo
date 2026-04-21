@@ -10,6 +10,7 @@ import {
   Sparkles,
   Users,
   UsersRound,
+  ChevronDown,
 } from 'lucide-react';
 import FriendsList from './FriendsList';
 import CategoryManager from './CategoryManager';
@@ -23,6 +24,7 @@ export default function Sidebar({ isOpen, onClose }) {
   const { pending, fetchFriends } = useFriendsStore();
   const [showFriends, setShowFriends] = useState(false);
   const [showCategories, setShowCategories] = useState(false);
+  const [categoriesCollapsed, setCategoriesCollapsed] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
@@ -99,17 +101,28 @@ export default function Sidebar({ isOpen, onClose }) {
       </div>
 
       {/* Categories */}
-      <div className="sidebar-section-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        Kategorien
-        <button
-          className="catm-manage-btn"
-          onClick={() => setShowCategories(true)}
-          title="Kategorien verwalten"
-        >
-          Verwalten
-        </button>
+      <div className="sidebar-section-title sidebar-section-head">
+        <span>Kategorien</span>
+        <div className="sidebar-section-actions">
+          <button
+            className="catm-manage-btn"
+            onClick={() => setShowCategories(true)}
+            title="Kategorien verwalten"
+          >
+            Verwalten
+          </button>
+          <button
+            className={`sidebar-collapse-btn ${!categoriesCollapsed ? 'open' : ''}`}
+            onClick={() => setCategoriesCollapsed((v) => !v)}
+            aria-label={categoriesCollapsed ? 'Kategorien ausklappen' : 'Kategorien einklappen'}
+            title={categoriesCollapsed ? 'Ausklappen' : 'Einklappen'}
+          >
+            <ChevronDown size={16} />
+          </button>
+        </div>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 16, overflowY: 'auto' }}>
+      <div className={`sidebar-categories-wrap ${categoriesCollapsed ? 'collapsed' : 'open'}`}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 16, overflowY: 'auto' }}>
         <div
           className={`sidebar-category ${!filter.category ? 'active' : ''}`}
           onClick={() => { clearFilters(); onClose?.(); }}
@@ -134,6 +147,7 @@ export default function Sidebar({ isOpen, onClose }) {
             <span className="sidebar-category-count">{getTaskCount(cat.id)}</span>
           </div>
         ))}
+        </div>
       </div>
 
       {/* User */}

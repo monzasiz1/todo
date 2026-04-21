@@ -16,6 +16,8 @@ import {
   subMonths,
   addWeeks,
   subWeeks,
+  addDays as addDay,
+  subDays,
   isSameMonth,
   isSameDay,
   isToday,
@@ -155,14 +157,27 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
 
   const navigate = (direction) => {
     if (view === 'month') {
-      setCurrentDate(direction === 'next' ? addMonths(currentDate, 1) : subMonths(currentDate, 1));
-    } else {
-      setCurrentDate(direction === 'next' ? addWeeks(currentDate, 1) : subWeeks(currentDate, 1));
+      const nextDate = direction === 'next' ? addMonths(currentDate, 1) : subMonths(currentDate, 1);
+      setCurrentDate(nextDate);
+      return;
     }
+
+    if (view === 'day') {
+      const base = selectedDate || currentDate;
+      const nextDate = direction === 'next' ? addDay(base, 1) : subDays(base, 1);
+      setSelectedDate(nextDate);
+      setCurrentDate(nextDate);
+      return;
+    }
+
+    const nextDate = direction === 'next' ? addWeeks(currentDate, 1) : subWeeks(currentDate, 1);
+    setCurrentDate(nextDate);
+    setSelectedDate(nextDate);
   };
 
   const handleDayClick = (date) => {
     setSelectedDate(date);
+    setCurrentDate(date);
     onDayClick?.(date);
   };
 
@@ -547,9 +562,23 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       ? (((now.getHours() * 60 + now.getMinutes()) - (startHour * 60)) / 60) * hourHeight
       : null;
 
+    const handleGridClick = (e) => {
+      const gridRect = e.currentTarget.getBoundingClientRect();
+      const y = Math.max(0, Math.min(gridRect.height, e.clientY - gridRect.top));
+      const minsFromStart = (y / hourHeight) * 60;
+      const snapped = Math.floor(minsFromStart / 15) * 15;
+
+      const dayBase = selectedDate || currentDate;
+      const pickedDate = new Date(dayBase);
+      const totalMinutes = (startHour * 60) + snapped;
+      pickedDate.setHours(Math.floor(totalMinutes / 60), totalMinutes % 60, 0, 0);
+
+      handleDayClick(pickedDate);
+    };
+
     return (
       <div className="mobile-day-view">
-        <div className="mobile-day-grid" style={{ height: `${totalHeight}px` }}>
+        <div className="mobile-day-grid" style={{ height: `${totalHeight}px` }} onClick={handleGridClick}>
           {hours.map((h) => (
             <div key={`h-${h}`} className="mobile-day-hour-row" style={{ top: `${(h - startHour) * hourHeight}px` }}>
               <span className="mobile-day-hour-label">{String(h).padStart(2, '0')}:00</span>
@@ -594,7 +623,14 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
         {dayTasks.filter((t) => !t.time).length > 0 && (
           <div className="mobile-day-allday">
             {dayTasks.filter((t) => !t.time).map((t) => (
-              <button key={`ad-${t.id}`} className="mobile-day-allday-item" onClick={() => setDetailTask(t)}>
+              <button
+                key={`ad-${t.id}`}
+                className="mobile-day-allday-item"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDetailTask(t);
+                }}
+              >
                 {t.title}
               </button>
             ))}
@@ -651,7 +687,11 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
             </button>
             <button
               className="calendar-nav-btn"
-              onClick={() => setCurrentDate(new Date())}
+              onClick={() => {
+                const today = new Date();
+                setCurrentDate(today);
+                setSelectedDate(today);
+              }}
               style={{ fontSize: 12, fontWeight: 700, width: 'auto', padding: '0 12px' }}
             >
               Heute
@@ -679,7 +719,9 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                 key={i}
                 className={`cal-mp-m${getMonth(currentDate) === i && getYear(currentDate) === pickerYear ? ' active' : ''}${getMonth(new Date()) === i && getYear(new Date()) === pickerYear ? ' now' : ''}`}
                 onClick={() => {
-                  setCurrentDate(setYear(setMonth(currentDate, i), pickerYear));
+                  const nextDate = setYear(setMonth(currentDate, i), pickerYear);
+                  setCurrentDate(nextDate);
+                  setSelectedDate(nextDate);
                   setShowMonthPicker(false);
                 }}
               >
