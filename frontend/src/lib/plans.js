@@ -63,7 +63,6 @@ export const PLANS = {
       calendarSync: true,
       attachments: true,
       statistics: true,
-      adminPanel: true,
       prioritySupport: true,
     },
   },

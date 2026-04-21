@@ -9,6 +9,12 @@ import { useAuthStore } from '../store/authStore';
 
 const PLAN_COLORS = { free: '#8E8E93', pro: '#007AFF', team: '#5856D6' };
 
+const PLAN_BANNERS = {
+  free:  { gradient: 'linear-gradient(135deg, #E5E5EA 0%, #D1D1D6 100%)', icon: '✓', iconBg: '#fff', iconColor: '#34C759', textColor: '#1c1c1e', subColor: '#6e6e73' },
+  pro:   { gradient: 'linear-gradient(135deg, #0A84FF 0%, #5E5CE6 100%)', icon: '✦', iconBg: 'rgba(255,255,255,0.2)', iconColor: '#fff', textColor: '#fff', subColor: 'rgba(255,255,255,0.75)' },
+  team:  { gradient: 'linear-gradient(135deg, #5856D6 0%, #AF52DE 100%)', icon: '⚡', iconBg: 'rgba(255,255,255,0.2)', iconColor: '#fff', textColor: '#fff', subColor: 'rgba(255,255,255,0.75)' },
+};
+
 /* ── Inline SVG illustrations ────────────────────────────────── */
 const FreeIllustration = () => (
   <svg viewBox="0 0 280 130" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -120,8 +126,6 @@ const TeamIllustration = () => (
   </svg>
 );
 
-const PLAN_ILLUSTRATIONS = { free: FreeIllustration, pro: ProIllustration, team: TeamIllustration };
-
 const FEATURE_ROWS = [
   { key: 'tasks',            label: 'Aufgaben',              type: 'limit' },
   { key: 'categories',       label: 'Kategorien',            type: 'limit' },
@@ -131,7 +135,6 @@ const FEATURE_ROWS = [
   { key: 'attachments',      label: 'Anhänge',               type: 'feature' },
   { key: 'statistics',       label: 'Statistiken',           type: 'feature' },
   { key: 'aiCalls',          label: 'KI-Abfragen/Monat',     type: 'limit' },
-  { key: 'adminPanel',       label: 'Admin-Panel',           type: 'feature' },
   { key: 'prioritySupport',  label: 'Prioritäts-Support',    type: 'feature' },
 ];
 
@@ -195,7 +198,7 @@ export default function PricingPage() {
       {/* Plan cards */}
       <div className="pricing-cards">
         {Object.values(PLANS).map((p, i) => {
-          const Illustration = PLAN_ILLUSTRATIONS[p.id];
+          const banner = PLAN_BANNERS[p.id];
           const color = PLAN_COLORS[p.id];
           const isCurrent = p.id === planId;
           const isLoading = loading === p.id;
@@ -215,16 +218,14 @@ export default function PricingPage() {
               {p.id === 'pro' && <div className="pricing-featured-label">Beliebteste Wahl</div>}
               {isCurrent && <div className="pricing-current-label">Dein Plan</div>}
 
-              {/* Illustration banner */}
-              <div className="pricing-card-illustration">
-                <Illustration />
-                <div className="pricing-card-illus-overlay">
-                  <div className="pricing-card-name" style={{ color: p.id === 'free' ? '#1c1c1e' : '#fff' }}>
-                    {p.label}
-                  </div>
-                  <div className="pricing-card-price" style={{ color: p.id === 'free' ? '#6e6e73' : 'rgba(255,255,255,0.8)' }}>
-                    {displayPrice}
-                  </div>
+              {/* Gradient banner with name + price */}
+              <div className="pricing-card-banner" style={{ background: banner.gradient }}>
+                <div className="pricing-card-banner-icon" style={{ background: banner.iconBg, color: banner.iconColor }}>
+                  {banner.icon}
+                </div>
+                <div className="pricing-card-banner-text">
+                  <div className="pricing-card-name" style={{ color: banner.textColor }}>{p.label}</div>
+                  <div className="pricing-card-price" style={{ color: banner.subColor }}>{displayPrice}</div>
                 </div>
               </div>
 
@@ -275,4 +276,4 @@ export default function PricingPage() {
     </div>
   );
 }
-
+
