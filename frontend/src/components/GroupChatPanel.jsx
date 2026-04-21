@@ -150,8 +150,10 @@ export default function GroupChatPanel({ open, onClose }) {
   const [dragShareTaskId, setDragShareTaskId] = useState(null);
   const [dragShareGroupId, setDragShareGroupId] = useState(null);
   const [sharingDroppedTask, setSharingDroppedTask] = useState(false);
+  const [dragShareSuccess, setDragShareSuccess] = useState(false);
   const undoTimerRef = useRef(null);
   const conflictTimerRef = useRef(null);
+  const dragSuccessTimerRef = useRef(null);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -205,6 +207,7 @@ export default function GroupChatPanel({ open, onClose }) {
   useEffect(() => () => {
     clearTimeout(undoTimerRef.current);
     clearTimeout(conflictTimerRef.current);
+    clearTimeout(dragSuccessTimerRef.current);
   }, []);
 
   const shareDroppedTaskToChat = useCallback(async (taskId, forcedGroupId = null) => {
@@ -221,6 +224,9 @@ export default function GroupChatPanel({ open, onClose }) {
       const data = await api.shareTaskToGroupChat(targetGroupId, taskId);
       if (data?.message) {
         setMessages((prev) => [...prev, data.message]);
+        setDragShareSuccess(true);
+        clearTimeout(dragSuccessTimerRef.current);
+        dragSuccessTimerRef.current = setTimeout(() => setDragShareSuccess(false), 700);
       }
     } catch {
       // ignore
@@ -651,7 +657,7 @@ export default function GroupChatPanel({ open, onClose }) {
                 <AnimatePresence>
                   {dragShareActive && (
                     <motion.div
-                      className={`gchat-dropzone ${dragShareOver ? 'over' : ''}`}
+                      className={`gchat-dropzone ${dragShareOver ? 'over' : ''} ${dragShareSuccess ? 'success' : ''}`}
                       initial={{ opacity: 0, y: -8 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -8 }}
@@ -670,7 +676,13 @@ export default function GroupChatPanel({ open, onClose }) {
                       }}
                     >
                       <MessageCircle size={14} />
-                      <span>{sharingDroppedTask ? 'Teile Termin…' : 'Termin hier ablegen, um im Chat zu teilen'}</span>
+                      <span>
+                        {sharingDroppedTask
+                          ? 'Teile Termin…'
+                          : dragShareSuccess
+                            ? 'Geteilt!'
+                            : 'Termin hier ablegen, um im Chat zu teilen'}
+                      </span>
                     </motion.div>
                   )}
                 </AnimatePresence>

@@ -16,6 +16,8 @@ function TaskCard({ task, index, disableLayout = false }) {
   const touchDragRef = useRef({
     active: false,
     timer: null,
+    startX: 0,
+    startY: 0,
   });
 
   const formatDate = (dateStr) => {
@@ -43,6 +45,8 @@ function TaskCard({ task, index, disableLayout = false }) {
   const canEdit = task.is_owner === false ? (task.can_edit === true) : true;
   const isEvent = task.type === 'event';
   const canShareToChat = isEvent && !!task.group_id;
+  const shortTitle = String(task.title || 'Termin').slice(0, 32);
+  const timeLabel = task.time ? `${String(task.time).slice(0, 5)} Uhr` : '';
 
   useEffect(() => {
     return () => {
@@ -51,7 +55,15 @@ function TaskCard({ task, index, disableLayout = false }) {
   }, []);
 
   const dispatchShareEvent = (name, detail = {}) => {
-    window.dispatchEvent(new CustomEvent(name, { detail: { taskId: task.id, groupId: task.group_id, ...detail } }));
+    window.dispatchEvent(new CustomEvent(name, {
+      detail: {
+        taskId: task.id,
+        groupId: task.group_id,
+        title: shortTitle,
+        time: timeLabel,
+        ...detail,
+      },
+    }));
   };
 
   const startTouchDrag = () => {
@@ -74,7 +86,24 @@ function TaskCard({ task, index, disableLayout = false }) {
       e.dataTransfer.setData('application/x-task-group-id', String(task.group_id));
     }
     e.dataTransfer.effectAllowed = 'copy';
-    dispatchShareEvent('task-share-drag-start', { source: 'mouse' });
+
+    // Compact drag preview instead of dragging the whole task card screenshot.
+    const ghost = document.createElement('div');
+    ghost.className = 'task-share-native-ghost';
+    ghost.innerHTML = `<span class="dot"></span><span class="txt">${shortTitle}${timeLabel ? ` · ${timeLabel}` : ''}</span>`;
+    document.body.appendChild(ghost);
+    e.dataTransfer.setDragImage(ghost, 16, 16);
+    setTimeout(() => ghost.remove(), 0);
+
+    dispatchShareEvent('task-share-drag-start', { source: 'mouse', x: e.clientX, y: e.clientY });
+  };
+
+  const handleDrag = (e) => {
+    if (!canShareToChat) return;
+    if (e.clientX === 0 && e.clientY === 0) return;
+    const over = !!document.elementFromPoint(e.clientX, e.clientY)?.closest('.gchat-dropzone');
+    dispatchShareEvent('task-share-drag-move', { source: 'mouse', x: e.clientX, y: e.clientY, over });
+    dispatchShareEvent('task-share-drag-hover', { over });
   };
 
   const handleDragEnd = () => {
@@ -84,6 +113,11 @@ function TaskCard({ task, index, disableLayout = false }) {
 
   const handleTouchStart = (e) => {
     if (!canShareToChat) return;
+    const t = e.touches?.[0];
+    if (t) {
+      touchDragRef.current.startX = t.clientX;
+      touchDragRef.current.startY = t.clientY;
+    }
     if (touchDragRef.current.timer) clearTimeout(touchDragRef.current.timer);
     touchDragRef.current.timer = setTimeout(() => {
       startTouchDrag();
@@ -94,7 +128,9 @@ function TaskCard({ task, index, disableLayout = false }) {
     if (touchDragRef.current.timer) {
       const t = e.touches?.[0];
       if (!t) return;
-      const movedEnough = Math.abs(t.clientX) > 0 || Math.abs(t.clientY) > 0;
+      const movedEnough =
+        Math.abs(t.clientX - touchDragRef.current.startX) > 8 ||
+        Math.abs(t.clientY - touchDragRef.current.startY) > 8;
       if (movedEnough && !touchDragRef.current.active) {
         clearTimeout(touchDragRef.current.timer);
         touchDragRef.current.timer = null;
@@ -107,6 +143,7 @@ function TaskCard({ task, index, disableLayout = false }) {
     e.preventDefault();
     const over = !!document.elementFromPoint(t.clientX, t.clientY)?.closest('.gchat-dropzone');
     dispatchShareEvent('task-share-drag-hover', { over });
+    dispatchShareEvent('task-share-drag-move', { source: 'touch', x: t.clientX, y: t.clientY, over });
   };
 
   const handleTouchEnd = (e) => {
@@ -126,6 +163,7 @@ function TaskCard({ task, index, disableLayout = false }) {
       className={`task-card ${task.completed ? 'completed' : ''} ${canShareToChat ? 'can-share-chat' : ''}`}
       draggable={canShareToChat}
       onDragStart={handleDragStart}
+      onDrag={handleDrag}
       onDragEnd={handleDragEnd}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}

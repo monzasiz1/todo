@@ -1,7 +1,5 @@
-const CACHE_NAME = 'taski-v1';
+const CACHE_NAME = 'taski-v2';
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
@@ -42,10 +40,31 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For navigation requests, serve cached index.html (SPA)
+  // For navigation requests, always prefer a fresh HTML shell.
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request).catch(() => caches.match('/index.html'))
+      fetch(request, { cache: 'no-store' }).catch(() => caches.match('/'))
+    );
+    return;
+  }
+
+  // JS/CSS module assets: never accept an HTML fallback response.
+  // If server/CDN misroutes to index.html, fail fast and fallback to cache.
+  if (request.destination === 'script' || request.destination === 'style') {
+    event.respondWith(
+      fetch(request, { cache: 'no-store' })
+        .then((response) => {
+          const contentType = response.headers.get('content-type') || '';
+          if (contentType.includes('text/html')) {
+            throw new Error('Invalid asset response: HTML returned for script/style');
+          }
+          if (response && response.status === 200 && response.type === 'basic') {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request))
     );
     return;
   }

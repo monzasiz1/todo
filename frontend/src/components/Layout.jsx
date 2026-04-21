@@ -12,6 +12,7 @@ import GroupChatPanel from './GroupChatPanel';
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [dragGhost, setDragGhost] = useState(null); // { x, y, title, time }
   const aiInputRef = useRef(null);
 
   const handleFabClick = () => {
@@ -24,9 +25,36 @@ export default function Layout() {
   };
 
   useEffect(() => {
-    const onDragStart = () => setChatOpen(true);
+    const onDragStart = (e) => {
+      setChatOpen(true);
+      const d = e?.detail || {};
+      setDragGhost({
+        x: d.x || 24,
+        y: d.y || 24,
+        title: d.title || 'Termin',
+        time: d.time || '',
+      });
+    };
+    const onDragMove = (e) => {
+      const d = e?.detail || {};
+      setDragGhost((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          x: typeof d.x === 'number' ? d.x : prev.x,
+          y: typeof d.y === 'number' ? d.y : prev.y,
+        };
+      });
+    };
+    const onDragEnd = () => setDragGhost(null);
     window.addEventListener('task-share-drag-start', onDragStart);
-    return () => window.removeEventListener('task-share-drag-start', onDragStart);
+    window.addEventListener('task-share-drag-move', onDragMove);
+    window.addEventListener('task-share-drag-end', onDragEnd);
+    return () => {
+      window.removeEventListener('task-share-drag-start', onDragStart);
+      window.removeEventListener('task-share-drag-move', onDragMove);
+      window.removeEventListener('task-share-drag-end', onDragEnd);
+    };
   }, []);
 
   return (
@@ -94,6 +122,17 @@ export default function Layout() {
         >
           <MessageCircle size={22} />
         </button>
+      )}
+
+      {dragGhost && (
+        <div
+          className="task-share-drag-ghost"
+          style={{ left: dragGhost.x, top: dragGhost.y }}
+        >
+          <span className="task-share-drag-ghost-dot" />
+          <span className="task-share-drag-ghost-text">{dragGhost.title}</span>
+          {dragGhost.time && <span className="task-share-drag-ghost-time">{dragGhost.time}</span>}
+        </div>
       )}
     </div>
   );
