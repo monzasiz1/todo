@@ -4,6 +4,8 @@ const DEFAULT_TTL_SECONDS = 30;
 const FALLBACK_MAX_CACHE_ITEMS = 1000;
 const FALLBACK_MAX_USER_ITEMS = 50;
 const REDIS_VALUE_GZIP_PREFIX = 'gz:';
+const REDIS_INLINE_MAX_CHARS = 120000;
+const REDIS_CHUNK_SIZE_CHARS = 80000;
 
 class UpstashRestRedis {
   constructor(url, token) {
@@ -33,6 +35,11 @@ class UpstashRestRedis {
     return this.command(['GET', key]);
   }
 
+  async mget(keys) {
+    if (!Array.isArray(keys) || keys.length === 0) return [];
+    return this.command(['MGET', ...keys]);
+  }
+
   static encodeValue(value) {
     const json = JSON.stringify(value);
     const gz = gzipSync(Buffer.from(json, 'utf8'));
@@ -52,8 +59,67 @@ class UpstashRestRedis {
     return JSON.parse(rawValue);
   }
 
+  static chunkKey(key, index) {
+    return `${key}:chunk:${index}`;
+  }
+
+  static isChunkManifest(rawValue) {
+    return typeof rawValue === 'string' && rawValue.startsWith('chunks:');
+  }
+
+  static getChunkCount(rawValue) {
+    if (!UpstashRestRedis.isChunkManifest(rawValue)) return 0;
+    return parseInt(rawValue.slice('chunks:'.length), 10) || 0;
+  }
+
   async set(key, encodedValue, ttlSeconds) {
     return this.command(['SET', key, encodedValue, 'EX', String(ttlSeconds)]);
+  }
+
+  async setEncoded(key, encodedValue, ttlSeconds) {
+    if (encodedValue.length <= REDIS_INLINE_MAX_CHARS) {
+      await this.set(key, encodedValue, ttlSeconds);
+      return [key];
+    }
+
+    const chunks = [];
+    for (let offset = 0; offset < encodedValue.length; offset += REDIS_CHUNK_SIZE_CHARS) {
+      chunks.push(encodedValue.slice(offset, offset + REDIS_CHUNK_SIZE_CHARS));
+    }
+
+    const keys = [key];
+    for (let i = 0; i < chunks.length; i++) {
+      const chunkKey = UpstashRestRedis.chunkKey(key, i);
+      await this.set(chunkKey, chunks[i], ttlSeconds);
+      keys.push(chunkKey);
+    }
+
+    await this.set(key, `chunks:${chunks.length}`, ttlSeconds);
+    return keys;
+  }
+
+  async getEncoded(key) {
+    const rawValue = await this.get(key);
+    if (rawValue === null || rawValue === undefined) return undefined;
+
+    if (!UpstashRestRedis.isChunkManifest(rawValue)) {
+      return rawValue;
+    }
+
+    const chunkCount = UpstashRestRedis.getChunkCount(rawValue);
+    if (chunkCount <= 0) return undefined;
+
+    const chunkKeys = [];
+    for (let i = 0; i < chunkCount; i++) {
+      chunkKeys.push(UpstashRestRedis.chunkKey(key, i));
+    }
+
+    const parts = await this.mget(chunkKeys);
+    if (!Array.isArray(parts) || parts.length !== chunkCount || parts.some((p) => typeof p !== 'string')) {
+      return undefined;
+    }
+
+    return parts.join('');
   }
 
   async sadd(key, member) {
@@ -207,7 +273,7 @@ class CacheManager {
   async get(key) {
     if (this.redis) {
       try {
-        const raw = await this.redis.get(key);
+        const raw = await this.redis.getEncoded(key);
         return UpstashRestRedis.decodeValue(raw);
       } catch (error) {
         console.error('Redis get failed, falling back to memory:', error);
@@ -221,9 +287,11 @@ class CacheManager {
     if (this.redis) {
       try {
         const encoded = UpstashRestRedis.encodeValue(value);
-        await this.redis.set(key, encoded, ttlSeconds);
+        const storedKeys = await this.redis.setEncoded(key, encoded, ttlSeconds);
         if (userId) {
-          await this.redis.sadd(`dashboard:userkeys:${userId}`, key);
+          for (const storedKey of storedKeys) {
+            await this.redis.sadd(`dashboard:userkeys:${userId}`, storedKey);
+          }
           await this.redis.expire(`dashboard:userkeys:${userId}`, ttlSeconds);
         }
         return;
