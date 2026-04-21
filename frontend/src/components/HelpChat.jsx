@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { MessageCircleQuestion, X, Send, Loader2 } from 'lucide-react';
 import { api } from '../utils/api';
 
-export default function HelpChat() {
+export default function HelpChat({ hideFab = false }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Hallo! 👋 Ich bin der Taski-Hilfe-Assistent. Frag mich alles zur App-Nutzung!' },
@@ -70,7 +70,7 @@ export default function HelpChat() {
   return (
     <>
       {/* Floating Button */}
-      {!open && (
+      {!open && !hideFab && (
         <button className="help-fab" onClick={() => setOpen(true)} title="Hilfe">
           <MessageCircleQuestion size={24} />
         </button>

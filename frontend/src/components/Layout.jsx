@@ -112,7 +112,7 @@ export default function Layout() {
       <ReminderChecker />
 
       {/* Help Chat */}
-      <HelpChat />
+      <HelpChat hideFab={chatOpen} />
 
       {/* Group Chat Panel */}
       <GroupChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />
