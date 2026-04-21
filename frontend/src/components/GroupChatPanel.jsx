@@ -25,6 +25,60 @@ function detectTimeHint(text) {
   return TIME_PATTERNS.some((re) => re.test(text));
 }
 
+// ── Parse event details from message text ─────────────────────────────────────
+function parseEventPreview(text) {
+  // Time
+  let timeStr = null;
+  const tm1 = text.match(/\b(\d{1,2})[.:](\d{2})\s*Uhr\b/i);
+  const tm2 = text.match(/\b(\d{1,2})\s*Uhr\b/i);
+  if (tm1) timeStr = tm1[1].padStart(2, '0') + ':' + tm1[2];
+  else if (tm2) timeStr = tm2[1].padStart(2, '00') + ':00';
+
+  // Date
+  let dateStr = null;
+  const today = new Date();
+  const addDays = (n) => { const d = new Date(today); d.setDate(today.getDate() + n); return d; };
+  const fmtDE = (d) => d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+  if (/\bübermorgen\b/i.test(text)) dateStr = fmtDE(addDays(2));
+  else if (/\bmorgen\b/i.test(text)) dateStr = fmtDE(addDays(1));
+  else if (/\bheute\b/i.test(text)) dateStr = fmtDE(today);
+
+  if (!dateStr) {
+    const days = ['sonntag','montag','dienstag','mittwoch','donnerstag','freitag','samstag'];
+    for (let i = 0; i < days.length; i++) {
+      if (new RegExp(`\\b${days[i]}\\b`, 'i').test(text)) {
+        let diff = i - today.getDay();
+        if (diff <= 0) diff += 7;
+        dateStr = fmtDE(addDays(diff));
+        break;
+      }
+    }
+  }
+  if (!dateStr) {
+    const dm = text.match(/\b(\d{1,2})\.(\d{1,2})\.(\d{4})?\b/);
+    if (dm) {
+      const y = dm[3] || today.getFullYear();
+      dateStr = `${dm[1].padStart(2,'0')}.${dm[2].padStart(2,'0')}.${y}`;
+    }
+  }
+
+  // Title: first meaningful sentence or first 55 chars
+  let title = text.replace(/\s+/g, ' ').trim();
+  const end = title.search(/[.!?]/);
+  if (end > 5) title = title.slice(0, end);
+  if (title.length > 55) title = title.slice(0, 55) + '…';
+
+  // Convert DD.MM.YYYY → YYYY-MM-DD for input[type=date]
+  let dateISO = '';
+  if (dateStr) {
+    const parts = dateStr.split('.');
+    if (parts.length === 3) dateISO = `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+
+  return { title, dateStr, timeStr, dateISO };
+}
+
 // ── Smart reply chips ─────────────────────────────────────────────────────────
 const SMART_REPLIES = [
   { label: '✅ Erledigt', text: 'Erledigt!' },
@@ -67,6 +121,9 @@ export default function GroupChatPanel({ open, onClose }) {
   const [undoInfo, setUndoInfo] = useState(null);       // { taskId, label }
   const [votingId, setVotingId] = useState(null);        // 'msgId_optionId'
   const [pollBuilder, setPollBuilder] = useState(null);  // { msgId, question, options: string[] }
+  const [ignoredCards, setIgnoredCards] = useState(new Set()); // msgIds of dismissed event cards
+  const [eventModal, setEventModal] = useState(null);   // { msgId, title, date, time, location, description }
+  const [submittingModal, setSubmittingModal] = useState(false);
   const undoTimerRef = useRef(null);
 
   const messagesEndRef = useRef(null);
@@ -236,6 +293,44 @@ export default function GroupChatPanel({ open, onClose }) {
     setUndoInfo(null);
   };
 
+  // ── Event card handlers ──────────────────────────────────────────────────
+  const openEventModal = (msg, preview) => {
+    setEventModal({
+      msgId: msg.id,
+      originalContent: msg.content,
+      title: preview.title,
+      date: preview.dateISO,
+      time: preview.timeStr || '',
+      location: '',
+      description: '',
+    });
+  };
+
+  const ignoreEventCard = (msgId) => {
+    setIgnoredCards(prev => new Set([...prev, msgId]));
+  };
+
+  const submitEventModal = async () => {
+    if (!eventModal) return;
+    setSubmittingModal(true);
+    try {
+      const parts = [eventModal.title];
+      if (eventModal.date) {
+        const [y, m, d] = eventModal.date.split('-');
+        parts.push(`am ${d}.${m}.${y}`);
+      }
+      if (eventModal.time) parts.push(`um ${eventModal.time} Uhr`);
+      if (eventModal.location) parts.push(`in ${eventModal.location}`);
+      if (eventModal.description) parts.push(eventModal.description);
+      const syntheticMsg = { id: eventModal.msgId, content: parts.join(' ') };
+      await createWithType(syntheticMsg, 'termin');
+      setIgnoredCards(prev => new Set([...prev, eventModal.msgId]));
+      setEventModal(null);
+    } catch { /* ignore */ } finally {
+      setSubmittingModal(false);
+    }
+  };
+
   // ── Poll builder ─────────────────────────────────────────────────────────
   const openPollBuilder = (msg) => {
     setPollBuilder({ msgId: msg.id, question: msg.content, options: ['', '', ''] });
@@ -303,15 +398,17 @@ export default function GroupChatPanel({ open, onClose }) {
           >
             {/* ── Header ── */}
             <div className="gchat-header">
-              <div className="gchat-header-left">
-                <div className="gchat-icon">
-                  <MessageCircle size={16} />
+              <div className="gchat-header-row">
+                <div className="gchat-header-left">
+                  <div className="gchat-icon">
+                    <MessageCircle size={16} />
+                  </div>
+                  <span className="gchat-title">Gruppen-Chat</span>
                 </div>
-                <span className="gchat-title">Gruppen-Chat</span>
+                <button className="gchat-close" onClick={onClose}>
+                  <X size={18} />
+                </button>
               </div>
-              <button className="gchat-close" onClick={onClose}>
-                <X size={18} />
-              </button>
             </div>
 
             {/* ── Group Selector ── */}
@@ -509,37 +606,75 @@ export default function GroupChatPanel({ open, onClose }) {
                                 </p>
                               )}
 
-                              {/* AI hint: type chips */}
-                              {hasTime && editingMsgId !== msg.id && (
-                                <div className="gchat-ai-hint">
-                                  <Sparkles size={11} />
-                                  <span>KI-Vorschlag:</span>
-                                  <div className="gchat-type-chips">
-                                    {[
-                                      { type: 'termin', label: '📅 Termin' },
-                                      { type: 'aufgabe', label: '✅ Aufgabe' },
-                                      { type: 'erinnerung', label: '⏰ Erinnerung' },
-                                    ].map(({ type, label }) => (
+                              {/* AI hint: event card + other chips */}
+                              {hasTime && editingMsgId !== msg.id && (() => {
+                                const preview = parseEventPreview(msg.content);
+                                const isIgnored = ignoredCards.has(msg.id);
+                                return (
+                                  <div className="gchat-ai-hint">
+                                    {/* ── Event Card ── */}
+                                    {!isIgnored && (
+                                      <div className="gchat-event-card">
+                                        <div className="gchat-event-card-header">
+                                          <span className="gchat-event-card-badge">📅 Termin erkannt</span>
+                                          <span className="gchat-event-card-ai"><Sparkles size={10} /> KI-Vorschlag</span>
+                                        </div>
+                                        <div className="gchat-event-card-title">{preview.title}</div>
+                                        <div className="gchat-event-card-meta">
+                                          {preview.dateStr && <span>📆 {preview.dateStr}</span>}
+                                          {preview.timeStr && <span>🕕 {preview.timeStr} Uhr</span>}
+                                          <span>⏱ Dauer: unbekannt</span>
+                                        </div>
+                                        <div className="gchat-event-card-actions">
+                                          <button
+                                            className="gchat-event-card-btn gchat-event-card-btn--primary"
+                                            disabled={!!creatingFor}
+                                            onClick={() => openEventModal(msg, preview)}
+                                          >
+                                            {creatingFor === `${msg.id}_termin` ? <span className="gchat-spinner-inline" /> : '➕ Erstellen'}
+                                          </button>
+                                          <button
+                                            className="gchat-event-card-btn gchat-event-card-btn--secondary"
+                                            onClick={() => openEventModal(msg, preview)}
+                                          >
+                                            ✏️ Bearbeiten
+                                          </button>
+                                          <button
+                                            className="gchat-event-card-btn gchat-event-card-btn--ghost"
+                                            onClick={() => ignoreEventCard(msg.id)}
+                                          >
+                                            ❌ Ignorieren
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
+                                    {/* ── Other chips ── */}
+                                    <div className="gchat-type-chips gchat-type-chips--slim">
+                                      {[
+                                        { type: 'aufgabe', label: '✅ Aufgabe' },
+                                        { type: 'erinnerung', label: '⏰ Erinnerung' },
+                                      ].map(({ type, label }) => (
+                                        <button
+                                          key={type}
+                                          className="gchat-type-chip"
+                                          disabled={!!creatingFor}
+                                          onClick={() => createWithType(msg, type)}
+                                        >
+                                          {creatingFor === `${msg.id}_${type}` ? (
+                                            <span className="gchat-spinner-inline" />
+                                          ) : label}
+                                        </button>
+                                      ))}
                                       <button
-                                        key={type}
-                                        className="gchat-type-chip"
-                                        disabled={!!creatingFor}
-                                        onClick={() => createWithType(msg, type)}
+                                        className="gchat-type-chip gchat-type-chip--poll"
+                                        onClick={() => openPollBuilder(msg)}
                                       >
-                                        {creatingFor === `${msg.id}_${type}` ? (
-                                          <span className="gchat-spinner-inline" />
-                                        ) : label}
+                                        📊 Abstimmung
                                       </button>
-                                    ))}
-                                    <button
-                                      className="gchat-type-chip gchat-type-chip--poll"
-                                      onClick={() => openPollBuilder(msg)}
-                                    >
-                                      📊 Abstimmung
-                                    </button>
+                                    </div>
                                   </div>
-                                </div>
-                              )}
+                                );
+                              })()}
 
                               {/* Inline Poll Builder */}
                               {pollBuilder?.msgId === msg.id && (
@@ -668,6 +803,102 @@ export default function GroupChatPanel({ open, onClose }) {
                   <button className="gchat-undo-btn" onClick={undoCreate}>
                     <Undo2 size={13} /> Rückgängig
                   </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* ── Event Modal ── */}
+            <AnimatePresence>
+              {eventModal && (
+                <motion.div
+                  className="gchat-modal-overlay"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => !submittingModal && setEventModal(null)}
+                >
+                  <motion.div
+                    className="gchat-modal"
+                    initial={{ scale: 0.92, opacity: 0, y: 20 }}
+                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                    exit={{ scale: 0.92, opacity: 0, y: 20 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="gchat-modal-top">
+                      <span className="gchat-modal-icon">📅</span>
+                      <h3 className="gchat-modal-title">Termin erstellen</h3>
+                      <button className="gchat-modal-close" onClick={() => setEventModal(null)}>
+                        <X size={16} />
+                      </button>
+                    </div>
+
+                    <div className="gchat-modal-fields">
+                      <label className="gchat-modal-label">Titel</label>
+                      <input
+                        className="gchat-modal-input"
+                        value={eventModal.title}
+                        onChange={(e) => setEventModal(m => ({ ...m, title: e.target.value }))}
+                        placeholder="Titel des Termins"
+                        autoFocus
+                      />
+
+                      <div className="gchat-modal-row">
+                        <div className="gchat-modal-col">
+                          <label className="gchat-modal-label">Datum</label>
+                          <input
+                            className="gchat-modal-input"
+                            type="date"
+                            value={eventModal.date}
+                            onChange={(e) => setEventModal(m => ({ ...m, date: e.target.value }))}
+                          />
+                        </div>
+                        <div className="gchat-modal-col">
+                          <label className="gchat-modal-label">Uhrzeit</label>
+                          <input
+                            className="gchat-modal-input"
+                            type="time"
+                            value={eventModal.time}
+                            onChange={(e) => setEventModal(m => ({ ...m, time: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+
+                      <label className="gchat-modal-label">Ort <span className="gchat-modal-optional">(optional)</span></label>
+                      <input
+                        className="gchat-modal-input"
+                        value={eventModal.location}
+                        onChange={(e) => setEventModal(m => ({ ...m, location: e.target.value }))}
+                        placeholder="z.B. Büro, Zoom-Link…"
+                      />
+
+                      <label className="gchat-modal-label">Beschreibung <span className="gchat-modal-optional">(optional)</span></label>
+                      <textarea
+                        className="gchat-modal-input gchat-modal-textarea"
+                        value={eventModal.description}
+                        onChange={(e) => setEventModal(m => ({ ...m, description: e.target.value }))}
+                        placeholder="Weitere Details…"
+                        rows={3}
+                      />
+                    </div>
+
+                    <div className="gchat-modal-actions">
+                      <button
+                        className="gchat-modal-btn gchat-modal-btn--ghost"
+                        onClick={() => setEventModal(null)}
+                        disabled={submittingModal}
+                      >
+                        Abbrechen
+                      </button>
+                      <button
+                        className="gchat-modal-btn gchat-modal-btn--primary"
+                        onClick={submitEventModal}
+                        disabled={submittingModal || !eventModal.title.trim()}
+                      >
+                        {submittingModal ? <span className="gchat-spinner-inline" /> : '➕ Termin erstellen'}
+                      </button>
+                    </div>
+                  </motion.div>
                 </motion.div>
               )}
             </AnimatePresence>

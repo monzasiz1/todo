@@ -13115,6 +13115,14 @@ body.cal-is-dragging * {
 @media (max-width: 768px) {
   .gchat-panel {
     width: 100vw;
+    /* Slide from bottom on very small screens */
+    border-left: none;
+    border-top: 1px solid var(--border);
+    border-radius: 20px 20px 0 0;
+    top: auto;
+    bottom: 0;
+    height: 93dvh;
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.22);
   }
 }
 
@@ -13124,9 +13132,41 @@ body.cal-is-dragging * {
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px;
+  padding-top: max(14px, env(safe-area-inset-top));
   border-bottom: 1px solid var(--border);
   background: var(--card-solid);
   flex-shrink: 0;
+}
+/* Mobile: sheet drag handle + safe area */
+@media (max-width: 768px) {
+  .gchat-header {
+    padding-top: 20px;
+    flex-direction: column;
+    gap: 0;
+  }
+  .gchat-header::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border-strong);
+    margin: 0 auto 12px;
+    flex-shrink: 0;
+  }
+  .gchat-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+}
+/* Desktop: header-row always visible */
+.gchat-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
 }
 .gchat-header-left {
   display: flex;
@@ -13149,19 +13189,30 @@ body.cal-is-dragging * {
   font-weight: 600;
   color: var(--text);
 }
+@media (max-width: 768px) {
+  .gchat-title { font-size: 16px; }
+}
 .gchat-close {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-secondary);
   transition: background var(--transition), color var(--transition);
+  /* Larger touch target for mobile */
+  -webkit-tap-highlight-color: transparent;
 }
-.gchat-close:hover {
+.gchat-close:hover, .gchat-close:active {
   background: var(--bg);
   color: var(--text);
+}
+@media (max-width: 768px) {
+  .gchat-close {
+    width: 44px;
+    height: 44px;
+  }
 }
 
 /* Group selector */
@@ -13170,6 +13221,9 @@ body.cal-is-dragging * {
   border-bottom: 1px solid var(--border);
   position: relative;
   flex-shrink: 0;
+}
+@media (max-width: 768px) {
+  .gchat-group-selector { padding: 10px 16px; }
 }
 .gchat-group-btn {
   display: flex;
@@ -13183,6 +13237,8 @@ body.cal-is-dragging * {
   font-weight: 500;
   color: var(--text);
   transition: background var(--transition);
+  -webkit-tap-highlight-color: transparent;
+  min-height: 44px;
 }
 .gchat-group-btn:hover { background: var(--border); }
 .gchat-group-btn svg.rotated { transform: rotate(180deg); }
@@ -13221,6 +13277,8 @@ body.cal-is-dragging * {
   color: var(--text);
   transition: background var(--transition);
   text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 48px;
 }
 .gchat-group-option:hover { background: var(--bg); }
 .gchat-group-option.active { color: var(--primary); font-weight: 500; }
@@ -13270,10 +13328,19 @@ body.cal-is-dragging * {
   flex-direction: column;
   gap: 4px;
   scroll-behavior: smooth;
+  /* momentum scrolling on iOS */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 .gchat-messages::-webkit-scrollbar { width: 4px; }
 .gchat-messages::-webkit-scrollbar-track { background: transparent; }
 .gchat-messages::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
+@media (max-width: 768px) {
+  .gchat-messages {
+    padding: 12px 16px 6px;
+    gap: 6px;
+  }
+}
 
 .gchat-loading,
 .gchat-no-messages,
@@ -13365,6 +13432,11 @@ body.cal-is-dragging * {
   max-width: 100%;
   transition: border-color var(--transition);
 }
+@media (max-width: 768px) {
+  .gchat-bubble {
+    padding: 10px 13px 8px;
+  }
+}
 .gchat-bubble.own {
   background: linear-gradient(135deg, var(--primary), #5856D6);
   border-color: transparent;
@@ -13381,6 +13453,9 @@ body.cal-is-dragging * {
   line-height: 1.45;
   word-break: break-word;
   white-space: pre-wrap;
+}
+@media (max-width: 768px) {
+  .gchat-bubble-text { font-size: 15px; line-height: 1.5; }
 }
 
 /* AI Calendar hint */
@@ -13454,11 +13529,16 @@ body.cal-is-dragging * {
   opacity: 0;
   color: var(--text-tertiary);
   transition: opacity var(--transition), color var(--transition);
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  -webkit-tap-highlight-color: transparent;
 }
 .gchat-bubble:hover .gchat-pin-btn { opacity: 1; }
+/* On touch devices always show action buttons */
+@media (max-width: 768px) {
+  .gchat-pin-btn { opacity: 1; }
+}
 .gchat-pin-btn.active {
   opacity: 1;
   color: #B8860B;
@@ -13474,8 +13554,12 @@ body.cal-is-dragging * {
   overflow-x: auto;
   flex-shrink: 0;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
 .gchat-smart-replies::-webkit-scrollbar { display: none; }
+@media (max-width: 768px) {
+  .gchat-smart-replies { padding: 8px 16px 4px; gap: 8px; }
+}
 .gchat-smart-chip {
   white-space: nowrap;
   padding: 6px 12px;
@@ -13485,6 +13569,8 @@ body.cal-is-dragging * {
   font-size: 12.5px;
   color: var(--text);
   transition: background var(--transition), border-color var(--transition), transform 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 36px;
 }
 .gchat-smart-chip:hover {
   background: var(--primary-bg);
@@ -13500,9 +13586,18 @@ body.cal-is-dragging * {
   align-items: flex-end;
   gap: 8px;
   padding: 10px 12px 14px;
+  /* Safe area: iPhone home indicator */
+  padding-bottom: max(14px, env(safe-area-inset-bottom));
   border-top: 1px solid var(--border);
   background: var(--card-solid);
   flex-shrink: 0;
+}
+@media (max-width: 768px) {
+  .gchat-input-row {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-bottom: max(20px, calc(env(safe-area-inset-bottom) + 6px));
+  }
 }
 .gchat-input {
   flex: 1;
@@ -13517,6 +13612,15 @@ body.cal-is-dragging * {
   max-height: 100px;
   overflow-y: auto;
   transition: border-color var(--transition), box-shadow var(--transition);
+  /* Prevent iOS zoom on focus (font-size must be >= 16px on mobile) */
+}
+@media (max-width: 768px) {
+  .gchat-input {
+    font-size: 16px;
+    padding: 11px 14px;
+    border-radius: 14px;
+    min-height: 44px;
+  }
 }
 .gchat-input:focus {
   border-color: var(--primary);
@@ -13525,9 +13629,9 @@ body.cal-is-dragging * {
 }
 .gchat-input::placeholder { color: var(--text-tertiary); }
 .gchat-send-btn {
-  width: 38px;
-  height: 38px;
-  border-radius: 11px;
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
   background: linear-gradient(135deg, var(--primary), var(--purple));
   color: white;
   display: flex;
@@ -13535,8 +13639,10 @@ body.cal-is-dragging * {
   justify-content: center;
   flex-shrink: 0;
   transition: opacity var(--transition), transform 0.15s;
+  -webkit-tap-highlight-color: transparent;
 }
 .gchat-send-btn:hover:not(:disabled) { opacity: 0.88; transform: scale(1.05); }
+.gchat-send-btn:active:not(:disabled) { transform: scale(0.94); }
 .gchat-send-btn:disabled { opacity: 0.4; }
 
 /* Spinners */
@@ -13589,16 +13695,17 @@ body.cal-is-dragging * {
 
 /* Mobile header chat trigger */
 .gchat-mobile-trigger {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-secondary);
   transition: background var(--transition), color var(--transition);
+  -webkit-tap-highlight-color: transparent;
 }
-.gchat-mobile-trigger:hover {
+.gchat-mobile-trigger:hover, .gchat-mobile-trigger:active {
   background: var(--bg);
   color: var(--primary);
 }
@@ -13747,7 +13854,7 @@ body.cal-is-dragging * {
 /* ── Undo Toast ────────────────────────────────────────────────── */
 .gchat-undo-toast {
   position: absolute;
-  bottom: 80px;
+  bottom: max(80px, calc(env(safe-area-inset-bottom) + 70px));
   left: 12px;
   right: 12px;
   display: flex;
