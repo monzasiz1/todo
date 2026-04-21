@@ -669,62 +669,6 @@ export default function LandingPage() {
         )}
       </AnimatePresence>
 
-      {/* ──────────────────── TRUST SECTION ──────────────────── */}
-      <section id="trust" className="landing-section">
-          <div className="lpx-container">
-            <div className="lpx-head">
-              <span className="lpx-kicker">Vertrauen und Reifegrad</span>
-              <h2>Technisch solide, klar positioniert und verkaufsstark.</h2>
-            </div>
-
-            <div className="lpx-trust-grid">
-              {trustCards.map((item, idx) => {
-                const Icon = item.icon;
-                return (
-                  <motion.div
-                    key={item.title}
-                    className="lpx-trust-card"
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true, amount: 0.2 }}
-                    custom={idx}
-                    variants={rise}
-                  >
-                    <div className="lpx-trust-icon"><Icon size={20} /></div>
-                    <h3>{item.title}</h3>
-                    <p>{item.text}</p>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        <section className="lpx-cta">
-          <motion.div
-            className="lpx-cta-card"
-            initial={{ opacity: 0, scale: 0.96 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true, amount: 0.25 }}
-            transition={{ duration: 0.4 }}
-          >
-            <h2>Aus Interessenten werden Kunden, wenn die Produktstory klar ist.</h2>
-            <p>
-              Taski zeigt jetzt auf der Landing Page praezise, was die Plattform wirklich kann:
-              intelligente Planung, Team-Features und ein professionelles Nutzungserlebnis.
-            </p>
-            <div className="lpx-cta-actions">
-              <Link to="/register" className="lpx-btn lpx-btn-solid lpx-btn-xl">
-                Kostenlos starten <ArrowRight size={18} />
-              </Link>
-              <Link to="/login" className="lpx-btn lpx-btn-ghost lpx-btn-xl">
-                Bereits Konto? Login
-              </Link>
-            </div>
-          </motion.div>
-        </section>
-      </main>
-
       <footer className="lpx-footer">
         <div className="lpx-container lpx-footer-inner">
           <div className="lpx-brand">
