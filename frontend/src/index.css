@@ -14217,6 +14217,26 @@ body.cal-is-dragging * {
   color: var(--primary);
 }
 
+/* Shared event meta actions (pin/delete) need explicit contrast on light cards */
+.gchat-shared-event .gchat-bubble-meta .gchat-pin-btn {
+  opacity: 1;
+  color: var(--text-secondary);
+}
+.gchat-shared-event .gchat-bubble-meta .gchat-pin-btn:hover {
+  color: var(--primary);
+  background: rgba(0, 122, 255, 0.08);
+}
+.gchat-shared-event .gchat-bubble-meta .gchat-pin-btn.active {
+  color: #B8860B;
+}
+.gchat-shared-event .gchat-bubble-meta .gchat-delete-btn {
+  color: var(--danger, #FF3B30);
+}
+.gchat-shared-event .gchat-bubble-meta .gchat-delete-btn:hover {
+  color: var(--danger, #FF3B30) !important;
+  background: rgba(255, 59, 48, 0.12);
+}
+
 /* ── Inline Poll Builder ────────────────────────────────────────── */
 .gchat-poll-builder {
   margin-top: 8px;
