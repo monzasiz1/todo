@@ -67,61 +67,68 @@ function shiftDate(dateValue, days) {
 // (completed, edited, deleted). Virtual IDs use format: "v_{parentId}_{date}"
 
 function expandRecurringTemplate(template, rangeStart, rangeEnd) {
-  if (!template.recurrence_rule || !template.date) return [];
+  if (!template || !template.recurrence_rule || !template.date) return [];
 
-  const templateDate = typeof template.date === 'string'
-    ? template.date.substring(0, 10)
-    : template.date.toISOString().split('T')[0];
+  try {
+    const templateDate = typeof template.date === 'string'
+      ? template.date.substring(0, 10)
+      : template.date.toISOString?.()?.split('T')[0] || null;
 
-  const effectiveEnd = template.recurrence_end
-    ? (template.recurrence_end < rangeEnd ? template.recurrence_end : rangeEnd)
-    : rangeEnd;
+    if (!templateDate) return [];
 
-  if (templateDate > rangeEnd || effectiveEnd < rangeStart) return [];
+    const effectiveEnd = template.recurrence_end
+      ? (template.recurrence_end < rangeEnd ? template.recurrence_end : rangeEnd)
+      : rangeEnd;
 
-  // Start from the first virtual occurrence (one step after template date)
-  let cursor = calcNextDate(templateDate, template.recurrence_rule, template.recurrence_interval || 1);
-  if (!cursor) return [];
+    if (templateDate > rangeEnd || effectiveEnd < rangeStart) return [];
 
-  // Fast-forward to first occurrence within range (max 10000 steps safety)
-  let guard = 0;
-  while (cursor < rangeStart && guard < 10000) {
-    const next = calcNextDate(cursor, template.recurrence_rule, template.recurrence_interval || 1);
-    if (!next || next <= cursor) break;
-    cursor = next;
-    guard++;
-  }
+    // Start from the first virtual occurrence (one step after template date)
+    let cursor = calcNextDate(templateDate, template.recurrence_rule, template.recurrence_interval || 1);
+    if (!cursor) return [];
 
-  // Calculate multi-day span offset
-  const spanDays = (template.date_end && templateDate)
-    ? Math.max(0, Math.round(
-        (new Date(template.date_end.substring(0, 10) + 'T00:00:00') -
-         new Date(templateDate + 'T00:00:00')) / 86400000
-      ))
-    : 0;
-
-  // Collect occurrences within [rangeStart, effectiveEnd]
-  const result = [];
-  guard = 0;
-  while (cursor && cursor <= effectiveEnd && guard < 1000) {
-    if (cursor >= rangeStart) {
-      result.push({
-        ...template,
-        id: `v_${template.id}_${cursor}`,
-        date: cursor,
-        date_end: spanDays > 0 ? shiftDate(cursor, spanDays) : null,
-        completed: false,
-        is_virtual: true,
-        recurrence_parent_id: template.id,
-      });
+    // Fast-forward to first occurrence within range (max 10000 steps safety)
+    let guard = 0;
+    while (cursor < rangeStart && guard < 10000) {
+      const next = calcNextDate(cursor, template.recurrence_rule, template.recurrence_interval || 1);
+      if (!next || next <= cursor) break;
+      cursor = next;
+      guard++;
     }
-    const next = calcNextDate(cursor, template.recurrence_rule, template.recurrence_interval || 1);
-    if (!next || next <= cursor) break;
-    cursor = next;
-    guard++;
-  }
 
-  return result;
+    // Calculate multi-day span offset
+    const spanDays = (template.date_end && templateDate)
+      ? Math.max(0, Math.round(
+          (new Date(template.date_end.substring(0, 10) + 'T00:00:00') -
+           new Date(templateDate + 'T00:00:00')) / 86400000
+        ))
+      : 0;
+
+    // Collect occurrences within [rangeStart, effectiveEnd]
+    const result = [];
+    guard = 0;
+    while (cursor && cursor <= effectiveEnd && guard < 1000) {
+      if (cursor >= rangeStart) {
+        result.push({
+          ...template,
+          id: `v_${template.id}_${cursor}`,
+          date: cursor,
+          date_end: spanDays > 0 ? shiftDate(cursor, spanDays) : null,
+          completed: false,
+          is_virtual: true,
+          recurrence_parent_id: template.id,
+        });
+      }
+      const next = calcNextDate(cursor, template.recurrence_rule, template.recurrence_interval || 1);
+      if (!next || next <= cursor) break;
+      cursor = next;
+      guard++;
+    }
+
+    return result;
+  } catch (err) {
+    console.error(`Error in expandRecurringTemplate for template ${template?.id}:`, err.message);
+    return [];
+  }
 }
 
 // Parse virtual ID → { parentId, date } or null
@@ -197,32 +204,48 @@ async function materializeOccurrence(pool, parentId, date, userId) {
 
 // Merge concrete tasks + virtual expansions, deduplicating by parent+date
 function mergeWithVirtual(concreteTasks, templates, rangeStart, rangeEnd) {
+  if (!Array.isArray(concreteTasks)) concreteTasks = [];
+  if (!Array.isArray(templates)) templates = [];
+  
   // Set of (parentId:date) already covered by concrete rows
-  const concreteKeys = new Set(
-    concreteTasks
-      .filter((t) => t.recurrence_parent_id)
-      .map((t) => `${t.recurrence_parent_id}:${String(t.date).substring(0, 10)}`)
-  );
+  const concreteKeys = new Set();
+  
+  for (const t of concreteTasks) {
+    if (t && t.recurrence_parent_id) {
+      const dateStr = t.date ? String(t.date).substring(0, 10) : 'null';
+      concreteKeys.add(`${t.recurrence_parent_id}:${dateStr}`);
+    }
+  }
+  
   // Also exclude the template's own date (it's a concrete row)
   for (const tpl of templates) {
-    concreteKeys.add(`${tpl.id}:${String(tpl.date).substring(0, 10)}`);
+    if (tpl && tpl.id && tpl.date) {
+      const dateStr = String(tpl.date).substring(0, 10);
+      concreteKeys.add(`${tpl.id}:${dateStr}`);
+    }
   }
 
   const virtual = [];
   for (const tpl of templates) {
-    const occurrences = expandRecurringTemplate(tpl, rangeStart, rangeEnd);
-    for (const occ of occurrences) {
-      const key = `${tpl.id}:${occ.date}`;
-      if (!concreteKeys.has(key)) {
-        virtual.push(occ);
-        concreteKeys.add(key);
+    if (!tpl || !tpl.recurrence_rule) continue;
+    try {
+      const occurrences = expandRecurringTemplate(tpl, rangeStart, rangeEnd);
+      for (const occ of occurrences) {
+        if (!occ) continue;
+        const key = `${tpl.id}:${occ.date}`;
+        if (!concreteKeys.has(key)) {
+          virtual.push(occ);
+          concreteKeys.add(key);
+        }
       }
+    } catch (err) {
+      console.error(`Error expanding template ${tpl.id}:`, err.message);
     }
   }
 
   return [...concreteTasks, ...virtual].sort((a, b) => {
-    const da = String(a.date || '').substring(0, 10);
-    const db = String(b.date || '').substring(0, 10);
+    const da = String(a && a.date ? a.date : '').substring(0, 10);
+    const db = String(b && b.date ? b.date : '').substring(0, 10);
     return da < db ? -1 : da > db ? 1 : 0;
   });
 }
@@ -294,7 +317,12 @@ module.exports = async function handler(req, res) {
       );
 
       // 3. Merge concrete + virtual, deduplicating overrides
-      const merged = mergeWithVirtual(concreteResult.rows, templateResult.rows, start, end);
+      const merged = mergeWithVirtual(
+        concreteResult.rows || [],
+        templateResult.rows || [],
+        start,
+        end
+      );
 
       return res.json({ tasks: merged });
     } catch (err) {
@@ -779,17 +807,25 @@ module.exports = async function handler(req, res) {
         const dashWindowStart = lookbackStart.toISOString().split('T')[0];
 
         // Fetch templates that are active within the dashboard window
-        const tplResult = await pool.query(
-          `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon
-           FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
-           WHERE t.user_id = $1
-             AND t.recurrence_rule IS NOT NULL
-             AND t.recurrence_parent_id IS NULL
-             AND t.date <= $2
-             AND (t.recurrence_end IS NULL OR t.recurrence_end >= $3)`,
-          [user.id, horizonEndStr, dashWindowStart]
-        );
-        const mergedTasks = mergeWithVirtual(result.rows, tplResult.rows, dashWindowStart, horizonEndStr);
+        let mergedTasks = result.rows || [];
+        try {
+          const tplResult = await pool.query(
+            `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon
+             FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
+             WHERE t.user_id = $1
+               AND t.recurrence_rule IS NOT NULL
+               AND t.recurrence_parent_id IS NULL
+               AND t.date <= $2
+               AND (t.recurrence_end IS NULL OR t.recurrence_end >= $3)`,
+            [user.id, horizonEndStr, dashWindowStart]
+          );
+          // Merge concrete + virtual tasks
+          mergedTasks = mergeWithVirtual(result.rows || [], tplResult.rows || [], dashWindowStart, horizonEndStr);
+        } catch (mergeErr) {
+          console.error('Virtual recurrence merge error:', mergeErr.message);
+          // Fallback: use only concrete tasks
+          mergedTasks = result.rows || [];
+        }
 
         // 🚀 CACHE: Store result for 30 seconds
         const response = { tasks: mergedTasks, lite: true };
