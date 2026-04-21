@@ -257,16 +257,45 @@ module.exports = async function handler(req, res) {
       const { title, description, date, date_end, time, time_end, priority, category_id, reminder_at,
               recurrence_rule, recurrence_interval, recurrence_end, type } = req.body;
       const taskType = type === 'event' ? 'event' : (type === 'task' ? 'task' : undefined);
+
+      // Only update fields that were explicitly sent in the request body.
+      const hasTitle = Object.prototype.hasOwnProperty.call(req.body, 'title');
+      const hasDescription = Object.prototype.hasOwnProperty.call(req.body, 'description');
+      const hasDate = Object.prototype.hasOwnProperty.call(req.body, 'date');
+      const hasDateEnd = Object.prototype.hasOwnProperty.call(req.body, 'date_end');
+      const hasTime = Object.prototype.hasOwnProperty.call(req.body, 'time');
+      const hasTimeEnd = Object.prototype.hasOwnProperty.call(req.body, 'time_end');
+      const hasPriority = Object.prototype.hasOwnProperty.call(req.body, 'priority');
+      const hasCategoryId = Object.prototype.hasOwnProperty.call(req.body, 'category_id');
+      const hasReminderAt = Object.prototype.hasOwnProperty.call(req.body, 'reminder_at');
+      const hasRecurrenceRule = Object.prototype.hasOwnProperty.call(req.body, 'recurrence_rule');
+      const hasRecurrenceInterval = Object.prototype.hasOwnProperty.call(req.body, 'recurrence_interval');
+      const hasRecurrenceEnd = Object.prototype.hasOwnProperty.call(req.body, 'recurrence_end');
+      const hasType = Object.prototype.hasOwnProperty.call(req.body, 'type');
+
       const result = await pool.query(
-        `UPDATE tasks SET title = COALESCE($1, title), description = COALESCE($2, description),
-         date = COALESCE($3, date), date_end = $4, time = COALESCE($5, time), time_end = $6,
-         priority = COALESCE($7, priority), category_id = $8,
-         reminder_at = $9, recurrence_rule = $12, recurrence_interval = COALESCE($13, 1),
-         recurrence_end = $14, type = COALESCE($15, type), updated_at = NOW()
+        `UPDATE tasks SET
+         title = CASE WHEN $16 THEN $1 ELSE title END,
+         description = CASE WHEN $17 THEN $2 ELSE description END,
+         date = CASE WHEN $18 THEN $3 ELSE date END,
+         date_end = CASE WHEN $19 THEN $4 ELSE date_end END,
+         time = CASE WHEN $20 THEN $5 ELSE time END,
+         time_end = CASE WHEN $21 THEN $6 ELSE time_end END,
+         priority = CASE WHEN $22 THEN $7 ELSE priority END,
+         category_id = CASE WHEN $23 THEN $8 ELSE category_id END,
+         reminder_at = CASE WHEN $24 THEN $9 ELSE reminder_at END,
+         recurrence_rule = CASE WHEN $25 THEN $12 ELSE recurrence_rule END,
+         recurrence_interval = CASE WHEN $26 THEN COALESCE($13, 1) ELSE recurrence_interval END,
+         recurrence_end = CASE WHEN $27 THEN $14 ELSE recurrence_end END,
+         type = CASE WHEN $28 THEN COALESCE($15, type) ELSE type END,
+         updated_at = NOW(),
+         last_edited_by = $11
          WHERE id = $10 AND user_id = $11
          RETURNING *`,
         [title, description, date, date_end || null, time, time_end || null, priority, category_id, reminder_at,
-         taskId, user.id, recurrence_rule || null, recurrence_interval || 1, recurrence_end || null, taskType || null]
+         taskId, user.id, recurrence_rule || null, recurrence_interval || 1, recurrence_end || null, taskType || null,
+         hasTitle, hasDescription, hasDate, hasDateEnd, hasTime, hasTimeEnd, hasPriority, hasCategoryId,
+         hasReminderAt, hasRecurrenceRule, hasRecurrenceInterval, hasRecurrenceEnd, hasType]
       );
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Aufgabe nicht gefunden' });
