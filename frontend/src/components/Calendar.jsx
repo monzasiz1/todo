@@ -57,10 +57,14 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const [showSidebarCategories, setShowSidebarCategories] = useState(true);
   const [pickerYear, setPickerYear] = useState(getYear(new Date()));
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
-  // Drag state (Pointer Events based)
-  const [dragInfo, setDragInfo] = useState(null); // { task, x, y } | null
+  // Drag / Resize state
+  const [dragInfo, setDragInfo] = useState(null);
+  const [resizeInfo, setResizeInfo] = useState(null); // { task, edge, previewTime }
   const dragTaskRef = useRef(null);
   const wasDragging = useRef(false);
+  const mobileDayRef = useRef(null);       // ref for mobile day-view time grid
+  const mobileWeekColRefs = useRef({});   // ref map for mobile week columns
+  const resizeInfoRef = useRef(null);
 
   const triggerRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -307,6 +311,179 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     document.addEventListener('pointerup', onUp);
   };
 
+  // ── Mobile Day view — drag to move (Y = time) ─────────────────────
+  const handleMobileEventPointerDown = (e, task, gridEl, hourH, startH) => {
+    e.stopPropagation();
+    e.preventDefault();
+    dragTaskRef.current = task;
+    let moved = false;
+    const endH = 23;
+    const cardRect = e.currentTarget.getBoundingClientRect();
+    const clickOffsetY = e.clientY - cardRect.top;
+
+    const onMove = (ev) => {
+      moved = true;
+      wasDragging.current = true;
+      if (!gridEl) return;
+      const gr = gridEl.getBoundingClientRect();
+      const relY = Math.max(0, ev.clientY - gr.top - clickOffsetY);
+      const snapped = Math.round(((relY / hourH) * 60) / 15) * 15;
+      const sMins = Math.max(startH * 60, Math.min(endH * 60 - 30, startH * 60 + snapped));
+      setDragInfo({ task, x: ev.clientX, y: ev.clientY, previewTime: minsToTime(sMins) });
+    };
+
+    const onUp = async (ev) => {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      const dropped = dragTaskRef.current;
+      dragTaskRef.current = null;
+      setDragInfo(null);
+      if (!moved || !dropped) { wasDragging.current = false; return; }
+      setTimeout(() => { wasDragging.current = false; }, 100);
+      if (!gridEl) return;
+      const gr = gridEl.getBoundingClientRect();
+      const relY = Math.max(0, ev.clientY - gr.top - clickOffsetY);
+      const snapped = Math.round(((relY / hourH) * 60) / 15) * 15;
+      const newStart = Math.max(startH * 60, Math.min(endH * 60 - 30, startH * 60 + snapped));
+      const oldStart = timeToMins(dropped.time) ?? (startH * 60);
+      if (newStart === oldStart) return;
+      const updates = { time: minsToTime(newStart) };
+      if (dropped.time_end) {
+        const dur = Math.max(30, (timeToMins(dropped.time_end) ?? (oldStart + 60)) - oldStart);
+        updates.time_end = minsToTime(Math.min(endH * 60, newStart + dur));
+      }
+      const updated = await updateTask(dropped.id, updates);
+      if (updated && onTaskUpdated) onTaskUpdated(updated);
+    };
+
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  };
+
+  // ── Mobile Week view — drag to move (Y = time, X = day column) ────
+  const handleMobileWeekEventPointerDown = (e, task, colIdx, days) => {
+    e.stopPropagation();
+    e.preventDefault();
+    dragTaskRef.current = task;
+    let moved = false;
+    const hourH = 40; const startH = 7; const endH = 23;
+    const colEl = mobileWeekColRefs.current[colIdx];
+    if (!colEl) return;
+    const cardRect = e.currentTarget.getBoundingClientRect();
+    const clickOffsetY = e.clientY - cardRect.top;
+
+    const getTargetCol = (ev) => {
+      let idx = colIdx;
+      Object.entries(mobileWeekColRefs.current).forEach(([i, el]) => {
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        if (ev.clientX >= r.left && ev.clientX <= r.right) idx = parseInt(i);
+      });
+      return idx;
+    };
+
+    const onMove = (ev) => {
+      moved = true;
+      wasDragging.current = true;
+      const targetIdx = getTargetCol(ev);
+      const tEl = mobileWeekColRefs.current[targetIdx] || colEl;
+      const gr = tEl.getBoundingClientRect();
+      const relY = Math.max(0, ev.clientY - gr.top - clickOffsetY);
+      const snapped = Math.round(((relY / hourH) * 60) / 15) * 15;
+      const sMins = Math.max(startH * 60, Math.min(endH * 60 - 30, startH * 60 + snapped));
+      setDragInfo({ task, x: ev.clientX, y: ev.clientY, previewTime: minsToTime(sMins) });
+      document.querySelectorAll('.mobile-week-grid-col').forEach(el => el.classList.remove('cal-drag-over'));
+      const hEl = mobileWeekColRefs.current[targetIdx];
+      if (hEl) hEl.classList.add('cal-drag-over');
+    };
+
+    const onUp = async (ev) => {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.querySelectorAll('.mobile-week-grid-col').forEach(el => el.classList.remove('cal-drag-over'));
+      const dropped = dragTaskRef.current;
+      dragTaskRef.current = null;
+      setDragInfo(null);
+      if (!moved || !dropped) { wasDragging.current = false; return; }
+      setTimeout(() => { wasDragging.current = false; }, 100);
+
+      const targetIdx = getTargetCol(ev);
+      const tEl = mobileWeekColRefs.current[targetIdx] || colEl;
+      const gr = tEl.getBoundingClientRect();
+      const relY = Math.max(0, ev.clientY - gr.top - clickOffsetY);
+      const snapped = Math.round(((relY / hourH) * 60) / 15) * 15;
+      const newStart = Math.max(startH * 60, Math.min(endH * 60 - 30, startH * 60 + snapped));
+      const oldStart = timeToMins(dropped.time) ?? (startH * 60);
+      const updates = {};
+
+      if (newStart !== oldStart) {
+        updates.time = minsToTime(newStart);
+        if (dropped.time_end) {
+          const dur = Math.max(30, (timeToMins(dropped.time_end) ?? (oldStart + 60)) - oldStart);
+          updates.time_end = minsToTime(Math.min(endH * 60, newStart + dur));
+        }
+      }
+      if (targetIdx !== colIdx) {
+        const newDate = format(days[targetIdx], 'yyyy-MM-dd');
+        const oldDate = dropped.date?.substring(0, 10);
+        if (newDate !== oldDate) {
+          updates.date = newDate;
+          if (dropped.date_end && oldDate) {
+            const delta = differenceInCalendarDays(parseISO(newDate), parseISO(oldDate));
+            updates.date_end = format(addDays(parseISO(dropped.date_end.substring(0, 10)), delta), 'yyyy-MM-dd');
+          }
+        }
+      }
+      if (!Object.keys(updates).length) return;
+      const updated = await updateTask(dropped.id, updates);
+      if (updated && onTaskUpdated) onTaskUpdated(updated);
+    };
+
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  };
+
+  // ── Resize handle — drag edge to change start/end time ────────────
+  const handleResizePointerDown = (e, task, edge, gridEl, hourH, startH) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const endH = 23;
+    resizeInfoRef.current = null;
+
+    const onMove = (ev) => {
+      if (!gridEl) return;
+      const gr = gridEl.getBoundingClientRect();
+      const relY = Math.max(0, ev.clientY - gr.top);
+      const snapped = Math.round(((relY / hourH) * 60) / 15) * 15;
+      const totalMins = Math.max(startH * 60, Math.min(endH * 60, startH * 60 + snapped));
+      resizeInfoRef.current = { task, edge, previewTime: minsToTime(totalMins) };
+      setResizeInfo({ task, edge, previewTime: minsToTime(totalMins) });
+    };
+
+    const onUp = async () => {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      const info = resizeInfoRef.current;
+      resizeInfoRef.current = null;
+      setResizeInfo(null);
+      if (!info) return;
+      const { task: t, edge: ed, previewTime } = info;
+      const sMins = timeToMins(t.time) ?? (startH * 60);
+      const eMins = timeToMins(t.time_end) ?? (sMins + 60);
+      const newMins = timeToMins(previewTime);
+      if (newMins == null) return;
+      const updates = {};
+      if (ed === 'end' && newMins > sMins + 14) updates.time_end = previewTime;
+      else if (ed === 'start' && newMins < eMins - 14) updates.time = previewTime;
+      if (!Object.keys(updates).length) return;
+      const updated = await updateTask(t.id, updates);
+      if (updated && onTaskUpdated) onTaskUpdated(updated);
+    };
+
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  };
+
   // ── Month view ────────────────────────────────────────────────────
   const renderMonthView = () => {
     const monthStart = startOfMonth(currentDate);
@@ -501,27 +678,57 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       const endMins = rawEnd && rawEnd > startMins ? rawEnd : startMins + 60;
                       const clampedStart = Math.max(startHour * 60, startMins);
                       const clampedEnd = Math.min(endHour * 60, endMins);
-                      const top = ((clampedStart - startHour * 60) / 60) * hourHeight;
-                      const height = Math.max(24, ((clampedEnd - clampedStart) / 60) * hourHeight - 2);
+
+                      // Live-resize preview
+                      let liveCStart = clampedStart; let liveCEnd = clampedEnd;
+                      const isResizingThis = resizeInfo?.task.id === t.id;
+                      if (isResizingThis) {
+                        const nm = timeToMins(resizeInfo.previewTime);
+                        if (nm != null) {
+                          if (resizeInfo.edge === 'end') liveCEnd = Math.max(clampedStart + 15, Math.min(endHour * 60, nm));
+                          else liveCStart = Math.min(clampedEnd - 15, Math.max(startHour * 60, nm));
+                        }
+                      }
+
+                      const top    = ((liveCStart - startHour * 60) / 60) * hourHeight;
+                      const height = Math.max(24, ((liveCEnd - liveCStart) / 60) * hourHeight - 2);
 
                       return (
-                        <button
+                        <div
                           key={t.id}
-                          className="desktop-week-event"
+                          className={`desktop-week-event${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}`}
                           style={{
                             top: `${top}px`,
                             height: `${height}px`,
                             background: t.group_color || t.category_color || '#4C7BD9',
+                            touchAction: 'none',
                           }}
-                          onPointerDown={isDesktop ? (e) => handlePointerDown(e, t) : undefined}
+                          onPointerDown={(e) => {
+                            if (e.target.closest('.cal-resize-handle')) return;
+                            handlePointerDown(e, t);
+                          }}
                           onClick={(e) => {
                             e.stopPropagation();
                             if (!wasDragging.current) setDetailTask(t);
                           }}
                         >
+                          <div
+                            className="cal-resize-handle cal-resize-handle-top"
+                            onPointerDown={(e) => {
+                              const col = e.currentTarget.closest('.desktop-week-day-col');
+                              handleResizePointerDown(e, t, 'start', col, WK_H, WK_START);
+                            }}
+                          />
                           <span className="desktop-week-event-title">{t.title}</span>
                           <span className="desktop-week-event-time">{t.time?.slice(0, 5)}{t.time_end ? ` - ${t.time_end.slice(0, 5)}` : ''}</span>
-                        </button>
+                          <div
+                            className="cal-resize-handle cal-resize-handle-bottom"
+                            onPointerDown={(e) => {
+                              const col = e.currentTarget.closest('.desktop-week-day-col');
+                              handleResizePointerDown(e, t, 'end', col, WK_H, WK_START);
+                            }}
+                          />
+                        </div>
                       );
                     })}
                   </div>
@@ -534,69 +741,119 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     );
   };
 
-  const renderWeekView = () => {
-    if (isDesktop) {
-      return renderDesktopWeekView();
-    }
-
+  // ── Mobile Week compact time grid ────────────────────────────────
+  const renderMobileWeekView = () => {
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
-    const days = [];
-    for (let i = 0; i < 7; i++) {
-      days.push(addDays(weekStart, i));
-    }
+    const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+    const mwStartH = 7; const mwEndH = 23; const mwHourH = 40;
+    const mwTotalH = (mwEndH - mwStartH) * mwHourH;
+    const mwHours = Array.from({ length: mwEndH - mwStartH }, (_, i) => mwStartH + i);
 
     return (
-      <div className="calendar-week">
-        {days.map((d) => {
-          const dayTasks = getTasksForDate(d);
-          return (
+      <div className="mobile-week-grid-wrap">
+        {/* day headers */}
+        <div className="mobile-week-grid-header">
+          <div className="mobile-week-grid-tlabel" />
+          {days.map((d) => (
             <div
-              data-caldate={format(d, 'yyyy-MM-dd')}
-              key={d.toISOString()}
-              className={`calendar-week-day ${isToday(d) ? 'today' : ''}`}
+              key={`mwh-${d.toISOString()}`}
+              className={`mobile-week-grid-day-head ${isToday(d) ? 'today' : ''} ${selectedDate && isSameDay(d, selectedDate) ? 'selected' : ''}`}
               onClick={() => handleDayClick(d)}
             >
-              <div className="calendar-week-day-label">
-                <span className="calendar-week-day-name">{format(d, 'EEE', { locale: de })}</span>
-                <span className="calendar-week-day-num">{format(d, 'd')}</span>
-              </div>
-              <div className="calendar-week-tasks">
-                {dayTasks.map((t) => (
-                  <div
-                    key={t.id}
-                    className={`calendar-week-task ${t.completed ? 'completed' : ''} ${t.group_id ? 'group-task' : ''} ${dragInfo?.task.id === t.id ? 'cal-dragging' : ''}`}
-                    style={{
-                      background: t.group_id
-                        ? `${t.group_color || '#5856D6'}15`
-                        : t.category_color ? `${t.category_color}18` : 'var(--primary-bg)',
-                      color: t.group_id
-                        ? (t.group_color || '#5856D6')
-                        : t.category_color || 'var(--primary)',
-                      cursor: isDesktop ? 'grab' : 'pointer',
-                      borderLeft: t.group_id ? `3px solid ${t.group_color || '#5856D6'}` : undefined,
-                      userSelect: 'none',
-                    }}
-                    onPointerDown={isDesktop ? (e) => handlePointerDown(e, t) : undefined}
-                    onClick={(e) => { e.stopPropagation(); if (!wasDragging.current) setDetailTask(t); }}
-                  >
-                    {t.group_id && (
-                      <AvatarBadge
-                        name={t.group_name}
-                        color={t.group_color || '#5856D6'}
-                        avatarUrl={t.group_image_url}
-                        size={11}
-                      />
-                    )}
-                    {t.time && <span style={{ opacity: 0.7 }}>{t.time.slice(0, 5)}</span>}
-                    {t.title}
-                  </div>
-                ))}
-              </div>
+              <span className="mobile-week-grid-day-name">{format(d, 'EEE', { locale: de })}</span>
+              <span className="mobile-week-grid-day-num">{format(d, 'd')}</span>
             </div>
-          );
-        })}
+          ))}
+        </div>
+
+        {/* scrollable time grid */}
+        <div className="mobile-week-grid-scroll">
+          {/* hour labels */}
+          <div className="mobile-week-grid-hours" style={{ height: `${mwTotalH}px` }}>
+            {mwHours.map((h) => (
+              <div key={`mwhl-${h}`} className="mobile-week-grid-hour-label" style={{ top: `${(h - mwStartH) * mwHourH}px` }}>
+                {String(h).padStart(2, '0')}
+              </div>
+            ))}
+          </div>
+
+          {/* day columns */}
+          <div className="mobile-week-grid-cols">
+            {days.map((d, di) => {
+              const dayTasks = getTasksForDate(d).filter((t) => t.time);
+              return (
+                <div
+                  key={`mwcol-${d.toISOString()}`}
+                  ref={(el) => { if (el) mobileWeekColRefs.current[di] = el; }}
+                  className={`mobile-week-grid-col ${isToday(d) ? 'today' : ''}`}
+                  data-caldate={format(d, 'yyyy-MM-dd')}
+                  style={{ height: `${mwTotalH}px` }}
+                  onClick={() => handleDayClick(d)}
+                >
+                  {mwHours.map((h) => (
+                    <div key={`${di}-${h}`} className="mobile-week-grid-hour-line" style={{ top: `${(h - mwStartH) * mwHourH}px` }} />
+                  ))}
+                  {dayTasks.map((t) => {
+                    const sMins = timeToMins(t.time) ?? (mwStartH * 60);
+                    const rawEnd = timeToMins(t.time_end);
+                    const eMins = rawEnd && rawEnd > sMins ? rawEnd : sMins + 60;
+                    const cStart = Math.max(mwStartH * 60, sMins);
+                    const cEnd   = Math.min(mwEndH * 60, eMins);
+
+                    // Live-resize preview
+                    let liveCStart = cStart; let liveCEnd = cEnd;
+                    const isResizingThis = resizeInfo?.task.id === t.id;
+                    if (isResizingThis) {
+                      const nm = timeToMins(resizeInfo.previewTime);
+                      if (nm != null) {
+                        if (resizeInfo.edge === 'end') liveCEnd = Math.max(cStart + 15, Math.min(mwEndH * 60, nm));
+                        else liveCStart = Math.min(cEnd - 15, Math.max(mwStartH * 60, nm));
+                      }
+                    }
+
+                    const top    = ((liveCStart - mwStartH * 60) / 60) * mwHourH;
+                    const height = Math.max(16, ((liveCEnd - liveCStart) / 60) * mwHourH - 2);
+
+                    return (
+                      <div
+                        key={t.id}
+                        className={`mobile-week-event${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}`}
+                        style={{
+                          top: `${top}px`, height: `${height}px`,
+                          background: t.group_color || t.category_color || '#4C7BD9',
+                          touchAction: 'none',
+                        }}
+                        onPointerDown={(e) => {
+                          if (e.target.closest('.cal-resize-handle')) return;
+                          handleMobileWeekEventPointerDown(e, t, di, days);
+                        }}
+                        onClick={(e) => { e.stopPropagation(); if (!wasDragging.current) setDetailTask(t); }}
+                      >
+                        <div
+                          className="cal-resize-handle cal-resize-handle-top"
+                          onPointerDown={(e) => handleResizePointerDown(e, t, 'start', mobileWeekColRefs.current[di], mwHourH, mwStartH)}
+                        />
+                        <span className="mobile-week-event-title">{t.title}</span>
+                        {height > 28 && <span className="mobile-week-event-time">{t.time?.slice(0, 5)}</span>}
+                        <div
+                          className="cal-resize-handle cal-resize-handle-bottom"
+                          onPointerDown={(e) => handleResizePointerDown(e, t, 'end', mobileWeekColRefs.current[di], mwHourH, mwStartH)}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     );
+  };
+
+  const renderWeekView = () => {
+    if (isDesktop) return renderDesktopWeekView();
+    return renderMobileWeekView();
   };
 
   const renderMobileDayView = () => {
@@ -636,7 +893,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
 
     return (
       <div className="mobile-day-view">
-        <div className="mobile-day-grid" style={{ height: `${totalHeight}px` }} onClick={handleGridClick}>
+        <div className="mobile-day-grid" ref={mobileDayRef} style={{ height: `${totalHeight}px` }} onClick={handleGridClick}>
           {hours.map((h) => (
             <div key={`h-${h}`} className="mobile-day-hour-row" style={{ top: `${(h - startHour) * hourHeight}px` }}>
               <span className="mobile-day-hour-label">{String(h).padStart(2, '0')}:00</span>
@@ -655,25 +912,53 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
             const end = endRaw && endRaw > start ? endRaw : start + 60;
             const clampedStart = Math.max(startHour * 60, start);
             const clampedEnd = Math.min(endHour * 60, end);
-            const top = ((clampedStart - startHour * 60) / 60) * hourHeight;
-            const height = Math.max(36, ((clampedEnd - clampedStart) / 60) * hourHeight - 4);
+
+            // Live-resize preview
+            let liveClampedStart = clampedStart;
+            let liveClampedEnd = clampedEnd;
+            const isResizingThis = resizeInfo?.task.id === t.id;
+            if (isResizingThis) {
+              const newMins = timeToMins(resizeInfo.previewTime);
+              if (newMins != null) {
+                if (resizeInfo.edge === 'end') liveClampedEnd = Math.max(clampedStart + 15, Math.min(endHour * 60, newMins));
+                else liveClampedStart = Math.min(clampedEnd - 15, Math.max(startHour * 60, newMins));
+              }
+            }
+
+            const top    = ((liveClampedStart - startHour * 60) / 60) * hourHeight;
+            const height = Math.max(36, ((liveClampedEnd - liveClampedStart) / 60) * hourHeight - 4);
+
             return (
-              <button
+              <div
                 key={t.id}
-                className="mobile-day-event"
+                className={`mobile-day-event${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}`}
                 style={{
                   top: `${top}px`,
                   height: `${height}px`,
                   background: t.group_color || t.category_color || '#4C7BD9',
+                  touchAction: 'none',
+                  cursor: 'grab',
+                }}
+                onPointerDown={(e) => {
+                  if (e.target.closest('.cal-resize-handle')) return;
+                  handleMobileEventPointerDown(e, t, mobileDayRef.current, hourHeight, startHour);
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  setDetailTask(t);
+                  if (!wasDragging.current) setDetailTask(t);
                 }}
               >
+                <div
+                  className="cal-resize-handle cal-resize-handle-top"
+                  onPointerDown={(e) => handleResizePointerDown(e, t, 'start', mobileDayRef.current, hourHeight, startHour)}
+                />
                 <strong>{t.title}</strong>
                 <span>{t.time?.slice(0, 5)}{t.time_end ? `-${t.time_end.slice(0, 5)}` : ''}</span>
-              </button>
+                <div
+                  className="cal-resize-handle cal-resize-handle-bottom"
+                  onPointerDown={(e) => handleResizePointerDown(e, t, 'end', mobileDayRef.current, hourHeight, startHour)}
+                />
+              </div>
             );
           })}
         </div>
@@ -846,6 +1131,14 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
           {dragInfo.previewTime && (
             <div style={{ fontSize: '0.68rem', opacity: 0.75, marginTop: 2 }}>{dragInfo.previewTime}</div>
           )}
+        </div>,
+        document.body
+      )}
+
+      {/* Resize time preview badge */}
+      {resizeInfo && createPortal(
+        <div className="cal-resize-preview">
+          {resizeInfo.edge === 'start' ? '▲' : '▼'} {resizeInfo.previewTime}
         </div>,
         document.body
       )}
