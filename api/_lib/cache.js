@@ -1,6 +1,9 @@
+const { gzipSync, gunzipSync } = require('zlib');
+
 const DEFAULT_TTL_SECONDS = 30;
 const FALLBACK_MAX_CACHE_ITEMS = 1000;
 const FALLBACK_MAX_USER_ITEMS = 50;
+const REDIS_VALUE_GZIP_PREFIX = 'gz:';
 
 class UpstashRestRedis {
   constructor(url, token) {
@@ -30,8 +33,27 @@ class UpstashRestRedis {
     return this.command(['GET', key]);
   }
 
-  async set(key, value, ttlSeconds) {
-    return this.command(['SET', key, JSON.stringify(value), 'EX', String(ttlSeconds)]);
+  static encodeValue(value) {
+    const json = JSON.stringify(value);
+    const gz = gzipSync(Buffer.from(json, 'utf8'));
+    return `${REDIS_VALUE_GZIP_PREFIX}${gz.toString('base64')}`;
+  }
+
+  static decodeValue(rawValue) {
+    if (rawValue === null || rawValue === undefined) return undefined;
+    if (typeof rawValue !== 'string') return rawValue;
+
+    if (rawValue.startsWith(REDIS_VALUE_GZIP_PREFIX)) {
+      const b64 = rawValue.slice(REDIS_VALUE_GZIP_PREFIX.length);
+      const json = gunzipSync(Buffer.from(b64, 'base64')).toString('utf8');
+      return JSON.parse(json);
+    }
+
+    return JSON.parse(rawValue);
+  }
+
+  async set(key, encodedValue, ttlSeconds) {
+    return this.command(['SET', key, encodedValue, 'EX', String(ttlSeconds)]);
   }
 
   async sadd(key, member) {
@@ -185,8 +207,8 @@ class CacheManager {
   async get(key) {
     if (this.redis) {
       try {
-        const value = await this.redis.get(key);
-        return value === null ? undefined : JSON.parse(value);
+        const raw = await this.redis.get(key);
+        return UpstashRestRedis.decodeValue(raw);
       } catch (error) {
         console.error('Redis get failed, falling back to memory:', error);
       }
@@ -198,7 +220,8 @@ class CacheManager {
   async set(key, value, ttlSeconds = DEFAULT_TTL_SECONDS, userId = null) {
     if (this.redis) {
       try {
-        await this.redis.set(key, value, ttlSeconds);
+        const encoded = UpstashRestRedis.encodeValue(value);
+        await this.redis.set(key, encoded, ttlSeconds);
         if (userId) {
           await this.redis.sadd(`dashboard:userkeys:${userId}`, key);
           await this.redis.expire(`dashboard:userkeys:${userId}`, ttlSeconds);
