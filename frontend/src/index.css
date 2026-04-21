@@ -2974,6 +2974,35 @@ input, textarea, select {
   text-align: center;
 }
 
+/* Illustration banner (replaces old head) */
+.pricing-card-illustration {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  margin: -20px -20px 0 -20px;
+  flex-shrink: 0;
+}
+
+.pricing-card-illustration svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.pricing-card-illus-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 10px 16px 12px;
+  background: linear-gradient(to top, rgba(0,0,0,0.18), transparent);
+  pointer-events: none;
+}
+
+.pricing-card .pricing-card-illustration + .pricing-features-list {
+  margin-top: 4px;
+}
+
 .pricing-card-icon {
   width: 48px;
   height: 48px;
@@ -2984,16 +3013,16 @@ input, textarea, select {
 }
 
 .pricing-card-name {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 800;
   letter-spacing: -0.3px;
-  color: #111;
+  line-height: 1.1;
 }
 
 .pricing-card-price {
   font-size: 13px;
-  color: var(--text-secondary);
   font-weight: 600;
+  margin-top: 1px;
 }
 
 .pricing-features-list {
