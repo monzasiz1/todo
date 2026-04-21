@@ -386,6 +386,10 @@ module.exports = async function handler(req, res) {
       const lite = isDashboardEndpoint || String(req.query?.lite || 'false') === 'true';
       const completedRaw = req.query?.completed;
       const completedFilter = completedRaw === 'true' ? true : (completedRaw === 'false' ? false : null);
+      const requestedLimit = parseInt(req.query?.limit, 10);
+      const limit = Number.isFinite(requestedLimit)
+        ? Math.max(20, Math.min(400, requestedLimit))
+        : 180;
 
       // Check if collaboration columns exist
       const hasCollab = await pool.query(
@@ -396,7 +400,7 @@ module.exports = async function handler(req, res) {
       let result;
       if (lite) {
         if (collabEnabled) {
-          // Optimized dashboard query: UNION ALL + minimal field set + dedup task ids
+          // Optimized dashboard query: UNION ALL + tasks-only payload (no extra joins)
           result = await pool.query(
             `WITH visible_ids AS (
                SELECT t.id
@@ -433,36 +437,36 @@ module.exports = async function handler(req, res) {
              )
              SELECT t.id, t.user_id, t.title, t.description, t.date, t.date_end, t.time, t.time_end,
                     t.priority, t.completed, t.type, t.sort_order, t.created_at, t.updated_at, t.visibility,
-                    c.name AS category_name, c.color AS category_color, c.icon AS category_icon,
-                    u.name AS creator_name, u.avatar_color AS creator_color, u.avatar_url AS creator_avatar_url,
-                    editor.name AS last_editor_name,
+                    NULL::text AS category_name,
+                    NULL::text AS category_color,
+                    NULL::text AS category_icon,
+                    NULL::text AS creator_name,
+                    NULL::text AS creator_color,
+                    NULL::text AS creator_avatar_url,
+                    NULL::text AS last_editor_name,
                     CASE WHEN t.user_id = $1 THEN true ELSE false END AS is_owner,
-                    COALESCE(tp_self.can_edit, false) AS can_edit,
-                    g.group_id, g.group_name, g.group_color, g.group_image_url,
+                    CASE
+                      WHEN t.user_id = $1 THEN true
+                      ELSE EXISTS (
+                        SELECT 1 FROM task_permissions tp
+                        WHERE tp.task_id = t.id AND tp.user_id = $1 AND tp.can_edit = true
+                      )
+                    END AS can_edit,
+                    NULL::int AS group_id,
+                    NULL::text AS group_name,
+                    NULL::text AS group_color,
+                    NULL::text AS group_image_url,
                     0::int AS attachment_count,
                     '[]'::json AS shared_with_users
              FROM task_ids ids
              JOIN tasks t ON t.id = ids.id
-             LEFT JOIN categories c ON t.category_id = c.id
-             LEFT JOIN users u ON t.user_id = u.id
-             LEFT JOIN users editor ON t.last_edited_by = editor.id
-             LEFT JOIN task_permissions tp_self ON tp_self.task_id = t.id AND tp_self.user_id = $1
-             LEFT JOIN LATERAL (
-               SELECT gt.group_id,
-                      grp.name AS group_name,
-                      grp.color AS group_color,
-                      grp.image_url AS group_image_url
-               FROM group_tasks gt
-               LEFT JOIN groups grp ON grp.id = gt.group_id
-               WHERE gt.task_id = t.id
-               LIMIT 1
-             ) g ON true
              WHERE ($2::boolean IS NULL OR t.completed = $2)
-             ORDER BY t.sort_order ASC, t.created_at DESC`,
-            [user.id, completedFilter]
+             ORDER BY t.sort_order ASC, t.created_at DESC
+             LIMIT $3`,
+            [user.id, completedFilter, limit]
           );
         } else {
-          // Simple lite query without collaboration features
+          // Simple lite query without collaboration features and without extra joins
           result = await pool.query(
             `WITH task_ids AS (
                SELECT t.id
@@ -481,8 +485,13 @@ module.exports = async function handler(req, res) {
              )
              SELECT t.id, t.user_id, t.title, t.description, t.date, t.date_end, t.time, t.time_end,
                     t.priority, t.completed, t.type, t.sort_order, t.created_at, t.updated_at,
-                    c.name AS category_name, c.color AS category_color, c.icon AS category_icon,
-                    g.group_id, g.group_name, g.group_color, g.group_image_url,
+                    NULL::text AS category_name,
+                    NULL::text AS category_color,
+                    NULL::text AS category_icon,
+                    NULL::int AS group_id,
+                    NULL::text AS group_name,
+                    NULL::text AS group_color,
+                    NULL::text AS group_image_url,
                     0::int AS attachment_count,
                     '[]'::json AS shared_with_users,
                     true AS is_owner,
@@ -494,20 +503,10 @@ module.exports = async function handler(req, res) {
                     'private'::text AS visibility
              FROM uniq_ids ids
              JOIN tasks t ON t.id = ids.id
-             LEFT JOIN categories c ON t.category_id = c.id
-             LEFT JOIN LATERAL (
-               SELECT gt.group_id,
-                      grp.name AS group_name,
-                      grp.color AS group_color,
-                      grp.image_url AS group_image_url
-               FROM group_tasks gt
-               LEFT JOIN groups grp ON grp.id = gt.group_id
-               WHERE gt.task_id = t.id
-               LIMIT 1
-             ) g ON true
              WHERE ($2::boolean IS NULL OR t.completed = $2)
-             ORDER BY t.sort_order ASC, t.created_at DESC`,
-            [user.id, completedFilter]
+             ORDER BY t.sort_order ASC, t.created_at DESC
+             LIMIT $3`,
+            [user.id, completedFilter, limit]
           );
         }
 

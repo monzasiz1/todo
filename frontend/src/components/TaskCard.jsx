@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTaskStore } from '../store/taskStore';
 import { Check, Trash2, Clock, Calendar, CalendarCheck, GripVertical, Lock, Users, UserCheck, Repeat, Paperclip } from 'lucide-react';
@@ -9,9 +9,10 @@ import TaskDetailModal from './TaskDetailModal';
 import SharedTaskBadge from './SharedTaskBadge';
 import AvatarBadge from './AvatarBadge';
 
-export default function TaskCard({ task, index }) {
+function TaskCard({ task, index, disableLayout = false }) {
   const { toggleTask, deleteTask } = useTaskStore();
   const [showDetail, setShowDetail] = useState(false);
+  const shouldAnimate = index < 10 && !disableLayout;
 
   const formatDate = (dateStr) => {
     if (!dateStr) return null;
@@ -42,11 +43,11 @@ export default function TaskCard({ task, index }) {
     <>
     <motion.div
       className={`task-card ${task.completed ? 'completed' : ''}`}
-      layout
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
+      layout={!disableLayout}
+      initial={shouldAnimate ? { opacity: 0, y: 8 } : false}
+      animate={shouldAnimate ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -100, height: 0, marginBottom: 0, padding: 0 }}
-      transition={{ duration: 0.3, delay: index * 0.03 }}
+      transition={shouldAnimate ? { duration: 0.18, delay: index * 0.01 } : { duration: 0.01 }}
       onClick={() => setShowDetail(true)}
       style={{ cursor: 'pointer' }}
     >
@@ -173,3 +174,5 @@ export default function TaskCard({ task, index }) {
     </>
   );
 }
+
+export default memo(TaskCard);

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { FixedSizeList as VirtualList } from 'react-window';
 import { useTaskStore } from '../store/taskStore';
 import AIInput from '../components/AIInput';
 import ManualTaskForm from '../components/ManualTaskForm';
@@ -182,27 +183,50 @@ function buildSmartInsights({ overdueCount, todayCount, urgentTodayCount, freeHo
   ];
 }
 
+const VIRTUAL_THRESHOLD = 24;
+const VIRTUAL_ITEM_SIZE = 112;
+const VIRTUAL_MAX_HEIGHT = 560;
+
+function TaskRow({ index, style, data }) {
+  const task = data.tasks[index];
+  return (
+    <div style={style}>
+      <div style={{ paddingBottom: 10 }}>
+        <TaskCard task={task} index={index} disableLayout />
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
-  const { tasks, fetchTasks, fetchCategories, filter, setFilter, getFilteredTasks } = useTaskStore();
+  const { tasks, fetchTasks, filter, setFilter } = useTaskStore();
   const { limit, atLimit } = usePlan();
   const [showCompleted, setShowCompleted] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState({});
   const [showTaskLimitModal, setShowTaskLimitModal] = useState(false);
 
   useEffect(() => {
-    fetchTasks({ dashboard: 'true', completed: 'false' }, { force: true });
-    fetchCategories();
+    fetchTasks({ dashboard: 'true', completed: 'false', limit: '180' }, { force: true });
 
     // Auto-refresh every 60 s so newly shared/group tasks appear without manual reload
     const interval = setInterval(() => {
       if (!document.hidden) {
-        fetchTasks({ dashboard: 'true', completed: filter.completed === true ? 'true' : 'false' }, { force: true });
+        fetchTasks({ dashboard: 'true', completed: filter.completed === true ? 'true' : 'false', limit: '180' }, { force: true });
       }
     }, 60000);
     return () => clearInterval(interval);
   }, [filter.completed]);
 
-  const filtered = useMemo(() => getFilteredTasks(), [getFilteredTasks, tasks, filter]);
+  const filtered = useMemo(() => {
+    const search = (filter.search || '').toLowerCase();
+    return tasks.filter((t) => {
+      if (filter.category && t.category_id !== filter.category) return false;
+      if (filter.priority && t.priority !== filter.priority) return false;
+      if (filter.completed !== null && t.completed !== filter.completed) return false;
+      if (search && !(t.title || '').toLowerCase().includes(search)) return false;
+      return true;
+    });
+  }, [tasks, filter.category, filter.priority, filter.completed, filter.search]);
 
   const deduplicated = useMemo(
     () => deduplicateRecurring(filtered.filter((t) => !t.completed)),
@@ -317,7 +341,7 @@ export default function Dashboard() {
         <AIInput />
         <ManualTaskForm
           onTaskCreated={() => {
-            fetchTasks({ dashboard: 'true', completed: filter.completed === true ? 'true' : 'false' }, { force: true });
+            fetchTasks({ dashboard: 'true', completed: filter.completed === true ? 'true' : 'false', limit: '180' }, { force: true });
           }}
         />
       </div>
@@ -403,9 +427,21 @@ export default function Dashboard() {
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                    {group.tasks.map((task, i) => (
-                      <TaskCard key={task.id} task={task} index={i} />
-                    ))}
+                    {group.tasks.length > VIRTUAL_THRESHOLD ? (
+                      <VirtualList
+                        height={Math.min(VIRTUAL_MAX_HEIGHT, group.tasks.length * VIRTUAL_ITEM_SIZE)}
+                        itemCount={group.tasks.length}
+                        itemSize={VIRTUAL_ITEM_SIZE}
+                        width="100%"
+                        itemData={{ tasks: group.tasks }}
+                      >
+                        {TaskRow}
+                      </VirtualList>
+                    ) : (
+                      group.tasks.map((task, i) => (
+                        <TaskCard key={task.id} task={task} index={i} />
+                      ))
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -450,9 +486,21 @@ export default function Dashboard() {
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.2 }}
               >
-                {completedTasks.map((task, i) => (
-                  <TaskCard key={task.id} task={task} index={i} />
-                ))}
+                {completedTasks.length > VIRTUAL_THRESHOLD ? (
+                  <VirtualList
+                    height={Math.min(VIRTUAL_MAX_HEIGHT, completedTasks.length * VIRTUAL_ITEM_SIZE)}
+                    itemCount={completedTasks.length}
+                    itemSize={VIRTUAL_ITEM_SIZE}
+                    width="100%"
+                    itemData={{ tasks: completedTasks }}
+                  >
+                    {TaskRow}
+                  </VirtualList>
+                ) : (
+                  completedTasks.map((task, i) => (
+                    <TaskCard key={task.id} task={task} index={i} />
+                  ))
+                )}
               </motion.div>
             )}
           </AnimatePresence>
