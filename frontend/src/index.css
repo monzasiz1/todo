@@ -4206,6 +4206,239 @@ input, textarea, select {
   white-space: nowrap;
 }
 
+/* Desktop scheduler look (reference-style) */
+@media (min-width: 1100px) {
+  .calendar-wrapper {
+    background: #f7f8fb;
+    border-radius: 12px;
+    border: 1px solid #dfe3eb;
+    box-shadow: 0 8px 24px rgba(29, 39, 58, 0.08);
+  }
+
+  .calendar-header {
+    background: #fff;
+    border-bottom: 1px solid #dfe3eb;
+    padding: 12px 14px;
+  }
+
+  .cal-mp-trigger {
+    font-size: 27px;
+    font-weight: 700;
+    color: #222b3a;
+  }
+
+  .desktop-week-layout {
+    display: grid;
+    grid-template-columns: 230px 1fr;
+    min-height: 680px;
+  }
+
+  .desktop-calendar-sidebar {
+    border-right: 1px solid #dfe3eb;
+    background: #fff;
+    padding: 14px 12px;
+  }
+
+  .desktop-calendar-sidebar-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #232b38;
+    margin-bottom: 12px;
+  }
+
+  .desktop-calendar-source-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .desktop-calendar-source-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #e6eaf2;
+    background: #f9fbff;
+    border-radius: 8px;
+    padding: 8px;
+    font-size: 13px;
+    color: #2e3749;
+  }
+
+  .desktop-calendar-source-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .desktop-calendar-source-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+  }
+
+  .desktop-week-main {
+    background: #fbfcfe;
+  }
+
+  .desktop-week-days-row,
+  .desktop-week-all-day-row {
+    display: grid;
+    grid-template-columns: 72px repeat(7, minmax(0, 1fr));
+    border-bottom: 1px solid #dfe3eb;
+  }
+
+  .desktop-week-left-head,
+  .desktop-week-left-label {
+    border-right: 1px solid #dfe3eb;
+    background: #f8f9fc;
+  }
+
+  .desktop-week-left-label {
+    font-size: 12px;
+    color: #687487;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+  }
+
+  .desktop-week-day-head {
+    border: none;
+    border-right: 1px solid #dfe3eb;
+    background: #f8f9fc;
+    padding: 8px 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    color: #4b5669;
+    text-transform: capitalize;
+    cursor: pointer;
+  }
+
+  .desktop-week-day-head:last-child {
+    border-right: none;
+  }
+
+  .desktop-week-day-head span {
+    font-size: 11px;
+    opacity: 0.85;
+  }
+
+  .desktop-week-day-head strong {
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .desktop-week-day-head.today {
+    background: #edf3ff;
+    color: #285db5;
+  }
+
+  .desktop-week-all-day-cell {
+    min-height: 34px;
+    border-right: 1px solid #e3e7ef;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .desktop-week-all-day-cell:last-child {
+    border-right: none;
+  }
+
+  .desktop-week-all-day-event {
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 6px;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .desktop-week-time-wrap {
+    display: grid;
+    grid-template-columns: 72px 1fr;
+  }
+
+  .desktop-week-hours-col {
+    position: relative;
+    border-right: 1px solid #dfe3eb;
+    background: #f8f9fc;
+  }
+
+  .desktop-week-hour-label {
+    position: absolute;
+    right: 8px;
+    font-size: 10px;
+    color: #7e8aa1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .desktop-week-columns {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .desktop-week-day-col {
+    position: relative;
+    border-right: 1px solid #e3e7ef;
+    background: #fff;
+    cursor: pointer;
+  }
+
+  .desktop-week-day-col:last-child {
+    border-right: none;
+  }
+
+  .desktop-week-day-col.today {
+    background: #fafcff;
+  }
+
+  .desktop-week-hour-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    border-top: 1px solid #edf0f5;
+  }
+
+  .desktop-week-event {
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    border: none;
+    border-radius: 6px;
+    padding: 6px;
+    color: #fff;
+    text-align: left;
+    box-shadow: 0 3px 8px rgba(44, 66, 116, 0.18);
+    overflow: hidden;
+  }
+
+  .desktop-week-event-title {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .desktop-week-event-time {
+    display: block;
+    margin-top: 2px;
+    font-size: 10px;
+    opacity: 0.85;
+  }
+}
+
 .friend-actions {
   display: flex;
   gap: 6px;

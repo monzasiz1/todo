@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../store/taskStore';
@@ -30,7 +30,7 @@ import { de } from 'date-fns/locale';
 
 export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeChange, onTaskUpdated }) {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [view, setView] = useState('month');
+  const [view, setView] = useState(window.innerWidth >= 768 ? 'week' : 'month');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [detailTask, setDetailTask] = useState(null);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
@@ -45,6 +45,56 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const dropdownRef = useRef(null);
   const { tasks: storeTasks, updateTask } = useTaskStore();
   const tasks = Array.isArray(tasksProp) ? tasksProp : storeTasks;
+
+  const getTaskSource = (t) => {
+    if (t.group_id || t.group_name) {
+      return {
+        key: `group:${t.group_id || t.group_name}`,
+        name: t.group_name || 'Gruppe',
+        color: t.group_color || '#5856D6',
+      };
+    }
+    if (t.category_id || t.category_name) {
+      return {
+        key: `cat:${t.category_id || t.category_name}`,
+        name: t.category_name || 'Kategorie',
+        color: t.category_color || '#4C7BD9',
+      };
+    }
+    return { key: 'default:persoenlich', name: 'Persoenlich', color: '#4C7BD9' };
+  };
+
+  const calendarSources = useMemo(() => {
+    const map = new Map();
+    tasks.forEach((t) => {
+      const source = getTaskSource(t);
+      if (!map.has(source.key)) {
+        map.set(source.key, source);
+      }
+    });
+    return Array.from(map.values());
+  }, [tasks]);
+
+  const [visibleSources, setVisibleSources] = useState({});
+
+  useEffect(() => {
+    setVisibleSources((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      calendarSources.forEach((s) => {
+        if (typeof next[s.key] === 'undefined') {
+          next[s.key] = true;
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [calendarSources]);
+
+  const filteredTasks = useMemo(
+    () => tasks.filter((t) => visibleSources[getTaskSource(t).key] !== false),
+    [tasks, visibleSources]
+  );
 
   useEffect(() => {
     if (!onVisibleRangeChange) return;
@@ -94,7 +144,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
 
   const getTasksForDate = (date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    return tasks.filter((t) => {
+    return filteredTasks.filter((t) => {
       if (!t.date) return false;
       const taskStart = t.date.substring(0, 10);
       const taskEnd = t.date_end ? t.date_end.substring(0, 10) : taskStart;
@@ -259,7 +309,149 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   };
 
   // ── Week view ─────────────────────────────────────────────────────
+  const renderDesktopWeekView = () => {
+    const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+    const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+
+    const startHour = 7;
+    const endHour = 23;
+    const hourHeight = 52;
+    const totalHeight = (endHour - startHour) * hourHeight;
+    const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
+
+    const timeToMinutes = (timeStr) => {
+      if (!timeStr) return null;
+      const [h, m] = String(timeStr).split(':').map((v) => parseInt(v, 10));
+      if (Number.isNaN(h) || Number.isNaN(m)) return null;
+      return h * 60 + m;
+    };
+
+    return (
+      <div className="desktop-week-layout">
+        <aside className="desktop-calendar-sidebar">
+          <div className="desktop-calendar-sidebar-title">Kalender</div>
+          <div className="desktop-calendar-source-list">
+            {calendarSources.map((source) => (
+              <label key={source.key} className="desktop-calendar-source-item">
+                <input
+                  type="checkbox"
+                  checked={visibleSources[source.key] !== false}
+                  onChange={(e) => setVisibleSources((s) => ({ ...s, [source.key]: e.target.checked }))}
+                />
+                <span className="desktop-calendar-source-dot" style={{ background: source.color }} />
+                <span className="desktop-calendar-source-name">{source.name}</span>
+              </label>
+            ))}
+          </div>
+        </aside>
+
+        <div className="desktop-week-main">
+          <div className="desktop-week-days-row">
+            <div className="desktop-week-left-head" />
+            {days.map((d) => (
+              <button
+                key={`head-${d.toISOString()}`}
+                className={`desktop-week-day-head ${isToday(d) ? 'today' : ''}`}
+                onClick={() => handleDayClick(d)}
+              >
+                <span>{format(d, 'EEE', { locale: de })}</span>
+                <strong>{format(d, 'd.M')}</strong>
+              </button>
+            ))}
+          </div>
+
+          <div className="desktop-week-all-day-row">
+            <div className="desktop-week-left-label">all-day</div>
+            {days.map((d) => {
+              const dayTasks = getTasksForDate(d).filter((t) => !t.time);
+              return (
+                <div key={`allday-${d.toISOString()}`} className="desktop-week-all-day-cell" data-caldate={format(d, 'yyyy-MM-dd')}>
+                  {dayTasks.slice(0, 2).map((t) => (
+                    <button
+                      key={t.id}
+                      className="desktop-week-all-day-event"
+                      style={{ background: t.group_color || t.category_color || '#4C7BD9' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDetailTask(t);
+                      }}
+                    >
+                      {t.title}
+                    </button>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="desktop-week-time-wrap">
+            <div className="desktop-week-hours-col" style={{ height: `${totalHeight}px` }}>
+              {hours.map((h) => (
+                <div key={h} className="desktop-week-hour-label" style={{ top: `${(h - startHour) * hourHeight - 7}px` }}>
+                  {String(h).padStart(2, '0')}:00
+                </div>
+              ))}
+            </div>
+
+            <div className="desktop-week-columns">
+              {days.map((d) => {
+                const dayTasks = getTasksForDate(d).filter((t) => t.time);
+                return (
+                  <div
+                    key={`col-${d.toISOString()}`}
+                    className={`desktop-week-day-col ${isToday(d) ? 'today' : ''}`}
+                    data-caldate={format(d, 'yyyy-MM-dd')}
+                    style={{ height: `${totalHeight}px` }}
+                    onClick={() => handleDayClick(d)}
+                  >
+                    {hours.slice(0, -1).map((h) => (
+                      <div key={`${d.toISOString()}-${h}`} className="desktop-week-hour-line" style={{ top: `${(h - startHour) * hourHeight}px` }} />
+                    ))}
+
+                    {dayTasks.map((t) => {
+                      const startMins = timeToMinutes(t.time) ?? (startHour * 60);
+                      const rawEnd = timeToMinutes(t.time_end);
+                      const endMins = rawEnd && rawEnd > startMins ? rawEnd : startMins + 60;
+                      const clampedStart = Math.max(startHour * 60, startMins);
+                      const clampedEnd = Math.min(endHour * 60, endMins);
+                      const top = ((clampedStart - startHour * 60) / 60) * hourHeight;
+                      const height = Math.max(24, ((clampedEnd - clampedStart) / 60) * hourHeight - 2);
+
+                      return (
+                        <button
+                          key={t.id}
+                          className="desktop-week-event"
+                          style={{
+                            top: `${top}px`,
+                            height: `${height}px`,
+                            background: t.group_color || t.category_color || '#4C7BD9',
+                          }}
+                          onPointerDown={isDesktop ? (e) => handlePointerDown(e, t) : undefined}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!wasDragging.current) setDetailTask(t);
+                          }}
+                        >
+                          <span className="desktop-week-event-title">{t.title}</span>
+                          <span className="desktop-week-event-time">{t.time?.slice(0, 5)}{t.time_end ? ` - ${t.time_end.slice(0, 5)}` : ''}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderWeekView = () => {
+    if (isDesktop) {
+      return renderDesktopWeekView();
+    }
+
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
     const days = [];
     for (let i = 0; i < 7; i++) {
