@@ -54,6 +54,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
   const [dateEnd, setDateEnd] = useState('');
   const [time, setTime] = useState('');
   const [timeEnd, setTimeEnd] = useState('');
+  const [allDay, setAllDay] = useState(false);
   const [priority, setPriority] = useState('medium');
   const [categoryId, setCategoryId] = useState('');
   const [reminderAt, setReminderAt] = useState('');
@@ -94,6 +95,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
     setDateEnd('');
     setTime('');
     setTimeEnd('');
+    setAllDay(false);
     setPriority('medium');
     setCategoryId('');
     setReminderAt('');
@@ -146,8 +148,8 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
         description: description.trim() || null,
         date: date || null,
         date_end: dateEnd || null,
-        time: time || null,
-        time_end: timeEnd || null,
+        time: allDay ? null : (time || null),
+        time_end: allDay ? null : (timeEnd || null),
         priority,
         category_id: categoryId || null,
         reminder_at: localToISO(reminderAt),
@@ -270,13 +272,25 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
             <div className="task-edit-row manual-task-two-col">
               <div className="task-edit-field flex-1" style={{ marginBottom: 0 }}>
                 <label><Clock size={14} /> Uhrzeit</label>
-                <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="task-edit-input" />
+                <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="task-edit-input" disabled={allDay} style={allDay ? { opacity: 0.35 } : {}} />
               </div>
               <div className="task-edit-field flex-1" style={{ marginBottom: 0 }}>
                 <label><Clock size={14} /> Endzeit</label>
-                <input type="time" value={timeEnd} onChange={(e) => setTimeEnd(e.target.value)} className="task-edit-input" />
+                <input type="time" value={timeEnd} onChange={(e) => setTimeEnd(e.target.value)} className="task-edit-input" disabled={allDay} style={allDay ? { opacity: 0.35 } : {}} />
               </div>
             </div>
+
+            {/* Ganztägig toggle */}
+            <label className="manual-task-allday-toggle">
+              <span>Ganztägig</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={allDay}
+                className={`manual-task-allday-btn${allDay ? ' on' : ''}`}
+                onClick={() => { setAllDay(v => !v); if (!allDay) { setTime(''); setTimeEnd(''); } }}
+              />
+            </label>
 
             <div className="task-edit-field" style={{ marginBottom: 0 }}>
               <label><Flag size={14} /> Priorität</label>

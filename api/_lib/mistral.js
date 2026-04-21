@@ -42,6 +42,10 @@ Regeln:
 - Erkenne ZEITBEREICHE: "von 14 bis 16 Uhr", "9-12 Uhr", "14:00-15:30" → setze time als Startzeit und time_end als Endzeit
 - Wähle eine passende Kategorie aus: Arbeit, Persönlich, Gesundheit, Finanzen, Einkaufen, Haushalt, Bildung, Soziales
 - Bestimme die Priorität: low, medium, high, urgent
+- Erkenne ob der Termin GANZTÄGIG ist:
+  - "ganztägig", "den ganzen Tag", "ohne Uhrzeit", "all day", "Urlaub" (ohne Uhrzeit), Feiertage, mehrtägige Events ohne Uhrzeit → all_day: true, time: null, time_end: null
+  - Wenn eine Uhrzeit angegeben ist → all_day: false
+  - Wenn kein explizites Datum aber ganztägig → all_day: true
 - Erkenne ob eine Erinnerung gewünscht ist ("erinnere mich", "reminder", "erinnern", "Erinnerung", "nicht vergessen", "denk dran" etc.)
 - ERINNERUNGEN: Wenn der Nutzer eine Erinnerung wünscht, berechne "reminder_at" als vollständigen ISO-8601-Zeitstempel:
   - "heute Reinigung erinnern um 18:58" → hasReminder: true, reminder_at: "${currentDate}T18:58:00"
@@ -88,6 +92,9 @@ ${groupNames.length > 0 ? `
 ` : ''}
 
 Beispiele:
+- "Urlaub nächste Woche" → title: "Urlaub", date: Montag-nächste-Woche, date_end: Freitag-nächste-Woche, all_day: true
+- "Feiertag morgen" → title: "Feiertag", date: morgen, all_day: true
+- "Termin ganztägig Montag" → title: "Termin", date: Montag, all_day: true
 - "Peter kommt nicht zur Probe am Mittwoch 18 Uhr" → title: "Probe", description: "Peter kommt nicht zur Probe", date: Mittwoch-Datum, time: "18:00"
 - "Einkaufen Milch Eier Butter Brot morgen" → title: "Einkaufen", description: "• Milch\\n• Eier\\n• Butter\\n• Brot", date: morgen, category: "Einkaufen"
 - "Kirmes vom 20. bis 24. April" → title: "Kirmes", date: "2026-04-20", date_end: "2026-04-24"
@@ -121,6 +128,7 @@ JSON Format:
   "recurrence_end": "YYYY-MM-DD oder null",
   "share_with": ["Name1", "Name2"] oder null,
   "group_name": "Gruppenname" oder null,
+  "all_day": true/false,
   "confidence": 0.0-1.0
 }`;
 
@@ -153,7 +161,7 @@ JSON Format:
 
   try {
     const parsed = JSON.parse(content);
-    return {
+    const out = {
       type: parsed.type === 'event' ? 'event' : 'task',
       title: parsed.title || input,
       description: parsed.description || null,
@@ -170,8 +178,12 @@ JSON Format:
       recurrence_end: parsed.recurrence_end || null,
       share_with: parsed.share_with || null,
       group_name: parsed.group_name || null,
+      all_day: parsed.all_day === true,
       confidence: parsed.confidence || 0.8,
     };
+    // If all_day, strip times
+    if (out.all_day) { out.time = null; out.time_end = null; }
+    return out;
   } catch {
     return {
       type: 'task',
@@ -190,6 +202,7 @@ JSON Format:
       recurrence_end: null,
       share_with: null,
       group_name: null,
+      all_day: false,
       confidence: 0.3,
     };
   }

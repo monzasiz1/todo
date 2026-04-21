@@ -205,6 +205,12 @@ export default function AIInput({ onTaskCreated }) {
                     {preview.time}
                   </span>
                 )}
+                {!preview.time && preview.date && preview.all_day !== false && (
+                  <span className="ai-tag time">
+                    <Clock size={12} />
+                    Ganztägig
+                  </span>
+                )}
                 {preview.category && (
                   <span className="ai-tag category">
                     {preview.category}
