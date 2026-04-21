@@ -14145,26 +14145,26 @@ body.cal-is-dragging * {
   color: rgba(255,255,255,0.65);
 }
 .gchat-ai-subactions-title {
-  margin-top: 8px;
-  font-size: 10px;
+  margin-top: 7px;
+  font-size: 9.5px;
   font-weight: 700;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
 }
 .gchat-bubble.own .gchat-ai-subactions-title { color: rgba(255,255,255,0.72); }
 .gchat-type-chips--slim {
   margin-top: 4px;
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 .gchat-type-chips--slim .gchat-type-chip {
-  justify-content: center;
-  width: 100%;
-  padding: 6px 10px;
-  border-radius: 10px;
-  font-size: 12px;
+  justify-content: flex-start;
+  width: auto;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
 }
 
 /* ── Event Modal ────────────────────────────────────────────────── */
@@ -14180,8 +14180,8 @@ body.cal-is-dragging * {
   padding: 16px;
 }
 .gchat-modal {
-  background: var(--sidebar-bg, #1a1a2e);
-  border: 1px solid var(--border-strong);
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(246,247,251,0.97));
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 18px;
   padding: 20px;
   width: 100%;
@@ -14189,7 +14189,7 @@ body.cal-is-dragging * {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  box-shadow: var(--shadow-xl);
 }
 .gchat-modal-top {
   display: flex;
@@ -14208,7 +14208,7 @@ body.cal-is-dragging * {
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  background: var(--border);
+  background: #eef0f5;
   color: var(--text-secondary);
   display: flex;
   align-items: center;
@@ -14216,7 +14216,7 @@ body.cal-is-dragging * {
   transition: background var(--transition);
   flex-shrink: 0;
 }
-.gchat-modal-close:hover { background: var(--border-strong); }
+.gchat-modal-close:hover { background: #e2e5ec; }
 .gchat-modal-fields {
   display: flex;
   flex-direction: column;
@@ -14224,7 +14224,7 @@ body.cal-is-dragging * {
 }
 .gchat-modal-label {
   display: block;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
@@ -14245,17 +14245,19 @@ body.cal-is-dragging * {
   width: 100%;
   padding: 8px 11px;
   border-radius: 10px;
-  border: 1px solid var(--border-strong);
-  background: var(--card-solid);
+  border: 1px solid rgba(0, 0, 0, 0.11);
+  background: #f8f9fc;
   color: var(--text);
   font-size: 13.5px;
   font-family: inherit;
-  transition: border-color var(--transition);
+  transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
   box-sizing: border-box;
 }
 .gchat-modal-input:focus {
   outline: none;
   border-color: var(--primary, #6366f1);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
 }
 .gchat-modal-textarea { resize: vertical; min-height: 64px; }
 .gchat-modal-actions {
@@ -14268,8 +14270,8 @@ body.cal-is-dragging * {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 7px 16px;
-  border-radius: 20px;
+  padding: 8px 15px;
+  border-radius: 12px;
   font-size: 13px;
   font-weight: 600;
   transition: opacity 0.15s, transform 0.12s;
@@ -14277,12 +14279,12 @@ body.cal-is-dragging * {
 .gchat-modal-btn:hover:not(:disabled) { opacity: 0.85; transform: translateY(-1px); }
 .gchat-modal-btn:disabled { opacity: 0.45; }
 .gchat-modal-btn--primary {
-  background: var(--primary, #6366f1);
+  background: linear-gradient(135deg, #0a84ff, #007aff);
   color: white;
   border: none;
 }
 .gchat-modal-btn--ghost {
-  background: transparent;
-  border: 1.5px solid var(--border-strong);
-  color: var(--text-secondary);
+  background: #eef0f5;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: #535861;
 }
