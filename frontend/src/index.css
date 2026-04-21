@@ -4166,6 +4166,7 @@ body.cal-is-dragging * {
 
   /* Toasts */
   .toast-container {
+    top: auto;
     bottom: calc(80px + env(safe-area-inset-bottom, 0px));
     left: 16px;
     right: 16px;
