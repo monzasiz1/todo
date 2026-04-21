@@ -5,23 +5,16 @@ import {
   AlertCircle,
   ArrowRight,
   Brain,
-  Calendar,
   CalendarDays,
   CheckCircle2,
   CheckSquare,
-  ChevronDown,
-  Download,
   Eye,
-  GripVertical,
   Key,
   Layers3,
-  ListTodo,
   Mail,
   Paperclip,
   Repeat,
-  Shield,
   Sparkles,
-  Target,
   UsersRound,
   X,
 } from 'lucide-react';
@@ -288,221 +281,13 @@ export default function LandingPage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ duration: 0.55, delay: 0.12 }}
             >
-              <div className="landing-stage-shell">
-                <aside className="landing-stage-sidebar">
-                  <div className="landing-stage-brand">
-                    <CheckSquare size={18} />
-                    <span>Taski</span>
-                  </div>
-                  <div className="landing-stage-nav">
-                    <div className="landing-stage-nav-item active">Dashboard</div>
-                    <div className="landing-stage-nav-item">Kalender</div>
-                    <div className="landing-stage-nav-item">Gruppen</div>
-                    <div className="landing-stage-nav-item">Profil</div>
-                  </div>
-                  <div className="landing-stage-plan">
-                    <span className="landing-stage-plan-label">Aktiver Plan</span>
-                    <strong>Pro</strong>
-                  </div>
-                </aside>
-
-                <div className="landing-stage-main">
-                  <div className="landing-stage-mobile-head">
-                    <div className="landing-stage-mobile-brand">
-                      <CheckSquare size={16} />
-                      <span>Taski</span>
-                    </div>
-                    <div className="landing-stage-mobile-icons">
-                      <span className="landing-stage-mobile-dot" />
-                      <span className="landing-stage-mobile-dot" />
-                    </div>
-                  </div>
-
-                  <div className="landing-stage-topline">
-                    <div>
-                      <span className="landing-stage-overline">Dashboard</span>
-                      <h2>Guten Tag</h2>
-                      <p>Was steht heute an?</p>
-                    </div>
-                    <span className="landing-stage-status">Heute 3</span>
-                  </div>
-
-                  <div className="landing-stage-creation-stack">
-                    <div className="landing-stage-composer">
-                      <div className="landing-stage-composer-header">
-                        <Brain size={16} />
-                        <span>KI-Eingabe</span>
-                      </div>
-                      <div className="landing-stage-composer-input">
-                        Morgen 09:00 Sprint-Review mit Team, jede Woche wiederholen
-                      </div>
-                      <div className="landing-stage-tag-row">
-                        <span className="landing-stage-tag">Termin</span>
-                        <span className="landing-stage-tag">Mittwoch</span>
-                        <span className="landing-stage-tag">09:00</span>
-                        <span className="landing-stage-tag">Wiederholung</span>
-                      </div>
-                    </div>
-
-                    <div className="landing-stage-manual">
-                      <div className="landing-stage-manual-copy">
-                        <div className="landing-stage-manual-icon">
-                          <ListTodo size={15} />
-                        </div>
-                        <div>
-                          <strong>Manuell erstellen</strong>
-                          <span>Aufgabe oder Termin ohne KI anlegen</span>
-                        </div>
-                      </div>
-                      <ChevronDown size={16} />
-                    </div>
-
-                    <div className="landing-stage-insights">
-                      <div className="landing-stage-card-head">
-                        <Target size={16} />
-                        <span>Fokus heute</span>
-                      </div>
-                      <div className="landing-stage-insight-meta">
-                        <span>Heute: 3</span>
-                        <span>Überfällig: 1</span>
-                        <span>Woche: 67%</span>
-                      </div>
-                      <div className="landing-stage-insight-list">
-                        <div className="landing-stage-insight-item">
-                          <span className="landing-stage-insight-icon alert">!</span>
-                          <p>1 Aufgabe ist überfällig, beginne dort und entlaste den Tag.</p>
-                        </div>
-                        <div className="landing-stage-insight-item">
-                          <span className="landing-stage-insight-icon calm">8h</span>
-                          <p>Heute sind 5,5 freie Stunden, 2 Termine stehen bald an.</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="landing-stage-filter-bar">
-                    <span className="landing-stage-filter active">Alle</span>
-                    <span className="landing-stage-filter urgent">Dringend</span>
-                    <span className="landing-stage-filter high">Hoch</span>
-                    <span className="landing-stage-filter search">Suchen...</span>
-                  </div>
-
-                  <div className="landing-stage-section">
-                    <div className="landing-stage-section-head">
-                      <div className="landing-stage-section-left">
-                        <span className="landing-stage-section-icon warning">
-                          <Calendar size={14} />
-                        </span>
-                        <span>Heute</span>
-                        <span className="landing-stage-section-count">2</span>
-                      </div>
-                      <ChevronDown size={16} />
-                    </div>
-
-                    <div className="landing-stage-list">
-                      <div className="landing-stage-task">
-                        <span className="landing-stage-task-priority priority-high" />
-                        <span className="landing-stage-task-grip"><GripVertical size={14} /></span>
-                        <span className="landing-stage-task-check" />
-                        <div>
-                          <strong>Review vorbereiten</strong>
-                          <span>Heute · 09:00 Uhr - 10:00 Uhr</span>
-                          <div className="landing-stage-task-badges">
-                            <span className="landing-stage-mini-badge group">Produkt-Team</span>
-                            <span className="landing-stage-mini-badge repeat">Wöchentlich</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="landing-stage-task event">
-                        <span className="landing-stage-task-priority priority-mid" />
-                        <span className="landing-stage-task-grip"><GripVertical size={14} /></span>
-                        <span className="landing-stage-task-event"><CalendarDays size={14} /></span>
-                        <div>
-                          <strong>Sprint-Review</strong>
-                          <span>Morgen · 09:00 Uhr - 10:00 Uhr</span>
-                          <div className="landing-stage-task-badges">
-                            <span className="landing-stage-mini-badge repeat">Termin</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="landing-stage-section landing-stage-section-completed">
-                    <div className="landing-stage-section-head">
-                      <div className="landing-stage-section-left">
-                        <span className="landing-stage-section-icon success">
-                          <CheckCircle2 size={14} />
-                        </span>
-                        <span>Erledigt</span>
-                        <span className="landing-stage-section-count">1</span>
-                      </div>
-                      <ChevronDown size={16} />
-                    </div>
-                    <div className="landing-stage-task completed">
-                      <span className="landing-stage-task-priority priority-low" />
-                      <span className="landing-stage-task-grip"><GripVertical size={14} /></span>
-                      <span className="landing-stage-task-check checked"><CheckCircle2 size={14} /></span>
-                      <div>
-                        <strong>Kalenderwoche prüfen</strong>
-                        <span>Vor 2 Stunden abgeschlossen</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <aside className="landing-stage-rail">
-                  <div className="landing-stage-calendar">
-                    <div className="landing-stage-card-head">
-                      <CalendarDays size={16} />
-                      <span>Kalender</span>
-                    </div>
-                    <div className="landing-stage-calendar-grid">
-                      {['M', 'D', 'M', 'D', 'F', 'S', 'S'].map((day) => (
-                        <span key={day} className="landing-stage-calendar-label">{day}</span>
-                      ))}
-                      {[14, 15, 16, 17, 18, 19, 20].map((day) => (
-                        <span key={day} className={`landing-stage-day ${day === 17 ? 'active' : ''}`}>
-                          {day}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="landing-stage-group">
-                    <div className="landing-stage-card-head">
-                      <UsersRound size={16} />
-                      <span>Gruppe</span>
-                    </div>
-                    <strong>Produkt-Team</strong>
-                    <p>Einladen, beitreten und Aufgaben gemeinsam planen.</p>
-                    <div className="landing-stage-members">
-                      <span className="landing-stage-member">LK</span>
-                      <span className="landing-stage-member">MR</span>
-                      <span className="landing-stage-member">+2</span>
-                    </div>
-                  </div>
-
-                  <div className="landing-stage-profile">
-                    <div className="landing-stage-card-head">
-                      <Shield size={16} />
-                      <span>Profil</span>
-                    </div>
-                    <div className="landing-stage-avatar">TS</div>
-                    <div className="landing-stage-profile-meta">
-                      <strong>Tina Sommer</strong>
-                      <span>Sichtbarkeit: Freunde</span>
-                    </div>
-                    <div className="landing-stage-profile-row">
-                      <Eye size={14} />
-                      <span>Bio und Sichtbarkeit verwalten</span>
-                    </div>
-                    <div className="landing-stage-profile-row">
-                      <Download size={14} />
-                      <span>Datenexport im Profil</span>
-                    </div>
-                  </div>
-                </aside>
+              <div className="landing-shot-frame">
+                <img
+                  src="/app-dashboard-screenshot.png"
+                  alt="Echter Taski Dashboard Screenshot"
+                  className="landing-shot-image"
+                  loading="lazy"
+                />
               </div>
             </motion.div>
           </div>

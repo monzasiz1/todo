@@ -50,7 +50,9 @@ export default function Layout() {
 
       {/* Main Content */}
       <main className="app-main">
-        <Outlet />
+        <div className="app-content-shell">
+          <Outlet />
+        </div>
       </main>
 
       {/* Bottom Navigation (mobile) */}
