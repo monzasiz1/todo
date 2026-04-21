@@ -14002,9 +14002,9 @@ body.cal-is-dragging * {
   gap: 6px;
 }
 .gchat-shared-event.own {
-  background: rgba(255, 255, 255, 0.16);
-  border-color: rgba(255,255,255,0.3);
-  border-left-color: rgba(255,255,255,0.75);
+  background: var(--card-solid);
+  border-color: rgba(0, 122, 255, 0.22);
+  border-left-color: var(--primary);
 }
 .gchat-shared-event-head {
   display: inline-flex;
@@ -14016,14 +14016,14 @@ body.cal-is-dragging * {
   text-transform: uppercase;
   color: var(--primary);
 }
-.gchat-shared-event.own .gchat-shared-event-head { color: rgba(255,255,255,0.9); }
+.gchat-shared-event.own .gchat-shared-event-head { color: var(--primary); }
 .gchat-shared-event-title {
   font-size: 14px;
   font-weight: 700;
   color: var(--text);
   line-height: 1.32;
 }
-.gchat-shared-event.own .gchat-shared-event-title { color: #fff; }
+.gchat-shared-event.own .gchat-shared-event-title { color: var(--text); }
 .gchat-shared-event-meta {
   display: flex;
   flex-wrap: wrap;
@@ -14033,7 +14033,7 @@ body.cal-is-dragging * {
   font-size: 11px;
   color: var(--text-secondary);
 }
-.gchat-shared-event.own .gchat-shared-event-meta span { color: rgba(255,255,255,0.74); }
+.gchat-shared-event.own .gchat-shared-event-meta span { color: var(--text-secondary); }
 .gchat-shared-event-owner {
   display: inline-flex;
   align-items: center;
@@ -14045,8 +14045,8 @@ body.cal-is-dragging * {
   color: #1f8a47;
 }
 .gchat-shared-event.own .gchat-shared-event-owner {
-  background: rgba(255,255,255,0.18);
-  color: rgba(255,255,255,0.92);
+  background: rgba(52, 199, 89, 0.12);
+  color: #1f8a47;
 }
 .gchat-shared-event-actions {
   display: flex;
@@ -14084,12 +14084,13 @@ body.cal-is-dragging * {
 }
 .gchat-shared-btn:disabled { opacity: 0.5; }
 .gchat-shared-event.own .gchat-shared-btn {
-  border-color: rgba(255,255,255,0.35);
-  color: rgba(255,255,255,0.88);
+  border-color: var(--border-strong);
+  color: var(--text-secondary);
 }
 .gchat-shared-event.own .gchat-shared-btn:hover:not(:disabled) {
-  background: rgba(255,255,255,0.18);
-  color: #fff;
+  background: var(--primary-bg);
+  border-color: rgba(0, 122, 255, 0.3);
+  color: var(--primary);
 }
 
 /* ── Inline Poll Builder ────────────────────────────────────────── */
@@ -14363,6 +14364,11 @@ body.cal-is-dragging * {
   box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
 }
 .gchat-modal-textarea { resize: vertical; min-height: 64px; }
+.gchat-reminder-note {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
 .gchat-modal-actions {
   display: flex;
   gap: 8px;
