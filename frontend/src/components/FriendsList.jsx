@@ -299,7 +299,7 @@ export default function FriendsList({ onClose }) {
 
   const profileModal = viewProfile ? createPortal(
     <motion.div
-      className="friends-overlay"
+      className="friend-profile-overlay"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
