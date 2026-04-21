@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { PLANS } from '../lib/plans';
 import { useAuthStore } from '../store/authStore';
+import dashboardScreenshot from '../assets/app-dashboard-screenshot.png';
 
 const heroPoints = [
   'Dashboard mit KI-Eingabe und Zeitbezug',
@@ -283,7 +284,7 @@ export default function LandingPage() {
             >
               <div className="landing-shot-frame">
                 <img
-                  src="/app-dashboard-screenshot.png"
+                  src={dashboardScreenshot}
                   alt="Echter Taski Dashboard Screenshot"
                   className="landing-shot-image"
                   loading="lazy"
