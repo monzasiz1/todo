@@ -264,7 +264,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       dragTaskRef.current = null;
       setDragInfo(null);
       if (!moved || !droppedTask) { wasDragging.current = false; return; }
-      setTimeout(() => { wasDragging.current = false; }, 100);
+      setTimeout(() => { wasDragging.current = false; }, 350);
 
       const under = document.elementFromPoint(ev.clientX, ev.clientY);
       // Accept drops on time columns AND all-day cells
@@ -320,21 +320,37 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     document.addEventListener('pointerup', onUp);
   };
 
-  // ── Mobile Day view — drag to move (Y = time) ─────────────────────
+  // ── Mobile Day view — drag to move (Y = time, X = swipe = change day) ─────
   const handleMobileEventPointerDown = (e, task, gridEl, hourH, startH) => {
     e.stopPropagation();
     e.preventDefault();
     dragTaskRef.current = task;
     let moved = false;
+    let swipeDay = 0; // -1 = prev, 0 = same, +1 = next
     const endH = 23;
     const cardRect = e.currentTarget.getBoundingClientRect();
     const clickOffsetY = e.clientY - cardRect.top;
+    const startX = e.clientX;
+    const startY = e.clientY;
 
     const onMove = (ev) => {
-      moved = true;
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+      if (!moved && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
+        moved = true;
+        document.body.classList.add('cal-is-dragging');
+      }
+      if (!moved) return;
       wasDragging.current = true;
+
+      // Horizontal swipe detection
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        swipeDay = dx > 0 ? -1 : 1;
+        setDragInfo({ task, x: ev.clientX, y: ev.clientY, previewTime: swipeDay < 0 ? '← Vorheriger Tag' : 'Nächster Tag →' });
+        return;
+      }
+      swipeDay = 0;
       if (!gridEl) return;
-      if (!moved) document.body.classList.add('cal-is-dragging');
       const gr = gridEl.getBoundingClientRect();
       const relY = Math.max(0, ev.clientY - gr.top - clickOffsetY);
       const snapped = Math.round(((relY / hourH) * 60) / 15) * 15;
@@ -350,7 +366,26 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       dragTaskRef.current = null;
       setDragInfo(null);
       if (!moved || !dropped) { wasDragging.current = false; return; }
-      setTimeout(() => { wasDragging.current = false; }, 100);
+      setTimeout(() => { wasDragging.current = false; }, 350);
+
+      // Horizontal swipe → move to prev/next day
+      if (swipeDay !== 0) {
+        const oldDate = dropped.date?.substring(0, 10);
+        if (!oldDate) return;
+        const newDate = format(addDays(parseISO(oldDate), swipeDay), 'yyyy-MM-dd');
+        const updates = { date: newDate };
+        if (dropped.date_end) {
+          updates.date_end = format(addDays(parseISO(dropped.date_end.substring(0, 10)), swipeDay), 'yyyy-MM-dd');
+        }
+        const updated = await updateTask(dropped.id, updates);
+        if (updated && onTaskUpdated) onTaskUpdated(updated);
+        if (updated) triggerDropFeedback(dropped.id, swipeDay < 0 ? 'Auf Vortag verschoben' : 'Auf nächsten Tag verschoben');
+        const nd = parseISO(newDate);
+        setSelectedDate(nd);
+        setCurrentDate(nd);
+        return;
+      }
+
       if (!gridEl) return;
       const gr = gridEl.getBoundingClientRect();
       const relY = Math.max(0, ev.clientY - gr.top - clickOffsetY);
@@ -419,7 +454,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       dragTaskRef.current = null;
       setDragInfo(null);
       if (!moved || !dropped) { wasDragging.current = false; return; }
-      setTimeout(() => { wasDragging.current = false; }, 100);
+      setTimeout(() => { wasDragging.current = false; }, 350);
 
       const targetIdx = getTargetCol(ev);
       const tEl = mobileWeekColRefs.current[targetIdx] || colEl;
