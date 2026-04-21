@@ -1727,6 +1727,30 @@ body.cal-is-dragging * {
 .cal-resize-handle-top  { top: 0; }
 .cal-resize-handle-bottom { bottom: 0; }
 
+/* Date extend handles (left/right sides of mobile-day-event) */
+.cal-date-extend-handle {
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  width: 14px;
+  cursor: ew-resize;
+  touch-action: none;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cal-date-extend-left  { left: 0; }
+.cal-date-extend-right { right: 0; }
+.cal-date-extend-handle::after {
+  content: '';
+  width: 3px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.6);
+  pointer-events: none;
+}
+
 .cal-resize-handle::after {
   content: '';
   width: 22px;

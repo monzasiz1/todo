@@ -493,6 +493,66 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     document.addEventListener('pointerup', onUp);
   };
 
+  // ── Date extend handle — drag left/right edge to change date_start / date_end ──
+  const handleDateExtendPointerDown = (e, task, edge) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const startX = e.clientX;
+    const PX_PER_DAY = 65; // pixels to drag before day changes
+    let lastDelta = 0;
+    let previewDelta = 0;
+
+    const de = document.body.querySelectorAll ? null : null; // unused, just clarity
+
+    const onMove = (ev) => {
+      const dx = ev.clientX - startX;
+      previewDelta = Math.round(dx / PX_PER_DAY) * (edge === 'end' ? 1 : -1);
+      if (previewDelta === lastDelta) return;
+      lastDelta = previewDelta;
+
+      const baseDate = edge === 'end'
+        ? (task.date_end || task.date)?.substring(0, 10)
+        : task.date?.substring(0, 10);
+      if (!baseDate) return;
+
+      const previewDate = format(addDays(parseISO(baseDate), previewDelta), 'yyyy-MM-dd');
+      const label = format(parseISO(previewDate), 'EEE d. MMM', { locale: de });
+      setResizeInfo({ task, edge: edge === 'end' ? 'date-end' : 'date-start', previewTime: label });
+    };
+
+    const onUp = async () => {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      setResizeInfo(null);
+      if (previewDelta === 0) return;
+      setTimeout(() => { wasDragging.current = false; }, 350);
+      wasDragging.current = true;
+
+      if (edge === 'end') {
+        const base = (task.date_end || task.date)?.substring(0, 10);
+        if (!base) return;
+        const newEnd = format(addDays(parseISO(base), previewDelta), 'yyyy-MM-dd');
+        const startD = task.date?.substring(0, 10);
+        if (startD && newEnd < startD) return; // can't end before start
+        const updated = await updateTask(task.id, { date_end: newEnd });
+        if (updated && onTaskUpdated) onTaskUpdated(updated);
+        if (updated) triggerDropFeedback(task.id, 'Enddatum geändert');
+      } else {
+        const base = task.date?.substring(0, 10);
+        if (!base) return;
+        const newStart = format(addDays(parseISO(base), -previewDelta), 'yyyy-MM-dd');
+        const endD = (task.date_end || task.date)?.substring(0, 10);
+        if (endD && newStart > endD) return; // can't start after end
+        const updated = await updateTask(task.id, { date: newStart });
+        if (updated && onTaskUpdated) onTaskUpdated(updated);
+        if (updated) triggerDropFeedback(task.id, 'Startdatum geändert');
+      }
+    };
+
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  };
+
   // ── Resize handle — drag edge to change start/end time ────────────
   const handleResizePointerDown = (e, task, edge, gridEl, hourH, startH) => {
     e.stopPropagation();
@@ -991,7 +1051,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   cursor: 'grab',
                 }}
                 onPointerDown={(e) => {
-                  if (e.target.closest('.cal-resize-handle')) return;
+                  if (e.target.closest('.cal-resize-handle') || e.target.closest('.cal-date-extend-handle')) return;
                   handleMobileEventPointerDown(e, t, mobileDayRef.current, hourHeight, startHour);
                 }}
                 onClick={(e) => {
@@ -1003,11 +1063,25 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   className="cal-resize-handle cal-resize-handle-top"
                   onPointerDown={(e) => handleResizePointerDown(e, t, 'start', mobileDayRef.current, hourHeight, startHour)}
                 />
+                <div
+                  className="cal-date-extend-handle cal-date-extend-left"
+                  onPointerDown={(e) => handleDateExtendPointerDown(e, t, 'start')}
+                />
                 <strong>{t.title}</strong>
                 <span>{t.time?.slice(0, 5)}{t.time_end ? `-${t.time_end.slice(0, 5)}` : ''}</span>
+                {(t.date_end && t.date_end !== t.date) && (
+                  <span style={{ fontSize: 10, opacity: 0.8 }}>
+                    {format(parseISO(t.date?.substring(0,10)), 'd.M.')} – {format(parseISO(t.date_end.substring(0,10)), 'd.M.')}
+                  </span>
+                )}
+                <div
+                  className="cal-date-extend-handle cal-date-extend-right"
+                  onPointerDown={(e) => handleDateExtendPointerDown(e, t, 'end')}
+                />
                 <div
                   className="cal-resize-handle cal-resize-handle-bottom"
                   onPointerDown={(e) => handleResizePointerDown(e, t, 'end', mobileDayRef.current, hourHeight, startHour)}
+                />
                 />
               </div>
             );
@@ -1189,7 +1263,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       {/* Resize time preview badge */}
       {resizeInfo && createPortal(
         <div className="cal-resize-preview">
-          {resizeInfo.edge === 'start' ? '▲' : '▼'} {resizeInfo.previewTime}
+          {resizeInfo.edge === 'date-end' ? '⇥' : resizeInfo.edge === 'date-start' ? '⇤' : resizeInfo.edge === 'start' ? '▲' : '▼'} {resizeInfo.previewTime}
         </div>,
         document.body
       )}
