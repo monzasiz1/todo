@@ -561,7 +561,7 @@ export default function LandingPage() {
                   </button>
                 </p>
               </div>
-            </motion.modal>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -664,7 +664,7 @@ export default function LandingPage() {
                   </button>
                 </p>
               </div>
-            </motion.modal>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
