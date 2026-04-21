@@ -149,9 +149,9 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   useEffect(() => {
     if (!isDesktop) {
       setView('month');
-      if (!selectedDate) setSelectedDate(new Date());
     }
-  }, [isDesktop, selectedDate]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDesktop]);
 
   useEffect(() => {
     if (!showMonthPicker) return;
