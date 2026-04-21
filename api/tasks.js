@@ -408,7 +408,7 @@ module.exports = async function handler(req, res) {
       const requestedLimit = parseInt(req.query?.limit, 10);
       const requestedHorizonDays = parseInt(req.query?.horizon_days, 10);
       const requestedCompletedLookbackDays = parseInt(req.query?.completed_lookback_days, 10);
-      const defaultLimit = lite ? 400 : 180;
+      const defaultLimit = lite ? 300 : 180;
       const maxLimit = lite ? 1000 : 400;
       const horizonDays = Number.isFinite(requestedHorizonDays)
         ? Math.max(14, Math.min(365, requestedHorizonDays))
@@ -634,7 +634,7 @@ module.exports = async function handler(req, res) {
         const response = { tasks: result.rows, lite: true };
         const cacheKey = buildDashboardCacheKey(user.id, completedFilter, limit, horizonDays, completedLookbackDays);
         try {
-          await cacheManager.set(cacheKey, response, 30, String(user.id));
+          await cacheManager.set(cacheKey, response, 120, String(user.id));
           res.setHeader('X-Dashboard-Cache-Store', 'ok');
         } catch (error) {
           console.error('Dashboard cache set failed:', error);
