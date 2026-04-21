@@ -818,7 +818,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                             touchAction: 'none',
                           }}
                           onPointerDown={(e) => {
-                            if (e.target.closest('.cal-resize-handle')) return;
+                            if (e.target.closest('.cal-resize-handle') || e.target.closest('.cal-date-extend-handle')) return;
                             handlePointerDown(e, t);
                           }}
                           onClick={(e) => {
@@ -833,8 +833,16 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                               handleResizePointerDown(e, t, 'start', col, WK_H, WK_START);
                             }}
                           />
+                          <div
+                            className="cal-date-extend-handle cal-date-extend-left"
+                            onPointerDown={(e) => handleDateExtendPointerDown(e, t, 'start')}
+                          />
                           <span className="desktop-week-event-title">{t.title}</span>
                           <span className="desktop-week-event-time">{t.time?.slice(0, 5)}{t.time_end ? ` - ${t.time_end.slice(0, 5)}` : ''}</span>
+                          <div
+                            className="cal-date-extend-handle cal-date-extend-right"
+                            onPointerDown={(e) => handleDateExtendPointerDown(e, t, 'end')}
+                          />
                           <div
                             className="cal-resize-handle cal-resize-handle-bottom"
                             onPointerDown={(e) => {
@@ -1054,7 +1062,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   cursor: 'grab',
                 }}
                 onPointerDown={(e) => {
-                  if (e.target.closest('.cal-resize-handle') || e.target.closest('.cal-date-extend-handle')) return;
+                  if (e.target.closest('.cal-resize-handle')) return;
                   handleMobileEventPointerDown(e, t, mobileDayRef.current, hourHeight, startHour);
                 }}
                 onClick={(e) => {
@@ -1066,10 +1074,6 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   className="cal-resize-handle cal-resize-handle-top"
                   onPointerDown={(e) => handleResizePointerDown(e, t, 'start', mobileDayRef.current, hourHeight, startHour)}
                 />
-                <div
-                  className="cal-date-extend-handle cal-date-extend-left"
-                  onPointerDown={(e) => handleDateExtendPointerDown(e, t, 'start')}
-                />
                 <strong>{t.title}</strong>
                 <span>{t.time?.slice(0, 5)}{t.time_end ? `-${t.time_end.slice(0, 5)}` : ''}</span>
                 {(t.date_end && t.date_end !== t.date) && (
@@ -1078,13 +1082,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   </span>
                 )}
                 <div
-                  className="cal-date-extend-handle cal-date-extend-right"
-                  onPointerDown={(e) => handleDateExtendPointerDown(e, t, 'end')}
-                />
-                <div
                   className="cal-resize-handle cal-resize-handle-bottom"
                   onPointerDown={(e) => handleResizePointerDown(e, t, 'end', mobileDayRef.current, hourHeight, startHour)}
-                />
                 />
               </div>
             );
