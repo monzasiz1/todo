@@ -6,6 +6,8 @@ export const useTaskStore = create((set, get) => ({
   categories: [],
   loading: false,
   error: null,
+  lastTasksFetchAt: 0,
+  lastTasksFetchKey: '',
   filter: { category: null, priority: null, completed: null, search: '' },
   toasts: [],
 
@@ -19,11 +21,27 @@ export const useTaskStore = create((set, get) => ({
   },
 
   // Task CRUD
-  fetchTasks: async (params = {}) => {
+  fetchTasks: async (params = {}, options = {}) => {
+    const fetchKey = JSON.stringify(params || {});
+    const now = Date.now();
+    const maxAgeMs = 15000;
+    const force = options?.force === true;
+    const sameParams = get().lastTasksFetchKey === fetchKey;
+    const stillFresh = now - (get().lastTasksFetchAt || 0) < maxAgeMs;
+
+    if (!force && sameParams && stillFresh) {
+      return;
+    }
+
     set({ loading: true });
     try {
       const data = await api.getTasks(params);
-      set({ tasks: data.tasks, loading: false });
+      set({
+        tasks: data.tasks,
+        loading: false,
+        lastTasksFetchAt: Date.now(),
+        lastTasksFetchKey: fetchKey,
+      });
     } catch (err) {
       set({ error: err.message, loading: false });
     }

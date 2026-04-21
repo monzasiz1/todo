@@ -131,12 +131,12 @@ export default function Dashboard() {
   const [collapsedSections, setCollapsedSections] = useState({});
 
   useEffect(() => {
-    fetchTasks();
+    fetchTasks({ lite: 'true' }, { force: true });
     fetchCategories();
 
     // Auto-refresh every 60 s so newly shared/group tasks appear without manual reload
     const interval = setInterval(() => {
-      if (!document.hidden) fetchTasks();
+      if (!document.hidden) fetchTasks({ lite: 'true' }, { force: true });
     }, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -212,7 +212,7 @@ export default function Dashboard() {
       {/* Task Creation */}
       <div className="task-creation-stack">
         <AIInput />
-        <ManualTaskForm onTaskCreated={() => fetchTasks()} />
+        <ManualTaskForm onTaskCreated={() => fetchTasks({ lite: 'true' }, { force: true })} />
       </div>
 
       {/* Stats */}

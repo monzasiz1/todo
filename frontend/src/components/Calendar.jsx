@@ -28,7 +28,7 @@ import {
 } from 'date-fns';
 import { de } from 'date-fns/locale';
 
-export default function Calendar({ onDayClick }) {
+export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeChange, onTaskUpdated }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState('month');
   const [selectedDate, setSelectedDate] = useState(null);
@@ -43,7 +43,27 @@ export default function Calendar({ onDayClick }) {
 
   const triggerRef = useRef(null);
   const dropdownRef = useRef(null);
-  const { tasks, updateTask } = useTaskStore();
+  const { tasks: storeTasks, updateTask } = useTaskStore();
+  const tasks = Array.isArray(tasksProp) ? tasksProp : storeTasks;
+
+  useEffect(() => {
+    if (!onVisibleRangeChange) return;
+
+    let start;
+    let end;
+
+    if (view === 'month') {
+      const monthStart = startOfMonth(currentDate);
+      const monthEnd = endOfMonth(currentDate);
+      start = startOfWeek(monthStart, { weekStartsOn: 1 });
+      end = endOfWeek(monthEnd, { weekStartsOn: 1 });
+    } else {
+      start = startOfWeek(currentDate, { weekStartsOn: 1 });
+      end = endOfWeek(currentDate, { weekStartsOn: 1 });
+    }
+
+    onVisibleRangeChange(format(start, 'yyyy-MM-dd'), format(end, 'yyyy-MM-dd'));
+  }, [currentDate, view, onVisibleRangeChange]);
 
   useEffect(() => {
     const handler = () => setIsDesktop(window.innerWidth >= 768);
@@ -130,7 +150,10 @@ export default function Calendar({ onDayClick }) {
         const oldEnd = parseISO(droppedTask.date_end.substring(0, 10));
         newDateEnd = format(addDays(oldEnd, delta), 'yyyy-MM-dd');
       }
-      await updateTask(droppedTask.id, { date: targetDateStr, date_end: newDateEnd });
+      const updated = await updateTask(droppedTask.id, { date: targetDateStr, date_end: newDateEnd });
+      if (updated && onTaskUpdated) {
+        onTaskUpdated(updated);
+      }
     };
 
     document.addEventListener('pointermove', onMove);

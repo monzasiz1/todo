@@ -8,18 +8,35 @@ import { useTaskStore } from '../store/taskStore';
 import { format } from 'date-fns';
 
 export default function CalendarPage() {
-  const { tasks, fetchTasks } = useTaskStore();
+  const { fetchTasksRange } = useTaskStore();
+  const [calendarTasks, setCalendarTasks] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
   const [showDayModal, setShowDayModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [visibleRange, setVisibleRange] = useState({ start: null, end: null, key: '' });
 
-  useEffect(() => {
-    fetchTasks();
-  }, []);
+  const loadRange = async (start, end, force = false) => {
+    if (!start || !end) return;
+    const key = `${start}|${end}`;
+    if (!force && visibleRange.key === key) return;
+    const tasks = await fetchTasksRange(start, end);
+    setCalendarTasks(tasks);
+    setVisibleRange({ start, end, key });
+  };
 
   const handleTaskCreated = () => {
-    fetchTasks();
+    if (visibleRange.start && visibleRange.end) {
+      loadRange(visibleRange.start, visibleRange.end, true);
+    }
     setRefreshKey((k) => k + 1);
+  };
+
+  const handleVisibleRangeChange = (start, end) => {
+    loadRange(start, end);
+  };
+
+  const handleTaskUpdated = (updatedTask) => {
+    setCalendarTasks((prev) => prev.map((t) => (t.id === updatedTask.id ? { ...t, ...updatedTask } : t)));
   };
 
   const handleDayClick = (date) => {
@@ -28,7 +45,7 @@ export default function CalendarPage() {
   };
 
   const selectedTasks = selectedDate
-    ? tasks.filter((t) => {
+    ? calendarTasks.filter((t) => {
         if (!t.date) return false;
         const dateStr = format(selectedDate, 'yyyy-MM-dd');
         const taskStart = t.date.substring(0, 10);
@@ -54,7 +71,12 @@ export default function CalendarPage() {
         <ManualTaskForm onTaskCreated={handleTaskCreated} defaultDate={selectedDate} />
       </div>
 
-      <Calendar onDayClick={handleDayClick} />
+      <Calendar
+        onDayClick={handleDayClick}
+        tasks={calendarTasks}
+        onVisibleRangeChange={handleVisibleRangeChange}
+        onTaskUpdated={handleTaskUpdated}
+      />
 
       <AnimatePresence>
         {showDayModal && selectedDate && (

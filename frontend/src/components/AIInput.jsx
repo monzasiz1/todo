@@ -100,7 +100,11 @@ export default function AIInput({ onTaskCreated }) {
       });
 
       addToast(`📎 "${file.name}" an "${task.title}" angehängt`);
-      fetchTasks();
+      if (onTaskCreated) {
+        onTaskCreated();
+      } else {
+        fetchTasks({ lite: 'true' }, { force: true });
+      }
     } catch (err) {
       addToast('❌ ' + (err.message || 'Upload fehlgeschlagen'), 'error');
     } finally {

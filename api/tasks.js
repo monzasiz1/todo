@@ -299,6 +299,8 @@ module.exports = async function handler(req, res) {
   // GET /api/tasks
   if (segments.length === 0 && req.method === 'GET') {
     try {
+      const lite = String(req.query?.lite || 'false') === 'true';
+
       // Check if collaboration tables exist
       const hasCollab = await pool.query(
         `SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tasks' AND column_name = 'visibility') as has_visibility`
@@ -307,37 +309,69 @@ module.exports = async function handler(req, res) {
 
       let result;
       if (collabEnabled) {
-        // Full query with collaboration support
-        result = await pool.query(
-          `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
-             u.name as creator_name, u.avatar_color as creator_color, u.avatar_url as creator_avatar_url,
-             editor.name as last_editor_name,
-             CASE WHEN t.user_id = $1 THEN true ELSE false END as is_owner,
-             COALESCE(tp.can_edit, false) as can_edit,
-             gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url,
-             gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color, gtc.avatar_url as group_task_creator_avatar_url,
-             (SELECT COUNT(*) FROM task_attachments ta WHERE ta.task_id = t.id)::int as attachment_count,
-             (SELECT COALESCE(json_agg(json_build_object('name', su.name, 'color', su.avatar_color, 'avatar_url', su.avatar_url)), '[]'::json)
-              FROM task_permissions tp2 JOIN users su ON tp2.user_id = su.id
-              WHERE tp2.task_id = t.id) as shared_with_users
-           FROM tasks t
-           LEFT JOIN categories c ON t.category_id = c.id
-           LEFT JOIN users u ON t.user_id = u.id
-           LEFT JOIN users editor ON t.last_edited_by = editor.id
-           LEFT JOIN task_permissions tp ON tp.task_id = t.id AND tp.user_id = $1
-           LEFT JOIN group_tasks gt ON gt.task_id = t.id
-           LEFT JOIN groups grp ON grp.id = gt.group_id
-           LEFT JOIN users gtc ON gtc.id = gt.created_by
-           WHERE t.user_id = $1
-             OR (t.visibility = 'shared' AND EXISTS (
-               SELECT 1 FROM friends f WHERE f.status = 'accepted'
-               AND ((f.user_id = t.user_id AND f.friend_id = $1) OR (f.user_id = $1 AND f.friend_id = t.user_id))
-             ))
-             OR (t.visibility = 'selected_users' AND tp.can_view = true)
-             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
-           ORDER BY t.sort_order ASC, t.created_at DESC`,
-          [user.id]
-        );
+        if (lite) {
+          // Fast list query: skip expensive shared_with aggregation
+          result = await pool.query(
+            `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
+               u.name as creator_name, u.avatar_color as creator_color, u.avatar_url as creator_avatar_url,
+               editor.name as last_editor_name,
+               CASE WHEN t.user_id = $1 THEN true ELSE false END as is_owner,
+               COALESCE(tp.can_edit, false) as can_edit,
+               gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url,
+               gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color, gtc.avatar_url as group_task_creator_avatar_url,
+               (SELECT COUNT(*) FROM task_attachments ta WHERE ta.task_id = t.id)::int as attachment_count,
+               '[]'::json as shared_with_users
+             FROM tasks t
+             LEFT JOIN categories c ON t.category_id = c.id
+             LEFT JOIN users u ON t.user_id = u.id
+             LEFT JOIN users editor ON t.last_edited_by = editor.id
+             LEFT JOIN task_permissions tp ON tp.task_id = t.id AND tp.user_id = $1
+             LEFT JOIN group_tasks gt ON gt.task_id = t.id
+             LEFT JOIN groups grp ON grp.id = gt.group_id
+             LEFT JOIN users gtc ON gtc.id = gt.created_by
+             WHERE t.user_id = $1
+               OR (t.visibility = 'shared' AND EXISTS (
+                 SELECT 1 FROM friends f WHERE f.status = 'accepted'
+                 AND ((f.user_id = t.user_id AND f.friend_id = $1) OR (f.user_id = $1 AND f.friend_id = t.user_id))
+               ))
+               OR (t.visibility = 'selected_users' AND tp.can_view = true)
+               OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
+             ORDER BY t.sort_order ASC, t.created_at DESC`,
+            [user.id]
+          );
+        } else {
+          // Full query with collaboration support
+          result = await pool.query(
+            `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
+               u.name as creator_name, u.avatar_color as creator_color, u.avatar_url as creator_avatar_url,
+               editor.name as last_editor_name,
+               CASE WHEN t.user_id = $1 THEN true ELSE false END as is_owner,
+               COALESCE(tp.can_edit, false) as can_edit,
+               gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url,
+               gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color, gtc.avatar_url as group_task_creator_avatar_url,
+               (SELECT COUNT(*) FROM task_attachments ta WHERE ta.task_id = t.id)::int as attachment_count,
+               (SELECT COALESCE(json_agg(json_build_object('name', su.name, 'color', su.avatar_color, 'avatar_url', su.avatar_url)), '[]'::json)
+                FROM task_permissions tp2 JOIN users su ON tp2.user_id = su.id
+                WHERE tp2.task_id = t.id) as shared_with_users
+             FROM tasks t
+             LEFT JOIN categories c ON t.category_id = c.id
+             LEFT JOIN users u ON t.user_id = u.id
+             LEFT JOIN users editor ON t.last_edited_by = editor.id
+             LEFT JOIN task_permissions tp ON tp.task_id = t.id AND tp.user_id = $1
+             LEFT JOIN group_tasks gt ON gt.task_id = t.id
+             LEFT JOIN groups grp ON grp.id = gt.group_id
+             LEFT JOIN users gtc ON gtc.id = gt.created_by
+             WHERE t.user_id = $1
+               OR (t.visibility = 'shared' AND EXISTS (
+                 SELECT 1 FROM friends f WHERE f.status = 'accepted'
+                 AND ((f.user_id = t.user_id AND f.friend_id = $1) OR (f.user_id = $1 AND f.friend_id = t.user_id))
+               ))
+               OR (t.visibility = 'selected_users' AND tp.can_view = true)
+               OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
+             ORDER BY t.sort_order ASC, t.created_at DESC`,
+            [user.id]
+          );
+        }
       } else {
         // Simple query without collaboration
         result = await pool.query(

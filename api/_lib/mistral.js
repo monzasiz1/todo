@@ -294,7 +294,11 @@ INTENT ERKENNUNG:
 1. "create" - Neue Aufgabe/Termin erstellen (Standard wenn nichts anderes erkannt)
    - "Morgen Zahnarzt 10 Uhr", "Einkaufen", "Meeting Freitag"
 2. "delete" - Aufgabe/Termin löschen/entfernen
-   - "Lösche Zahnarzt", "Entferne den Termin Reinigung", "Streich Einkaufen", "weg mit Meeting", "Termin absagen", "cancel Probe"
+   - Einfach löschen: "Lösche Zahnarzt", "Entferne den Termin Reinigung", "Streich Einkaufen", "weg mit Meeting", "Termin absagen", "cancel Probe"
+   - Mit Datumbereich: "Lösche Zahnarzt von 20. bis 24. April" → date: "2026-04-20", date_end: "2026-04-24"
+   - Ganzes Jahr: "Lösche komplett 2029" → date: "2029-01-01", date_end: "2029-12-31", task_title: null
+   - Titel in Jahr: "Lösche Zahnarzt in 2029" → task_title: "Zahnarzt", date: "2029-01-01", date_end: "2029-12-31"
+   - Bei Bereich ohne Titel: Alle Aufgaben in diesem Zeitraum löschen
 3. "move" - Aufgabe/Termin verschieben (Datum/Zeit ändern)
    - "Verschiebe Zahnarzt auf Freitag", "Reinigung auf morgen", "Meeting auf 15 Uhr", "Arzttermin von Montag auf Mittwoch"
    - "Zahnarzt statt Montag lieber Dienstag", "Probe eine Stunde später", "verschieb das auf nächste Woche"
@@ -343,7 +347,11 @@ SCOPE - Gilt die Änderung für ALLE Vorkommen oder nur EINEN Termin?
 
 Regeln:
 - Matche den Task-Titel FUZZY aus der Liste (z.B. "zahnarzt" → "Zahnarzt", "reinigung" → "Reinigung")
-- Bei "delete" und "move": task_title MUSS auf eine existierende Aufgabe verweisen
+- Bei "delete" und "move": task_title MUSS auf eine existierende Aufgabe verweisen (AUSNAHME: bei delete mit Datumbereich ohne Titel)
+- Bei "delete" mit Datumbereich: Erkenne date (YYYY-MM-DD) und date_end (YYYY-MM-DD)
+  - "von X bis Y" / "vom X. bis Y." → date_start, date_end
+  - "in 2029" / "komplett 2029" → date_start: 2029-01-01, date_end: 2029-12-31
+  - "in März 2029" → date_start: 2029-03-01, date_end: 2029-03-31
 - Bei "move": Erkenne new_date (YYYY-MM-DD) und/oder new_time (HH:MM)
 - Bei "move" ohne explizites Datum/Zeit: Versuche es aus dem Kontext zu erkennen
 - Wenn der Nutzer sagt "auf morgen" → new_date: ${tomorrow}

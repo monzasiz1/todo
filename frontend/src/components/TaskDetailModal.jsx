@@ -368,7 +368,7 @@ export default function TaskDetailModal({ task, onClose }) {
         <TaskEditModal
           task={task}
           onClose={() => setShowEdit(false)}
-          onSaved={() => { fetchTasks(); onClose(); }}
+          onSaved={() => { fetchTasks({ lite: 'true' }, { force: true }); onClose(); }}
         />,
         document.body
       )}
