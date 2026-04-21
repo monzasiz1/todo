@@ -48,6 +48,25 @@ const timeToMins = (t) => {
   return h * 60 + m;
 };
 
+const normalizeCategoryKey = (value) => {
+  return String(value || '')
+    .toLowerCase()
+    .trim()
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss');
+};
+
+const getEventGlowClass = (task) => {
+  if (task?.type !== 'event') return '';
+  const key = normalizeCategoryKey(task?.category_name);
+  if (key.includes('arbeit')) return 'cal-event-glow-work';
+  if (key.includes('persoenlich')) return 'cal-event-glow-personal';
+  if (key.includes('gut schlag') || key.includes('gut-schlag')) return 'cal-event-glow-gutschlag';
+  return 'cal-event-glow-default';
+};
+
 // ── Throttle helper for smooth drag ──
 const throttle = (fn, delay) => {
   let lastRun = 0;
@@ -792,7 +811,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   {dayTasks.slice(0, 2).map((t) => (
                     <button
                       key={t.id}
-                      className="desktop-week-all-day-event"
+                      className={`desktop-week-all-day-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}`}
                       style={{ background: t.group_color || t.category_color || '#4C7BD9' }}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -884,7 +903,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   return (
                     <div
                       key={t.id}
-                      className={`desktop-week-event${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
+                      className={`desktop-week-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
                       style={{
                         left: `calc((100% / 7) * ${startIdx} + 4px)`,
                         width: `calc((100% / 7) * ${spanDays} - 8px)`,
@@ -1007,7 +1026,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                     return (
                       <div
                         key={t.id}
-                        className={`mobile-week-event${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
+                        className={`mobile-week-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
                         style={{
                           top: `${top}px`, height: `${height}px`,
                           background: t.group_color || t.category_color || '#4C7BD9',
@@ -1121,7 +1140,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
             return (
               <div
                 key={t.id}
-                className={`mobile-day-event${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
+                className={`mobile-day-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
                 style={{
                   top: `${top}px`,
                   height: `${height}px`,

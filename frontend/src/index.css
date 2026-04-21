@@ -1931,6 +1931,66 @@ body.cal-is-dragging * {
   color: rgba(255,255,255,0.8);
 }
 
+/* Event glow by category */
+.desktop-week-event.cal-event-glow-default,
+.mobile-week-event.cal-event-glow-default,
+.mobile-day-event.cal-event-glow-default,
+.desktop-week-all-day-event.cal-event-glow-default {
+  box-shadow: 0 4px 10px rgba(36, 54, 94, 0.2);
+}
+
+.desktop-week-event.cal-event-glow-work,
+.mobile-week-event.cal-event-glow-work,
+.mobile-day-event.cal-event-glow-work,
+.desktop-week-all-day-event.cal-event-glow-work {
+  box-shadow:
+    0 0 0 1px rgba(88, 142, 255, 0.45),
+    0 0 16px rgba(64, 131, 255, 0.42),
+    0 6px 14px rgba(26, 67, 150, 0.25);
+}
+
+.desktop-week-event.cal-event-glow-personal,
+.mobile-week-event.cal-event-glow-personal,
+.mobile-day-event.cal-event-glow-personal,
+.desktop-week-all-day-event.cal-event-glow-personal {
+  box-shadow:
+    0 0 0 1px rgba(255, 181, 117, 0.45),
+    0 0 16px rgba(255, 173, 92, 0.4),
+    0 6px 14px rgba(189, 113, 41, 0.22);
+}
+
+.desktop-week-event.cal-event-glow-gutschlag,
+.mobile-week-event.cal-event-glow-gutschlag,
+.mobile-day-event.cal-event-glow-gutschlag,
+.desktop-week-all-day-event.cal-event-glow-gutschlag {
+  box-shadow:
+    0 0 0 1px rgba(74, 214, 132, 0.48),
+    0 0 14px rgba(60, 196, 113, 0.4),
+    0 6px 14px rgba(36, 134, 77, 0.24);
+  animation: calGreenPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes calGreenPulse {
+  0% {
+    box-shadow:
+      0 0 0 1px rgba(74, 214, 132, 0.45),
+      0 0 10px rgba(60, 196, 113, 0.25),
+      0 6px 14px rgba(36, 134, 77, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px rgba(88, 224, 146, 0.7),
+      0 0 20px rgba(74, 214, 132, 0.6),
+      0 8px 16px rgba(36, 134, 77, 0.28);
+  }
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(74, 214, 132, 0.45),
+      0 0 10px rgba(60, 196, 113, 0.25),
+      0 6px 14px rgba(36, 134, 77, 0.2);
+  }
+}
+
 /* ---- Week View (old list — kept for fallback) ---- */
 .calendar-week {
   display: flex;
