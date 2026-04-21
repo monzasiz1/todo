@@ -4,7 +4,7 @@ import { useTaskStore } from '../store/taskStore';
 import AIInput from '../components/AIInput';
 import ManualTaskForm from '../components/ManualTaskForm';
 import TaskCard from '../components/TaskCard';
-import { CheckCircle2, Circle, Clock, ChevronDown, CalendarDays, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, ChevronDown, CalendarDays, AlertTriangle, Target } from 'lucide-react';
 import { isToday, isTomorrow, isThisWeek, isPast, parseISO, format, startOfDay, compareAsc } from 'date-fns';
 import { de } from 'date-fns/locale';
 
@@ -125,6 +125,61 @@ function groupTasksByDate(tasks) {
   ].filter((g) => g.tasks.length > 0);
 }
 
+function parseTaskDate(task) {
+  if (!task?.date) return null;
+  const d = parseISO(String(task.date));
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function getPlannedHoursToday(tasks) {
+  const toMins = (time) => {
+    if (!time) return null;
+    const [h, m] = String(time).split(':').map((v) => parseInt(v, 10));
+    if (Number.isNaN(h) || Number.isNaN(m)) return null;
+    return (h * 60) + m;
+  };
+
+  let total = 0;
+  tasks.forEach((t) => {
+    const start = toMins(t.time);
+    if (start === null) return;
+    const endRaw = toMins(t.time_end);
+    const end = endRaw && endRaw > start ? endRaw : start + 60;
+    total += Math.max(30, end - start);
+  });
+  return total / 60;
+}
+
+function buildSmartInsights({ overdueCount, todayCount, urgentTodayCount, freeHours, upcomingEventsCount }) {
+  const freeHoursLabel = `${Math.max(0, freeHours).toFixed(1).replace('.', ',')}`;
+  const capacity = Math.max(1, Math.min(7, Math.round(Math.max(0, freeHours) / 1.5)));
+
+  const primaryText = overdueCount > 0
+    ? `${overdueCount} Aufgaben sind überfällig, beginne dort und entlaste den Tag.`
+    : urgentTodayCount > 0
+      ? `${urgentTodayCount} Aufgaben sind heute wichtig, starte mit der kritischsten zuerst.`
+      : `Heute zählen ${todayCount} Aufgaben, fokussiere nur die wichtigsten zuerst.`;
+
+  const secondaryText = upcomingEventsCount > 0
+    ? `Heute sind ${freeHoursLabel} freie Stunden, ${upcomingEventsCount} Termine stehen bald an.`
+    : `Heute sind ${freeHoursLabel} freie Stunden, plane ${capacity} klare Aufgaben.`;
+
+  return [
+    {
+      key: 'priority',
+      icon: overdueCount > 0 ? AlertTriangle : Target,
+      color: overdueCount > 0 ? '#FF3B30' : '#007AFF',
+      text: primaryText,
+    },
+    {
+      key: 'capacity',
+      icon: CalendarDays,
+      color: '#5856D6',
+      text: secondaryText,
+    },
+  ];
+}
+
 export default function Dashboard() {
   const { tasks, fetchTasks, fetchCategories, filter, setFilter, getFilteredTasks } = useTaskStore();
   const [showCompleted, setShowCompleted] = useState(false);
@@ -149,6 +204,43 @@ export default function Dashboard() {
   const completedTasks = filtered.filter((t) => t.completed)
     .sort((a, b) => compareAsc(parseISO(b.updated_at || b.created_at), parseISO(a.updated_at || a.created_at)))
     .slice(0, 20);
+
+  const todayTasks = deduplicated.filter((t) => {
+    const d = parseTaskDate(t);
+    return d && isToday(d);
+  });
+
+  const overdueCount = deduplicated.filter((t) => {
+    const d = parseTaskDate(t);
+    return d && isPast(d) && !isToday(d);
+  }).length;
+
+  const urgentTodayCount = todayTasks.filter((t) => t.priority === 'urgent' || t.priority === 'high').length;
+
+  const upcomingEventsCount = deduplicated.filter((t) => {
+    const d = parseTaskDate(t);
+    if (!d) return false;
+    return (t.type === 'event') && (isToday(d) || isTomorrow(d));
+  }).length;
+
+  const plannedHoursToday = getPlannedHoursToday(todayTasks);
+  const freeHours = Math.max(0, 8 - plannedHoursToday);
+
+  const weekTasks = tasks.filter((t) => {
+    const d = parseTaskDate(t);
+    return d && isThisWeek(d, { weekStartsOn: 1 });
+  });
+  const weekCompletionRate = weekTasks.length > 0
+    ? Math.round((weekTasks.filter((t) => t.completed).length / weekTasks.length) * 100)
+    : 0;
+
+  const insights = buildSmartInsights({
+    overdueCount,
+    todayCount: todayTasks.length,
+    urgentTodayCount,
+    freeHours,
+    upcomingEventsCount,
+  });
 
   const greetingHour = new Date().getHours();
   const greeting = greetingHour < 12 ? 'Guten Morgen' : greetingHour < 18 ? 'Guten Tag' : 'Guten Abend';
@@ -187,6 +279,33 @@ export default function Dashboard() {
           }}
         />
       </div>
+
+      <section className="smart-insights" aria-label="Smart Insights">
+        <div className="smart-insights-head">
+          <div className="smart-insights-title">
+            <Target size={14} />
+            Fokus heute
+          </div>
+          <div className="smart-insights-meta-wrap">
+            <span className="smart-insights-meta">Heute: {todayTasks.length}</span>
+            <span className="smart-insights-meta">Überfällig: {overdueCount}</span>
+            <span className="smart-insights-meta">Woche: {weekCompletionRate}%</span>
+          </div>
+        </div>
+        <div className="smart-insights-list">
+          {insights.map((item) => {
+            const Icon = item.icon;
+            return (
+              <article key={item.key} className="smart-insight-item">
+                <div className="smart-insight-icon" style={{ background: `${item.color}18`, color: item.color }}>
+                  <Icon size={14} />
+                </div>
+                <p>{item.text}</p>
+              </article>
+            );
+          })}
+        </div>
+      </section>
 
       {/* Filter Bar */}
       <div className="filter-bar">

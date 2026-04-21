@@ -2055,63 +2055,104 @@ input, textarea, select {
 
 /* ========== SMART INSIGHTS ========== */
 .smart-insights {
-  margin-bottom: 14px;
-  border: 1px solid var(--border);
-  background: var(--card-solid);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-  padding: 12px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(18, 28, 45, 0.08);
+  background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
+  border-radius: 18px;
+  box-shadow: 0 8px 26px rgba(12, 23, 42, 0.06);
+  padding: 14px;
 }
 
 .smart-insights-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
 .smart-insights-title {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: 7px;
+  font-size: 14px;
   font-weight: 700;
-  color: var(--text);
+  color: #111827;
+}
+
+.smart-insights-meta-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .smart-insights-meta {
   font-size: 11px;
-  color: var(--text-secondary);
-  padding: 4px 8px;
+  color: #6b7280;
+  padding: 5px 9px;
   border-radius: 999px;
-  background: var(--bg);
+  background: #f4f7fc;
+  border: 1px solid #e7edf7;
 }
 
 .smart-insights-list {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
 }
 
 .smart-insight-item {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 10px;
   font-size: 13px;
-  color: var(--text);
-  background: var(--bg);
-  border-radius: 10px;
-  padding: 8px 10px;
+  color: #1f2937;
+  background: #f7faff;
+  border-radius: 12px;
+  padding: 10px;
+  border: 1px solid #e6edf8;
+}
+
+.smart-insight-item p {
+  margin: 0;
+  line-height: 1.42;
 }
 
 .smart-insight-icon {
-  width: 24px;
-  height: 24px;
-  border-radius: 7px;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+@media (min-width: 1024px) {
+  .smart-insights {
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .smart-insights-title {
+    font-size: 15px;
+    letter-spacing: -0.1px;
+  }
+
+  .smart-insights-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .smart-insight-item {
+    padding: 12px;
+    font-size: 14px;
+    min-height: 64px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
 }
 
 /* Collapsible filters */
