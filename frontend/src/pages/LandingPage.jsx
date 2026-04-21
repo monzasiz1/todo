@@ -1,121 +1,144 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../store/authStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
+  AlertCircle,
   ArrowRight,
   Brain,
+  Calendar,
   CalendarDays,
   CheckCircle2,
   CheckSquare,
-  Clock3,
+  ChevronDown,
   Download,
   Eye,
-  Flag,
-  Globe,
+  GripVertical,
+  Key,
   Layers3,
-  Lock,
+  ListTodo,
+  Mail,
+  Paperclip,
   Repeat,
   Shield,
   Sparkles,
-  UserCheck,
-  Users,
+  Target,
   UsersRound,
   X,
-  Mail,
-  Key,
-  AlertCircle,
 } from 'lucide-react';
+import { PLANS } from '../lib/plans';
+import { useAuthStore } from '../store/authStore';
 
-const features = [
+const heroPoints = [
+  'Dashboard mit KI-Eingabe und Zeitbezug',
+  'Kalender für Aufgaben und Termine',
+  'Gruppen, Profil und Planverwaltung in einer App',
+];
+
+const workflow = [
+  {
+    title: 'Erfassen',
+    description: 'Aufgaben manuell anlegen oder im Pro- und Team-Plan per KI-Eingabe strukturieren lassen.',
+  },
+  {
+    title: 'Planen',
+    description: 'Dashboard, Kalender und Wiederholungen bringen Aufgaben, Termine und Zeitfenster in eine Linie.',
+  },
+  {
+    title: 'Zusammenarbeiten',
+    description: 'Gruppen, Anhänge und sichtbare Profile sorgen dafür, dass kleine Teams an einem Ort bleiben.',
+  },
+];
+
+const modules = [
   {
     icon: Brain,
-    title: 'KI-gestützte Eingabe',
-    desc: 'Natürliche Sprache wird zu strukturierten Aufgaben: "Jeden Mittwoch Probe 19:00-21:00" → fertig!',
-    color: '#8B5CF6',
+    title: 'Dashboard mit KI-Eingabe',
+    description: 'Der Einstieg der App bündelt Today-Ansicht, Insights und die natürliche Eingabe für neue Aufgaben.',
+    plan: 'Pro/Team',
+    accent: '#007AFF',
   },
   {
     icon: CalendarDays,
-    title: 'Intelligenter Kalender',
-    desc: 'Aufgaben, Termine und Wiederholungen in einer Ansicht. Drag-to-reschedule ist intuitiv.',
-    color: '#3B82F6',
+    title: 'Kalender für Aufgaben und Termine',
+    description: 'Die Kalenderseite zeigt Aufgaben im Datumsbereich und erlaubt das Erstellen direkt pro Tag.',
+    plan: 'Alle Pläne',
+    accent: '#5E5CE6',
   },
   {
     icon: Repeat,
-    title: 'Wiederholungen',
-    desc: 'Täglich, wöchentlich, monatlich bis zum Enddatum. Virtual Recurrence spart DB-Space.',
-    color: '#F59E0B',
-  },
-  {
-    icon: Users,
-    title: 'Teilen & Rechte',
-    desc: 'Privat, mit Freunden oder selektiv. Pro Person: Lese- & Schreibrechte control.',
-    color: '#10B981',
+    title: 'Wiederkehrende Aufgaben',
+    description: 'Wiederholungen sind im Pro- und Team-Kontext integriert und bleiben im Kalender sichtbar.',
+    plan: 'Pro/Team',
+    accent: '#FF9500',
   },
   {
     icon: UsersRound,
-    title: 'Teamgruppen',
-    desc: 'Gruppen mit Invite-Code, Rollen, Gruppenbild. Aufgaben kooperativ planen.',
-    color: '#EC4899',
+    title: 'Gruppen für Zusammenarbeit',
+    description: 'Gruppen lassen sich erstellen oder per Code beitreten. Rollen und Mitgliedschaft sind in der Oberfläche sichtbar.',
+    plan: 'Pro/Team',
+    accent: '#34C759',
   },
   {
     icon: Eye,
-    title: 'Profile & Avatare',
-    desc: 'Konsistente Profile überall: Sidebar, Aufgaben, Gruppen, Freunde.',
-    color: '#6B7280',
-  },
-  {
-    icon: Clock3,
-    title: 'Erinnerungen',
-    desc: 'Push-Notifs zum richtigen Moment. Angepasst an deine Zeitzonen & Vorlieben.',
-    color: '#EF4444',
-  },
-  {
-    icon: Download,
-    title: 'PWA Installation',
-    desc: 'Wie eine native App: Offline-Support, Home-Screen-Icon, schneller Start.',
-    color: '#F97316',
+    title: 'Profil, Sichtbarkeit und Export',
+    description: 'Avatar, Bio, Sichtbarkeit, Kennzahlen und Datenexport liegen gesammelt im Profilbereich.',
+    plan: 'Alle Pläne',
+    accent: '#1C1C1E',
   },
 ];
 
-const pricingPlans = [
+const planGateCards = [
   {
-    name: 'Persönlich',
-    price: 'Kostenlos',
-    features: [
-      'Unbegrenzte Aufgaben',
-      'Kalender & Dashboard',
-      'KI-Eingabe (5/Monat)',
-      'Erinnerungen',
-      'PWA App',
-    ],
+    icon: Sparkles,
+    title: 'KI-Eingabe',
+    statuses: ['Free: nicht enthalten', 'Pro: 200 Abfragen/Monat', 'Team: 1000 Abfragen/Monat'],
   },
   {
-    name: 'Pro',
-    price: '4,99€',
-    period: '/Monat',
-    highlight: true,
-    features: [
-      'Alles von Persönlich',
-      'Unbegrenzte KI-Eingabe',
-      'Teamgruppen (10)',
-      'Erweiterte Freigaben',
-      'Priorität-Support',
-    ],
+    icon: UsersRound,
+    title: 'Gruppen',
+    statuses: ['Free: gesperrt', 'Pro: bis zu 3 Gruppen', 'Team: unbegrenzt'],
   },
   {
-    name: 'Team',
-    price: '9,99€',
-    period: '/Monat',
-    features: [
-      'Alles von Pro',
-      'Unbegrenzte Gruppen',
-      'Admin-Dashboard',
-      'Advanced Analytics',
-      'SSO & API-Zugang',
-    ],
+    icon: Paperclip,
+    title: 'Anhänge',
+    statuses: ['Free: gesperrt', 'Pro: enthalten', 'Team: enthalten'],
   },
 ];
+
+const planAccents = {
+  free: '#8E8E93',
+  pro: '#007AFF',
+  team: '#5856D6',
+};
+
+const orderedPlans = ['free', 'pro', 'team'].map((planId) => PLANS[planId]);
+
+function getPlanBullets(plan) {
+  if (plan.id === 'free') {
+    return [
+      `Bis zu ${plan.limits.tasks} Aufgaben`,
+      `Bis zu ${plan.limits.categories} Kategorien`,
+      'Dashboard, Kalender und Profil inklusive',
+      'KI, Gruppen und Anhänge erst ab Pro',
+    ];
+  }
+
+  if (plan.id === 'pro') {
+    return [
+      'Unbegrenzte Aufgaben und Kategorien',
+      `${plan.limits.aiCalls} KI-Abfragen pro Monat`,
+      `Bis zu ${plan.limits.groups} Gruppen`,
+      'Wiederholungen, Anhänge und Statistiken inklusive',
+    ];
+  }
+
+  return [
+    'Alles aus Pro',
+    `${plan.limits.aiCalls} KI-Abfragen pro Monat`,
+    'Unbegrenzte Gruppen',
+    'Prioritäts-Support für Teams',
+  ];
+}
 
 export default function LandingPage() {
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -157,84 +180,76 @@ export default function LandingPage() {
   };
 
   const fadeIn = {
-    hidden: { opacity: 0, y: 20 },
-    visible: (i = 0) => ({
+    hidden: { opacity: 0, y: 18 },
+    visible: (index = 0) => ({
       opacity: 1,
       y: 0,
-      transition: { delay: i * 0.1, duration: 0.5 },
+      transition: { delay: index * 0.08, duration: 0.45 },
     }),
   };
 
   return (
     <div className="landing-wrapper">
-      {/* ──────────────────── NAV ──────────────────── */}
       <nav className="landing-nav">
         <div className="landing-nav-container">
           <Link to="/landing" className="landing-brand">
-            <CheckSquare size={24} />
+            <CheckSquare size={22} />
             <span>Taski</span>
           </Link>
+
           <div className="landing-nav-links">
-            <a href="#features">Features</a>
+            <a href="#product">Produkt</a>
             <a href="#pricing">Preise</a>
-            <a href="#cta">Kontakt</a>
+            <a href="#cta">Starten</a>
           </div>
+
           <div className="landing-nav-actions">
-            <button 
+            <button
               onClick={() => setShowLoginModal(true)}
               className="landing-btn landing-btn-ghost"
             >
               Anmelden
             </button>
-            <button 
+            <button
               onClick={() => setShowRegisterModal(true)}
               className="landing-btn landing-btn-solid"
             >
-              Kostenlos testen
+              Konto erstellen
             </button>
           </div>
         </div>
       </nav>
 
       <main className="landing-main">
-        {/* ──────────────────── HERO ──────────────────── */}
-        <section className="landing-hero">
-          <div className="landing-hero-bg">
-            <div className="landing-hero-glow landing-hero-glow-1" />
-            <div className="landing-hero-glow landing-hero-glow-2" />
-            <div className="landing-hero-glow landing-hero-glow-3" />
-          </div>
-
-          <div className="landing-container">
-            <motion.div 
-              className="landing-hero-content"
+        <section className="landing-hero" id="overview">
+          <div className="landing-container landing-hero-grid">
+            <motion.div
+              className="landing-hero-copy"
               initial="hidden"
               animate="visible"
-              variants={{ visible: { transition: { staggerChildren: 0.12 } } }}
+              variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
             >
               <motion.div className="landing-chip" variants={fadeIn}>
-                <Sparkles size={16} />
-                Professionelle Task- und Terminplattform
+                <Layers3 size={15} />
+                Für Einzelpersonen und kleine Teams
               </motion.div>
 
               <motion.h1 className="landing-hero-title" variants={fadeIn}>
-                Planung, die sich
-                <span> anfühlt wie eine echte App</span>
+                Aufgaben, Kalender und Gruppen in einer Oberfläche, die nach App aussieht und sich auch so anfühlt.
               </motion.h1>
 
               <motion.p className="landing-hero-desc" variants={fadeIn}>
-                Taski kombiniert KI-Eingabe, intelligente Wiederholungen, Teamkolaboration und
-                einen schönen Kalender. Alles was du für produktive Planung brauchst — in einer App.
+                Taski ist eine produktive Web-App für Planung und einfache Zusammenarbeit. Die Landing Page zeigt genau die Bereiche, die in der Anwendung vorhanden sind: Dashboard, Kalender, Gruppen, Profil und das reale Planmodell.
               </motion.p>
 
               <motion.div className="landing-hero-actions" variants={fadeIn}>
-                <button 
+                <button
                   onClick={() => setShowRegisterModal(true)}
                   className="landing-btn landing-btn-solid landing-btn-lg"
                 >
-                  Jetzt kostenlos testen <ArrowRight size={18} />
+                  Kostenlos starten <ArrowRight size={18} />
                 </button>
-                <button 
+                <button
                   onClick={() => setShowLoginModal(true)}
                   className="landing-btn landing-btn-outline landing-btn-lg"
                 >
@@ -242,239 +257,421 @@ export default function LandingPage() {
                 </button>
               </motion.div>
 
-              <motion.div className="landing-hero-bullets" variants={fadeIn}>
-                <div className="landing-bullet">
-                  <CheckCircle2 size={18} />
-                  <span>KI-Eingabe mit Live-Preview</span>
+              <motion.div className="landing-hero-points" variants={fadeIn}>
+                {heroPoints.map((point) => (
+                  <div key={point} className="landing-point">
+                    <CheckCircle2 size={18} />
+                    <span>{point}</span>
+                  </div>
+                ))}
+              </motion.div>
+
+              <motion.div className="landing-hero-meta" variants={fadeIn}>
+                <div className="landing-meta-card">
+                  <span className="landing-meta-label">Ansicht</span>
+                  <strong>Dashboard, Kalender, Gruppen</strong>
                 </div>
-                <div className="landing-bullet">
-                  <CheckCircle2 size={18} />
-                  <span>Wiederholungen & Kalender</span>
+                <div className="landing-meta-card">
+                  <span className="landing-meta-label">Planlogik</span>
+                  <strong>Free, Pro, Team</strong>
                 </div>
-                <div className="landing-bullet">
-                  <CheckCircle2 size={18} />
-                  <span>Teams & Gruppen</span>
+                <div className="landing-meta-card">
+                  <span className="landing-meta-label">Bezahlte Features</span>
+                  <strong>KI, Gruppen, Anhänge</strong>
                 </div>
               </motion.div>
             </motion.div>
 
-            <motion.div 
-              className="landing-hero-visual"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
+            <motion.div
+              className="landing-stage"
+              initial={{ opacity: 0, scale: 0.98, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ duration: 0.55, delay: 0.12 }}
             >
-              <div className="landing-mock-window">
-                <div className="landing-mock-header">
-                  <span className="landing-mock-title">Taski App</span>
-                  <div className="landing-mock-controls">
-                    <span />
-                    <span />
-                    <span />
+              <div className="landing-stage-shell">
+                <aside className="landing-stage-sidebar">
+                  <div className="landing-stage-brand">
+                    <CheckSquare size={18} />
+                    <span>Taski</span>
                   </div>
-                </div>
-                <div className="landing-mock-body">
-                  <div className="landing-mock-sidebar">
-                    <div className="landing-mock-item active">📅 Dashboard</div>
-                    <div className="landing-mock-item">📆 Kalender</div>
-                    <div className="landing-mock-item">👥 Gruppen</div>
-                    <div className="landing-mock-item">⚙️ Einstellungen</div>
+                  <div className="landing-stage-nav">
+                    <div className="landing-stage-nav-item active">Dashboard</div>
+                    <div className="landing-stage-nav-item">Kalender</div>
+                    <div className="landing-stage-nav-item">Gruppen</div>
+                    <div className="landing-stage-nav-item">Profil</div>
                   </div>
-                  <div className="landing-mock-content">
-                    <div className="landing-mock-card">
-                      <div className="landing-mock-stat">
-                        <strong>5</strong>
-                        <span>Offene</span>
+                  <div className="landing-stage-plan">
+                    <span className="landing-stage-plan-label">Aktiver Plan</span>
+                    <strong>Pro</strong>
+                  </div>
+                </aside>
+
+                <div className="landing-stage-main">
+                  <div className="landing-stage-mobile-head">
+                    <div className="landing-stage-mobile-brand">
+                      <CheckSquare size={16} />
+                      <span>Taski</span>
+                    </div>
+                    <div className="landing-stage-mobile-icons">
+                      <span className="landing-stage-mobile-dot" />
+                      <span className="landing-stage-mobile-dot" />
+                    </div>
+                  </div>
+
+                  <div className="landing-stage-topline">
+                    <div>
+                      <span className="landing-stage-overline">Dashboard</span>
+                      <h2>Guten Tag</h2>
+                      <p>Was steht heute an?</p>
+                    </div>
+                    <span className="landing-stage-status">Heute 3</span>
+                  </div>
+
+                  <div className="landing-stage-creation-stack">
+                    <div className="landing-stage-composer">
+                      <div className="landing-stage-composer-header">
+                        <Brain size={16} />
+                        <span>KI-Eingabe</span>
                       </div>
-                      <div className="landing-mock-stat">
-                        <strong>12</strong>
-                        <span>Erledigt</span>
+                      <div className="landing-stage-composer-input">
+                        Morgen 09:00 Sprint-Review mit Team, jede Woche wiederholen
                       </div>
-                      <div className="landing-mock-stat">
-                        <strong>3</strong>
+                      <div className="landing-stage-tag-row">
+                        <span className="landing-stage-tag">Termin</span>
+                        <span className="landing-stage-tag">Mittwoch</span>
+                        <span className="landing-stage-tag">09:00</span>
+                        <span className="landing-stage-tag">Wiederholung</span>
+                      </div>
+                    </div>
+
+                    <div className="landing-stage-manual">
+                      <div className="landing-stage-manual-copy">
+                        <div className="landing-stage-manual-icon">
+                          <ListTodo size={15} />
+                        </div>
+                        <div>
+                          <strong>Manuell erstellen</strong>
+                          <span>Aufgabe oder Termin ohne KI anlegen</span>
+                        </div>
+                      </div>
+                      <ChevronDown size={16} />
+                    </div>
+
+                    <div className="landing-stage-insights">
+                      <div className="landing-stage-card-head">
+                        <Target size={16} />
+                        <span>Fokus heute</span>
+                      </div>
+                      <div className="landing-stage-insight-meta">
+                        <span>Heute: 3</span>
+                        <span>Überfällig: 1</span>
+                        <span>Woche: 67%</span>
+                      </div>
+                      <div className="landing-stage-insight-list">
+                        <div className="landing-stage-insight-item">
+                          <span className="landing-stage-insight-icon alert">!</span>
+                          <p>1 Aufgabe ist überfällig, beginne dort und entlaste den Tag.</p>
+                        </div>
+                        <div className="landing-stage-insight-item">
+                          <span className="landing-stage-insight-icon calm">8h</span>
+                          <p>Heute sind 5,5 freie Stunden, 2 Termine stehen bald an.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="landing-stage-filter-bar">
+                    <span className="landing-stage-filter active">Alle</span>
+                    <span className="landing-stage-filter urgent">Dringend</span>
+                    <span className="landing-stage-filter high">Hoch</span>
+                    <span className="landing-stage-filter search">Suchen...</span>
+                  </div>
+
+                  <div className="landing-stage-section">
+                    <div className="landing-stage-section-head">
+                      <div className="landing-stage-section-left">
+                        <span className="landing-stage-section-icon warning">
+                          <Calendar size={14} />
+                        </span>
                         <span>Heute</span>
+                        <span className="landing-stage-section-count">2</span>
+                      </div>
+                      <ChevronDown size={16} />
+                    </div>
+
+                    <div className="landing-stage-list">
+                      <div className="landing-stage-task">
+                        <span className="landing-stage-task-priority priority-high" />
+                        <span className="landing-stage-task-grip"><GripVertical size={14} /></span>
+                        <span className="landing-stage-task-check" />
+                        <div>
+                          <strong>Review vorbereiten</strong>
+                          <span>Heute · 09:00 Uhr - 10:00 Uhr</span>
+                          <div className="landing-stage-task-badges">
+                            <span className="landing-stage-mini-badge group">Produkt-Team</span>
+                            <span className="landing-stage-mini-badge repeat">Wöchentlich</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="landing-stage-task event">
+                        <span className="landing-stage-task-priority priority-mid" />
+                        <span className="landing-stage-task-grip"><GripVertical size={14} /></span>
+                        <span className="landing-stage-task-event"><CalendarDays size={14} /></span>
+                        <div>
+                          <strong>Sprint-Review</strong>
+                          <span>Morgen · 09:00 Uhr - 10:00 Uhr</span>
+                          <div className="landing-stage-task-badges">
+                            <span className="landing-stage-mini-badge repeat">Termin</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <div className="landing-mock-task">
-                      <div className="landing-mock-task-item">Probe vorbereiten</div>
-                      <div className="landing-mock-task-item">Mail an Team</div>
-                      <div className="landing-mock-task-item">Code Review</div>
+                  </div>
+
+                  <div className="landing-stage-section landing-stage-section-completed">
+                    <div className="landing-stage-section-head">
+                      <div className="landing-stage-section-left">
+                        <span className="landing-stage-section-icon success">
+                          <CheckCircle2 size={14} />
+                        </span>
+                        <span>Erledigt</span>
+                        <span className="landing-stage-section-count">1</span>
+                      </div>
+                      <ChevronDown size={16} />
+                    </div>
+                    <div className="landing-stage-task completed">
+                      <span className="landing-stage-task-priority priority-low" />
+                      <span className="landing-stage-task-grip"><GripVertical size={14} /></span>
+                      <span className="landing-stage-task-check checked"><CheckCircle2 size={14} /></span>
+                      <div>
+                        <strong>Kalenderwoche prüfen</strong>
+                        <span>Vor 2 Stunden abgeschlossen</span>
+                      </div>
                     </div>
                   </div>
                 </div>
+
+                <aside className="landing-stage-rail">
+                  <div className="landing-stage-calendar">
+                    <div className="landing-stage-card-head">
+                      <CalendarDays size={16} />
+                      <span>Kalender</span>
+                    </div>
+                    <div className="landing-stage-calendar-grid">
+                      {['M', 'D', 'M', 'D', 'F', 'S', 'S'].map((day) => (
+                        <span key={day} className="landing-stage-calendar-label">{day}</span>
+                      ))}
+                      {[14, 15, 16, 17, 18, 19, 20].map((day) => (
+                        <span key={day} className={`landing-stage-day ${day === 17 ? 'active' : ''}`}>
+                          {day}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="landing-stage-group">
+                    <div className="landing-stage-card-head">
+                      <UsersRound size={16} />
+                      <span>Gruppe</span>
+                    </div>
+                    <strong>Produkt-Team</strong>
+                    <p>Einladen, beitreten und Aufgaben gemeinsam planen.</p>
+                    <div className="landing-stage-members">
+                      <span className="landing-stage-member">LK</span>
+                      <span className="landing-stage-member">MR</span>
+                      <span className="landing-stage-member">+2</span>
+                    </div>
+                  </div>
+
+                  <div className="landing-stage-profile">
+                    <div className="landing-stage-card-head">
+                      <Shield size={16} />
+                      <span>Profil</span>
+                    </div>
+                    <div className="landing-stage-avatar">TS</div>
+                    <div className="landing-stage-profile-meta">
+                      <strong>Tina Sommer</strong>
+                      <span>Sichtbarkeit: Freunde</span>
+                    </div>
+                    <div className="landing-stage-profile-row">
+                      <Eye size={14} />
+                      <span>Bio und Sichtbarkeit verwalten</span>
+                    </div>
+                    <div className="landing-stage-profile-row">
+                      <Download size={14} />
+                      <span>Datenexport im Profil</span>
+                    </div>
+                  </div>
+                </aside>
               </div>
             </motion.div>
           </div>
         </section>
 
-        {/* ──────────────────── FEATURES ──────────────────── */}
-        <section id="features" className="landing-section landing-features">
+        <section className="landing-section" id="product">
           <div className="landing-container">
             <div className="landing-section-head">
-              <h2>Alles was du brauchst</h2>
-              <p>Vom schnellen Erfassen bis zur Teamkoordination — Taski deckt es ab</p>
+              <span className="landing-section-label">Produktfluss</span>
+              <h2>Vom Erfassen bis zur Zusammenarbeit bleibt die Oberfläche konsistent.</h2>
+              <p>
+                Die Seite konzentriert sich auf die Bereiche, die in der Anwendung wirklich existieren, statt zusätzliche Marketing-Ebenen zu erfinden.
+              </p>
             </div>
 
-            <div className="landing-feature-grid">
-              {features.map((f, idx) => {
-                const Icon = f.icon;
+            <div className="landing-story-grid">
+              {workflow.map((step, index) => (
+                <motion.article
+                  key={step.title}
+                  className="landing-story-card"
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true, margin: '-80px' }}
+                  custom={index}
+                  variants={fadeIn}
+                >
+                  <span className="landing-story-number">0{index + 1}</span>
+                  <h3>{step.title}</h3>
+                  <p>{step.description}</p>
+                </motion.article>
+              ))}
+            </div>
+
+            <div className="landing-module-grid">
+              {modules.map((module, index) => {
+                const Icon = module.icon;
                 return (
-                  <motion.div
-                    key={f.title}
-                    className="landing-feature-card"
+                  <motion.article
+                    key={module.title}
+                    className="landing-module-card"
                     initial="hidden"
                     whileInView="visible"
-                    viewport={{ once: true, margin: '-50px' }}
-                    custom={idx}
+                    viewport={{ once: true, margin: '-80px' }}
+                    custom={index}
                     variants={fadeIn}
                   >
-                    <div className="landing-feature-icon" style={{ color: f.color }}>
-                      <Icon size={28} />
+                    <div className="landing-module-top">
+                      <div className="landing-module-icon" style={{ color: module.accent, background: `${module.accent}12` }}>
+                        <Icon size={20} />
+                      </div>
+                      <span className="landing-module-plan">{module.plan}</span>
                     </div>
-                    <h3>{f.title}</h3>
-                    <p>{f.desc}</p>
-                  </motion.div>
+                    <h3>{module.title}</h3>
+                    <p>{module.description}</p>
+                  </motion.article>
+                );
+              })}
+            </div>
+
+            <div className="landing-gates">
+              {planGateCards.map((gate, index) => {
+                const Icon = gate.icon;
+                return (
+                  <motion.article
+                    key={gate.title}
+                    className="landing-gate-card"
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: '-80px' }}
+                    custom={index}
+                    variants={fadeIn}
+                  >
+                    <div className="landing-stage-card-head">
+                      <Icon size={16} />
+                      <span>{gate.title}</span>
+                    </div>
+                    <div className="landing-gate-statuses">
+                      {gate.statuses.map((status) => (
+                        <span key={status} className="landing-gate-status">{status}</span>
+                      ))}
+                    </div>
+                  </motion.article>
                 );
               })}
             </div>
           </div>
         </section>
 
-        {/* ──────────────────── WORKFLOW ──────────────────── */}
-        <section className="landing-section landing-workflow">
+        <section className="landing-section landing-pricing" id="pricing">
           <div className="landing-container">
             <div className="landing-section-head">
-              <h2>Ein durchgehender Workflow</h2>
-              <p>Von der Eingabe bis zur Zusammenarbeit</p>
-            </div>
-
-            <div className="landing-workflow-grid">
-              <motion.div 
-                className="landing-workflow-step"
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                custom={0}
-                variants={fadeIn}
-              >
-                <div className="landing-step-num">1</div>
-                <h3>Eingabe</h3>
-                <p>Per KI oder manuell — Taski versteht beide. Mit Datum, Zeit, Priorität und Gruppe.</p>
-              </motion.div>
-
-              <motion.div 
-                className="landing-workflow-step"
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                custom={1}
-                variants={fadeIn}
-              >
-                <div className="landing-step-num">2</div>
-                <h3>Planung</h3>
-                <p>Wiederholungen, Erinnerungen, Freigaben und Gruppenarbeit sind strukturiert integriert.</p>
-              </motion.div>
-
-              <motion.div 
-                className="landing-workflow-step"
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                custom={2}
-                variants={fadeIn}
-              >
-                <div className="landing-step-num">3</div>
-                <h3>Umsetzung</h3>
-                <p>Dashboard, Kalender und Listenansichten geben dir immer den besten Überblick.</p>
-              </motion.div>
-
-              <motion.div 
-                className="landing-workflow-step"
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                custom={3}
-                variants={fadeIn}
-              >
-                <div className="landing-step-num">4</div>
-                <h3>Zusammenarbeit</h3>
-                <p>Teams und Gruppen arbeiten mit klaren Rollen und kontrollierten Rechten.</p>
-              </motion.div>
-            </div>
-          </div>
-        </section>
-
-        {/* ──────────────────── PRICING ──────────────────── */}
-        <section id="pricing" className="landing-section landing-pricing">
-          <div className="landing-container">
-            <div className="landing-section-head">
-              <h2>Einfache, faire Preise</h2>
-              <p>Starte kostenlos, upgrade wenn du es brauchst</p>
+              <span className="landing-section-label">Preise</span>
+              <h2>Die Preisdarstellung folgt direkt dem vorhandenen Planmodell der App.</h2>
+              <p>
+                Free bleibt der Einstieg. Pro und Team schalten KI, Gruppen, Wiederholungen, Anhänge und weitere Grenzen des Produkts frei.
+              </p>
             </div>
 
             <div className="landing-pricing-grid">
-              {pricingPlans.map((plan, idx) => (
-                <motion.div
-                  key={plan.name}
-                  className={`landing-pricing-card ${plan.highlight ? 'highlight' : ''}`}
+              {orderedPlans.map((plan, index) => (
+                <motion.article
+                  key={plan.id}
+                  className={`landing-pricing-card ${plan.id === 'pro' ? 'highlight' : ''}`}
                   initial="hidden"
                   whileInView="visible"
-                  viewport={{ once: true }}
-                  custom={idx}
+                  viewport={{ once: true, margin: '-80px' }}
+                  custom={index}
                   variants={fadeIn}
                 >
-                  {plan.highlight && (
-                    <div className="landing-pricing-badge">Beliebt</div>
-                  )}
-                  <h3>{plan.name}</h3>
-                  <div className="landing-pricing-amount">
-                    <span className="landing-pricing-price">{plan.price}</span>
-                    {plan.period && <span className="landing-pricing-period">{plan.period}</span>}
+                  {plan.id === 'pro' && <div className="landing-pricing-badge">Empfohlen</div>}
+                  <div className="landing-pricing-head">
+                    <span className="landing-section-label" style={{ color: planAccents[plan.id] }}>{plan.label}</span>
+                    <h3>{plan.priceLabel}</h3>
                   </div>
-                  <button 
-                    onClick={() => setShowRegisterModal(true)}
-                    className={`landing-btn ${plan.highlight ? 'landing-btn-solid' : 'landing-btn-outline'} full-width`}
-                  >
-                    Starten
-                  </button>
                   <div className="landing-pricing-features">
-                    {plan.features.map((feature) => (
-                      <div key={feature} className="landing-pricing-feature">
+                    {getPlanBullets(plan).map((bullet) => (
+                      <div key={bullet} className="landing-pricing-feature">
                         <CheckCircle2 size={16} />
-                        <span>{feature}</span>
+                        <span>{bullet}</span>
                       </div>
                     ))}
                   </div>
-                </motion.div>
+                  <button
+                    onClick={() => setShowRegisterModal(true)}
+                    className={`landing-btn ${plan.id === 'pro' ? 'landing-btn-solid' : 'landing-btn-outline'} full-width`}
+                  >
+                    {plan.id === 'free' ? 'Kostenlos starten' : 'Mit Konto freischalten'}
+                  </button>
+                </motion.article>
               ))}
             </div>
           </div>
         </section>
 
-        {/* ──────────────────── CTA ──────────────────── */}
-        <section id="cta" className="landing-section landing-cta">
+        <section className="landing-section landing-cta" id="cta">
           <div className="landing-container">
             <motion.div
-              className="landing-cta-content"
+              className="landing-cta-panel"
               initial="hidden"
               whileInView="visible"
-              viewport={{ once: true }}
+              viewport={{ once: true, margin: '-80px' }}
               variants={fadeIn}
             >
-              <h2>Bereit zu starten?</h2>
-              <p>Keine Kreditkarte erforderlich. Kostenlos testen.</p>
-              <button 
-                onClick={() => setShowRegisterModal(true)}
-                className="landing-btn landing-btn-solid landing-btn-lg"
-              >
-                Jetzt kostenlos registrieren <ArrowRight size={18} />
-              </button>
+              <div>
+                <span className="landing-section-label">Nächster Schritt</span>
+                <h2>Starte mit Free und schalte Pro oder Team erst frei, wenn du die Funktionen wirklich brauchst.</h2>
+                <p>
+                  Keine erfundenen Bundles, keine zweite Produktlinie. Nur die vorhandene App, sauber erklärt.
+                </p>
+              </div>
+              <div className="landing-hero-actions">
+                <button
+                  onClick={() => setShowRegisterModal(true)}
+                  className="landing-btn landing-btn-solid landing-btn-lg"
+                >
+                  Konto erstellen <ArrowRight size={18} />
+                </button>
+                <button
+                  onClick={() => setShowLoginModal(true)}
+                  className="landing-btn landing-btn-outline landing-btn-lg"
+                >
+                  Vorhandenes Konto öffnen
+                </button>
+              </div>
             </motion.div>
           </div>
         </section>
       </main>
 
-      {/* ──────────────────── LOGIN MODAL ──────────────────── */}
       <AnimatePresence>
         {showLoginModal && (
           <motion.div
@@ -491,7 +688,7 @@ export default function LandingPage() {
               exit={{ opacity: 0, scale: 0.95 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <button 
+              <button
                 className="landing-modal-close"
                 onClick={() => setShowLoginModal(false)}
               >
@@ -539,7 +736,7 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-                <button 
+                <button
                   type="submit"
                   disabled={loading}
                   className="landing-btn landing-btn-solid full-width"
@@ -549,7 +746,8 @@ export default function LandingPage() {
               </form>
 
               <div className="landing-modal-footer">
-                <p>Noch kein Konto? 
+                <p>
+                  Noch kein Konto?
                   <button
                     onClick={() => {
                       setShowLoginModal(false);
@@ -566,7 +764,6 @@ export default function LandingPage() {
         )}
       </AnimatePresence>
 
-      {/* ──────────────────── REGISTER MODAL ──────────────────── */}
       <AnimatePresence>
         {showRegisterModal && (
           <motion.div
@@ -583,7 +780,7 @@ export default function LandingPage() {
               exit={{ opacity: 0, scale: 0.95 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <button 
+              <button
                 className="landing-modal-close"
                 onClick={() => setShowRegisterModal(false)}
               >
@@ -642,7 +839,7 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-                <button 
+                <button
                   type="submit"
                   disabled={loading}
                   className="landing-btn landing-btn-solid full-width"
@@ -652,7 +849,8 @@ export default function LandingPage() {
               </form>
 
               <div className="landing-modal-footer">
-                <p>Bereits registriert? 
+                <p>
+                  Bereits registriert?
                   <button
                     onClick={() => {
                       setShowRegisterModal(false);
@@ -669,13 +867,13 @@ export default function LandingPage() {
         )}
       </AnimatePresence>
 
-      <footer className="lpx-footer">
-        <div className="lpx-container lpx-footer-inner">
-          <div className="lpx-brand">
-            <span className="lpx-brand-icon"><CheckSquare size={18} /></span>
-            <span className="lpx-brand-text">Taski</span>
+      <footer className="landing-footer">
+        <div className="landing-container landing-footer-inner">
+          <div className="landing-brand">
+            <CheckSquare size={18} />
+            <span>Taski</span>
           </div>
-          <p>© 2026 Taski - KI-gestuetzte Aufgabenverwaltung mit Collaboration und Kalender.</p>
+          <p>Task-Management, Kalender und Zusammenarbeit in einer React-App.</p>
         </div>
       </footer>
     </div>
