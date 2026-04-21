@@ -406,7 +406,7 @@ module.exports = async function handler(req, res) {
       const completedRaw = req.query?.completed;
       const completedFilter = completedRaw === 'true' ? true : (completedRaw === 'false' ? false : null);
       const requestedLimit = parseInt(req.query?.limit, 10);
-      const defaultLimit = lite ? 1000 : 180;
+      const defaultLimit = lite ? 400 : 180;
       const maxLimit = lite ? 1000 : 400;
       const limit = Number.isFinite(requestedLimit)
         ? Math.max(20, Math.min(maxLimit, requestedLimit))

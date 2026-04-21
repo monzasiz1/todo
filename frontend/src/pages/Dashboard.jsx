@@ -186,6 +186,7 @@ function buildSmartInsights({ overdueCount, todayCount, urgentTodayCount, freeHo
 const VIRTUAL_THRESHOLD = 24;
 const VIRTUAL_ITEM_SIZE = 112;
 const VIRTUAL_MAX_HEIGHT = 560;
+const DASHBOARD_FETCH_LIMIT = '400';
 
 function TaskRow({ index, style, data }) {
   const task = data.tasks[index];
@@ -207,12 +208,12 @@ export default function Dashboard() {
 
   useEffect(() => {
     // Load all tasks (open AND closed), let frontend filter do the rest
-    fetchTasks({ dashboard: 'true', limit: '1000' }, { force: true });
+    fetchTasks({ dashboard: 'true', limit: DASHBOARD_FETCH_LIMIT }, { force: true });
 
     // Auto-refresh every 60 s so newly shared/group tasks appear without manual reload
     const interval = setInterval(() => {
       if (!document.hidden) {
-        fetchTasks({ dashboard: 'true', limit: '1000' }, { force: true });
+        fetchTasks({ dashboard: 'true', limit: DASHBOARD_FETCH_LIMIT }, { force: true });
       }
     }, 60000);
     return () => clearInterval(interval);
@@ -342,7 +343,7 @@ export default function Dashboard() {
         <AIInput />
         <ManualTaskForm
           onTaskCreated={() => {
-            fetchTasks({ dashboard: 'true', limit: '1000' }, { force: true });
+            fetchTasks({ dashboard: 'true', limit: DASHBOARD_FETCH_LIMIT }, { force: true });
           }}
         />
       </div>
