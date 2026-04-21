@@ -471,6 +471,64 @@ module.exports = async function handler(req, res) {
   }
 
   // ============================================
+  // PATCH /api/groups/:id/messages/:msgId — Edit own message
+  // ============================================
+  if (segments.length === 3 && segments[1] === 'messages' && req.method === 'PATCH') {
+    try {
+      const groupId = segments[0];
+      const msgId = segments[2];
+      const membership = await getMembership(groupId);
+      if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
+
+      const { content } = req.body;
+      if (!content || typeof content !== 'string' || content.trim().length === 0 || content.length > 2000) {
+        return res.status(400).json({ error: 'Ungültiger Nachrichteninhalt' });
+      }
+
+      // Only the author can edit
+      const result = await pool.query(
+        `UPDATE group_messages
+         SET content = $1, edited_at = NOW()
+         WHERE id = $2 AND group_id = $3 AND user_id = $4
+         RETURNING *`,
+        [content.trim(), msgId, groupId, user.id]
+      );
+
+      if (result.rows.length === 0) return res.status(403).json({ error: 'Nachricht nicht gefunden oder kein Zugriff' });
+
+      return res.json({ message: result.rows[0] });
+    } catch (err) {
+      console.error('Edit message error:', err);
+      return res.status(500).json({ error: 'Fehler beim Bearbeiten der Nachricht' });
+    }
+  }
+
+  // ============================================
+  // DELETE /api/groups/:id/messages/:msgId — Delete own message
+  // ============================================
+  if (segments.length === 3 && segments[1] === 'messages' && req.method === 'DELETE') {
+    try {
+      const groupId = segments[0];
+      const msgId = segments[2];
+      const membership = await getMembership(groupId);
+      if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
+
+      // Only the author can delete
+      const result = await pool.query(
+        `DELETE FROM group_messages WHERE id = $1 AND group_id = $2 AND user_id = $3 RETURNING id`,
+        [msgId, groupId, user.id]
+      );
+
+      if (result.rows.length === 0) return res.status(403).json({ error: 'Nachricht nicht gefunden oder kein Zugriff' });
+
+      return res.json({ success: true });
+    } catch (err) {
+      console.error('Delete message error:', err);
+      return res.status(500).json({ error: 'Fehler beim Löschen der Nachricht' });
+    }
+  }
+
+  // ============================================
   // PATCH /api/groups/:id/messages/:msgId/pin — Pin/unpin message
   // ============================================
   if (segments.length === 4 && segments[1] === 'messages' && segments[3] === 'pin' && req.method === 'PATCH') {

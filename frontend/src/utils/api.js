@@ -150,6 +150,15 @@ export const api = {
       body: JSON.stringify({ input }),
     }),
 
+  editGroupMessage: (groupId, msgId, content) =>
+    request(`/groups/${groupId}/messages/${msgId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ content }),
+    }),
+
+  deleteGroupMessage: (groupId, msgId) =>
+    request(`/groups/${groupId}/messages/${msgId}`, { method: 'DELETE' }),
+
   smartAction: (input) =>
     request('/ai/smart', {
       method: 'POST',

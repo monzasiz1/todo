@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Send, Pin, ChevronDown, ChevronUp,
-  MessageCircle, CalendarPlus, Users, Sparkles, Check
+  MessageCircle, CalendarPlus, Users, Sparkles, Check,
+  Pencil, Trash2
 } from 'lucide-react';
 import { useGroupStore } from '../store/groupStore';
 import { useAuthStore } from '../store/authStore';
@@ -61,6 +62,9 @@ export default function GroupChatPanel({ open, onClose }) {
   const [creatingEvent, setCreatingEvent] = useState(null); // msgId being turned into task
   const [eventSuccess, setEventSuccess] = useState(null);  // msgId that just got created
   const [groupDropOpen, setGroupDropOpen] = useState(false);
+  const [editingMsgId, setEditingMsgId] = useState(null);
+  const [editText, setEditText] = useState('');
+  const [deletingMsgId, setDeletingMsgId] = useState(null);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -149,6 +153,55 @@ export default function GroupChatPanel({ open, onClose }) {
       setMessages((prev) =>
         prev.map((m) => m.id === msg.id ? { ...m, is_pinned: !newPinned } : m)
       );
+    }
+  };
+
+  // ── Edit message ──────────────────────────────────────────────────────────
+  const startEdit = (msg) => {
+    setEditingMsgId(msg.id);
+    setEditText(msg.content);
+  };
+
+  const cancelEdit = () => {
+    setEditingMsgId(null);
+    setEditText('');
+  };
+
+  const saveEdit = async (msgId) => {
+    const content = editText.trim();
+    if (!content) return;
+    const original = messages.find((m) => m.id === msgId);
+    // Optimistic update
+    setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, content, edited_at: new Date().toISOString() } : m));
+    setEditingMsgId(null);
+    setEditText('');
+    try {
+      await api.editGroupMessage(selectedGroupId, msgId, content);
+    } catch {
+      // Revert on error
+      setMessages((prev) => prev.map((m) => m.id === msgId ? original : m));
+    }
+  };
+
+  // ── Delete message ────────────────────────────────────────────────────────
+  const deleteMessage = async (msgId) => {
+    setDeletingMsgId(msgId);
+    // Optimistic remove
+    const backup = messages.find((m) => m.id === msgId);
+    setMessages((prev) => prev.filter((m) => m.id !== msgId));
+    try {
+      await api.deleteGroupMessage(selectedGroupId, msgId);
+    } catch {
+      // Revert on error
+      setMessages((prev) => {
+        const idx = prev.findIndex((m) => m.created_at < backup.created_at);
+        if (idx === -1) return [...prev, backup];
+        const next = [...prev];
+        next.splice(idx, 0, backup);
+        return next;
+      });
+    } finally {
+      setDeletingMsgId(null);
     }
   };
 
@@ -338,7 +391,30 @@ export default function GroupChatPanel({ open, onClose }) {
                           )}
 
                           <div className={`gchat-bubble ${isOwn ? 'own' : ''} ${msg.is_pinned ? 'pinned' : ''}`}>
-                            <p className="gchat-bubble-text">{msg.content}</p>
+                            {editingMsgId === msg.id ? (
+                              <div className="gchat-edit-area">
+                                <textarea
+                                  className="gchat-edit-input"
+                                  value={editText}
+                                  onChange={(e) => setEditText(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveEdit(msg.id); }
+                                    if (e.key === 'Escape') cancelEdit();
+                                  }}
+                                  autoFocus
+                                  rows={2}
+                                />
+                                <div className="gchat-edit-actions">
+                                  <button className="gchat-edit-cancel" onClick={cancelEdit}>Abbrechen</button>
+                                  <button className="gchat-edit-save" onClick={() => saveEdit(msg.id)} disabled={!editText.trim()}>Speichern</button>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="gchat-bubble-text">
+                                {msg.content}
+                                {msg.edited_at && <span className="gchat-edited-tag"> (bearbeitet)</span>}
+                              </p>
+                            )}
 
                             {/* AI Calendar hint */}
                             {hasTime && (
@@ -368,9 +444,28 @@ export default function GroupChatPanel({ open, onClose }) {
                               </div>
                             )}
 
-                            {/* Timestamp + pin */}
+                            {/* Timestamp + pin + edit/delete for own messages */}
                             <div className="gchat-bubble-meta">
                               <span className="gchat-time">{formatTime(msg.created_at)}</span>
+                              {isOwn && editingMsgId !== msg.id && (
+                                <>
+                                  <button
+                                    className="gchat-pin-btn"
+                                    onClick={() => startEdit(msg)}
+                                    title="Bearbeiten"
+                                  >
+                                    <Pencil size={10} />
+                                  </button>
+                                  <button
+                                    className={`gchat-pin-btn gchat-delete-btn ${deletingMsgId === msg.id ? 'deleting' : ''}`}
+                                    onClick={() => deleteMessage(msg.id)}
+                                    title="Löschen"
+                                    disabled={deletingMsgId === msg.id}
+                                  >
+                                    <Trash2 size={10} />
+                                  </button>
+                                </>
+                              )}
                               <button
                                 className={`gchat-pin-btn ${msg.is_pinned ? 'active' : ''}`}
                                 onClick={() => togglePin(msg)}

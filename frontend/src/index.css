@@ -13605,3 +13605,92 @@ body.cal-is-dragging * {
 @media (min-width: 769px) {
   .gchat-mobile-trigger { display: none; }
 }
+
+/* ── Group Chat: Edit & Delete ─────────────────────────────────── */
+
+/* Delete button danger color */
+.gchat-delete-btn:hover {
+  color: var(--danger, #FF3B30) !important;
+}
+.gchat-delete-btn.deleting {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* "bearbeitet" tag */
+.gchat-edited-tag {
+  font-size: 10px;
+  opacity: 0.55;
+  font-style: italic;
+  margin-left: 2px;
+}
+
+/* Edit textarea inside bubble */
+.gchat-edit-area {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gchat-edit-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  padding: 7px 9px;
+  font-size: 13.5px;
+  color: inherit;
+  line-height: 1.4;
+  resize: none;
+  font-family: inherit;
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.gchat-edit-input:focus {
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.15);
+}
+/* Non-own bubble edit input */
+.gchat-bubble:not(.own) .gchat-edit-input {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--text);
+}
+.gchat-bubble:not(.own) .gchat-edit-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.12);
+}
+
+/* Edit action buttons */
+.gchat-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.gchat-edit-cancel,
+.gchat-edit-save {
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  transition: opacity var(--transition), transform 0.12s;
+}
+.gchat-edit-cancel {
+  background: rgba(0, 0, 0, 0.12);
+  color: inherit;
+  opacity: 0.75;
+}
+.gchat-edit-cancel:hover { opacity: 1; }
+.gchat-edit-save {
+  background: white;
+  color: var(--primary);
+}
+.gchat-bubble:not(.own) .gchat-edit-cancel {
+  background: var(--border);
+  color: var(--text-secondary);
+}
+.gchat-bubble:not(.own) .gchat-edit-save {
+  background: var(--primary);
+  color: white;
+}
+.gchat-edit-save:disabled { opacity: 0.4; }
+.gchat-edit-save:not(:disabled):hover { transform: scale(1.03); }
