@@ -13694,3 +13694,216 @@ body.cal-is-dragging * {
 }
 .gchat-edit-save:disabled { opacity: 0.4; }
 .gchat-edit-save:not(:disabled):hover { transform: scale(1.03); }
+
+/* ── AI Type Chips ─────────────────────────────────────────────── */
+.gchat-type-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.gchat-type-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  border: 1px solid var(--border-strong);
+  background: var(--card-solid);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  transition: background var(--transition), border-color var(--transition), transform 0.12s;
+  white-space: nowrap;
+}
+.gchat-type-chip:hover:not(:disabled) {
+  background: var(--primary-bg);
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+.gchat-type-chip:disabled { opacity: 0.4; }
+.gchat-bubble.own .gchat-type-chip {
+  background: rgba(255,255,255,0.18);
+  border-color: rgba(255,255,255,0.35);
+  color: white;
+}
+.gchat-bubble.own .gchat-type-chip:hover:not(:disabled) {
+  background: rgba(255,255,255,0.3);
+}
+.gchat-type-chip--poll {
+  border-color: rgba(99, 102, 241, 0.4);
+  color: #6366f1;
+}
+.gchat-type-chip--poll:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: #6366f1;
+  color: #6366f1;
+}
+.gchat-bubble.own .gchat-type-chip--poll {
+  color: rgba(255,255,255,0.85);
+}
+
+/* ── Undo Toast ────────────────────────────────────────────────── */
+.gchat-undo-toast {
+  position: absolute;
+  bottom: 80px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--card-solid);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  z-index: 10;
+}
+.gchat-undo-toast svg { color: var(--success, #34C759); flex-shrink: 0; }
+.gchat-undo-toast span { flex: 1; }
+.gchat-undo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: var(--primary);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+  transition: opacity var(--transition);
+}
+.gchat-undo-btn:hover { opacity: 0.85; }
+
+/* ── Poll Card ─────────────────────────────────────────────────── */
+.gchat-poll-card {
+  background: var(--card-solid);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 14px;
+  padding: 12px 14px 10px;
+  max-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gchat-poll-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6366f1;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.gchat-poll-question {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.35;
+  margin-bottom: 2px;
+}
+.gchat-poll-option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-size: 13px;
+  color: var(--text);
+  text-align: left;
+  overflow: hidden;
+  transition: border-color var(--transition), background var(--transition);
+}
+.gchat-poll-option:hover:not(:disabled) {
+  border-color: #6366f1;
+  background: rgba(99, 102, 241, 0.05);
+}
+.gchat-poll-option.voted {
+  border-color: #6366f1;
+  background: rgba(99, 102, 241, 0.08);
+  color: #6366f1;
+  font-weight: 600;
+}
+.gchat-poll-label { flex: 1; position: relative; z-index: 1; }
+.gchat-poll-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6366f1;
+  position: relative;
+  z-index: 1;
+  min-width: 16px;
+  text-align: right;
+}
+.gchat-poll-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 8px;
+  transition: width 0.35s ease;
+}
+.gchat-poll-footer {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-align: right;
+  margin-top: 2px;
+}
+
+/* ── Inline Poll Builder ────────────────────────────────────────── */
+.gchat-poll-builder {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.gchat-bubble.own .gchat-poll-builder {
+  border-top-color: rgba(255,255,255,0.2);
+}
+.gchat-poll-builder-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 2px;
+}
+.gchat-bubble.own .gchat-poll-builder-title { color: rgba(255,255,255,0.75); }
+.gchat-poll-option-input {
+  width: 100%;
+  background: rgba(0,0,0,0.06);
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 8px;
+  padding: 6px 9px;
+  font-size: 12.5px;
+  color: inherit;
+  font-family: inherit;
+  outline: none;
+  transition: border-color var(--transition);
+}
+.gchat-bubble.own .gchat-poll-option-input {
+  background: rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.25);
+  color: white;
+}
+.gchat-poll-option-input::placeholder { opacity: 0.5; }
+.gchat-poll-option-input:focus { border-color: rgba(99,102,241,0.6); }
+.gchat-poll-builder-add {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #6366f1;
+  align-self: flex-start;
+  padding: 2px 0;
+  transition: opacity var(--transition);
+}
+.gchat-poll-builder-add:disabled { opacity: 0.35; }

@@ -4,7 +4,7 @@ async function parseTaskWithAI(input, options = {}) {
   const key = process.env.MISTRAL_API_KEY;
   if (!key) throw new Error('MISTRAL_API_KEY nicht konfiguriert');
 
-  const { groupNames = [] } = options;
+  const { groupNames = [], groupContext = null } = options;
 
   const now = new Date();
   const days = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
@@ -27,7 +27,8 @@ Aktuelles Jahr: ${now.getFullYear()}
 
 Nächste Wochentage ab heute:
 ${Object.entries(nextWeekdays).map(([day, date]) => `- ${day} → ${date}`).join('\n')}
-
+${groupContext ? `
+Gruppenkontext: Diese Aufgabe kommt aus einer Gruppe namens "${groupContext.groupName}" mit ${groupContext.memberCount || '?'} Mitgliedern. Berücksichtige das beim Erstellen (z.B. passender Ort, Dauer, Kategorie).` : ''}
 Regeln:
 - WICHTIG: Unterscheide ob es sich um einen TERMIN (type: "event") oder eine AUFGABE (type: "task") handelt:
   - TERMIN (event): Feste Zeitpunkte wie Arzttermin, Meeting, Probe, Geburtstag, Konzert, Vorlesung, Kirmes, Feiertag, Urlaub. Termine haben typischerweise ein festes Datum/Uhrzeit und können NICHT abgehakt werden.

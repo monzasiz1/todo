@@ -2,8 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Send, Pin, ChevronDown, ChevronUp,
-  MessageCircle, CalendarPlus, Users, Sparkles, Check,
-  Pencil, Trash2
+  MessageCircle, Users, Sparkles, Check,
+  Pencil, Trash2, Undo2, BarChart2
 } from 'lucide-react';
 import { useGroupStore } from '../store/groupStore';
 import { useAuthStore } from '../store/authStore';
@@ -59,12 +59,15 @@ export default function GroupChatPanel({ open, onClose }) {
   const [sending, setSending] = useState(false);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [pinnedOpen, setPinnedOpen] = useState(true);
-  const [creatingEvent, setCreatingEvent] = useState(null); // msgId being turned into task
-  const [eventSuccess, setEventSuccess] = useState(null);  // msgId that just got created
   const [groupDropOpen, setGroupDropOpen] = useState(false);
   const [editingMsgId, setEditingMsgId] = useState(null);
   const [editText, setEditText] = useState('');
   const [deletingMsgId, setDeletingMsgId] = useState(null);
+  const [creatingFor, setCreatingFor] = useState(null); // '${msgId}_${type}'
+  const [undoInfo, setUndoInfo] = useState(null);       // { taskId, label }
+  const [votingId, setVotingId] = useState(null);        // 'msgId_optionId'
+  const [pollBuilder, setPollBuilder] = useState(null);  // { msgId, question, options: string[] }
+  const undoTimerRef = useRef(null);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -205,17 +208,70 @@ export default function GroupChatPanel({ open, onClose }) {
     }
   };
 
-  // ── "Termin erstellen" — parse and create task via AI ─────────────────────
-  const createEventFromMessage = async (msg) => {
-    setCreatingEvent(msg.id);
+  // ── Auto-create with type + undo toast ───────────────────────────────────
+  const createWithType = async (msg, type) => {
+    const key = `${msg.id}_${type}`;
+    setCreatingFor(key);
     try {
-      await api.parseAndCreateTask(msg.content);
-      setEventSuccess(msg.id);
-      setTimeout(() => setEventSuccess(null), 3000);
+      const groupContext = selectedGroup
+        ? { groupId: selectedGroup.id, groupName: selectedGroup.name, memberCount: selectedGroup.member_count }
+        : null;
+      const data = await api.parseAndCreateTask(msg.content, type, groupContext);
+      const taskId = data?.task?.id;
+      const typeLabel = type === 'termin' ? '📅 Termin' : type === 'aufgabe' ? '✅ Aufgabe' : '⏰ Erinnerung';
+      setUndoInfo({ taskId, label: `${typeLabel} erstellt` });
+      clearTimeout(undoTimerRef.current);
+      undoTimerRef.current = setTimeout(() => setUndoInfo(null), 8000);
     } catch {
-      // ignore
+      // ignore – API shows its own error
     } finally {
-      setCreatingEvent(null);
+      setCreatingFor(null);
+    }
+  };
+
+  const undoCreate = async () => {
+    if (!undoInfo?.taskId) { setUndoInfo(null); return; }
+    try { await api.deleteTask(undoInfo.taskId); } catch { /* ignore */ }
+    clearTimeout(undoTimerRef.current);
+    setUndoInfo(null);
+  };
+
+  // ── Poll builder ─────────────────────────────────────────────────────────
+  const openPollBuilder = (msg) => {
+    setPollBuilder({ msgId: msg.id, question: msg.content, options: ['', '', ''] });
+  };
+
+  const submitPoll = async () => {
+    if (!pollBuilder || !selectedGroupId) return;
+    const opts = pollBuilder.options.map(o => o.trim()).filter(Boolean);
+    if (opts.length < 2) return;
+    try {
+      const data = await api.createGroupPoll(selectedGroupId, pollBuilder.question, opts);
+      setMessages(prev => [...prev, data.message]);
+      setPollBuilder(null);
+    } catch { /* ignore */ }
+  };
+
+  // ── Cast vote ─────────────────────────────────────────────────────────────
+  const castVote = async (pollMsgId, optionId) => {
+    const vKey = `${pollMsgId}_${optionId}`;
+    if (votingId === vKey) return;
+    setVotingId(vKey);
+    // Optimistic update
+    setMessages(prev => prev.map(m => {
+      if (m.id !== pollMsgId) return m;
+      const vd = { ...(m.vote_data || {}) };
+      const wasVoted = vd[optionId]?.user_voted;
+      vd[optionId] = { count: (vd[optionId]?.count || 0) + (wasVoted ? -1 : 1), user_voted: !wasVoted };
+      return { ...m, vote_data: vd };
+    }));
+    try {
+      const data = await api.voteGroupPoll(selectedGroupId, pollMsgId, optionId);
+      setMessages(prev => prev.map(m => m.id === pollMsgId ? { ...m, vote_data: data.vote_data } : m));
+    } catch {
+      loadMessages(); // revert via reload
+    } finally {
+      setVotingId(null);
     }
   };
 
@@ -355,7 +411,7 @@ export default function GroupChatPanel({ open, onClose }) {
 
                   {messages.map((msg, idx) => {
                     const isOwn = msg.user_id === user?.id;
-                    const hasTime = detectTimeHint(msg.content);
+                    const hasTime = !msg.is_poll && detectTimeHint(msg.content);
                     const showSender =
                       !isOwn &&
                       (idx === 0 || messages[idx - 1].user_id !== msg.user_id);
@@ -390,91 +446,166 @@ export default function GroupChatPanel({ open, onClose }) {
                             <span className="gchat-sender-name">{msg.sender_name}</span>
                           )}
 
-                          <div className={`gchat-bubble ${isOwn ? 'own' : ''} ${msg.is_pinned ? 'pinned' : ''}`}>
-                            {editingMsgId === msg.id ? (
-                              <div className="gchat-edit-area">
-                                <textarea
-                                  className="gchat-edit-input"
-                                  value={editText}
-                                  onChange={(e) => setEditText(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveEdit(msg.id); }
-                                    if (e.key === 'Escape') cancelEdit();
-                                  }}
-                                  autoFocus
-                                  rows={2}
-                                />
-                                <div className="gchat-edit-actions">
-                                  <button className="gchat-edit-cancel" onClick={cancelEdit}>Abbrechen</button>
-                                  <button className="gchat-edit-save" onClick={() => saveEdit(msg.id)} disabled={!editText.trim()}>Speichern</button>
-                                </div>
+                          {/* ── Poll card ── */}
+                          {msg.is_poll ? (
+                            <div className="gchat-poll-card">
+                              <div className="gchat-poll-header">
+                                <BarChart2 size={13} />
+                                <span>Abstimmung</span>
                               </div>
-                            ) : (
-                              <p className="gchat-bubble-text">
-                                {msg.content}
-                                {msg.edited_at && <span className="gchat-edited-tag"> (bearbeitet)</span>}
-                              </p>
-                            )}
-
-                            {/* AI Calendar hint */}
-                            {hasTime && (
-                              <div className="gchat-ai-hint">
-                                <Sparkles size={11} />
-                                <span>Zeitangabe erkannt</span>
-                                {eventSuccess === msg.id ? (
-                                  <span className="gchat-event-success">
-                                    <Check size={11} /> Termin erstellt!
-                                  </span>
-                                ) : (
+                              <p className="gchat-poll-question">{msg.content}</p>
+                              {(msg.poll_options || []).map(opt => {
+                                const vd = msg.vote_data?.[opt.id];
+                                const count = vd?.count || 0;
+                                const voted = vd?.user_voted || false;
+                                const total = (msg.poll_options || []).reduce(
+                                  (s, o) => s + (msg.vote_data?.[o.id]?.count || 0), 0
+                                );
+                                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                                return (
                                   <button
-                                    className="gchat-event-btn"
-                                    disabled={creatingEvent === msg.id}
-                                    onClick={() => createEventFromMessage(msg)}
+                                    key={opt.id}
+                                    className={`gchat-poll-option ${voted ? 'voted' : ''}`}
+                                    onClick={() => castVote(msg.id, opt.id)}
+                                    disabled={votingId === `${msg.id}_${opt.id}`}
                                   >
-                                    {creatingEvent === msg.id ? (
-                                      <span className="gchat-spinner-inline" />
-                                    ) : (
-                                      <>
-                                        <CalendarPlus size={11} />
-                                        Termin erstellen?
-                                      </>
-                                    )}
+                                    <span className="gchat-poll-label">{opt.label}</span>
+                                    <span className="gchat-poll-count">{count}</span>
+                                    <div
+                                      className="gchat-poll-bar"
+                                      style={{ width: `${pct}%` }}
+                                    />
                                   </button>
-                                )}
-                              </div>
-                            )}
-
-                            {/* Timestamp + pin + edit/delete for own messages */}
-                            <div className="gchat-bubble-meta">
-                              <span className="gchat-time">{formatTime(msg.created_at)}</span>
-                              {isOwn && editingMsgId !== msg.id && (
-                                <>
-                                  <button
-                                    className="gchat-pin-btn"
-                                    onClick={() => startEdit(msg)}
-                                    title="Bearbeiten"
-                                  >
-                                    <Pencil size={10} />
-                                  </button>
-                                  <button
-                                    className={`gchat-pin-btn gchat-delete-btn ${deletingMsgId === msg.id ? 'deleting' : ''}`}
-                                    onClick={() => deleteMessage(msg.id)}
-                                    title="Löschen"
-                                    disabled={deletingMsgId === msg.id}
-                                  >
-                                    <Trash2 size={10} />
-                                  </button>
-                                </>
-                              )}
-                              <button
-                                className={`gchat-pin-btn ${msg.is_pinned ? 'active' : ''}`}
-                                onClick={() => togglePin(msg)}
-                                title={msg.is_pinned ? 'Losgelöst' : 'Anpinnen'}
-                              >
-                                <Pin size={10} />
-                              </button>
+                                );
+                              })}
+                              <span className="gchat-poll-footer">
+                                {(msg.poll_options || []).reduce((s, o) => s + (msg.vote_data?.[o.id]?.count || 0), 0)} Stimmen
+                              </span>
                             </div>
-                          </div>
+                          ) : (
+                            <div className={`gchat-bubble ${isOwn ? 'own' : ''} ${msg.is_pinned ? 'pinned' : ''}`}>
+                              {editingMsgId === msg.id ? (
+                                <div className="gchat-edit-area">
+                                  <textarea
+                                    className="gchat-edit-input"
+                                    value={editText}
+                                    onChange={(e) => setEditText(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveEdit(msg.id); }
+                                      if (e.key === 'Escape') cancelEdit();
+                                    }}
+                                    autoFocus
+                                    rows={2}
+                                  />
+                                  <div className="gchat-edit-actions">
+                                    <button className="gchat-edit-cancel" onClick={cancelEdit}>Abbrechen</button>
+                                    <button className="gchat-edit-save" onClick={() => saveEdit(msg.id)} disabled={!editText.trim()}>Speichern</button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="gchat-bubble-text">
+                                  {msg.content}
+                                  {msg.edited_at && <span className="gchat-edited-tag"> (bearbeitet)</span>}
+                                </p>
+                              )}
+
+                              {/* AI hint: type chips */}
+                              {hasTime && editingMsgId !== msg.id && (
+                                <div className="gchat-ai-hint">
+                                  <Sparkles size={11} />
+                                  <span>KI-Vorschlag:</span>
+                                  <div className="gchat-type-chips">
+                                    {[
+                                      { type: 'termin', label: '📅 Termin' },
+                                      { type: 'aufgabe', label: '✅ Aufgabe' },
+                                      { type: 'erinnerung', label: '⏰ Erinnerung' },
+                                    ].map(({ type, label }) => (
+                                      <button
+                                        key={type}
+                                        className="gchat-type-chip"
+                                        disabled={!!creatingFor}
+                                        onClick={() => createWithType(msg, type)}
+                                      >
+                                        {creatingFor === `${msg.id}_${type}` ? (
+                                          <span className="gchat-spinner-inline" />
+                                        ) : label}
+                                      </button>
+                                    ))}
+                                    <button
+                                      className="gchat-type-chip gchat-type-chip--poll"
+                                      onClick={() => openPollBuilder(msg)}
+                                    >
+                                      📊 Abstimmung
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Inline Poll Builder */}
+                              {pollBuilder?.msgId === msg.id && (
+                                <div className="gchat-poll-builder">
+                                  <p className="gchat-poll-builder-title">Optionen eingeben:</p>
+                                  {pollBuilder.options.map((opt, i) => (
+                                    <input
+                                      key={i}
+                                      className="gchat-poll-option-input"
+                                      placeholder={`Option ${i + 1}…`}
+                                      value={opt}
+                                      onChange={e => {
+                                        const next = [...pollBuilder.options];
+                                        next[i] = e.target.value;
+                                        setPollBuilder(pb => ({ ...pb, options: next }));
+                                      }}
+                                    />
+                                  ))}
+                                  <button
+                                    className="gchat-poll-builder-add"
+                                    onClick={() => setPollBuilder(pb => ({ ...pb, options: [...pb.options, ''] }))}
+                                    disabled={pollBuilder.options.length >= 6}
+                                  >+ Option</button>
+                                  <div className="gchat-edit-actions">
+                                    <button className="gchat-edit-cancel" onClick={() => setPollBuilder(null)}>Abbrechen</button>
+                                    <button
+                                      className="gchat-edit-save"
+                                      onClick={submitPoll}
+                                      disabled={pollBuilder.options.filter(o => o.trim()).length < 2}
+                                    >Umfrage senden</button>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Timestamp + pin + edit/delete for own messages */}
+                              <div className="gchat-bubble-meta">
+                                <span className="gchat-time">{formatTime(msg.created_at)}</span>
+                                {isOwn && editingMsgId !== msg.id && (
+                                  <>
+                                    <button
+                                      className="gchat-pin-btn"
+                                      onClick={() => startEdit(msg)}
+                                      title="Bearbeiten"
+                                    >
+                                      <Pencil size={10} />
+                                    </button>
+                                    <button
+                                      className={`gchat-pin-btn gchat-delete-btn ${deletingMsgId === msg.id ? 'deleting' : ''}`}
+                                      onClick={() => deleteMessage(msg.id)}
+                                      title="Löschen"
+                                      disabled={deletingMsgId === msg.id}
+                                    >
+                                      <Trash2 size={10} />
+                                    </button>
+                                  </>
+                                )}
+                                <button
+                                  className={`gchat-pin-btn ${msg.is_pinned ? 'active' : ''}`}
+                                  onClick={() => togglePin(msg)}
+                                  title={msg.is_pinned ? 'Losgelöst' : 'Anpinnen'}
+                                >
+                                  <Pin size={10} />
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -521,6 +652,25 @@ export default function GroupChatPanel({ open, onClose }) {
                 </div>
               </>
             )}
+
+            {/* ── Undo Toast ── */}
+            <AnimatePresence>
+              {undoInfo && (
+                <motion.div
+                  className="gchat-undo-toast"
+                  initial={{ y: 60, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 60, opacity: 0 }}
+                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                >
+                  <Check size={14} />
+                  <span>{undoInfo.label}</span>
+                  <button className="gchat-undo-btn" onClick={undoCreate}>
+                    <Undo2 size={13} /> Rückgängig
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         </>
       )}

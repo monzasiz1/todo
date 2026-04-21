@@ -413,6 +413,7 @@ module.exports = async function handler(req, res) {
 
       const result = await pool.query(
         `SELECT m.id, m.group_id, m.user_id, m.content, m.is_pinned, m.pinned_at, m.created_at,
+                m.edited_at, m.is_poll, m.poll_options,
                 u.name as sender_name, u.avatar_color as sender_color, u.avatar_url as sender_avatar
          FROM group_messages m
          JOIN users u ON u.id = m.user_id
@@ -421,10 +422,125 @@ module.exports = async function handler(req, res) {
          LIMIT 200`,
         [groupId]
       );
-      return res.json({ messages: result.rows });
+
+      const messages = result.rows;
+
+      // Enrich poll messages with vote counts + current user's votes
+      const pollIds = messages.filter(m => m.is_poll).map(m => m.id);
+      if (pollIds.length > 0) {
+        const votesRes = await pool.query(
+          `SELECT message_id, option_id, COUNT(*) as vote_count,
+                  BOOL_OR(user_id = $2) as user_voted
+           FROM group_poll_votes
+           WHERE message_id = ANY($1::bigint[])
+           GROUP BY message_id, option_id`,
+          [pollIds, user.id]
+        );
+        const voteMap = {};
+        for (const row of votesRes.rows) {
+          if (!voteMap[row.message_id]) voteMap[row.message_id] = {};
+          voteMap[row.message_id][row.option_id] = {
+            count: parseInt(row.vote_count, 10),
+            user_voted: row.user_voted,
+          };
+        }
+        for (const msg of messages) {
+          if (msg.is_poll) msg.vote_data = voteMap[msg.id] || {};
+        }
+      }
+
+      return res.json({ messages });
     } catch (err) {
       console.error('Get messages error:', err);
       return res.status(500).json({ error: 'Fehler beim Laden der Nachrichten' });
+    }
+  }
+
+  // ============================================
+  // POST /api/groups/:id/polls — Create a poll message
+  // ============================================
+  if (segments.length === 2 && segments[1] === 'polls' && req.method === 'POST') {
+    try {
+      const groupId = segments[0];
+      const membership = await getMembership(groupId);
+      if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
+
+      const { question, options } = req.body;
+      if (!question || typeof question !== 'string' || !question.trim()) {
+        return res.status(400).json({ error: 'Frage fehlt' });
+      }
+      if (!Array.isArray(options) || options.length < 2 || options.length > 6) {
+        return res.status(400).json({ error: 'Bitte 2–6 Optionen angeben' });
+      }
+      const cleanOptions = options
+        .map((o, i) => ({ id: String(i + 1), label: String(o).trim() }))
+        .filter(o => o.label.length > 0);
+      if (cleanOptions.length < 2) return res.status(400).json({ error: 'Mindestens 2 gültige Optionen erforderlich' });
+
+      const result = await pool.query(
+        `INSERT INTO group_messages (group_id, user_id, content, is_poll, poll_options)
+         VALUES ($1, $2, $3, true, $4)
+         RETURNING *`,
+        [groupId, user.id, question.trim(), JSON.stringify(cleanOptions)]
+      );
+      const sender = await pool.query('SELECT name, avatar_color, avatar_url FROM users WHERE id = $1', [user.id]);
+      const s = sender.rows[0] || {};
+      return res.status(201).json({
+        message: {
+          ...result.rows[0],
+          sender_name: s.name,
+          sender_color: s.avatar_color,
+          sender_avatar: s.avatar_url,
+          vote_data: {},
+        },
+      });
+    } catch (err) {
+      console.error('Create poll error:', err);
+      return res.status(500).json({ error: 'Fehler beim Erstellen der Umfrage' });
+    }
+  }
+
+  // ============================================
+  // POST /api/groups/:id/polls/:msgId/vote — Toggle vote
+  // ============================================
+  if (segments.length === 4 && segments[1] === 'polls' && segments[3] === 'vote' && req.method === 'POST') {
+    try {
+      const groupId = segments[0];
+      const msgId = segments[2];
+      const membership = await getMembership(groupId);
+      if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
+
+      const { optionId } = req.body;
+      if (!optionId) return res.status(400).json({ error: 'optionId fehlt' });
+
+      // Toggle: if already voted, remove; else insert
+      const existing = await pool.query(
+        'SELECT id FROM group_poll_votes WHERE message_id = $1 AND user_id = $2 AND option_id = $3',
+        [msgId, user.id, optionId]
+      );
+      if (existing.rows.length > 0) {
+        await pool.query('DELETE FROM group_poll_votes WHERE id = $1', [existing.rows[0].id]);
+      } else {
+        await pool.query(
+          'INSERT INTO group_poll_votes (message_id, group_id, user_id, option_id) VALUES ($1, $2, $3, $4)',
+          [msgId, groupId, user.id, optionId]
+        );
+      }
+
+      // Return updated vote counts
+      const votes = await pool.query(
+        `SELECT option_id, COUNT(*) as vote_count, BOOL_OR(user_id = $2) as user_voted
+         FROM group_poll_votes WHERE message_id = $1 GROUP BY option_id`,
+        [msgId, user.id]
+      );
+      const voteData = {};
+      for (const row of votes.rows) {
+        voteData[row.option_id] = { count: parseInt(row.vote_count, 10), user_voted: row.user_voted };
+      }
+      return res.json({ vote_data: voteData });
+    } catch (err) {
+      console.error('Vote error:', err);
+      return res.status(500).json({ error: 'Fehler beim Abstimmen' });
     }
   }
 

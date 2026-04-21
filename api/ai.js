@@ -198,10 +198,16 @@ module.exports = async function handler(req, res) {
   // POST /api/ai/parse-and-create
   if (action === 'parse-and-create') {
     try {
-      const { input, visibility: reqVisibility, permissions: reqPermissions } = req.body;
+      const { input, visibility: reqVisibility, permissions: reqPermissions, type: typeHint, groupContext } = req.body;
       if (!input) {
         return res.status(400).json({ error: 'Eingabe ist erforderlich' });
       }
+
+      // Enrich input with type hint so AI correctly classifies
+      let enrichedInput = input;
+      if (typeHint === 'aufgabe') enrichedInput = `Aufgabe (task): ${input}`;
+      else if (typeHint === 'termin') enrichedInput = `Termin (event) mit fester Uhrzeit: ${input}`;
+      else if (typeHint === 'erinnerung') enrichedInput = `Erinnerung – bitte hasReminder auf true setzen: ${input}`;
 
       const categories = await pool.query(
         'SELECT id, name FROM categories WHERE user_id = $1',
@@ -215,7 +221,7 @@ module.exports = async function handler(req, res) {
       );
       const groupNames = groupsRes.rows.map(g => g.name);
 
-      const parsed = await parseTaskWithAI(input, { groupNames });
+      const parsed = await parseTaskWithAI(enrichedInput, { groupNames, groupContext });
       if (!parsed || !parsed.title) {
         return res.status(400).json({ error: 'Aufgabe konnte nicht erkannt werden' });
       }
