@@ -60,22 +60,171 @@ function shiftDate(dateValue, days) {
   return formatDateOnly(d);
 }
 
-function buildRecurringDates(startDate, rule, interval, endDate) {
-  if (!startDate || !rule || !endDate) return [];
+// ─── Virtual Recurrence ────────────────────────────────────────────────────
+// Instead of storing hundreds of DB rows, we store only the template and
+// generate virtual occurrences on-the-fly within a requested date window.
+// A concrete row is created only when an occurrence is explicitly modified
+// (completed, edited, deleted). Virtual IDs use format: "v_{parentId}_{date}"
 
-  const dates = [];
-  let cursor = startDate;
+function expandRecurringTemplate(template, rangeStart, rangeEnd) {
+  if (!template.recurrence_rule || !template.date) return [];
+
+  const templateDate = typeof template.date === 'string'
+    ? template.date.substring(0, 10)
+    : template.date.toISOString().split('T')[0];
+
+  const effectiveEnd = template.recurrence_end
+    ? (template.recurrence_end < rangeEnd ? template.recurrence_end : rangeEnd)
+    : rangeEnd;
+
+  if (templateDate > rangeEnd || effectiveEnd < rangeStart) return [];
+
+  // Start from the first virtual occurrence (one step after template date)
+  let cursor = calcNextDate(templateDate, template.recurrence_rule, template.recurrence_interval || 1);
+  if (!cursor) return [];
+
+  // Fast-forward to first occurrence within range (max 10000 steps safety)
   let guard = 0;
-
-  while (guard < 366) {
-    const next = calcNextDate(cursor, rule, interval || 1);
-    if (!next || next > endDate) break;
-    dates.push(next);
+  while (cursor < rangeStart && guard < 10000) {
+    const next = calcNextDate(cursor, template.recurrence_rule, template.recurrence_interval || 1);
+    if (!next || next <= cursor) break;
     cursor = next;
-    guard += 1;
+    guard++;
   }
 
-  return dates;
+  // Calculate multi-day span offset
+  const spanDays = (template.date_end && templateDate)
+    ? Math.max(0, Math.round(
+        (new Date(template.date_end.substring(0, 10) + 'T00:00:00') -
+         new Date(templateDate + 'T00:00:00')) / 86400000
+      ))
+    : 0;
+
+  // Collect occurrences within [rangeStart, effectiveEnd]
+  const result = [];
+  guard = 0;
+  while (cursor && cursor <= effectiveEnd && guard < 1000) {
+    if (cursor >= rangeStart) {
+      result.push({
+        ...template,
+        id: `v_${template.id}_${cursor}`,
+        date: cursor,
+        date_end: spanDays > 0 ? shiftDate(cursor, spanDays) : null,
+        completed: false,
+        is_virtual: true,
+        recurrence_parent_id: template.id,
+      });
+    }
+    const next = calcNextDate(cursor, template.recurrence_rule, template.recurrence_interval || 1);
+    if (!next || next <= cursor) break;
+    cursor = next;
+    guard++;
+  }
+
+  return result;
+}
+
+// Parse virtual ID → { parentId, date } or null
+function parseVirtualId(id) {
+  if (typeof id !== 'string' || !id.startsWith('v_')) return null;
+  const parts = id.split('_');
+  if (parts.length < 3) return null;
+  const date = parts[parts.length - 1];
+  const parentId = parts.slice(1, -1).join('_');
+  if (!parentId || !date.match(/^\d{4}-\d{2}-\d{2}$/)) return null;
+  return { parentId, date };
+}
+
+// Materialize a virtual occurrence into a concrete DB row.
+// Returns the concrete task row.
+async function materializeOccurrence(pool, parentId, date, userId) {
+  // Return existing concrete row if already materialized
+  const existing = await pool.query(
+    `SELECT * FROM tasks WHERE recurrence_parent_id = $1 AND date::text LIKE $2 AND user_id = $3 LIMIT 1`,
+    [parentId, date + '%', userId]
+  );
+  if (existing.rows.length > 0) return existing.rows[0];
+
+  // Fetch parent template
+  const parent = await pool.query(
+    `SELECT * FROM tasks WHERE id = $1 AND user_id = $2 LIMIT 1`,
+    [parentId, userId]
+  );
+  if (parent.rows.length === 0) throw new Error('Vorlage nicht gefunden');
+  const t = parent.rows[0];
+
+  const templateDate = t.date instanceof Date
+    ? t.date.toISOString().split('T')[0]
+    : String(t.date).substring(0, 10);
+
+  const spanDays = t.date_end
+    ? Math.max(0, Math.round(
+        (new Date(String(t.date_end).substring(0, 10) + 'T00:00:00') -
+         new Date(templateDate + 'T00:00:00')) / 86400000
+      ))
+    : 0;
+  const dateEnd = spanDays > 0 ? shiftDate(date, spanDays) : null;
+
+  const maxOrder = await pool.query(
+    'SELECT COALESCE(MAX(sort_order), 0) + 1 as next_order FROM tasks WHERE user_id = $1',
+    [userId]
+  );
+
+  const ins = await pool.query(
+    `INSERT INTO tasks
+       (user_id, title, description, date, date_end, time, time_end, priority,
+        category_id, reminder_at, sort_order, visibility, type,
+        recurrence_rule, recurrence_interval, recurrence_end, recurrence_parent_id)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+     ON CONFLICT DO NOTHING
+     RETURNING *`,
+    [t.user_id, t.title, t.description, date, dateEnd, t.time, t.time_end,
+     t.priority, t.category_id, null,
+     maxOrder.rows[0].next_order, t.visibility || 'private', t.type || 'task',
+     t.recurrence_rule, t.recurrence_interval || 1, t.recurrence_end, parentId]
+  );
+
+  // If ON CONFLICT hit, fetch the row
+  if (ins.rows.length === 0) {
+    const retry = await pool.query(
+      `SELECT * FROM tasks WHERE recurrence_parent_id = $1 AND date::text LIKE $2 AND user_id = $3 LIMIT 1`,
+      [parentId, date + '%', userId]
+    );
+    return retry.rows[0];
+  }
+  return ins.rows[0];
+}
+
+// Merge concrete tasks + virtual expansions, deduplicating by parent+date
+function mergeWithVirtual(concreteTasks, templates, rangeStart, rangeEnd) {
+  // Set of (parentId:date) already covered by concrete rows
+  const concreteKeys = new Set(
+    concreteTasks
+      .filter((t) => t.recurrence_parent_id)
+      .map((t) => `${t.recurrence_parent_id}:${String(t.date).substring(0, 10)}`)
+  );
+  // Also exclude the template's own date (it's a concrete row)
+  for (const tpl of templates) {
+    concreteKeys.add(`${tpl.id}:${String(tpl.date).substring(0, 10)}`);
+  }
+
+  const virtual = [];
+  for (const tpl of templates) {
+    const occurrences = expandRecurringTemplate(tpl, rangeStart, rangeEnd);
+    for (const occ of occurrences) {
+      const key = `${tpl.id}:${occ.date}`;
+      if (!concreteKeys.has(key)) {
+        virtual.push(occ);
+        concreteKeys.add(key);
+      }
+    }
+  }
+
+  return [...concreteTasks, ...virtual].sort((a, b) => {
+    const da = String(a.date || '').substring(0, 10);
+    const db = String(b.date || '').substring(0, 10);
+    return da < db ? -1 : da > db ? 1 : 0;
+  });
 }
 
 function buildDashboardCacheKey(userId, completedFilter, limit, horizonDays, completedLookbackDays) {
@@ -110,7 +259,9 @@ module.exports = async function handler(req, res) {
       if (!start || !end) {
         return res.status(400).json({ error: 'Start- und Enddatum erforderlich' });
       }
-      const result = await pool.query(
+
+      // 1. Fetch all concrete rows in [start, end] (includes templates + any materialized overrides)
+      const concreteResult = await pool.query(
         `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
            gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url,
            gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color
@@ -125,7 +276,27 @@ module.exports = async function handler(req, res) {
          ORDER BY t.date ASC, t.sort_order ASC`,
         [user.id, start, end]
       );
-      return res.json({ tasks: result.rows });
+
+      // 2. Fetch all recurring templates (recurrence_rule set, no parent = they ARE the template)
+      //    that are active during the range window
+      const templateResult = await pool.query(
+        `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
+           gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url
+         FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
+         LEFT JOIN group_tasks gt ON gt.task_id = t.id
+         LEFT JOIN groups grp ON grp.id = gt.group_id
+         WHERE t.user_id = $1
+           AND t.recurrence_rule IS NOT NULL
+           AND t.recurrence_parent_id IS NULL
+           AND t.date <= $3
+           AND (t.recurrence_end IS NULL OR t.recurrence_end >= $2)`,
+        [user.id, start, end]
+      );
+
+      // 3. Merge concrete + virtual, deduplicating overrides
+      const merged = mergeWithVirtual(concreteResult.rows, templateResult.rows, start, end);
+
+      return res.json({ tasks: merged });
     } catch (err) {
       console.error('Tasks range error:', err);
       return res.status(500).json({ error: 'Fehler beim Laden der Aufgaben' });
@@ -177,7 +348,18 @@ module.exports = async function handler(req, res) {
   // PATCH /api/tasks/:id/toggle
   if (segments.length === 2 && segments[1] === 'toggle' && req.method === 'PATCH') {
     try {
-      const taskId = segments[0];
+      let taskId = segments[0];
+
+      // ── Virtual occurrence: materialize before toggling ──────────────────
+      const virtual = parseVirtualId(taskId);
+      if (virtual) {
+        const concreteRow = await materializeOccurrence(pool, virtual.parentId, virtual.date, user.id);
+        if (!concreteRow) {
+          return res.status(404).json({ error: 'Vorlage nicht gefunden' });
+        }
+        taskId = String(concreteRow.id);
+      }
+      // ─────────────────────────────────────────────────────────────────────
 
       // Check if this is an event (events cannot be toggled)
       const typeCheck = await pool.query('SELECT type FROM tasks WHERE id = $1', [taskId]);
@@ -200,69 +382,13 @@ module.exports = async function handler(req, res) {
       }
 
       const toggled = result.rows[0];
-      let nextTask = null;
 
-      // If a recurring task was just completed, auto-create next occurrence
-      if (toggled.completed && toggled.recurrence_rule) {
-        const nextDate = calcNextDate(toggled.date, toggled.recurrence_rule, toggled.recurrence_interval || 1);
-        // Only create if within recurrence end (or no end set)
-        if (nextDate && (!toggled.recurrence_end || nextDate <= toggled.recurrence_end)) {
-          // Calculate date_end offset
-          let nextDateEnd = null;
-          if (toggled.date_end && toggled.date) {
-            const diffMs = new Date(toggled.date_end) - new Date(toggled.date);
-            const diffDays = Math.round(diffMs / 86400000);
-            const nd = new Date(nextDate);
-            nd.setDate(nd.getDate() + diffDays);
-            nextDateEnd = nd.toISOString().split('T')[0];
-          }
+      // Virtual recurrence: the next occurrence is always shown automatically
+      // via virtual expansion — no chain-creation needed for recurring tasks.
+      // We only cache-invalidate so the dashboard refreshes.
+      await cacheManager.invalidateByEvent(String(user.id), 'task_updated');
 
-          const parentId = toggled.recurrence_parent_id || toggled.id;
-
-          const existingNext = await pool.query(
-            `SELECT id FROM tasks
-             WHERE user_id = $1 AND recurrence_parent_id = $2 AND date = $3
-             LIMIT 1`,
-            [toggled.user_id, parentId, nextDate]
-          );
-
-          if (existingNext.rows.length > 0) {
-            return res.json({ task: toggled, nextTask: null });
-          }
-
-          const maxOrder = await pool.query(
-            'SELECT COALESCE(MAX(sort_order), 0) + 1 as next_order FROM tasks WHERE user_id = $1',
-            [toggled.user_id]
-          );
-
-          const ins = await pool.query(
-            `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order, visibility,
-             recurrence_rule, recurrence_interval, recurrence_end, recurrence_parent_id, type)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
-             RETURNING *`,
-            [toggled.user_id, toggled.title, toggled.description,
-             nextDate, nextDateEnd, toggled.time, toggled.time_end,
-             toggled.priority, toggled.category_id, toggled.reminder_at,
-             maxOrder.rows[0].next_order, toggled.visibility || 'private',
-             toggled.recurrence_rule, toggled.recurrence_interval || 1,
-             toggled.recurrence_end, parentId, toggled.type || 'task']
-          );
-          nextTask = ins.rows[0];
-
-          // Copy group assignment if exists
-          try {
-            const gt = await pool.query('SELECT group_id, created_by FROM group_tasks WHERE task_id = $1', [toggled.id]);
-            if (gt.rows.length > 0) {
-              await pool.query(
-                'INSERT INTO group_tasks (group_id, task_id, created_by) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING',
-                [gt.rows[0].group_id, nextTask.id, gt.rows[0].created_by]
-              );
-            }
-          } catch { /* ignore if group tables don't exist */ }
-        }
-      }
-
-      return res.json({ task: toggled, nextTask });
+      return res.json({ task: toggled, nextTask: null });
     } catch (err) {
       console.error('Toggle error:', err);
       return res.status(500).json({ error: 'Fehler beim Umschalten' });
@@ -329,7 +455,17 @@ module.exports = async function handler(req, res) {
   // DELETE /api/tasks/:id
   if (segments.length === 1 && req.method === 'DELETE') {
     try {
-      const taskId = segments[0];
+      const rawId = segments[0];
+
+      // Virtual occurrence: nothing to delete in DB — it's generated on-the-fly.
+      // We could mark it as skipped in future, but for now simply return success.
+      const virtual = parseVirtualId(rawId);
+      if (virtual) {
+        // Optionally we could insert a "cancelled" marker here in the future.
+        return res.json({ success: true, virtual: true });
+      }
+
+      const taskId = rawId;
       const result = await pool.query(
         'DELETE FROM tasks WHERE id = $1 AND user_id = $2 RETURNING id',
         [taskId, user.id]
@@ -337,6 +473,7 @@ module.exports = async function handler(req, res) {
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Aufgabe nicht gefunden' });
       }
+      await cacheManager.invalidateByEvent(String(user.id), 'task_deleted');
       return res.json({ success: true });
     } catch (err) {
       console.error('Delete error:', err);
@@ -630,8 +767,30 @@ module.exports = async function handler(req, res) {
           );
         }
 
+        // 🚀 Virtual recurrence: expand recurring templates into the dashboard horizon
+        const today = new Date().toISOString().split('T')[0];
+        const horizonEnd = new Date();
+        horizonEnd.setDate(horizonEnd.getDate() + horizonDays);
+        const horizonEndStr = horizonEnd.toISOString().split('T')[0];
+        const lookbackStart = new Date();
+        lookbackStart.setDate(lookbackStart.getDate() - completedLookbackDays);
+        const dashWindowStart = lookbackStart.toISOString().split('T')[0];
+
+        // Fetch templates that are active within the dashboard window
+        const tplResult = await pool.query(
+          `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon
+           FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
+           WHERE t.user_id = $1
+             AND t.recurrence_rule IS NOT NULL
+             AND t.recurrence_parent_id IS NULL
+             AND t.date <= $2
+             AND (t.recurrence_end IS NULL OR t.recurrence_end >= $3)`,
+          [user.id, horizonEndStr, dashWindowStart]
+        );
+        const mergedTasks = mergeWithVirtual(result.rows, tplResult.rows, dashWindowStart, horizonEndStr);
+
         // 🚀 CACHE: Store result for 30 seconds
-        const response = { tasks: result.rows, lite: true };
+        const response = { tasks: mergedTasks, lite: true };
         const cacheKey = buildDashboardCacheKey(user.id, completedFilter, limit, horizonDays, completedLookbackDays);
         try {
           await cacheManager.set(cacheKey, response, 120, String(user.id));
@@ -755,16 +914,10 @@ module.exports = async function handler(req, res) {
         defaultEnd.setFullYear(defaultEnd.getFullYear() + 5);
         recurrenceEnd = defaultEnd.toISOString().split('T')[0];
       }
-      const extraDates = buildRecurringDates(date || null, recurrenceRule, recurrenceInterval, recurrenceEnd);
 
-      let spanDays = 0;
-      if (date && date_end) {
-        const start = toDateOnly(date);
-        const end = toDateOnly(date_end);
-        if (start && end) {
-          spanDays = Math.max(0, Math.round((end - start) / 86400000));
-        }
-      }
+      // Virtual recurrence: store ONLY the template row.
+      // Occurrences are generated on-the-fly in range/dashboard queries.
+      // (No more bulk INSERT of hundreds of child rows.)
 
       const result = await pool.query(
         `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order,
@@ -777,66 +930,44 @@ module.exports = async function handler(req, res) {
       );
 
       const firstTask = result.rows[0];
-      const createdTasks = [firstTask];
-      const taskIds = [firstTask.id];
-
-      for (let i = 0; i < extraDates.length; i++) {
-        const occurrenceDate = extraDates[i];
-        const occurrenceDateEnd = spanDays > 0 ? shiftDate(occurrenceDate, spanDays) : null;
-        const ins = await pool.query(
-          `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order,
-           recurrence_rule, recurrence_interval, recurrence_end, recurrence_parent_id, visibility, type)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-           RETURNING *`,
-          [user.id, title, description || null, occurrenceDate, occurrenceDateEnd, time || null, time_end || null,
-           priority || 'medium', category_id || null, reminder_at || null,
-           maxOrder.rows[0].next_order + i + 1, recurrenceRule, recurrenceInterval, recurrenceEnd, firstTask.id, finalVisibility, taskType]
-        );
-        createdTasks.push(ins.rows[0]);
-        taskIds.push(ins.rows[0].id);
-      }
 
       if (collabEnabled && Array.isArray(permissions) && permissions.length > 0) {
-        for (const currentTaskId of taskIds) {
-          for (const perm of permissions) {
-            if (!perm.user_id) continue;
-            await pool.query(
-              `INSERT INTO task_permissions (task_id, user_id, can_view, can_edit)
-               VALUES ($1, $2, $3, $4)
-               ON CONFLICT (task_id, user_id) DO UPDATE SET can_view = $3, can_edit = $4`,
-              [currentTaskId, perm.user_id, perm.can_view !== false, perm.can_edit === true]
-            );
-          }
-        }
-      }
-
-      if (groupInfo) {
-        for (const currentTaskId of taskIds) {
+        for (const perm of permissions) {
+          if (!perm.user_id) continue;
           await pool.query(
-            `INSERT INTO group_tasks (group_id, task_id, created_by)
-             VALUES ($1, $2, $3)
-             ON CONFLICT DO NOTHING`,
-            [groupInfo.id, currentTaskId, user.id]
+            `INSERT INTO task_permissions (task_id, user_id, can_view, can_edit)
+             VALUES ($1, $2, $3, $4)
+             ON CONFLICT (task_id, user_id) DO UPDATE SET can_view = $3, can_edit = $4`,
+            [firstTask.id, perm.user_id, perm.can_view !== false, perm.can_edit === true]
           );
         }
       }
 
-      const decoratedTasks = createdTasks.map((task) => ({
-        ...task,
+      if (groupInfo) {
+        await pool.query(
+          `INSERT INTO group_tasks (group_id, task_id, created_by)
+           VALUES ($1, $2, $3)
+           ON CONFLICT DO NOTHING`,
+          [groupInfo.id, firstTask.id, user.id]
+        );
+      }
+
+      const decoratedTask = {
+        ...firstTask,
         visibility: finalVisibility,
         group_id: groupInfo?.id || null,
         group_name: groupInfo?.name || null,
         group_color: groupInfo?.color || null,
         group_image_url: groupInfo?.image_url || null,
-      }));
+      };
 
       // 🚀 STUFE 3: Event-driven invalidation (instead of pattern-based)
   await cacheManager.invalidateByEvent(String(user.id), 'task_created');
 
       return res.status(201).json({
-        task: decoratedTasks[0],
-        created_tasks: decoratedTasks,
-        created_count: decoratedTasks.length,
+        task: decoratedTask,
+        created_tasks: [decoratedTask],
+        created_count: 1,
         group: groupInfo,
       });
     } catch (err) {
