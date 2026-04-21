@@ -138,7 +138,7 @@ module.exports = async function handler(req, res) {
       }
       
       // 🚀 STUFE 3: Event-driven invalidation on task reorder
-      cacheManager.invalidateByEvent(user.id, 'task_updated');
+      await cacheManager.invalidateByEvent(String(user.id), 'task_updated');
       
       return res.json({ success: true });
     } catch (err) {
@@ -404,9 +404,9 @@ module.exports = async function handler(req, res) {
       // 🚀 CACHE: Check dashboard cache first
       if (lite) {
         const cacheKey = buildDashboardCacheKey(user.id, completedFilter, limit);
-        const cached = cacheManager.get(cacheKey);
+        const cached = await cacheManager.get(cacheKey);
         if (cached) {
-          res.setHeader('X-Dashboard-Cache', 'HIT');
+          res.setHeader('X-Dashboard-Cache', `${cacheManager.backendName}-hit`);
           return res.json(cached);
         }
       }
@@ -539,9 +539,9 @@ module.exports = async function handler(req, res) {
         // 🚀 CACHE: Store result for 30 seconds
         const response = { tasks: result.rows, lite: true };
         const cacheKey = buildDashboardCacheKey(user.id, completedFilter, limit);
-        cacheManager.set(cacheKey, response, 30000, String(user.id)); // 30 second TTL
+        await cacheManager.set(cacheKey, response, 30, String(user.id));
 
-        res.setHeader('X-Dashboard-Cache', 'MISS');
+        res.setHeader('X-Dashboard-Cache', `${cacheManager.backendName}-miss`);
         return res.json(response);
       }
 
@@ -731,7 +731,7 @@ module.exports = async function handler(req, res) {
       }));
 
       // 🚀 STUFE 3: Event-driven invalidation (instead of pattern-based)
-      cacheManager.invalidateByEvent(user.id, 'task_created');
+  await cacheManager.invalidateByEvent(String(user.id), 'task_created');
 
       return res.status(201).json({
         task: decoratedTasks[0],

@@ -21,7 +21,7 @@ async function testCacheFeatures() {
   // Simulate 10 requests
   for (let i = 1; i <= 10; i++) {
     const cacheKey = `dashboard:user:${userId}:false:180`;
-    const cached = cacheManager.get(cacheKey);
+    const cached = await cacheManager.get(cacheKey);
 
     if (cached) {
       console.log(`Request ${i}: ✅ CACHE HIT (1ms)`);
@@ -31,7 +31,7 @@ async function testCacheFeatures() {
       cacheMisses++;
       
       const mockData = { tasks: Array(180).fill({ id: 1, title: 'Task' }), lite: true };
-      cacheManager.set(cacheKey, mockData, 30000, userId);
+      await cacheManager.set(cacheKey, mockData, 30, userId);
       console.log(`         → Cached for 30 seconds`);
     }
 
@@ -49,27 +49,27 @@ async function testCacheFeatures() {
   const user1 = 'user:101';
   const user2 = 'user:102';
   
-  cacheManager.set(`dashboard:user:${user1}:false:180`, { tasks: ['u1'] }, 30000, user1);
-  cacheManager.set(`dashboard:user:${user2}:false:180`, { tasks: ['u2'] }, 30000, user2);
+  await cacheManager.set(`dashboard:user:${user1}:false:180`, { tasks: ['u1'] }, 30, user1);
+  await cacheManager.set(`dashboard:user:${user2}:false:180`, { tasks: ['u2'] }, 30, user2);
   
-  console.log(`✅ User 1 cache: ${cacheManager.get(`dashboard:user:${user1}:false:180`).tasks[0]}`);
-  console.log(`✅ User 2 cache: ${cacheManager.get(`dashboard:user:${user2}:false:180`).tasks[0]}`);
+  console.log(`✅ User 1 cache: ${(await cacheManager.get(`dashboard:user:${user1}:false:180`)).tasks[0]}`);
+  console.log(`✅ User 2 cache: ${(await cacheManager.get(`dashboard:user:${user2}:false:180`)).tasks[0]}`);
   console.log(`✅ Caches properly isolated\n`);
 
   // Test 3: Event-Driven Invalidation (STUFE 3)
   console.log('📊 TEST 3: Event-Driven Invalidation (STUFE 3)\n');
   
   const userId3 = 'user:999';
-  cacheManager.set(`dashboard:user:${userId3}:false:180`, { tasks: ['task1'] }, 30000, userId3);
-  cacheManager.set(`dashboard:user:${userId3}:true:180`, { tasks: ['completed'] }, 30000, userId3);
+  await cacheManager.set(`dashboard:user:${userId3}:false:180`, { tasks: ['task1'] }, 30, userId3);
+  await cacheManager.set(`dashboard:user:${userId3}:true:180`, { tasks: ['completed'] }, 30, userId3);
   
-  const before = cacheManager.getStats().totalSize;
+  const before = (await cacheManager.getStats()).memoryFallback.totalSize;
   console.log(`Before task_created event: ${before} items in cache`);
   
   // Simulate task creation event
-  cacheManager.invalidateByEvent(userId3, 'task_created');
+  await cacheManager.invalidateByEvent(userId3, 'task_created');
   
-  const after = cacheManager.getStats().totalSize;
+  const after = (await cacheManager.getStats()).memoryFallback.totalSize;
   console.log(`After task_created event: ${after} items in cache`);
   console.log(`✅ Event invalidation cleared cache entries\n`);
 
@@ -78,13 +78,12 @@ async function testCacheFeatures() {
   
   // Add items until we reach near max
   for (let i = 0; i < 50; i++) {
-    cacheManager.set(`key:${i}`, { data: `value${i}` }, 30000, `user:lru:${i % 5}`);
+    await cacheManager.set(`key:${i}`, { data: `value${i}` }, 30, `user:lru:${i % 5}`);
   }
   
-  const stats = cacheManager.getStats();
-  console.log(`Current cache size: ${stats.totalSize} items (max: ${stats.maxSize})`);
-  console.log(`Users in cache: ${stats.userCount}`);
-  console.log(`Memory estimate: ${stats.memoryEstimate}`);
+  const stats = await cacheManager.getStats();
+  console.log(`Current cache size: ${stats.memoryFallback.totalSize} items (backend: ${stats.backend})`);
+  console.log(`Users in cache: ${stats.memoryFallback.userCount}`);
   console.log(`✅ LRU protection active\n`);
 
   // Test 5: Per-User Limits
@@ -95,23 +94,24 @@ async function testCacheFeatures() {
   
   // Try to add 60 items for one user (max is 50)
   for (let i = 0; i < 60; i++) {
-    cacheManager.set(`dashboard:user:${limitTestUser}:${i}:180`, { data: i }, 30000, limitTestUser);
+    await cacheManager.set(`dashboard:user:${limitTestUser}:${i}:180`, { data: i }, 30, limitTestUser);
     addedCount++;
   }
   
-  const userStats = cacheManager.getStats().users.find(u => u.userId === limitTestUser);
+  const perUserStats = await cacheManager.getStats();
+  const userStats = perUserStats.memoryFallback.users.find(u => u.userId === limitTestUser);
   console.log(`Added: 60 items | Actually cached: ${userStats?.itemCount || 0} items`);
-  console.log(`Max per user: ${cacheManager.MAX_USER_ITEMS}`);
+  console.log(`Backend: ${perUserStats.backend}`);
   console.log(`✅ Per-user limit enforced\n`);
 
   // Final Stats
   console.log('📊 FINAL CACHE STATISTICS:\n');
-  const finalStats = cacheManager.getStats();
-  console.log(`Total items: ${finalStats.totalSize}/${finalStats.maxSize}`);
-  console.log(`Users: ${finalStats.userCount}`);
-  console.log(`Memory: ${finalStats.memoryEstimate}`);
+  const finalStats = await cacheManager.getStats();
+  console.log(`Total items: ${finalStats.memoryFallback.totalSize}/${finalStats.memoryFallback.maxSize}`);
+  console.log(`Users: ${finalStats.memoryFallback.userCount}`);
+  console.log(`Backend: ${finalStats.backend}`);
   console.log(`\nTop 5 users:`);
-  finalStats.users
+  finalStats.memoryFallback.users
     .sort((a, b) => b.itemCount - a.itemCount)
     .slice(0, 5)
     .forEach(u => {

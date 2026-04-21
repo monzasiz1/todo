@@ -16,7 +16,7 @@ const { cacheManager } = require('./cache');
  * @param {string} event - Event type
  * @param {object} metadata - Optional metadata (taskId, groupId, etc.)
  */
-function invalidateCacheOnEvent(userId, event, metadata = {}) {
+async function invalidateCacheOnEvent(userId, event, metadata = {}) {
   // STUFE 3: Invalidate based on event type
   switch (event) {
     case 'task_created':
@@ -25,7 +25,7 @@ function invalidateCacheOnEvent(userId, event, metadata = {}) {
     case 'task_completed':
     case 'task_reordered':
       // Clear all dashboard caches for this user
-      cacheManager.invalidateByEvent(userId, event);
+      await cacheManager.invalidateByEvent(userId, event);
       if (process.env.DEBUG_CACHE) {
         console.log(`[CACHE INVALIDATE] Event: ${event} for user ${userId}`);
       }
@@ -33,7 +33,7 @@ function invalidateCacheOnEvent(userId, event, metadata = {}) {
 
     case 'group_change':
       // Group task changes - clear user's cache + all group members' caches
-      cacheManager.invalidateByEvent(userId, event);
+      await cacheManager.invalidateByEvent(userId, event);
       // Could also invalidate all members in metadata.groupId
       if (process.env.DEBUG_CACHE) {
         console.log(`[CACHE INVALIDATE] Event: group_change for user ${userId}, groupId: ${metadata.groupId}`);
@@ -42,7 +42,7 @@ function invalidateCacheOnEvent(userId, event, metadata = {}) {
 
     case 'permission_change':
       // Permission changes - clear user's cache
-      cacheManager.invalidateByEvent(userId, event);
+      await cacheManager.invalidateByEvent(userId, event);
       if (process.env.DEBUG_CACHE) {
         console.log(`[CACHE INVALIDATE] Event: permission_change for user ${userId}, taskId: ${metadata.taskId}`);
       }
@@ -50,7 +50,7 @@ function invalidateCacheOnEvent(userId, event, metadata = {}) {
 
     case 'user_logout':
       // User logs out - clear all their cache
-      cacheManager.clearUser(userId);
+      await cacheManager.clearUser(userId);
       if (process.env.DEBUG_CACHE) {
         console.log(`[CACHE INVALIDATE] User logout: ${userId}`);
       }
