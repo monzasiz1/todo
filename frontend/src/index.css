@@ -14014,3 +14014,232 @@ body.cal-is-dragging * {
   transition: opacity var(--transition);
 }
 .gchat-poll-builder-add:disabled { opacity: 0.35; }
+
+/* ── Event Card ────────────────────────────────────────────────── */
+.gchat-event-card {
+  background: var(--card-solid);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-left: 3px solid var(--primary, #6366f1);
+  border-radius: 12px;
+  padding: 10px 12px 10px;
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-width: 300px;
+}
+.gchat-bubble.own .gchat-event-card {
+  background: rgba(255,255,255,0.14);
+  border-color: rgba(255,255,255,0.3);
+  border-left-color: rgba(255,255,255,0.7);
+}
+.gchat-event-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.gchat-event-card-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--primary, #6366f1);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.gchat-bubble.own .gchat-event-card-badge { color: rgba(255,255,255,0.85); }
+.gchat-event-card-ai {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  color: var(--text-secondary);
+  background: var(--border);
+  border-radius: 20px;
+  padding: 2px 7px;
+}
+.gchat-bubble.own .gchat-event-card-ai {
+  background: rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.7);
+}
+.gchat-event-card-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+}
+.gchat-bubble.own .gchat-event-card-title { color: white; }
+.gchat-event-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.gchat-event-card-meta span {
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.gchat-bubble.own .gchat-event-card-meta span { color: rgba(255,255,255,0.7); }
+.gchat-event-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 4px;
+}
+.gchat-event-card-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 11px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+  transition: opacity 0.15s, transform 0.12s;
+  white-space: nowrap;
+}
+.gchat-event-card-btn:hover:not(:disabled) { opacity: 0.85; transform: translateY(-1px); }
+.gchat-event-card-btn:disabled { opacity: 0.45; }
+.gchat-event-card-btn--primary {
+  background: var(--primary, #6366f1);
+  color: white;
+  border: none;
+}
+.gchat-event-card-btn--secondary {
+  background: transparent;
+  border: 1.5px solid var(--primary, #6366f1);
+  color: var(--primary, #6366f1);
+}
+.gchat-bubble.own .gchat-event-card-btn--secondary {
+  border-color: rgba(255,255,255,0.6);
+  color: white;
+}
+.gchat-event-card-btn--ghost {
+  background: transparent;
+  border: 1.5px solid var(--border-strong);
+  color: var(--text-secondary);
+}
+.gchat-bubble.own .gchat-event-card-btn--ghost {
+  border-color: rgba(255,255,255,0.3);
+  color: rgba(255,255,255,0.65);
+}
+.gchat-type-chips--slim { margin-top: 6px; }
+
+/* ── Event Modal ────────────────────────────────────────────────── */
+.gchat-modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  border-radius: inherit;
+  padding: 16px;
+}
+.gchat-modal {
+  background: var(--sidebar-bg, #1a1a2e);
+  border: 1px solid var(--border-strong);
+  border-radius: 18px;
+  padding: 20px;
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+}
+.gchat-modal-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gchat-modal-icon { font-size: 20px; flex-shrink: 0; }
+.gchat-modal-title {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+.gchat-modal-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--border);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition);
+  flex-shrink: 0;
+}
+.gchat-modal-close:hover { background: var(--border-strong); }
+.gchat-modal-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.gchat-modal-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 3px;
+}
+.gchat-modal-optional {
+  text-transform: none;
+  font-weight: 400;
+  opacity: 0.7;
+}
+.gchat-modal-row {
+  display: flex;
+  gap: 8px;
+}
+.gchat-modal-col { flex: 1; }
+.gchat-modal-input {
+  width: 100%;
+  padding: 8px 11px;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: var(--card-solid);
+  color: var(--text);
+  font-size: 13.5px;
+  font-family: inherit;
+  transition: border-color var(--transition);
+  box-sizing: border-box;
+}
+.gchat-modal-input:focus {
+  outline: none;
+  border-color: var(--primary, #6366f1);
+}
+.gchat-modal-textarea { resize: vertical; min-height: 64px; }
+.gchat-modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+.gchat-modal-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: opacity 0.15s, transform 0.12s;
+}
+.gchat-modal-btn:hover:not(:disabled) { opacity: 0.85; transform: translateY(-1px); }
+.gchat-modal-btn:disabled { opacity: 0.45; }
+.gchat-modal-btn--primary {
+  background: var(--primary, #6366f1);
+  color: white;
+  border: none;
+}
+.gchat-modal-btn--ghost {
+  background: transparent;
+  border: 1.5px solid var(--border-strong);
+  color: var(--text-secondary);
+}
