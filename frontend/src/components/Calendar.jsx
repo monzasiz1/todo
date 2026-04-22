@@ -810,7 +810,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     const startHour = WK_START;
     const endHour = WK_END;
     const hourHeight = WK_H;
-    const totalHeight = (endHour - startHour) * hourHeight;
+    const totalHeight = (endHour - startHour) * hourHeight + 28;
     const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
     const now = new Date(nowTs);
     const todayIdx = days.findIndex((d) => isSameDay(d, now));
@@ -1055,7 +1055,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
     const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
     const mwStartH = 7; const mwEndH = 23; const mwHourH = 40;
-    const mwTotalH = (mwEndH - mwStartH) * mwHourH;
+    const mwTotalH = (mwEndH - mwStartH) * mwHourH + 24;
     const mwHours = Array.from({ length: mwEndH - mwStartH }, (_, i) => mwStartH + i);
 
     return (
@@ -1177,7 +1177,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     const startHour = 7;
     const endHour = 23;
     const hourHeight = 56;
-    const totalHeight = (endHour - startHour) * hourHeight;
+    const totalHeight = (endHour - startHour) * hourHeight + 28;
     const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
 
     const toMinutes = (time) => {
@@ -1196,7 +1196,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     const handleGridClick = (e) => {
       const gridRect = e.currentTarget.getBoundingClientRect();
       const y = Math.max(0, Math.min(gridRect.height, e.clientY - gridRect.top));
-      const minsFromStart = (y / hourHeight) * 60;
+      const minsFromStart = Math.min((endHour - startHour) * 60, (y / hourHeight) * 60);
       const snapped = Math.floor(minsFromStart / 15) * 15;
 
       const dayBase = selectedDate || currentDate;

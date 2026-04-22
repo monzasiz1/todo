@@ -4202,11 +4202,11 @@ body.cal-is-dragging * {
   .mobile-day-view {
     padding: 0 0 8px;
     background: #fff;
-    max-height: calc(100vh - 220px);
+    max-height: calc(100dvh - 170px);
     overflow-y: auto;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px));
   }
 
   .mobile-day-grid {
@@ -5947,10 +5947,29 @@ body.cal-is-dragging * {
   .desktop-week-time-wrap {
     display: grid;
     grid-template-columns: 72px 1fr;
-    max-height: calc(100vh - 290px);
+    max-height: calc(100dvh - 250px);
     overflow-y: auto;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(126, 138, 161, 0.45) transparent;
+  }
+
+  .desktop-week-time-wrap::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .desktop-week-time-wrap::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .desktop-week-time-wrap::-webkit-scrollbar-thumb {
+    background: rgba(126, 138, 161, 0.35);
+    border-radius: 999px;
+  }
+
+  .desktop-week-time-wrap:hover::-webkit-scrollbar-thumb {
+    background: rgba(126, 138, 161, 0.55);
   }
 
   .desktop-week-hours-col {
