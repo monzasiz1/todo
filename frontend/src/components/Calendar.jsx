@@ -34,6 +34,7 @@ import { de } from 'date-fns/locale';
 const WK_START = 7;    // first visible hour
 const WK_END   = 23;   // last visible hour
 const WK_H     = 52;   // px per hour
+const MOBILE_BREAKPOINT = 768;
 const CALENDAR_DESKTOP_BREAKPOINT = 1180;
 const CALENDAR_WEEK_DEFAULT_BREAKPOINT = 1024;
 
@@ -107,7 +108,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [showSidebarCategories, setShowSidebarCategories] = useState(true);
   const [pickerYear, setPickerYear] = useState(getYear(new Date()));
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= CALENDAR_DESKTOP_BREAKPOINT);
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= MOBILE_BREAKPOINT);
+  const [isWideDesktopCalendar, setIsWideDesktopCalendar] = useState(window.innerWidth >= CALENDAR_DESKTOP_BREAKPOINT);
   // Drag / Resize state
   const [dragInfo, setDragInfo] = useState(null);
   const [resizeInfo, setResizeInfo] = useState(null); // { task, edge, previewTime }
@@ -199,7 +201,10 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   }, [currentDate, view, onVisibleRangeChange]);
 
   useEffect(() => {
-    const handler = () => setIsDesktop(window.innerWidth >= CALENDAR_DESKTOP_BREAKPOINT);
+    const handler = () => {
+      setIsDesktop(window.innerWidth >= MOBILE_BREAKPOINT);
+      setIsWideDesktopCalendar(window.innerWidth >= CALENDAR_DESKTOP_BREAKPOINT);
+    };
     window.addEventListener('resize', handler);
     return () => window.removeEventListener('resize', handler);
   }, []);
@@ -231,12 +236,18 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     };
   }, []);
 
+  const isMobile = !isDesktop;
+
   useEffect(() => {
-    if (!isDesktop) {
+    if (isMobile) {
+      setView('month');
+      return;
+    }
+    if (view === 'day') {
       setView('month');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDesktop]);
+  }, [isMobile]);
 
   useEffect(() => {
     if (!showMonthPicker) return;
@@ -1159,7 +1170,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   };
 
   const renderWeekView = () => {
-    if (isDesktop) return renderDesktopWeekView();
+    if (isWideDesktopCalendar) return renderDesktopWeekView();
     return renderMobileWeekView();
   };
 
@@ -1402,7 +1413,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
         renderWeekView()
       )}
 
-      {!isDesktop && (
+      {isMobile && (
         <div className="mobile-calendar-modebar">
           <div className="mobile-calendar-modebar-tabs">
             <button className={view === 'day' ? 'active' : ''} onClick={() => setView('day')}>DAY</button>
