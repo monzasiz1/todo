@@ -36,6 +36,8 @@ module.exports = async function handler(req, res) {
               ru.name as responsible_name,
               t.title as linked_task_title, t.date as linked_task_date, t.time as linked_task_time,
               t.time_end as linked_task_time_end, t.description as linked_task_description,
+              (t.date + COALESCE(t.time_end, t.time, TIME '23:59')) as linked_task_ends_at,
+              (COALESCE(t.date + COALESCE(t.time_end, t.time, TIME '23:59'), NOW() + INTERVAL '100 years') < NOW()) as linked_task_ended,
               (SELECT COUNT(*)::int FROM group_event_rsvps r WHERE r.message_id = m.id AND r.status = 'yes') as rsvp_yes_count,
               (SELECT COUNT(*)::int FROM group_event_rsvps r WHERE r.message_id = m.id AND r.status = 'maybe') as rsvp_maybe_count,
               (SELECT COUNT(*)::int FROM group_event_rsvps r WHERE r.message_id = m.id AND r.status = 'no') as rsvp_no_count,
@@ -442,7 +444,9 @@ module.exports = async function handler(req, res) {
                 u.name as sender_name, u.avatar_color as sender_color, u.avatar_url as sender_avatar,
                 ru.name as responsible_name,
                 t.title as linked_task_title, t.date as linked_task_date, t.time as linked_task_time,
-                t.time_end as linked_task_time_end, t.description as linked_task_description,
+          t.time_end as linked_task_time_end, t.description as linked_task_description,
+          (t.date + COALESCE(t.time_end, t.time, TIME '23:59')) as linked_task_ends_at,
+          (COALESCE(t.date + COALESCE(t.time_end, t.time, TIME '23:59'), NOW() + INTERVAL '100 years') < NOW()) as linked_task_ended,
                 (SELECT COUNT(*)::int FROM group_event_rsvps r WHERE r.message_id = m.id AND r.status = 'yes') as rsvp_yes_count,
                 (SELECT COUNT(*)::int FROM group_event_rsvps r WHERE r.message_id = m.id AND r.status = 'maybe') as rsvp_maybe_count,
                 (SELECT COUNT(*)::int FROM group_event_rsvps r WHERE r.message_id = m.id AND r.status = 'no') as rsvp_no_count,
@@ -550,6 +554,19 @@ module.exports = async function handler(req, res) {
       const allowed = ['organizer', 'participant', 'watcher'];
       const finalRole = allowed.includes(role) ? role : 'organizer';
 
+      const endedCheck = await pool.query(
+        `SELECT (COALESCE(t.date + COALESCE(t.time_end, t.time, TIME '23:59'), NOW() + INTERVAL '100 years') < NOW()) as is_ended
+         FROM group_messages m
+         LEFT JOIN tasks t ON t.id = m.linked_task_id
+         WHERE m.id = $1 AND m.group_id = $2 AND m.message_type = 'group_event'
+         LIMIT 1`,
+        [msgId, groupId]
+      );
+      if (endedCheck.rows.length === 0) return res.status(404).json({ error: 'Termin-Nachricht nicht gefunden' });
+      if (endedCheck.rows[0].is_ended) {
+        return res.status(400).json({ error: 'Termin ist bereits beendet' });
+      }
+
       const updated = await pool.query(
         `UPDATE group_messages
          SET responsible_user_id = $1, responsible_role = $2
@@ -582,10 +599,18 @@ module.exports = async function handler(req, res) {
       if (!allowed.includes(status)) return res.status(400).json({ error: 'Ungueltiger RSVP-Status' });
 
       const msgCheck = await pool.query(
-        `SELECT id FROM group_messages WHERE id = $1 AND group_id = $2 AND message_type = 'group_event' LIMIT 1`,
+        `SELECT m.id,
+                (COALESCE(t.date + COALESCE(t.time_end, t.time, TIME '23:59'), NOW() + INTERVAL '100 years') < NOW()) as is_ended
+         FROM group_messages m
+         LEFT JOIN tasks t ON t.id = m.linked_task_id
+         WHERE m.id = $1 AND m.group_id = $2 AND m.message_type = 'group_event'
+         LIMIT 1`,
         [msgId, groupId]
       );
       if (msgCheck.rows.length === 0) return res.status(404).json({ error: 'Termin-Nachricht nicht gefunden' });
+      if (msgCheck.rows[0].is_ended) {
+        return res.status(400).json({ error: 'Termin ist bereits beendet' });
+      }
 
       await pool.query(
         `INSERT INTO group_event_rsvps (message_id, group_id, user_id, status)

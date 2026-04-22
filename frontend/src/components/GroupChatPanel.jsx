@@ -151,6 +151,7 @@ export default function GroupChatPanel({ open, onClose }) {
   const [dragShareGroupId, setDragShareGroupId] = useState(null);
   const [sharingDroppedTask, setSharingDroppedTask] = useState(false);
   const [dragShareSuccess, setDragShareSuccess] = useState(false);
+  const [showPastEvents, setShowPastEvents] = useState(false);
   const undoTimerRef = useRef(null);
   const conflictTimerRef = useRef(null);
   const dragSuccessTimerRef = useRef(null);
@@ -564,8 +565,21 @@ export default function GroupChatPanel({ open, onClose }) {
     setTimeout(() => inputRef.current?.focus(), 0);
   };
 
+  const isEndedEvent = (msg) => msg.message_type === 'group_event' && msg.linked_task_ended === true;
+  const isArchivedEndedEvent = (msg) => {
+    if (!isEndedEvent(msg)) return false;
+    if (!msg.linked_task_ends_at) return true;
+    const endTs = new Date(msg.linked_task_ends_at).getTime();
+    if (Number.isNaN(endTs)) return true;
+    return (Date.now() - endTs) > (24 * 60 * 60 * 1000);
+  };
+
   // ── Derived data ──────────────────────────────────────────────────────────
-  const pinnedMessages = messages.filter((m) => m.is_pinned);
+  const hiddenPastEventsCount = messages.filter(isArchivedEndedEvent).length;
+  const visibleMessages = showPastEvents
+    ? messages
+    : messages.filter((m) => !isArchivedEndedEvent(m));
+  const pinnedMessages = visibleMessages.filter((m) => m.is_pinned);
   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -687,6 +701,19 @@ export default function GroupChatPanel({ open, onClose }) {
                   )}
                 </AnimatePresence>
 
+                {hiddenPastEventsCount > 0 && (
+                  <div className="gchat-event-archive-toggle">
+                    <button
+                      className="gchat-event-archive-btn"
+                      onClick={() => setShowPastEvents((v) => !v)}
+                    >
+                      {showPastEvents
+                        ? `Vergangenheit ausblenden (${hiddenPastEventsCount})`
+                        : `Vergangenheit anzeigen (${hiddenPastEventsCount})`}
+                    </button>
+                  </div>
+                )}
+
                 {/* ── Pinned Messages ── */}
                 {pinnedMessages.length > 0 && (
                   <div className="gchat-pinned-section">
@@ -733,13 +760,14 @@ export default function GroupChatPanel({ open, onClose }) {
                     </div>
                   )}
 
-                  {messages.map((msg, idx) => {
+                  {visibleMessages.map((msg, idx) => {
                     const isOwn = msg.user_id === user?.id;
                     const isEventMsg = msg.message_type === 'group_event';
+                    const isEnded = isEndedEvent(msg);
                     const hasTime = !msg.is_poll && !isEventMsg && detectTimeHint(msg.content);
                     const showSender =
                       !isOwn &&
-                      (idx === 0 || messages[idx - 1].user_id !== msg.user_id);
+                      (idx === 0 || visibleMessages[idx - 1].user_id !== msg.user_id);
 
                     return (
                       <div
@@ -808,10 +836,11 @@ export default function GroupChatPanel({ open, onClose }) {
                               </span>
                             </div>
                           ) : isEventMsg ? (
-                            <div className={`gchat-shared-event ${isOwn ? 'own' : ''} ${msg.is_pinned ? 'pinned' : ''}`}>
+                            <div className={`gchat-shared-event ${isOwn ? 'own' : ''} ${msg.is_pinned ? 'pinned' : ''} ${isEnded ? 'ended' : ''}`}>
                               <div className="gchat-shared-event-head">
                                 <CalendarCheck size={14} />
                                 <span>Gruppen-Termin</span>
+                                {isEnded && <span className="gchat-shared-event-status">Beendet</span>}
                               </div>
                               <p className="gchat-shared-event-title">{msg.linked_task_title || msg.content}</p>
                               <div className="gchat-shared-event-meta">
@@ -829,15 +858,15 @@ export default function GroupChatPanel({ open, onClose }) {
                                 <button
                                   className="gchat-shared-btn gchat-shared-btn--primary"
                                   onClick={() => claimEvent(msg.id)}
-                                  disabled={claimingMsgId === msg.id}
+                                  disabled={claimingMsgId === msg.id || isEnded}
                                 >
                                   <UserCheck size={12} />
-                                  {msg.responsible_user_id === user?.id ? 'Du uebernimmst' : 'Uebernehmen'}
+                                  {isEnded ? 'Beendet' : (msg.responsible_user_id === user?.id ? 'Du uebernimmst' : 'Uebernehmen')}
                                 </button>
                                 <button
                                   className={`gchat-shared-btn ${msg.my_rsvp === 'yes' ? 'active' : ''}`}
                                   onClick={() => rsvpEvent(msg.id, 'yes')}
-                                  disabled={rsvpMsgId === msg.id}
+                                  disabled={rsvpMsgId === msg.id || isEnded}
                                 >
                                   <ThumbsUp size={12} />
                                   Zusagen ({msg.rsvp_yes_count || 0})
@@ -845,6 +874,7 @@ export default function GroupChatPanel({ open, onClose }) {
                                 <button
                                   className="gchat-shared-btn"
                                   onClick={() => commentOnEvent(msg)}
+                                  disabled={isEnded}
                                 >
                                   <MessageSquare size={12} />
                                   Kommentieren
