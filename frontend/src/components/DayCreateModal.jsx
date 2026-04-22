@@ -17,6 +17,23 @@ const priorityLabels = {
   urgent: 'Dringend',
 };
 
+function getEventEndDate(task) {
+  if (!task?.date) return null;
+  const datePart = String(task.date).slice(0, 10);
+  const rawEnd = String(task.time_end || task.time || '23:59').slice(0, 5);
+  const parts = rawEnd.split(':');
+  const hh = String(Math.min(23, Math.max(0, Number(parts[0]) || 23))).padStart(2, '0');
+  const mm = String(Math.min(59, Math.max(0, Number(parts[1]) || 59))).padStart(2, '0');
+  const dt = new Date(`${datePart}T${hh}:${mm}:00`);
+  return Number.isNaN(dt.getTime()) ? null : dt;
+}
+
+function isEventEnded(task) {
+  if (task?.type !== 'event') return false;
+  const end = getEventEndDate(task);
+  return !!end && end.getTime() < Date.now();
+}
+
 export default function DayCreateModal({ date, tasks, onClose, onTaskCreated }) {
   const [mode, setMode] = useState(null); // null | 'ai' | 'manual'
   const [aiInput, setAiInput] = useState('');
@@ -124,12 +141,17 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated }) 
         {tasks.length > 0 && (
           <div className="day-create-tasks">
             {tasks.map((task) => (
+              (() => {
+                const endedEvent = isEventEnded(task);
+                return (
               <div
                 key={task.id}
-                className={`day-create-task-item ${task.completed ? 'completed' : ''}`}
+                className={`day-create-task-item ${task.completed ? 'completed' : ''} ${endedEvent ? 'ended-event' : ''}`}
                 style={{
                   borderLeft: `3px solid ${task.group_id ? (task.group_color || '#5856D6') : (task.category_color || 'var(--primary)')}`,
-                  background: task.group_id
+                  background: endedEvent
+                    ? 'rgba(142, 142, 147, 0.10)'
+                    : task.group_id
                     ? `${task.group_color || '#5856D6'}10`
                     : task.category_color ? `${task.category_color}10` : 'var(--hover)',
                   cursor: 'pointer',
@@ -151,11 +173,14 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated }) 
                   <span className={`day-create-task-title ${task.completed ? 'completed' : ''}`}>
                     {task.title}
                   </span>
+                  {endedEvent && <span className="day-create-task-status">Beendet</span>}
                 </div>
                 {task.time && (
                   <span className="day-create-task-time">{task.time.slice(0, 5)}</span>
                 )}
               </div>
+                );
+              })()
             ))}
           </div>
         )}

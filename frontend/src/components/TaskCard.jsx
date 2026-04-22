@@ -34,6 +34,17 @@ function TaskCard({ task, index, disableLayout = false }) {
     return `${h}:${m} Uhr`;
   };
 
+  const getEventEndDate = (t) => {
+    if (!t?.date) return null;
+    const datePart = String(t.date).slice(0, 10);
+    const rawEnd = String(t.time_end || t.time || '23:59').slice(0, 5);
+    const parts = rawEnd.split(':');
+    const hh = String(Math.min(23, Math.max(0, Number(parts[0]) || 23))).padStart(2, '0');
+    const mm = String(Math.min(59, Math.max(0, Number(parts[1]) || 59))).padStart(2, '0');
+    const end = new Date(`${datePart}T${hh}:${mm}:00`);
+    return Number.isNaN(end.getTime()) ? null : end;
+  };
+
   const priorityColors = {
     low: 'var(--success)',
     medium: 'var(--primary)',
@@ -44,7 +55,9 @@ function TaskCard({ task, index, disableLayout = false }) {
   const isOverdue = task.date && !task.completed && isPast(parseISO(task.date)) && !isToday(parseISO(task.date));
   const canEdit = task.is_owner === false ? (task.can_edit === true) : true;
   const isEvent = task.type === 'event';
-  const canShareToChat = isEvent && !!task.group_id;
+  const eventEndAt = isEvent ? getEventEndDate(task) : null;
+  const isEventEnded = isEvent && !!eventEndAt && eventEndAt.getTime() < Date.now();
+  const canShareToChat = isEvent && !!task.group_id && !isEventEnded;
   const shortTitle = String(task.title || 'Termin').slice(0, 32);
   const timeLabel = task.time ? `${String(task.time).slice(0, 5)} Uhr` : '';
 
@@ -160,7 +173,7 @@ function TaskCard({ task, index, disableLayout = false }) {
   return (
     <>
     <motion.div
-      className={`task-card ${task.completed ? 'completed' : ''} ${canShareToChat ? 'can-share-chat' : ''}`}
+      className={`task-card ${task.completed ? 'completed' : ''} ${canShareToChat ? 'can-share-chat' : ''} ${isEventEnded ? 'ended-event' : ''}`}
       draggable={canShareToChat}
       onDragStart={handleDragStart}
       onDrag={handleDrag}
@@ -176,7 +189,7 @@ function TaskCard({ task, index, disableLayout = false }) {
       transition={shouldAnimate ? { duration: 0.18, delay: index * 0.01 } : { duration: 0.01 }}
       onClick={() => setShowDetail(true)}
       style={{ cursor: 'pointer' }}
-      title={canShareToChat ? 'In den Gruppen-Chat ziehen' : undefined}
+      title={isEventEnded ? 'Termin beendet' : (canShareToChat ? 'In den Gruppen-Chat ziehen' : undefined)}
     >
       {/* Priority Bar */}
       <div
@@ -209,6 +222,7 @@ function TaskCard({ task, index, disableLayout = false }) {
         <div className="task-title-row">
           <div className="task-title">{task.title}</div>
           {isEvent && <span className="task-type-badge event">Termin</span>}
+          {isEventEnded && <span className="task-type-badge ended">Beendet</span>}
         </div>
         {task.description && (
           <div className="task-description-preview">
@@ -253,7 +267,7 @@ function TaskCard({ task, index, disableLayout = false }) {
             </span>
           )}
           {task.time && (
-            <span className="task-meta-item">
+            <span className="task-meta-item" style={isEventEnded ? { color: 'var(--text-tertiary)' } : {}}>
               <Clock size={14} />
               {formatTime(task.time)}{task.time_end ? ` – ${formatTime(task.time_end)}` : ''}
             </span>

@@ -67,6 +67,23 @@ const getEventGlowClass = (task) => {
   return 'cal-event-glow-default';
 };
 
+const getTaskEndDate = (task) => {
+  if (!task?.date) return null;
+  const datePart = String(task.date).slice(0, 10);
+  const rawEnd = String(task.time_end || task.time || '23:59').slice(0, 5);
+  const parts = rawEnd.split(':');
+  const hh = String(Math.min(23, Math.max(0, Number(parts[0]) || 23))).padStart(2, '0');
+  const mm = String(Math.min(59, Math.max(0, Number(parts[1]) || 59))).padStart(2, '0');
+  const dt = new Date(`${datePart}T${hh}:${mm}:00`);
+  return Number.isNaN(dt.getTime()) ? null : dt;
+};
+
+const isEventEnded = (task) => {
+  if (task?.type !== 'event') return false;
+  const end = getTaskEndDate(task);
+  return !!end && end.getTime() < Date.now();
+};
+
 // ── Throttle helper for smooth drag ──
 const throttle = (fn, delay) => {
   let lastRun = 0;
@@ -693,21 +710,28 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
               {dayTasks.length > 0 && (
                 <div className="calendar-day-tasks">
                   {dayTasks.slice(0, isDesktop ? 4 : 2).map((t) => (
+                    (() => {
+                      const ended = isEventEnded(t);
+                      return (
                     <div
                       key={t.id}
-                      className={`calendar-day-task ${t.completed ? 'completed' : ''} ${t.group_id ? 'group-task' : ''} ${dragInfo?.task.id === t.id ? 'cal-dragging' : ''}`}
+                      className={`calendar-day-task ${t.completed ? 'completed' : ''} ${t.group_id ? 'group-task' : ''} ${ended ? 'ended-event' : ''} ${dragInfo?.task.id === t.id ? 'cal-dragging' : ''}`}
                       style={{
-                        background: t.group_id
+                        background: ended
+                          ? 'rgba(142, 142, 147, 0.12)'
+                          : t.group_id
                           ? `${t.group_color || '#5856D6'}15`
                           : t.category_color ? `${t.category_color}20` : 'var(--primary-bg)',
-                        color: t.group_id
+                        color: ended
+                          ? '#59606B'
+                          : t.group_id
                           ? (t.group_color || '#5856D6')
                           : t.category_color || 'var(--primary)',
-                        borderLeft: `2px solid ${t.group_id ? (t.group_color || '#5856D6') : (t.category_color || 'var(--primary)')}`,
-                        cursor: isDesktop ? 'grab' : 'pointer',
+                        borderLeft: `2px solid ${ended ? 'rgba(142, 142, 147, 0.55)' : (t.group_id ? (t.group_color || '#5856D6') : (t.category_color || 'var(--primary)'))}`,
+                        cursor: isDesktop && !ended ? 'grab' : 'pointer',
                         userSelect: 'none',
                       }}
-                      onPointerDown={isDesktop ? (e) => handlePointerDown(e, t) : undefined}
+                      onPointerDown={isDesktop && !ended ? (e) => handlePointerDown(e, t) : undefined}
                       onClick={(e) => { e.stopPropagation(); if (!wasDragging.current) setDetailTask(t); }}
                     >
                       {t.group_id && (
@@ -721,6 +745,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       {t.time && <span className="calendar-day-task-time">{t.time.slice(0, 5)}</span>}
                       <span className="calendar-day-task-title">{t.title}</span>
                     </div>
+                      );
+                    })()
                   ))}
                   {dayTasks.length > (isDesktop ? 4 : 2) && (
                     <div className="calendar-day-more">+{dayTasks.length - (isDesktop ? 4 : 2)} mehr</div>
@@ -809,10 +835,13 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
               return (
                 <div key={`allday-${d.toISOString()}`} className="desktop-week-all-day-cell" data-caldate={format(d, 'yyyy-MM-dd')}>
                   {dayTasks.slice(0, 2).map((t) => (
+                    (() => {
+                      const ended = isEventEnded(t);
+                      return (
                     <button
                       key={t.id}
-                      className={`desktop-week-all-day-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}`}
-                      style={{ background: t.group_color || t.category_color || '#4C7BD9' }}
+                      className={`desktop-week-all-day-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}`}
+                      style={{ background: ended ? 'rgba(142, 142, 147, 0.4)' : (t.group_color || t.category_color || '#4C7BD9') }}
                       onClick={(e) => {
                         e.stopPropagation();
                         setDetailTask(t);
@@ -820,6 +849,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                     >
                       {t.title}
                     </button>
+                      );
+                    })()
                   ))}
                 </div>
               );
@@ -854,6 +885,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
 
               <div className="desktop-week-events-layer" style={{ height: `${totalHeight}px` }}>
                 {weekTimedTasks.map((t) => {
+                  const ended = isEventEnded(t);
                   const startMins = timeToMinutes(t.time) ?? (startHour * 60);
                   const rawEnd = timeToMinutes(t.time_end);
                   const endMins = rawEnd && rawEnd > startMins ? rawEnd : startMins + 60;
@@ -903,16 +935,17 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   return (
                     <div
                       key={t.id}
-                      className={`desktop-week-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
+                      className={`desktop-week-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
                       style={{
                         left: `calc((100% / 7) * ${startIdx} + 4px)`,
                         width: `calc((100% / 7) * ${spanDays} - 8px)`,
                         top: `${top}px`,
                         height: `${height}px`,
-                        background: t.group_color || t.category_color || '#4C7BD9',
+                        background: ended ? 'rgba(142, 142, 147, 0.72)' : (t.group_color || t.category_color || '#4C7BD9'),
                         touchAction: 'none',
                       }}
                       onPointerDown={(e) => {
+                        if (ended) return;
                         if (e.target.closest('.cal-resize-handle') || e.target.closest('.cal-date-extend-handle')) return;
                         handlePointerDown(e, t);
                       }}
@@ -921,24 +954,32 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         if (!wasDragging.current) setDetailTask(t);
                       }}
                     >
-                      <div
-                        className="cal-resize-handle cal-resize-handle-top"
-                        onPointerDown={(e) => handleResizePointerDown(e, t, 'start', desktopWeekColsRef.current, WK_H, WK_START)}
-                      />
-                      <div
-                        className="cal-date-extend-handle cal-date-extend-left"
-                        onPointerDown={(e) => handleDateExtendPointerDown(e, t, 'start')}
-                      />
+                      {!ended && (
+                        <div
+                          className="cal-resize-handle cal-resize-handle-top"
+                          onPointerDown={(e) => handleResizePointerDown(e, t, 'start', desktopWeekColsRef.current, WK_H, WK_START)}
+                        />
+                      )}
+                      {!ended && (
+                        <div
+                          className="cal-date-extend-handle cal-date-extend-left"
+                          onPointerDown={(e) => handleDateExtendPointerDown(e, t, 'start')}
+                        />
+                      )}
                       <span className="desktop-week-event-title">{t.title}</span>
                       <span className="desktop-week-event-time">{t.time?.slice(0, 5)}{t.time_end ? ` - ${t.time_end.slice(0, 5)}` : ''}</span>
-                      <div
-                        className="cal-date-extend-handle cal-date-extend-right"
-                        onPointerDown={(e) => handleDateExtendPointerDown(e, t, 'end')}
-                      />
-                      <div
-                        className="cal-resize-handle cal-resize-handle-bottom"
-                        onPointerDown={(e) => handleResizePointerDown(e, t, 'end', desktopWeekColsRef.current, WK_H, WK_START)}
-                      />
+                      {!ended && (
+                        <div
+                          className="cal-date-extend-handle cal-date-extend-right"
+                          onPointerDown={(e) => handleDateExtendPointerDown(e, t, 'end')}
+                        />
+                      )}
+                      {!ended && (
+                        <div
+                          className="cal-resize-handle cal-resize-handle-bottom"
+                          onPointerDown={(e) => handleResizePointerDown(e, t, 'end', desktopWeekColsRef.current, WK_H, WK_START)}
+                        />
+                      )}
                     </div>
                   );
                 })}
@@ -1003,6 +1044,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                     <div key={`${di}-${h}`} className="mobile-week-grid-hour-line" style={{ top: `${(h - mwStartH) * mwHourH}px` }} />
                   ))}
                   {dayTasks.map((t) => {
+                    const ended = isEventEnded(t);
                     const sMins = timeToMins(t.time) ?? (mwStartH * 60);
                     const rawEnd = timeToMins(t.time_end);
                     const eMins = rawEnd && rawEnd > sMins ? rawEnd : sMins + 60;
@@ -1026,28 +1068,33 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                     return (
                       <div
                         key={t.id}
-                        className={`mobile-week-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
+                        className={`mobile-week-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
                         style={{
                           top: `${top}px`, height: `${height}px`,
-                          background: t.group_color || t.category_color || '#4C7BD9',
+                          background: ended ? 'rgba(142, 142, 147, 0.72)' : (t.group_color || t.category_color || '#4C7BD9'),
                           touchAction: 'none',
                         }}
                         onPointerDown={(e) => {
+                          if (ended) return;
                           if (e.target.closest('.cal-resize-handle')) return;
                           handleMobileWeekEventPointerDown(e, t, di, days);
                         }}
                         onClick={(e) => { e.stopPropagation(); if (!wasDragging.current) setDetailTask(t); }}
                       >
-                        <div
-                          className="cal-resize-handle cal-resize-handle-top"
-                          onPointerDown={(e) => handleResizePointerDown(e, t, 'start', mobileWeekColRefs.current[di], mwHourH, mwStartH)}
-                        />
+                        {!ended && (
+                          <div
+                            className="cal-resize-handle cal-resize-handle-top"
+                            onPointerDown={(e) => handleResizePointerDown(e, t, 'start', mobileWeekColRefs.current[di], mwHourH, mwStartH)}
+                          />
+                        )}
                         <span className="mobile-week-event-title">{t.title}</span>
                         {height > 28 && <span className="mobile-week-event-time">{t.time?.slice(0, 5)}</span>}
-                        <div
-                          className="cal-resize-handle cal-resize-handle-bottom"
-                          onPointerDown={(e) => handleResizePointerDown(e, t, 'end', mobileWeekColRefs.current[di], mwHourH, mwStartH)}
-                        />
+                        {!ended && (
+                          <div
+                            className="cal-resize-handle cal-resize-handle-bottom"
+                            onPointerDown={(e) => handleResizePointerDown(e, t, 'end', mobileWeekColRefs.current[di], mwHourH, mwStartH)}
+                          />
+                        )}
                       </div>
                     );
                   })}
@@ -1116,6 +1163,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
           )}
 
           {dayTasks.filter((t) => t.time).map((t) => {
+            const ended = isEventEnded(t);
             const start = toMinutes(t.time) ?? (startHour * 60);
             const endRaw = toMinutes(t.time_end);
             const end = endRaw && endRaw > start ? endRaw : start + 60;
@@ -1140,15 +1188,16 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
             return (
               <div
                 key={t.id}
-                className={`mobile-day-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
+                className={`mobile-day-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
                 style={{
                   top: `${top}px`,
                   height: `${height}px`,
-                  background: t.group_color || t.category_color || '#4C7BD9',
+                  background: ended ? 'rgba(142, 142, 147, 0.72)' : (t.group_color || t.category_color || '#4C7BD9'),
                   touchAction: 'none',
-                  cursor: 'grab',
+                  cursor: ended ? 'pointer' : 'grab',
                 }}
                 onPointerDown={(e) => {
+                  if (ended) return;
                   if (e.target.closest('.cal-resize-handle')) return;
                   handleMobileEventPointerDown(e, t, mobileDayRef.current, hourHeight, startHour);
                 }}
@@ -1157,10 +1206,12 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   if (!wasDragging.current) setDetailTask(t);
                 }}
               >
-                <div
-                  className="cal-resize-handle cal-resize-handle-top"
-                  onPointerDown={(e) => handleResizePointerDown(e, t, 'start', mobileDayRef.current, hourHeight, startHour)}
-                />
+                {!ended && (
+                  <div
+                    className="cal-resize-handle cal-resize-handle-top"
+                    onPointerDown={(e) => handleResizePointerDown(e, t, 'start', mobileDayRef.current, hourHeight, startHour)}
+                  />
+                )}
                 <strong>{t.title}</strong>
                 <span>{t.time?.slice(0, 5)}{t.time_end ? `-${t.time_end.slice(0, 5)}` : ''}</span>
                 {(t.date_end && t.date_end !== t.date) && (
@@ -1168,10 +1219,12 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                     {format(parseISO(t.date?.substring(0,10)), 'd.M.')} – {format(parseISO(t.date_end.substring(0,10)), 'd.M.')}
                   </span>
                 )}
-                <div
-                  className="cal-resize-handle cal-resize-handle-bottom"
-                  onPointerDown={(e) => handleResizePointerDown(e, t, 'end', mobileDayRef.current, hourHeight, startHour)}
-                />
+                {!ended && (
+                  <div
+                    className="cal-resize-handle cal-resize-handle-bottom"
+                    onPointerDown={(e) => handleResizePointerDown(e, t, 'end', mobileDayRef.current, hourHeight, startHour)}
+                  />
+                )}
               </div>
             );
           })}
@@ -1182,7 +1235,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
             {dayTasks.filter((t) => !t.time).map((t) => (
               <button
                 key={`ad-${t.id}`}
-                className="mobile-day-allday-item"
+                className={`mobile-day-allday-item ${isEventEnded(t) ? 'ended-event' : ''}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   setDetailTask(t);

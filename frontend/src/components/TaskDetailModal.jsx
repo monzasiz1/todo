@@ -42,12 +42,25 @@ export default function TaskDetailModal({ task, onClose }) {
     return `${h}:${m} Uhr`;
   };
 
+  const getEventEndDate = (t) => {
+    if (!t?.date) return null;
+    const datePart = String(t.date).slice(0, 10);
+    const rawEnd = String(t.time_end || t.time || '23:59').slice(0, 5);
+    const parts = rawEnd.split(':');
+    const hh = String(Math.min(23, Math.max(0, Number(parts[0]) || 23))).padStart(2, '0');
+    const mm = String(Math.min(59, Math.max(0, Number(parts[1]) || 59))).padStart(2, '0');
+    const end = new Date(`${datePart}T${hh}:${mm}:00`);
+    return Number.isNaN(end.getTime()) ? null : end;
+  };
+
   const isOverdue = task.date && !task.completed && isPast(parseISO(task.date)) && !isToday(parseISO(task.date));
   const priority = priorityConfig[task.priority] || priorityConfig.medium;
   const PriorityIcon = priority.icon;
   const canEdit = task.is_owner === false ? (task.can_edit === true) : true;
   const isShared = task.visibility && task.visibility !== 'private';
   const isEvent = task.type === 'event';
+  const eventEndAt = isEvent ? getEventEndDate(task) : null;
+  const isEventEnded = isEvent && !!eventEndAt && eventEndAt.getTime() < Date.now();
 
   const handleToggle = () => {
     toggleTask(task.id);
@@ -127,6 +140,9 @@ export default function TaskDetailModal({ task, onClose }) {
               </h2>
               {isEvent && (
                 <span className="task-detail-status event">Termin</span>
+              )}
+              {isEvent && isEventEnded && (
+                <span className="task-detail-status ended">Beendet</span>
               )}
               {!isEvent && task.completed && (
                 <span className="task-detail-status done">Erledigt</span>
@@ -357,9 +373,9 @@ export default function TaskDetailModal({ task, onClose }) {
                 className="task-detail-btn edit"
                 onClick={handleShareToGroupChat}
                 whileTap={{ scale: 0.97 }}
-                disabled={sharingToChat}
+                disabled={sharingToChat || isEventEnded}
               >
-                <Share2 size={18} /> {sharingToChat ? 'Teile...' : 'In Chat teilen'}
+                <Share2 size={18} /> {isEventEnded ? 'Termin beendet' : (sharingToChat ? 'Teile...' : 'In Chat teilen')}
               </motion.button>
             )}
             {canEdit && !isEvent && (

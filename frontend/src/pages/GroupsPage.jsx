@@ -23,6 +23,23 @@ const ROLE_CONFIG = {
   member: { label: 'Mitglied', icon: Users, color: '#8E8E93' },
 };
 
+function getEventEndDate(task) {
+  if (!task?.date) return null;
+  const datePart = String(task.date).slice(0, 10);
+  const rawEnd = String(task.time_end || task.time || '23:59').slice(0, 5);
+  const parts = rawEnd.split(':');
+  const hh = String(Math.min(23, Math.max(0, Number(parts[0]) || 23))).padStart(2, '0');
+  const mm = String(Math.min(59, Math.max(0, Number(parts[1]) || 59))).padStart(2, '0');
+  const dt = new Date(`${datePart}T${hh}:${mm}:00`);
+  return Number.isNaN(dt.getTime()) ? null : dt;
+}
+
+function isEventEnded(task) {
+  if (task?.type !== 'event') return false;
+  const end = getEventEndDate(task);
+  return !!end && end.getTime() < Date.now();
+}
+
 async function fileToResizedDataUrl(file, maxSize = 320) {
   const dataUrl = await new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -585,11 +602,16 @@ function GroupTaskCard({ task, groupId, canRemove, onRemove }) {
     high: 'var(--warning)', urgent: 'var(--danger)',
   };
 
+  const endedEvent = isEventEnded(task);
+
   return (
-    <div className={`group-task-card ${task.completed ? 'completed' : ''}`}>
+    <div className={`group-task-card ${task.completed ? 'completed' : ''} ${endedEvent ? 'ended-event' : ''}`}>
       <div className="group-task-priority" style={{ background: priorityColors[task.priority] }} />
       <div className="group-task-content">
-        <div className="group-task-title">{task.title}</div>
+        <div className="group-task-title">
+          {task.title}
+          {endedEvent && <span className="group-task-status">Beendet</span>}
+        </div>
         <div className="group-task-meta">
           {task.creator_name && (
             <span className="group-task-creator">

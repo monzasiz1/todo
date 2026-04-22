@@ -996,6 +996,15 @@ input, textarea, select {
   opacity: 0.6;
 }
 
+.task-card.ended-event:not(.completed) {
+  border-color: rgba(142, 142, 147, 0.28);
+  background: linear-gradient(180deg, rgba(142, 142, 147, 0.08), var(--card-solid));
+}
+
+.task-card.ended-event:not(.completed) .task-title {
+  color: var(--text-secondary);
+}
+
 .task-card.completed .task-title {
   text-decoration: line-through;
   color: var(--text-tertiary);
@@ -1080,6 +1089,11 @@ input, textarea, select {
 .task-type-badge.event {
   background: rgba(175, 82, 222, 0.12);
   color: #AF52DE;
+}
+
+.task-type-badge.ended {
+  background: rgba(142, 142, 147, 0.16);
+  color: #5E5E66;
 }
 
 /* Type Toggle (ManualTaskForm & TaskEditModal) */
@@ -14603,4 +14617,59 @@ body.cal-is-dragging * {
   background: #eef0f5;
   border: 1px solid rgba(0, 0, 0, 0.08);
   color: #535861;
+}
+
+/* ===== Ended Events (App-wide) ===== */
+.task-detail-status.ended {
+  background: rgba(142, 142, 147, 0.16);
+  color: #5E5E66;
+}
+
+.calendar-day-task.ended-event:not(.completed) {
+  opacity: 0.82;
+  filter: grayscale(0.2);
+}
+
+.desktop-week-event.ended-event,
+.mobile-week-event.ended-event,
+.mobile-day-event.ended-event,
+.desktop-week-all-day-event.ended-event,
+.mobile-day-allday-item.ended-event {
+  opacity: 0.78;
+  filter: grayscale(0.35);
+}
+
+.group-task-card.ended-event:not(.completed) {
+  background: linear-gradient(180deg, rgba(142, 142, 147, 0.08), var(--surface));
+  border-color: rgba(142, 142, 147, 0.28);
+}
+
+.group-task-status {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(142, 142, 147, 0.16);
+  color: #5E5E66;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.day-create-task-item.ended-event:not(.completed) {
+  border-color: rgba(142, 142, 147, 0.28);
+}
+
+.day-create-task-status {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #5E5E66;
+  background: rgba(142, 142, 147, 0.16);
 }
