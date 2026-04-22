@@ -133,7 +133,7 @@ input, textarea, select {
 }
 
 /* Calendar page gets more horizontal space */
-@media (min-width: 1024px) {
+@media (min-width: 1280px) {
   .calendar-page-wrap {
     margin-right: -40px;
     width: calc(100% + 40px);
@@ -142,6 +142,73 @@ input, textarea, select {
   .calendar-page-wrap .page-header,
   .calendar-page-wrap .task-creation-stack {
     padding-right: 40px;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1180px) {
+  .app-sidebar {
+    width: 212px;
+    padding: 18px 10px;
+  }
+
+  .app-main {
+    margin-left: 212px;
+    padding: 20px 14px;
+  }
+
+  .calendar-header {
+    padding: 14px 14px 10px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .cal-mp-wrap {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .cal-mp-trigger {
+    font-size: 20px;
+    font-weight: 780;
+    line-height: 1.2;
+    width: 100%;
+    min-width: 0;
+    padding: 2px 0;
+    margin: 0;
+  }
+
+  .cal-mp-trigger span {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .calendar-header > div:last-child {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .calendar-view-toggle {
+    padding: 2px;
+  }
+
+  .calendar-view-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .calendar-nav {
+    margin-left: auto;
+    gap: 6px;
+  }
+
+  .calendar-nav-btn {
+    width: 32px;
+    height: 32px;
   }
 }
 

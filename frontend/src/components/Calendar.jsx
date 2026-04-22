@@ -34,6 +34,8 @@ import { de } from 'date-fns/locale';
 const WK_START = 7;    // first visible hour
 const WK_END   = 23;   // last visible hour
 const WK_H     = 52;   // px per hour
+const CALENDAR_DESKTOP_BREAKPOINT = 1180;
+const CALENDAR_WEEK_DEFAULT_BREAKPOINT = 1024;
 
 const minsToTime = (mins) => {
   const h = Math.floor(Math.max(0, mins) / 60);
@@ -99,13 +101,13 @@ const throttle = (fn, delay) => {
 export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeChange, onTaskUpdated }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [nowTs, setNowTs] = useState(Date.now());
-  const [view, setView] = useState(window.innerWidth >= 768 ? 'week' : 'month');
+  const [view, setView] = useState(window.innerWidth >= CALENDAR_WEEK_DEFAULT_BREAKPOINT ? 'week' : 'month');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [detailTask, setDetailTask] = useState(null);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [showSidebarCategories, setShowSidebarCategories] = useState(true);
   const [pickerYear, setPickerYear] = useState(getYear(new Date()));
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= CALENDAR_DESKTOP_BREAKPOINT);
   // Drag / Resize state
   const [dragInfo, setDragInfo] = useState(null);
   const [resizeInfo, setResizeInfo] = useState(null); // { task, edge, previewTime }
@@ -197,7 +199,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   }, [currentDate, view, onVisibleRangeChange]);
 
   useEffect(() => {
-    const handler = () => setIsDesktop(window.innerWidth >= 768);
+    const handler = () => setIsDesktop(window.innerWidth >= CALENDAR_DESKTOP_BREAKPOINT);
     window.addEventListener('resize', handler);
     return () => window.removeEventListener('resize', handler);
   }, []);
