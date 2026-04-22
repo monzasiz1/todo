@@ -4202,6 +4202,11 @@ body.cal-is-dragging * {
   .mobile-day-view {
     padding: 0 0 8px;
     background: #fff;
+    max-height: calc(100vh - 220px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
   }
 
   .mobile-day-grid {
@@ -5855,6 +5860,8 @@ body.cal-is-dragging * {
 
   .desktop-week-main {
     background: #fbfcfe;
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr);
   }
 
   .desktop-week-days-row,
@@ -5940,6 +5947,10 @@ body.cal-is-dragging * {
   .desktop-week-time-wrap {
     display: grid;
     grid-template-columns: 72px 1fr;
+    max-height: calc(100vh - 290px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   .desktop-week-hours-col {
