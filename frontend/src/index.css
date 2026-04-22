@@ -14206,6 +14206,16 @@ body.cal-is-dragging * {
   border-color: rgba(52, 199, 89, 0.4);
   color: #1f8a47;
 }
+.gchat-shared-btn--followup {
+  border-color: rgba(52, 199, 89, 0.36);
+  color: #1f8a47;
+  background: rgba(52, 199, 89, 0.08);
+}
+.gchat-shared-btn--followup:hover:not(:disabled) {
+  border-color: rgba(52, 199, 89, 0.5);
+  color: #16753b;
+  background: rgba(52, 199, 89, 0.14);
+}
 .gchat-shared-btn:disabled { opacity: 0.5; }
 .gchat-shared-event.own .gchat-shared-btn {
   border-color: var(--border-strong);
@@ -14215,6 +14225,16 @@ body.cal-is-dragging * {
   background: var(--primary-bg);
   border-color: rgba(0, 122, 255, 0.3);
   color: var(--primary);
+}
+.gchat-shared-event.own .gchat-shared-btn--followup {
+  border-color: rgba(52, 199, 89, 0.36);
+  color: #1f8a47;
+  background: rgba(52, 199, 89, 0.08);
+}
+.gchat-shared-event.own .gchat-shared-btn--followup:hover:not(:disabled) {
+  border-color: rgba(52, 199, 89, 0.5);
+  color: #16753b;
+  background: rgba(52, 199, 89, 0.14);
 }
 .gchat-shared-event.ended {
   border-color: rgba(142, 142, 147, 0.32);

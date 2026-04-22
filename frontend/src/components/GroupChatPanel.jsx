@@ -145,6 +145,7 @@ export default function GroupChatPanel({ open, onClose }) {
   const [conflictInfo, setConflictInfo] = useState(null);
   const [claimingMsgId, setClaimingMsgId] = useState(null);
   const [rsvpMsgId, setRsvpMsgId] = useState(null);
+  const [followUpMsgId, setFollowUpMsgId] = useState(null);
   const [dragShareActive, setDragShareActive] = useState(false);
   const [dragShareOver, setDragShareOver] = useState(false);
   const [dragShareTaskId, setDragShareTaskId] = useState(null);
@@ -565,6 +566,42 @@ export default function GroupChatPanel({ open, onClose }) {
     setTimeout(() => inputRef.current?.focus(), 0);
   };
 
+  const createFollowUpTask = async (msg) => {
+    if (!selectedGroupId || !msg?.id || followUpMsgId === msg.id) return;
+    setFollowUpMsgId(msg.id);
+    try {
+      const baseTitle = msg.linked_task_title || msg.content || 'Termin';
+      const title = `Nachbereitung: ${baseTitle}`;
+      const parts = [];
+      if (msg.linked_task_date) parts.push(`Datum: ${String(msg.linked_task_date).substring(0, 10)}`);
+      if (msg.linked_task_time) parts.push(`Zeit: ${String(msg.linked_task_time).substring(0, 5)} Uhr`);
+      if (msg.responsible_name) parts.push(`Verantwortlich: ${msg.responsible_name}`);
+      const description = parts.length > 0 ? `Automatisch aus beendetem Gruppen-Termin\n${parts.join('\n')}` : 'Automatisch aus beendetem Gruppen-Termin erstellt';
+
+      const created = await api.createTask({
+        title,
+        description,
+        priority: 'medium',
+        type: 'task',
+      });
+
+      if (created?.task?.id) {
+        try {
+          await api.addGroupTask(selectedGroupId, { existing_task_id: created.task.id });
+        } catch {
+          // Fallback: task was created for user even if group link fails
+        }
+        setUndoInfo({ taskId: created.task.id, label: '✅ Nachbereitung erstellt' });
+        clearTimeout(undoTimerRef.current);
+        undoTimerRef.current = setTimeout(() => setUndoInfo(null), 8000);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setFollowUpMsgId(null);
+    }
+  };
+
   const isEndedEvent = (msg) => msg.message_type === 'group_event' && msg.linked_task_ended === true;
   const isArchivedEndedEvent = (msg) => {
     if (!isEndedEvent(msg)) return false;
@@ -879,6 +916,16 @@ export default function GroupChatPanel({ open, onClose }) {
                                   <MessageSquare size={12} />
                                   Kommentieren
                                 </button>
+                                {isEnded && (
+                                  <button
+                                    className="gchat-shared-btn gchat-shared-btn--followup"
+                                    onClick={() => createFollowUpTask(msg)}
+                                    disabled={followUpMsgId === msg.id}
+                                  >
+                                    {followUpMsgId === msg.id ? <span className="gchat-spinner-inline" /> : <Check size={12} />}
+                                    {followUpMsgId === msg.id ? 'Erstelle…' : 'Als Aufgabe nachbereiten'}
+                                  </button>
+                                )}
                               </div>
                               <div className="gchat-bubble-meta">
                                 <span className="gchat-time">{formatTime(msg.created_at)}</span>
