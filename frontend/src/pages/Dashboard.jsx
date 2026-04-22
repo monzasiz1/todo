@@ -153,7 +153,7 @@ function isEventEnded(task, nowTs = Date.now()) {
   return !!end && end.getTime() < nowTs;
 }
 
-function getPlannedHoursToday(tasks) {
+function getPlannedHoursRemainingToday(tasks, nowDate = new Date()) {
   const toMins = (time) => {
     if (!time) return null;
     const [h, m] = String(time).split(':').map((v) => parseInt(v, 10));
@@ -161,30 +161,57 @@ function getPlannedHoursToday(tasks) {
     return (h * 60) + m;
   };
 
+  const nowMins = nowDate.getHours() * 60 + nowDate.getMinutes();
   let total = 0;
+
   tasks.forEach((t) => {
     const start = toMins(t.time);
     if (start === null) return;
     const endRaw = toMins(t.time_end);
     const end = endRaw && endRaw > start ? endRaw : start + 60;
-    total += Math.max(30, end - start);
+
+    const segStart = Math.max(start, nowMins);
+    const segEnd = Math.min(24 * 60, end);
+    if (segEnd <= segStart) return;
+
+    total += (segEnd - segStart);
   });
+
   return total / 60;
 }
 
-function buildSmartInsights({ overdueCount, todayCount, urgentTodayCount, freeHours, upcomingEventsCount }) {
+function buildSmartInsights({
+  overdueCount,
+  todayCount,
+  urgentTodayCount,
+  freeHours,
+  upcomingEventsCount,
+  remainingHoursToday,
+}) {
   const freeHoursLabel = `${Math.max(0, freeHours).toFixed(1).replace('.', ',')}`;
   const capacity = Math.max(1, Math.min(7, Math.round(Math.max(0, freeHours) / 1.5)));
+  const hasOpenToday = todayCount > 0 || overdueCount > 0 || upcomingEventsCount > 0;
 
   const primaryText = overdueCount > 0
     ? `${overdueCount} Aufgaben sind überfällig, beginne dort und entlaste den Tag.`
     : urgentTodayCount > 0
       ? `${urgentTodayCount} Aufgaben sind heute wichtig, starte mit der kritischsten zuerst.`
-      : `Heute zählen ${todayCount} Aufgaben, fokussiere nur die wichtigsten zuerst.`;
+      : todayCount > 0
+        ? `Heute zählen ${todayCount} Aufgaben, fokussiere nur die wichtigsten zuerst.`
+        : 'Für heute sind keine offenen Aufgaben mehr da.';
 
-  const secondaryText = upcomingEventsCount > 0
-    ? `Heute sind ${freeHoursLabel} freie Stunden, ${upcomingEventsCount} Termine stehen bald an.`
-    : `Heute sind ${freeHoursLabel} freie Stunden, plane ${capacity} klare Aufgaben.`;
+  let secondaryText = '';
+  if (remainingHoursToday <= 0.4) {
+    secondaryText = hasOpenToday
+      ? `Der Tag ist fast vorbei. Schließe nur noch das Wichtigste ab.`
+      : 'Der Tag ist fast vorbei. Perfekt für einen klaren Start morgen.';
+  } else if (upcomingEventsCount > 0) {
+    secondaryText = `Heute sind noch ${freeHoursLabel} freie Stunden, ${upcomingEventsCount} Termine stehen bald an.`;
+  } else if (todayCount === 0 && overdueCount === 0) {
+    secondaryText = `Heute sind noch ${freeHoursLabel} freie Stunden. Nutze sie für Planung, Puffer oder Erholung.`;
+  } else {
+    secondaryText = `Heute sind noch ${freeHoursLabel} freie Stunden, plane ${capacity} klare Aufgaben.`;
+  }
 
   return [
     {
@@ -354,8 +381,21 @@ export default function Dashboard() {
     [deduplicated, nowTs]
   );
 
-  const plannedHoursToday = useMemo(() => getPlannedHoursToday(todayTasks), [todayTasks]);
-  const freeHours = useMemo(() => Math.max(0, 8 - plannedHoursToday), [plannedHoursToday]);
+  const remainingHoursToday = useMemo(() => {
+    const now = new Date(nowTs);
+    const minsLeft = Math.max(0, (24 * 60) - (now.getHours() * 60 + now.getMinutes()));
+    return minsLeft / 60;
+  }, [nowTs]);
+
+  const plannedHoursRemainingToday = useMemo(
+    () => getPlannedHoursRemainingToday(todayTasks, new Date(nowTs)),
+    [todayTasks, nowTs]
+  );
+
+  const freeHours = useMemo(
+    () => Math.max(0, remainingHoursToday - plannedHoursRemainingToday),
+    [remainingHoursToday, plannedHoursRemainingToday]
+  );
 
   const weekCompletionRate = useMemo(() => {
     const weekTasks = tasks.filter((t) => {
@@ -373,7 +413,8 @@ export default function Dashboard() {
     urgentTodayCount,
     freeHours,
     upcomingEventsCount,
-  }), [overdueCount, todayTasks.length, urgentTodayCount, freeHours, upcomingEventsCount]);
+    remainingHoursToday,
+  }), [overdueCount, todayTasks.length, urgentTodayCount, freeHours, upcomingEventsCount, remainingHoursToday]);
 
   const greetingHour = new Date().getHours();
   const greeting = greetingHour < 12 ? 'Guten Morgen' : greetingHour < 18 ? 'Guten Tag' : 'Guten Abend';

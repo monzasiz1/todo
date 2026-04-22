@@ -9,6 +9,7 @@ import {
   Calendar, Clock, Flag, Search, ArrowLeft
 } from 'lucide-react';
 import AvatarBadge from '../components/AvatarBadge';
+import TaskDetailModal from '../components/TaskDetailModal';
 import { usePlan } from '../hooks/usePlan';
 import UpgradeModal from '../components/UpgradeModal';
 
@@ -405,6 +406,7 @@ function GroupDetail({ groupId, onBack }) {
   const [showAddTask, setShowAddTask] = useState(false);
   const [copied, setCopied] = useState(false);
   const [visibleCount, setVisibleCount] = useState(15);
+  const [detailTask, setDetailTask] = useState(null);
 
   useEffect(() => { fetchGroup(groupId); }, [groupId]);
   useEffect(() => { setVisibleCount(15); }, [tab]);
@@ -482,6 +484,7 @@ function GroupDetail({ groupId, onBack }) {
                   groupId={groupId}
                   canRemove={isAdmin || task.user_id === user?.id}
                   onRemove={removeGroupTask}
+                  onOpenTask={setDetailTask}
                 />
               ))}
               {visibleCount < groupTasks.length && (
@@ -505,6 +508,10 @@ function GroupDetail({ groupId, onBack }) {
                 setShowAddTask(false);
               }}
             />
+          )}
+
+          {detailTask && (
+            <TaskDetailModal task={detailTask} onClose={() => setDetailTask(null)} />
           )}
         </div>
       )}
@@ -596,7 +603,7 @@ function GroupDetail({ groupId, onBack }) {
 // ============================================
 // Group Task Card
 // ============================================
-function GroupTaskCard({ task, groupId, canRemove, onRemove }) {
+function GroupTaskCard({ task, groupId, canRemove, onRemove, onOpenTask }) {
   const priorityColors = {
     low: 'var(--success)', medium: 'var(--primary)',
     high: 'var(--warning)', urgent: 'var(--danger)',
@@ -605,7 +612,19 @@ function GroupTaskCard({ task, groupId, canRemove, onRemove }) {
   const endedEvent = isEventEnded(task);
 
   return (
-    <div className={`group-task-card ${task.completed ? 'completed' : ''} ${endedEvent ? 'ended-event' : ''}`}>
+    <div
+      className={`group-task-card group-task-card-clickable ${task.completed ? 'completed' : ''} ${endedEvent ? 'ended-event' : ''}`}
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpenTask?.(task)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpenTask?.(task);
+        }
+      }}
+      title="Aufgabe öffnen"
+    >
       <div className="group-task-priority" style={{ background: priorityColors[task.priority] }} />
       <div className="group-task-content">
         <div className="group-task-title">
@@ -634,7 +653,14 @@ function GroupTaskCard({ task, groupId, canRemove, onRemove }) {
         </div>
       </div>
       {canRemove && (
-        <button className="group-task-remove" onClick={() => onRemove(groupId, task.id)} title="Entfernen">
+        <button
+          className="group-task-remove"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove(groupId, task.id);
+          }}
+          title="Entfernen"
+        >
           <X size={14} />
         </button>
       )}
