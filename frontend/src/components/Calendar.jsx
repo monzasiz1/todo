@@ -1294,16 +1294,22 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
         {dayTasks.filter((t) => !t.time).length > 0 && (
           <div className="mobile-day-allday">
             {dayTasks.filter((t) => !t.time).map((t) => (
+              (() => {
+                const ended = isEventEnded(t, nowTs);
+                return (
               <button
                 key={`ad-${t.id}`}
-                className={`mobile-day-allday-item ${isEventEnded(t, nowTs) ? 'ended-event' : ''}`}
+                className={`mobile-day-allday-item ${ended ? 'ended-event' : ''}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   setDetailTask(t);
                 }}
               >
                 {t.title}
+                {ended && <span className="mobile-day-event-ended">Beendet</span>}
               </button>
+                );
+              })()
             ))}
           </div>
         )}

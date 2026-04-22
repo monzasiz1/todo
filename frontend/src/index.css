@@ -1989,9 +1989,22 @@ body.cal-is-dragging * {
 
 @media (max-width: 768px) {
   .calendar-day-task-ended,
-  .mobile-week-event-ended,
-  .mobile-day-event-ended {
+  .mobile-week-event-ended {
     display: none !important;
+  }
+
+  .mobile-day-event-ended {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 2px;
+    font-size: 9px;
+    font-weight: 700;
+    color: rgba(34, 34, 34, 0.86);
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 999px;
+    padding: 1px 6px;
+    width: fit-content;
+    line-height: 1.2;
   }
 }
 
