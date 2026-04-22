@@ -78,10 +78,10 @@ const getTaskEndDate = (task) => {
   return Number.isNaN(dt.getTime()) ? null : dt;
 };
 
-const isEventEnded = (task) => {
+const isEventEnded = (task, nowTs = Date.now()) => {
   if (task?.type !== 'event') return false;
   const end = getTaskEndDate(task);
-  return !!end && end.getTime() < Date.now();
+  return !!end && end.getTime() < nowTs;
 };
 
 // ── Throttle helper for smooth drag ──
@@ -98,6 +98,7 @@ const throttle = (fn, delay) => {
 
 export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeChange, onTaskUpdated }) {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [nowTs, setNowTs] = useState(Date.now());
   const [view, setView] = useState(window.innerWidth >= 768 ? 'week' : 'month');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [detailTask, setDetailTask] = useState(null);
@@ -199,6 +200,11 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     const handler = () => setIsDesktop(window.innerWidth >= 768);
     window.addEventListener('resize', handler);
     return () => window.removeEventListener('resize', handler);
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNowTs(Date.now()), 60000);
+    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -711,7 +717,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                 <div className="calendar-day-tasks">
                   {dayTasks.slice(0, isDesktop ? 4 : 2).map((t) => (
                     (() => {
-                      const ended = isEventEnded(t);
+                      const ended = isEventEnded(t, nowTs);
                       return (
                     <div
                       key={t.id}
@@ -744,6 +750,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       )}
                       {t.time && <span className="calendar-day-task-time">{t.time.slice(0, 5)}</span>}
                       <span className="calendar-day-task-title">{t.title}</span>
+                      {ended && <span className="calendar-day-task-ended">Beendet</span>}
                     </div>
                       );
                     })()
@@ -772,7 +779,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     const hourHeight = WK_H;
     const totalHeight = (endHour - startHour) * hourHeight;
     const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
-    const now = new Date();
+    const now = new Date(nowTs);
     const todayIdx = days.findIndex((d) => isSameDay(d, now));
     const desktopNowTop =
       todayIdx >= 0
@@ -842,7 +849,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                 <div key={`allday-${d.toISOString()}`} className="desktop-week-all-day-cell" data-caldate={format(d, 'yyyy-MM-dd')}>
                   {dayTasks.slice(0, 2).map((t) => (
                     (() => {
-                      const ended = isEventEnded(t);
+                      const ended = isEventEnded(t, nowTs);
                       return (
                     <button
                       key={t.id}
@@ -853,7 +860,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         setDetailTask(t);
                       }}
                     >
-                      {t.title}
+                      {t.title}{ended ? ' · beendet' : ''}
                     </button>
                       );
                     })()
@@ -903,7 +910,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   </div>
                 )}
                 {weekTimedTasks.map((t) => {
-                  const ended = isEventEnded(t);
+                  const ended = isEventEnded(t, nowTs);
                   const startMins = timeToMinutes(t.time) ?? (startHour * 60);
                   const rawEnd = timeToMinutes(t.time_end);
                   const endMins = rawEnd && rawEnd > startMins ? rawEnd : startMins + 60;
@@ -986,6 +993,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       )}
                       <span className="desktop-week-event-title">{t.title}</span>
                       <span className="desktop-week-event-time">{t.time?.slice(0, 5)}{t.time_end ? ` - ${t.time_end.slice(0, 5)}` : ''}</span>
+                      {ended && <span className="desktop-week-event-ended">Beendet</span>}
                       {!ended && (
                         <div
                           className="cal-date-extend-handle cal-date-extend-right"
@@ -1062,7 +1070,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                     <div key={`${di}-${h}`} className="mobile-week-grid-hour-line" style={{ top: `${(h - mwStartH) * mwHourH}px` }} />
                   ))}
                   {dayTasks.map((t) => {
-                    const ended = isEventEnded(t);
+                    const ended = isEventEnded(t, nowTs);
                     const sMins = timeToMins(t.time) ?? (mwStartH * 60);
                     const rawEnd = timeToMins(t.time_end);
                     const eMins = rawEnd && rawEnd > sMins ? rawEnd : sMins + 60;
@@ -1107,6 +1115,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         )}
                         <span className="mobile-week-event-title">{t.title}</span>
                         {height > 28 && <span className="mobile-week-event-time">{t.time?.slice(0, 5)}</span>}
+                        {ended && height > 22 && <span className="mobile-week-event-ended">Beendet</span>}
                         {!ended && (
                           <div
                             className="cal-resize-handle cal-resize-handle-bottom"
@@ -1145,7 +1154,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       return h * 60 + m;
     };
 
-    const now = new Date();
+    const now = new Date(nowTs);
     const selectedIsToday = selectedDate && isSameDay(selectedDate, now);
     const nowTop = selectedIsToday
       ? (((now.getHours() * 60 + now.getMinutes()) - (startHour * 60)) / 60) * hourHeight
@@ -1181,7 +1190,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
           )}
 
           {dayTasks.filter((t) => t.time).map((t) => {
-            const ended = isEventEnded(t);
+            const ended = isEventEnded(t, nowTs);
             const start = toMinutes(t.time) ?? (startHour * 60);
             const endRaw = toMinutes(t.time_end);
             const end = endRaw && endRaw > start ? endRaw : start + 60;
@@ -1232,6 +1241,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                 )}
                 <strong>{t.title}</strong>
                 <span>{t.time?.slice(0, 5)}{t.time_end ? `-${t.time_end.slice(0, 5)}` : ''}</span>
+                {ended && <span className="mobile-day-event-ended">Beendet</span>}
                 {(t.date_end && t.date_end !== t.date) && (
                   <span style={{ fontSize: 10, opacity: 0.8 }}>
                     {format(parseISO(t.date?.substring(0,10)), 'd.M.')} – {format(parseISO(t.date_end.substring(0,10)), 'd.M.')}
@@ -1253,13 +1263,13 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
             {dayTasks.filter((t) => !t.time).map((t) => (
               <button
                 key={`ad-${t.id}`}
-                className={`mobile-day-allday-item ${isEventEnded(t) ? 'ended-event' : ''}`}
+                className={`mobile-day-allday-item ${isEventEnded(t, nowTs) ? 'ended-event' : ''}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   setDetailTask(t);
                 }}
               >
-                {t.title}
+                {t.title}{isEventEnded(t, nowTs) ? ' · beendet' : ''}
               </button>
             ))}
           </div>

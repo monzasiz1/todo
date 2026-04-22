@@ -153,6 +153,7 @@ export default function GroupChatPanel({ open, onClose }) {
   const [sharingDroppedTask, setSharingDroppedTask] = useState(false);
   const [dragShareSuccess, setDragShareSuccess] = useState(false);
   const [showPastEvents, setShowPastEvents] = useState(false);
+  const [nowTs, setNowTs] = useState(Date.now());
   const undoTimerRef = useRef(null);
   const conflictTimerRef = useRef(null);
   const dragSuccessTimerRef = useRef(null);
@@ -210,6 +211,11 @@ export default function GroupChatPanel({ open, onClose }) {
     clearTimeout(undoTimerRef.current);
     clearTimeout(conflictTimerRef.current);
     clearTimeout(dragSuccessTimerRef.current);
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNowTs(Date.now()), 60000);
+    return () => clearInterval(timer);
   }, []);
 
   const shareDroppedTaskToChat = useCallback(async (taskId, forcedGroupId = null) => {
@@ -602,13 +608,30 @@ export default function GroupChatPanel({ open, onClose }) {
     }
   };
 
-  const isEndedEvent = (msg) => msg.message_type === 'group_event' && msg.linked_task_ended === true;
+  const parseEventEndLocal = (msg) => {
+    if (!msg?.linked_task_date) return null;
+    const datePart = String(msg.linked_task_date).slice(0, 10);
+    const rawEnd = String(msg.linked_task_time_end || msg.linked_task_time || '23:59').slice(0, 5);
+    const parts = rawEnd.split(':');
+    const hh = String(Math.min(23, Math.max(0, Number(parts[0]) || 23))).padStart(2, '0');
+    const mm = String(Math.min(59, Math.max(0, Number(parts[1]) || 59))).padStart(2, '0');
+    const dt = new Date(`${datePart}T${hh}:${mm}:00`);
+    return Number.isNaN(dt.getTime()) ? null : dt;
+  };
+
+  const isEndedEvent = (msg) => {
+    if (msg?.message_type !== 'group_event') return false;
+    const localEnd = parseEventEndLocal(msg);
+    if (localEnd) return localEnd.getTime() < nowTs;
+    return msg?.linked_task_ended === true;
+  };
+
   const isArchivedEndedEvent = (msg) => {
     if (!isEndedEvent(msg)) return false;
-    if (!msg.linked_task_ends_at) return true;
-    const endTs = new Date(msg.linked_task_ends_at).getTime();
+    const localEnd = parseEventEndLocal(msg);
+    const endTs = localEnd?.getTime() || new Date(msg.linked_task_ends_at || '').getTime();
     if (Number.isNaN(endTs)) return true;
-    return (Date.now() - endTs) > (24 * 60 * 60 * 1000);
+    return (nowTs - endTs) > (24 * 60 * 60 * 1000);
   };
 
   // ── Derived data ──────────────────────────────────────────────────────────

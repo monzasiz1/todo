@@ -12,6 +12,7 @@ import AvatarBadge from './AvatarBadge';
 function TaskCard({ task, index, disableLayout = false }) {
   const { toggleTask, deleteTask } = useTaskStore();
   const [showDetail, setShowDetail] = useState(false);
+  const [nowTs, setNowTs] = useState(Date.now());
   const shouldAnimate = index < 10 && !disableLayout;
   const touchDragRef = useRef({
     active: false,
@@ -56,7 +57,7 @@ function TaskCard({ task, index, disableLayout = false }) {
   const canEdit = task.is_owner === false ? (task.can_edit === true) : true;
   const isEvent = task.type === 'event';
   const eventEndAt = isEvent ? getEventEndDate(task) : null;
-  const isEventEnded = isEvent && !!eventEndAt && eventEndAt.getTime() < Date.now();
+  const isEventEnded = isEvent && !!eventEndAt && eventEndAt.getTime() < nowTs;
   const canShareToChat = isEvent && !!task.group_id && !isEventEnded;
   const shortTitle = String(task.title || 'Termin').slice(0, 32);
   const timeLabel = task.time ? `${String(task.time).slice(0, 5)} Uhr` : '';
@@ -65,6 +66,11 @@ function TaskCard({ task, index, disableLayout = false }) {
     return () => {
       if (touchDragRef.current.timer) clearTimeout(touchDragRef.current.timer);
     };
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNowTs(Date.now()), 60000);
+    return () => clearInterval(timer);
   }, []);
 
   const dispatchShareEvent = (name, detail = {}) => {
