@@ -69,8 +69,30 @@ function TaskCard({ task, index, disableLayout = false }) {
   }, []);
 
   useEffect(() => {
-    const timer = setInterval(() => setNowTs(Date.now()), 60000);
-    return () => clearInterval(timer);
+    let intervalId = null;
+    let timeoutId = null;
+
+    const syncNow = () => setNowTs(Date.now());
+    const startMinuteAlignedTicker = () => {
+      const msToNextMinute = 60000 - (Date.now() % 60000) + 30;
+      timeoutId = setTimeout(() => {
+        syncNow();
+        intervalId = setInterval(syncNow, 60000);
+      }, msToNextMinute);
+    };
+
+    const onVisibilityOrFocus = () => syncNow();
+
+    startMinuteAlignedTicker();
+    window.addEventListener('focus', onVisibilityOrFocus);
+    document.addEventListener('visibilitychange', onVisibilityOrFocus);
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      if (intervalId) clearInterval(intervalId);
+      window.removeEventListener('focus', onVisibilityOrFocus);
+      document.removeEventListener('visibilitychange', onVisibilityOrFocus);
+    };
   }, []);
 
   const dispatchShareEvent = (name, detail = {}) => {

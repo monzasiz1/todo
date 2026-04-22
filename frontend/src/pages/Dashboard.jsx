@@ -134,6 +134,25 @@ function parseTaskDate(task) {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+function getEventEndDate(task) {
+  if (!task) return null;
+  const datePart = String(task.date_end || task.date || '').slice(0, 10);
+  if (!datePart) return null;
+
+  const rawEnd = String(task.time_end || task.time || '23:59');
+  const m = rawEnd.match(/(\d{1,2}):(\d{2})/);
+  const hh = String(Math.min(23, Math.max(0, Number(m?.[1]) || 23))).padStart(2, '0');
+  const mm = String(Math.min(59, Math.max(0, Number(m?.[2]) || 59))).padStart(2, '0');
+  const dt = new Date(`${datePart}T${hh}:${mm}:00`);
+  return Number.isNaN(dt.getTime()) ? null : dt;
+}
+
+function isEventEnded(task, nowTs = Date.now()) {
+  if (task?.type !== 'event') return false;
+  const end = getEventEndDate(task);
+  return !!end && end.getTime() < nowTs;
+}
+
 function getPlannedHoursToday(tasks) {
   const toMins = (time) => {
     if (!time) return null;
@@ -207,6 +226,7 @@ export default function Dashboard() {
   const [showCompleted, setShowCompleted] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState({});
   const [showTaskLimitModal, setShowTaskLimitModal] = useState(false);
+  const [nowTs, setNowTs] = useState(Date.now());
 
   useEffect(() => {
     // Load all tasks (open AND closed), let frontend filter do the rest
@@ -228,7 +248,50 @@ export default function Dashboard() {
         });
       }
     }, 60000);
-    return () => clearInterval(interval);
+
+    const refreshOnFocus = () => {
+      fetchTasks({
+        dashboard: 'true',
+        limit: DASHBOARD_FETCH_LIMIT,
+        horizon_days: DASHBOARD_HORIZON_DAYS,
+        completed_lookback_days: DASHBOARD_COMPLETED_LOOKBACK_DAYS,
+      }, { force: true });
+    };
+    window.addEventListener('focus', refreshOnFocus);
+    document.addEventListener('visibilitychange', refreshOnFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', refreshOnFocus);
+      document.removeEventListener('visibilitychange', refreshOnFocus);
+    };
+  }, []);
+
+  useEffect(() => {
+    let intervalId = null;
+    let timeoutId = null;
+
+    const syncNow = () => setNowTs(Date.now());
+    const startMinuteAlignedTicker = () => {
+      const msToNextMinute = 60000 - (Date.now() % 60000) + 30;
+      timeoutId = setTimeout(() => {
+        syncNow();
+        intervalId = setInterval(syncNow, 60000);
+      }, msToNextMinute);
+    };
+
+    const onVisibilityOrFocus = () => syncNow();
+
+    startMinuteAlignedTicker();
+    window.addEventListener('focus', onVisibilityOrFocus);
+    document.addEventListener('visibilitychange', onVisibilityOrFocus);
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      if (intervalId) clearInterval(intervalId);
+      window.removeEventListener('focus', onVisibilityOrFocus);
+      document.removeEventListener('visibilitychange', onVisibilityOrFocus);
+    };
   }, []);
 
   const filtered = useMemo(() => {
@@ -260,9 +323,11 @@ export default function Dashboard() {
   const todayTasks = useMemo(
     () => deduplicated.filter((t) => {
       const d = parseTaskDate(t);
-      return d && isToday(d);
+      if (!(d && isToday(d))) return false;
+      if (t.type === 'event' && isEventEnded(t, nowTs)) return false;
+      return true;
     }),
-    [deduplicated]
+    [deduplicated, nowTs]
   );
 
   const overdueCount = useMemo(
@@ -282,9 +347,11 @@ export default function Dashboard() {
     () => deduplicated.filter((t) => {
       const d = parseTaskDate(t);
       if (!d) return false;
-      return (t.type === 'event') && (isToday(d) || isTomorrow(d));
+      if (t.type !== 'event') return false;
+      if (isEventEnded(t, nowTs)) return false;
+      return isToday(d) || isTomorrow(d);
     }).length,
-    [deduplicated]
+    [deduplicated, nowTs]
   );
 
   const plannedHoursToday = useMemo(() => getPlannedHoursToday(todayTasks), [todayTasks]);

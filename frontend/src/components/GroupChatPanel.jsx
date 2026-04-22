@@ -214,8 +214,30 @@ export default function GroupChatPanel({ open, onClose }) {
   }, []);
 
   useEffect(() => {
-    const timer = setInterval(() => setNowTs(Date.now()), 60000);
-    return () => clearInterval(timer);
+    let intervalId = null;
+    let timeoutId = null;
+
+    const syncNow = () => setNowTs(Date.now());
+    const startMinuteAlignedTicker = () => {
+      const msToNextMinute = 60000 - (Date.now() % 60000) + 30;
+      timeoutId = setTimeout(() => {
+        syncNow();
+        intervalId = setInterval(syncNow, 60000);
+      }, msToNextMinute);
+    };
+
+    const onVisibilityOrFocus = () => syncNow();
+
+    startMinuteAlignedTicker();
+    window.addEventListener('focus', onVisibilityOrFocus);
+    document.addEventListener('visibilitychange', onVisibilityOrFocus);
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      if (intervalId) clearInterval(intervalId);
+      window.removeEventListener('focus', onVisibilityOrFocus);
+      document.removeEventListener('visibilitychange', onVisibilityOrFocus);
+    };
   }, []);
 
   const shareDroppedTaskToChat = useCallback(async (taskId, forcedGroupId = null) => {
@@ -392,8 +414,13 @@ export default function GroupChatPanel({ open, onClose }) {
         clearTimeout(conflictTimerRef.current);
         conflictTimerRef.current = setTimeout(() => setConflictInfo(null), 12000);
       }
-    } catch {
-      // ignore – API shows its own error
+    } catch (err) {
+      setConflictInfo({
+        has_conflict: true,
+        message: err?.message || 'Aktion konnte nicht erstellt werden.',
+      });
+      clearTimeout(conflictTimerRef.current);
+      conflictTimerRef.current = setTimeout(() => setConflictInfo(null), 10000);
     } finally {
       setCreatingFor(null);
     }
@@ -578,6 +605,9 @@ export default function GroupChatPanel({ open, onClose }) {
     try {
       const baseTitle = msg.linked_task_title || msg.content || 'Termin';
       const title = `Nachbereitung: ${baseTitle}`;
+      const followUpDate = msg.linked_task_date
+        ? String(msg.linked_task_date).slice(0, 10)
+        : new Date().toISOString().slice(0, 10);
       const parts = [];
       if (msg.linked_task_date) parts.push(`Datum: ${String(msg.linked_task_date).substring(0, 10)}`);
       if (msg.linked_task_time) parts.push(`Zeit: ${String(msg.linked_task_time).substring(0, 5)} Uhr`);
@@ -587,22 +617,31 @@ export default function GroupChatPanel({ open, onClose }) {
       const created = await api.createTask({
         title,
         description,
+        date: followUpDate,
+        group_id: selectedGroupId,
         priority: 'medium',
         type: 'task',
       });
 
       if (created?.task?.id) {
-        try {
-          await api.addGroupTask(selectedGroupId, { existing_task_id: created.task.id });
-        } catch {
-          // Fallback: task was created for user even if group link fails
-        }
-        setUndoInfo({ taskId: created.task.id, label: '✅ Nachbereitung erstellt' });
+        setUndoInfo({ taskId: created.task.id, label: `✅ Nachbereitung erstellt (fällig: ${followUpDate})` });
         clearTimeout(undoTimerRef.current);
         undoTimerRef.current = setTimeout(() => setUndoInfo(null), 8000);
+      } else {
+        setConflictInfo({
+          has_conflict: true,
+          message: 'Nachbereitung konnte nicht erstellt werden.',
+        });
+        clearTimeout(conflictTimerRef.current);
+        conflictTimerRef.current = setTimeout(() => setConflictInfo(null), 10000);
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      setConflictInfo({
+        has_conflict: true,
+        message: err?.message || 'Fehler beim Erstellen der Nachbereitung.',
+      });
+      clearTimeout(conflictTimerRef.current);
+      conflictTimerRef.current = setTimeout(() => setConflictInfo(null), 10000);
     } finally {
       setFollowUpMsgId(null);
     }
