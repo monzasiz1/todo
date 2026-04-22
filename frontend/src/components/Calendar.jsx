@@ -772,6 +772,12 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     const hourHeight = WK_H;
     const totalHeight = (endHour - startHour) * hourHeight;
     const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
+    const now = new Date();
+    const todayIdx = days.findIndex((d) => isSameDay(d, now));
+    const desktopNowTop =
+      todayIdx >= 0
+        ? (((now.getHours() * 60 + now.getMinutes()) - (startHour * 60)) / 60) * hourHeight
+        : null;
     const timeToMinutes = timeToMins;
     const weekTimedTasks = filteredTasks.filter((t) => {
       if (!t.time || !t.date) return false;
@@ -884,6 +890,18 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
               })}
 
               <div className="desktop-week-events-layer" style={{ height: `${totalHeight}px` }}>
+                {desktopNowTop !== null && desktopNowTop >= 0 && desktopNowTop <= totalHeight && (
+                  <div
+                    className="desktop-week-now-line"
+                    style={{
+                      top: `${desktopNowTop}px`,
+                      left: `calc((100% / 7) * ${todayIdx} + 4px)`,
+                      width: 'calc((100% / 7) - 8px)',
+                    }}
+                  >
+                    <span>{`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`}</span>
+                  </div>
+                )}
                 {weekTimedTasks.map((t) => {
                   const ended = isEventEnded(t);
                   const startMins = timeToMinutes(t.time) ?? (startHour * 60);
