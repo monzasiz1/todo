@@ -1315,6 +1315,16 @@ input, textarea, select {
   overflow: hidden;
 }
 
+.calendar-wrapper.calendar-view-day .calendar-day-header,
+.calendar-wrapper.calendar-view-day .mobile-week-grid-header,
+.calendar-wrapper.calendar-view-day .mobile-week-grid-wrap {
+  display: none !important;
+}
+
+.calendar-wrapper.calendar-view-day .mobile-day-grid {
+  border-top: none;
+}
+
 .calendar-header {
   display: flex;
   align-items: center;
@@ -1976,6 +1986,15 @@ body.cal-is-dragging * {
   border-radius: 999px;
   padding: 1px 5px;
 }
+
+@media (max-width: 768px) {
+  .calendar-day-task-ended,
+  .mobile-week-event-ended,
+  .mobile-day-event-ended {
+    display: none !important;
+  }
+}
+
 .mobile-week-grid-hours {
   position: relative;
   width: 30px;

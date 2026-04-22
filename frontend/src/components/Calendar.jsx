@@ -726,9 +726,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       day = addDays(day, 1);
     }
 
-    const dayHeaders = isDesktop
-      ? ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
-      : ['M', 'D', 'M', 'D', 'F', 'S', 'S'];
+    const dayHeaders = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
     return (
       <>
@@ -1304,7 +1302,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   setDetailTask(t);
                 }}
               >
-                {t.title}{isEventEnded(t, nowTs) ? ' · beendet' : ''}
+                {t.title}
               </button>
             ))}
           </div>
@@ -1323,7 +1321,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
 
   return (
     <motion.div
-      className="calendar-wrapper"
+      className={`calendar-wrapper calendar-view-${view}`}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
