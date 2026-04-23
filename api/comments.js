@@ -42,7 +42,9 @@ async function findAccessibleTask(pool, taskId, userId) {
   return result.rows[0] || null;
 }
 function normalizeDate(value) {
-  return value ? String(value).substring(0, 10) : null;
+  if (!value) return null;
+  if (value instanceof Date) return value.toISOString().substring(0, 10);
+  return String(value).substring(0, 10);
 }
 
 async function resolveTaskForComments(pool, rawTaskId, userId) {

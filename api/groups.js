@@ -11,8 +11,18 @@ function parseVirtualId(id) {
   return { parentId, date };
 }
 
+function toIsoDateStr(value) {
+  if (!value) return null;
+  if (value instanceof Date) return value.toISOString().substring(0, 10);
+  return String(value).substring(0, 10);
+}
+
 function toDateOnly(value) {
   if (!value) return null;
+  if (value instanceof Date) {
+    const iso = value.toISOString().split('T')[0];
+    return new Date(`${iso}T00:00:00`);
+  }
   const str = String(value).substring(0, 10);
   const d = new Date(`${str}T00:00:00`);
   return Number.isNaN(d.getTime()) ? null : d;
@@ -121,7 +131,7 @@ module.exports = async function handler(req, res) {
 
     const spanDays = template.date_end
       ? Math.max(0, Math.round(
-          (new Date(String(template.date_end).substring(0, 10) + 'T00:00:00') -
+          (new Date(toIsoDateStr(template.date_end) + 'T00:00:00') -
            new Date(templateDate + 'T00:00:00')) / 86400000
         ))
       : 0;

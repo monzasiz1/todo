@@ -187,7 +187,7 @@ async function materializeOccurrence(pool, parentId, date, userId) {
 
   const spanDays = t.date_end
     ? Math.max(0, Math.round(
-        (new Date(String(t.date_end).substring(0, 10) + 'T00:00:00') -
+        (new Date(toIsoDateStr(t.date_end) + 'T00:00:00') -
          new Date(templateDate + 'T00:00:00')) / 86400000
       ))
     : 0;
@@ -228,6 +228,12 @@ async function materializeOccurrence(pool, parentId, date, userId) {
 }
 
 // Merge concrete tasks + virtual expansions, deduplicating by parent+date
+function toIsoDateStr(value) {
+  if (!value) return null;
+  if (value instanceof Date) return value.toISOString().substring(0, 10);
+  return String(value).substring(0, 10);
+}
+
 function mergeWithVirtual(concreteTasks, templates, rangeStart, rangeEnd) {
   if (!Array.isArray(concreteTasks)) concreteTasks = [];
   if (!Array.isArray(templates)) templates = [];
@@ -237,7 +243,7 @@ function mergeWithVirtual(concreteTasks, templates, rangeStart, rangeEnd) {
   
   for (const t of concreteTasks) {
     if (t && t.recurrence_parent_id) {
-      const dateStr = t.date ? String(t.date).substring(0, 10) : 'null';
+      const dateStr = toIsoDateStr(t.date) || 'null';
       concreteKeys.add(`${t.recurrence_parent_id}:${dateStr}`);
     }
   }
@@ -245,7 +251,7 @@ function mergeWithVirtual(concreteTasks, templates, rangeStart, rangeEnd) {
   // Also exclude the template's own date (it's a concrete row)
   for (const tpl of templates) {
     if (tpl && tpl.id && tpl.date) {
-      const dateStr = String(tpl.date).substring(0, 10);
+      const dateStr = toIsoDateStr(tpl.date);
       concreteKeys.add(`${tpl.id}:${dateStr}`);
     }
   }
@@ -269,8 +275,8 @@ function mergeWithVirtual(concreteTasks, templates, rangeStart, rangeEnd) {
   }
 
   return [...concreteTasks, ...virtual].sort((a, b) => {
-    const da = String(a && a.date ? a.date : '').substring(0, 10);
-    const db = String(b && b.date ? b.date : '').substring(0, 10);
+    const da = toIsoDateStr(a && a.date ? a.date : '') || '';
+    const db = toIsoDateStr(b && b.date ? b.date : '') || '';
     return da < db ? -1 : da > db ? 1 : 0;
   });
 }
