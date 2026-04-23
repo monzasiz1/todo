@@ -9,6 +9,15 @@ const SCOPES = 'OnlineMeetings.ReadWrite offline_access';
 const TOKEN_ENDPOINT = 'https://login.microsoftonline.com/common/oauth2/v2.0/token';
 const AUTH_ENDPOINT = 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize';
 
+function buildGraphDateTime(dateValue, timeValue, fallbackIso) {
+  const dateStr = dateValue ? String(dateValue).substring(0, 10) : null;
+  const timeStr = timeValue ? String(timeValue).substring(0, 5) : null;
+  if (!dateStr || !timeStr) return fallbackIso;
+  const dt = new Date(`${dateStr}T${timeStr}:00`);
+  if (Number.isNaN(dt.getTime())) return fallbackIso;
+  return dt.toISOString();
+}
+
 // Refreshes the stored access token if it is within 60 s of expiry.
 // Returns the (possibly new) access token string, or null if refresh failed.
 async function getValidAccessToken(pool, userId) {
@@ -191,30 +200,41 @@ module.exports = async (req, res) => {
       return res.status(403).json({ error: 'Microsoft-Konto nicht verbunden. Bitte zuerst in den Profileinstellungen verbinden.' });
     }
 
-    // Build ISO date-time strings
-    const startDateStr = date ? String(date).substring(0, 10) : new Date().toISOString().substring(0, 10);
-    const startTimeStr = time ? String(time).substring(0, 5) : '09:00';
-    // Default meeting duration: 1 hour
-    const [sh, sm] = startTimeStr.split(':').map(Number);
-    const defaultEndH = String(Math.min(23, sh + 1)).padStart(2, '0');
-    const endTimeStr = time_end ? String(time_end).substring(0, 5) : `${defaultEndH}:${String(sm).padStart(2, '0')}`;
+    const now = new Date();
+    const defaultStart = new Date(now.getTime() + 5 * 60 * 1000);
+    const defaultEnd = new Date(defaultStart.getTime() + 60 * 60 * 1000);
 
-    const startDateTime = `${startDateStr}T${startTimeStr}:00`;
-    const endDateTime = `${startDateStr}T${endTimeStr}:00`;
+    const startDateTime = buildGraphDateTime(date, time || '09:00', defaultStart.toISOString());
+    let endDateTime = buildGraphDateTime(date, time_end || time || '10:00', defaultEnd.toISOString());
+
+    // Ensure end is after start
+    if (new Date(endDateTime).getTime() <= new Date(startDateTime).getTime()) {
+      endDateTime = new Date(new Date(startDateTime).getTime() + 60 * 60 * 1000).toISOString();
+    }
+
+    const meetingPayload = {
+      subject: String(title).trim(),
+      startDateTime,
+      endDateTime,
+    };
 
     const meetingRes = await fetch('https://graph.microsoft.com/v1.0/me/onlineMeetings', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${accessToken}`,
+        Accept: 'application/json',
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ startDateTime, endDateTime, subject: title }),
+      body: JSON.stringify(meetingPayload),
     });
 
     if (!meetingRes.ok) {
-      const errBody = await meetingRes.json().catch(() => ({}));
-      console.error('Graph API error:', errBody);
-      return res.status(502).json({ error: 'Teams-Meeting konnte nicht erstellt werden. Bitte erneut versuchen.' });
+      const raw = await meetingRes.text().catch(() => '');
+      let errBody = {};
+      try { errBody = raw ? JSON.parse(raw) : {}; } catch { errBody = { raw }; }
+      const graphMsg = errBody?.error?.message || 'Unbekannter Graph-Fehler';
+      console.error('Graph API error:', { status: meetingRes.status, payload: meetingPayload, errBody });
+      return res.status(502).json({ error: `Teams-Meeting konnte nicht erstellt werden: ${graphMsg}` });
     }
 
     const meetingData = await meetingRes.json();

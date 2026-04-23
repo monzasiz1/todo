@@ -11,6 +11,7 @@ import authRoutes from './routes/auth.js';
 import taskRoutes from './routes/tasks.js';
 import aiRoutes from './routes/ai.js';
 import categoryRoutes from './routes/categories.js';
+import teamsRoutes from './routes/teams.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -34,6 +35,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/teams', teamsRoutes);
 
 // Error handler
 app.use((err, req, res, _next) => {
