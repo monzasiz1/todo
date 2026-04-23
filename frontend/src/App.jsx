@@ -10,6 +10,7 @@ import ProfilePage from './pages/ProfilePage';
 import GroupsPage from './pages/GroupsPage';
 import PricingPage from './pages/PricingPage';
 import InstallPrompt from './components/InstallPrompt';
+import OfflineBanner from './components/OfflineBanner';
 import { useEffect } from 'react';
 
 function ProtectedRoute({ children }) {
@@ -33,6 +34,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <InstallPrompt />
+      <OfflineBanner />
       <Routes>
         <Route path="/landing" element={<LandingPage />} />
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />

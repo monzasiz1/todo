@@ -85,6 +85,21 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
+// ─── Background Sync ───
+// Wenn der Browser Background Sync unterstützt, wird beim Wiederherstellen
+// der Verbindung ein 'sync' Event ausgelöst, das den App-Client benachrichtigt.
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'taski-offline-sync') {
+    event.waitUntil(
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+        for (const client of clientList) {
+          client.postMessage({ type: 'OFFLINE_SYNC_READY' });
+        }
+      })
+    );
+  }
+});
+
 // ─── Push Notifications ───
 self.addEventListener('push', (event) => {
   if (!event.data) return;

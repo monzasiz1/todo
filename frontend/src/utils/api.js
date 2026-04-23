@@ -1,5 +1,7 @@
 const API_URL = '/api';
 
+import { enqueueRequest } from './offlineQueue';
+
 function getHeaders() {
   const headers = { 'Content-Type': 'application/json' };
   const token = localStorage.getItem('token');
@@ -9,26 +11,51 @@ function getHeaders() {
   return headers;
 }
 
+/**
+ * Führt einen API-Request aus.
+ * Bei Netzwerkfehler (offline) werden mutative Requests (POST/PATCH/PUT/DELETE)
+ * in die Offline-Queue eingereiht und ein { __queued: true, tempId } Objekt zurückgegeben.
+ * GET-Requests werfen den Fehler weiter.
+ */
 async function request(endpoint, options = {}) {
-  const res = await fetch(`${API_URL}${endpoint}`, {
-    headers: getHeaders(),
-    ...options,
-  });
+  try {
+    const res = await fetch(`${API_URL}${endpoint}`, {
+      headers: getHeaders(),
+      ...options,
+    });
 
-  if (res.status === 401) {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.location.href = '/login';
-    throw new Error('Nicht autorisiert');
+    if (res.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+      throw new Error('Nicht autorisiert');
+    }
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || 'Anfrage fehlgeschlagen');
+    }
+
+    return data;
+  } catch (err) {
+    const method = (options.method || 'GET').toUpperCase();
+    const isMutation = ['POST', 'PATCH', 'PUT', 'DELETE'].includes(method);
+
+    // Nur bei echtem Netzwerkfehler (TypeError: Failed to fetch) in Queue einreihen
+    const isNetworkError = err instanceof TypeError || err.message === 'Failed to fetch' || !navigator.onLine;
+
+    if (isMutation && isNetworkError) {
+      const tempId = `offline_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      const bodyStr = options.body ?? null;
+      const body = bodyStr ? JSON.parse(bodyStr) : null;
+      await enqueueRequest({ method, endpoint, body, tempId });
+      // Signalwert – der Store muss damit umgehen
+      return { __queued: true, tempId };
+    }
+
+    throw err;
   }
-
-  const data = await res.json();
-
-  if (!res.ok) {
-    throw new Error(data.error || 'Anfrage fehlgeschlagen');
-  }
-
-  return data;
 }
 
 export const api = {

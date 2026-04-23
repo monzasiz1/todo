@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { api } from '../utils/api';
+import { getAllQueued, removeQueued, incrementRetry } from '../utils/offlineQueue';
 
 export const useTaskStore = create((set, get) => ({
   tasks: [],
@@ -82,6 +83,20 @@ export const useTaskStore = create((set, get) => ({
   createTask: async (task) => {
     try {
       const data = await api.createTask(task);
+
+      // Offline: task wurde in Queue eingereiht → optimistisch als Platzhalter einfügen
+      if (data?.__queued) {
+        const tempTask = {
+          id: data.tempId,
+          ...task,
+          completed: false,
+          __offline: true,
+        };
+        set((s) => ({ tasks: [tempTask, ...s.tasks] }));
+        get().addToast('📵 Offline gespeichert – wird synchronisiert sobald du online bist', 'info');
+        return { task: tempTask };
+      }
+
       const created = Array.isArray(data.created_tasks) && data.created_tasks.length > 0
         ? data.created_tasks
         : [data.task];
@@ -97,6 +112,51 @@ export const useTaskStore = create((set, get) => ({
       get().addToast('❌ ' + err.message, 'error');
       return null;
     }
+  },
+
+  /**
+   * Offline-Queue abspielen: alle wartenden Requests an die API senden.
+   * Wird aufgerufen sobald die App wieder online ist.
+   */
+  syncOfflineQueue: async () => {
+    const entries = await getAllQueued();
+    if (entries.length === 0) return;
+
+    get().addToast(`🔄 ${entries.length} Offline-Änderung(en) werden synchronisiert…`, 'info');
+
+    for (const entry of entries) {
+      try {
+        // Direkt per fetch ohne nochmal in Queue einzureihen
+        const token = localStorage.getItem('token');
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const res = await fetch(`/api${entry.endpoint}`, {
+          method: entry.method,
+          headers,
+          body: entry.body ? JSON.stringify(entry.body) : undefined,
+        });
+
+        if (res.ok) {
+          await removeQueued(entry.id);
+          // Temp-Task aus Store entfernen wenn vorhanden (wird durch fetchTasks ersetzt)
+          if (entry.tempId) {
+            set((s) => ({ tasks: s.tasks.filter((t) => t.id !== entry.tempId) }));
+          }
+        } else if (res.status === 401) {
+          // Auth-Fehler: Queue leeren macht keinen Sinn
+          break;
+        } else {
+          await incrementRetry(entry.id);
+        }
+      } catch {
+        await incrementRetry(entry.id);
+      }
+    }
+
+    // Tasks neu laden um echte IDs zu bekommen
+    await get().fetchTasks({ dashboard: 'true' }, { force: true });
+    get().addToast('✅ Offline-Änderungen synchronisiert');
   },
 
   aiCreateTask: async (input) => {
