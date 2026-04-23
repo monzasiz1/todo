@@ -1,9 +1,29 @@
-const CACHE_NAME = 'taski-v2';
+const CACHE_NAME = 'taski-v3';
 const STATIC_ASSETS = [
+  '/',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
 ];
+
+function offlineFallbackResponse() {
+  return new Response('Offline', {
+    status: 503,
+    statusText: 'Service Unavailable',
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+  });
+}
+
+function offlineHtmlResponse() {
+  return new Response(
+    '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Offline</title></head><body><h1>Offline</h1><p>Keine Verbindung. Bitte Internet aktivieren und erneut versuchen.</p></body></html>',
+    {
+      status: 503,
+      statusText: 'Service Unavailable',
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    }
+  );
+}
 
 // Install: cache static assets
 self.addEventListener('install', (event) => {
@@ -43,7 +63,10 @@ self.addEventListener('fetch', (event) => {
   // For navigation requests, always prefer a fresh HTML shell.
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request, { cache: 'no-store' }).catch(() => caches.match('/'))
+      fetch(request, { cache: 'no-store' }).catch(async () => {
+        const shell = await caches.match('/');
+        return shell || offlineHtmlResponse();
+      })
     );
     return;
   }
@@ -64,7 +87,10 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         })
-        .catch(() => caches.match(request))
+        .catch(async () => {
+          const cached = await caches.match(request);
+          return cached || offlineFallbackResponse();
+        })
     );
     return;
   }
@@ -78,9 +104,9 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
         }
         return response;
-      }).catch(() => cached);
+      }).catch(() => cached || offlineFallbackResponse());
 
-      return cached || fetchPromise;
+      return cached || fetchPromise || offlineFallbackResponse();
     })
   );
 });
