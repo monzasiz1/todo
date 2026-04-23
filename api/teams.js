@@ -1,5 +1,6 @@
 const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
+const { cacheManager } = require('./_lib/cache');
 const jwt = require('jsonwebtoken');
 
 const CLIENT_ID = process.env.MICROSOFT_CLIENT_ID;
@@ -255,6 +256,7 @@ module.exports = async (req, res) => {
             WHERE id = $3 AND user_id = $4`,
           [joinUrl, meetingId, tid, user.id]
         );
+        await cacheManager.invalidateByEvent(String(user.id), 'task_updated');
       }
     }
 
@@ -278,6 +280,8 @@ module.exports = async (req, res) => {
         WHERE id = $1 AND user_id = $2`,
       [tid, user.id]
     );
+
+    await cacheManager.invalidateByEvent(String(user.id), 'task_updated');
 
     return res.json({ success: true });
   }

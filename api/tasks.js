@@ -281,6 +281,37 @@ function mergeWithVirtual(concreteTasks, templates, rangeStart, rangeEnd) {
   });
 }
 
+function normalizeTaskRow(row) {
+  if (!row || typeof row !== 'object') return row;
+
+  const attachmentCount = Number(row.attachment_count);
+
+  return {
+    ...row,
+    teams_join_url: row.teams_join_url || null,
+    teams_meeting_id: row.teams_meeting_id || null,
+    shared_with_users: Array.isArray(row.shared_with_users) ? row.shared_with_users : [],
+    attachment_count: Number.isFinite(attachmentCount) ? attachmentCount : 0,
+    creator_name: row.creator_name || null,
+    creator_color: row.creator_color || null,
+    creator_avatar_url: row.creator_avatar_url || null,
+    last_editor_name: row.last_editor_name || null,
+    group_id: row.group_id || null,
+    group_name: row.group_name || null,
+    group_color: row.group_color || null,
+    group_image_url: row.group_image_url || null,
+    group_task_creator_name: row.group_task_creator_name || null,
+    group_task_creator_color: row.group_task_creator_color || null,
+    group_task_creator_avatar_url: row.group_task_creator_avatar_url || null,
+    is_owner: row.is_owner === undefined || row.is_owner === null ? true : row.is_owner === true,
+    can_edit: row.can_edit === undefined || row.can_edit === null ? true : row.can_edit === true,
+  };
+}
+
+function normalizeTaskRows(rows) {
+  return Array.isArray(rows) ? rows.map(normalizeTaskRow) : [];
+}
+
 function buildDashboardCacheKey(userId, completedFilter, limit, horizonDays, completedLookbackDays) {
   const completedScope = completedFilter === null ? 'all' : String(completedFilter);
   return `dashboard:user:${userId}:${completedScope}:${limit}:h${horizonDays}:c${completedLookbackDays}`;
@@ -454,12 +485,12 @@ module.exports = async function handler(req, res) {
       }
 
       // 3. Merge concrete + virtual, deduplicating overrides
-      const merged = mergeWithVirtual(
+      const merged = normalizeTaskRows(mergeWithVirtual(
         concreteResult.rows || [],
         templateResult.rows || [],
         start,
         end
-      );
+      ));
 
       return res.json({ tasks: merged });
     } catch (err) {
@@ -503,7 +534,7 @@ module.exports = async function handler(req, res) {
          ORDER BY t.reminder_at ASC`,
         [user.id]
       );
-      return res.json({ tasks: result.rows });
+      return res.json({ tasks: normalizeTaskRows(result.rows) });
     } catch (err) {
       console.error('Reminders error:', err);
       return res.status(500).json({ error: 'Fehler beim Laden der Erinnerungen' });
@@ -553,7 +584,7 @@ module.exports = async function handler(req, res) {
       // We only cache-invalidate so the dashboard refreshes.
       await cacheManager.invalidateByEvent(String(user.id), 'task_updated');
 
-      return res.json({ task: toggled, nextTask: null });
+      return res.json({ task: normalizeTaskRow(toggled), nextTask: null });
     } catch (err) {
       console.error('Toggle error:', err);
       return res.status(500).json({ error: 'Fehler beim Umschalten' });
@@ -619,7 +650,7 @@ module.exports = async function handler(req, res) {
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Aufgabe nicht gefunden' });
       }
-      return res.json({ task: result.rows[0] });
+      return res.json({ task: normalizeTaskRow(result.rows[0]) });
     } catch (err) {
       console.error('Update error:', err);
       return res.status(500).json({ error: 'Fehler beim Aktualisieren' });
@@ -790,7 +821,8 @@ module.exports = async function handler(req, res) {
              ),
              ranked_tasks AS (
                SELECT t.id, t.user_id, t.title, t.description, t.date, t.date_end, t.time, t.time_end,
-                      t.priority, t.completed, t.type, t.sort_order, t.created_at, t.updated_at, t.visibility,
+                 t.priority, t.completed, t.type, t.sort_order, t.created_at, t.updated_at, t.visibility,
+                 t.teams_join_url, t.teams_meeting_id,
                       t.category_id,
                       CASE WHEN t.user_id = $1 THEN true ELSE false END AS is_owner,
                       CASE
@@ -826,8 +858,9 @@ module.exports = async function handler(req, res) {
                WHERE tp2.can_view = true
                GROUP BY tp2.task_id
              )
-             SELECT rt.id, rt.user_id, rt.title, rt.description, rt.date, rt.date_end, rt.time, rt.time_end,
+                  SELECT rt.id, rt.user_id, rt.title, rt.description, rt.date, rt.date_end, rt.time, rt.time_end,
                     rt.priority, rt.completed, rt.type, rt.sort_order, rt.created_at, rt.updated_at, rt.visibility,
+                    rt.teams_join_url, rt.teams_meeting_id,
                     rt.category_id,
                     c.name as category_name,
                     c.color as category_color,
@@ -887,7 +920,8 @@ module.exports = async function handler(req, res) {
              ),
              ranked_tasks AS (
                SELECT t.id, t.user_id, t.title, t.description, t.date, t.date_end, t.time, t.time_end,
-                      t.priority, t.completed, t.type, t.sort_order, t.created_at, t.updated_at,
+                 t.priority, t.completed, t.type, t.sort_order, t.created_at, t.updated_at,
+                 t.teams_join_url, t.teams_meeting_id,
                       t.category_id
                FROM uniq_ids ids
                JOIN tasks t ON t.id = ids.id
@@ -900,8 +934,9 @@ module.exports = async function handler(req, res) {
                ${dashboardOrderBy}
                LIMIT $3
              )
-             SELECT rt.id, rt.user_id, rt.title, rt.description, rt.date, rt.date_end, rt.time, rt.time_end,
+                  SELECT rt.id, rt.user_id, rt.title, rt.description, rt.date, rt.date_end, rt.time, rt.time_end,
                     rt.priority, rt.completed, rt.type, rt.sort_order, rt.created_at, rt.updated_at,
+                    rt.teams_join_url, rt.teams_meeting_id,
                     rt.category_id,
                     c.name as category_name,
                     c.color as category_color,
@@ -953,7 +988,7 @@ module.exports = async function handler(req, res) {
         const dashWindowStart = lookbackStart.toISOString().split('T')[0];
 
         // Fetch templates that are active within the dashboard window
-        let mergedTasks = result.rows || [];
+        let mergedTasks = normalizeTaskRows(result.rows || []);
         try {
           let tplResult;
           if (collabEnabled) {
@@ -1058,11 +1093,11 @@ module.exports = async function handler(req, res) {
             );
           }
           // Merge concrete + virtual tasks
-          mergedTasks = mergeWithVirtual(result.rows || [], tplResult.rows || [], dashWindowStart, horizonEndStr);
+          mergedTasks = normalizeTaskRows(mergeWithVirtual(result.rows || [], tplResult.rows || [], dashWindowStart, horizonEndStr));
         } catch (mergeErr) {
           console.error('Virtual recurrence merge error:', mergeErr.message);
           // Fallback: use only concrete tasks
-          mergedTasks = result.rows || [];
+          mergedTasks = normalizeTaskRows(result.rows || []);
         }
 
         // 🚀 CACHE: Store result for 30 seconds
@@ -1135,7 +1170,7 @@ module.exports = async function handler(req, res) {
         );
       }
 
-      return res.json({ tasks: result.rows });
+      return res.json({ tasks: normalizeTaskRows(result.rows) });
     } catch (err) {
       console.error('Tasks list error:', err);
       return res.status(500).json({ error: 'Fehler beim Laden der Aufgaben' });
@@ -1228,14 +1263,14 @@ module.exports = async function handler(req, res) {
         );
       }
 
-      const decoratedTask = {
+      const decoratedTask = normalizeTaskRow({
         ...firstTask,
         visibility: finalVisibility,
         group_id: groupInfo?.id || null,
         group_name: groupInfo?.name || null,
         group_color: groupInfo?.color || null,
         group_image_url: groupInfo?.image_url || null,
-      };
+      });
 
       // 🚀 STUFE 3: Event-driven invalidation (instead of pattern-based)
   await cacheManager.invalidateByEvent(String(user.id), 'task_created');
