@@ -35,9 +35,21 @@ const VISIBILITY_OPTIONS = [
   { value: 'selected_users', label: 'Auswahl', icon: UserCheck, color: '#34C759' },
 ];
 
+function parseVirtualTaskId(taskId) {
+  if (typeof taskId !== 'string' || !taskId.startsWith('v_')) return null;
+  const parts = taskId.split('_');
+  if (parts.length < 3) return null;
+  const date = parts[parts.length - 1];
+  const parentId = parts.slice(1, -1).join('_');
+  if (!parentId || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  return { parentId, date };
+}
+
 export default function TaskEditModal({ task, onClose, onSaved }) {
   const { updateTask, categories, fetchCategories, addToast } = useTaskStore();
   const { friends, fetchFriends } = useFriendsStore();
+  const virtualTask = parseVirtualTaskId(task.id);
+  const seriesTaskId = virtualTask ? virtualTask.parentId : (task.recurrence_parent_id || task.id);
 
   // Form state
   const [taskType, setTaskType] = useState(task.type || 'task');
@@ -98,10 +110,10 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
   };
 
   const loadPermissions = async () => {
-    if (!task.id) return;
+    if (!seriesTaskId) return;
     try {
       setLoadingPerms(true);
-      const data = await api.getPermissions(task.id);
+      const data = await api.getPermissions(seriesTaskId);
       setVisibility(data.visibility || 'private');
       setPermissions(
         (data.permissions || []).map(p => ({
@@ -153,7 +165,26 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
 
     setSaving(true);
     try {
-      // 1. Update task fields
+      const normalizedVisibilityPermissions = visibility === 'selected_users'
+        ? permissions.map((p) => ({ user_id: p.user_id, can_view: p.can_view, can_edit: p.can_edit }))
+        : [];
+
+      const hasCoreChanges = (
+        taskType !== (task.type || 'task') ||
+        title.trim() !== (task.title || '') ||
+        description.trim() !== (task.description || '') ||
+        (date || null) !== (task.date ? task.date.substring(0, 10) : null) ||
+        (dateEnd || null) !== (task.date_end ? task.date_end.substring(0, 10) : null) ||
+        ((allDay ? null : (time || null)) !== (task.time ? task.time.substring(0, 5) : null)) ||
+        ((allDay ? null : (timeEnd || null)) !== (task.time_end ? task.time_end.substring(0, 5) : null)) ||
+        priority !== (task.priority || 'medium') ||
+        String(categoryId || '') !== String(task.category_id || '') ||
+        String(localToISO(reminderAt) || '') !== String(task.reminder_at || '') ||
+        (recurrenceRule || null) !== (task.recurrence_rule || null) ||
+        (recurrenceEnd || null) !== (task.recurrence_end ? task.recurrence_end.substring(0, 10) : null)
+      );
+
+      // 1. Update task fields only when actual core data changed.
       const updates = {
         type: taskType,
         title: title.trim(),
@@ -169,15 +200,17 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
         recurrence_interval: 1,
         recurrence_end: recurrenceEnd || null,
       };
-      const updatedTask = await updateTask(task.id, updates);
+      const updatedTask = hasCoreChanges ? await updateTask(task.id, updates) : task;
+
+      if (hasCoreChanges && !updatedTask) {
+        throw new Error('Speichern fehlgeschlagen');
+      }
 
       // 2. Update sharing/permissions (if collab tables exist)
       try {
-        await api.setPermissions(task.id, {
+        await api.setPermissions(seriesTaskId, {
           visibility,
-          permissions: visibility === 'selected_users'
-            ? permissions.map(p => ({ user_id: p.user_id, can_view: p.can_view, can_edit: p.can_edit }))
-            : [],
+          permissions: normalizedVisibilityPermissions,
         });
       } catch {
         // Ignore if collaboration tables don't exist
@@ -190,11 +223,11 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
         if (oldGroupId !== newGroupId) {
           // Remove from old group
           if (oldGroupId) {
-            await api.removeGroupTask(oldGroupId, task.id);
+            await api.removeGroupTask(oldGroupId, seriesTaskId);
           }
           // Add to new group
           if (newGroupId) {
-            await api.addGroupTask(newGroupId, { existing_task_id: task.id });
+            await api.addGroupTask(newGroupId, { existing_task_id: seriesTaskId });
           }
         }
       } catch {
