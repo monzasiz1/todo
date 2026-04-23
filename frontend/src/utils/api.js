@@ -25,10 +25,9 @@ async function request(endpoint, options = {}) {
     });
 
     if (res.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
-      throw new Error('Nicht autorisiert');
+      const unauthorized = new Error('Nicht autorisiert');
+      unauthorized.status = 401;
+      throw unauthorized;
     }
 
     const data = await res.json();
@@ -41,17 +40,24 @@ async function request(endpoint, options = {}) {
   } catch (err) {
     const method = (options.method || 'GET').toUpperCase();
     const isMutation = ['POST', 'PATCH', 'PUT', 'DELETE'].includes(method);
+    const isAuthEndpoint = endpoint.startsWith('/auth/');
 
     // Nur bei echtem Netzwerkfehler (TypeError: Failed to fetch) in Queue einreihen
     const isNetworkError = err instanceof TypeError || err.message === 'Failed to fetch' || !navigator.onLine;
 
-    if (isMutation && isNetworkError) {
+    // Auth Requests niemals in die Queue legen (Login/Register müssen sofort fehlschlagen)
+    if (isMutation && isNetworkError && !isAuthEndpoint) {
       const tempId = `offline_${Date.now()}_${Math.random().toString(36).slice(2)}`;
       const bodyStr = options.body ?? null;
       const body = bodyStr ? JSON.parse(bodyStr) : null;
       await enqueueRequest({ method, endpoint, body, tempId });
       // Signalwert – der Store muss damit umgehen
       return { __queued: true, tempId };
+    }
+
+    // Für Auth-Endpunkte klare Offline-Fehlermeldung statt technischer TypeError
+    if (isAuthEndpoint && isNetworkError) {
+      throw new Error('Keine Internetverbindung. Login nur online möglich.');
     }
 
     throw err;

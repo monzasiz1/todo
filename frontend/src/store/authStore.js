@@ -38,11 +38,17 @@ export const useAuthStore = create((set) => ({
   checkAuth: async () => {
     try {
       const data = await api.getMe();
-      set({ user: data.user });
-    } catch {
-      set({ user: null, token: null });
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      set({ user: data.user, error: null });
+    } catch (err) {
+      // Nur bei echter 401 Session löschen. Bei Offline/Netzwerkfehler Session behalten.
+      if (err?.status === 401 || err?.message === 'Nicht autorisiert') {
+        set({ user: null, token: null });
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        return;
+      }
+
+      set({ error: 'Offline-Modus aktiv. Du bleibst eingeloggt.' });
     }
   },
 

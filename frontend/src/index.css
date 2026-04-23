@@ -2515,7 +2515,7 @@ body.cal-is-dragging * {
 /* ========== OFFLINE BANNER ========== */
 .offline-banner {
   position: fixed;
-  top: 0;
+  top: env(safe-area-inset-top, 0px);
   left: 0;
   right: 0;
   z-index: 9999;
@@ -2523,7 +2523,7 @@ body.cal-is-dragging * {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 8px 16px;
+  padding: calc(8px + env(safe-area-inset-top, 0px)) 16px 8px;
   background: #1c1c1e;
   color: #f2f2f7;
   font-size: 13px;

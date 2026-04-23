@@ -2,12 +2,16 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
+import { purgeAuthQueueEntries } from './utils/offlineQueue';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />
   </React.StrictMode>
 );
+
+// Einmalige Bereinigung alter Auth-Queue-Einträge
+purgeAuthQueueEntries().catch(() => {});
 
 // Service Worker Registration + Offline-Sync
 if ('serviceWorker' in navigator) {
