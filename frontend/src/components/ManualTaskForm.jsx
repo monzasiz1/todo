@@ -172,23 +172,44 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
       });
 
       if (result) {
+        let createdTask = Array.isArray(result?.created_tasks) && result.created_tasks.length > 0
+          ? result.created_tasks[0]
+          : (result?.task || result);
+
+        if (visibility === 'selected_users') {
+          createdTask = {
+            ...createdTask,
+            shared_with_users: permissions.map((permission) => ({
+              name: permission.name,
+              color: permission.avatar_color,
+              avatar_url: permission.avatar_url,
+            })),
+          };
+        }
+
         // Attach Teams meeting if requested (event only)
-        if (addTeamsMeeting && taskType === 'event' && result?.id) {
+        if (addTeamsMeeting && taskType === 'event' && createdTask?.id) {
           try {
-            await api.createTeamsMeeting({
-              task_id: result.id,
+            const teamsResult = await api.createTeamsMeeting({
+              task_id: createdTask.id,
               title: title.trim(),
               date: date || null,
               time: allDay ? null : (time || null),
               time_end: allDay ? null : (timeEnd || null),
             });
+
+            createdTask = {
+              ...createdTask,
+              teams_join_url: teamsResult?.join_url || createdTask?.teams_join_url || null,
+              teams_meeting_id: teamsResult?.meeting_id || createdTask?.teams_meeting_id || null,
+            };
           } catch {
             // Meeting creation failure should not block task creation
           }
         }
         resetForm();
         setIsOpen(false);
-        onTaskCreated?.(result);
+        onTaskCreated?.(createdTask);
       }
     } finally {
       setSaving(false);

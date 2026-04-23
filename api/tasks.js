@@ -324,9 +324,30 @@ module.exports = async function handler(req, res) {
       if (collabEnabled) {
         concreteResult = await pool.query(
           `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
+             u.name as creator_name, u.avatar_color as creator_color, u.avatar_url as creator_avatar_url,
+             NULL::text as last_editor_name,
+             CASE WHEN t.user_id = $1 THEN true ELSE false END as is_owner,
+             CASE
+               WHEN t.user_id = $1 THEN true
+               ELSE EXISTS (
+                 SELECT 1 FROM task_permissions tp_edit
+                 WHERE tp_edit.task_id = t.id AND tp_edit.user_id = $1 AND tp_edit.can_edit = true
+               )
+             END as can_edit,
              gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url,
-             gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color
+             gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color,
+             gtc.avatar_url as group_task_creator_avatar_url,
+             COALESCE((
+               SELECT json_agg(
+                 json_build_object('name', su.name, 'color', su.avatar_color, 'avatar_url', su.avatar_url)
+                 ORDER BY su.name
+               )
+               FROM task_permissions tp2
+               JOIN users su ON su.id = tp2.user_id
+               WHERE tp2.task_id = t.id AND tp2.can_view = true
+             ), '[]'::json) as shared_with_users
            FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
+           LEFT JOIN users u ON u.id = t.user_id
            LEFT JOIN task_permissions tp ON tp.task_id = t.id AND tp.user_id = $1
            LEFT JOIN group_tasks gt ON gt.task_id = t.id
            LEFT JOIN groups grp ON grp.id = gt.group_id
@@ -372,11 +393,34 @@ module.exports = async function handler(req, res) {
       if (collabEnabled) {
         templateResult = await pool.query(
           `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
-             gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url
+             u.name as creator_name, u.avatar_color as creator_color, u.avatar_url as creator_avatar_url,
+             NULL::text as last_editor_name,
+             CASE WHEN t.user_id = $1 THEN true ELSE false END as is_owner,
+             CASE
+               WHEN t.user_id = $1 THEN true
+               ELSE EXISTS (
+                 SELECT 1 FROM task_permissions tp_edit
+                 WHERE tp_edit.task_id = t.id AND tp_edit.user_id = $1 AND tp_edit.can_edit = true
+               )
+             END as can_edit,
+             gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url,
+             gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color,
+             gtc.avatar_url as group_task_creator_avatar_url,
+             COALESCE((
+               SELECT json_agg(
+                 json_build_object('name', su.name, 'color', su.avatar_color, 'avatar_url', su.avatar_url)
+                 ORDER BY su.name
+               )
+               FROM task_permissions tp2
+               JOIN users su ON su.id = tp2.user_id
+               WHERE tp2.task_id = t.id AND tp2.can_view = true
+             ), '[]'::json) as shared_with_users
            FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
+           LEFT JOIN users u ON u.id = t.user_id
            LEFT JOIN task_permissions tp ON tp.task_id = t.id AND tp.user_id = $1
            LEFT JOIN group_tasks gt ON gt.task_id = t.id
            LEFT JOIN groups grp ON grp.id = gt.group_id
+           LEFT JOIN users gtc ON gtc.id = gt.created_by
            WHERE (
              t.user_id = $1
              OR (t.visibility = 'shared' AND EXISTS (
