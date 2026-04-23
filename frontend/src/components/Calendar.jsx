@@ -1270,6 +1270,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   if (!wasDragging.current) setDetailTask(t);
                 }}
               >
+                {t.teams_join_url && <Video size={11} className="calendar-event-teams-icon mobile" />}
                 {!ended && (
                   <div
                     className="cal-resize-handle cal-resize-handle-top"
@@ -1309,6 +1310,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   setDetailTask(t);
                 }}
               >
+                {t.teams_join_url && <Video size={11} className="calendar-day-task-teams-icon" />}
                 {t.title}
                 {ended && <span className="mobile-day-event-ended">Beendet</span>}
               </button>

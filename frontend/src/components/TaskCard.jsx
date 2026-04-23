@@ -254,13 +254,6 @@ function TaskCard({ task, index, disableLayout = false }) {
           {task.teams_join_url && <span className="task-type-badge teams"><Video size={10} /> Teams</span>}
           {isEventEnded && <span className="task-type-badge ended">Beendet</span>}
         </div>
-        {task.teams_join_url && (
-          <div className="task-teams-inline">
-            <span className="task-teams-dot" />
-            <Video size={12} />
-            <span>Teams-Meeting erstellt</span>
-          </div>
-        )}
         {task.description && (
           <div className="task-description-preview">
             {task.description.length > 60 ? task.description.substring(0, 60) + '…' : task.description}

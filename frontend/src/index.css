@@ -1169,24 +1169,6 @@ input, textarea, select {
   color: #5E5E66;
 }
 
-.task-teams-inline {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
-  color: #6264a7;
-  font-size: 11.5px;
-  font-weight: 600;
-}
-
-.task-teams-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #6264a7;
-  box-shadow: 0 0 0 4px rgba(98, 100, 167, 0.12);
-}
-
 /* Type Toggle (ManualTaskForm & TaskEditModal) */
 .task-type-toggle {
   display: flex;
