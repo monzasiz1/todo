@@ -28,7 +28,6 @@ export default function TaskDetailModal({ task, onClose }) {
   const [showMenu, setShowMenu] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [commentText, setCommentText] = useState('');
-  const [commentEmoji, setCommentEmoji] = useState('💬');
   const [comments, setComments] = useState([]);
   const menuRef = useRef(null);
   const emojiPickerRef = useRef(null);
@@ -121,7 +120,7 @@ export default function TaskDetailModal({ task, onClose }) {
     // Optimistic UI update
     const optimisticEntry = {
       id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-      emoji: commentEmoji,
+      emoji: '💬',
       text,
       author: currentUser?.name || 'Du',
       created_at: new Date().toISOString(),
@@ -129,11 +128,10 @@ export default function TaskDetailModal({ task, onClose }) {
     };
 
     setCommentText('');
-    setCommentEmoji('💬');
     setComments([...comments, optimisticEntry]);
 
     try {
-      const response = await api.addComment(task.id, commentEmoji, text);
+      const response = await api.addComment(task.id, '💬', text);
       if (response.comment) {
         // Replace optimistic entry with server response
         setComments((prev) =>
@@ -517,9 +515,9 @@ export default function TaskDetailModal({ task, onClose }) {
                   type="button"
                   className="task-detail-emoji-picker-btn"
                   onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                  title="Emoji wählen"
+                  title="Emoji einfügen"
                 >
-                  {commentEmoji}
+                  😊
                 </button>
                 <input
                   className="task-detail-comment-input"
@@ -540,11 +538,12 @@ export default function TaskDetailModal({ task, onClose }) {
                     <button
                       key={emoji}
                       type="button"
-                      className={`task-detail-emoji-btn ${commentEmoji === emoji ? 'active' : ''}`}
+                      className="task-detail-emoji-btn"
                       onClick={() => {
-                        setCommentEmoji(emoji);
+                        setCommentText(commentText + emoji);
                         setShowEmojiPicker(false);
                       }}
+                      title={emoji}
                     >
                       {emoji}
                     </button>
