@@ -905,16 +905,108 @@ module.exports = async function handler(req, res) {
         // Fetch templates that are active within the dashboard window
         let mergedTasks = result.rows || [];
         try {
-          const tplResult = await pool.query(
-            `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon
-             FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
-             WHERE t.user_id = $1
-               AND t.recurrence_rule IS NOT NULL
-               AND t.recurrence_parent_id IS NULL
-               AND t.date <= $2
-               AND (t.recurrence_end IS NULL OR t.recurrence_end >= $3)`,
-            [user.id, horizonEndStr, dashWindowStart]
-          );
+          let tplResult;
+          if (collabEnabled) {
+            tplResult = await pool.query(
+              `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
+                      u.name as creator_name, u.avatar_color as creator_color, u.avatar_url as creator_avatar_url,
+                      NULL::text AS last_editor_name,
+                      CASE WHEN t.user_id = $1 THEN true ELSE false END as is_owner,
+                      CASE
+                        WHEN t.user_id = $1 THEN true
+                        ELSE EXISTS (
+                          SELECT 1 FROM task_permissions tp
+                          WHERE tp.task_id = t.id AND tp.user_id = $1 AND tp.can_edit = true
+                        )
+                      END as can_edit,
+                      g.group_id, g.group_name, g.group_color, g.group_image_url,
+                      g.group_task_creator_name, g.group_task_creator_color, g.group_task_creator_avatar_url,
+                      0::int as attachment_count,
+                      COALESCE((
+                        SELECT json_agg(
+                          json_build_object('name', su.name, 'color', su.avatar_color, 'avatar_url', su.avatar_url)
+                          ORDER BY su.name
+                        )
+                        FROM task_permissions tp2
+                        JOIN users su ON tp2.user_id = su.id
+                        WHERE tp2.task_id = t.id AND tp2.can_view = true
+                      ), '[]'::json) as shared_with_users
+               FROM tasks t
+               LEFT JOIN categories c ON t.category_id = c.id
+               LEFT JOIN users u ON t.user_id = u.id
+               LEFT JOIN task_permissions tp ON tp.task_id = t.id AND tp.user_id = $1
+               LEFT JOIN LATERAL (
+                 SELECT gt.group_id,
+                        grp.name as group_name,
+                        grp.color as group_color,
+                        grp.image_url as group_image_url,
+                        gtc.name as group_task_creator_name,
+                        gtc.avatar_color as group_task_creator_color,
+                        gtc.avatar_url as group_task_creator_avatar_url
+                 FROM group_tasks gt
+                 JOIN groups grp ON grp.id = gt.group_id
+                 LEFT JOIN users gtc ON gtc.id = gt.created_by
+                 WHERE gt.task_id = t.id
+                 ORDER BY gt.group_id
+                 LIMIT 1
+               ) g ON true
+               WHERE (
+                 t.user_id = $1
+                 OR (t.visibility = 'shared' AND EXISTS (
+                   SELECT 1 FROM friends f WHERE f.status = 'accepted'
+                   AND ((f.user_id = t.user_id AND f.friend_id = $1) OR (f.user_id = $1 AND f.friend_id = t.user_id))
+                 ))
+                 OR (t.visibility = 'selected_users' AND tp.can_view = true)
+                 OR EXISTS (
+                   SELECT 1 FROM group_tasks gt2
+                   JOIN group_members gm ON gm.group_id = gt2.group_id
+                   WHERE gt2.task_id = t.id AND gm.user_id = $1
+                 )
+               )
+                 AND t.recurrence_rule IS NOT NULL
+                 AND t.recurrence_parent_id IS NULL
+                 AND t.date <= $2
+                 AND (t.recurrence_end IS NULL OR t.recurrence_end >= $3)`,
+              [user.id, horizonEndStr, dashWindowStart]
+            );
+          } else {
+            tplResult = await pool.query(
+              `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
+                      u.name as creator_name, u.avatar_color as creator_color, u.avatar_url as creator_avatar_url,
+                      NULL::text AS last_editor_name,
+                      true as is_owner,
+                      true as can_edit,
+                      g.group_id, g.group_name, g.group_color, g.group_image_url,
+                      g.group_task_creator_name, g.group_task_creator_color, g.group_task_creator_avatar_url,
+                      0::int as attachment_count,
+                      '[]'::json as shared_with_users,
+                      'private'::text as visibility
+               FROM tasks t
+               LEFT JOIN categories c ON t.category_id = c.id
+               LEFT JOIN users u ON t.user_id = u.id
+               LEFT JOIN LATERAL (
+                 SELECT gt.group_id,
+                        grp.name as group_name,
+                        grp.color as group_color,
+                        grp.image_url as group_image_url,
+                        gtc.name as group_task_creator_name,
+                        gtc.avatar_color as group_task_creator_color,
+                        gtc.avatar_url as group_task_creator_avatar_url
+                 FROM group_tasks gt
+                 JOIN groups grp ON grp.id = gt.group_id
+                 LEFT JOIN users gtc ON gtc.id = gt.created_by
+                 WHERE gt.task_id = t.id
+                 ORDER BY gt.group_id
+                 LIMIT 1
+               ) g ON true
+               WHERE t.user_id = $1
+                 AND t.recurrence_rule IS NOT NULL
+                 AND t.recurrence_parent_id IS NULL
+                 AND t.date <= $2
+                 AND (t.recurrence_end IS NULL OR t.recurrence_end >= $3)`,
+              [user.id, horizonEndStr, dashWindowStart]
+            );
+          }
           // Merge concrete + virtual tasks
           mergedTasks = mergeWithVirtual(result.rows || [], tplResult.rows || [], dashWindowStart, horizonEndStr);
         } catch (mergeErr) {
