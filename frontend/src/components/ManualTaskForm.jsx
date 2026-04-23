@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, Calendar, CalendarCheck, ChevronDown, Clock, Edit3, Eye, FileText, Flag, ListTodo, Lock, Plus, Repeat, Save, Tag, UserCheck, Users, UsersRound, X } from 'lucide-react';
+import { Bell, Calendar, CalendarCheck, ChevronDown, Clock, Edit3, Eye, FileText, Flag, ListTodo, Lock, Plus, Repeat, Save, Tag, UserCheck, Users, UsersRound, Video, X } from 'lucide-react';
 import { useTaskStore } from '../store/taskStore';
 import { api } from '../utils/api';
 import AvatarBadge from './AvatarBadge';
@@ -65,12 +65,15 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
   const [visibility, setVisibility] = useState('private');
   const [permissions, setPermissions] = useState([]);
   const [showSharing, setShowSharing] = useState(false);
+  const [addTeamsMeeting, setAddTeamsMeeting] = useState(false);
+  const [teamsConnected, setTeamsConnected] = useState(null); // null=unknown, true/false
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (categories.length === 0) fetchCategories();
     loadGroups();
     fetchFriends();
+    api.getTeamsStatus().then((d) => setTeamsConnected(d.connected)).catch(() => setTeamsConnected(false));
   }, []);
 
   const loadGroups = async () => {
@@ -105,6 +108,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
     setVisibility('private');
     setPermissions([]);
     setShowSharing(false);
+    setAddTeamsMeeting(false);
   };
 
   const toggleFriendPermission = (friendUserId, friendName, friendColor, friendAvatarUrl, action) => {
@@ -168,6 +172,20 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
       });
 
       if (result) {
+        // Attach Teams meeting if requested (event only)
+        if (addTeamsMeeting && taskType === 'event' && result?.id) {
+          try {
+            await api.createTeamsMeeting({
+              task_id: result.id,
+              title: title.trim(),
+              date: date || null,
+              time: allDay ? null : (time || null),
+              time_end: allDay ? null : (timeEnd || null),
+            });
+          } catch {
+            // Meeting creation failure should not block task creation
+          }
+        }
         resetForm();
         setIsOpen(false);
         onTaskCreated?.(result);
@@ -521,6 +539,28 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
                 )}
               </AnimatePresence>
             </div>
+
+            {/* Teams Meeting Toggle (events only) */}
+            {taskType === 'event' && (
+              <div className="task-edit-field" style={{ marginBottom: 0 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}>
+                  <Video size={14} style={{ color: '#5558a8' }} />
+                  <span style={{ flex: 1 }}>Teams-Meeting erstellen</span>
+                  {teamsConnected === false && (
+                    <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Profil → Microsoft verbinden</span>
+                  )}
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={addTeamsMeeting}
+                    disabled={teamsConnected === false}
+                    className={`manual-task-allday-btn${addTeamsMeeting ? ' on' : ''}`}
+                    style={teamsConnected === false ? { opacity: 0.4 } : {}}
+                    onClick={() => teamsConnected !== false && setAddTeamsMeeting((v) => !v)}
+                  />
+                </label>
+              </div>
+            )}
 
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button

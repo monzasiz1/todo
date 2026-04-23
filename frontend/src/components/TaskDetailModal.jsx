@@ -6,7 +6,7 @@ import { api } from '../utils/api';
 import {
   X, Calendar, CalendarCheck, Clock, Tag, Flag, CheckCircle2, Circle,
   Trash2, AlertTriangle, Repeat, Bell, FileText, ListChecks,
-  Users, UserCheck, Eye, Edit3, Share2, MoreVertical, MessageCircle, Send
+  Users, UserCheck, Eye, Edit3, Share2, MoreVertical, MessageCircle, Send, Video
 } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -557,6 +557,21 @@ export default function TaskDetailModal({ task, onClose }) {
           {task.created_at && (
             <div className="task-detail-footer-info">
               Erstellt am {format(parseISO(task.created_at), 'd. MMMM yyyy, HH:mm', { locale: de })} Uhr
+            </div>
+          )}
+
+          {/* Teams Meeting */}
+          {task.teams_join_url && (
+            <div className="task-detail-section" style={{ paddingTop: 0 }}>
+              <a
+                href={task.teams_join_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="task-detail-btn edit"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none', background: '#5558a8', color: '#fff', borderRadius: 10, padding: '10px 16px', fontWeight: 600, fontSize: 14 }}
+              >
+                <Video size={16} /> Via Teams beitreten
+              </a>
             </div>
           )}
 

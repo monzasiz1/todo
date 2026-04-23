@@ -6,7 +6,7 @@ import {
   Camera, User, Mail, Lock, Shield, Palette, Download,
   Trash2, Check, X, ChevronRight, AlertTriangle, Flame,
   Target, Calendar, CheckCircle2, Clock, TrendingUp,
-  Award, Star, Edit3, Eye, EyeOff, ArrowLeft, MessageCircleQuestion
+  Award, Star, Edit3, Eye, EyeOff, ArrowLeft, MessageCircleQuestion, Video
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -45,6 +45,10 @@ export default function ProfilePage() {
   const [visibility, setVisibility] = useState('everyone');
   const [savingVisibility, setSavingVisibility] = useState(false);
 
+  // Teams
+  const [teamsConnected, setTeamsConnected] = useState(null);
+  const [teamsConnecting, setTeamsConnecting] = useState(false);
+
   // Feedback
   const [toast, setToast] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -53,6 +57,18 @@ export default function ProfilePage() {
 
   useEffect(() => {
     loadProfile();
+    api.getTeamsStatus().then((d) => setTeamsConnected(d.connected)).catch(() => setTeamsConnected(false));
+
+    // Handle OAuth callback result
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('teams_connected')) {
+      showToast('✅ Microsoft-Konto erfolgreich verbunden');
+      setTeamsConnected(true);
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (params.get('teams_error')) {
+      showToast('❌ Microsoft-Verbindung fehlgeschlagen: ' + params.get('teams_error'), 'error');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
   }, []);
 
   const showToast = (message, type = 'success') => {
@@ -616,6 +632,80 @@ export default function ProfilePage() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Microsoft Teams Integration */}
+      <div className="profile-section-card">
+        <div style={{ padding: '4px 0 10px', fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Video size={16} style={{ color: '#5558a8' }} />
+          Microsoft Teams
+        </div>
+        {teamsConnected === null ? (
+          <div style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Wird geladen…</div>
+        ) : teamsConnected ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#34C759' }}>
+              <Check size={14} /> Microsoft-Konto verbunden. Teams-Meetings können automatisch erstellt werden.
+            </div>
+            <button
+              className="profile-action-row"
+              style={{ background: 'rgba(255,59,48,0.06)', borderRadius: 10, padding: '10px 14px' }}
+              onClick={async () => {
+                try {
+                  await api.disconnectTeams();
+                  setTeamsConnected(false);
+                  showToast('Microsoft-Konto getrennt');
+                } catch {
+                  showToast('Trennen fehlgeschlagen', 'error');
+                }
+              }}
+            >
+              <div className="profile-action-left">
+                <div className="profile-action-icon" style={{ background: 'rgba(255,59,48,0.1)', color: '#FF3B30' }}>
+                  <X size={18} />
+                </div>
+                <div>
+                  <div className="profile-action-title" style={{ color: '#FF3B30' }}>Microsoft-Konto trennen</div>
+                  <div className="profile-action-subtitle">Gespeicherte Tokens werden gelöscht</div>
+                </div>
+              </div>
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              Verbinde dein Microsoft-Konto, um bei Terminen automatisch ein Teams-Meeting zu erstellen.
+            </div>
+            <button
+              className="profile-action-row"
+              style={{ background: 'rgba(85,88,168,0.08)', borderRadius: 10, padding: '10px 14px' }}
+              disabled={teamsConnecting}
+              onClick={async () => {
+                setTeamsConnecting(true);
+                try {
+                  const { url } = await api.getTeamsConnectUrl();
+                  if (url) window.location.href = url;
+                  else showToast('Teams ist serverseitig nicht konfiguriert', 'error');
+                } catch (err) {
+                  showToast(err.message || 'Fehler beim Verbinden', 'error');
+                } finally {
+                  setTeamsConnecting(false);
+                }
+              }}
+            >
+              <div className="profile-action-left">
+                <div className="profile-action-icon" style={{ background: 'rgba(85,88,168,0.15)', color: '#5558a8' }}>
+                  <Video size={18} />
+                </div>
+                <div>
+                  <div className="profile-action-title">Microsoft-Konto verbinden</div>
+                  <div className="profile-action-subtitle">{teamsConnecting ? 'Weiterleitung…' : 'Einmalig mit Microsoft anmelden'}</div>
+                </div>
+              </div>
+              {!teamsConnecting && <ChevronRight size={18} />}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Export */}

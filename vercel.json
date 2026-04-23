@@ -41,7 +41,11 @@
     { "src": "/api/attachments/(.*)", "dest": "/api/attachments.js?__path=$1" },
     { "src": "/api/plans/(.*)", "dest": "/api/plans.js?__path=$1" },
     { "src": "/api/plans", "dest": "/api/plans.js?__path=" },
+    { "src": "/api/teams/(.*)", "dest": "/api/teams.js?__path=$1" },
+    { "src": "/api/teams", "dest": "/api/teams.js?__path=" },
     { "src": "/api/cron/notifications", "dest": "/api/cron/notifications.js" },
+    { "src": "/assets/(.*)", "dest": "/assets/$1" },
+    { "src": "/(.*\\.(js|css|map|json|ico|png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf))", "dest": "/$1" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]

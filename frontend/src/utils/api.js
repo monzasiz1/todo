@@ -450,4 +450,24 @@ export const api = {
 
   deleteComment: (commentId) =>
     request(`/comments?commentId=${commentId}`, { method: 'DELETE' }),
+
+  // Microsoft Teams
+  getTeamsStatus: () => request('/teams/status'),
+
+  getTeamsConnectUrl: () => request('/teams/connect'),
+
+  disconnectTeams: () =>
+    request('/teams/disconnect', { method: 'DELETE' }),
+
+  createTeamsMeeting: ({ task_id, title, date, time, time_end }) =>
+    request('/teams/meeting', {
+      method: 'POST',
+      body: JSON.stringify({ task_id, title, date, time, time_end }),
+    }),
+
+  removeTeamsMeeting: (task_id) =>
+    request('/teams/meeting', {
+      method: 'DELETE',
+      body: JSON.stringify({ task_id }),
+    }),
 };

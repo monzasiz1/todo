@@ -5,7 +5,7 @@ import { useFriendsStore } from '../store/friendsStore';
 import { api } from '../utils/api';
 import {
   X, Calendar, CalendarCheck, Clock, Tag, Flag, FileText, Bell,
-  Save, Users, UserCheck, Lock, Eye, Edit3,
+  Save, Users, UserCheck, Lock, Eye, Edit3, Video,
   ChevronDown, Sparkles, Loader2, AlertTriangle, UsersRound, Repeat, ListTodo
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
@@ -93,11 +93,17 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
   const [showDateEnd, setShowDateEnd] = useState(!!task.date_end);
   const [showTimeEnd, setShowTimeEnd] = useState(!!task.time_end);
 
+  // Teams state
+  const [addTeamsMeeting, setAddTeamsMeeting] = useState(false);
+  const [teamsConnected, setTeamsConnected] = useState(null);
+  const hasTeamsMeeting = !!task.teams_join_url;
+
   useEffect(() => {
     if (categories.length === 0) fetchCategories();
     fetchFriends();
     loadPermissions();
     loadUserGroups();
+    api.getTeamsStatus().then((d) => setTeamsConnected(d.connected)).catch(() => setTeamsConnected(false));
   }, []);
 
   const loadUserGroups = async () => {
@@ -235,6 +241,25 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
       }
 
       addToast('✅ Änderungen gespeichert');
+
+      // Handle Teams meeting creation / removal (events only)
+      if (taskType === 'event') {
+        const resolvedId = hasCoreChanges ? updatedTask?.id : (String(task.id).startsWith('v_') ? null : task.id);
+        if (addTeamsMeeting && !hasTeamsMeeting && resolvedId) {
+          try {
+            await api.createTeamsMeeting({
+              task_id: resolvedId,
+              title: title.trim(),
+              date: date || null,
+              time: allDay ? null : (time || null),
+              time_end: allDay ? null : (timeEnd || null),
+            });
+          } catch {
+            addToast('⚠️ Teams-Meeting konnte nicht erstellt werden', 'error');
+          }
+        }
+      }
+
       onSaved?.(updatedTask);
       onClose();
     } catch (err) {
@@ -699,6 +724,32 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
 
         {/* Footer */}
         <div className="task-edit-footer">
+          {/* Teams Meeting (events only) */}
+          {taskType === 'event' && (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+              {hasTeamsMeeting ? (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#5558a8' }}>
+                  <Video size={14} /> Teams-Meeting vorhanden
+                </span>
+              ) : (
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: teamsConnected === false ? 'default' : 'pointer', userSelect: 'none' }}>
+                  <Video size={14} style={{ color: '#5558a8' }} />
+                  <span style={{ color: teamsConnected === false ? 'var(--text-secondary)' : 'inherit' }}>
+                    {teamsConnected === false ? 'Teams verbinden' : 'Teams-Meeting'}
+                  </span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={addTeamsMeeting}
+                    disabled={teamsConnected === false}
+                    className={`manual-task-allday-btn${addTeamsMeeting ? ' on' : ''}`}
+                    style={{ ...(teamsConnected === false ? { opacity: 0.4 } : {}), flexShrink: 0 }}
+                    onClick={() => teamsConnected !== false && setAddTeamsMeeting((v) => !v)}
+                  />
+                </label>
+              )}
+            </div>
+          )}
           <button className="task-edit-cancel" onClick={onClose}>
             Abbrechen
           </button>
