@@ -26,10 +26,12 @@ export default function TaskDetailModal({ task, onClose }) {
   const [showEdit, setShowEdit] = useState(false);
   const [sharingToChat, setSharingToChat] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [commentEmoji, setCommentEmoji] = useState('💬');
   const [comments, setComments] = useState([]);
   const menuRef = useRef(null);
+  const emojiPickerRef = useRef(null);
 
   if (!task) return null;
 
@@ -66,7 +68,6 @@ export default function TaskDetailModal({ task, onClose }) {
   const isEvent = task.type === 'event';
   const eventEndAt = isEvent ? getEventEndDate(task) : null;
   const isEventEnded = isEvent && !!eventEndAt && eventEndAt.getTime() < Date.now();
-  const commentsKey = useMemo(() => `task_comments_${task.id}`, [task.id]);
   const currentUser = useMemo(() => {
     try {
       return JSON.parse(localStorage.getItem('user') || 'null');
@@ -76,26 +77,33 @@ export default function TaskDetailModal({ task, onClose }) {
   }, []);
 
   useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(commentsKey) || '[]');
-      setComments(Array.isArray(saved) ? saved : []);
-    } catch {
-      setComments([]);
-    }
-  }, [commentsKey]);
+    const loadComments = async () => {
+      try {
+        const response = await api.getComments(task.id);
+        if (response.comments && Array.isArray(response.comments)) {
+          setComments(response.comments);
+        }
+      } catch (err) {
+        console.error('Failed to load comments:', err);
+        // Fall back to empty list
+        setComments([]);
+      }
+    };
+    loadComments();
+  }, [task.id]);
 
   useEffect(() => {
     const onClickOutside = (e) => {
-      if (!menuRef.current) return;
-      if (!menuRef.current.contains(e.target)) {
-        setShowMenu(false);
-      }
+      if (menuRef.current && menuRef.current.contains(e.target)) return;
+      if (emojiPickerRef.current && emojiPickerRef.current.contains(e.target)) return;
+      setShowMenu(false);
+      setShowEmojiPicker(false);
     };
-    if (showMenu) {
+    if (showMenu || showEmojiPicker) {
       document.addEventListener('mousedown', onClickOutside);
     }
     return () => document.removeEventListener('mousedown', onClickOutside);
-  }, [showMenu]);
+  }, [showMenu, showEmojiPicker]);
 
   const handleToggle = () => {
     toggleTask(task.id);
@@ -106,24 +114,38 @@ export default function TaskDetailModal({ task, onClose }) {
     onClose();
   };
 
-  const handleAddComment = () => {
+  const handleAddComment = async () => {
     const text = commentText.trim();
     if (!text) return;
-    const entry = {
+
+    // Optimistic UI update
+    const optimisticEntry = {
       id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       emoji: commentEmoji,
       text,
       author: currentUser?.name || 'Du',
-      createdAt: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      user_id: currentUser?.id || null,
     };
-    const next = [...comments, entry];
-    setComments(next);
+
     setCommentText('');
     setCommentEmoji('💬');
+    setComments([...comments, optimisticEntry]);
+
     try {
-      localStorage.setItem(commentsKey, JSON.stringify(next));
-    } catch {
-      // ignore
+      const response = await api.addComment(task.id, commentEmoji, text);
+      if (response.comment) {
+        // Replace optimistic entry with server response
+        setComments((prev) =>
+          prev.map((c) => (c.id === optimisticEntry.id ? response.comment : c))
+        );
+        addToast('✅ Kommentar hinzugefügt');
+      }
+    } catch (err) {
+      console.error('Failed to add comment:', err);
+      // Remove optimistic entry on failure
+      setComments((prev) => prev.filter((c) => c.id !== optimisticEntry.id));
+      addToast('❌ Kommentar konnte nicht gespeichert werden');
     }
   };
 
@@ -461,8 +483,27 @@ export default function TaskDetailModal({ task, onClose }) {
                       <span className="task-detail-comment-emoji">{c.emoji}</span>
                       <span className="task-detail-comment-author">{c.author}</span>
                       <span className="task-detail-comment-time">
-                        {format(parseISO(c.createdAt), 'd. MMM, HH:mm', { locale: de })}
+                        {format(parseISO(c.created_at), 'd. MMM, HH:mm', { locale: de })}
                       </span>
+                      {currentUser?.id === c.user_id && (
+                        <button
+                          type="button"
+                          className="task-detail-comment-delete"
+                          onClick={async () => {
+                            try {
+                              await api.deleteComment(c.id);
+                              setComments((prev) => prev.filter((item) => item.id !== c.id));
+                              addToast('🗑️ Kommentar gelöscht');
+                            } catch (err) {
+                              console.error('Failed to delete comment:', err);
+                              addToast('❌ Kommentar konnte nicht gelöscht werden');
+                            }
+                          }}
+                          title="Löschen"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
                     </div>
                     <div className="task-detail-comment-text">{c.text}</div>
                   </div>
@@ -471,19 +512,15 @@ export default function TaskDetailModal({ task, onClose }) {
             </div>
 
             <div className="task-detail-comment-input-wrap">
-              <div className="task-detail-emoji-row">
-                {['💬', '👍', '✅', '🔥', '🙏', '🎉', '📌', '🤝'].map((emoji) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    className={`task-detail-emoji-btn ${commentEmoji === emoji ? 'active' : ''}`}
-                    onClick={() => setCommentEmoji(emoji)}
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
               <div className="task-detail-comment-row">
+                <button
+                  type="button"
+                  className="task-detail-emoji-picker-btn"
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  title="Emoji wählen"
+                >
+                  {commentEmoji}
+                </button>
                 <input
                   className="task-detail-comment-input"
                   placeholder="Kommentar schreiben..."
@@ -497,6 +534,23 @@ export default function TaskDetailModal({ task, onClose }) {
                   <Send size={14} />
                 </button>
               </div>
+              {showEmojiPicker && (
+                <div ref={emojiPickerRef} className="task-detail-emoji-picker">
+                  {['💬', '👍', '✅', '🔥', '🙏', '🎉', '📌', '🤝'].map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      className={`task-detail-emoji-btn ${commentEmoji === emoji ? 'active' : ''}`}
+                      onClick={() => {
+                        setCommentEmoji(emoji);
+                        setShowEmojiPicker(false);
+                      }}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

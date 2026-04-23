@@ -437,4 +437,17 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ plan }),
     }),
+
+  // Comments
+  getComments: (taskId) =>
+    request(`/comments?taskId=${taskId}`),
+
+  addComment: (taskId, emoji, text) =>
+    request('/comments', {
+      method: 'POST',
+      body: JSON.stringify({ taskId, emoji, text }),
+    }),
+
+  deleteComment: (commentId) =>
+    request(`/comments?commentId=${commentId}`, { method: 'DELETE' }),
 };

@@ -4977,6 +4977,24 @@ body.cal-is-dragging * {
   color: var(--text-tertiary);
 }
 
+.task-detail-comment-delete {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.task-detail-comment-delete:hover {
+  background: var(--danger);
+  color: white;
+}
+
 .task-detail-comment-text {
   font-size: 0.87rem;
   color: var(--text-secondary);
@@ -4985,6 +5003,7 @@ body.cal-is-dragging * {
 
 .task-detail-comment-input-wrap {
   margin-top: 10px;
+  position: relative;
 }
 
 .task-detail-emoji-row {
@@ -4994,13 +5013,70 @@ body.cal-is-dragging * {
   overflow-x: auto;
 }
 
+.task-detail-emoji-picker-btn {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card-solid);
+  color: var(--text);
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.task-detail-emoji-picker-btn:hover {
+  background: var(--primary-bg);
+  border-color: var(--primary);
+}
+
+.task-detail-emoji-picker {
+  position: absolute;
+  bottom: 50px;
+  left: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px;
+  background: var(--card-solid);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  width: 220px;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: slideUp 0.2s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .task-detail-emoji-btn {
   border: 1px solid var(--border);
-  background: var(--card-solid);
+  background: var(--bg);
   border-radius: 10px;
-  padding: 4px 8px;
+  padding: 6px 8px;
   cursor: pointer;
   font-size: 1rem;
+  transition: all 0.2s ease;
+  flex: 0 0 auto;
+}
+
+.task-detail-emoji-btn:hover {
+  background: var(--primary-bg);
+  border-color: var(--primary);
+  transform: scale(1.1);
 }
 
 .task-detail-emoji-btn.active {
@@ -5011,6 +5087,7 @@ body.cal-is-dragging * {
 .task-detail-comment-row {
   display: flex;
   gap: 8px;
+  align-items: center;
 }
 
 .task-detail-comment-input {
