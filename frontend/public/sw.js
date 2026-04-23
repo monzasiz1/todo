@@ -1,4 +1,4 @@
-const CACHE_NAME = 'taski-v3';
+const CACHE_NAME = 'taski-v4';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -25,11 +25,68 @@ function offlineHtmlResponse() {
   );
 }
 
+async function warmAppShell(cache) {
+  try {
+    const res = await fetch('/', { cache: 'no-store' });
+    if (!res.ok) return;
+    const html = await res.text();
+    await cache.put('/', new Response(html, {
+      status: 200,
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    }));
+
+    const assetPaths = new Set();
+    const scriptRe = /<script[^>]+src=["']([^"']+)["'][^>]*>/gi;
+    const styleRe = /<link[^>]+href=["']([^"']+)["'][^>]*>/gi;
+
+    let m;
+    while ((m = scriptRe.exec(html)) !== null) {
+      const src = m[1];
+      if (src && !src.startsWith('http')) assetPaths.add(src);
+    }
+    while ((m = styleRe.exec(html)) !== null) {
+      const href = m[1];
+      if (href && !href.startsWith('http')) assetPaths.add(href);
+    }
+
+    await Promise.all(Array.from(assetPaths).map(async (path) => {
+      try {
+        const assetRes = await fetch(path, { cache: 'no-store' });
+        if (assetRes && assetRes.status === 200) {
+          await cache.put(path, assetRes.clone());
+        }
+      } catch {
+        // ignore per-asset failures
+      }
+    }));
+  } catch {
+    // ignore shell warm-up failures (e.g. offline during install/activate)
+  }
+}
+
+function offlineScriptResponse() {
+  return new Response(
+    "document.body.innerHTML = '<div style=\"font-family:system-ui,sans-serif;padding:24px;line-height:1.5\"><h2>Offline</h2><p>Die App-Dateien sind noch nicht vollstaendig zwischengespeichert. Bitte einmal online oeffnen und neu laden.</p></div>';",
+    {
+      status: 200,
+      headers: { 'Content-Type': 'application/javascript; charset=utf-8' },
+    }
+  );
+}
+
+function offlineStyleResponse() {
+  return new Response('/* offline css fallback */', {
+    status: 200,
+    headers: { 'Content-Type': 'text/css; charset=utf-8' },
+  });
+}
+
 // Install: cache static assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
+    caches.open(CACHE_NAME).then(async (cache) => {
+      await cache.addAll(STATIC_ASSETS);
+      await warmAppShell(cache);
     })
   );
   self.skipWaiting();
@@ -38,10 +95,12 @@ self.addEventListener('install', (event) => {
 // Activate: clean old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
+    caches.keys().then(async (keys) => {
+      await Promise.all(
         keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
       );
+      const cache = await caches.open(CACHE_NAME);
+      await warmAppShell(cache);
     })
   );
   self.clients.claim();
@@ -88,8 +147,10 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(async () => {
-          const cached = await caches.match(request);
-          return cached || offlineFallbackResponse();
+          const cached = await caches.match(request, { ignoreSearch: true });
+          if (cached) return cached;
+          if (request.destination === 'script') return offlineScriptResponse();
+          return offlineStyleResponse();
         })
     );
     return;

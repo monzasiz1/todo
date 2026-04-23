@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { WifiOff } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { WifiOff, X } from 'lucide-react';
 import { getQueueCount } from '../utils/offlineQueue';
 
 /**
@@ -9,11 +9,19 @@ import { getQueueCount } from '../utils/offlineQueue';
 export default function OfflineBanner() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [queueCount, setQueueCount] = useState(0);
+  const [dismissed, setDismissed] = useState(false);
+
+  const isStandalone = useMemo(() => {
+    const byMedia = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+    const byIOS = window.navigator.standalone === true;
+    return byMedia || byIOS;
+  }, []);
 
   useEffect(() => {
     const onOffline = () => setIsOffline(true);
     const onOnline = () => {
       setIsOffline(false);
+      setDismissed(false);
       // Queue-Count kurz noch anzeigen bis Sync fertig
       setTimeout(() => setQueueCount(0), 4000);
     };
@@ -38,15 +46,25 @@ export default function OfflineBanner() {
     return () => clearInterval(interval);
   }, [isOffline]);
 
-  if (!isOffline) return null;
+  if (!isStandalone || !isOffline || dismissed) return null;
 
   return (
     <div className="offline-banner">
-      <WifiOff size={14} />
-      <span>
-        Kein Internet – Änderungen werden lokal gespeichert
-        {queueCount > 0 && ` (${queueCount} wartend)`}
-      </span>
+      <div className="offline-banner-content">
+        <WifiOff size={14} />
+        <span>
+          Kein Internet – Änderungen werden lokal gespeichert
+          {queueCount > 0 && ` (${queueCount} wartend)`}
+        </span>
+      </div>
+      <button
+        type="button"
+        className="offline-banner-close"
+        aria-label="Hinweis schließen"
+        onClick={() => setDismissed(true)}
+      >
+        <X size={14} />
+      </button>
     </div>
   );
 }
