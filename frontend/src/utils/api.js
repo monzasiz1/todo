@@ -2,6 +2,51 @@ const API_URL = '/api';
 
 import { enqueueRequest } from './offlineQueue';
 
+const API_CACHE_PREFIX = 'taski_api_cache_v1:';
+
+function getUserCacheScope() {
+  const token = localStorage.getItem('token') || 'anon';
+  return token.slice(0, 24);
+}
+
+function buildCacheKey(endpoint) {
+  return `${API_CACHE_PREFIX}${getUserCacheScope()}:${endpoint}`;
+}
+
+function cacheGet(endpoint) {
+  try {
+    const raw = localStorage.getItem(buildCacheKey(endpoint));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function cacheSet(endpoint, data) {
+  try {
+    const payload = { ts: Date.now(), data };
+    localStorage.setItem(buildCacheKey(endpoint), JSON.stringify(payload));
+  } catch {
+    // ignore quota/security errors
+  }
+}
+
+export function clearApiCacheForCurrentUser() {
+  try {
+    const scope = `${API_CACHE_PREFIX}${getUserCacheScope()}:`;
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(scope)) keys.push(key);
+    }
+    keys.forEach((k) => localStorage.removeItem(k));
+  } catch {
+    // ignore
+  }
+}
+
 function getHeaders() {
   const headers = { 'Content-Type': 'application/json' };
   const token = localStorage.getItem('token');
@@ -18,6 +63,8 @@ function getHeaders() {
  * GET-Requests werfen den Fehler weiter.
  */
 async function request(endpoint, options = {}) {
+  const method = (options.method || 'GET').toUpperCase();
+  const isRead = method === 'GET';
   try {
     const res = await fetch(`${API_URL}${endpoint}`, {
       headers: getHeaders(),
@@ -36,9 +83,12 @@ async function request(endpoint, options = {}) {
       throw new Error(data.error || 'Anfrage fehlgeschlagen');
     }
 
+    if (isRead) {
+      cacheSet(endpoint, data);
+    }
+
     return data;
   } catch (err) {
-    const method = (options.method || 'GET').toUpperCase();
     const isMutation = ['POST', 'PATCH', 'PUT', 'DELETE'].includes(method);
     const isAuthEndpoint = endpoint.startsWith('/auth/');
 
@@ -58,6 +108,13 @@ async function request(endpoint, options = {}) {
     // Für Auth-Endpunkte klare Offline-Fehlermeldung statt technischer TypeError
     if (isAuthEndpoint && isNetworkError) {
       throw new Error('Keine Internetverbindung. Login nur online möglich.');
+    }
+
+    // Read-Requests aus lokalem Cache bedienen (auch nach App-Neustart)
+    if (isRead && isNetworkError) {
+      const cached = cacheGet(endpoint);
+      if (cached) return cached;
+      throw new Error('Offline und keine lokal gespeicherten Daten vorhanden.');
     }
 
     throw err;

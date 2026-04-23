@@ -1,5 +1,7 @@
 import { create } from 'zustand';
-import { api } from '../utils/api';
+import { api, clearApiCacheForCurrentUser } from '../utils/api';
+
+const TASK_CACHE_KEY = 'taski_tasks_cache_v1';
 
 export const useAuthStore = create((set) => ({
   user: JSON.parse(localStorage.getItem('user') || 'null'),
@@ -42,9 +44,11 @@ export const useAuthStore = create((set) => ({
     } catch (err) {
       // Nur bei echter 401 Session löschen. Bei Offline/Netzwerkfehler Session behalten.
       if (err?.status === 401 || err?.message === 'Nicht autorisiert') {
+        clearApiCacheForCurrentUser();
         set({ user: null, token: null });
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        localStorage.removeItem(TASK_CACHE_KEY);
         return;
       }
 
@@ -53,8 +57,10 @@ export const useAuthStore = create((set) => ({
   },
 
   logout: () => {
+    clearApiCacheForCurrentUser();
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem(TASK_CACHE_KEY);
     set({ user: null, token: null });
     window.location.href = '/login';
   },

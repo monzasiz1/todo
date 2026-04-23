@@ -2,8 +2,28 @@ import { create } from 'zustand';
 import { api } from '../utils/api';
 import { getAllQueued, removeQueued, incrementRetry } from '../utils/offlineQueue';
 
+const TASK_CACHE_KEY = 'taski_tasks_cache_v1';
+
+function readCachedTasks() {
+  try {
+    const raw = localStorage.getItem(TASK_CACHE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeCachedTasks(tasks) {
+  try {
+    localStorage.setItem(TASK_CACHE_KEY, JSON.stringify(Array.isArray(tasks) ? tasks : []));
+  } catch {
+    // ignore quota/security errors
+  }
+}
+
 export const useTaskStore = create((set, get) => ({
-  tasks: [],
+  tasks: readCachedTasks(),
   taskSummary: { open: 0, completed: 0, today: 0, urgent: 0 },
   categories: [],
   loading: false,
@@ -47,6 +67,7 @@ export const useTaskStore = create((set, get) => ({
         lastTasksFetchAt: Date.now(),
         lastTasksFetchKey: fetchKey,
       });
+      writeCachedTasks(data.tasks);
     } catch (err) {
       set({ error: err.message, loading: false });
     }
@@ -392,3 +413,8 @@ export const useTaskStore = create((set, get) => ({
     });
   },
 }));
+
+// Tasks dauerhaft lokal halten, damit sie nach App-Neustart offline sichtbar bleiben.
+useTaskStore.subscribe((state) => {
+  writeCachedTasks(state.tasks);
+});
