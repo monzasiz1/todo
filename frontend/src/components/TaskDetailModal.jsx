@@ -1,12 +1,12 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTaskStore } from '../store/taskStore';
 import { api } from '../utils/api';
 import {
   X, Calendar, CalendarCheck, Clock, Tag, Flag, CheckCircle2, Circle,
   Trash2, AlertTriangle, Repeat, Bell, FileText, ListChecks,
-  Lock, Users, UserCheck, Eye, Edit3, Pencil, Share2
+  Users, UserCheck, Eye, Edit3, Share2, MoreVertical, MessageCircle, Send
 } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -25,6 +25,11 @@ export default function TaskDetailModal({ task, onClose }) {
   const { toggleTask, deleteTask, fetchTasks, addToast } = useTaskStore();
   const [showEdit, setShowEdit] = useState(false);
   const [sharingToChat, setSharingToChat] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [commentEmoji, setCommentEmoji] = useState('💬');
+  const [comments, setComments] = useState([]);
+  const menuRef = useRef(null);
 
   if (!task) return null;
 
@@ -61,6 +66,36 @@ export default function TaskDetailModal({ task, onClose }) {
   const isEvent = task.type === 'event';
   const eventEndAt = isEvent ? getEventEndDate(task) : null;
   const isEventEnded = isEvent && !!eventEndAt && eventEndAt.getTime() < Date.now();
+  const commentsKey = useMemo(() => `task_comments_${task.id}`, [task.id]);
+  const currentUser = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || 'null');
+    } catch {
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(commentsKey) || '[]');
+      setComments(Array.isArray(saved) ? saved : []);
+    } catch {
+      setComments([]);
+    }
+  }, [commentsKey]);
+
+  useEffect(() => {
+    const onClickOutside = (e) => {
+      if (!menuRef.current) return;
+      if (!menuRef.current.contains(e.target)) {
+        setShowMenu(false);
+      }
+    };
+    if (showMenu) {
+      document.addEventListener('mousedown', onClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, [showMenu]);
 
   const handleToggle = () => {
     toggleTask(task.id);
@@ -69,6 +104,27 @@ export default function TaskDetailModal({ task, onClose }) {
   const handleDelete = () => {
     deleteTask(task.id);
     onClose();
+  };
+
+  const handleAddComment = () => {
+    const text = commentText.trim();
+    if (!text) return;
+    const entry = {
+      id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      emoji: commentEmoji,
+      text,
+      author: currentUser?.name || 'Du',
+      createdAt: new Date().toISOString(),
+    };
+    const next = [...comments, entry];
+    setComments(next);
+    setCommentText('');
+    setCommentEmoji('💬');
+    try {
+      localStorage.setItem(commentsKey, JSON.stringify(next));
+    } catch {
+      // ignore
+    }
   };
 
   const handleShareToGroupChat = async () => {
@@ -107,11 +163,40 @@ export default function TaskDetailModal({ task, onClose }) {
               className="task-detail-priority-bar"
               style={{ background: priority.color }}
             />
-            <div className="task-detail-header-actions">
-              {canEdit && (
-                <button className="task-detail-edit-btn" onClick={() => setShowEdit(true)} title="Bearbeiten">
-                  <Pencil size={18} />
-                </button>
+            <div className="task-detail-header-actions" ref={menuRef}>
+              <button
+                className="task-detail-more-btn"
+                onClick={() => setShowMenu((s) => !s)}
+                title="Mehr"
+                aria-label="Mehr"
+              >
+                <MoreVertical size={18} />
+              </button>
+              {showMenu && (
+                <div className="task-detail-more-menu">
+                  {canEdit && (
+                    <button
+                      className="task-detail-more-item"
+                      onClick={() => {
+                        setShowMenu(false);
+                        setShowEdit(true);
+                      }}
+                    >
+                      Bearbeiten
+                    </button>
+                  )}
+                  {(task.is_owner !== false) && (
+                    <button
+                      className="task-detail-more-item danger"
+                      onClick={() => {
+                        setShowMenu(false);
+                        handleDelete();
+                      }}
+                    >
+                      Löschen
+                    </button>
+                  )}
+                </div>
               )}
               <button className="task-detail-close" onClick={onClose}>
                 <X size={20} />
@@ -359,6 +444,62 @@ export default function TaskDetailModal({ task, onClose }) {
           {/* Attachments */}
           <TaskAttachments taskId={task.id} canEdit={canEdit} />
 
+          {/* Comments */}
+          <div className="task-detail-section">
+            <div className="task-detail-description-header">
+              <MessageCircle size={16} />
+              <span>Kommentare</span>
+            </div>
+
+            <div className="task-detail-comments-box">
+              {comments.length === 0 ? (
+                <div className="task-detail-comments-empty">Noch keine Kommentare</div>
+              ) : (
+                comments.map((c) => (
+                  <div key={c.id} className="task-detail-comment-item">
+                    <div className="task-detail-comment-top">
+                      <span className="task-detail-comment-emoji">{c.emoji}</span>
+                      <span className="task-detail-comment-author">{c.author}</span>
+                      <span className="task-detail-comment-time">
+                        {format(parseISO(c.createdAt), 'd. MMM, HH:mm', { locale: de })}
+                      </span>
+                    </div>
+                    <div className="task-detail-comment-text">{c.text}</div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="task-detail-comment-input-wrap">
+              <div className="task-detail-emoji-row">
+                {['💬', '👍', '✅', '🔥', '🙏', '🎉', '📌', '🤝'].map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    className={`task-detail-emoji-btn ${commentEmoji === emoji ? 'active' : ''}`}
+                    onClick={() => setCommentEmoji(emoji)}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+              <div className="task-detail-comment-row">
+                <input
+                  className="task-detail-comment-input"
+                  placeholder="Kommentar schreiben..."
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleAddComment();
+                  }}
+                />
+                <button type="button" className="task-detail-comment-send" onClick={handleAddComment}>
+                  <Send size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* Created */}
           {task.created_at && (
             <div className="task-detail-footer-info">
@@ -389,15 +530,6 @@ export default function TaskDetailModal({ task, onClose }) {
                 ) : (
                   <><CheckCircle2 size={18} /> Als erledigt markieren</>
                 )}
-              </motion.button>
-            )}
-            {(task.is_owner !== false) && (
-              <motion.button
-                className="task-detail-btn delete"
-                onClick={handleDelete}
-                whileTap={{ scale: 0.97 }}
-              >
-                <Trash2 size={18} /> Löschen
               </motion.button>
             )}
           </div>
