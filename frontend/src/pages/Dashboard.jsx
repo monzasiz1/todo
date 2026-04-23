@@ -75,6 +75,7 @@ function deduplicateRecurring(tasks) {
 
 function groupTasksByDate(tasks) {
   const now = new Date();
+  const nowTs = now.getTime();
   const todayStart = startOfDay(now);
 
   const overdue = [];
@@ -83,6 +84,7 @@ function groupTasksByDate(tasks) {
   const thisWeek = [];
   const later = [];
   const noDate = [];
+  const pastEvents = [];
 
   for (const task of tasks) {
     if (task.completed) continue;
@@ -95,7 +97,12 @@ function groupTasksByDate(tasks) {
     const d = parseISO(task.date);
 
     if (isPast(d) && !isToday(d)) {
-      overdue.push(task);
+      // Beendete Termine archivieren – nicht als überfällig markieren
+      if (isEventEnded(task, nowTs)) {
+        pastEvents.push(task);
+      } else {
+        overdue.push(task);
+      }
     } else if (isToday(d)) {
       today.push(task);
     } else if (isTomorrow(d)) {
@@ -125,6 +132,7 @@ function groupTasksByDate(tasks) {
     { key: 'week', label: 'Diese Woche', icon: CalendarDays, color: '#5856D6', tasks: sortGroup(thisWeek) },
     { key: 'later', label: 'Später', icon: CalendarDays, color: '#8E8E93', tasks: sortGroup(later) },
     { key: 'nodate', label: 'Ohne Datum', icon: Circle, color: '#8E8E93', tasks: sortGroup(noDate) },
+    { key: 'past_events', label: 'Vergangene Termine', icon: CalendarDays, color: '#8E8E93', tasks: sortGroup(pastEvents) },
   ].filter((g) => g.tasks.length > 0);
 }
 
@@ -360,9 +368,12 @@ export default function Dashboard() {
   const overdueCount = useMemo(
     () => deduplicated.filter((t) => {
       const d = parseTaskDate(t);
-      return d && isPast(d) && !isToday(d);
+      if (!d || !isPast(d) || isToday(d)) return false;
+      // Beendete Termine sind nicht überfällig
+      if (isEventEnded(t, nowTs)) return false;
+      return true;
     }).length,
-    [deduplicated]
+    [deduplicated, nowTs]
   );
 
   const urgentTodayCount = useMemo(
