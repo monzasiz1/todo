@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../store/taskStore';
-import { ChevronLeft, ChevronRight, ChevronDown, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, Plus, Video } from 'lucide-react';
 import TaskDetailModal from './TaskDetailModal';
 import AvatarBadge from './AvatarBadge';
 import {
@@ -781,6 +781,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                           size={10}
                         />
                       )}
+                      {t.teams_join_url && <Video size={10} className="calendar-day-task-teams-icon" />}
                       {t.time && <span className="calendar-day-task-time">{t.time.slice(0, 5)}</span>}
                       <span className="calendar-day-task-title">{t.title}</span>
                       {ended && <span className="calendar-day-task-ended">Beendet</span>}
@@ -893,6 +894,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         setDetailTask(t);
                       }}
                     >
+                      {t.teams_join_url && <Video size={11} className="calendar-inline-teams-icon" />}
                       {t.title}{ended ? ' · beendet' : ''}
                     </button>
                       );
@@ -1012,6 +1014,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         if (!wasDragging.current) setDetailTask(t);
                       }}
                     >
+                      {t.teams_join_url && <Video size={12} className="calendar-event-teams-icon" />}
                       {!ended && (
                         <div
                           className="cal-resize-handle cal-resize-handle-top"
@@ -1140,6 +1143,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         }}
                         onClick={(e) => { e.stopPropagation(); if (!wasDragging.current) setDetailTask(t); }}
                       >
+                          {t.teams_join_url && <Video size={11} className="calendar-event-teams-icon mobile" />}
                         {!ended && (
                           <div
                             className="cal-resize-handle cal-resize-handle-top"
@@ -1431,7 +1435,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       )}
 
       {detailTask && createPortal(
-        <TaskDetailModal task={detailTask} onClose={() => setDetailTask(null)} />,
+        <TaskDetailModal task={detailTask} onClose={() => setDetailTask(null)} onUpdated={onTaskUpdated} />,
         document.body
       )}
 

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, ArrowUp, Calendar, CalendarCheck, Clock, Tag, Flag, Loader2, Pencil, ChevronLeft, ListTodo } from 'lucide-react';
+import { X, Sparkles, ArrowUp, Calendar, CalendarCheck, Clock, Tag, Flag, Loader2, Pencil, ChevronLeft, ListTodo, Video } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { useTaskStore } from '../store/taskStore';
@@ -41,11 +41,16 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated }) 
   const [preview, setPreview] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
   const [detailTask, setDetailTask] = useState(null);
+  const [localTasks, setLocalTasks] = useState(tasks || []);
   const inputRef = useRef(null);
   const debounceRef = useRef(null);
   const { aiCreateTask, aiParseOnly } = useTaskStore();
 
   const dateStr = format(date, 'EEEE, d. MMMM yyyy', { locale: de });
+
+  useEffect(() => {
+    setLocalTasks(tasks || []);
+  }, [tasks]);
 
   // Focus AI input when mode switches
   useEffect(() => {
@@ -140,7 +145,7 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated }) 
         {/* Existing Tasks */}
         {tasks.length > 0 && (
           <div className="day-create-tasks">
-            {tasks.map((task) => (
+            {localTasks.map((task) => (
               (() => {
                 const endedEvent = isEventEnded(task);
                 return (
@@ -173,6 +178,11 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated }) 
                   <span className={`day-create-task-title ${task.completed ? 'completed' : ''}`}>
                     {task.title}
                   </span>
+                  {task.teams_join_url && (
+                    <span className="day-create-task-chip teams">
+                      <Video size={11} /> Teams
+                    </span>
+                  )}
                   {endedEvent && <span className="day-create-task-status">Beendet</span>}
                 </div>
                 {task.time && (
@@ -346,7 +356,15 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated }) 
         </AnimatePresence>
       </motion.div>
       {detailTask && (
-        <TaskDetailModal task={detailTask} onClose={() => setDetailTask(null)} />
+        <TaskDetailModal
+          task={detailTask}
+          onClose={() => setDetailTask(null)}
+          onUpdated={(updatedTask) => {
+            if (!updatedTask?.id) return;
+            setLocalTasks((prev) => prev.map((item) => item.id === updatedTask.id ? { ...item, ...updatedTask } : item));
+            setDetailTask((prev) => (prev?.id === updatedTask.id ? { ...prev, ...updatedTask } : prev));
+          }}
+        />
       )}
     </motion.div>,
     document.body

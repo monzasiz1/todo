@@ -21,7 +21,7 @@ const priorityConfig = {
   urgent: { label: 'Dringend', color: 'var(--danger)', icon: AlertTriangle },
 };
 
-export default function TaskDetailModal({ task, onClose }) {
+export default function TaskDetailModal({ task, onClose, onUpdated }) {
   const { toggleTask, deleteTask, fetchTasks, addToast } = useTaskStore();
   const [showEdit, setShowEdit] = useState(false);
   const [sharingToChat, setSharingToChat] = useState(false);
@@ -367,6 +367,28 @@ export default function TaskDetailModal({ task, onClose }) {
             </div>
           )}
 
+          {task.teams_join_url && (
+            <div className="task-detail-section task-detail-teams-card">
+              <div className="task-detail-teams-top">
+                <div className="task-detail-teams-icon">
+                  <Video size={18} />
+                </div>
+                <div>
+                  <div className="task-detail-teams-title">Teams-Meeting aktiv</div>
+                  <div className="task-detail-teams-copy">Für diesen Termin wurde bereits ein Microsoft-Teams-Meeting erstellt.</div>
+                </div>
+              </div>
+              <a
+                href={task.teams_join_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="task-detail-teams-join"
+              >
+                <Video size={16} /> Via Teams beitreten
+              </a>
+            </div>
+          )}
+
           {/* Details Grid */}
           <div className="task-detail-grid">
             {task.date && (
@@ -456,6 +478,18 @@ export default function TaskDetailModal({ task, onClose }) {
                     {{ daily: 'Täglich', weekly: 'Wöchentlich', biweekly: 'Alle 2 Wochen', monthly: 'Monatlich', yearly: 'Jährlich', weekdays: 'Werktags (Mo–Fr)' }[task.recurrence_rule] || task.recurrence_rule}
                     {task.recurrence_end && ` bis ${format(parseISO(task.recurrence_end), 'd. MMM yyyy', { locale: de })}`}
                   </div>
+                </div>
+              </div>
+            )}
+
+            {task.teams_join_url && (
+              <div className="task-detail-item">
+                <div className="task-detail-item-icon" style={{ color: '#6264a7' }}>
+                  <Video size={18} />
+                </div>
+                <div>
+                  <div className="task-detail-item-label">Meeting</div>
+                  <div className="task-detail-item-value task-detail-item-value-teams">Teams-Link aktiv</div>
                 </div>
               </div>
             )}
@@ -560,21 +594,6 @@ export default function TaskDetailModal({ task, onClose }) {
             </div>
           )}
 
-          {/* Teams Meeting */}
-          {task.teams_join_url && (
-            <div className="task-detail-section" style={{ paddingTop: 0 }}>
-              <a
-                href={task.teams_join_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="task-detail-btn edit"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none', background: '#5558a8', color: '#fff', borderRadius: 10, padding: '10px 16px', fontWeight: 600, fontSize: 14 }}
-              >
-                <Video size={16} /> Via Teams beitreten
-              </a>
-            </div>
-          )}
-
           {/* Actions */}
           <div className="task-detail-actions">
             {isEvent && task.group_id && (
@@ -609,13 +628,14 @@ export default function TaskDetailModal({ task, onClose }) {
         <TaskEditModal
           task={task}
           onClose={() => setShowEdit(false)}
-          onSaved={() => {
+          onSaved={(updatedTask) => {
             fetchTasks({
               dashboard: 'true',
               limit: '300',
               horizon_days: '42',
               completed_lookback_days: '30',
             }, { force: true });
+            onUpdated?.(updatedTask);
             onClose();
           }}
         />,

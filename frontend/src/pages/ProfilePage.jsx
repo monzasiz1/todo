@@ -635,80 +635,118 @@ export default function ProfilePage() {
       </div>
 
       {/* Microsoft Teams Integration */}
-      <div className="profile-section-card">
-        <div style={{ padding: '4px 0 10px', fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Video size={16} style={{ color: '#5558a8' }} />
-          Microsoft Teams
+      <div className="profile-section-card profile-teams-card">
+        <div className="profile-teams-hero">
+          <div className="profile-teams-hero-top">
+            <div className="profile-teams-brand">
+              <div className="profile-teams-brand-icon">
+                <Video size={18} />
+              </div>
+              <div>
+                <div className="profile-teams-eyebrow">Integration</div>
+                <div className="profile-teams-title">Microsoft Teams</div>
+              </div>
+            </div>
+            <div className={`profile-teams-badge ${teamsConnected ? 'connected' : 'idle'}`}>
+              {teamsConnected ? 'Verbunden' : 'Nicht verbunden'}
+            </div>
+          </div>
+
+          <div className="profile-teams-copy">
+            Plane Termine weiter in Taski und hänge auf Wunsch automatisch ein Teams-Meeting an, ohne den Erstellungsfluss zu verlassen.
+          </div>
+
+          <div className="profile-teams-pills">
+            <span className="profile-teams-pill">Automatischer Join-Link</span>
+            <span className="profile-teams-pill">Event bleibt in Taski</span>
+            <span className="profile-teams-pill">Business-Konto erforderlich</span>
+          </div>
         </div>
-        {teamsConnected === null ? (
-          <div style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Wird geladen…</div>
-        ) : teamsConnected ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#34C759' }}>
-              <Check size={14} /> Microsoft-Konto verbunden. Teams-Meetings können automatisch erstellt werden.
-            </div>
-            <button
-              type="button"
-              className="profile-action-row"
-              style={{ background: 'rgba(255,59,48,0.06)', borderRadius: 10, padding: '10px 14px' }}
-              onClick={async () => {
-                try {
-                  await api.disconnectTeams();
-                  setTeamsConnected(false);
-                  showToast('Microsoft-Konto getrennt');
-                } catch {
-                  showToast('Trennen fehlgeschlagen', 'error');
-                }
-              }}
-            >
-              <div className="profile-action-left">
-                <div className="profile-action-icon" style={{ background: 'rgba(255,59,48,0.1)', color: '#FF3B30' }}>
-                  <X size={18} />
+
+        <div className="profile-teams-body">
+          {teamsConnected === null ? (
+            <div className="profile-teams-loading">Wird geladen…</div>
+          ) : teamsConnected ? (
+            <>
+              <div className="profile-teams-status-card success">
+                <div className="profile-teams-status-icon success">
+                  <Check size={16} />
                 </div>
                 <div>
-                  <div className="profile-action-title" style={{ color: '#FF3B30' }}>Microsoft-Konto trennen</div>
-                  <div className="profile-action-subtitle">Gespeicherte Tokens werden gelöscht</div>
+                  <div className="profile-teams-status-title">Microsoft-Konto verbunden</div>
+                  <div className="profile-teams-status-text">Neue Termine können jetzt automatisch mit einem Teams-Meeting ausgestattet werden.</div>
                 </div>
               </div>
-            </button>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-              Verbinde dein Microsoft-Konto, um bei Terminen automatisch ein Teams-Meeting zu erstellen.
-            </div>
-            <button
-              type="button"
-              className="profile-action-row"
-              style={{ background: 'rgba(85,88,168,0.08)', borderRadius: 10, padding: '10px 14px' }}
-              disabled={teamsConnecting}
-              onClick={async () => {
-                setTeamsConnecting(true);
-                try {
-                  showToast('Weiterleitung zu Microsoft wird vorbereitet...');
-                  const { url } = await api.getTeamsConnectUrl();
-                  if (url) window.location.assign(url);
-                  else showToast('Teams ist serverseitig nicht konfiguriert', 'error');
-                } catch (err) {
-                  showToast(err.message || 'Fehler beim Verbinden', 'error');
-                } finally {
-                  setTeamsConnecting(false);
-                }
-              }}
-            >
-              <div className="profile-action-left">
-                <div className="profile-action-icon" style={{ background: 'rgba(85,88,168,0.15)', color: '#5558a8' }}>
-                  <Video size={18} />
+
+              <button
+                type="button"
+                className="profile-teams-cta danger"
+                onClick={async () => {
+                  try {
+                    await api.disconnectTeams();
+                    setTeamsConnected(false);
+                    showToast('Microsoft-Konto getrennt');
+                  } catch {
+                    showToast('Trennen fehlgeschlagen', 'error');
+                  }
+                }}
+              >
+                <span className="profile-teams-cta-left">
+                  <span className="profile-teams-cta-icon danger">
+                    <X size={18} />
+                  </span>
+                  <span>
+                    <span className="profile-teams-cta-title">Microsoft-Konto trennen</span>
+                    <span className="profile-teams-cta-subtitle">Gespeicherte Tokens entfernen und automatische Meetings deaktivieren</span>
+                  </span>
+                </span>
+                <ChevronRight size={18} />
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="profile-teams-status-card">
+                <div className="profile-teams-status-icon">
+                  <Shield size={16} />
                 </div>
                 <div>
-                  <div className="profile-action-title">Microsoft-Konto verbinden</div>
-                  <div className="profile-action-subtitle">{teamsConnecting ? 'Weiterleitung…' : 'Einmalig mit Microsoft anmelden'}</div>
+                  <div className="profile-teams-status-title">Einmalig mit Microsoft anmelden</div>
+                  <div className="profile-teams-status-text">Dein Microsoft-365-Geschäftskonto wird verbunden, damit Termine später direkt einen Join-Link erhalten.</div>
                 </div>
               </div>
-              {!teamsConnecting && <ChevronRight size={18} />}
-            </button>
-          </div>
-        )}
+
+              <button
+                type="button"
+                className="profile-teams-cta"
+                disabled={teamsConnecting}
+                onClick={async () => {
+                  setTeamsConnecting(true);
+                  try {
+                    showToast('Weiterleitung zu Microsoft wird vorbereitet...');
+                    const { url } = await api.getTeamsConnectUrl();
+                    if (url) window.location.assign(url);
+                    else showToast('Teams ist serverseitig nicht konfiguriert', 'error');
+                  } catch (err) {
+                    showToast(err.message || 'Fehler beim Verbinden', 'error');
+                  } finally {
+                    setTeamsConnecting(false);
+                  }
+                }}
+              >
+                <span className="profile-teams-cta-left">
+                  <span className="profile-teams-cta-icon">
+                    <Video size={18} />
+                  </span>
+                  <span>
+                    <span className="profile-teams-cta-title">Microsoft-Konto verbinden</span>
+                    <span className="profile-teams-cta-subtitle">{teamsConnecting ? 'Weiterleitung zu Microsoft …' : 'Einmalig anmelden und automatische Teams-Meetings aktivieren'}</span>
+                  </span>
+                </span>
+                {!teamsConnecting && <ChevronRight size={18} />}
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Export */}

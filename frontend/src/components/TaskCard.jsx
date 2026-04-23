@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { memo, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTaskStore } from '../store/taskStore';
-import { Check, Trash2, Clock, Calendar, CalendarCheck, GripVertical, Lock, Users, UserCheck, Repeat, Paperclip } from 'lucide-react';
+import { Check, Trash2, Clock, Calendar, CalendarCheck, GripVertical, Lock, Users, UserCheck, Repeat, Paperclip, Video } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
 import TaskDetailModal from './TaskDetailModal';
@@ -251,8 +251,16 @@ function TaskCard({ task, index, disableLayout = false }) {
         <div className="task-title-row">
           <div className="task-title">{task.title}</div>
           {isEvent && <span className="task-type-badge event">Termin</span>}
+          {task.teams_join_url && <span className="task-type-badge teams"><Video size={10} /> Teams</span>}
           {isEventEnded && <span className="task-type-badge ended">Beendet</span>}
         </div>
+        {task.teams_join_url && (
+          <div className="task-teams-inline">
+            <span className="task-teams-dot" />
+            <Video size={12} />
+            <span>Teams-Meeting erstellt</span>
+          </div>
+        )}
         {task.description && (
           <div className="task-description-preview">
             {task.description.length > 60 ? task.description.substring(0, 60) + '…' : task.description}

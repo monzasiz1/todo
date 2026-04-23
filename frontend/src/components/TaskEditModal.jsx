@@ -189,6 +189,12 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
         (recurrenceRule || null) !== (task.recurrence_rule || null) ||
         (recurrenceEnd || null) !== (task.recurrence_end ? task.recurrence_end.substring(0, 10) : null)
       );
+      const needsConcreteTeamsTask = (
+        taskType === 'event' &&
+        addTeamsMeeting &&
+        !hasTeamsMeeting &&
+        String(task.id).startsWith('v_')
+      );
 
       // 1. Update task fields only when actual core data changed.
       const updates = {
@@ -206,9 +212,10 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
         recurrence_interval: 1,
         recurrence_end: recurrenceEnd || null,
       };
-      const updatedTask = hasCoreChanges ? await updateTask(task.id, updates) : task;
+      const shouldPersistTask = hasCoreChanges || needsConcreteTeamsTask;
+      const updatedTask = shouldPersistTask ? await updateTask(task.id, updates) : task;
 
-      if (hasCoreChanges && !updatedTask) {
+      if (shouldPersistTask && !updatedTask) {
         throw new Error('Speichern fehlgeschlagen');
       }
 
@@ -240,27 +247,36 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
         // Ignore if group tables don't exist
       }
 
-      addToast('✅ Änderungen gespeichert');
+      let finalTask = updatedTask || task;
 
       // Handle Teams meeting creation / removal (events only)
       if (taskType === 'event') {
-        const resolvedId = hasCoreChanges ? updatedTask?.id : (String(task.id).startsWith('v_') ? null : task.id);
+        const resolvedId = finalTask?.id || (String(task.id).startsWith('v_') ? null : task.id);
         if (addTeamsMeeting && !hasTeamsMeeting && resolvedId) {
           try {
-            await api.createTeamsMeeting({
+            const teamsResult = await api.createTeamsMeeting({
               task_id: resolvedId,
               title: title.trim(),
               date: date || null,
               time: allDay ? null : (time || null),
               time_end: allDay ? null : (timeEnd || null),
             });
-          } catch {
-            addToast('⚠️ Teams-Meeting konnte nicht erstellt werden', 'error');
+
+            finalTask = {
+              ...finalTask,
+              teams_join_url: teamsResult?.join_url || finalTask?.teams_join_url || null,
+              teams_meeting_id: teamsResult?.meeting_id || finalTask?.teams_meeting_id || null,
+            };
+            addToast('✅ Teams-Meeting erstellt');
+          } catch (err) {
+            addToast('⚠️ ' + (err.message || 'Teams-Meeting konnte nicht erstellt werden'), 'error');
           }
         }
       }
 
-      onSaved?.(updatedTask);
+      addToast('✅ Änderungen gespeichert');
+
+      onSaved?.(finalTask);
       onClose();
     } catch (err) {
       addToast('❌ ' + (err.message || 'Speichern fehlgeschlagen'), 'error');
