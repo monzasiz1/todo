@@ -1,12 +1,47 @@
 import { create } from 'zustand';
 import { api } from '../utils/api';
 
+const GROUP_CACHE_KEY = 'taski_groups_cache_v1';
+
+function readGroupCache() {
+  try {
+    const raw = localStorage.getItem(GROUP_CACHE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (!parsed || typeof parsed !== 'object') return null;
+    return {
+      groups: Array.isArray(parsed.groups) ? parsed.groups : [],
+      currentGroup: parsed.currentGroup || null,
+      members: Array.isArray(parsed.members) ? parsed.members : [],
+      groupTasks: Array.isArray(parsed.groupTasks) ? parsed.groupTasks : [],
+      myRole: parsed.myRole || null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeGroupCache(state) {
+  try {
+    localStorage.setItem(GROUP_CACHE_KEY, JSON.stringify({
+      groups: state.groups || [],
+      currentGroup: state.currentGroup || null,
+      members: state.members || [],
+      groupTasks: state.groupTasks || [],
+      myRole: state.myRole || null,
+    }));
+  } catch {
+    // ignore
+  }
+}
+
+const cached = readGroupCache();
+
 export const useGroupStore = create((set, get) => ({
-  groups: [],
-  currentGroup: null,
-  members: [],
-  groupTasks: [],
-  myRole: null,
+  groups: cached?.groups || [],
+  currentGroup: cached?.currentGroup || null,
+  members: cached?.members || [],
+  groupTasks: cached?.groupTasks || [],
+  myRole: cached?.myRole || null,
   loading: false,
 
   fetchGroups: async () => {
@@ -102,3 +137,7 @@ export const useGroupStore = create((set, get) => ({
     return data;
   },
 }));
+
+useGroupStore.subscribe((state) => {
+  writeGroupCache(state);
+});

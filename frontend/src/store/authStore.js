@@ -2,6 +2,16 @@ import { create } from 'zustand';
 import { api, clearApiCacheForCurrentUser } from '../utils/api';
 
 const TASK_CACHE_KEY = 'taski_tasks_cache_v1';
+const GROUP_CACHE_KEY = 'taski_groups_cache_v1';
+const FRIENDS_CACHE_KEY = 'taski_friends_cache_v1';
+const NOTIF_CACHE_KEY = 'taski_notifications_cache_v1';
+
+function clearLocalAppCaches() {
+  localStorage.removeItem(TASK_CACHE_KEY);
+  localStorage.removeItem(GROUP_CACHE_KEY);
+  localStorage.removeItem(FRIENDS_CACHE_KEY);
+  localStorage.removeItem(NOTIF_CACHE_KEY);
+}
 
 export const useAuthStore = create((set) => ({
   user: JSON.parse(localStorage.getItem('user') || 'null'),
@@ -48,7 +58,7 @@ export const useAuthStore = create((set) => ({
         set({ user: null, token: null });
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        localStorage.removeItem(TASK_CACHE_KEY);
+        clearLocalAppCaches();
         return;
       }
 
@@ -60,7 +70,7 @@ export const useAuthStore = create((set) => ({
     clearApiCacheForCurrentUser();
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    localStorage.removeItem(TASK_CACHE_KEY);
+    clearLocalAppCaches();
     set({ user: null, token: null });
     window.location.href = '/login';
   },

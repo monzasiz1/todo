@@ -1,9 +1,38 @@
 import { create } from 'zustand';
 import { api } from '../utils/api';
 
+const FRIENDS_CACHE_KEY = 'taski_friends_cache_v1';
+
+function readFriendsCache() {
+  try {
+    const raw = localStorage.getItem(FRIENDS_CACHE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (!parsed || typeof parsed !== 'object') return null;
+    return {
+      friends: Array.isArray(parsed.friends) ? parsed.friends : [],
+      pending: Array.isArray(parsed.pending) ? parsed.pending : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeFriendsCache(state) {
+  try {
+    localStorage.setItem(FRIENDS_CACHE_KEY, JSON.stringify({
+      friends: state.friends || [],
+      pending: state.pending || [],
+    }));
+  } catch {
+    // ignore
+  }
+}
+
+const cached = readFriendsCache();
+
 export const useFriendsStore = create((set, get) => ({
-  friends: [],
-  pending: [],
+  friends: cached?.friends || [],
+  pending: cached?.pending || [],
   loading: false,
   error: null,
 
@@ -66,3 +95,7 @@ export const useFriendsStore = create((set, get) => ({
     }
   },
 }));
+
+useFriendsStore.subscribe((state) => {
+  writeFriendsCache(state);
+});

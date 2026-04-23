@@ -1,6 +1,35 @@
 import { create } from 'zustand';
 import { api } from '../utils/api';
 
+const NOTIF_CACHE_KEY = 'taski_notifications_cache_v1';
+
+function readNotifCache() {
+  try {
+    const raw = localStorage.getItem(NOTIF_CACHE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (!parsed || typeof parsed !== 'object') return null;
+    return {
+      subscribed: !!parsed.subscribed,
+      notifications: Array.isArray(parsed.notifications) ? parsed.notifications : [],
+      prefs: parsed.prefs || { reminder: true, daily_tasks: true, engagement: true, team_task: true },
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeNotifCache(state) {
+  try {
+    localStorage.setItem(NOTIF_CACHE_KEY, JSON.stringify({
+      subscribed: !!state.subscribed,
+      notifications: state.notifications || [],
+      prefs: state.prefs || { reminder: true, daily_tasks: true, engagement: true, team_task: true },
+    }));
+  } catch {
+    // ignore
+  }
+}
+
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -19,13 +48,16 @@ function getLastSeenAt() {
   } catch { return 0; }
 }
 
+const notifCached = readNotifCache();
+
 const useNotificationStore = create((set, get) => ({
+  ...(notifCached || {}),
   permission: typeof Notification !== 'undefined' ? Notification.permission : 'denied',
-  subscribed: false,
-  notifications: [],
+  subscribed: notifCached?.subscribed ?? false,
+  notifications: notifCached?.notifications ?? [],
   loading: false,
   lastSeenAt: getLastSeenAt(),
-  prefs: { reminder: true, daily_tasks: true, engagement: true, team_task: true },
+  prefs: notifCached?.prefs ?? { reminder: true, daily_tasks: true, engagement: true, team_task: true },
 
   // Mark all current notifications as seen
   markAsSeen: () => {
@@ -151,3 +183,7 @@ const useNotificationStore = create((set, get) => ({
 }));
 
 export { useNotificationStore };
+
+useNotificationStore.subscribe((state) => {
+  writeNotifCache(state);
+});
