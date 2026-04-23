@@ -9386,6 +9386,30 @@ body.cal-is-dragging * {
   background: var(--primary-bg);
 }
 
+.group-past-section {
+  margin-top: 12px;
+}
+.group-past-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1.5px dashed var(--border);
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 6px;
+}
+.group-past-toggle:hover {
+  border-color: var(--text-tertiary);
+  color: var(--text-primary);
+}
+
 /* --- Group Members --- */
 .group-member-card {
   display: flex;

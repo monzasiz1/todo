@@ -4,7 +4,7 @@ import { useAuthStore } from '../store/authStore';
 import { useTaskStore } from '../store/taskStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Users, Plus, Hash, Copy, Check, ChevronRight, Crown,
+  Users, Plus, Hash, Copy, Check, ChevronRight, ChevronDown, Crown,
   Shield, UserMinus, Settings, Trash2, LogOut, X,
   Calendar, Clock, Flag, Search, ArrowLeft
 } from 'lucide-react';
@@ -407,6 +407,7 @@ function GroupDetail({ groupId, onBack }) {
   const [copied, setCopied] = useState(false);
   const [visibleCount, setVisibleCount] = useState(15);
   const [detailTask, setDetailTask] = useState(null);
+  const [showPastGroupTasks, setShowPastGroupTasks] = useState(false);
 
   useEffect(() => { fetchGroup(groupId); }, [groupId]);
   useEffect(() => { setVisibleCount(15); }, [tab]);
@@ -475,28 +476,53 @@ function GroupDetail({ groupId, onBack }) {
 
           {groupTasks.length === 0 ? (
             <div className="group-empty-tab">Noch keine Aufgaben in dieser Gruppe</div>
-          ) : (
-            <div className="group-task-list">
-              {groupTasks.slice(0, visibleCount).map((task) => (
-                <GroupTaskCard
-                  key={task.id}
-                  task={task}
-                  groupId={groupId}
-                  canRemove={isAdmin || task.user_id === user?.id}
-                  onRemove={removeGroupTask}
-                  onOpenTask={setDetailTask}
-                />
-              ))}
-              {visibleCount < groupTasks.length && (
-                <button
-                  className="group-load-more-btn"
-                  onClick={() => setVisibleCount(v => v + 15)}
-                >
-                  Mehr anzeigen ({groupTasks.length - visibleCount} weitere)
-                </button>
-              )}
-            </div>
-          )}
+          ) : (() => {
+            const activeTasks = groupTasks.filter((t) => !t.completed && !isEventEnded(t));
+            const pastTasks = groupTasks.filter((t) => t.completed || isEventEnded(t));
+            return (
+              <div className="group-task-list">
+                {activeTasks.slice(0, visibleCount).map((task) => (
+                  <GroupTaskCard
+                    key={task.id}
+                    task={task}
+                    groupId={groupId}
+                    canRemove={isAdmin || task.user_id === user?.id}
+                    onRemove={removeGroupTask}
+                    onOpenTask={setDetailTask}
+                  />
+                ))}
+                {visibleCount < activeTasks.length && (
+                  <button
+                    className="group-load-more-btn"
+                    onClick={() => setVisibleCount(v => v + 15)}
+                  >
+                    Mehr anzeigen ({activeTasks.length - visibleCount} weitere)
+                  </button>
+                )}
+                {pastTasks.length > 0 && (
+                  <div className="group-past-section">
+                    <button
+                      className="group-past-toggle"
+                      onClick={() => setShowPastGroupTasks(v => !v)}
+                    >
+                      <span>Vergangene / Erledigte ({pastTasks.length})</span>
+                      <ChevronDown size={14} style={{ transform: showPastGroupTasks ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                    </button>
+                    {showPastGroupTasks && pastTasks.map((task) => (
+                      <GroupTaskCard
+                        key={task.id}
+                        task={task}
+                        groupId={groupId}
+                        canRemove={isAdmin || task.user_id === user?.id}
+                        onRemove={removeGroupTask}
+                        onOpenTask={setDetailTask}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {showAddTask && (
             <AddGroupTask

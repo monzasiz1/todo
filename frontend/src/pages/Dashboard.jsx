@@ -259,7 +259,7 @@ export default function Dashboard() {
   const { tasks, fetchTasks, filter, setFilter } = useTaskStore();
   const { limit, atLimit } = usePlan();
   const [showCompleted, setShowCompleted] = useState(false);
-  const [collapsedSections, setCollapsedSections] = useState({});
+  const [collapsedSections, setCollapsedSections] = useState({ past_events: true });
   const [showTaskLimitModal, setShowTaskLimitModal] = useState(false);
   const [nowTs, setNowTs] = useState(Date.now());
 
