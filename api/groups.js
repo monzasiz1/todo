@@ -10,6 +10,20 @@ function parseVirtualId(id) {
   if (!parentId || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
   return { parentId, date };
 }
+
+function toDateOnly(value) {
+  if (!value) return null;
+  const str = String(value).substring(0, 10);
+  const d = new Date(`${str}T00:00:00`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function shiftDate(dateValue, days) {
+  const d = toDateOnly(dateValue);
+  if (!d) return null;
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split('T')[0];
+}
 const crypto = require('crypto');
 
 module.exports = async function handler(req, res) {
@@ -61,6 +75,80 @@ module.exports = async function handler(req, res) {
       [groupId, messageId, user.id]
     );
     return result.rows[0] || null;
+  }
+
+  async function inheritTaskRelations(parentId, concreteTaskId) {
+    await pool.query(
+      `INSERT INTO task_permissions (task_id, user_id, can_view, can_edit)
+       SELECT $2, tp.user_id, tp.can_view, tp.can_edit
+       FROM task_permissions tp
+       WHERE tp.task_id = $1
+       ON CONFLICT (task_id, user_id)
+       DO UPDATE SET can_view = EXCLUDED.can_view, can_edit = EXCLUDED.can_edit`,
+      [parentId, concreteTaskId]
+    );
+
+    await pool.query(
+      `INSERT INTO group_tasks (group_id, task_id, created_by)
+       SELECT gt.group_id, $2, gt.created_by
+       FROM group_tasks gt
+       WHERE gt.task_id = $1
+       ON CONFLICT DO NOTHING`,
+      [parentId, concreteTaskId]
+    );
+  }
+
+  async function materializeOccurrence(parentId, date) {
+    const existing = await pool.query(
+      `SELECT * FROM tasks WHERE recurrence_parent_id = $1 AND date::text LIKE $2 AND user_id = $3 LIMIT 1`,
+      [parentId, `${date}%`, user.id]
+    );
+    if (existing.rows.length > 0) {
+      await inheritTaskRelations(parentId, existing.rows[0].id);
+      return existing.rows[0];
+    }
+
+    const parent = await pool.query(
+      `SELECT * FROM tasks WHERE id = $1 AND user_id = $2 LIMIT 1`,
+      [parentId, user.id]
+    );
+    if (parent.rows.length === 0) return null;
+
+    const template = parent.rows[0];
+    const templateDate = template.date instanceof Date
+      ? template.date.toISOString().split('T')[0]
+      : String(template.date).substring(0, 10);
+
+    const spanDays = template.date_end
+      ? Math.max(0, Math.round(
+          (new Date(String(template.date_end).substring(0, 10) + 'T00:00:00') -
+           new Date(templateDate + 'T00:00:00')) / 86400000
+        ))
+      : 0;
+    const dateEnd = spanDays > 0 ? shiftDate(date, spanDays) : null;
+
+    const maxOrder = await pool.query(
+      'SELECT COALESCE(MAX(sort_order), 0) + 1 as next_order FROM tasks WHERE user_id = $1',
+      [user.id]
+    );
+
+    const inserted = await pool.query(
+      `INSERT INTO tasks
+         (user_id, title, description, date, date_end, time, time_end, priority,
+          category_id, reminder_at, sort_order, visibility, type,
+          recurrence_rule, recurrence_interval, recurrence_end, recurrence_parent_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+       RETURNING *`,
+      [template.user_id, template.title, template.description, date, dateEnd, template.time, template.time_end,
+       template.priority, template.category_id, null, maxOrder.rows[0].next_order,
+       template.visibility || 'private', template.type || 'task', template.recurrence_rule,
+       template.recurrence_interval || 1, template.recurrence_end, parentId]
+    );
+
+    if (inserted.rows[0]?.id) {
+      await inheritTaskRelations(parentId, inserted.rows[0].id);
+    }
+    return inserted.rows[0] || null;
   }
 
   // ============================================
@@ -515,8 +603,15 @@ module.exports = async function handler(req, res) {
       const membership = await getMembership(groupId);
       if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
 
-      const { task_id } = req.body;
+      let { task_id } = req.body;
       if (!task_id) return res.status(400).json({ error: 'task_id fehlt' });
+
+      const virtual = parseVirtualId(task_id);
+      if (virtual) {
+        const concreteTask = await materializeOccurrence(virtual.parentId, virtual.date);
+        if (!concreteTask) return res.status(404).json({ error: 'Termin nicht gefunden' });
+        task_id = String(concreteTask.id);
+      }
 
       const taskResult = await pool.query(
         `SELECT t.id, t.title, t.date, t.time, t.time_end, t.description, t.type,
