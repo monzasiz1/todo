@@ -26,24 +26,33 @@ module.exports = async (req, res) => {
         return res.status(400).json({ error: 'taskId required' });
       }
 
-      // Check if user has access to this task
-      const accessResult = await pool.query(
-        `SELECT id FROM tasks WHERE id = $1 AND (
-          user_id = $2 OR
-          visibility = 'shared' OR
-          id IN (
-            SELECT task_id FROM task_permissions 
-            WHERE user_id = $2 AND can_view = true
-          ) OR
-          group_id IN (
-            SELECT group_id FROM group_members 
-            WHERE user_id = $2
-          )
-        )`,
-        [taskId, userId]
+      // Check if task exists and user has access
+      const taskResult = await pool.query(
+        'SELECT user_id FROM tasks WHERE id = $1',
+        [taskId]
       );
+      
+      if (taskResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Task not found' });
+      }
 
-      if (accessResult.rows.length === 0) {
+      const task = taskResult.rows[0];
+
+      // Quick check: user owns it
+      let hasAccess = task.user_id === userId;
+
+      // If not owner, check if in same group
+      if (!hasAccess) {
+        const groupResult = await pool.query(
+          `SELECT gt.task_id FROM group_tasks gt
+           JOIN group_members gm ON gm.group_id = gt.group_id
+           WHERE gt.task_id = $1 AND gm.user_id = $2`,
+          [taskId, userId]
+        );
+        hasAccess = groupResult.rows.length > 0;
+      }
+
+      if (!hasAccess) {
         return res.status(403).json({ error: 'No access to this task' });
       }
 
@@ -77,24 +86,33 @@ module.exports = async (req, res) => {
         return res.status(400).json({ error: 'taskId and text required' });
       }
 
-      // Check if user has access to this task
-      const accessResult = await pool.query(
-        `SELECT id FROM tasks WHERE id = $1 AND (
-          user_id = $2 OR
-          visibility = 'shared' OR
-          id IN (
-            SELECT task_id FROM task_permissions 
-            WHERE user_id = $2 AND can_view = true
-          ) OR
-          group_id IN (
-            SELECT group_id FROM group_members 
-            WHERE user_id = $2
-          )
-        )`,
-        [taskId, userId]
+      // Check if task exists and user has access
+      const taskResult = await pool.query(
+        'SELECT user_id FROM tasks WHERE id = $1',
+        [taskId]
       );
+      
+      if (taskResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Task not found' });
+      }
 
-      if (accessResult.rows.length === 0) {
+      const task = taskResult.rows[0];
+
+      // Quick check: user owns it
+      let hasAccess = task.user_id === userId;
+
+      // If not owner, check if in same group
+      if (!hasAccess) {
+        const groupResult = await pool.query(
+          `SELECT gt.task_id FROM group_tasks gt
+           JOIN group_members gm ON gm.group_id = gt.group_id
+           WHERE gt.task_id = $1 AND gm.user_id = $2`,
+          [taskId, userId]
+        );
+        hasAccess = groupResult.rows.length > 0;
+      }
+
+      if (!hasAccess) {
         return res.status(403).json({ error: 'No access to this task' });
       }
 
@@ -139,21 +157,16 @@ module.exports = async (req, res) => {
         return res.status(400).json({ error: 'commentId required' });
       }
 
-      // Check if user is the comment author
-      const checkResult = await pool.query(
-        `SELECT user_id FROM task_comments WHERE id = $1`,
-        [commentId]
+      // Delete comment - RLS will ensure user is the author
+      const result = await pool.query(
+        `DELETE FROM task_comments WHERE id = $1 AND user_id = $2
+         RETURNING id`,
+        [commentId, userId]
       );
 
-      if (checkResult.rows.length === 0) {
-        return res.status(404).json({ error: 'Comment not found' });
+      if (result.rows.length === 0) {
+        return res.status(403).json({ error: 'Comment not found or you are not the author' });
       }
-
-      if (checkResult.rows[0].user_id !== userId) {
-        return res.status(403).json({ error: 'Can only delete own comments' });
-      }
-
-      await pool.query(`DELETE FROM task_comments WHERE id = $1`, [commentId]);
 
       return res.status(200).json({ message: 'Comment deleted' });
     }
