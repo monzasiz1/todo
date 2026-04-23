@@ -163,7 +163,11 @@ module.exports = async (req, res) => {
       res.status(405).json({ error: 'Method not allowed' });
     } catch (error) {
       console.error('Comments endpoint error:', error);
-      res.status(500).json({ error: error.message || 'Internal server error' });
+      // Return error message to client for debugging
+      res.status(500).json({ 
+        error: error.message || 'Internal server error',
+        detail: error.code || error.detail || 'Unknown error'
+      });
     }
   });
 };
