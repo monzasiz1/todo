@@ -648,6 +648,7 @@ export default function ProfilePage() {
               <Check size={14} /> Microsoft-Konto verbunden. Teams-Meetings können automatisch erstellt werden.
             </div>
             <button
+              type="button"
               className="profile-action-row"
               style={{ background: 'rgba(255,59,48,0.06)', borderRadius: 10, padding: '10px 14px' }}
               onClick={async () => {
@@ -677,14 +678,16 @@ export default function ProfilePage() {
               Verbinde dein Microsoft-Konto, um bei Terminen automatisch ein Teams-Meeting zu erstellen.
             </div>
             <button
+              type="button"
               className="profile-action-row"
               style={{ background: 'rgba(85,88,168,0.08)', borderRadius: 10, padding: '10px 14px' }}
               disabled={teamsConnecting}
               onClick={async () => {
                 setTeamsConnecting(true);
                 try {
+                  showToast('Weiterleitung zu Microsoft wird vorbereitet...');
                   const { url } = await api.getTeamsConnectUrl();
-                  if (url) window.location.href = url;
+                  if (url) window.location.assign(url);
                   else showToast('Teams ist serverseitig nicht konfiguriert', 'error');
                 } catch (err) {
                   showToast(err.message || 'Fehler beim Verbinden', 'error');
