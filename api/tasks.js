@@ -142,6 +142,27 @@ function parseVirtualId(id) {
   return { parentId, date };
 }
 
+async function inheritTaskRelations(pool, parentId, concreteTaskId) {
+  await pool.query(
+    `INSERT INTO task_permissions (task_id, user_id, can_view, can_edit)
+     SELECT $2, tp.user_id, tp.can_view, tp.can_edit
+       FROM task_permissions tp
+      WHERE tp.task_id = $1
+     ON CONFLICT (task_id, user_id)
+     DO UPDATE SET can_view = EXCLUDED.can_view, can_edit = EXCLUDED.can_edit`,
+    [parentId, concreteTaskId]
+  );
+
+  await pool.query(
+    `INSERT INTO group_tasks (group_id, task_id, created_by)
+     SELECT gt.group_id, $2, gt.created_by
+       FROM group_tasks gt
+      WHERE gt.task_id = $1
+     ON CONFLICT DO NOTHING`,
+    [parentId, concreteTaskId]
+  );
+}
+
 // Materialize a virtual occurrence into a concrete DB row.
 // Returns the concrete task row.
 async function materializeOccurrence(pool, parentId, date, userId) {
@@ -197,8 +218,12 @@ async function materializeOccurrence(pool, parentId, date, userId) {
       `SELECT * FROM tasks WHERE recurrence_parent_id = $1 AND date::text LIKE $2 AND user_id = $3 LIMIT 1`,
       [parentId, date + '%', userId]
     );
+    if (retry.rows[0]?.id) {
+      await inheritTaskRelations(pool, parentId, retry.rows[0].id);
+    }
     return retry.rows[0];
   }
+  await inheritTaskRelations(pool, parentId, ins.rows[0].id);
   return ins.rows[0];
 }
 
@@ -488,10 +513,19 @@ module.exports = async function handler(req, res) {
   // PUT /api/tasks/:id
   if (segments.length === 1 && segments[0] !== 'range' && segments[0] !== 'reorder' && req.method === 'PUT') {
     try {
-      const taskId = segments[0];
+      let taskId = segments[0];
       const { title, description, date, date_end, time, time_end, priority, category_id, reminder_at,
               recurrence_rule, recurrence_interval, recurrence_end, type } = req.body;
       const taskType = type === 'event' ? 'event' : (type === 'task' ? 'task' : undefined);
+
+      const virtual = parseVirtualId(taskId);
+      if (virtual) {
+        const concreteRow = await materializeOccurrence(pool, virtual.parentId, virtual.date, user.id);
+        if (!concreteRow) {
+          return res.status(404).json({ error: 'Vorlage nicht gefunden' });
+        }
+        taskId = String(concreteRow.id);
+      }
 
       // Only update fields that were explicitly sent in the request body.
       const hasTitle = Object.prototype.hasOwnProperty.call(req.body, 'title');

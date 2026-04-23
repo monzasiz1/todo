@@ -25,6 +25,27 @@ function shiftDate(dateValue, days) {
   return d.toISOString().split('T')[0];
 }
 
+async function inheritTaskRelations(pool, parentId, concreteTaskId) {
+  await pool.query(
+    `INSERT INTO task_permissions (task_id, user_id, can_view, can_edit)
+     SELECT $2, tp.user_id, tp.can_view, tp.can_edit
+       FROM task_permissions tp
+      WHERE tp.task_id = $1
+     ON CONFLICT (task_id, user_id)
+     DO UPDATE SET can_view = EXCLUDED.can_view, can_edit = EXCLUDED.can_edit`,
+    [parentId, concreteTaskId]
+  );
+
+  await pool.query(
+    `INSERT INTO group_tasks (group_id, task_id, created_by)
+     SELECT gt.group_id, $2, gt.created_by
+       FROM group_tasks gt
+      WHERE gt.task_id = $1
+     ON CONFLICT DO NOTHING`,
+    [parentId, concreteTaskId]
+  );
+}
+
 async function findAccessibleTask(pool, taskId, userId) {
   const result = await pool.query(
     `SELECT t.id, t.user_id, t.date, t.date_end, t.time, t.time_end, t.title, t.description,
@@ -111,6 +132,10 @@ async function materializeOccurrenceForComments(pool, template, occurrenceDate) 
       template.id,
     ]
   );
+
+  if (inserted.rows[0]?.id) {
+    await inheritTaskRelations(pool, template.id, inserted.rows[0].id);
+  }
 
   return inserted.rows[0] || null;
 }

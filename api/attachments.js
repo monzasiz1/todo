@@ -1,6 +1,21 @@
 const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
 
+function parseVirtualId(id) {
+  if (typeof id !== 'string' || !id.startsWith('v_')) return null;
+  const parts = id.split('_');
+  if (parts.length < 3) return null;
+  const date = parts[parts.length - 1];
+  const parentId = parts.slice(1, -1).join('_');
+  if (!parentId || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  return { parentId, date };
+}
+
+function normalizeTaskId(rawTaskId) {
+  const virtual = parseVirtualId(rawTaskId);
+  return virtual ? parseInt(virtual.parentId, 10) : parseInt(rawTaskId, 10);
+}
+
 const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB (base64 = ~5.3MB, within Vercel's 6MB body limit)
 const MAX_ATTACHMENTS = 10;
 const ALLOWED_TYPES = [
@@ -33,7 +48,7 @@ module.exports = async function handler(req, res) {
 
   // GET /api/attachments/:taskId – list attachments for a task
   if (segments.length === 1 && req.method === 'GET') {
-    const taskId = parseInt(segments[0]);
+    const taskId = normalizeTaskId(segments[0]);
     if (isNaN(taskId)) return res.status(400).json({ error: 'Ungültige Task-ID' });
 
     try {
@@ -51,7 +66,7 @@ module.exports = async function handler(req, res) {
 
   // GET /api/attachments/:taskId/:attachmentId – download a single attachment
   if (segments.length === 2 && req.method === 'GET') {
-    const taskId = parseInt(segments[0]);
+    const taskId = normalizeTaskId(segments[0]);
     const attachmentId = parseInt(segments[1]);
     if (isNaN(taskId) || isNaN(attachmentId)) return res.status(400).json({ error: 'Ungültige ID' });
 
@@ -76,7 +91,7 @@ module.exports = async function handler(req, res) {
 
   // POST /api/attachments/:taskId – upload attachment
   if (segments.length === 1 && req.method === 'POST') {
-    const taskId = parseInt(segments[0]);
+    const taskId = normalizeTaskId(segments[0]);
     if (isNaN(taskId)) return res.status(400).json({ error: 'Ungültige Task-ID' });
 
     try {
@@ -133,7 +148,7 @@ module.exports = async function handler(req, res) {
 
   // DELETE /api/attachments/:taskId/:attachmentId – delete attachment
   if (segments.length === 2 && req.method === 'DELETE') {
-    const taskId = parseInt(segments[0]);
+    const taskId = normalizeTaskId(segments[0]);
     const attachmentId = parseInt(segments[1]);
     if (isNaN(taskId) || isNaN(attachmentId)) return res.status(400).json({ error: 'Ungültige ID' });
 

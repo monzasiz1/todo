@@ -1,6 +1,16 @@
 const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
 
+function parseVirtualId(id) {
+  if (typeof id !== 'string' || !id.startsWith('v_')) return null;
+  const parts = id.split('_');
+  if (parts.length < 3) return null;
+  const date = parts[parts.length - 1];
+  const parentId = parts.slice(1, -1).join('_');
+  if (!parentId || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  return { parentId, date };
+}
+
 module.exports = async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -15,7 +25,8 @@ module.exports = async function handler(req, res) {
   // GET /api/permissions/:taskId — get permissions for a task
   if (segments.length === 1 && req.method === 'GET') {
     try {
-      const taskId = segments[0];
+      const virtual = parseVirtualId(segments[0]);
+      const taskId = virtual ? virtual.parentId : segments[0];
 
       // Verify task ownership
       const task = await pool.query('SELECT user_id, visibility FROM tasks WHERE id = $1', [taskId]);
@@ -44,7 +55,8 @@ module.exports = async function handler(req, res) {
   // PUT /api/permissions/:taskId — set visibility + permissions for a task
   if (segments.length === 1 && req.method === 'PUT') {
     try {
-      const taskId = segments[0];
+      const virtual = parseVirtualId(segments[0]);
+      const taskId = virtual ? virtual.parentId : segments[0];
       const { visibility, permissions } = req.body;
 
       // Verify task ownership
@@ -58,7 +70,7 @@ module.exports = async function handler(req, res) {
       // Determine all task IDs to update (recurring series = parent + all children)
       const row = task.rows[0];
       const isRecurring = row.recurrence_rule || row.recurrence_parent_id;
-      let allTaskIds = [parseInt(taskId)];
+      let allTaskIds = [parseInt(taskId, 10)];
 
       if (isRecurring) {
         const parentId = row.recurrence_parent_id || parseInt(taskId);

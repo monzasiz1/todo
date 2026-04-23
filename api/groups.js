@@ -1,5 +1,15 @@
 const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
+
+function parseVirtualId(id) {
+  if (typeof id !== 'string' || !id.startsWith('v_')) return null;
+  const parts = id.split('_');
+  if (parts.length < 3) return null;
+  const date = parts[parts.length - 1];
+  const parentId = parts.slice(1, -1).join('_');
+  if (!parentId || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  return { parentId, date };
+}
 const crypto = require('crypto');
 
 module.exports = async function handler(req, res) {
@@ -248,7 +258,9 @@ module.exports = async function handler(req, res) {
 
       if (existing_task_id) {
         // Link an existing task to this group
-        const existing = await pool.query('SELECT * FROM tasks WHERE id = $1 AND user_id = $2', [existing_task_id, user.id]);
+        const virtual = parseVirtualId(existing_task_id);
+        const resolvedTaskId = virtual ? virtual.parentId : existing_task_id;
+        const existing = await pool.query('SELECT * FROM tasks WHERE id = $1 AND user_id = $2', [resolvedTaskId, user.id]);
         if (existing.rows.length === 0) return res.status(404).json({ error: 'Aufgabe nicht gefunden' });
         task = existing.rows[0];
 
