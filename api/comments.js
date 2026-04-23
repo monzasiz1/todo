@@ -11,41 +11,6 @@ function parseVirtualId(id) {
   return { parentId, date };
 }
 
-function toDateOnly(value) {
-  if (!value) return null;
-  const str = String(value).substring(0, 10);
-  const d = new Date(`${str}T00:00:00`);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-
-function shiftDate(dateValue, days) {
-  const d = toDateOnly(dateValue);
-  if (!d) return null;
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split('T')[0];
-}
-
-async function inheritTaskRelations(pool, parentId, concreteTaskId) {
-  await pool.query(
-    `INSERT INTO task_permissions (task_id, user_id, can_view, can_edit)
-     SELECT $2, tp.user_id, tp.can_view, tp.can_edit
-       FROM task_permissions tp
-      WHERE tp.task_id = $1
-     ON CONFLICT (task_id, user_id)
-     DO UPDATE SET can_view = EXCLUDED.can_view, can_edit = EXCLUDED.can_edit`,
-    [parentId, concreteTaskId]
-  );
-
-  await pool.query(
-    `INSERT INTO group_tasks (group_id, task_id, created_by)
-     SELECT gt.group_id, $2, gt.created_by
-       FROM group_tasks gt
-      WHERE gt.task_id = $1
-     ON CONFLICT DO NOTHING`,
-    [parentId, concreteTaskId]
-  );
-}
-
 async function findAccessibleTask(pool, taskId, userId) {
   const result = await pool.query(
     `SELECT t.id, t.user_id, t.date, t.date_end, t.time, t.time_end, t.title, t.description,
@@ -76,91 +41,47 @@ async function findAccessibleTask(pool, taskId, userId) {
 
   return result.rows[0] || null;
 }
-
-async function findMaterializedOccurrence(pool, parentId, date) {
-  const result = await pool.query(
-    `SELECT id, user_id
-       FROM tasks
-      WHERE recurrence_parent_id = $1
-        AND date::text LIKE $2
-      LIMIT 1`,
-    [parentId, `${date}%`]
-  );
-
-  return result.rows[0] || null;
+function normalizeDate(value) {
+  return value ? String(value).substring(0, 10) : null;
 }
 
-async function materializeOccurrenceForComments(pool, template, occurrenceDate) {
-  const templateDate = String(template.date).substring(0, 10);
-  const spanDays = template.date_end
-    ? Math.max(0, Math.round(
-        (new Date(`${String(template.date_end).substring(0, 10)}T00:00:00`) -
-         new Date(`${templateDate}T00:00:00`)) / 86400000
-      ))
-    : 0;
-  const dateEnd = spanDays > 0 ? shiftDate(occurrenceDate, spanDays) : null;
-
-  const maxOrder = await pool.query(
-    'SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_order FROM tasks WHERE user_id = $1',
-    [template.user_id]
-  );
-
-  const inserted = await pool.query(
-    `INSERT INTO tasks
-       (user_id, title, description, date, date_end, time, time_end, priority,
-        category_id, reminder_at, sort_order, visibility, type,
-        recurrence_rule, recurrence_interval, recurrence_end, recurrence_parent_id)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
-     RETURNING id`,
-    [
-      template.user_id,
-      template.title,
-      template.description,
-      occurrenceDate,
-      dateEnd,
-      template.time,
-      template.time_end,
-      template.priority,
-      template.category_id,
-      null,
-      maxOrder.rows[0].next_order,
-      template.visibility || 'private',
-      template.type || 'task',
-      template.recurrence_rule,
-      template.recurrence_interval || 1,
-      template.recurrence_end,
-      template.id,
-    ]
-  );
-
-  if (inserted.rows[0]?.id) {
-    await inheritTaskRelations(pool, template.id, inserted.rows[0].id);
-  }
-
-  return inserted.rows[0] || null;
-}
-
-async function resolveTaskForComments(pool, rawTaskId, userId, materializeIfMissing = false) {
+async function resolveTaskForComments(pool, rawTaskId, userId) {
   const virtual = parseVirtualId(rawTaskId);
   if (!virtual) {
     const task = await findAccessibleTask(pool, rawTaskId, userId);
-    return task ? { taskId: task.id, task } : null;
+    if (!task) return null;
+
+    if (task.recurrence_parent_id) {
+      return {
+        task,
+        commentTaskId: task.recurrence_parent_id,
+        occurrenceDate: normalizeDate(task.date),
+      };
+    }
+
+    if (task.recurrence_rule) {
+      return {
+        task,
+        commentTaskId: task.id,
+        occurrenceDate: normalizeDate(task.date),
+      };
+    }
+
+    return {
+      task,
+      commentTaskId: task.id,
+      occurrenceDate: null,
+    };
   }
 
   const template = await findAccessibleTask(pool, virtual.parentId, userId);
   if (!template) return null;
 
-  const existingOccurrence = await findMaterializedOccurrence(pool, virtual.parentId, virtual.date);
-  if (existingOccurrence) {
-    return { taskId: existingOccurrence.id, task: template, virtual };
-  }
-
-  if (!materializeIfMissing) {
-    return { taskId: null, task: template, virtual };
-  }
-
-  const createdOccurrence = await materializeOccurrenceForComments(pool, template, virtual.date);
-  return createdOccurrence ? { taskId: createdOccurrence.id, task: template, virtual } : null;
+  return {
+    task: template,
+    commentTaskId: parseInt(virtual.parentId, 10),
+    occurrenceDate: virtual.date,
+  };
 }
 
 module.exports = async (req, res) => {
@@ -193,10 +114,6 @@ module.exports = async (req, res) => {
         return res.status(404).json({ error: 'Task not found' });
       }
 
-      if (!resolved.taskId) {
-        return res.status(200).json({ comments: [] });
-      }
-
       // Fetch comments
       const result = await pool.query(
         `SELECT 
@@ -212,8 +129,9 @@ module.exports = async (req, res) => {
         FROM task_comments c
         JOIN users u ON c.user_id = u.id
         WHERE c.task_id = $1
+          AND (($2::date IS NULL AND c.occurrence_date IS NULL) OR c.occurrence_date = $2::date)
         ORDER BY c.created_at ASC`,
-        [resolved.taskId]
+        [resolved.commentTaskId, resolved.occurrenceDate]
       );
 
       return res.status(200).json({ comments: result.rows });
@@ -227,23 +145,24 @@ module.exports = async (req, res) => {
         return res.status(400).json({ error: 'taskId and text required' });
       }
 
-      const resolved = await resolveTaskForComments(pool, taskId, userId, true);
-      if (!resolved || !resolved.taskId) {
+      const resolved = await resolveTaskForComments(pool, taskId, userId);
+      if (!resolved) {
         return res.status(404).json({ error: 'Task not found' });
       }
 
       // Create comment
       const result = await pool.query(
-        `INSERT INTO task_comments (task_id, user_id, emoji, text)
-         VALUES ($1, $2, $3, $4)
+        `INSERT INTO task_comments (task_id, user_id, emoji, text, occurrence_date)
+         VALUES ($1, $2, $3, $4, $5)
          RETURNING 
            id,
            task_id,
            user_id,
            emoji,
            text,
+           occurrence_date,
            created_at`,
-          [resolved.taskId, userId, emoji.slice(0, 10), text.trim()]
+          [resolved.commentTaskId, userId, emoji.slice(0, 10), text.trim(), resolved.occurrenceDate]
       );
 
       const comment = result.rows[0];
