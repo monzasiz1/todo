@@ -309,6 +309,7 @@ export const useTaskStore = create((set, get) => ({
       } else {
         get().addToast(task.completed ? '✅ Erledigt!' : '↩️ Wieder offen');
       }
+      return data.task;
     } catch (err) {
       // Revert
       set((s) => ({
@@ -317,6 +318,7 @@ export const useTaskStore = create((set, get) => ({
         ),
       }));
       get().addToast('❌ ' + err.message, 'error');
+      return null;
     }
   },
 

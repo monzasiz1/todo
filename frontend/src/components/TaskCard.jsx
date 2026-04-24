@@ -70,10 +70,11 @@ function TaskCard({ task, index, disableLayout = false }) {
   }, []);
 
   useEffect(() => {
+    let mounted = true;
     let intervalId = null;
     let timeoutId = null;
 
-    const syncNow = () => setNowTs(Date.now());
+    const syncNow = () => { if (mounted) setNowTs(Date.now()); };
     const startMinuteAlignedTicker = () => {
       const msToNextMinute = 60000 - (Date.now() % 60000) + 30;
       timeoutId = setTimeout(() => {
@@ -89,6 +90,7 @@ function TaskCard({ task, index, disableLayout = false }) {
     document.addEventListener('visibilitychange', onVisibilityOrFocus);
 
     return () => {
+      mounted = false;
       if (timeoutId) clearTimeout(timeoutId);
       if (intervalId) clearInterval(intervalId);
       window.removeEventListener('focus', onVisibilityOrFocus);

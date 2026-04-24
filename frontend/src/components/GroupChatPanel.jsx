@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Send, Pin, ChevronDown, ChevronUp,
@@ -214,10 +214,11 @@ export default function GroupChatPanel({ open, onClose }) {
   }, []);
 
   useEffect(() => {
+    let mounted = true;
     let intervalId = null;
     let timeoutId = null;
 
-    const syncNow = () => setNowTs(Date.now());
+    const syncNow = () => { if (mounted) setNowTs(Date.now()); };
     const startMinuteAlignedTicker = () => {
       const msToNextMinute = 60000 - (Date.now() % 60000) + 30;
       timeoutId = setTimeout(() => {
@@ -233,6 +234,7 @@ export default function GroupChatPanel({ open, onClose }) {
     document.addEventListener('visibilitychange', onVisibilityOrFocus);
 
     return () => {
+      mounted = false;
       if (timeoutId) clearTimeout(timeoutId);
       if (intervalId) clearInterval(intervalId);
       window.removeEventListener('focus', onVisibilityOrFocus);
@@ -674,11 +676,13 @@ export default function GroupChatPanel({ open, onClose }) {
   };
 
   // ── Derived data ──────────────────────────────────────────────────────────
-  const hiddenPastEventsCount = messages.filter(isArchivedEndedEvent).length;
-  const visibleMessages = showPastEvents
-    ? messages
-    : messages.filter((m) => !isArchivedEndedEvent(m));
-  const pinnedMessages = visibleMessages.filter((m) => m.is_pinned);
+  const { hiddenPastEventsCount, visibleMessages, pinnedMessages } = useMemo(() => {
+    const hidden = messages.filter(isArchivedEndedEvent).length;
+    const visible = showPastEvents ? messages : messages.filter((m) => !isArchivedEndedEvent(m));
+    const pinned = visible.filter((m) => m.is_pinned);
+    return { hiddenPastEventsCount: hidden, visibleMessages: visible, pinnedMessages: pinned };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, showPastEvents, nowTs]);
   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
 
   // ── Render ─────────────────────────────────────────────────────────────────

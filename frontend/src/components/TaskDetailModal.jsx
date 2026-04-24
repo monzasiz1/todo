@@ -104,8 +104,9 @@ export default function TaskDetailModal({ task, onClose, onUpdated }) {
     return () => document.removeEventListener('mousedown', onClickOutside);
   }, [showMenu, showEmojiPicker]);
 
-  const handleToggle = () => {
-    toggleTask(task.id);
+  const handleToggle = async () => {
+    const updated = await toggleTask(task.id);
+    if (updated && onUpdated) onUpdated(updated);
   };
 
   const handleDelete = () => {

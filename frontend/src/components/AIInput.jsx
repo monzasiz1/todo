@@ -23,12 +23,13 @@ export default function AIInput({ onTaskCreated }) {
 
   // Debounced preview
   useEffect(() => {
+    let mounted = true;
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
     if (input.trim().length > 3) {
       debounceRef.current = setTimeout(async () => {
         const parsed = await aiParseOnly(input);
-        if (parsed) {
+        if (parsed && mounted) {
           setPreview(parsed);
           setShowPreview(true);
         }
@@ -39,6 +40,7 @@ export default function AIInput({ onTaskCreated }) {
     }
 
     return () => {
+      mounted = false;
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [input]);

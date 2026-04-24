@@ -99,44 +99,52 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
   const hasTeamsMeeting = !!task.teams_join_url;
 
   useEffect(() => {
+    let mounted = true;
     if (categories.length === 0) fetchCategories();
     fetchFriends();
-    loadPermissions();
-    loadUserGroups();
-    api.getTeamsStatus().then((d) => setTeamsConnected(d.connected)).catch(() => setTeamsConnected(false));
+
+    const initAsync = async () => {
+      if (seriesTaskId) {
+        try {
+          setLoadingPerms(true);
+          const data = await api.getPermissions(seriesTaskId);
+          if (!mounted) return;
+          setVisibility(data.visibility || 'private');
+          setPermissions(
+            (data.permissions || []).map((p) => ({
+              user_id: p.user_id,
+              can_view: p.can_view,
+              can_edit: p.can_edit,
+              name: p.user_name,
+              avatar_color: p.avatar_color,
+              avatar_url: p.avatar_url,
+            }))
+          );
+        } catch {
+          // Permissions table might not exist yet
+        } finally {
+          if (mounted) setLoadingPerms(false);
+        }
+      }
+
+      try {
+        const data = await api.getGroups();
+        if (mounted) setUserGroups(data.groups || []);
+      } catch {
+        // Groups might not exist yet
+      }
+
+      try {
+        const d = await api.getTeamsStatus();
+        if (mounted) setTeamsConnected(d.connected);
+      } catch {
+        if (mounted) setTeamsConnected(false);
+      }
+    };
+
+    initAsync();
+    return () => { mounted = false; };
   }, []);
-
-  const loadUserGroups = async () => {
-    try {
-      const data = await api.getGroups();
-      setUserGroups(data.groups || []);
-    } catch {
-      // Groups might not exist yet
-    }
-  };
-
-  const loadPermissions = async () => {
-    if (!seriesTaskId) return;
-    try {
-      setLoadingPerms(true);
-      const data = await api.getPermissions(seriesTaskId);
-      setVisibility(data.visibility || 'private');
-      setPermissions(
-        (data.permissions || []).map(p => ({
-          user_id: p.user_id,
-          can_view: p.can_view,
-          can_edit: p.can_edit,
-          name: p.user_name,
-          avatar_color: p.avatar_color,
-          avatar_url: p.avatar_url,
-        }))
-      );
-    } catch {
-      // Permissions table might not exist yet
-    } finally {
-      setLoadingPerms(false);
-    }
-  };
 
   const toggleFriendPermission = (friendUserId, friendName, friendColor, friendAvatarUrl, action) => {
     setPermissions(prev => {

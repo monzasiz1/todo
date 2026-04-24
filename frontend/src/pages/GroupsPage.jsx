@@ -395,13 +395,19 @@ function JoinGroup({ onBack, onJoin }) {
 // ============================================
 // Group Detail
 // ============================================
+const DASHBOARD_REFRESH_PARAMS = [
+  { dashboard: 'true', limit: '300', horizon_days: '42', completed_lookback_days: '30' },
+  { force: true },
+];
+
 function GroupDetail({ groupId, onBack }) {
   const {
     currentGroup, members, groupTasks, myRole,
-    fetchGroup, addGroupTask, removeGroupTask, changeMemberRole, removeMember, deleteGroup, updateGroup
+    fetchGroup, addGroupTask, removeGroupTask, changeMemberRole, removeMember, deleteGroup, updateGroup,
+    updateGroupTask,
   } = useGroupStore();
   const { user } = useAuthStore();
-  const { addToast } = useTaskStore();
+  const { addToast, fetchTasks } = useTaskStore();
   const [tab, setTab] = useState('tasks'); // 'tasks' | 'members' | 'settings'
   const [showAddTask, setShowAddTask] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -487,7 +493,10 @@ function GroupDetail({ groupId, onBack }) {
                     task={task}
                     groupId={groupId}
                     canRemove={isAdmin || task.user_id === user?.id}
-                    onRemove={removeGroupTask}
+                    onRemove={async (gId, tId) => {
+                      await removeGroupTask(gId, tId);
+                      fetchTasks(...DASHBOARD_REFRESH_PARAMS);
+                    }}
                     onOpenTask={setDetailTask}
                   />
                 ))}
@@ -514,7 +523,10 @@ function GroupDetail({ groupId, onBack }) {
                         task={task}
                         groupId={groupId}
                         canRemove={isAdmin || task.user_id === user?.id}
-                        onRemove={removeGroupTask}
+                        onRemove={async (gId, tId) => {
+                          await removeGroupTask(gId, tId);
+                          fetchTasks(...DASHBOARD_REFRESH_PARAMS);
+                        }}
                         onOpenTask={setDetailTask}
                       />
                     ))}
@@ -532,12 +544,20 @@ function GroupDetail({ groupId, onBack }) {
                 await addGroupTask(groupId, task);
                 addToast('✅ Aufgabe zur Gruppe hinzugefügt');
                 setShowAddTask(false);
+                fetchTasks(...DASHBOARD_REFRESH_PARAMS);
               }}
             />
           )}
 
           {detailTask && (
-            <TaskDetailModal task={detailTask} onClose={() => setDetailTask(null)} />
+            <TaskDetailModal
+              task={detailTask}
+              onClose={() => setDetailTask(null)}
+              onUpdated={(updated) => {
+                updateGroupTask(updated.id, updated);
+                fetchTasks(...DASHBOARD_REFRESH_PARAMS);
+              }}
+            />
           )}
         </div>
       )}

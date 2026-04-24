@@ -115,6 +115,12 @@ export const useGroupStore = create((set, get) => ({
     set((s) => ({ groupTasks: s.groupTasks.filter(t => t.id !== taskId) }));
   },
 
+  updateGroupTask: (taskId, updates) => {
+    set((s) => ({
+      groupTasks: s.groupTasks.map((t) => t.id === taskId ? { ...t, ...updates } : t),
+    }));
+  },
+
   changeMemberRole: async (groupId, userId, role) => {
     await api.changeGroupMemberRole(groupId, userId, role);
     set((s) => ({

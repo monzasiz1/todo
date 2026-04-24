@@ -61,11 +61,12 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated }) 
 
   // Debounced preview for AI
   useEffect(() => {
+    let mounted = true;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (aiInput.trim().length > 3) {
       debounceRef.current = setTimeout(async () => {
         const parsed = await aiParseOnly(aiInput);
-        if (parsed) {
+        if (parsed && mounted) {
           setPreview(parsed);
           setShowPreview(true);
         }
@@ -75,6 +76,7 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated }) 
       setPreview(null);
     }
     return () => {
+      mounted = false;
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [aiInput]);
