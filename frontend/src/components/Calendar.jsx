@@ -762,7 +762,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
               <span className="calendar-day-number">{format(d, 'd')}</span>
               {dayTasks.length > 0 && (
                 <div className="calendar-day-tasks">
-                  {dayTasks.slice(0, isDesktop ? 4 : 2).map((t) => (
+                  {dayTasks.slice(0, isDesktop ? 4 : 3).map((t) => (
                     (() => {
                       const ended = isEventEnded(t, nowTs);
                       return (
@@ -803,8 +803,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       );
                     })()
                   ))}
-                  {dayTasks.length > (isDesktop ? 4 : 2) && (
-                    <div className="calendar-day-more">+{dayTasks.length - (isDesktop ? 4 : 2)} mehr</div>
+                  {dayTasks.length > (isDesktop ? 4 : 3) && (
+                    <div className="calendar-day-more">+{dayTasks.length - (isDesktop ? 4 : 3)}</div>
                   )}
                 </div>
               )}
@@ -1446,12 +1446,12 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       {isMobile && (
         <div className="mobile-calendar-modebar">
           <div className="mobile-calendar-modebar-tabs">
-            <button className={view === 'day' ? 'active' : ''} onClick={() => setView('day')}>DAY</button>
-            <button className={view === 'week' ? 'active' : ''} onClick={() => setView('week')}>WEEK</button>
-            <button className={view === 'month' ? 'active' : ''} onClick={() => setView('month')}>MONTH</button>
+            <button className={view === 'day' ? 'active' : ''} onClick={() => setView('day')}>Tag</button>
+            <button className={view === 'week' ? 'active' : ''} onClick={() => setView('week')}>Woche</button>
+            <button className={view === 'month' ? 'active' : ''} onClick={() => setView('month')}>Monat</button>
           </div>
           <button className="mobile-calendar-add-btn" onClick={() => onDayClick?.(selectedDate || new Date())}>
-            <Plus size={18} />
+            <Plus size={20} />
           </button>
         </div>
       )}
