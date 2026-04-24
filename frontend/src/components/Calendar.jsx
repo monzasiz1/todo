@@ -31,9 +31,9 @@ import {
 import { de } from 'date-fns/locale';
 
 // ── Desktop week-view grid constants (shared by renderer + drag handler) ──
-const WK_START = 7;    // first visible hour
-const WK_END   = 23;   // last visible hour
-const WK_H     = 52;   // px per hour
+const WK_START = 6;    // first visible hour
+const WK_END   = 24;   // last visible hour (midnight)
+const WK_H     = 64;   // px per hour
 const MOBILE_BREAKPOINT = 768;
 const CALENDAR_DESKTOP_BREAKPOINT = 1180;
 const CALENDAR_WEEK_DEFAULT_BREAKPOINT = 1024;
@@ -117,9 +117,10 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const dragTaskRef = useRef(null);
   const tasksRef = useRef([]);
   const wasDragging = useRef(false);
-  const mobileDayRef = useRef(null);       // ref for mobile day-view time grid
-  const mobileWeekColRefs = useRef({});   // ref map for mobile week columns
+  const mobileDayRef = useRef(null);
+  const mobileWeekColRefs = useRef({});
   const desktopWeekColsRef = useRef(null);
+  const desktopWeekWrapRef = useRef(null);
   const resizeInfoRef = useRef(null);
 
   const triggerRef = useRef(null);
@@ -210,10 +211,11 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   }, []);
 
   useEffect(() => {
+    let mounted = true;
     let intervalId = null;
     let timeoutId = null;
 
-    const syncNow = () => setNowTs(Date.now());
+    const syncNow = () => { if (mounted) setNowTs(Date.now()); };
     const startMinuteAlignedTicker = () => {
       const msToNextMinute = 60000 - (Date.now() % 60000) + 30;
       timeoutId = setTimeout(() => {
@@ -229,12 +231,24 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     document.addEventListener('visibilitychange', onVisibilityOrFocus);
 
     return () => {
+      mounted = false;
       if (timeoutId) clearTimeout(timeoutId);
       if (intervalId) clearInterval(intervalId);
       window.removeEventListener('focus', onVisibilityOrFocus);
       document.removeEventListener('visibilitychange', onVisibilityOrFocus);
     };
   }, []);
+
+  // ── Auto-scroll desktop week view to current time on load / week change ──
+  useEffect(() => {
+    if (view !== 'week' || !isWideDesktopCalendar) return;
+    const wrap = desktopWeekWrapRef.current;
+    if (!wrap) return;
+    const now = new Date();
+    const targetHour = Math.max(WK_START, now.getHours() - 1);
+    const scrollTop = Math.max(0, (targetHour - WK_START) * WK_H - 20);
+    wrap.scrollTo({ top: scrollTop, behavior: 'smooth' });
+  }, [view, isWideDesktopCalendar, currentDate]);
 
   const isMobile = !isDesktop;
 
@@ -905,11 +919,15 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
             })}
           </div>
 
-          <div className="desktop-week-time-wrap">
+          <div className="desktop-week-time-wrap" ref={desktopWeekWrapRef}>
             <div className="desktop-week-hours-col" style={{ height: `${totalHeight}px` }}>
               {hours.map((h) => (
-                <div key={h} className="desktop-week-hour-label" style={{ top: `${(h - startHour) * hourHeight - 7}px` }}>
-                  {String(h).padStart(2, '0')}:00
+                <div
+                  key={h}
+                  className={`desktop-week-hour-label${h === startHour ? ' first' : ''}`}
+                  style={{ top: `${h === startHour ? 4 : (h - startHour) * hourHeight - 7}px` }}
+                >
+                  {String(h === 24 ? 0 : h).padStart(2, '0')}:00
                 </div>
               ))}
             </div>
@@ -924,9 +942,10 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                     style={{ height: `${totalHeight}px` }}
                     onClick={() => handleDayClick(d)}
                   >
-                    {hours.slice(0, -1).map((h) => (
-                      <div key={`${d.toISOString()}-${h}`} className="desktop-week-hour-line" style={{ top: `${(h - startHour) * hourHeight}px` }} />
-                    ))}
+                    {hours.slice(0, -1).flatMap((h) => [
+                      <div key={`${d.toISOString()}-${h}`} className="desktop-week-hour-line" style={{ top: `${(h - startHour) * hourHeight}px` }} />,
+                      <div key={`${d.toISOString()}-${h}-30`} className="desktop-week-half-hour-line" style={{ top: `${(h - startHour) * hourHeight + hourHeight / 2}px` }} />,
+                    ])}
                   </div>
                 );
               })}
@@ -1057,7 +1076,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const renderMobileWeekView = () => {
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
     const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-    const mwStartH = 7; const mwEndH = 23; const mwHourH = 40;
+    const mwStartH = 6; const mwEndH = 24; const mwHourH = 44;
     const mwTotalH = (mwEndH - mwStartH) * mwHourH + 24;
     const mwHours = Array.from({ length: mwEndH - mwStartH }, (_, i) => mwStartH + i);
 
@@ -1083,8 +1102,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
           {/* hour labels */}
           <div className="mobile-week-grid-hours" style={{ height: `${mwTotalH}px` }}>
             {mwHours.map((h) => (
-              <div key={`mwhl-${h}`} className="mobile-week-grid-hour-label" style={{ top: `${(h - mwStartH) * mwHourH}px` }}>
-                {String(h).padStart(2, '0')}
+              <div key={`mwhl-${h}`} className="mobile-week-grid-hour-label" style={{ top: `${h === mwStartH ? 4 : (h - mwStartH) * mwHourH - 6}px` }}>
+                {String(h === 24 ? 0 : h).padStart(2, '0')}
               </div>
             ))}
           </div>
@@ -1102,9 +1121,10 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   style={{ height: `${mwTotalH}px` }}
                   onClick={() => handleDayClick(d)}
                 >
-                  {mwHours.map((h) => (
-                    <div key={`${di}-${h}`} className="mobile-week-grid-hour-line" style={{ top: `${(h - mwStartH) * mwHourH}px` }} />
-                  ))}
+                  {mwHours.flatMap((h) => [
+                    <div key={`${di}-${h}`} className="mobile-week-grid-hour-line" style={{ top: `${(h - mwStartH) * mwHourH}px` }} />,
+                    <div key={`${di}-${h}-30`} className="mobile-week-grid-half-hour-line" style={{ top: `${(h - mwStartH) * mwHourH + mwHourH / 2}px` }} />,
+                  ])}
                   {dayTasks.map((t) => {
                     const ended = isEventEnded(t, nowTs);
                     const sMins = timeToMins(t.time) ?? (mwStartH * 60);
