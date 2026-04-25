@@ -6,6 +6,7 @@ import { useTaskStore } from '../store/taskStore';
 import '../styles/notes.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import TaskDetailModal from '../components/TaskDetailModal';
+import AvatarBadge from '../components/AvatarBadge';
 
 function getPickerSeriesKey(task) {
   if (!task?.recurrence_rule) return null;
@@ -161,6 +162,7 @@ export default function NotesPage() {
   const [taskSearch, setTaskSearch] = useState('');
   const [toolboxOpen, setToolboxOpen] = useState(false);
   const [quickCreatePosition, setQuickCreatePosition] = useState(null);
+  const [canvasContextMenu, setCanvasContextMenu] = useState(null);
   const [quickConnectMode, setQuickConnectMode] = useState(false);
   const [connectionType, setConnectionType] = useState('related');
   const [activeNoteId, setActiveNoteId] = useState(null);
@@ -401,6 +403,27 @@ export default function NotesPage() {
   }, [notes.length]);
 
   useEffect(() => {
+    if (!canvasContextMenu) return;
+
+    const closeMenu = (event) => {
+      if (event.target?.closest('.notes-canvas-context-menu')) return;
+      setCanvasContextMenu(null);
+    };
+
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') setCanvasContextMenu(null);
+    };
+
+    document.addEventListener('mousedown', closeMenu);
+    document.addEventListener('keydown', closeOnEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', closeMenu);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [canvasContextMenu]);
+
+  useEffect(() => {
     let cancelled = false;
 
     const loadConnections = async () => {
@@ -578,6 +601,16 @@ export default function NotesPage() {
     return found?.name || 'Unbekannt';
   };
 
+  const getPersonAvatarColor = (personId) => {
+    const palette = ['#0A84FF', '#34C759', '#FF9F0A', '#FF375F', '#64D2FF', '#5856D6', '#FF6B6B', '#30B0C7'];
+    const source = String(personId || '0');
+    let hash = 0;
+    for (let i = 0; i < source.length; i += 1) {
+      hash = (hash * 31 + source.charCodeAt(i)) >>> 0;
+    }
+    return palette[hash % palette.length];
+  };
+
   const toggleDraftParticipant = (setter, state, personId) => {
     const idText = String(personId);
     const current = Array.isArray(state.participant_ids) ? state.participant_ids.map(String) : [];
@@ -630,6 +663,9 @@ export default function NotesPage() {
 
   // Handle canvas pan
   const handleCanvasMouseDown = (e) => {
+    if (e.button === 2) return;
+    if (e.button !== 0) return;
+
     // Don't pan if clicking on a note card, button, or interactive element
     if (e.target.closest('.note-card, button, input, textarea, select, a')) return;
     
@@ -639,7 +675,28 @@ export default function NotesPage() {
     // Pan on the canvas (including SVG connections)
     setActiveNoteId(null);
     setHoveredTaskPreview(null);
+    setCanvasContextMenu(null);
     setIsDragging({ x: e.clientX, y: e.clientY, isPan: true });
+  };
+
+  const handleCanvasContextMenu = (event) => {
+    if (isMobileView) return;
+    if (!canvasRef.current) return;
+    if (event.target.closest('.note-card, .task-preview-modal, .modal-overlay')) return;
+
+    event.preventDefault();
+    const rect = canvasRef.current.getBoundingClientRect();
+    const clickX = event.clientX - rect.left;
+    const clickY = event.clientY - rect.top;
+    const baseX = (clickX + canvasRef.current.scrollLeft) / (zoom / 100);
+    const baseY = (clickY + canvasRef.current.scrollTop) / (zoom / 100);
+
+    setCanvasContextMenu({
+      x: event.clientX,
+      y: event.clientY,
+      noteX: Math.max(32, baseX - 140),
+      noteY: Math.max(32, baseY - 80),
+    });
   };
 
   const handleCanvasTouchStart = (event) => {
@@ -1641,6 +1698,7 @@ export default function NotesPage() {
         className="notes-canvas"
         ref={canvasRef}
         onMouseDown={handleCanvasMouseDown}
+        onContextMenu={handleCanvasContextMenu}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
@@ -1678,6 +1736,9 @@ export default function NotesPage() {
               const isConnected = hoveredNoteId && connectedNoteIds.has(noteId);
               const isMuted = hoveredNoteId && !isHovered && !isConnected;
               const notePeople = getPeopleForNote(note.id);
+              const participantOnlyIds = notePeople.participant_ids.filter((id) => id !== String(notePeople.responsible_user_id));
+              const visibleParticipantIds = participantOnlyIds.slice(0, 3);
+              const hiddenParticipantCount = Math.max(0, participantOnlyIds.length - visibleParticipantIds.length);
               const responsibleName = notePeople.responsible_user_id ? resolvePersonName(notePeople.responsible_user_id) : null;
 
               return (
@@ -1744,24 +1805,34 @@ export default function NotesPage() {
 
                   {(responsibleName || notePeople.participant_ids.length > 0) && (
                     <div className="note-people-meta">
-                      {responsibleName && (
-                        <span className="note-people-chip note-people-responsible" title="Verantwortlich">
-                          👑 {responsibleName}
-                        </span>
-                      )}
-                      {notePeople.participant_ids
-                        .filter((id) => id !== String(notePeople.responsible_user_id))
-                        .slice(0, 3)
-                        .map((id) => (
-                          <span key={id} className="note-people-chip" title="Teilnehmer">
-                            {resolvePersonName(id)}
+                      <div className="note-people-avatars" aria-label="Beteiligte Personen">
+                        {responsibleName && (
+                          <span className="note-avatar-responsible-wrap" title={`Verantwortlich: ${responsibleName}`}>
+                            <AvatarBadge
+                              className="note-person-avatar note-person-avatar-responsible"
+                              name={responsibleName}
+                              color={getPersonAvatarColor(notePeople.responsible_user_id)}
+                              size={22}
+                            />
+                            <span className="note-avatar-crown" aria-hidden="true">👑</span>
                           </span>
+                        )}
+                        {visibleParticipantIds.map((id) => (
+                          <AvatarBadge
+                            key={id}
+                            className="note-person-avatar"
+                            name={resolvePersonName(id)}
+                            color={getPersonAvatarColor(id)}
+                            size={22}
+                          />
                         ))}
-                      {notePeople.participant_ids.filter((id) => id !== String(notePeople.responsible_user_id)).length > 3 && (
-                        <span className="note-people-chip note-people-more">
-                          +{notePeople.participant_ids.filter((id) => id !== String(notePeople.responsible_user_id)).length - 3}
-                        </span>
-                      )}
+                        {hiddenParticipantCount > 0 && (
+                          <span className="note-person-avatar note-avatar-more" title={`${hiddenParticipantCount} weitere Teilnehmer`}>
+                            +{hiddenParticipantCount}
+                          </span>
+                        )}
+                      </div>
+                      {responsibleName && <span className="note-people-responsible-name">Verantwortlich: {responsibleName}</span>}
                     </div>
                   )}
 
@@ -1870,6 +1941,57 @@ export default function NotesPage() {
             )}
           </div>
           <div className="task-preview-footer">Klick für vollständige Details</div>
+        </div>
+      )}
+
+      {canvasContextMenu && (
+        <div
+          className="notes-canvas-context-menu"
+          style={{ left: `${canvasContextMenu.x}px`, top: `${canvasContextMenu.y}px` }}
+          onMouseDown={(event) => event.stopPropagation()}
+        >
+          <button
+            type="button"
+            className="notes-canvas-menu-item"
+            onClick={() => {
+              openBlankCreateModal({ x: canvasContextMenu.noteX, y: canvasContextMenu.noteY });
+              setCanvasContextMenu(null);
+            }}
+          >
+            ✨ Neue Note erstellen
+          </button>
+          <button
+            type="button"
+            className="notes-canvas-menu-item"
+            onClick={() => {
+              handleQuickConnectToggle();
+              setCanvasContextMenu(null);
+            }}
+          >
+            {quickConnectMode ? '🔗 Quick Connect beenden' : '🔗 Quick Connect starten'}
+          </button>
+          <button
+            type="button"
+            className="notes-canvas-menu-item"
+            onClick={() => {
+              handleAutoLayout();
+              setCanvasContextMenu(null);
+            }}
+          >
+            🧠 Auto-Layout
+          </button>
+          <button
+            type="button"
+            className="notes-canvas-menu-item"
+            onClick={() => {
+              resetZoomToViewport();
+              setCanvasContextMenu(null);
+            }}
+          >
+            🔍 Zoom automatisch
+          </button>
+          <div className="notes-canvas-menu-divider" />
+          <div className="notes-canvas-menu-hint">Meeting-Teilnehmer automatisch: folgt als Nächstes</div>
         </div>
       )}
 

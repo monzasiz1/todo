@@ -1746,8 +1746,60 @@
 
 .note-people-meta {
   display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.note-people-avatars {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+}
+
+.note-avatar-responsible-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.note-person-avatar {
+  border: 1.5px solid rgba(255, 255, 255, 0.75);
+  box-shadow: 0 4px 10px rgba(2, 8, 24, 0.14);
+}
+
+.note-person-avatar-responsible {
+  border-color: rgba(245, 158, 11, 0.7);
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.35), 0 5px 10px rgba(2, 8, 24, 0.14);
+}
+
+.note-avatar-crown {
+  position: absolute;
+  right: -6px;
+  bottom: -4px;
+  font-size: 10px;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
+}
+
+.note-avatar-more {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--primary-bg) 70%, var(--card));
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.note-people-responsible-name {
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .note-people-chip {
@@ -1781,6 +1833,47 @@
   background: color-mix(in srgb, var(--primary) 10%, var(--card));
   border-color: rgba(0, 122, 255, 0.25);
   color: var(--primary);
+}
+
+.notes-canvas-context-menu {
+  position: fixed;
+  z-index: 1200;
+  min-width: 236px;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--card-solid) 90%, rgba(255, 255, 255, 0.62));
+  box-shadow: 0 18px 34px rgba(2, 8, 24, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.notes-canvas-menu-item {
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 9px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  padding: 9px 10px;
+}
+
+.notes-canvas-menu-item:hover {
+  background: color-mix(in srgb, var(--primary-bg) 74%, var(--card));
+  border-color: color-mix(in srgb, var(--primary) 22%, var(--border));
+}
+
+.notes-canvas-menu-divider {
+  height: 1px;
+  margin: 6px 2px;
+  background: var(--border);
+}
+
+.notes-canvas-menu-hint {
+  padding: 2px 8px 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
 }
 
 /* Friends List */
