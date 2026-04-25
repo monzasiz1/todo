@@ -473,30 +473,35 @@ export default function NotesPage() {
       const direction = e.deltaY > 0 ? -1 : 1;
       const newZoom = clampZoom(zoom + direction * zoomStep);
       
-      // Zoom towards mouse position
+      if (newZoom === zoom) return; // No zoom change
+      
+      // Get mouse position relative to canvas
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
       
-      // Store scroll position before zoom
+      // Get scroll position and calculate new position
       const scrollLeftBefore = canvas.scrollLeft;
       const scrollTopBefore = canvas.scrollTop;
+      const scaleBefore = zoom / 100;
+      const scaleAfter = newZoom / 100;
+      
+      // Calculate new scroll position to keep mouse point fixed
+      const scrollLeftAfter = (scrollLeftBefore + mouseX) * (scaleAfter / scaleBefore) - mouseX;
+      const scrollTopAfter = (scrollTopBefore + mouseY) * (scaleAfter / scaleBefore) - mouseY;
       
       setZoom(Math.round(newZoom));
       
-      // Adjust scroll to keep mouse position in place
-      setTimeout(() => {
-        const scale = newZoom / 100;
-        const scaleBefore = zoom / 100;
-        const scaleFactor = scale / scaleBefore;
-        
-        canvas.scrollLeft = scrollLeftBefore * scaleFactor + (mouseX * (scaleFactor - 1));
-        canvas.scrollTop = scrollTopBefore * scaleFactor + (mouseY * (scaleFactor - 1));
-      }, 0);
+      // Apply scroll immediately (no setTimeout needed)
+      requestAnimationFrame(() => {
+        canvas.scrollLeft = scrollLeftAfter;
+        canvas.scrollTop = scrollTopAfter;
+      });
     };
 
-    canvas.addEventListener('wheel', wheelHandler, { passive: false });
-    return () => canvas.removeEventListener('wheel', wheelHandler);
+    // Use capture phase and passive: false to intercept scroll early
+    canvas.addEventListener('wheel', wheelHandler, { passive: false, capture: true });
+    return () => canvas.removeEventListener('wheel', wheelHandler, { capture: true });
   }, [zoom]);
 
   // Save note position on change
@@ -610,10 +615,10 @@ export default function NotesPage() {
     // Don't pan if clicking on the task preview modal
     if (e.target.closest('.task-preview-modal')) return;
     
+    // Pan on the canvas (including SVG connections)
     setActiveNoteId(null);
     setHoveredTaskPreview(null);
     setIsDragging({ x: e.clientX, y: e.clientY, isPan: true });
-    e.preventDefault();
   };
 
   const handleCanvasTouchStart = (event) => {
