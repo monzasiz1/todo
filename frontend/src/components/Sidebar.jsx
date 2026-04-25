@@ -10,6 +10,7 @@ import {
   Sparkles,
   Users,
   UsersRound,
+  Building2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -40,6 +41,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/calendar', icon: CalendarDays, label: 'Kalender' },
     { to: '/groups', icon: UsersRound, label: 'Gruppen' },
+    { to: '/organizations', icon: Building2, label: 'Organisationen' },
   ];
 
   const getTaskCount = (categoryId) => {
@@ -48,21 +50,23 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
 
   return (
     <aside className={`app-sidebar ${isOpen ? 'open' : ''} ${isCollapsed ? 'collapsed' : ''}`}>
-      {/* Logo */}
+      {/* Collapse toggle — desktop only, sits at top-right edge of sidebar */}
+      <button
+        type="button"
+        className="sidebar-desktop-toggle"
+        onClick={onToggleCollapse}
+        aria-label={isCollapsed ? 'Sidebar ausklappen' : 'Sidebar einklappen'}
+        title={isCollapsed ? 'Sidebar ausklappen' : 'Sidebar einklappen'}
+      >
+        {isCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
+      </button>
+
+      {/* Logo — never changes */}
       <div className="sidebar-logo">
         <div className="sidebar-logo-icon">
           <CheckSquare size={22} />
         </div>
         <h1>Taski</h1>
-        <button
-          type="button"
-          className="sidebar-desktop-toggle"
-          onClick={onToggleCollapse}
-          aria-label={isCollapsed ? 'Sidebar ausklappen' : 'Sidebar einklappen'}
-          title={isCollapsed ? 'Sidebar ausklappen' : 'Sidebar einklappen'}
-        >
-          {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-        </button>
       </div>
 
       {/* Navigation */}

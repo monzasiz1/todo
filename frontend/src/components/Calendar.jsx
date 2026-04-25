@@ -132,6 +132,28 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const tasks = Array.isArray(tasksProp) ? tasksProp : storeTasks;
 
   const getTaskSource = (t) => {
+    if (t.source_scope === 'organization' || t.source_organization_id || t.organization_id) {
+      const orgId = t.source_organization_id || t.organization_id;
+      return {
+        key: `org:${orgId || t.organization_name || 'default'}`,
+        name: t.organization_name || 'Organisation',
+        color: t.organization_color || '#0A84FF',
+      };
+    }
+
+    if (t.source_scope === 'group' || t.source_group_id || t.group_id || t.group_name) {
+      const groupId = t.source_group_id || t.group_id || t.group_name;
+      return {
+        key: `group:${groupId}`,
+        name: t.group_name || 'Gruppe',
+        color: t.group_color || '#5856D6',
+      };
+    }
+
+    if (t.source_scope === 'private') {
+      return { key: 'default:persoenlich', name: 'Persoenlich', color: '#4C7BD9' };
+    }
+
     if (t.group_id || t.group_name) {
       return {
         key: `group:${t.group_id || t.group_name}`,

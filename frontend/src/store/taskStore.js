@@ -281,6 +281,8 @@ export const useTaskStore = create((set, get) => ({
       const data = await api.updateTask(id, updates);
       set((s) => ({
         tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...data.task } : t)),
+        lastTasksFetchKey: '',
+        lastTasksFetchAt: 0,
       }));
       const current = get().tasks.find((t) => t.id === id);
       return current || data.task;

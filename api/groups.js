@@ -34,6 +34,16 @@ function shiftDate(dateValue, days) {
   d.setDate(d.getDate() + days);
   return d.toISOString().split('T')[0];
 }
+
+async function hasGroupsOrganizationColumn(pool) {
+  const result = await pool.query(
+    `SELECT EXISTS (
+       SELECT 1 FROM information_schema.columns
+       WHERE table_name = 'groups' AND column_name = 'organization_id'
+     ) AS has_org_col`
+  );
+  return result.rows[0]?.has_org_col === true;
+}
 const crypto = require('crypto');
 
 module.exports = async function handler(req, res) {
@@ -166,15 +176,24 @@ module.exports = async function handler(req, res) {
   // ============================================
   if (segments.length === 0 && req.method === 'POST') {
     try {
-      const { name, description, color, icon, image_url } = req.body;
+      const { name, description, color, icon, image_url, organization_id } = req.body;
       if (!name || !name.trim()) return res.status(400).json({ error: 'Gruppenname erforderlich' });
 
       const inviteCode = generateInviteCode();
-      const result = await pool.query(
-        `INSERT INTO groups (name, description, color, icon, image_url, invite_code, created_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-        [name.trim(), description || '', color || '#007AFF', icon || 'users', image_url || null, inviteCode, user.id]
-      );
+      let result;
+      if (await hasGroupsOrganizationColumn(pool)) {
+        result = await pool.query(
+          `INSERT INTO groups (name, description, color, icon, image_url, invite_code, created_by, organization_id)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+          [name.trim(), description || '', color || '#007AFF', icon || 'users', image_url || null, inviteCode, user.id, organization_id || null]
+        );
+      } else {
+        result = await pool.query(
+          `INSERT INTO groups (name, description, color, icon, image_url, invite_code, created_by)
+           VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+          [name.trim(), description || '', color || '#007AFF', icon || 'users', image_url || null, inviteCode, user.id]
+        );
+      }
       const group = result.rows[0];
 
       // Add creator as owner

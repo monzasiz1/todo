@@ -285,6 +285,10 @@ function normalizeTaskRow(row) {
   if (!row || typeof row !== 'object') return row;
 
   const attachmentCount = Number(row.attachment_count);
+  const normalizedScope = row.source_scope || (row.group_id ? 'group' : (row.source_organization_id ? 'organization' : 'private'));
+  const normalizedGroupId = row.source_group_id || row.group_id || null;
+  const normalizedOrganizationId = row.source_organization_id || row.organization_id || null;
+  const normalizedUserId = row.source_user_id || (normalizedScope === 'private' ? row.user_id : null);
 
   return {
     ...row,
@@ -303,6 +307,13 @@ function normalizeTaskRow(row) {
     group_task_creator_name: row.group_task_creator_name || null,
     group_task_creator_color: row.group_task_creator_color || null,
     group_task_creator_avatar_url: row.group_task_creator_avatar_url || null,
+    source_scope: normalizedScope,
+    source_user_id: normalizedUserId,
+    source_group_id: normalizedGroupId,
+    source_organization_id: normalizedOrganizationId,
+    organization_id: normalizedOrganizationId,
+    organization_name: row.organization_name || null,
+    organization_color: row.organization_color || null,
     is_owner: row.is_owner === undefined || row.is_owner === null ? true : row.is_owner === true,
     can_edit: row.can_edit === undefined || row.can_edit === null ? true : row.can_edit === true,
   };
@@ -929,7 +940,7 @@ module.exports = async function handler(req, res) {
                  AND (
                    t.date IS NULL
                    OR (COALESCE(t.completed, false) = true AND t.date >= CURRENT_DATE - ($5::int * INTERVAL '1 day'))
-                   OR (COALESCE(t.completed, false) = false AND (t.date < CURRENT_DATE OR t.date <= CURRENT_DATE + ($4::int * INTERVAL '1 day')))
+                   OR (COALESCE(t.completed, false) = false AND t.date >= CURRENT_DATE AND t.date <= CURRENT_DATE + ($4::int * INTERVAL '1 day'))
                  )
                ${dashboardOrderBy}
                LIMIT $3
