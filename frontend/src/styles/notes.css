@@ -347,29 +347,34 @@
 }
 
 .modal-content {
-  background: rgba(255, 255, 255, 0.95);
+  background: color-mix(in srgb, var(--card-solid) 92%, var(--card));
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--border);
   border-radius: 20px;
   padding: 24px;
   width: 100%;
   max-width: 380px;
   max-height: 90vh;
   overflow-y: auto;
+  overflow-x: hidden;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content.share-modal {
+  max-width: 460px;
 }
 
 .modal-title {
   margin: 0 0 8px 0;
   font-size: 20px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--text);
 }
 
 .modal-description {
   margin: 0 0 20px 0;
   font-size: 13px;
-  color: #8a8a8a;
+  color: var(--text-secondary);
 }
 
 /* Form */
@@ -461,49 +466,60 @@
 .friends-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   max-height: 300px;
   overflow-y: auto;
+  overflow-x: hidden;
   margin-bottom: 16px;
 }
 
 .friend-item {
   padding: 12px;
-  background: rgba(0, 0, 0, 0.02);
+  background: color-mix(in srgb, var(--card) 75%, var(--bg-elevated));
+  border: 1px solid var(--border);
   border-radius: 10px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
 }
 
 .friend-info {
   flex: 1;
+  min-width: 0;
 }
 
 .friend-name {
   font-size: 13px;
   font-weight: 500;
-  color: #1a1a1a;
+  color: var(--text);
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .permission-buttons {
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+  gap: 8px;
+  flex-wrap: nowrap;
+  width: 100%;
 }
 
 .perm-btn {
-  padding: 6px 10px;
-  border: 1px solid #e5e5ea;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
   border-radius: 6px;
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.5);
-  color: #1a1a1a;
+  background: color-mix(in srgb, var(--card) 82%, var(--bg-elevated));
+  color: var(--text);
   transition: all 0.2s ease-out;
   white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+  text-align: center;
 }
 
 .perm-btn:active {
@@ -530,7 +546,7 @@
 
 .no-friends {
   font-size: 13px;
-  color: #8a8a8a;
+  color: var(--text-secondary);
   text-align: center;
   padding: 20px;
 }
@@ -601,9 +617,9 @@
 }
 
 .btn-secondary {
-  background: rgba(0, 0, 0, 0.05);
-  color: #1a1a1a;
-  border: 1px solid #e5e5ea;
+  background: color-mix(in srgb, var(--card) 75%, var(--bg));
+  color: var(--text);
+  border: 1px solid var(--border);
 }
 
 .btn-secondary:active {
@@ -674,6 +690,21 @@
 
   .form-textarea {
     min-height: 100px;
+  }
+
+  .friend-item {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .permission-buttons {
+    width: auto;
+  }
+
+  .perm-btn {
+    flex: 0 0 auto;
+    min-width: 82px;
   }
 }
 

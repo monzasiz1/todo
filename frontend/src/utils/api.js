@@ -77,10 +77,21 @@ async function request(endpoint, options = {}) {
       throw unauthorized;
     }
 
-    const data = await res.json();
+    const rawText = await res.text();
+    let data = {};
+    if (rawText) {
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        data = { error: rawText };
+      }
+    }
 
     if (!res.ok) {
-      throw new Error(data.error || 'Anfrage fehlgeschlagen');
+      const err = new Error(data.error || `Anfrage fehlgeschlagen (${res.status})`);
+      err.status = res.status;
+      err.payload = data;
+      throw err;
     }
 
     if (isRead) {
@@ -498,11 +509,24 @@ export const api = {
       body: JSON.stringify({ task_id: taskId }),
     }),
 
-  shareNote: (noteId, data) =>
-    request(`/notes/${noteId}/share`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
+  shareNote: async (noteId, data) => {
+    try {
+      return await request(`/notes/${noteId}/share`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    } catch (err) {
+      // Legacy compatibility: older backend versions expected query params instead of path segments.
+      if (err?.status === 404 || err?.status === 405) {
+        const legacyQuery = new URLSearchParams({ id: String(noteId), method: 'share' }).toString();
+        return request(`/notes?${legacyQuery}`, {
+          method: 'POST',
+          body: JSON.stringify(data),
+        });
+      }
+      throw err;
+    }
+  },
 
   getSharedNotes: () => request('/notes/shared'),
 
