@@ -5,6 +5,24 @@ function isUuid(value) {
   return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
+function isMissingPositionColumnError(error) {
+  if (!error) return false;
+  const msg = String(error.message || '').toLowerCase();
+  return error.code === '42703' && (msg.includes('"x"') || msg.includes('"y"'));
+}
+
+function isLinkedTaskTypeError(error) {
+  if (!error) return false;
+  const msg = String(error.message || '').toLowerCase();
+  return (
+    error.code === '22P02' ||
+    error.code === '42804' ||
+    msg.includes('linked_task_id') ||
+    msg.includes('uuid = integer') ||
+    msg.includes('integer = uuid')
+  );
+}
+
 async function resolveFriendUserId(pool, rawFriendId, userId) {
   if (rawFriendId === null || rawFriendId === undefined) return null;
 
@@ -56,7 +74,7 @@ module.exports = async function handler(req, res) {
       const result = await pool.query(
         `SELECT n.*, t.title AS linked_task_title
            FROM notes n
-           LEFT JOIN tasks t ON t.id = n.linked_task_id
+           LEFT JOIN tasks t ON t.id::text = n.linked_task_id::text
           WHERE n.user_id = $1
           ORDER BY n.updated_at DESC, n.created_at DESC`,
         [userId]
@@ -82,18 +100,15 @@ module.exports = async function handler(req, res) {
       }
 
       const validImportance = ['low', 'medium', 'high'].includes(importance) ? importance : 'medium';
-      const taskId = linked_task_id !== null && linked_task_id !== undefined && linked_task_id !== ''
-        ? Number(linked_task_id)
+      const rawTaskId = linked_task_id !== null && linked_task_id !== undefined && String(linked_task_id).trim() !== ''
+        ? String(linked_task_id).trim()
         : null;
 
-      if (taskId !== null && (!Number.isInteger(taskId) || taskId <= 0)) {
-        return res.status(400).json({ error: 'linked_task_id ist ungültig' });
-      }
-
-      if (taskId !== null) {
+      let resolvedLinkedTaskId = null;
+      if (rawTaskId !== null) {
         const taskAccess = await pool.query(
           `SELECT id FROM tasks
-            WHERE id = $1
+            WHERE id::text = $1
               AND (
                 user_id = $2
                 OR EXISTS (
@@ -102,28 +117,102 @@ module.exports = async function handler(req, res) {
                 )
               )
             LIMIT 1`,
-          [taskId, userId]
+          [rawTaskId, userId]
         );
         if (taskAccess.rows.length === 0) {
           return res.status(403).json({ error: 'Keine Berechtigung für verknüpfte Aufgabe' });
         }
+        resolvedLinkedTaskId = taskAccess.rows[0].id;
       }
 
-      const insert = await pool.query(
-        `INSERT INTO notes (user_id, title, content, importance, date, linked_task_id, x, y)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-         RETURNING *`,
-        [
-          userId,
-          String(title).trim(),
-          String(content || ''),
-          validImportance,
-          date || null,
-          taskId,
-          x === null || x === undefined ? null : Number(x),
-          y === null || y === undefined ? null : Number(y),
-        ]
-      );
+      let insert;
+      try {
+        insert = await pool.query(
+          `INSERT INTO notes (user_id, title, content, importance, date, linked_task_id, x, y)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           RETURNING *`,
+          [
+            userId,
+            String(title).trim(),
+            String(content || ''),
+            validImportance,
+            date || null,
+                resolvedLinkedTaskId,
+            x === null || x === undefined ? null : Number(x),
+            y === null || y === undefined ? null : Number(y),
+          ]
+        );
+      } catch (err) {
+            if (isLinkedTaskTypeError(err)) {
+              try {
+                insert = await pool.query(
+                  `INSERT INTO notes (user_id, title, content, importance, date, linked_task_id, x, y)
+                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                   RETURNING *`,
+                  [
+                    userId,
+                    String(title).trim(),
+                    String(content || ''),
+                    validImportance,
+                    date || null,
+                    null,
+                    x === null || x === undefined ? null : Number(x),
+                    y === null || y === undefined ? null : Number(y),
+                  ]
+                );
+              } catch (nestedErr) {
+                if (!isMissingPositionColumnError(nestedErr)) throw nestedErr;
+                insert = await pool.query(
+                  `INSERT INTO notes (user_id, title, content, importance, date, linked_task_id)
+                   VALUES ($1, $2, $3, $4, $5, $6)
+                   RETURNING *`,
+                  [
+                    userId,
+                    String(title).trim(),
+                    String(content || ''),
+                    validImportance,
+                    date || null,
+                    null,
+                  ]
+                );
+              }
+              return res.status(201).json({ note: insert.rows[0] });
+            }
+
+            if (!isMissingPositionColumnError(err)) throw err;
+
+        // Backward-compatible fallback for installations where notes.x/y are not migrated yet.
+        insert = await pool.query(
+          `INSERT INTO notes (user_id, title, content, importance, date, linked_task_id)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           RETURNING *`,
+          [
+            userId,
+            String(title).trim(),
+            String(content || ''),
+            validImportance,
+            date || null,
+                resolvedLinkedTaskId,
+          ]
+        );
+      }
+
+          // Fallback for installations where linked_task_id type differs from tasks.id type.
+          if (!insert?.rows?.[0] && resolvedLinkedTaskId !== null) {
+            insert = await pool.query(
+              `INSERT INTO notes (user_id, title, content, importance, date, linked_task_id)
+               VALUES ($1, $2, $3, $4, $5, $6)
+               RETURNING *`,
+              [
+                userId,
+                String(title).trim(),
+                String(content || ''),
+                validImportance,
+                date || null,
+                null,
+              ]
+            );
+          }
 
       return res.status(201).json({ note: insert.rows[0] });
     }
@@ -137,7 +226,7 @@ module.exports = async function handler(req, res) {
            FROM note_shares ns
            JOIN notes n ON n.id = ns.note_id
            JOIN users u ON u.id = n.user_id
-           LEFT JOIN tasks t ON t.id = n.linked_task_id
+           LEFT JOIN tasks t ON t.id::text = n.linked_task_id::text
           WHERE ns.friend_id = $1
           ORDER BY n.updated_at DESC, n.created_at DESC`,
         [userId]
@@ -201,12 +290,27 @@ module.exports = async function handler(req, res) {
         values.push(updates.date || null);
       }
       if (updates.linked_task_id !== undefined) {
-        const taskId = updates.linked_task_id === null || updates.linked_task_id === ''
-          ? null
-          : Number(updates.linked_task_id);
+        let taskId = null;
+        if (!(updates.linked_task_id === null || updates.linked_task_id === '')) {
+          const rawTaskId = String(updates.linked_task_id).trim();
+          const taskAccess = await pool.query(
+            `SELECT id FROM tasks
+              WHERE id::text = $1
+                AND (
+                  user_id = $2
+                  OR EXISTS (
+                    SELECT 1 FROM task_permissions tp
+                     WHERE tp.task_id = tasks.id AND tp.user_id = $2 AND tp.can_view = true
+                  )
+                )
+              LIMIT 1`,
+            [rawTaskId, userId]
+          );
 
-        if (taskId !== null && (!Number.isInteger(taskId) || taskId <= 0)) {
-          return res.status(400).json({ error: 'linked_task_id ist ungültig' });
+          if (taskAccess.rows.length === 0) {
+            return res.status(403).json({ error: 'Keine Berechtigung für verknüpfte Aufgabe' });
+          }
+          taskId = taskAccess.rows[0].id;
         }
 
         fields.push(`linked_task_id = $${idx++}`);
@@ -228,10 +332,90 @@ module.exports = async function handler(req, res) {
       }
 
       values.push(noteId);
-      const update = await pool.query(
-        `UPDATE notes SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
-        values
-      );
+      let update;
+      try {
+        update = await pool.query(
+          `UPDATE notes SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+          values
+        );
+      } catch (err) {
+        if (isLinkedTaskTypeError(err)) {
+          const safeFields = fields.filter((f) => !f.startsWith('linked_task_id ='));
+          const safeValues = [];
+          let safeIdx = 1;
+
+          if (updates.title !== undefined) {
+            safeFields[safeFields.findIndex((f) => f.startsWith('title ='))] = `title = $${safeIdx++}`;
+            safeValues.push(String(updates.title || '').trim());
+          }
+          if (updates.content !== undefined) {
+            safeFields[safeFields.findIndex((f) => f.startsWith('content ='))] = `content = $${safeIdx++}`;
+            safeValues.push(String(updates.content || ''));
+          }
+          if (updates.importance !== undefined) {
+            const validImportance = ['low', 'medium', 'high'].includes(updates.importance)
+              ? updates.importance
+              : 'medium';
+            safeFields[safeFields.findIndex((f) => f.startsWith('importance ='))] = `importance = $${safeIdx++}`;
+            safeValues.push(validImportance);
+          }
+          if (updates.date !== undefined) {
+            safeFields[safeFields.findIndex((f) => f.startsWith('date ='))] = `date = $${safeIdx++}`;
+            safeValues.push(updates.date || null);
+          }
+
+          safeValues.push(noteId);
+          update = await pool.query(
+            `UPDATE notes SET ${safeFields.join(', ')} WHERE id = $${safeIdx} RETURNING *`,
+            safeValues
+          );
+          return res.status(200).json({ note: update.rows[0] });
+        }
+
+        if (!isMissingPositionColumnError(err)) throw err;
+
+        // If x/y columns are missing, retry without position updates.
+        const filteredFields = fields.filter((f) => !f.startsWith('x =') && !f.startsWith('y ='));
+        const filteredValues = [];
+        let nextIdx = 1;
+
+        if (updates.title !== undefined) {
+          filteredFields[filteredFields.findIndex((f) => f.startsWith('title ='))] = `title = $${nextIdx++}`;
+          filteredValues.push(String(updates.title || '').trim());
+        }
+        if (updates.content !== undefined) {
+          filteredFields[filteredFields.findIndex((f) => f.startsWith('content ='))] = `content = $${nextIdx++}`;
+          filteredValues.push(String(updates.content || ''));
+        }
+        if (updates.importance !== undefined) {
+          const validImportance = ['low', 'medium', 'high'].includes(updates.importance)
+            ? updates.importance
+            : 'medium';
+          filteredFields[filteredFields.findIndex((f) => f.startsWith('importance ='))] = `importance = $${nextIdx++}`;
+          filteredValues.push(validImportance);
+        }
+        if (updates.date !== undefined) {
+          filteredFields[filteredFields.findIndex((f) => f.startsWith('date ='))] = `date = $${nextIdx++}`;
+          filteredValues.push(updates.date || null);
+        }
+        if (updates.linked_task_id !== undefined) {
+          const taskId = updates.linked_task_id === null || updates.linked_task_id === ''
+            ? null
+            : Number(updates.linked_task_id);
+          filteredFields[filteredFields.findIndex((f) => f.startsWith('linked_task_id ='))] = `linked_task_id = $${nextIdx++}`;
+          filteredValues.push(taskId);
+        }
+
+        if (filteredFields.length === 1 && filteredFields[0] === 'updated_at = NOW()') {
+          return res.status(200).json({ note });
+        }
+
+        filteredValues.push(noteId);
+        update = await pool.query(
+          `UPDATE notes SET ${filteredFields.join(', ')} WHERE id = $${nextIdx} RETURNING *`,
+          filteredValues
+        );
+      }
 
       return res.status(200).json({ note: update.rows[0] });
     }
@@ -256,18 +440,42 @@ module.exports = async function handler(req, res) {
       }
 
       const taskIdRaw = req.body?.task_id;
-      const taskId = taskIdRaw === null || taskIdRaw === undefined || taskIdRaw === ''
-        ? null
-        : Number(taskIdRaw);
+      let taskId = null;
+      if (!(taskIdRaw === null || taskIdRaw === undefined || taskIdRaw === '')) {
+        const rawTaskId = String(taskIdRaw).trim();
+        const taskAccess = await pool.query(
+          `SELECT id FROM tasks
+            WHERE id::text = $1
+              AND (
+                user_id = $2
+                OR EXISTS (
+                  SELECT 1 FROM task_permissions tp
+                   WHERE tp.task_id = tasks.id AND tp.user_id = $2 AND tp.can_view = true
+                )
+              )
+            LIMIT 1`,
+          [rawTaskId, userId]
+        );
 
-      if (taskId !== null && (!Number.isInteger(taskId) || taskId <= 0)) {
-        return res.status(400).json({ error: 'task_id ist ungültig' });
+        if (taskAccess.rows.length === 0) {
+          return res.status(403).json({ error: 'Keine Berechtigung für verknüpfte Aufgabe' });
+        }
+        taskId = taskAccess.rows[0].id;
       }
 
-      const updated = await pool.query(
-        'UPDATE notes SET linked_task_id = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
-        [taskId, noteId]
-      );
+      let updated;
+      try {
+        updated = await pool.query(
+          'UPDATE notes SET linked_task_id = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+          [taskId, noteId]
+        );
+      } catch (err) {
+        if (!isLinkedTaskTypeError(err)) throw err;
+        updated = await pool.query(
+          'UPDATE notes SET linked_task_id = NULL, updated_at = NOW() WHERE id = $1 RETURNING *',
+          [noteId]
+        );
+      }
 
       return res.status(200).json({ note: updated.rows[0] });
     }
