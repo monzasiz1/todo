@@ -12571,7 +12571,7 @@ body.cal-is-dragging * {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 22px 36px 18px;
+  padding: 22px 48px 18px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   background: var(--card-solid);
@@ -12625,7 +12625,7 @@ body.cal-is-dragging * {
     grid-template-columns: 1fr 1fr;
     column-gap: 36px;
     row-gap: 0;
-    padding: 32px 40px 28px;
+    padding: 36px 48px 36px;
     overflow: visible !important;
     height: auto !important;
   }
