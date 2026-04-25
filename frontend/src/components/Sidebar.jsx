@@ -11,6 +11,8 @@ import {
   Users,
   UsersRound,
   ChevronDown,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import FriendsList from './FriendsList';
 import CategoryManager from './CategoryManager';
@@ -19,7 +21,7 @@ import AvatarBadge from './AvatarBadge';
 import NotificationBell from './NotificationBell';
 import { usePlan } from '../hooks/usePlan';
 
-export default function Sidebar({ isOpen, onClose }) {
+export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }) {
   const { user, logout } = useAuthStore();
   const { categories, fetchCategories, tasks, filter, setFilter, clearFilters } = useTaskStore();
   const { pending, fetchFriends } = useFriendsStore();
@@ -45,13 +47,22 @@ export default function Sidebar({ isOpen, onClose }) {
   };
 
   return (
-    <aside className={`app-sidebar ${isOpen ? 'open' : ''}`}>
+    <aside className={`app-sidebar ${isOpen ? 'open' : ''} ${isCollapsed ? 'collapsed' : ''}`}>
       {/* Logo */}
       <div className="sidebar-logo">
         <div className="sidebar-logo-icon">
           <CheckSquare size={22} />
         </div>
         <h1>Taski</h1>
+        <button
+          type="button"
+          className="sidebar-desktop-toggle"
+          onClick={onToggleCollapse}
+          aria-label={isCollapsed ? 'Sidebar ausklappen' : 'Sidebar einklappen'}
+          title={isCollapsed ? 'Sidebar ausklappen' : 'Sidebar einklappen'}
+        >
+          {isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+        </button>
       </div>
 
       {/* Navigation */}
@@ -63,17 +74,19 @@ export default function Sidebar({ isOpen, onClose }) {
             end={item.to === '/'}
             className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
             onClick={onClose}
+            title={isCollapsed ? item.label : undefined}
           >
             <item.icon size={20} />
-            {item.label}
+            <span className="sidebar-link-label">{item.label}</span>
           </NavLink>
         ))}
         <button
           className="sidebar-link"
           onClick={() => setShowFriends(true)}
+          title={isCollapsed ? 'Freunde' : undefined}
         >
           <Users size={20} />
-          Freunde
+          <span className="sidebar-link-label">Freunde</span>
           {pending.filter(p => p.direction === 'incoming').length > 0 && (
             <span className="friends-badge" style={{ marginLeft: 'auto' }}>
               {pending.filter(p => p.direction === 'incoming').length}
@@ -128,9 +141,10 @@ export default function Sidebar({ isOpen, onClose }) {
         <div
           className={`sidebar-category ${!filter.category ? 'active' : ''}`}
           onClick={() => { clearFilters(); onClose?.(); }}
+          title={isCollapsed ? 'Alle' : undefined}
         >
           <div className="sidebar-category-dot" style={{ background: 'var(--text-tertiary)' }} />
-          Alle
+          <span className="sidebar-category-label">Alle</span>
           <span className="sidebar-category-count">
             {tasks.filter((t) => !t.completed).length}
           </span>
@@ -143,9 +157,10 @@ export default function Sidebar({ isOpen, onClose }) {
               setFilter('category', filter.category === cat.id ? null : cat.id);
               onClose?.();
             }}
+            title={isCollapsed ? cat.name : undefined}
           >
             <div className="sidebar-category-dot" style={{ background: cat.color }} />
-            {cat.name}
+            <span className="sidebar-category-label">{cat.name}</span>
             <span className="sidebar-category-count">{getTaskCount(cat.id)}</span>
           </div>
         ))}
@@ -183,7 +198,7 @@ export default function Sidebar({ isOpen, onClose }) {
         </NavLink>
         <button className="sidebar-logout" onClick={logout} title="Abmelden">
           <LogOut size={16} />
-          <span>Abmelden</span>
+          <span className="sidebar-logout-label">Abmelden</span>
         </button>
       </div>
 

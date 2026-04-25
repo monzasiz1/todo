@@ -13,12 +13,29 @@ import GroupChatPanel from './GroupChatPanel';
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [dragGhost, setDragGhost] = useState(null);
   const aiInputRef = useRef(null);
 
   const handleFabClick = () => setShowQuickAdd(true);
+
+  useEffect(() => {
+    try {
+      setSidebarCollapsed(localStorage.getItem('taski_sidebar_collapsed') === 'true');
+    } catch {
+      // ignore storage access issues
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('taski_sidebar_collapsed', sidebarCollapsed ? 'true' : 'false');
+    } catch {
+      // ignore storage access issues
+    }
+  }, [sidebarCollapsed]);
 
   useEffect(() => {
     const onDragStart = (e) => {
@@ -89,10 +106,15 @@ export default function Layout() {
       />
 
       {/* Sidebar */}
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        isCollapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed((value) => !value)}
+      />
 
       {/* Main Content */}
-      <main className="app-main">
+      <main className={`app-main ${sidebarCollapsed ? 'desktop-sidebar-collapsed' : ''}`}>
         <div className="app-content-shell">
           <Outlet />
         </div>

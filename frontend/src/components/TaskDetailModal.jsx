@@ -31,6 +31,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated }) {
   const [comments, setComments] = useState([]);
   const menuRef = useRef(null);
   const emojiPickerRef = useRef(null);
+  const isMobileViewport = typeof window !== 'undefined' && window.innerWidth <= 768;
 
   if (!task) return null;
 
@@ -164,7 +165,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated }) {
   return (
     <>
       <motion.div
-        className="modal-overlay"
+        className="modal-overlay task-detail-overlay"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -172,9 +173,9 @@ export default function TaskDetailModal({ task, onClose, onUpdated }) {
       >
         <motion.div
           className="task-detail-modal"
-          initial={{ opacity: 0, y: 60, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 40, scale: 0.95 }}
+          initial={isMobileViewport ? { x: '100%' } : { opacity: 0, y: 60, scale: 0.95 }}
+          animate={isMobileViewport ? { x: 0 } : { opacity: 1, y: 0, scale: 1 }}
+          exit={isMobileViewport ? { x: '100%' } : { opacity: 0, y: 40, scale: 0.95 }}
           transition={{ type: 'spring', damping: 28, stiffness: 350 }}
           onClick={(e) => e.stopPropagation()}
         >

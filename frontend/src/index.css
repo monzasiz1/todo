@@ -105,7 +105,7 @@ input, textarea, select {
   left: 0;
   bottom: 0;
   z-index: 100;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease, width 0.24s ease, padding 0.24s ease;
 }
 
 .app-main {
@@ -114,6 +114,7 @@ input, textarea, select {
   min-height: 100vh;
   padding: 32px 24px;
   max-width: none;
+  transition: margin-left 0.24s ease, padding 0.24s ease;
   background:
     radial-gradient(circle at 12% -10%, rgba(0, 122, 255, 0.08), transparent 36%),
     radial-gradient(circle at 90% 0%, rgba(88, 86, 214, 0.06), transparent 30%),
@@ -151,9 +152,19 @@ input, textarea, select {
     padding: 18px 10px;
   }
 
+  .app-sidebar.collapsed {
+    width: 74px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
   .app-main {
     margin-left: 212px;
     padding: 20px 14px;
+  }
+
+  .app-main.desktop-sidebar-collapsed {
+    margin-left: 74px;
   }
 
   .calendar-header {
@@ -219,6 +230,33 @@ input, textarea, select {
   gap: 12px;
   padding: 8px 12px;
   margin-bottom: 32px;
+  position: relative;
+}
+
+.sidebar-desktop-toggle {
+  position: absolute;
+  top: 8px;
+  right: -28px;
+  width: 28px;
+  height: 56px;
+  border-radius: 0 14px 14px 0;
+  border: 1px solid var(--border);
+  border-left: none;
+  background: color-mix(in srgb, var(--card-solid) 92%, white);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
+  z-index: 2;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+.sidebar-desktop-toggle:hover {
+  background: var(--hover);
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--primary) 24%, var(--border));
 }
 
 .sidebar-logo-icon {
@@ -284,6 +322,10 @@ input, textarea, select {
   width: 20px;
   height: 20px;
   flex-shrink: 0;
+}
+
+.sidebar-link-label {
+  min-width: 0;
 }
 
 .sidebar-section-title {
@@ -457,6 +499,72 @@ input, textarea, select {
 .sidebar-logout:hover {
   background: rgba(255, 59, 48, 0.08);
   color: var(--danger);
+}
+
+@media (min-width: 769px) {
+  .app-sidebar.collapsed {
+    width: 84px;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .app-sidebar.collapsed .sidebar-logo {
+    padding-left: 4px;
+    padding-right: 4px;
+    justify-content: center;
+    gap: 0;
+    position: relative;
+  }
+
+  .app-sidebar.collapsed .sidebar-logo h1,
+  .app-sidebar.collapsed .sidebar-section-head,
+  .app-sidebar.collapsed .sidebar-notif-row,
+  .app-sidebar.collapsed .sidebar-categories-wrap,
+  .app-sidebar.collapsed .sidebar-pricing-link,
+  .app-sidebar.collapsed .sidebar-user-info,
+  .app-sidebar.collapsed .sidebar-logout-label,
+  .app-sidebar.collapsed .sidebar-link-label {
+    display: none;
+  }
+
+  .app-sidebar.collapsed .sidebar-nav {
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+
+  .app-sidebar.collapsed .sidebar-link {
+    justify-content: center;
+    gap: 0;
+    padding: 12px;
+    border-radius: 14px;
+    position: relative;
+  }
+
+  .app-sidebar.collapsed .friends-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    margin-left: 0 !important;
+  }
+
+  .app-sidebar.collapsed .sidebar-bottom {
+    align-items: center;
+    gap: 10px;
+  }
+
+  .app-sidebar.collapsed .sidebar-user {
+    padding: 8px;
+    justify-content: center;
+  }
+
+  .app-sidebar.collapsed .sidebar-logout {
+    justify-content: center;
+    padding: 10px;
+  }
+
+  .app-main.desktop-sidebar-collapsed {
+    margin-left: 84px;
+  }
 }
 
 /* ========== PAGE HEADER ========== */
@@ -4156,6 +4264,10 @@ body.cal-is-dragging * {
     -webkit-overflow-scrolling: touch;
   }
 
+  .sidebar-desktop-toggle {
+    display: none;
+  }
+
   .app-sidebar.open {
     transform: translateX(0);
   }
@@ -4927,15 +5039,18 @@ body.cal-is-dragging * {
   }
 
   /* Task Detail Modal — fullscreen on mobile */
-  .modal-overlay {
+  .task-detail-overlay {
     padding: 0;
-    align-items: flex-end;
+    align-items: stretch;
+    justify-content: flex-end;
   }
 
-  .task-detail-modal {
-    max-width: 100%;
-    max-height: 92vh;
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  .task-detail-overlay .task-detail-modal {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: 100dvh;
+    border-radius: 0;
     padding-bottom: env(safe-area-inset-bottom, 16px);
   }
 
@@ -8366,15 +8481,16 @@ body.cal-is-dragging * {
 @media (max-width: 768px) {
   .task-edit-overlay {
     padding: 0 !important;
-    align-items: flex-end !important;
+    align-items: stretch !important;
+    justify-content: flex-end !important;
   }
 
   .task-edit-modal {
     width: 100%;
     max-width: none;
-    max-height: 92vh;
-    max-height: 92dvh;
-    border-radius: 20px 20px 0 0;
+    height: 100%;
+    max-height: 100dvh;
+    border-radius: 0;
   }
 
   .task-edit-header {
