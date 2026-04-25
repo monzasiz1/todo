@@ -41,7 +41,10 @@ export const useNotesStore = create((set, get) => ({
     try {
       const [ownData, sharedData] = await Promise.all([
         api.getNotes?.(),
-        api.getSharedNotes?.().catch(() => ({ notes: [] })),
+        api.getSharedNotes?.().catch((err) => {
+          console.warn('[notesStore] getSharedNotes failed:', err?.message || err);
+          return { notes: [] };
+        }),
       ]);
 
       const ownNotes = ownData?.notes || [];

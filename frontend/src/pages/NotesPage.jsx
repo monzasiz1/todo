@@ -208,7 +208,30 @@ export default function NotesPage() {
 
   // Load notes on mount
   useEffect(() => {
-    useNotesStore.getState().fetchNotes?.({ force: true });
+    useNotesStore.getState().fetchNotes?.({ force: true }).then((loadedNotes) => {
+      // One-time backfill: push any localStorage participant data to DB for existing notes
+      const localCache = readNotePeopleCache();
+      if (!loadedNotes?.length || !localCache || !Object.keys(localCache).length) return;
+      const BACKFILL_KEY = 'taski_people_backfill_done_v1';
+      if (localStorage.getItem(BACKFILL_KEY)) return;
+      localStorage.setItem(BACKFILL_KEY, '1');
+
+      loadedNotes.forEach((note) => {
+        const key = String(note.id);
+        const local = localCache[key];
+        const dbParticipants = Array.isArray(note.participant_ids) ? note.participant_ids : [];
+        const localParticipants = Array.isArray(local?.participant_ids) ? local.participant_ids : [];
+        const localResponsible = local?.responsible_user_id || null;
+
+        // Only backfill if DB has no participants but localStorage does
+        if (dbParticipants.length === 0 && (localParticipants.length > 0 || localResponsible)) {
+          api.updateNote?.(note.id, {
+            participant_ids: localParticipants.map(Number).filter(Boolean),
+            responsible_user_id: localResponsible ? Number(localResponsible) : null,
+          }).catch(() => null);
+        }
+      });
+    }).catch(() => null);
     fetchTasks?.({ limit: '2000', completed: 'false' }, { force: true });
     fetchFriends?.();
   }, [fetchTasks, fetchFriends]);

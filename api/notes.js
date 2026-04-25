@@ -271,6 +271,7 @@ module.exports = async function handler(req, res) {
 
     // GET /api/notes
     if (segments.length === 0 && req.method === 'GET' && !requestedView) {
+      let ownNotes = [];
       try {
         const result = await pool.query(
           `SELECT n.*, t.title AS linked_task_title
@@ -280,7 +281,7 @@ module.exports = async function handler(req, res) {
             ORDER BY n.updated_at DESC, n.created_at DESC`,
           [userIdText]
         );
-        return res.status(200).json({ notes: result.rows });
+        ownNotes = result.rows;
       } catch {
         try {
           const resultNoJoin = await pool.query(
@@ -290,7 +291,7 @@ module.exports = async function handler(req, res) {
               ORDER BY n.updated_at DESC, n.created_at DESC`,
             [userIdText]
           );
-          return res.status(200).json({ notes: resultNoJoin.rows });
+          ownNotes = resultNoJoin.rows;
         } catch {
           const resultLegacy = await pool.query(
             `SELECT n.*
@@ -299,9 +300,18 @@ module.exports = async function handler(req, res) {
               ORDER BY n.created_at DESC`,
             [userIdText]
           );
-          return res.status(200).json({ notes: resultLegacy.rows });
+          ownNotes = resultLegacy.rows;
         }
       }
+
+      // Backfill note_shares for notes that have participant_ids but missing share entries
+      for (const note of ownNotes) {
+        const ids = Array.isArray(note.participant_ids) ? note.participant_ids.filter(Boolean) : [];
+        if (ids.length === 0) continue;
+        await syncParticipantShares(pool, note.id, userIdText, [], ids).catch(() => null);
+      }
+
+      return res.status(200).json({ notes: ownNotes });
     }
 
     // POST /api/notes
@@ -351,6 +361,7 @@ module.exports = async function handler(req, res) {
       const safeResponsibleId = responsible_user_id ? Number(responsible_user_id) || null : null;
 
       let insert;
+      // Try with participant columns first; fall back gracefully if columns don't exist yet
       try {
         insert = await pool.query(
           `INSERT INTO notes (user_id, title, content, importance, date, linked_task_id, x, y, participant_ids, responsible_user_id)
@@ -370,25 +381,47 @@ module.exports = async function handler(req, res) {
           ]
         );
       } catch (err) {
-        if (!isMissingPositionColumnError(err) && !isLinkedTaskTypeError(err)) throw err;
+        // 42703 = undefined column; also catch position / linked_task type errors
+        const isMissingColumn = err.code === '42703';
+        if (!isMissingColumn && !isMissingPositionColumnError(err) && !isLinkedTaskTypeError(err)) throw err;
 
-        insert = await pool.query(
-          `INSERT INTO notes (user_id, title, content, importance, date, linked_task_id)
-           VALUES ($1, $2, $3, $4, $5, $6)
-           RETURNING *`,
-          [
-            ownerId.value,
-            String(title).trim(),
-            String(content || ''),
-            validImportance,
-            date || null,
-            isLinkedTaskTypeError(err) ? null : normalizedTask.value,
-          ]
-        );
+        // Fallback: insert without participant columns (and without position if needed)
+        try {
+          insert = await pool.query(
+            `INSERT INTO notes (user_id, title, content, importance, date, linked_task_id, x, y)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+             RETURNING *`,
+            [
+              ownerId.value,
+              String(title).trim(),
+              String(content || ''),
+              validImportance,
+              date || null,
+              isLinkedTaskTypeError(err) ? null : normalizedTask.value,
+              x === null || x === undefined ? null : Number(x),
+              y === null || y === undefined ? null : Number(y),
+            ]
+          );
+        } catch (err2) {
+          if (!isMissingPositionColumnError(err2) && !isLinkedTaskTypeError(err2)) throw err2;
+          insert = await pool.query(
+            `INSERT INTO notes (user_id, title, content, importance, date, linked_task_id)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             RETURNING *`,
+            [
+              ownerId.value,
+              String(title).trim(),
+              String(content || ''),
+              validImportance,
+              date || null,
+              isLinkedTaskTypeError(err2) ? null : normalizedTask.value,
+            ]
+          );
+        }
       }
 
       const createdNote = insert.rows[0];
-      // Auto-sync shares for participants
+      // Always sync shares via note_shares table (works even without participant_ids column)
       if (safeParticipantIds.length > 0) {
         await syncParticipantShares(pool, createdNote.id, userIdText, [], safeParticipantIds);
       }
@@ -509,22 +542,31 @@ module.exports = async function handler(req, res) {
       }
 
       // participant_ids and responsible_user_id – owner-only
-      let prevParticipantIds = note.participant_ids || [];
+      // Read previous participants from note row (may be null if column doesn't exist)
+      let prevParticipantIds = Array.isArray(note.participant_ids) ? note.participant_ids : [];
       let nextParticipantIds = prevParticipantIds;
       let participantsChanged = false;
+      let participantFieldsToAdd = [];
+      let participantValuesToAdd = [];
+
       if (isOwner && updates.participant_ids !== undefined) {
         nextParticipantIds = Array.isArray(updates.participant_ids)
           ? updates.participant_ids.map(Number).filter((n) => Number.isInteger(n) && n > 0)
           : [];
-        fields.push(`participant_ids = $${idx++}`);
-        values.push(nextParticipantIds);
+        participantFieldsToAdd.push({ field: `participant_ids = $${idx}`, value: nextParticipantIds });
+        idx++;
         participantsChanged = true;
       }
       if (isOwner && updates.responsible_user_id !== undefined) {
         const safeResponsible = updates.responsible_user_id ? Number(updates.responsible_user_id) || null : null;
-        fields.push(`responsible_user_id = $${idx++}`);
-        values.push(safeResponsible);
+        participantFieldsToAdd.push({ field: `responsible_user_id = $${idx}`, value: safeResponsible });
+        idx++;
       }
+      // Add participant fields to main query (may fail if columns don't exist – handled below)
+      participantFieldsToAdd.forEach(({ field, value }) => {
+        fields.push(field);
+        values.push(value);
+      });
 
       fields.push('updated_at = NOW()');
 
@@ -540,58 +582,14 @@ module.exports = async function handler(req, res) {
           values
         );
       } catch (err) {
-        if (isLinkedTaskTypeError(err)) {
-          const safeFields = fields.filter((f) => !f.startsWith('linked_task_id ='));
-          const safeValues = values.slice(0, values.length - 1); // all except noteId
+        // 42703 = undefined column (e.g. participant_ids or responsible_user_id not yet migrated)
+        const isMissingColumn = err.code === '42703';
+        if (!isMissingColumn && !isLinkedTaskTypeError(err) && !isMissingPositionColumnError(err)) throw err;
 
-          // remove linked_task_id value from params by rebuilding array safely
-          const rebuiltFields = [];
-          const rebuiltValues = [];
-          let paramIdx = 1;
-
-          if (updates.title !== undefined) {
-            rebuiltFields.push(`title = $${paramIdx++}`);
-            rebuiltValues.push(String(updates.title || '').trim());
-          }
-          if (updates.content !== undefined) {
-            rebuiltFields.push(`content = $${paramIdx++}`);
-            rebuiltValues.push(String(updates.content || ''));
-          }
-          if (updates.importance !== undefined) {
-            const validImportance = ['low', 'medium', 'high'].includes(updates.importance)
-              ? updates.importance
-              : 'medium';
-            rebuiltFields.push(`importance = $${paramIdx++}`);
-            rebuiltValues.push(validImportance);
-          }
-          if (updates.date !== undefined) {
-            rebuiltFields.push(`date = $${paramIdx++}`);
-            rebuiltValues.push(updates.date || null);
-          }
-          if (updates.x !== undefined) {
-            rebuiltFields.push(`x = $${paramIdx++}`);
-            rebuiltValues.push(updates.x === null ? null : Number(updates.x));
-          }
-          if (updates.y !== undefined) {
-            rebuiltFields.push(`y = $${paramIdx++}`);
-            rebuiltValues.push(updates.y === null ? null : Number(updates.y));
-          }
-          rebuiltFields.push('updated_at = NOW()');
-
-          rebuiltValues.push(noteId);
-          update = await pool.query(
-            `UPDATE notes SET ${rebuiltFields.join(', ')} WHERE id = $${paramIdx} RETURNING *`,
-            rebuiltValues
-          );
-          return res.status(200).json({ note: update.rows[0] });
-        }
-
-        if (!isMissingPositionColumnError(err)) throw err;
-
-        const noPosFields = fields.filter((f) => !f.startsWith('x =') && !f.startsWith('y ='));
+        // Rebuild query without problematic fields
+        const rebuiltFields = [];
         const rebuiltValues = [];
         let paramIdx = 1;
-        const rebuiltFields = [];
 
         if (updates.title !== undefined) {
           rebuiltFields.push(`title = $${paramIdx++}`);
@@ -602,9 +600,7 @@ module.exports = async function handler(req, res) {
           rebuiltValues.push(String(updates.content || ''));
         }
         if (updates.importance !== undefined) {
-          const validImportance = ['low', 'medium', 'high'].includes(updates.importance)
-            ? updates.importance
-            : 'medium';
+          const validImportance = ['low', 'medium', 'high'].includes(updates.importance) ? updates.importance : 'medium';
           rebuiltFields.push(`importance = $${paramIdx++}`);
           rebuiltValues.push(validImportance);
         }
@@ -612,7 +608,7 @@ module.exports = async function handler(req, res) {
           rebuiltFields.push(`date = $${paramIdx++}`);
           rebuiltValues.push(updates.date || null);
         }
-        if (updates.linked_task_id !== undefined) {
+        if (!isLinkedTaskTypeError(err) && updates.linked_task_id !== undefined) {
           const hasInput = !(updates.linked_task_id === null || updates.linked_task_id === '' || updates.linked_task_id === undefined);
           const normalizedTask = await normalizeLinkedTaskForDb(pool, updates.linked_task_id, userId);
           if (hasInput && !normalizedTask.allowed) {
@@ -621,9 +617,23 @@ module.exports = async function handler(req, res) {
           rebuiltFields.push(`linked_task_id = $${paramIdx++}`);
           rebuiltValues.push(normalizedTask.value);
         }
+        if (!isMissingPositionColumnError(err)) {
+          if (updates.x !== undefined) {
+            rebuiltFields.push(`x = $${paramIdx++}`);
+            rebuiltValues.push(updates.x === null ? null : Number(updates.x));
+          }
+          if (updates.y !== undefined) {
+            rebuiltFields.push(`y = $${paramIdx++}`);
+            rebuiltValues.push(updates.y === null ? null : Number(updates.y));
+          }
+        }
         rebuiltFields.push('updated_at = NOW()');
 
         if (rebuiltFields.length === 1) {
+          // Only updated_at – still sync shares then return existing note
+          if (participantsChanged) {
+            await syncParticipantShares(pool, noteId, userIdText, prevParticipantIds, nextParticipantIds);
+          }
           return res.status(200).json({ note });
         }
 
