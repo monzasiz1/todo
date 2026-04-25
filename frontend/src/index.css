@@ -12625,7 +12625,7 @@ body.cal-is-dragging * {
     grid-template-columns: 1fr 1fr;
     column-gap: 36px;
     row-gap: 0;
-    padding: 36px 48px 36px;
+    padding: 36px 72px 40px;
     overflow: visible !important;
     height: auto !important;
   }
