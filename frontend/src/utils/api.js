@@ -497,7 +497,7 @@ export const api = {
   updateNote: (noteId, updates) =>
     request('/notes', {
       method: 'POST',
-      body: JSON.stringify({ action: 'update', id: noteId, ...updates }),
+      body: JSON.stringify({ action: 'update', id: noteId, ...updates, updates }),
     }),
 
   deleteNote: (noteId) =>

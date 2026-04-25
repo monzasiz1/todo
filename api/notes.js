@@ -7,6 +7,8 @@ const LINKED_TASK_TYPE_CACHE_TTL_MS = 60 * 1000;
 let notesUserIdTypeCache = null;
 let notesUserIdTypeCacheAt = 0;
 const NOTES_USER_TYPE_CACHE_TTL_MS = 60 * 1000;
+let noteStatusColumnsEnsuredAt = 0;
+const NOTE_STATUS_COLUMNS_TTL_MS = 5 * 60 * 1000;
 
 function isUuid(value) {
   return (
@@ -111,6 +113,20 @@ async function tryAutoRepairNotesUserIdType(pool) {
     return true;
   } catch {
     return false;
+  }
+}
+
+async function ensureNotesStatusColumns(pool) {
+  const now = Date.now();
+  if (now - noteStatusColumnsEnsuredAt < NOTE_STATUS_COLUMNS_TTL_MS) return;
+
+  try {
+    await pool.query('ALTER TABLE notes ADD COLUMN IF NOT EXISTS completed BOOLEAN DEFAULT FALSE');
+    await pool.query('ALTER TABLE notes ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP NULL');
+    await pool.query("ALTER TABLE notes ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'open'");
+    noteStatusColumnsEnsuredAt = now;
+  } catch (err) {
+    console.warn('[notes] ensure status columns failed:', err?.message || err);
   }
 }
 
@@ -318,6 +334,7 @@ module.exports = async function handler(req, res) {
     const userId = Number(user.id);
 
     const pool = getPool();
+    await ensureNotesStatusColumns(pool);
     const subPath = req.query.__path || '';
     const segments = subPath.split('/').filter(Boolean);
     const legacyMethod = String(
@@ -408,6 +425,9 @@ module.exports = async function handler(req, res) {
         content = '',
         importance = 'medium',
         date = null,
+        completed = false,
+        completed_at = null,
+        status = null,
         linked_task_id = null,
         x = null,
         y = null,
@@ -420,6 +440,11 @@ module.exports = async function handler(req, res) {
       }
 
       const validImportance = ['low', 'medium', 'high'].includes(importance) ? importance : 'medium';
+      const safeCompleted = !!completed;
+      const safeCompletedAt = safeCompleted ? (completed_at || new Date().toISOString()) : null;
+      const safeStatus = ['open', 'done', 'blocked', 'active'].includes(String(status || '').toLowerCase())
+        ? String(status).toLowerCase()
+        : (safeCompleted ? 'done' : 'open');
       const hasLinkedTaskInput = !(linked_task_id === null || linked_task_id === undefined || String(linked_task_id).trim() === '');
       const normalizedTask = await normalizeLinkedTaskForDb(pool, linked_task_id, userId);
       let ownerId = await normalizeNotesOwnerIdForDb(pool, user.id);
@@ -451,8 +476,8 @@ module.exports = async function handler(req, res) {
       // Try with participant columns first; fall back gracefully if columns don't exist yet
       try {
         insert = await pool.query(
-          `INSERT INTO notes (user_id, title, content, importance, date, linked_task_id, x, y, participant_ids, responsible_user_id)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          `INSERT INTO notes (user_id, title, content, importance, date, completed, completed_at, status, linked_task_id, x, y, participant_ids, responsible_user_id)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
            RETURNING *`,
           [
             ownerId.value,
@@ -460,6 +485,9 @@ module.exports = async function handler(req, res) {
             String(content || ''),
             validImportance,
             date || null,
+            safeCompleted,
+            safeCompletedAt,
+            safeStatus,
             normalizedTask.value,
             x === null || x === undefined ? null : Number(x),
             y === null || y === undefined ? null : Number(y),
@@ -475,8 +503,8 @@ module.exports = async function handler(req, res) {
         // Fallback: insert without participant columns (and without position if needed)
         try {
           insert = await pool.query(
-            `INSERT INTO notes (user_id, title, content, importance, date, linked_task_id, x, y)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            `INSERT INTO notes (user_id, title, content, importance, date, completed, completed_at, status, linked_task_id, x, y)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
              RETURNING *`,
             [
               ownerId.value,
@@ -484,6 +512,9 @@ module.exports = async function handler(req, res) {
               String(content || ''),
               validImportance,
               date || null,
+              safeCompleted,
+              safeCompletedAt,
+              safeStatus,
               isLinkedTaskTypeError(err) ? null : normalizedTask.value,
               x === null || x === undefined ? null : Number(x),
               y === null || y === undefined ? null : Number(y),
@@ -492,8 +523,8 @@ module.exports = async function handler(req, res) {
         } catch (err2) {
           if (!isMissingPositionColumnError(err2) && !isLinkedTaskTypeError(err2)) throw err2;
           insert = await pool.query(
-            `INSERT INTO notes (user_id, title, content, importance, date, linked_task_id)
-             VALUES ($1, $2, $3, $4, $5, $6)
+            `INSERT INTO notes (user_id, title, content, importance, date, completed, completed_at, status, linked_task_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
              RETURNING *`,
             [
               ownerId.value,
@@ -501,6 +532,9 @@ module.exports = async function handler(req, res) {
               String(content || ''),
               validImportance,
               date || null,
+              safeCompleted,
+              safeCompletedAt,
+              safeStatus,
               isLinkedTaskTypeError(err2) ? null : normalizedTask.value,
             ]
           );
@@ -597,7 +631,14 @@ module.exports = async function handler(req, res) {
         return res.status(403).json({ error: 'Keine Berechtigung zum Bearbeiten' });
       }
 
-      const updates = req.body || {};
+      const rawBody = req.body || {};
+      const nestedUpdates =
+        rawBody && typeof rawBody.updates === 'object' && rawBody.updates !== null
+          ? rawBody.updates
+          : rawBody && typeof rawBody.data === 'object' && rawBody.data !== null
+            ? rawBody.data
+            : null;
+      const updates = nestedUpdates ? { ...rawBody, ...nestedUpdates } : rawBody;
       const fields = [];
       const values = [];
       let idx = 1;
@@ -621,22 +662,41 @@ module.exports = async function handler(req, res) {
         fields.push(`date = $${idx++}`);
         values.push(updates.date || null);
       }
-      if (updates.linked_task_id !== undefined) {
-        const hasInput = !(updates.linked_task_id === null || updates.linked_task_id === '' || updates.linked_task_id === undefined);
-        const normalizedTask = await normalizeLinkedTaskForDb(pool, updates.linked_task_id, userId);
+      if (updates.completed !== undefined) {
+        fields.push(`completed = $${idx++}`);
+        values.push(!!updates.completed);
+      }
+      const completedAtInput = updates.completed_at !== undefined ? updates.completed_at : updates.completedAt;
+      if (completedAtInput !== undefined) {
+        fields.push(`completed_at = $${idx++}`);
+        values.push(completedAtInput || null);
+      }
+      if (updates.status !== undefined) {
+        const validStatus = ['open', 'done', 'blocked', 'active'].includes(String(updates.status).toLowerCase())
+          ? String(updates.status).toLowerCase()
+          : 'open';
+        fields.push(`status = $${idx++}`);
+        values.push(validStatus);
+      }
+      const linkedTaskInput = updates.linked_task_id !== undefined ? updates.linked_task_id : updates.linkedTaskId;
+      if (linkedTaskInput !== undefined) {
+        const hasInput = !(linkedTaskInput === null || linkedTaskInput === '' || linkedTaskInput === undefined);
+        const normalizedTask = await normalizeLinkedTaskForDb(pool, linkedTaskInput, userId);
         if (hasInput && !normalizedTask.allowed) {
           return res.status(403).json({ error: 'Keine Berechtigung fuer verknuepfte Aufgabe' });
         }
         fields.push(`linked_task_id = $${idx++}`);
         values.push(normalizedTask.value);
       }
-      if (updates.x !== undefined) {
+      const xInput = updates.x !== undefined ? updates.x : updates.posX;
+      if (xInput !== undefined) {
         fields.push(`x = $${idx++}`);
-        values.push(updates.x === null ? null : Number(updates.x));
+        values.push(xInput === null ? null : Number(xInput));
       }
-      if (updates.y !== undefined) {
+      const yInput = updates.y !== undefined ? updates.y : updates.posY;
+      if (yInput !== undefined) {
         fields.push(`y = $${idx++}`);
-        values.push(updates.y === null ? null : Number(updates.y));
+        values.push(yInput === null ? null : Number(yInput));
       }
 
       // participant_ids and responsible_user_id – owner-only
@@ -706,9 +766,24 @@ module.exports = async function handler(req, res) {
           rebuiltFields.push(`date = $${paramIdx++}`);
           rebuiltValues.push(updates.date || null);
         }
-        if (!isLinkedTaskTypeError(err) && updates.linked_task_id !== undefined) {
-          const hasInput = !(updates.linked_task_id === null || updates.linked_task_id === '' || updates.linked_task_id === undefined);
-          const normalizedTask = await normalizeLinkedTaskForDb(pool, updates.linked_task_id, userId);
+        if (updates.completed !== undefined) {
+          rebuiltFields.push(`completed = $${paramIdx++}`);
+          rebuiltValues.push(!!updates.completed);
+        }
+        if (completedAtInput !== undefined) {
+          rebuiltFields.push(`completed_at = $${paramIdx++}`);
+          rebuiltValues.push(completedAtInput || null);
+        }
+        if (updates.status !== undefined) {
+          const validStatus = ['open', 'done', 'blocked', 'active'].includes(String(updates.status).toLowerCase())
+            ? String(updates.status).toLowerCase()
+            : 'open';
+          rebuiltFields.push(`status = $${paramIdx++}`);
+          rebuiltValues.push(validStatus);
+        }
+        if (!isLinkedTaskTypeError(err) && linkedTaskInput !== undefined) {
+          const hasInput = !(linkedTaskInput === null || linkedTaskInput === '' || linkedTaskInput === undefined);
+          const normalizedTask = await normalizeLinkedTaskForDb(pool, linkedTaskInput, userId);
           if (hasInput && !normalizedTask.allowed) {
             return res.status(403).json({ error: 'Keine Berechtigung fuer verknuepfte Aufgabe' });
           }
@@ -716,13 +791,13 @@ module.exports = async function handler(req, res) {
           rebuiltValues.push(normalizedTask.value);
         }
         if (!isMissingPositionColumnError(err)) {
-          if (updates.x !== undefined) {
+          if (xInput !== undefined) {
             rebuiltFields.push(`x = $${paramIdx++}`);
-            rebuiltValues.push(updates.x === null ? null : Number(updates.x));
+            rebuiltValues.push(xInput === null ? null : Number(xInput));
           }
-          if (updates.y !== undefined) {
+          if (yInput !== undefined) {
             rebuiltFields.push(`y = $${paramIdx++}`);
-            rebuiltValues.push(updates.y === null ? null : Number(updates.y));
+            rebuiltValues.push(yInput === null ? null : Number(yInput));
           }
         }
         rebuiltFields.push('updated_at = NOW()');
