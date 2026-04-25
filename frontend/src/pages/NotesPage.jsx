@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Plus, ZoomIn, ZoomOut, Maximize2, Share2, Link2, Trash2, Edit2, X, CalendarDays, Sparkles, PanelsTopLeft, Workflow, LayoutGrid, ChevronLeft } from 'lucide-react';
+import { Plus, ZoomIn, ZoomOut, Maximize2, Share2, Link2, Trash2, Edit2, X, CalendarDays, Sparkles, PanelsTopLeft, Workflow, LayoutGrid, ChevronLeft, Circle, CheckCircle2 } from 'lucide-react';
 import { useNotesStore } from '../store/notesStore';
 import { useFriendsStore } from '../store/friendsStore';
 import { useTaskStore } from '../store/taskStore';
@@ -104,6 +104,7 @@ const CONNECTION_TYPE_LABELS = {
 };
 
 const NOTE_PEOPLE_CACHE_KEY = 'taski_note_people_v1';
+const NOTE_STATUS_CACHE_KEY = 'taski_note_status_v1';
 
 function getUserScopedKey(baseKey) {
   if (typeof window === 'undefined') return `${baseKey}:anon`;
@@ -130,6 +131,26 @@ function writeNotePeopleCache(data) {
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(getUserScopedKey(NOTE_PEOPLE_CACHE_KEY), JSON.stringify(data || {}));
+  } catch {
+    // ignore quota/security errors
+  }
+}
+
+function readNoteStatusCache() {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(getUserScopedKey(NOTE_STATUS_CACHE_KEY));
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeNoteStatusCache(data) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(getUserScopedKey(NOTE_STATUS_CACHE_KEY), JSON.stringify(data || {}));
   } catch {
     // ignore quota/security errors
   }
@@ -171,6 +192,7 @@ export default function NotesPage() {
   const [noteComments, setNoteComments] = useState({});
   const [commentDraft, setCommentDraft] = useState('');
   const [notePeopleMap, setNotePeopleMap] = useState(() => readNotePeopleCache());
+  const [noteStatusMap, setNoteStatusMap] = useState(() => readNoteStatusCache());
   const [isMobileView, setIsMobileView] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 640 : false));
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
@@ -388,6 +410,22 @@ export default function NotesPage() {
   useEffect(() => {
     writeNotePeopleCache(notePeopleMap);
   }, [notePeopleMap]);
+
+  useEffect(() => {
+    writeNoteStatusCache(noteStatusMap);
+  }, [noteStatusMap]);
+
+  useEffect(() => {
+    if (!notes.length) return;
+    setNoteStatusMap((prev) => {
+      const validIds = new Set(notes.map((note) => String(note.id)));
+      const next = {};
+      Object.entries(prev || {}).forEach(([key, value]) => {
+        if (validIds.has(String(key))) next[key] = value;
+      });
+      return next;
+    });
+  }, [notes]);
 
   useEffect(() => {
     const syncViewport = () => {
@@ -1152,6 +1190,43 @@ export default function NotesPage() {
     return note?.linked_task_id ? tasks.find(t => t.id === note.linked_task_id) : null;
   };
 
+  const isNoteLocallyCompleted = (noteId) => {
+    const local = noteStatusMap[String(noteId)];
+    return local === true || local?.completed === true;
+  };
+
+  const isNoteCompletedByData = (noteId) => {
+    const note = notesById.get(String(noteId));
+    if (!note) return false;
+
+    if (isNoteLocallyCompleted(noteId)) return true;
+    if (note.completed === true || note.is_done === true) return true;
+
+    const status = String(note.status || '').toLowerCase();
+    if (status === 'done' || status === 'completed') return true;
+
+    if (!note.linked_task_id) return false;
+    const linked = tasksById.get(String(note.linked_task_id));
+    return !!linked?.completed;
+  };
+
+  const toggleNoteCompletion = (noteId, allowComplete = true) => {
+    const key = String(noteId);
+    const currentlyCompleted = isNoteLocallyCompleted(key);
+
+    if (!currentlyCompleted && !allowComplete) return;
+
+    setNoteStatusMap((prev) => {
+      const next = { ...prev };
+      if (currentlyCompleted) {
+        delete next[key];
+      } else {
+        next[key] = { completed: true, completedAt: new Date().toISOString() };
+      }
+      return next;
+    });
+  };
+
   const notesById = useMemo(() => {
     const map = new Map();
     notes.forEach((note) => map.set(String(note.id), note));
@@ -1178,18 +1253,7 @@ export default function NotesPage() {
       };
     });
 
-    const isNoteCompleted = (noteId) => {
-      const note = notesById.get(String(noteId));
-      if (!note) return false;
-
-      if (note.completed === true || note.is_done === true) return true;
-      const status = String(note.status || '').toLowerCase();
-      if (status === 'done' || status === 'completed') return true;
-
-      if (!note.linked_task_id) return false;
-      const linked = tasksById.get(String(note.linked_task_id));
-      return !!linked?.completed;
-    };
+    const isNoteCompleted = (noteId) => isNoteCompletedByData(noteId);
 
     connections.forEach((connection) => {
       const relationshipType = String(connection?.relationship_type || 'related');
@@ -1229,7 +1293,7 @@ export default function NotesPage() {
     });
 
     return state;
-  }, [connections, notes, notesById, tasksById]);
+  }, [connections, notes, notesById, tasksById, noteStatusMap]);
 
   const formatTaskDate = (task) => {
     const startDate = task?.date ? new Date(task.date) : null;
@@ -1346,6 +1410,9 @@ export default function NotesPage() {
     ? notes.find((entry) => String(entry.id) === String(activeNoteId))
     : null;
   const activePeople = activeNote ? getPeopleForNote(activeNote.id) : { participant_ids: [], responsible_user_id: null };
+  const activeDependencyState = activeNote ? (dependencyStateByNote[String(activeNote.id)] || { unresolvedIds: [] }) : { unresolvedIds: [] };
+  const activeCanCompleteNow = activeDependencyState.unresolvedIds.length === 0;
+  const activeIsCompleted = activeNote ? isNoteCompletedByData(activeNote.id) : false;
   const activeLinkedTask = activeNote ? linkedTask(activeNote.id) : null;
   const activeConnections = activeNote
     ? connections
@@ -1839,6 +1906,8 @@ export default function NotesPage() {
               const hasDependency = dependencyState.blockerIds.length > 0;
               const isBlockedByDependency = hasDependency && dependencyState.unresolvedIds.length > 0;
               const isDependencyReady = hasDependency && dependencyState.unresolvedIds.length === 0;
+              const isCompleted = isNoteCompletedByData(noteId);
+              const canCompleteNow = !isBlockedByDependency;
               const dependentCount = dependencyState.dependentIds?.length || 0;
               const parentNoteTitle = dependencyState.belongsToParentId
                 ? (notesById.get(String(dependencyState.belongsToParentId))?.title || 'unbekannt')
@@ -1857,7 +1926,7 @@ export default function NotesPage() {
               return (
                 <motion.div
                   key={note.id}
-                  className={`note-card note-${note.importance} ${isUrgent(note.date) ? 'note-urgent' : ''} ${isHovered ? 'note-focus' : ''} ${isConnected ? 'note-connected' : ''} ${isMuted ? 'note-muted' : ''} ${isBlockedByDependency ? 'note-dependency-blocked' : ''} ${isDependencyReady ? 'note-dependency-ready' : ''}`}
+                  className={`note-card note-${note.importance} ${isUrgent(note.date) ? 'note-urgent' : ''} ${isHovered ? 'note-focus' : ''} ${isConnected ? 'note-connected' : ''} ${isMuted ? 'note-muted' : ''} ${isBlockedByDependency ? 'note-dependency-blocked' : ''} ${isDependencyReady ? 'note-dependency-ready' : ''} ${isCompleted ? 'note-completed' : ''}`}
                   style={{
                     left: `${(notePositions[note.id]?.x ?? note.x ?? 100)}px`,
                     top: `${(notePositions[note.id]?.y ?? note.y ?? 100)}px`,
@@ -1877,13 +1946,27 @@ export default function NotesPage() {
                 >
                   <div className="note-header">
                     <h3 className="note-title">{note.title}</h3>
-                    <div
-                      className="note-importance"
-                      style={{ borderColor: getImportanceColor(note.importance).border }}
-                    >
-                      {note.importance === 'high' && '⭐'}
-                      {note.importance === 'medium' && '●'}
-                      {note.importance === 'low' && '−'}
+                    <div className="note-header-actions">
+                      <button
+                        type="button"
+                        className={`note-complete-toggle ${isCompleted ? 'done' : ''}`}
+                        title={isCompleted ? 'Als offen markieren' : (canCompleteNow ? 'Als erledigt markieren' : 'Erst Blocker erledigen')}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          toggleNoteCompletion(note.id, canCompleteNow);
+                        }}
+                        disabled={!isCompleted && !canCompleteNow}
+                      >
+                        {isCompleted ? <CheckCircle2 size={14} /> : <Circle size={14} />}
+                      </button>
+                      <div
+                        className="note-importance"
+                        style={{ borderColor: getImportanceColor(note.importance).border }}
+                      >
+                        {note.importance === 'high' && '⭐'}
+                        {note.importance === 'medium' && '●'}
+                        {note.importance === 'low' && '−'}
+                      </div>
                     </div>
                   </div>
 
@@ -2193,8 +2276,18 @@ export default function NotesPage() {
               {contextTab === 'details' && (
                 <div className="context-pane">
                   <div className="context-detail-pill">Priorität: {activeNote.importance || 'medium'}</div>
+                  <button
+                    type="button"
+                    className={`context-complete-toggle ${activeIsCompleted ? 'done' : ''}`}
+                    onClick={() => toggleNoteCompletion(activeNote.id, activeCanCompleteNow)}
+                    disabled={!activeIsCompleted && !activeCanCompleteNow}
+                  >
+                    {activeIsCompleted ? 'Erledigt' : 'Als erledigt markieren'}
+                  </button>
                   <p className="context-note-body">{activeNote.content || 'Kein Inhalt hinterlegt.'}</p>
                   <div className="context-meta-list">
+                    <span>Status: {activeIsCompleted ? 'Erledigt' : 'Offen'}</span>
+                    <span>Blocker offen: {activeDependencyState.unresolvedIds.length}</span>
                     <span>Deadline: {activeNote.date ? new Date(activeNote.date).toLocaleDateString('de-DE') : 'Keine'}</span>
                     <span>Verknüpft: {activeConnections.length} Notes</span>
                     <span>
