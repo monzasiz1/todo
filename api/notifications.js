@@ -311,6 +311,23 @@ module.exports = async function handler(req, res) {
         'SELECT notification_prefs, last_active_at FROM users WHERE id = $1',
         [user.id]
       );
+      
+      // Check recent reminder sends
+      const { rows: recentReminders } = await pool.query(
+        `SELECT COUNT(*)::int as count FROM notification_log
+         WHERE user_id = $1 AND type = 'reminder' AND sent_at >= NOW() - INTERVAL '24 hours'`,
+        [user.id]
+      );
+      
+      // Check due reminders now
+      const { rows: dueNow } = await pool.query(
+        `SELECT COUNT(*)::int as count FROM tasks
+         WHERE user_id = $1 AND completed = false 
+           AND reminder_at IS NOT NULL 
+           AND reminder_at <= NOW()
+           AND reminder_at > NOW() - INTERVAL '1 hour'`,
+        [user.id]
+      );
 
       return res.json({
         ok: true,
@@ -318,12 +335,59 @@ module.exports = async function handler(req, res) {
         cronConfigured: !!process.env.CRON_SECRET,
         hasSubscription: (subRows[0]?.count || 0) > 0,
         subscriptionCount: subRows[0]?.count || 0,
+        reminders_sent_24h: recentReminders[0]?.count || 0,
+        reminders_due_now: dueNow[0]?.count || 0,
         prefs: userRows[0]?.notification_prefs || null,
         lastActiveAt: userRows[0]?.last_active_at || null,
+        serverTime: new Date().toISOString(),
       });
     } catch (err) {
       console.error('Health error:', err);
       return res.status(500).json({ error: 'Fehler beim Laden der Notification-Health' });
+    }
+  }
+  
+  // GET /api/notifications/diagnostic – detailed push diagnostics (verbose)
+  if (segments[0] === 'diagnostic' && req.method === 'GET') {
+    try {
+      const { rows: subRows } = await pool.query(
+        `SELECT id, endpoint, created_at FROM push_subscriptions WHERE user_id = $1`,
+        [user.id]
+      );
+      
+      const { rows: logRows } = await pool.query(
+        `SELECT type, COUNT(*)::int as count FROM notification_log
+         WHERE user_id = $1 AND sent_at >= NOW() - INTERVAL '7 days'
+         GROUP BY type ORDER BY count DESC`,
+        [user.id]
+      );
+      
+      const { rows: recentReminders } = await pool.query(
+        `SELECT id, title, reminder_at FROM tasks
+         WHERE user_id = $1 AND reminder_at IS NOT NULL
+         ORDER BY reminder_at DESC LIMIT 10`,
+        [user.id]
+      );
+
+      return res.json({
+        diagnostics: {
+          subscriptions_total: subRows.length,
+          subscriptions: subRows.map(s => ({
+            id: s.id,
+            endpoint_preview: `${String(s.endpoint).slice(0, 40)}...`,
+            created_at: s.created_at,
+          })),
+          notification_log_7d: logRows,
+          recent_tasks_with_reminders: recentReminders.map(t => ({
+            id: t.id,
+            title: t.title,
+            reminder_at: t.reminder_at,
+          })),
+        },
+      });
+    } catch (err) {
+      console.error('Diagnostic error:', err);
+      return res.status(500).json({ error: 'Fehler beim Laden der Diagnostik' });
     }
   }
 

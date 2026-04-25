@@ -189,6 +189,7 @@ self.addEventListener('sync', (event) => {
 
 // ─── Push Notifications ───
 self.addEventListener('push', (event) => {
+  console.log('Push event received:', event.data ? 'with data' : 'no data');
   if (!event.data) return;
 
   let data;
@@ -198,6 +199,7 @@ self.addEventListener('push', (event) => {
     data = { title: 'Taski', body: event.data.text() };
   }
 
+  console.log('Showing push notification:', data.title, data.body);
   const options = {
     body: data.body || '',
     icon: data.icon || '/icons/icon-192.png',
@@ -216,6 +218,59 @@ self.addEventListener('push', (event) => {
     self.registration.showNotification(data.title || 'Taski', options)
   );
 });
+
+// ─── Background Reminder Check (Fallback) ───
+// Periodically check for due reminders even if app is closed.
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'CHECK_REMINDERS') {
+    console.log('SW received CHECK_REMINDERS request');
+    checkAndShowDueReminders().catch(err => console.error('Background reminder check error:', err));
+  }
+});
+
+async function checkAndShowDueReminders() {
+  try {
+    // Fetch due reminders from server (same endpoint ReminderChecker uses)
+    const response = await fetch('/api/tasks/reminders/due?limit=100');
+    if (!response.ok) return;
+    
+    const data = await response.json();
+    const tasks = Array.isArray(data.tasks) ? data.tasks : [];
+    
+    for (const task of tasks) {
+      if (!task.reminder_at || task.completed) continue;
+      
+      const reminderTime = new Date(task.reminder_at).getTime();
+      const now = Date.now();
+      
+      // Show if within 15 min after due time (catches fresh and slightly missed reminders)
+      if (reminderTime <= now && reminderTime > now - 15 * 60 * 1000) {
+        const title = '⏰ Erinnerung';
+        const body = `${task.title}${task.time ? ' um ' + task.time.slice(0, 5) : ''}`;
+        
+        // Tag prevents duplicate notifications; browser handles deduplication
+        const tag = `reminder-${task.id}`;\n        
+        await self.registration.showNotification(title, {
+          body,
+          icon: '/icons/icon-192.png',
+          badge: '/icons/icon-192.png',
+          tag: tag,
+          renotify: false,
+          vibrate: [200, 100, 200],
+          data: { url: '/calendar', taskId: task.id },
+          actions: [
+            { action: 'open', title: 'Öffnen' },
+            { action: 'dismiss', title: 'OK' },
+          ],
+        });
+        
+        console.log('SW background reminder shown:', tag);
+      }
+    }
+  } catch (err) {
+    console.log('Background reminder check failed (normal if offline):', err.message);
+  }
+}
 
 // ─── Notification Click ───
 self.addEventListener('notificationclick', (event) => {

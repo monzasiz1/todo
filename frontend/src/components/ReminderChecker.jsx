@@ -17,6 +17,15 @@ export default function ReminderChecker() {
 
   const buildReminderKey = (task) => `${task.id}:${task.reminder_at || ''}`;
 
+  // Request background reminder checks from Service Worker (if app is closed)
+  useEffect(() => {
+    if (!navigator.serviceWorker?.controller) return;
+    const bgCheckInterval = setInterval(() => {
+      navigator.serviceWorker.controller.postMessage({ type: 'CHECK_REMINDERS' });
+    }, 5 * 60 * 1000); // Every 5 minutes
+    return () => clearInterval(bgCheckInterval);
+  }, []);
+
   useEffect(() => {
     const check = async () => {
       const now = Date.now();

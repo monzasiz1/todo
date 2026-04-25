@@ -36,7 +36,7 @@ module.exports = async function handler(req, res) {
        WHERE t.completed = false
          AND t.reminder_at IS NOT NULL
          AND t.reminder_at <= NOW()
-         AND t.reminder_at > NOW() - INTERVAL '12 hours'`
+         AND t.reminder_at > NOW() - INTERVAL '24 hours'`
     );
 
     for (const task of dueReminders) {
@@ -44,7 +44,8 @@ module.exports = async function handler(req, res) {
       const alreadySent = await wasTaskReminderSent(task.user_id, task.id);
       if (alreadySent) continue;
 
-      await sendPushToUser(
+      // Always attempt to send (push service will log even if no subscriptions)
+      const sent = await sendPushToUser(
         task.user_id,
         {
           title: '⏰ Erinnerung',
@@ -55,6 +56,23 @@ module.exports = async function handler(req, res) {
         'reminder',
         task.id
       );
+      
+      // Manual log if push had 0 deliveries (for offline or no subscription users)
+      if (sent === 0) {
+        await pool.query(
+          `INSERT INTO notification_log (user_id, type, task_id, title, body) 
+           VALUES ($1, $2, $3, $4, $5) 
+           ON CONFLICT DO NOTHING`,
+          [
+            task.user_id,
+            'reminder',
+            task.id,
+            '⏰ Erinnerung',
+            `${task.title}${task.time ? ' um ' + task.time.slice(0, 5) : ''}`,
+          ]
+        ).catch(() => null);
+      }
+      
       results.reminders++;
     }
 
