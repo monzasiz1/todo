@@ -101,9 +101,31 @@ const CONNECTION_TYPE_LABELS = {
   blocks: 'Blockiert',
 };
 
+const NOTE_PEOPLE_CACHE_KEY = 'taski_note_people_v1';
+
+function readNotePeopleCache() {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(NOTE_PEOPLE_CACHE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeNotePeopleCache(data) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(NOTE_PEOPLE_CACHE_KEY, JSON.stringify(data || {}));
+  } catch {
+    // ignore quota/security errors
+  }
+}
+
 export default function NotesPage() {
   const { notes, createNote, updateNote, deleteNote, linkNoteToTask, shareNoteWithFriend, connectNotes, disconnectNotes, getNoteConnections } = useNotesStore();
-  const { friends } = useFriendsStore();
+  const { friends, fetchFriends } = useFriendsStore();
   const { tasks, fetchTasks } = useTaskStore();
 
   const [zoom, setZoom] = useState(100);
@@ -112,7 +134,7 @@ export default function NotesPage() {
   const [selectedNote, setSelectedNote] = useState(null);
   const [showShareModal, setShowShareModal] = useState(null);
   const [showConnectModal, setShowConnectModal] = useState(null);
-  const [newNote, setNewNote] = useState({ title: '', content: '', importance: 'medium', date: '', linked_task_id: null });
+  const [newNote, setNewNote] = useState({ title: '', content: '', importance: 'medium', date: '', linked_task_id: null, participant_ids: [], responsible_user_id: null });
   const [isDragging, setIsDragging] = useState(null);
   const [notePositions, setNotePositions] = useState({});
   const [connections, setConnections] = useState([]);
@@ -126,6 +148,7 @@ export default function NotesPage() {
   const [contextTab, setContextTab] = useState('details');
   const [noteComments, setNoteComments] = useState({});
   const [commentDraft, setCommentDraft] = useState('');
+  const [notePeopleMap, setNotePeopleMap] = useState(() => readNotePeopleCache());
   const [isMobileView, setIsMobileView] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 640 : false));
   const canvasRef = useRef(null);
   const pinchStateRef = useRef(null);
@@ -162,7 +185,12 @@ export default function NotesPage() {
   useEffect(() => {
     useNotesStore.getState().fetchNotes?.();
     fetchTasks?.({ limit: '2000', completed: 'false' }, { force: true });
-  }, [fetchTasks]);
+    fetchFriends?.();
+  }, [fetchTasks, fetchFriends]);
+
+  useEffect(() => {
+    writeNotePeopleCache(notePeopleMap);
+  }, [notePeopleMap]);
 
   useEffect(() => {
     const syncViewport = () => {
@@ -232,6 +260,59 @@ export default function NotesPage() {
     if (persist) {
       updateNote(noteId, { x, y }).catch(() => {});
     }
+  };
+
+  const updatePeopleForNote = (noteId, patch) => {
+    const key = String(noteId);
+    setNotePeopleMap((prev) => {
+      const current = prev[key] || { participant_ids: [], responsible_user_id: null };
+      return {
+        ...prev,
+        [key]: {
+          participant_ids: Array.isArray(patch?.participant_ids) ? patch.participant_ids : current.participant_ids,
+          responsible_user_id: Object.prototype.hasOwnProperty.call(patch || {}, 'responsible_user_id')
+            ? (patch.responsible_user_id || null)
+            : current.responsible_user_id,
+        },
+      };
+    });
+  };
+
+  const getPeopleForNote = (noteId) => {
+    const key = String(noteId);
+    const stored = notePeopleMap[key] || {};
+    return {
+      participant_ids: Array.isArray(stored.participant_ids) ? stored.participant_ids.map(String) : [],
+      responsible_user_id: stored.responsible_user_id ? String(stored.responsible_user_id) : null,
+    };
+  };
+
+  const friendOptions = useMemo(
+    () => friends.map((friend) => ({ id: String(friend.id), name: friend.name || `User ${friend.id}` })),
+    [friends]
+  );
+
+  const resolvePersonName = (personId) => {
+    const idText = String(personId || '');
+    const found = friendOptions.find((entry) => entry.id === idText);
+    return found?.name || 'Unbekannt';
+  };
+
+  const toggleDraftParticipant = (setter, state, personId) => {
+    const idText = String(personId);
+    const current = Array.isArray(state.participant_ids) ? state.participant_ids.map(String) : [];
+    const has = current.includes(idText);
+    const nextParticipantIds = has ? current.filter((id) => id !== idText) : [...current, idText];
+
+    const nextResponsible = state.responsible_user_id && !nextParticipantIds.includes(String(state.responsible_user_id))
+      ? null
+      : state.responsible_user_id;
+
+    setter({
+      ...state,
+      participant_ids: nextParticipantIds,
+      responsible_user_id: nextResponsible,
+    });
   };
 
   const clampZoom = (value) => Math.min(220, Math.max(25, value));
@@ -489,8 +570,14 @@ export default function NotesPage() {
         width: 300,
         height: 150,
       };
-      await createNote(noteData);
-      setNewNote({ title: '', content: '', importance: 'medium', date: '', linked_task_id: null });
+      const created = await createNote(noteData);
+      if (created?.id) {
+        updatePeopleForNote(created.id, {
+          participant_ids: Array.isArray(newNote.participant_ids) ? newNote.participant_ids : [],
+          responsible_user_id: newNote.responsible_user_id || null,
+        });
+      }
+      setNewNote({ title: '', content: '', importance: 'medium', date: '', linked_task_id: null, participant_ids: [], responsible_user_id: null });
       setTaskSearch('');
       setQuickCreatePosition(null);
       setShowCreateModal(false);
@@ -559,7 +646,7 @@ export default function NotesPage() {
 
   const openBlankCreateModal = (position = null) => {
     setQuickCreatePosition(position);
-    setNewNote({ title: '', content: '', importance: 'medium', date: '', linked_task_id: null });
+    setNewNote({ title: '', content: '', importance: 'medium', date: '', linked_task_id: null, participant_ids: [], responsible_user_id: null });
     setTaskSearch('');
     setShowCreateModal(true);
     setToolboxOpen(false);
@@ -573,6 +660,8 @@ export default function NotesPage() {
       importance: 'medium',
       date: task?.date ? String(task.date).slice(0, 10) : '',
       linked_task_id: task?.id || null,
+      participant_ids: [],
+      responsible_user_id: null,
     });
     setTaskSearch(task?.title || '');
     setShowCreateModal(true);
@@ -746,6 +835,7 @@ export default function NotesPage() {
   const activeNote = activeNoteId
     ? notes.find((entry) => String(entry.id) === String(activeNoteId))
     : null;
+  const activePeople = activeNote ? getPeopleForNote(activeNote.id) : { participant_ids: [], responsible_user_id: null };
   const activeLinkedTask = activeNote ? linkedTask(activeNote.id) : null;
   const activeConnections = activeNote
     ? connections
@@ -1015,6 +1105,8 @@ export default function NotesPage() {
                   const isHovered = hoveredNoteId && noteId === String(hoveredNoteId);
                   const isConnected = hoveredNoteId && connectedNoteIds.has(noteId);
                   const isMuted = hoveredNoteId && !isHovered && !isConnected;
+                  const notePeople = getPeopleForNote(note.id);
+                  const responsibleName = notePeople.responsible_user_id ? resolvePersonName(notePeople.responsible_user_id) : null;
 
                   return (
                 <motion.div
@@ -1063,10 +1155,26 @@ export default function NotesPage() {
                     </div>
                   )}
 
+                  {(responsibleName || notePeople.participant_ids.length > 0) && (
+                    <div className="note-people-meta">
+                      {responsibleName && <span className="note-people-chip">Verantwortlich: {responsibleName}</span>}
+                      {notePeople.participant_ids.length > 0 && (
+                        <span className="note-people-chip">Teilnehmer: {notePeople.participant_ids.length}</span>
+                      )}
+                    </div>
+                  )}
+
                   <div className="note-actions">
                     <button
                       className="action-btn"
-                      onClick={() => setEditingNote(note)}
+                      onClick={() => {
+                        const people = getPeopleForNote(note.id);
+                        setEditingNote({
+                          ...note,
+                          participant_ids: people.participant_ids,
+                          responsible_user_id: people.responsible_user_id,
+                        });
+                      }}
                       title="Bearbeiten"
                     >
                       <Edit2 size={14} />
@@ -1146,6 +1254,14 @@ export default function NotesPage() {
                   <div className="context-meta-list">
                     <span>Deadline: {activeNote.date ? new Date(activeNote.date).toLocaleDateString('de-DE') : 'Keine'}</span>
                     <span>Verknüpft: {activeConnections.length} Notes</span>
+                    <span>
+                      Verantwortlich: {activePeople.responsible_user_id ? resolvePersonName(activePeople.responsible_user_id) : 'Nicht gesetzt'}
+                    </span>
+                    <span>
+                      Teilnehmer: {activePeople.participant_ids.length > 0
+                        ? activePeople.participant_ids.map((id) => resolvePersonName(id)).join(', ')
+                        : 'Keine'}
+                    </span>
                   </div>
                 </div>
               )}
@@ -1329,6 +1445,45 @@ export default function NotesPage() {
               </div>
 
               <div className="form-group">
+                <label className="form-label">Teilnehmer</label>
+                <div className="people-picker-grid">
+                  {friendOptions.length === 0 ? (
+                    <div className="people-empty">Keine Freunde verfügbar.</div>
+                  ) : (
+                    friendOptions.map((friend) => {
+                      const isActive = (newNote.participant_ids || []).includes(friend.id);
+                      return (
+                        <button
+                          key={friend.id}
+                          type="button"
+                          className={`person-option ${isActive ? 'active' : ''}`}
+                          onClick={() => toggleDraftParticipant(setNewNote, newNote, friend.id)}
+                        >
+                          {friend.name}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Verantwortlich</label>
+                <select
+                  className="form-input"
+                  value={newNote.responsible_user_id || ''}
+                  onChange={(e) => setNewNote({ ...newNote, responsible_user_id: e.target.value || null })}
+                >
+                  <option value="">Niemand</option>
+                  {(newNote.participant_ids || []).map((personId) => (
+                    <option key={personId} value={personId}>
+                      {resolvePersonName(personId)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
                 <label className="form-label">Termin verknüpfen (optional)</label>
                 <div className="task-picker-shell">
                   <div className="task-picker-toolbar">
@@ -1490,6 +1645,46 @@ export default function NotesPage() {
                 />
               </div>
 
+              <div className="form-group">
+                <label className="form-label">Teilnehmer</label>
+                <div className="people-picker-grid">
+                  {friendOptions.length === 0 ? (
+                    <div className="people-empty">Keine Freunde verfügbar.</div>
+                  ) : (
+                    friendOptions.map((friend) => {
+                      const selected = Array.isArray(editingNote.participant_ids) ? editingNote.participant_ids.map(String) : [];
+                      const isActive = selected.includes(friend.id);
+                      return (
+                        <button
+                          key={friend.id}
+                          type="button"
+                          className={`person-option ${isActive ? 'active' : ''}`}
+                          onClick={() => toggleDraftParticipant(setEditingNote, editingNote, friend.id)}
+                        >
+                          {friend.name}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Verantwortlich</label>
+                <select
+                  className="form-input"
+                  value={editingNote.responsible_user_id || ''}
+                  onChange={(e) => setEditingNote({ ...editingNote, responsible_user_id: e.target.value || null })}
+                >
+                  <option value="">Niemand</option>
+                  {(editingNote.participant_ids || []).map((personId) => (
+                    <option key={personId} value={personId}>
+                      {resolvePersonName(personId)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="modal-actions">
                 <button
                   className="btn-secondary"
@@ -1506,6 +1701,10 @@ export default function NotesPage() {
                         content: editingNote.content,
                         importance: editingNote.importance,
                         date: editingNote.date || null,
+                      });
+                      updatePeopleForNote(editingNote.id, {
+                        participant_ids: Array.isArray(editingNote.participant_ids) ? editingNote.participant_ids : [],
+                        responsible_user_id: editingNote.responsible_user_id || null,
                       });
                       setEditingNote(null);
                     } catch (err) {
