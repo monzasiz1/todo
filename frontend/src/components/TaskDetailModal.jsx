@@ -31,7 +31,15 @@ export default function TaskDetailModal({ task, onClose, onUpdated }) {
   const [comments, setComments] = useState([]);
   const menuRef = useRef(null);
   const emojiPickerRef = useRef(null);
-  const isMobileViewport = typeof window !== 'undefined' && window.innerWidth <= 768;
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    setIsMobile(mq.matches);
+    const handler = (e) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
   if (!task) return null;
 
@@ -172,10 +180,10 @@ export default function TaskDetailModal({ task, onClose, onUpdated }) {
         onClick={onClose}
       >
         <motion.div
-          className="task-detail-modal"
-          initial={isMobileViewport ? { x: '100%' } : { opacity: 0, y: 60, scale: 0.95 }}
-          animate={isMobileViewport ? { x: 0 } : { opacity: 1, y: 0, scale: 1 }}
-          exit={isMobileViewport ? { x: '100%' } : { opacity: 0, y: 40, scale: 0.95 }}
+          className={`task-detail-modal${isMobile ? ' is-mobile-fullscreen' : ''}`}
+          initial={isMobile ? { x: '100%' } : { opacity: 0, y: 60, scale: 0.95 }}
+          animate={isMobile ? { x: 0 } : { opacity: 1, y: 0, scale: 1 }}
+          exit={isMobile ? { x: '100%' } : { opacity: 0, y: 40, scale: 0.95 }}
           transition={{ type: 'spring', damping: 28, stiffness: 350 }}
           onClick={(e) => e.stopPropagation()}
         >

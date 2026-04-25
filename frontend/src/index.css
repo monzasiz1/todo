@@ -5434,7 +5434,60 @@ body.cal-is-dragging * {
   animation: scaleIn 0.3s ease forwards;
 }
 
-/* ========== TASK DETAIL MODAL ========== */
+/* ===== MOBILE FULLSCREEN MODALS ===== */
+/* Applied via JS class regardless of media query — position: fixed overrides everything */
+.is-mobile-fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+  height: 100% !important;
+  max-height: none !important;
+  border-radius: 0 !important;
+  z-index: 1001;
+  overflow: hidden;
+  display: flex !important;
+  flex-direction: column;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.is-mobile-fullscreen .task-detail-header,
+.is-mobile-fullscreen .task-edit-header {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 8px);
+  min-height: calc(env(safe-area-inset-top, 0px) + 56px);
+  flex-shrink: 0;
+  background: var(--card-solid);
+  position: sticky;
+  top: 0;
+  z-index: 6;
+}
+
+.is-mobile-fullscreen .task-detail-priority-bar {
+  border-radius: 0;
+}
+
+.is-mobile-fullscreen .task-detail-header-actions {
+  top: calc(env(safe-area-inset-top, 0px) + 14px);
+}
+
+.is-mobile-fullscreen .task-detail-main,
+.is-mobile-fullscreen .task-edit-body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.is-mobile-fullscreen .task-detail-aside {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ===== TASK DETAIL MODAL ===== */
 .modal-overlay {
   position: fixed;
   top: 0;
