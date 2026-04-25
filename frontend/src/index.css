@@ -9957,39 +9957,136 @@ body.cal-is-dragging * {
 /* ===== GROUPS ===== */
 
 /* --- Group Actions Row --- */
-.group-actions-row {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
+.groups-hub {
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 18px;
+  margin-bottom: 18px;
+  background:
+    radial-gradient(180px 80px at 10% -10%, color-mix(in srgb, var(--primary) 16%, transparent), transparent 70%),
+    radial-gradient(220px 120px at 100% 0%, color-mix(in srgb, var(--success) 12%, transparent), transparent 70%),
+    var(--card-solid);
 }
+
+.groups-hub-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.groups-hub-stat-card {
+  border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--surface) 76%, transparent);
+  backdrop-filter: blur(4px);
+}
+
+.groups-hub-stat-card span {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.groups-hub-stat-card strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 24px;
+  line-height: 1.1;
+  color: var(--text);
+}
+
+.group-actions-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
 .group-action-btn {
-  flex: 1;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 12px 16px;
+  padding: 12px 18px;
   border-radius: 14px;
-  border: none;
+  border: 1px solid transparent;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, color 0.18s ease;
 }
+
 .group-action-btn.primary {
-  background: var(--primary);
+  background: linear-gradient(135deg, var(--primary) 0%, color-mix(in srgb, var(--primary) 70%, #1f75ff) 100%);
   color: #fff;
+  box-shadow: 0 10px 20px color-mix(in srgb, var(--primary) 26%, transparent);
 }
+
 .group-action-btn.primary:hover {
-  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 24px color-mix(in srgb, var(--primary) 34%, transparent);
 }
+
 .group-action-btn.secondary {
   background: var(--surface);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
+  color: var(--text);
+  border-color: var(--border);
 }
+
 .group-action-btn.secondary:hover {
   background: var(--hover);
+  transform: translateY(-1px);
+}
+
+.groups-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 13px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+}
+
+.groups-search-wrap:focus-within {
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 16%, transparent);
+}
+
+.groups-search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+}
+
+.groups-search-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.groups-search-clear {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.groups-search-clear:hover {
+  background: var(--hover);
+  color: var(--text);
 }
 
 /* --- Group List --- */
@@ -9998,51 +10095,86 @@ body.cal-is-dragging * {
   flex-direction: column;
   gap: 10px;
 }
+
 .group-card {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 14px;
   padding: 14px 16px;
-  background: var(--surface);
-  border-radius: 16px;
+  background: var(--card-solid);
+  border-radius: 18px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   border: 1px solid var(--border);
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
 }
+
 .group-card:hover {
-  background: var(--hover);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.11);
 }
+
+.group-card-accent {
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 4px;
+  border-radius: 0 6px 6px 0;
+}
+
 .group-card-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-weight: 700;
-  font-size: 18px;
   flex-shrink: 0;
 }
+
 .group-card-info {
   flex: 1;
   min-width: 0;
 }
-.group-card-info h4 {
-  font-size: 15px;
-  font-weight: 600;
-  margin: 0 0 3px;
+
+.group-card-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 7px;
+}
+
+.group-card-name-row h3 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.2;
+  font-weight: 750;
+  color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.group-card-info span {
-  font-size: 12px;
-  color: var(--text-secondary);
+
+.group-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
-.group-card-role {
+
+.group-card-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 8px;
+}
+
+.group-card-chevron {
+  color: var(--text-tertiary);
   flex-shrink: 0;
 }
 
@@ -10051,35 +10183,39 @@ body.cal-is-dragging * {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 8px;
-  border-radius: 8px;
+  padding: 5px 10px;
+  border-radius: 999px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
 }
 .group-role-badge.owner {
-  background: rgba(255,215,0,0.15);
-  color: #B8860B;
+  background: rgba(255, 215, 0, 0.18);
+  color: #8a6a00;
 }
 .group-role-badge.admin {
-  background: var(--primary-bg);
+  background: color-mix(in srgb, var(--primary) 16%, transparent);
   color: var(--primary);
 }
 .group-role-badge.member {
-  background: var(--hover);
+  background: var(--surface);
+  border: 1px solid var(--border);
   color: var(--text-secondary);
 }
 
 /* --- Group Empty --- */
 .group-empty {
   text-align: center;
-  padding: 48px 24px;
+  padding: 52px 24px;
   color: var(--text-secondary);
+  border: 1px dashed var(--border);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--surface) 75%, transparent);
 }
 .group-empty-icon {
   width: 64px;
   height: 64px;
-  border-radius: 20px;
-  background: var(--primary-bg);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -10120,6 +10256,7 @@ body.cal-is-dragging * {
 .group-back-btn:hover {
   background: var(--hover);
 }
+.group-sub-header h2,
 .group-sub-header h3 {
   font-size: 18px;
   font-weight: 700;
@@ -10837,7 +10974,38 @@ body.cal-is-dragging * {
     padding-bottom: calc(20px + env(safe-area-inset-bottom));
   }
   .group-actions-row {
+    grid-template-columns: 1fr;
     gap: 8px;
+  }
+  .groups-hub {
+    padding: 14px;
+    border-radius: 18px;
+  }
+  .groups-hub-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .groups-hub-stat-card strong {
+    font-size: 20px;
+  }
+  .groups-search-wrap {
+    padding: 9px 10px;
+  }
+  .group-card {
+    padding: 12px 13px;
+    border-radius: 15px;
+  }
+  .group-card-name-row {
+    align-items: flex-start;
+    gap: 6px;
+    flex-direction: column;
+  }
+  .group-card-name-row h3 {
+    font-size: 16px;
+    white-space: normal;
+  }
+  .group-card-meta {
+    gap: 6px;
   }
   .group-action-btn {
     padding: 10px 12px;

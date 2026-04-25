@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useGroupStore } from '../store/groupStore';
 import { useAuthStore } from '../store/authStore';
 import { useTaskStore } from '../store/taskStore';
@@ -162,6 +162,34 @@ export default function GroupsPage() {
 // Group List
 // ============================================
 function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick }) {
+  const [query, setQuery] = useState('');
+
+  const normalizedGroups = useMemo(() => {
+    return (groups || []).map((g) => ({
+      ...g,
+      member_count: Number(g.member_count || 0),
+      task_count: Number(g.task_count || 0),
+    }));
+  }, [groups]);
+
+  const filteredGroups = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return normalizedGroups;
+    return normalizedGroups.filter((g) => {
+      const name = String(g.name || '').toLowerCase();
+      const role = String(g.role || '').toLowerCase();
+      return name.includes(q) || role.includes(q);
+    });
+  }, [normalizedGroups, query]);
+
+  const stats = useMemo(() => {
+    const totalGroups = normalizedGroups.length;
+    const totalMembers = normalizedGroups.reduce((sum, g) => sum + g.member_count, 0);
+    const totalTasks = normalizedGroups.reduce((sum, g) => sum + g.task_count, 0);
+    const adminOrOwnerCount = normalizedGroups.filter((g) => g.role === 'owner' || g.role === 'admin').length;
+    return { totalGroups, totalMembers, totalTasks, adminOrOwnerCount };
+  }, [normalizedGroups]);
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
       <div className="page-header">
@@ -169,18 +197,67 @@ function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick })
         <p>Gemeinsam planen und organisieren</p>
       </div>
 
-      <div className="group-actions-row">
-        <button className="group-action-btn primary" onClick={onCreateClick}>
-          <Plus size={18} /> Gruppe erstellen
-        </button>
-        <button className="group-action-btn" onClick={onJoinClick}>
-          <Hash size={18} /> Beitreten
-        </button>
-      </div>
+      <section className="groups-hub">
+        <div className="groups-hub-stats" aria-label="Gruppen Statistiken">
+          <article className="groups-hub-stat-card">
+            <span>Anzahl Gruppen</span>
+            <strong>{stats.totalGroups}</strong>
+          </article>
+          <article className="groups-hub-stat-card">
+            <span>Mitglieder gesamt</span>
+            <strong>{stats.totalMembers}</strong>
+          </article>
+          <article className="groups-hub-stat-card">
+            <span>Aufgaben gesamt</span>
+            <strong>{stats.totalTasks}</strong>
+          </article>
+          <article className="groups-hub-stat-card">
+            <span>Leitungsrollen</span>
+            <strong>{stats.adminOrOwnerCount}</strong>
+          </article>
+        </div>
+
+        <div className="group-actions-row">
+          <button className="group-action-btn primary" onClick={onCreateClick}>
+            <Plus size={18} /> Gruppe erstellen
+          </button>
+          <button className="group-action-btn secondary" onClick={onJoinClick}>
+            <Hash size={18} /> Beitreten
+          </button>
+        </div>
+
+        <div className="groups-search-wrap">
+          <Search size={16} />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Gruppe oder Rolle suchen..."
+            className="groups-search-input"
+            aria-label="Gruppen durchsuchen"
+          />
+          {query && (
+            <button
+              type="button"
+              className="groups-search-clear"
+              onClick={() => setQuery('')}
+              aria-label="Suche leeren"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+      </section>
 
       {loading && groups.length === 0 ? (
         <div className="group-loading">Laden...</div>
-      ) : groups.length === 0 ? (
+      ) : filteredGroups.length === 0 && groups.length > 0 ? (
+        <div className="group-empty">
+          <div className="group-empty-icon"><Search size={32} /></div>
+          <h3>Keine Treffer</h3>
+          <p>Versuche einen anderen Suchbegriff</p>
+        </div>
+      ) : filteredGroups.length === 0 ? (
         <div className="group-empty">
           <div className="group-empty-icon"><Users size={40} /></div>
           <h3>Noch keine Gruppen</h3>
@@ -188,33 +265,33 @@ function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick })
         </div>
       ) : (
         <div className="group-list">
-          {groups.map((g) => (
+          {filteredGroups.map((g) => (
             <motion.div
               key={g.id}
               className="group-card"
               onClick={() => onOpenGroup(g.id)}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.98 }}
+              whileHover={{ y: -3 }}
+              whileTap={{ scale: 0.99 }}
             >
+              <div className="group-card-accent" style={{ background: g.color || '#007AFF' }} />
               <AvatarBadge
                 className="group-card-avatar"
                 name={g.name}
                 color={g.color || '#007AFF'}
                 avatarUrl={g.image_url}
-                size={44}
+                size={46}
               />
               <div className="group-card-info">
-                <h3>{g.name}</h3>
+                <div className="group-card-name-row">
+                  <h3>{g.name}</h3>
+                  <span className={`group-role-badge ${g.role}`}>
+                    {ROLE_CONFIG[g.role]?.label || 'Mitglied'}
+                  </span>
+                </div>
                 <div className="group-card-meta">
                   <span><Users size={12} /> {g.member_count} Mitglieder</span>
-                  <span className="group-card-dot">·</span>
-                  <span>{g.task_count} Aufgaben</span>
+                  <span><Calendar size={12} /> {g.task_count} Aufgaben</span>
                 </div>
-              </div>
-              <div className="group-card-role">
-                <span className={`group-role-badge ${g.role}`}>
-                  {ROLE_CONFIG[g.role]?.label}
-                </span>
               </div>
               <ChevronRight size={18} className="group-card-chevron" />
             </motion.div>
