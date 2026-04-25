@@ -39,6 +39,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
   const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/calendar', icon: CalendarDays, label: 'Kalender' },
+    { to: '/notes', icon: Sparkles, label: 'Notes' },
     { to: '/groups', icon: UsersRound, label: 'Gruppen' },
   ];
 

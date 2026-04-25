@@ -9,6 +9,7 @@ import LandingPage from './pages/LandingPage';
 import ProfilePage from './pages/ProfilePage';
 import GroupsPage from './pages/GroupsPage';
 import PricingPage from './pages/PricingPage';
+import NotesPage from './pages/NotesPage';
 import InstallPrompt from './components/InstallPrompt';
 import OfflineBanner from './components/OfflineBanner';
 import { useEffect } from 'react';
@@ -49,6 +50,7 @@ export default function App() {
         >
           <Route index element={<Dashboard />} />
           <Route path="calendar" element={<CalendarPage />} />
+          <Route path="notes" element={<NotesPage />} />
           <Route path="groups" element={<GroupsPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="pricing" element={<PricingPage />} />
