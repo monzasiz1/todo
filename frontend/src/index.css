@@ -4313,6 +4313,77 @@ body.cal-is-dragging * {
     font-size: 14px;
   }
 
+  /* ── Dashboard Mobile: app-like full width without wasted side gutters ── */
+  .dashboard-page {
+    margin-left: -16px;
+    margin-right: -16px;
+    padding-bottom: 8px;
+  }
+
+  .dashboard-page > .page-header,
+  .dashboard-page > .task-creation-stack {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .dashboard-page > .page-header {
+    margin-bottom: 14px;
+  }
+
+  .dashboard-page > .task-creation-stack {
+    margin-bottom: 14px;
+  }
+
+  .dashboard-page > .smart-insights,
+  .dashboard-page > .filter-bar,
+  .dashboard-page > .dash-section,
+  .dashboard-page > .empty-state {
+    margin-left: 0;
+    margin-right: 0;
+    border-left: none;
+    border-right: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .dashboard-page > .smart-insights {
+    padding: 14px 16px;
+    margin-bottom: 10px;
+  }
+
+  .dashboard-page > .filter-bar {
+    padding: 8px 16px 10px;
+    margin-bottom: 10px;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+  }
+
+  .dashboard-page > .dash-section,
+  .dashboard-page > .empty-state {
+    margin-bottom: 10px;
+  }
+
+  .dashboard-page .dash-section-header {
+    padding: 14px 16px;
+  }
+
+  .dashboard-page .dash-section-list {
+    padding: 0 12px 12px;
+  }
+
+  .dashboard-page .smart-insights-head {
+    gap: 8px;
+  }
+
+  .dashboard-page .smart-insights-meta-wrap {
+    gap: 4px;
+  }
+
+  .dashboard-page .smart-insights-meta {
+    padding: 4px 8px;
+  }
+
   /* Task Cards */
   .task-card {
     padding: 12px 14px;

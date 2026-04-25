@@ -444,7 +444,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <div>
+    <div className="dashboard-page">
       {/* Header */}
       <motion.div
         className="page-header"
