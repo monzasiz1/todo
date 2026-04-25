@@ -21,6 +21,8 @@ export default function NotesPage() {
   const [isDragging, setIsDragging] = useState(null);
   const [notePositions, setNotePositions] = useState({});
   const [connections, setConnections] = useState([]);
+  const [hoveredNoteId, setHoveredNoteId] = useState(null);
+  const [taskSearch, setTaskSearch] = useState('');
   const canvasRef = useRef(null);
 
   const refreshConnections = async (sourceNotes = notes) => {
@@ -54,7 +56,7 @@ export default function NotesPage() {
   // Load notes on mount
   useEffect(() => {
     useNotesStore.getState().fetchNotes?.();
-    fetchTasks?.({}, { force: false });
+    fetchTasks?.({ dashboard: 'true', limit: '300', horizon_days: '365', completed_lookback_days: '60' }, { force: false });
   }, [fetchTasks]);
 
   useEffect(() => {
@@ -171,6 +173,7 @@ export default function NotesPage() {
       };
       await createNote(noteData);
       setNewNote({ title: '', content: '', importance: 'medium', date: '', linked_task_id: null });
+      setTaskSearch('');
       setShowCreateModal(false);
     } catch (err) {
       console.error('Create note error:', err);
@@ -229,6 +232,66 @@ export default function NotesPage() {
     return note?.linked_task_id ? tasks.find(t => t.id === note.linked_task_id) : null;
   };
 
+  const formatTaskDate = (task) => {
+    const startDate = task?.date ? new Date(task.date) : null;
+    if (!startDate || Number.isNaN(startDate.getTime())) return 'Ohne Datum';
+
+    const start = startDate.toLocaleDateString('de-DE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+
+    if (!task?.date_end) return start;
+
+    const endDate = new Date(task.date_end);
+    if (Number.isNaN(endDate.getTime())) return start;
+
+    return `${start} bis ${endDate.toLocaleDateString('de-DE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    })}`;
+  };
+
+  const normalizedTaskSearch = taskSearch.trim().toLowerCase();
+  const sortedTasks = [...tasks].sort((left, right) => {
+    const leftIsEvent = left.type === 'event' ? 0 : 1;
+    const rightIsEvent = right.type === 'event' ? 0 : 1;
+    if (leftIsEvent !== rightIsEvent) return leftIsEvent - rightIsEvent;
+
+    const leftDate = left.date ? new Date(left.date).getTime() : Number.MAX_SAFE_INTEGER;
+    const rightDate = right.date ? new Date(right.date).getTime() : Number.MAX_SAFE_INTEGER;
+    return leftDate - rightDate;
+  });
+
+  const visibleTasks = sortedTasks.filter((task) => {
+    if (!normalizedTaskSearch) return true;
+
+    const searchable = [task.title, task.date, task.date_end, task.type]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+
+    return searchable.includes(normalizedTaskSearch);
+  });
+
+  const selectedTask = newNote.linked_task_id
+    ? tasks.find((task) => String(task.id) === String(newNote.linked_task_id))
+    : null;
+
+  const connectedNoteIds = new Set();
+  if (hoveredNoteId) {
+    connections.forEach((connection) => {
+      const firstId = String(connection?.note_id_1 || connection?.noteId1 || '');
+      const secondId = String(connection?.note_id_2 || connection?.noteId2 || '');
+      const current = String(hoveredNoteId);
+
+      if (firstId === current) connectedNoteIds.add(secondId);
+      if (secondId === current) connectedNoteIds.add(firstId);
+    });
+  }
+
   const getNoteGeometry = (noteId) => {
     const note = notes.find((entry) => String(entry.id) === String(noteId));
     if (!note) return null;
@@ -261,9 +324,15 @@ export default function NotesPage() {
     const controlX2 = end.centerX - curveOffset;
     const path = `M ${start.centerX} ${start.centerY} C ${controlX1} ${start.centerY - 28}, ${controlX2} ${end.centerY + 28}, ${end.centerX} ${end.centerY}`;
     const pulseDelay = `${(index % 6) * 0.35}s`;
+    const isActive = hoveredNoteId && [String(firstId), String(secondId)].includes(String(hoveredNoteId));
+    const isMuted = hoveredNoteId && !isActive;
 
     return (
-      <g key={connection.id || `${firstId}-${secondId}`} className="connection-group" style={{ animationDelay: pulseDelay }}>
+      <g
+        key={connection.id || `${firstId}-${secondId}`}
+        className={`connection-group ${isActive ? 'active' : ''} ${isMuted ? 'muted' : ''}`}
+        style={{ animationDelay: pulseDelay }}
+      >
         <path className="connection-path connection-path-glow" d={path} />
         <path className="connection-path connection-path-core" d={path} />
         <circle className="connection-node" cx={start.centerX} cy={start.centerY} r="4.5" />
@@ -336,9 +405,16 @@ export default function NotesPage() {
               </motion.div>
             ) : (
               notes.map((note) => (
+                (() => {
+                  const noteId = String(note.id);
+                  const isHovered = hoveredNoteId && noteId === String(hoveredNoteId);
+                  const isConnected = hoveredNoteId && connectedNoteIds.has(noteId);
+                  const isMuted = hoveredNoteId && !isHovered && !isConnected;
+
+                  return (
                 <motion.div
                   key={note.id}
-                  className={`note-card note-${note.importance} ${isUrgent(note.date) ? 'note-urgent' : ''}`}
+                  className={`note-card note-${note.importance} ${isUrgent(note.date) ? 'note-urgent' : ''} ${isHovered ? 'note-focus' : ''} ${isConnected ? 'note-connected' : ''} ${isMuted ? 'note-muted' : ''}`}
                   style={{
                     left: `${(notePositions[note.id]?.x ?? note.x ?? 100)}px`,
                     top: `${(notePositions[note.id]?.y ?? note.y ?? 100)}px`,
@@ -346,6 +422,8 @@ export default function NotesPage() {
                     minHeight: `${note.height || 150}px`,
                   }}
                   onMouseDown={(e) => handleNoteMouseDown(e, note.id)}
+                  onMouseEnter={() => setHoveredNoteId(note.id)}
+                  onMouseLeave={() => setHoveredNoteId(null)}
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
@@ -409,6 +487,8 @@ export default function NotesPage() {
                     </button>
                   </div>
                 </motion.div>
+                  );
+                })()
               ))
             )}
           </AnimatePresence>
@@ -502,18 +582,72 @@ export default function NotesPage() {
 
               <div className="form-group">
                 <label className="form-label">Termin verknüpfen (optional)</label>
-                <select
-                  className="form-input"
-                  value={newNote.linked_task_id || ''}
-                  onChange={(e) => setNewNote({ ...newNote, linked_task_id: e.target.value || null })}
-                >
-                  <option value="">Keinen Termin wählen</option>
-                  {tasks.map((task) => (
-                    <option key={task.id} value={task.id}>
-                      {task.title}{task.date ? ` · ${new Date(task.date).toLocaleDateString('de-DE')}` : ''}
-                    </option>
-                  ))}
-                </select>
+                <div className="task-picker-shell">
+                  <div className="task-picker-toolbar">
+                    <input
+                      type="text"
+                      className="form-input task-search-input"
+                      placeholder="Termin oder Aufgabe suchen..."
+                      value={taskSearch}
+                      onChange={(e) => setTaskSearch(e.target.value)}
+                    />
+                    <div className="task-picker-meta">
+                      {visibleTasks.length} Einträge
+                    </div>
+                  </div>
+
+                  {selectedTask && (
+                    <button
+                      type="button"
+                      className="selected-task-pill"
+                      onClick={() => setNewNote({ ...newNote, linked_task_id: null })}
+                    >
+                      <span>{selectedTask.title}</span>
+                      <span>{formatTaskDate(selectedTask)}</span>
+                      <X size={14} />
+                    </button>
+                  )}
+
+                  <div className="task-picker-list" role="listbox" aria-label="Eigene Termine und Aufgaben">
+                    <button
+                      type="button"
+                      className={`task-picker-card task-picker-clear ${!newNote.linked_task_id ? 'active' : ''}`}
+                      onClick={() => setNewNote({ ...newNote, linked_task_id: null })}
+                    >
+                      <div className="task-picker-card-header">
+                        <span className="task-picker-title">Ohne Verknüpfung</span>
+                        <span className="task-picker-badge neutral">Frei</span>
+                      </div>
+                      <div className="task-picker-subline">Diese Note bleibt unabhängig von einem Termin.</div>
+                    </button>
+
+                    {visibleTasks.map((task) => {
+                      const isSelected = String(newNote.linked_task_id || '') === String(task.id);
+                      return (
+                        <button
+                          key={task.id}
+                          type="button"
+                          className={`task-picker-card ${isSelected ? 'active' : ''}`}
+                          onClick={() => setNewNote({ ...newNote, linked_task_id: task.id })}
+                        >
+                          <div className="task-picker-card-header">
+                            <span className="task-picker-title">{task.title}</span>
+                            <span className={`task-picker-badge ${task.type === 'event' ? 'event' : 'task'}`}>
+                              {task.type === 'event' ? 'Termin' : 'Aufgabe'}
+                            </span>
+                          </div>
+                          <div className="task-picker-subline">{formatTaskDate(task)}</div>
+                        </button>
+                      );
+                    })}
+
+                    {visibleTasks.length === 0 && (
+                      <div className="task-picker-empty">
+                        Keine Termine oder Aufgaben passen zur Suche.
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div className="modal-actions">
