@@ -5193,6 +5193,75 @@ body.cal-is-dragging * {
   position: relative;
 }
 
+/* Desktop: Zwei-Spalten-Layout */
+@media (min-width: 900px) {
+  .task-detail-modal {
+    max-width: 880px;
+    max-height: 82vh;
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    overflow: hidden;
+    align-items: stretch;
+  }
+
+  .task-detail-main {
+    overflow-y: auto;
+    overflow-x: hidden;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0,0,0,0.12) transparent;
+  }
+
+  .task-detail-aside {
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    min-height: 0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0,0,0,0.12) transparent;
+  }
+
+  .task-detail-aside .task-detail-section {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .task-detail-comments-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .task-detail-comments-section .task-detail-comments-box {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 260px;
+  }
+
+  .task-detail-aside .task-detail-description-header {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-tertiary);
+    padding: 14px 18px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .task-detail-aside .task-detail-section {
+    padding: 0;
+  }
+
+  .task-detail-aside .task-detail-section > *:not(.task-detail-description-header) {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+}
+
 .task-detail-header {
   position: relative;
   padding: 0;
