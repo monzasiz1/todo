@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { api } from '../utils/api';
-import { useWorkspaceStore } from './workspaceStore';
 
 const GROUP_CACHE_KEY = 'taski_groups_cache_v1';
 
@@ -57,15 +56,7 @@ export const useGroupStore = create((set, get) => ({
 
   createGroup: async (groupData) => {
     try {
-      const activeWorkspace = useWorkspaceStore.getState().activeWorkspace;
-      const payload = {
-        ...groupData,
-        organization_id: activeWorkspace?.scope === 'organization' && activeWorkspace?.id
-          ? activeWorkspace.id
-          : (groupData?.organization_id ?? null),
-      };
-
-      const data = await api.createGroup(payload);
+      const data = await api.createGroup(groupData);
       set((s) => ({ groups: [data.group, ...s.groups] }));
       return data.group;
     } catch (err) {

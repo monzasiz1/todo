@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../store/taskStore';
 import { ChevronLeft, ChevronRight, ChevronDown, Video } from 'lucide-react';
-import { getWorkspaceLabel, useWorkspaceStore } from '../store/workspaceStore';
 import TaskDetailModal from './TaskDetailModal';
 import AvatarBadge from './AvatarBadge';
 import {
@@ -130,14 +129,61 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const triggerRef = useRef(null);
   const dropdownRef = useRef(null);
   const { tasks: storeTasks, updateTask } = useTaskStore();
-  const { activeWorkspace } = useWorkspaceStore();
   const tasks = Array.isArray(tasksProp) ? tasksProp : storeTasks;
+
+  const getTaskSource = (t) => {
+    if (t.group_id || t.group_name) {
+      return {
+        key: `group:${t.group_id || t.group_name}`,
+        name: t.group_name || 'Gruppe',
+        color: t.group_color || '#5856D6',
+      };
+    }
+    if (t.category_id || t.category_name) {
+      return {
+        key: `cat:${t.category_id || t.category_name}`,
+        name: t.category_name || 'Kategorie',
+        color: t.category_color || '#4C7BD9',
+      };
+    }
+    return { key: 'default:persoenlich', name: 'Persoenlich', color: '#4C7BD9' };
+  };
+
+  const calendarSources = useMemo(() => {
+    const map = new Map();
+    tasks.forEach((t) => {
+      const source = getTaskSource(t);
+      if (!map.has(source.key)) {
+        map.set(source.key, source);
+      }
+    });
+    return Array.from(map.values());
+  }, [tasks]);
+
+  const [visibleSources, setVisibleSources] = useState({});
 
   useEffect(() => {
     tasksRef.current = tasks;
   }, [tasks]);
 
-  const filteredTasks = useMemo(() => tasks, [tasks]);
+  useEffect(() => {
+    setVisibleSources((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      calendarSources.forEach((s) => {
+        if (typeof next[s.key] === 'undefined') {
+          next[s.key] = true;
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [calendarSources]);
+
+  const filteredTasks = useMemo(
+    () => tasks.filter((t) => visibleSources[getTaskSource(t).key] !== false),
+    [tasks, visibleSources]
+  );
 
   useEffect(() => {
     if (!onVisibleRangeChange) return;
@@ -821,7 +867,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
         <aside className="desktop-calendar-sidebar">
           <div className="desktop-calendar-sidebar-title">Kalender</div>
           <button className="desktop-sidebar-section-toggle" onClick={() => setShowSidebarCategories((v) => !v)}>
-            <span>Aktiver Workspace</span>
+            <span>Kategorien</span>
             <ChevronDown size={15} className={`desktop-sidebar-chevron ${showSidebarCategories ? 'open' : ''}`} />
           </button>
           <AnimatePresence initial={false}>
@@ -833,10 +879,17 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.2 }}
               >
-                <div className="desktop-calendar-source-item workspace-summary-item">
-                  <span className="desktop-calendar-source-dot" style={{ background: activeWorkspace.color || '#4C7BD9' }} />
-                  <span className="desktop-calendar-source-name">{getWorkspaceLabel(activeWorkspace)}</span>
-                </div>
+                {calendarSources.map((source) => (
+                  <label key={source.key} className="desktop-calendar-source-item">
+                    <input
+                      type="checkbox"
+                      checked={visibleSources[source.key] !== false}
+                      onChange={(e) => setVisibleSources((s) => ({ ...s, [source.key]: e.target.checked }))}
+                    />
+                    <span className="desktop-calendar-source-dot" style={{ background: source.color }} />
+                    <span className="desktop-calendar-source-name">{source.name}</span>
+                  </label>
+                ))}
               </motion.div>
             )}
           </AnimatePresence>

@@ -8,7 +8,6 @@ import Register from './pages/Register';
 import LandingPage from './pages/LandingPage';
 import ProfilePage from './pages/ProfilePage';
 import GroupsPage from './pages/GroupsPage';
-import OrganizationsPage from './pages/OrganizationsPage';
 import PricingPage from './pages/PricingPage';
 import InstallPrompt from './components/InstallPrompt';
 import OfflineBanner from './components/OfflineBanner';
@@ -51,7 +50,6 @@ export default function App() {
           <Route index element={<Dashboard />} />
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="groups" element={<GroupsPage />} />
-          <Route path="organizations" element={<OrganizationsPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="pricing" element={<PricingPage />} />
         </Route>

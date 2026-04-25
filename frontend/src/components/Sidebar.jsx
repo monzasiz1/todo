@@ -10,8 +10,6 @@ import {
   Sparkles,
   Users,
   UsersRound,
-  Building2,
-  Briefcase,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -22,17 +20,11 @@ import { useFriendsStore } from '../store/friendsStore';
 import AvatarBadge from './AvatarBadge';
 import NotificationBell from './NotificationBell';
 import { usePlan } from '../hooks/usePlan';
-import { useGroupStore } from '../store/groupStore';
-import { useOrganizationStore } from '../store/organizationStore';
-import { PRIVATE_WORKSPACE, useWorkspaceStore } from '../store/workspaceStore';
 
 export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }) {
   const { user, logout } = useAuthStore();
   const { categories, fetchCategories, tasks, filter, setFilter, clearFilters } = useTaskStore();
   const { pending, fetchFriends } = useFriendsStore();
-  const { groups, fetchGroups } = useGroupStore();
-  const { organizations, fetchOrganizations } = useOrganizationStore();
-  const { activeWorkspace, setActiveWorkspace } = useWorkspaceStore();
   const { planId } = usePlan();
   const [showFriends, setShowFriends] = useState(false);
   const [showCategories, setShowCategories] = useState(false);
@@ -42,33 +34,12 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
   useEffect(() => {
     fetchCategories();
     fetchFriends();
-    fetchGroups();
-    fetchOrganizations();
   }, []);
 
   const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/calendar', icon: CalendarDays, label: 'Kalender' },
     { to: '/groups', icon: UsersRound, label: 'Gruppen' },
-    { to: '/organizations', icon: Building2, label: 'Organisationen' },
-  ];
-
-  const workspaceItems = [
-    { ...PRIVATE_WORKSPACE, icon: Briefcase },
-    ...groups.map((group) => ({
-      scope: 'group',
-      id: String(group.id),
-      name: group.name,
-      color: group.color || '#5856D6',
-      icon: UsersRound,
-    })),
-    ...organizations.map((organization) => ({
-      scope: 'organization',
-      id: String(organization.id),
-      name: organization.name,
-      color: organization.color || '#FF9500',
-      icon: Building2,
-    })),
   ];
 
   const getTaskCount = (categoryId) => {
@@ -94,37 +65,6 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
           <CheckSquare size={22} />
         </div>
         <h1>Taski</h1>
-      </div>
-
-      {!isCollapsed && (
-        <div className="sidebar-section-title">Workspaces</div>
-      )}
-      <div className="workspace-switch-list">
-        {workspaceItems.map((workspace) => {
-          const Icon = workspace.icon;
-          const isActive = activeWorkspace.scope === workspace.scope
-            && String(activeWorkspace.id || '') === String(workspace.id || '');
-          return (
-            <button
-              key={`${workspace.scope}:${workspace.id || 'private'}`}
-              type="button"
-              className={`workspace-switch-item ${isActive ? 'active' : ''}`}
-              onClick={() => {
-                setActiveWorkspace(workspace);
-                onClose?.();
-              }}
-              title={workspace.name}
-            >
-              <span className="workspace-switch-icon" style={{ background: `${workspace.color}22`, color: workspace.color }}>
-                <Icon size={16} />
-              </span>
-              <span className="workspace-switch-copy">
-                <strong>{workspace.name}</strong>
-                <small>{workspace.scope === 'private' ? 'Persoenlich' : workspace.scope === 'group' ? 'Gruppe' : 'Organisation'}</small>
-              </span>
-            </button>
-          );
-        })}
       </div>
 
       {/* Navigation */}

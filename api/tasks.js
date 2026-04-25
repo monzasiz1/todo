@@ -297,9 +297,6 @@ function normalizeTaskRow(row) {
     creator_avatar_url: row.creator_avatar_url || null,
     last_editor_name: row.last_editor_name || null,
     group_id: row.group_id || null,
-    source_scope: row.source_scope || (row.group_id ? 'group' : 'private'),
-    source_group_id: row.source_group_id || row.group_id || null,
-    source_organization_id: row.source_organization_id || null,
     group_name: row.group_name || null,
     group_color: row.group_color || null,
     group_image_url: row.group_image_url || null,
@@ -315,51 +312,9 @@ function normalizeTaskRows(rows) {
   return Array.isArray(rows) ? rows.map(normalizeTaskRow) : [];
 }
 
-function parseWorkspaceContext(query = {}) {
-  const scope = query.workspace_scope === 'group' || query.workspace_scope === 'organization'
-    ? query.workspace_scope
-    : 'private';
-
-  return {
-    scope,
-    groupId: query.workspace_group_id ? String(query.workspace_group_id) : null,
-    organizationId: query.workspace_organization_id ? String(query.workspace_organization_id) : null,
-  };
-}
-
-function taskMatchesWorkspace(task, workspace, userId) {
-  const scope = workspace?.scope || 'private';
-  const sourceScope = task?.source_scope || (task?.group_id ? 'group' : 'private');
-  const taskGroupId = task?.source_group_id || task?.group_id || null;
-  const taskOrganizationId = task?.source_organization_id || null;
-
-  if (scope === 'group') {
-    return workspace.groupId && String(taskGroupId) === String(workspace.groupId);
-  }
-
-  if (scope === 'organization') {
-    return workspace.organizationId && String(taskOrganizationId) === String(workspace.organizationId);
-  }
-
-  if (sourceScope === 'group' || sourceScope === 'organization') return false;
-  if (taskGroupId || taskOrganizationId) return false;
-  return !task.user_id || String(task.user_id) === String(userId) || sourceScope === 'private';
-}
-
-function filterTasksByWorkspace(tasks, workspace, userId) {
-  return Array.isArray(tasks)
-    ? tasks.filter((task) => taskMatchesWorkspace(task, workspace, userId))
-    : [];
-}
-
-function buildDashboardCacheKey(userId, completedFilter, limit, horizonDays, completedLookbackDays, workspace) {
+function buildDashboardCacheKey(userId, completedFilter, limit, horizonDays, completedLookbackDays) {
   const completedScope = completedFilter === null ? 'all' : String(completedFilter);
-  const workspaceKey = workspace?.scope === 'group'
-    ? `group:${workspace.groupId || 'none'}`
-    : workspace?.scope === 'organization'
-      ? `organization:${workspace.organizationId || 'none'}`
-      : 'private';
-  return `dashboard:user:${userId}:${workspaceKey}:${completedScope}:${limit}:h${horizonDays}:c${completedLookbackDays}`;
+  return `dashboard:user:${userId}:${completedScope}:${limit}:h${horizonDays}:c${completedLookbackDays}`;
 }
 
 function buildDashboardOrderByClause() {
@@ -386,7 +341,6 @@ module.exports = async function handler(req, res) {
   if (segments[0] === 'range' && req.method === 'GET') {
     try {
       const { start, end } = req.query || {};
-      const workspace = parseWorkspaceContext(req.query || {});
       if (!start || !end) {
         return res.status(400).json({ error: 'Start- und Enddatum erforderlich' });
       }
@@ -437,10 +391,6 @@ module.exports = async function handler(req, res) {
              ))
              OR (t.visibility = 'selected_users' AND tp.can_view = true)
              OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
-             OR (t.source_scope = 'organization' AND EXISTS (
-               SELECT 1 FROM organization_members om
-               WHERE om.organization_id = t.source_organization_id AND om.user_id = $1
-             ))
            ) AND (
              (t.date >= $2 AND t.date <= $3)
              OR (t.date_end IS NOT NULL AND t.date <= $3 AND t.date_end >= $2)
@@ -458,11 +408,7 @@ module.exports = async function handler(req, res) {
            LEFT JOIN groups grp ON grp.id = gt.group_id
            LEFT JOIN users gtc ON gtc.id = gt.created_by
            WHERE (t.user_id = $1
-             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
-             OR (t.source_scope = 'organization' AND EXISTS (
-               SELECT 1 FROM organization_members om
-               WHERE om.organization_id = t.source_organization_id AND om.user_id = $1
-             )))
+             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1))
              AND (
                (t.date >= $2 AND t.date <= $3)
                OR (t.date_end IS NOT NULL AND t.date <= $3 AND t.date_end >= $2)
@@ -514,10 +460,6 @@ module.exports = async function handler(req, res) {
              ))
              OR (t.visibility = 'selected_users' AND tp.can_view = true)
              OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
-             OR (t.source_scope = 'organization' AND EXISTS (
-               SELECT 1 FROM organization_members om
-               WHERE om.organization_id = t.source_organization_id AND om.user_id = $1
-             ))
            )
            AND t.recurrence_rule IS NOT NULL
            AND t.recurrence_parent_id IS NULL
@@ -533,11 +475,7 @@ module.exports = async function handler(req, res) {
            LEFT JOIN group_tasks gt ON gt.task_id = t.id
            LEFT JOIN groups grp ON grp.id = gt.group_id
            WHERE (t.user_id = $1
-             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
-             OR (t.source_scope = 'organization' AND EXISTS (
-               SELECT 1 FROM organization_members om
-               WHERE om.organization_id = t.source_organization_id AND om.user_id = $1
-             )))
+             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1))
            AND t.recurrence_rule IS NOT NULL
            AND t.recurrence_parent_id IS NULL
            AND t.date <= $3
@@ -554,7 +492,7 @@ module.exports = async function handler(req, res) {
         end
       ));
 
-      return res.json({ tasks: filterTasksByWorkspace(merged, workspace, user.id) });
+      return res.json({ tasks: merged });
     } catch (err) {
       console.error('Tasks range error:', err);
       return res.status(500).json({ error: 'Fehler beim Laden der Aufgaben' });
@@ -751,7 +689,6 @@ module.exports = async function handler(req, res) {
   // GET /api/tasks/summary
   if (segments[0] === 'summary' && req.method === 'GET') {
     try {
-      const workspace = parseWorkspaceContext(req.query || {});
       const hasCollab = await pool.query(
         `SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tasks' AND column_name = 'visibility') as has_visibility`
       );
@@ -773,11 +710,7 @@ module.exports = async function handler(req, res) {
                AND ((f.user_id = t.user_id AND f.friend_id = $1) OR (f.user_id = $1 AND f.friend_id = t.user_id))
              ))
              OR (t.visibility = 'selected_users' AND tp.can_view = true)
-             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
-             OR (t.source_scope = 'organization' AND EXISTS (
-               SELECT 1 FROM organization_members om
-               WHERE om.organization_id = t.source_organization_id AND om.user_id = $1
-             )))
+             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1))
              AND t.type != 'event'`,
           [user.id]
         );
@@ -790,36 +723,13 @@ module.exports = async function handler(req, res) {
              COUNT(*) FILTER (WHERE t.completed = false AND t.priority IN ('urgent', 'high') AND t.type != 'event') as urgent_count
            FROM tasks t
            WHERE (t.user_id = $1
-             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
-             OR (t.source_scope = 'organization' AND EXISTS (
-               SELECT 1 FROM organization_members om
-               WHERE om.organization_id = t.source_organization_id AND om.user_id = $1
-             )))
+             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1))
              AND t.type != 'event'`,
           [user.id]
         );
       }
 
-      const summaryTasksResult = await pool.query(
-        `SELECT t.*, gt.group_id
-         FROM tasks t
-         LEFT JOIN group_tasks gt ON gt.task_id = t.id
-         WHERE (t.user_id = $1
-           OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
-           OR (t.source_scope = 'organization' AND EXISTS (
-             SELECT 1 FROM organization_members om
-             WHERE om.organization_id = t.source_organization_id AND om.user_id = $1
-           )))
-           AND t.type != 'event'`,
-        [user.id]
-      );
-      const scopedSummaryTasks = filterTasksByWorkspace(normalizeTaskRows(summaryTasksResult.rows || []), workspace, user.id);
-      const s = {
-        open_count: scopedSummaryTasks.filter((task) => task.completed === false).length,
-        completed_count: scopedSummaryTasks.filter((task) => task.completed === true).length,
-        today_count: scopedSummaryTasks.filter((task) => task.completed === false && String(task.date || '').slice(0, 10) === new Date().toISOString().slice(0, 10)).length,
-        urgent_count: scopedSummaryTasks.filter((task) => task.completed === false && ['urgent', 'high'].includes(task.priority)).length,
-      };
+      const s = result.rows[0] || {};
       return res.json({
         open: parseInt(s.open_count || 0),
         completed: parseInt(s.completed_count || 0),
@@ -836,7 +746,6 @@ module.exports = async function handler(req, res) {
   if ((segments.length === 0 || (segments.length === 1 && segments[0] === 'dashboard')) && req.method === 'GET') {
     try {
       const isDashboardEndpoint = segments[0] === 'dashboard';
-      const workspace = parseWorkspaceContext(req.query || {});
       const lite = isDashboardEndpoint || String(req.query?.lite || 'false') === 'true';
       const completedRaw = req.query?.completed;
       const completedFilter = completedRaw === 'true' ? true : (completedRaw === 'false' ? false : null);
@@ -858,7 +767,7 @@ module.exports = async function handler(req, res) {
 
       // 🚀 CACHE: Check dashboard cache first
       if (lite) {
-        const cacheKey = buildDashboardCacheKey(user.id, completedFilter, limit, horizonDays, completedLookbackDays, workspace);
+        const cacheKey = buildDashboardCacheKey(user.id, completedFilter, limit, horizonDays, completedLookbackDays);
         const cached = await cacheManager.get(cacheKey);
         if (cached) {
           res.setHeader('X-Dashboard-Cache', `${cacheManager.backendName}-hit`);
@@ -906,16 +815,6 @@ module.exports = async function handler(req, res) {
                FROM group_tasks gt
                JOIN group_members gm ON gm.group_id = gt.group_id
                WHERE gm.user_id = $1
-
-               UNION ALL
-
-               SELECT t.id
-               FROM tasks t
-               WHERE t.source_scope = 'organization'
-                 AND EXISTS (
-                   SELECT 1 FROM organization_members om
-                   WHERE om.organization_id = t.source_organization_id AND om.user_id = $1
-                 )
              ),
              task_ids AS (
                SELECT DISTINCT id FROM visible_ids
@@ -1015,16 +914,6 @@ module.exports = async function handler(req, res) {
                FROM group_tasks gt
                JOIN group_members gm ON gm.group_id = gt.group_id
                WHERE gm.user_id = $1
-
-               UNION ALL
-
-               SELECT t.id
-               FROM tasks t
-               WHERE t.source_scope = 'organization'
-                 AND EXISTS (
-                   SELECT 1 FROM organization_members om
-                   WHERE om.organization_id = t.source_organization_id AND om.user_id = $1
-                 )
              ),
              uniq_ids AS (
                SELECT DISTINCT id FROM task_ids
@@ -1158,10 +1047,6 @@ module.exports = async function handler(req, res) {
                    JOIN group_members gm ON gm.group_id = gt2.group_id
                    WHERE gt2.task_id = t.id AND gm.user_id = $1
                  )
-                 OR (t.source_scope = 'organization' AND EXISTS (
-                   SELECT 1 FROM organization_members om
-                   WHERE om.organization_id = t.source_organization_id AND om.user_id = $1
-                 ))
                )
                  AND t.recurrence_rule IS NOT NULL
                  AND t.recurrence_parent_id IS NULL
@@ -1199,11 +1084,7 @@ module.exports = async function handler(req, res) {
                  ORDER BY gt.group_id
                  LIMIT 1
                ) g ON true
-               WHERE (t.user_id = $1
-                 OR (t.source_scope = 'organization' AND EXISTS (
-                   SELECT 1 FROM organization_members om
-                   WHERE om.organization_id = t.source_organization_id AND om.user_id = $1
-                 )))
+               WHERE t.user_id = $1
                  AND t.recurrence_rule IS NOT NULL
                  AND t.recurrence_parent_id IS NULL
                  AND t.date <= $2
@@ -1220,8 +1101,8 @@ module.exports = async function handler(req, res) {
         }
 
         // 🚀 CACHE: Store result for 30 seconds
-        const response = { tasks: filterTasksByWorkspace(mergedTasks, workspace, user.id), lite: true };
-        const cacheKey = buildDashboardCacheKey(user.id, completedFilter, limit, horizonDays, completedLookbackDays, workspace);
+        const response = { tasks: mergedTasks, lite: true };
+        const cacheKey = buildDashboardCacheKey(user.id, completedFilter, limit, horizonDays, completedLookbackDays);
         try {
           await cacheManager.set(cacheKey, response, 120, String(user.id));
           res.setHeader('X-Dashboard-Cache-Store', 'ok');
@@ -1267,10 +1148,6 @@ module.exports = async function handler(req, res) {
              ))
              OR (t.visibility = 'selected_users' AND tp.can_view = true)
              OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
-             OR (t.source_scope = 'organization' AND EXISTS (
-               SELECT 1 FROM organization_members om
-               WHERE om.organization_id = t.source_organization_id AND om.user_id = $1
-             ))
            ${completedClause}
            ORDER BY t.sort_order ASC, t.created_at DESC`,
           [user.id]
@@ -1287,17 +1164,13 @@ module.exports = async function handler(req, res) {
            LEFT JOIN users gtc ON gtc.id = gt.created_by
            WHERE t.user_id = $1
              OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
-             OR (t.source_scope = 'organization' AND EXISTS (
-               SELECT 1 FROM organization_members om
-               WHERE om.organization_id = t.source_organization_id AND om.user_id = $1
-             ))
            ${completedClause}
            ORDER BY t.sort_order ASC, t.created_at DESC`,
           [user.id]
         );
       }
 
-      return res.json({ tasks: filterTasksByWorkspace(normalizeTaskRows(result.rows), workspace, user.id) });
+      return res.json({ tasks: normalizeTaskRows(result.rows) });
     } catch (err) {
       console.error('Tasks list error:', err);
       return res.status(500).json({ error: 'Fehler beim Laden der Aufgaben' });
@@ -1309,7 +1182,7 @@ module.exports = async function handler(req, res) {
     try {
       const { title, description, date, date_end, time, time_end, priority, category_id, reminder_at,
               recurrence_rule, recurrence_interval, recurrence_end, group_id,
-              visibility, permissions, type, source_scope, source_group_id, source_organization_id } = req.body;
+              visibility, permissions, type } = req.body;
       if (!title) {
         return res.status(400).json({ error: 'Titel ist erforderlich' });
       }
@@ -1323,36 +1196,19 @@ module.exports = async function handler(req, res) {
       const finalVisibility = collabEnabled ? (visibility || 'private') : 'private';
 
       let groupInfo = null;
-      const effectiveGroupId = source_scope === 'group' ? (source_group_id || group_id) : group_id;
-      if (effectiveGroupId) {
+      if (group_id) {
         const groupAccess = await pool.query(
           `SELECT g.id, g.name, g.color, g.image_url
            FROM groups g
            JOIN group_members gm ON gm.group_id = g.id
            WHERE g.id = $1 AND gm.user_id = $2
            LIMIT 1`,
-          [effectiveGroupId, user.id]
+          [group_id, user.id]
         );
         if (groupAccess.rows.length === 0) {
           return res.status(403).json({ error: 'Keine Berechtigung für diese Gruppe' });
         }
         groupInfo = groupAccess.rows[0];
-      }
-
-      let organizationInfo = null;
-      if (source_scope === 'organization' && source_organization_id) {
-        const organizationAccess = await pool.query(
-          `SELECT o.id, o.name, o.color
-           FROM organizations o
-           JOIN organization_members om ON om.organization_id = o.id
-           WHERE o.id = $1 AND om.user_id = $2
-           LIMIT 1`,
-          [source_organization_id, user.id]
-        );
-        if (organizationAccess.rows.length === 0) {
-          return res.status(403).json({ error: 'Keine Berechtigung fuer diese Organisation' });
-        }
-        organizationInfo = organizationAccess.rows[0];
       }
 
       const maxOrder = await pool.query(
@@ -1374,21 +1230,14 @@ module.exports = async function handler(req, res) {
       // Occurrences are generated on-the-fly in range/dashboard queries.
       // (No more bulk INSERT of hundreds of child rows.)
 
-      const normalizedScope = source_scope === 'organization'
-        ? 'organization'
-        : groupInfo
-          ? 'group'
-          : 'private';
-
       const result = await pool.query(
         `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order,
-        recurrence_rule, recurrence_interval, recurrence_end, visibility, type, source_scope, source_group_id, source_organization_id)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+        recurrence_rule, recurrence_interval, recurrence_end, visibility, type)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
          RETURNING *`,
         [user.id, title, description || null, date || null, date_end || null, time || null, time_end || null,
          priority || 'medium', category_id || null, reminder_at || null,
-        maxOrder.rows[0].next_order, recurrenceRule, recurrenceInterval, recurrenceEnd, finalVisibility, taskType,
-        normalizedScope, groupInfo?.id || null, organizationInfo?.id || null]
+        maxOrder.rows[0].next_order, recurrenceRule, recurrenceInterval, recurrenceEnd, finalVisibility, taskType]
       );
 
       const firstTask = result.rows[0];
@@ -1417,9 +1266,6 @@ module.exports = async function handler(req, res) {
       const decoratedTask = normalizeTaskRow({
         ...firstTask,
         visibility: finalVisibility,
-        source_scope: normalizedScope,
-        source_group_id: groupInfo?.id || null,
-        source_organization_id: organizationInfo?.id || null,
         group_id: groupInfo?.id || null,
         group_name: groupInfo?.name || null,
         group_color: groupInfo?.color || null,

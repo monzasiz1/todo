@@ -166,26 +166,14 @@ module.exports = async function handler(req, res) {
   // ============================================
   if (segments.length === 0 && req.method === 'POST') {
     try {
-      const { name, description, color, icon, image_url, organization_id } = req.body;
+      const { name, description, color, icon, image_url } = req.body;
       if (!name || !name.trim()) return res.status(400).json({ error: 'Gruppenname erforderlich' });
-
-      let organizationId = null;
-      if (organization_id) {
-        const orgAccess = await pool.query(
-          `SELECT role FROM organization_members WHERE organization_id = $1 AND user_id = $2 LIMIT 1`,
-          [organization_id, user.id]
-        );
-        if (orgAccess.rows.length === 0) {
-          return res.status(403).json({ error: 'Keine Berechtigung fuer diese Organisation' });
-        }
-        organizationId = organization_id;
-      }
 
       const inviteCode = generateInviteCode();
       const result = await pool.query(
-        `INSERT INTO groups (name, description, color, icon, image_url, invite_code, created_by, organization_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-        [name.trim(), description || '', color || '#007AFF', icon || 'users', image_url || null, inviteCode, user.id, organizationId]
+        `INSERT INTO groups (name, description, color, icon, image_url, invite_code, created_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+        [name.trim(), description || '', color || '#007AFF', icon || 'users', image_url || null, inviteCode, user.id]
       );
       const group = result.rows[0];
 
@@ -209,12 +197,10 @@ module.exports = async function handler(req, res) {
     try {
       const result = await pool.query(
         `SELECT g.*, gm.role,
-          o.name as organization_name, o.color as organization_color,
           (SELECT COUNT(*) FROM group_members WHERE group_id = g.id) as member_count,
           (SELECT COUNT(*) FROM group_tasks WHERE group_id = g.id) as task_count
          FROM groups g
          JOIN group_members gm ON gm.group_id = g.id AND gm.user_id = $1
-         LEFT JOIN organizations o ON o.id = g.organization_id
          ORDER BY g.updated_at DESC`,
         [user.id]
       );
@@ -274,13 +260,7 @@ module.exports = async function handler(req, res) {
       const membership = await getMembership(groupId);
       if (!membership) return res.status(403).json({ error: 'Kein Zugriff auf diese Gruppe' });
 
-      const groupResult = await pool.query(
-        `SELECT g.*, o.name as organization_name, o.color as organization_color
-         FROM groups g
-         LEFT JOIN organizations o ON o.id = g.organization_id
-         WHERE g.id = $1`,
-        [groupId]
-      );
+      const groupResult = await pool.query('SELECT * FROM groups WHERE id = $1', [groupId]);
       if (groupResult.rows.length === 0) return res.status(404).json({ error: 'Gruppe nicht gefunden' });
 
       const membersResult = await pool.query(
@@ -326,23 +306,12 @@ module.exports = async function handler(req, res) {
       if (!membership || membership.role === 'member') {
         return res.status(403).json({ error: 'Nur Admins können die Gruppe bearbeiten' });
       }
-      const { name, description, color, icon, image_url, organization_id } = req.body;
-      if (typeof organization_id !== 'undefined' && organization_id !== null) {
-        const orgAccess = await pool.query(
-          `SELECT role FROM organization_members WHERE organization_id = $1 AND user_id = $2 LIMIT 1`,
-          [organization_id, user.id]
-        );
-        if (orgAccess.rows.length === 0) {
-          return res.status(403).json({ error: 'Keine Berechtigung fuer diese Organisation' });
-        }
-      }
+      const { name, description, color, icon, image_url } = req.body;
       const result = await pool.query(
         `UPDATE groups SET name = COALESCE($1, name), description = COALESCE($2, description),
-         color = COALESCE($3, color), icon = COALESCE($4, icon), image_url = $5,
-         organization_id = CASE WHEN $8::boolean THEN $6 ELSE organization_id END,
-         updated_at = NOW()
-         WHERE id = $7 RETURNING *`,
-        [name, description, color, icon, image_url || null, organization_id ?? null, groupId, typeof organization_id !== 'undefined']
+         color = COALESCE($3, color), icon = COALESCE($4, icon), image_url = $5, updated_at = NOW()
+         WHERE id = $6 RETURNING *`,
+        [name, description, color, icon, image_url || null, groupId]
       );
       return res.json({ group: result.rows[0] });
     } catch (err) {

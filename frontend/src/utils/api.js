@@ -77,17 +77,10 @@ async function request(endpoint, options = {}) {
       throw unauthorized;
     }
 
-    const contentType = res.headers.get('content-type') || '';
-    let data = null;
-    if (contentType.includes('application/json')) {
-      data = await res.json();
-    } else {
-      const text = await res.text();
-      data = text ? { error: text } : {};
-    }
+    const data = await res.json();
 
     if (!res.ok) {
-      throw new Error(data?.error || `Anfrage fehlgeschlagen (${res.status})`);
+      throw new Error(data.error || 'Anfrage fehlgeschlagen');
     }
 
     if (isRead) {
@@ -192,15 +185,10 @@ export const api = {
     return request(`/tasks/dashboard${query ? `?${query}` : ''}`);
   },
 
-  getTasksSummary: (params = {}) => {
-    const query = new URLSearchParams(params).toString();
-    return request(`/tasks/summary${query ? `?${query}` : ''}`);
-  },
+  getTasksSummary: () => request('/tasks/summary'),
 
-  getTasksRange: (start, end, params = {}) => {
-    const query = new URLSearchParams({ start, end, ...params }).toString();
-    return request(`/tasks/range?${query}`);
-  },
+  getTasksRange: (start, end) =>
+    request(`/tasks/range?start=${start}&end=${end}`),
 
   createTask: (task) =>
     request('/tasks', {
@@ -437,35 +425,6 @@ export const api = {
     request(`/groups/${groupId}/messages/${msgId}/pin`, {
       method: 'PATCH',
       body: JSON.stringify({ pinned }),
-    }),
-
-  // Organizations
-  getOrganizations: () => request('/organizations'),
-
-  createOrganization: (data) =>
-    request('/organizations', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-
-  joinOrganization: (code) =>
-    request('/organizations/join', {
-      method: 'POST',
-      body: JSON.stringify({ code }),
-    }),
-
-  getOrganization: (id) => request(`/organizations/${id}`),
-
-  getOrganizationGroups: (id) => request(`/organizations/${id}/groups`),
-
-  assignGroupToOrganization: (organizationId, groupId) =>
-    request(`/organizations/${organizationId}/groups/${groupId}`, {
-      method: 'PUT',
-    }),
-
-  removeGroupFromOrganization: (organizationId, groupId) =>
-    request(`/organizations/${organizationId}/groups/${groupId}`, {
-      method: 'DELETE',
     }),
 
   // Plans

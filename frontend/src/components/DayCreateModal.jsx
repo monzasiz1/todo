@@ -9,7 +9,6 @@ import ManualTaskForm from './ManualTaskForm';
 import TaskCard from './TaskCard';
 import TaskDetailModal from './TaskDetailModal';
 import AvatarBadge from './AvatarBadge';
-import { getWorkspaceLabel, useWorkspaceStore } from '../store/workspaceStore';
 
 const priorityLabels = {
   low: 'Niedrig',
@@ -46,7 +45,6 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated }) 
   const inputRef = useRef(null);
   const debounceRef = useRef(null);
   const { aiCreateTask, aiParseOnly } = useTaskStore();
-  const { activeWorkspace } = useWorkspaceStore();
 
   const dateStr = format(date, 'EEEE, d. MMMM yyyy', { locale: de });
 
@@ -140,7 +138,6 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated }) 
             <div className="day-create-count">
               {tasks.length} Aufgabe{tasks.length !== 1 ? 'n' : ''}
             </div>
-            <div className="day-create-workspace">{getWorkspaceLabel(activeWorkspace)}</div>
           </div>
           <button className="day-create-close" onClick={onClose}>
             <X size={20} />
