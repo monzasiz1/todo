@@ -34,8 +34,11 @@ export default function ReminderChecker() {
       try {
         const response = await api.getDueReminders?.();
         dueTasks = Array.isArray(response?.tasks) ? response.tasks : [];
-      } catch {
-        // ignore transient API errors; next interval retries
+        if (dueTasks.length > 0) {
+          console.log(`[ReminderChecker] Found ${dueTasks.length} due reminders at ${new Date().toISOString()}`);
+        }
+      } catch (err) {
+        console.error('[ReminderChecker] API error:', err.message);
         return;
       }
 

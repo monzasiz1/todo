@@ -527,59 +527,47 @@ module.exports = async function handler(req, res) {
   // GET /api/tasks/reminders/due
   if (segments[0] === 'reminders' && segments[1] === 'due' && req.method === 'GET') {
     try {
+      // Simplified query: Get all tasks accessible to user with due reminders
       let result;
+      
+      // Try with collaboration visibility first
       try {
         result = await pool.query(
-          `WITH visible_ids AS (
-             SELECT t.id
-             FROM tasks t
-             WHERE t.user_id = $1
-
-             UNION ALL
-
-             SELECT t.id
-             FROM tasks t
-             WHERE t.visibility = 'shared'
-               AND EXISTS (
-                 SELECT 1
-                 FROM friends f
-                 WHERE f.status = 'accepted'
-                   AND ((f.user_id = t.user_id AND f.friend_id = $1) OR (f.user_id = $1 AND f.friend_id = t.user_id))
-               )
-
-             UNION ALL
-
-             SELECT tp.task_id AS id
-             FROM task_permissions tp
-             WHERE tp.user_id = $1 AND tp.can_view = true
-
-             UNION ALL
-
-             SELECT gt.task_id AS id
-             FROM group_tasks gt
-             JOIN group_members gm ON gm.group_id = gt.group_id
-             WHERE gm.user_id = $1
-           ),
-           due_ids AS (
-             SELECT DISTINCT id FROM visible_ids
-           )
-           SELECT t.*, c.name as category_name, c.color as category_color
-           FROM due_ids ids
-           JOIN tasks t ON t.id = ids.id
+          `SELECT t.id, t.user_id, t.title, t.time, t.reminder_at, t.completed,
+                  c.name as category_name, c.color as category_color
+           FROM tasks t
            LEFT JOIN categories c ON t.category_id = c.id
            WHERE t.completed = false
              AND t.reminder_at IS NOT NULL
              AND t.reminder_at <= NOW()
              AND t.reminder_at > NOW() - INTERVAL '24 hours'
+             AND (
+               t.user_id = $1
+               OR (t.visibility = 'shared' AND EXISTS (
+                 SELECT 1 FROM friends f WHERE f.status = 'accepted'
+                 AND ((f.user_id = t.user_id AND f.friend_id = $1) OR (f.user_id = $1 AND f.friend_id = t.user_id))
+               ))
+               OR (t.visibility = 'selected_users' AND EXISTS (
+                 SELECT 1 FROM task_permissions tp WHERE tp.task_id = t.id AND tp.user_id = $1 AND tp.can_view = true
+               ))
+               OR EXISTS (
+                 SELECT 1 FROM group_tasks gt JOIN group_members gm ON gm.group_id = gt.group_id 
+                 WHERE gt.task_id = t.id AND gm.user_id = $1
+               )
+             )
            ORDER BY t.reminder_at ASC`,
           [user.id]
         );
-      } catch {
-        // Fallback for legacy schemas without collaboration columns/tables.
+      } catch (err) {
+        console.log('Full query failed, trying fallback:', err.message);
+        // Fallback: just user's own tasks
         result = await pool.query(
-          `SELECT t.*, c.name as category_name, c.color as category_color
-           FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
-           WHERE t.user_id = $1 AND t.completed = false
+          `SELECT t.id, t.user_id, t.title, t.time, t.reminder_at, t.completed,
+                  c.name as category_name, c.color as category_color
+           FROM tasks t
+           LEFT JOIN categories c ON t.category_id = c.id
+           WHERE t.user_id = $1
+             AND t.completed = false
              AND t.reminder_at IS NOT NULL
              AND t.reminder_at <= NOW()
              AND t.reminder_at > NOW() - INTERVAL '24 hours'
@@ -588,10 +576,11 @@ module.exports = async function handler(req, res) {
         );
       }
 
+      console.log(`[reminders/due] Found ${result.rows.length} due reminders for user ${user.id}`);
       return res.json({ tasks: normalizeTaskRows(result.rows) });
     } catch (err) {
       console.error('Reminders error:', err);
-      return res.status(500).json({ error: 'Fehler beim Laden der Erinnerungen' });
+      return res.status(500).json({ error: 'Fehler beim Laden der Erinnerungen', details: err.message });
     }
   }
 

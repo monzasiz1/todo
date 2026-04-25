@@ -230,21 +230,33 @@ module.exports = async function handler(req, res) {
   if (segments[0] === 'test' && req.method === 'POST') {
     try {
       const title = String(req.body?.title || 'Test-Benachrichtigung');
-      const body = String(req.body?.body || 'Push funktioniert auf diesem Geraet.');
+      const body = String(req.body?.body || '✅ Push funktioniert auf diesem Geraet.');
       const url = String(req.body?.url || '/');
       const tag = String(req.body?.tag || `test-${Date.now()}`);
 
+      // Always log, even if push send fails
+      await pool.query(
+        `INSERT INTO notification_log (user_id, type, title, body)
+         VALUES ($1, $2, $3, $4)`,
+        [user.id, 'test', title, body]
+      ).catch(() => null);
+
+      // Try to send push (best-effort)
       const sent = await sendPushToUser(
         user.id,
         { title, body, url, tag },
         'test',
         null
-      );
+      ).catch(() => 0);
 
-      return res.json({ success: true, sent });
+      return res.json({ 
+        success: true, 
+        sent,
+        message: 'Test-Benachrichtigung versendet. Prüfe Glocke oder Handy.' 
+      });
     } catch (err) {
       console.error('Test push error:', err);
-      return res.status(500).json({ error: 'Fehler beim Senden des Test-Push' });
+      return res.status(500).json({ error: 'Fehler beim Senden des Test-Push', details: err.message });
     }
   }
 
@@ -388,6 +400,105 @@ module.exports = async function handler(req, res) {
     } catch (err) {
       console.error('Diagnostic error:', err);
       return res.status(500).json({ error: 'Fehler beim Laden der Diagnostik' });
+    }
+  }
+
+  // GET /api/notifications/debug-reminders – debug why reminders aren't showing
+  if (segments[0] === 'debug-reminders' && req.method === 'GET') {
+    try {
+      const now = new Date();
+      
+      // 1. All user tasks with reminder_at
+      const { rows: allReminders } = await pool.query(
+        `SELECT id, title, reminder_at, completed FROM tasks
+         WHERE user_id = $1 AND reminder_at IS NOT NULL
+         ORDER BY reminder_at DESC LIMIT 20`,
+        [user.id]
+      );
+      
+      // 2. Due reminders (should trigger notification)
+      const { rows: dueReminders } = await pool.query(
+        `SELECT id, title, reminder_at, completed FROM tasks
+         WHERE user_id = $1 AND completed = false
+           AND reminder_at IS NOT NULL
+           AND reminder_at <= NOW()
+           AND reminder_at > NOW() - INTERVAL '24 hours'
+         ORDER BY reminder_at DESC`,
+        [user.id]
+      );
+      
+      // 3. What's in notification_log for reminders
+      const { rows: logEntries } = await pool.query(
+        `SELECT id, type, title, body, sent_at FROM notification_log
+         WHERE user_id = $1 AND type IN ('reminder', 'reminder_created')
+         ORDER BY sent_at DESC LIMIT 20`,
+        [user.id]
+      );
+      
+      // 4. Try the actual due-reminders API query
+      let visibleIds = [];
+      try {
+        const { rows: visible } = await pool.query(
+          `WITH visible_ids AS (
+             SELECT t.id
+             FROM tasks t
+             WHERE t.user_id = $1
+             UNION ALL
+             SELECT t.id
+             FROM tasks t
+             WHERE t.visibility = 'shared'
+               AND EXISTS (
+                 SELECT 1
+                 FROM friends f
+                 WHERE f.status = 'accepted'
+                   AND ((f.user_id = t.user_id AND f.friend_id = $1) OR (f.user_id = $1 AND f.friend_id = t.user_id))
+               )
+             UNION ALL
+             SELECT tp.task_id AS id
+             FROM task_permissions tp
+             WHERE tp.user_id = $1 AND tp.can_view = true
+             UNION ALL
+             SELECT gt.task_id AS id
+             FROM group_tasks gt
+             JOIN group_members gm ON gm.group_id = gt.group_id
+             WHERE gm.user_id = $1
+           )
+           SELECT DISTINCT id FROM visible_ids LIMIT 50`,
+          [user.id]
+        );
+        visibleIds = visible.map(r => r.id);
+      } catch (e) {
+        console.log('Visible IDs query failed:', e.message);
+      }
+      
+      return res.json({
+        debug_timestamp: now.toISOString(),
+        all_reminders_total: allReminders.length,
+        all_reminders: allReminders.map(t => ({
+          id: t.id,
+          title: t.title,
+          reminder_at: t.reminder_at,
+          completed: t.completed,
+          is_due: t.reminder_at <= now && t.reminder_at > new Date(now.getTime() - 24*60*60*1000),
+        })),
+        due_reminders_count: dueReminders.length,
+        due_reminders: dueReminders.map(t => ({
+          id: t.id,
+          title: t.title,
+          reminder_at: t.reminder_at,
+          seconds_overdue: Math.round((now - new Date(t.reminder_at)) / 1000),
+        })),
+        notification_log_reminders: logEntries.map(e => ({
+          type: e.type,
+          title: e.title,
+          body: e.body,
+          sent_at: e.sent_at,
+        })),
+        visible_task_ids_count: visibleIds.length,
+      });
+    } catch (err) {
+      console.error('Debug reminders error:', err);
+      return res.status(500).json({ error: 'Fehler beim Laden der Debug-Info', details: err.message });
     }
   }
 

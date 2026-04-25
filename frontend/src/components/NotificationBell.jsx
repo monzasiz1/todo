@@ -22,6 +22,9 @@ export default function NotificationBell() {
 
   useEffect(() => {
     checkStatus();
+    // Auto-reload notification log every 10 seconds
+    const interval = setInterval(() => fetchLog(), 10000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
