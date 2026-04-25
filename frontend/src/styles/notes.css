@@ -8,6 +8,14 @@
   overflow: hidden;
 }
 
+.notes-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
 .notes-workspace {
   flex: 1;
   min-height: 0;
@@ -27,9 +35,9 @@
   padding: 16px;
   border-radius: 24px;
   border: 1px solid var(--border);
-  background: color-mix(in srgb, var(--card-solid) 86%, var(--card));
-  backdrop-filter: blur(24px);
-  box-shadow: 0 18px 48px rgba(9, 18, 42, 0.18);
+  background: var(--card-solid);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow-lg);
   transform: translateY(calc(100% + 24px));
   opacity: 0;
   pointer-events: none;
@@ -58,7 +66,7 @@
 
 .toolbox-title {
   margin: 4px 0 0 0;
-  font-size: 20px;
+  font-size: 18px;
   color: var(--text);
 }
 
@@ -67,7 +75,7 @@
   height: 38px;
   border-radius: 12px;
   border: 1px solid var(--border);
-  background: color-mix(in srgb, var(--card) 88%, var(--bg-elevated));
+  background: var(--bg);
   color: var(--text);
   display: inline-flex;
   align-items: center;
@@ -87,15 +95,15 @@
   padding: 14px;
   border-radius: 16px;
   border: 1px solid var(--border);
-  background: color-mix(in srgb, var(--card) 88%, var(--bg-elevated));
+  background: var(--bg);
   color: var(--text);
   font-weight: 600;
   justify-content: center;
 }
 
 .toolbox-action-card.emphasis {
-  background: linear-gradient(135deg, rgba(255, 149, 0, 0.18), rgba(255, 122, 0, 0.1));
-  border-color: rgba(255, 149, 0, 0.35);
+  background: var(--primary-bg);
+  border-color: color-mix(in srgb, var(--primary) 24%, var(--border));
 }
 
 .toolbox-action-card.active {
@@ -108,8 +116,8 @@
   gap: 12px;
   padding: 14px;
   border-radius: 18px;
-  background: linear-gradient(135deg, rgba(0, 224, 255, 0.12), rgba(122, 92, 255, 0.1));
-  border: 1px solid rgba(0, 224, 255, 0.22);
+  background: color-mix(in srgb, var(--primary-bg) 58%, var(--bg-elevated));
+  border: 1px solid color-mix(in srgb, var(--primary) 14%, var(--border));
   color: var(--text);
 }
 
@@ -169,7 +177,7 @@
   padding: 14px;
   border-radius: 16px;
   border: 1px solid var(--border);
-  background: color-mix(in srgb, var(--card) 88%, var(--bg-elevated));
+  background: var(--bg);
   text-align: left;
   cursor: grab;
 }
@@ -214,14 +222,7 @@
 }
 
 .notes-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 12px 14px;
-  background: var(--glass);
-  border-bottom: 1px solid var(--border);
-  backdrop-filter: blur(10px);
-  gap: 12px;
+  display: contents;
 }
 
 .notes-header-main {
@@ -230,6 +231,19 @@
   gap: 8px;
   min-width: 0;
   flex: 1;
+}
+
+.notes-desktop-title h2 {
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+  line-height: 1.15;
+}
+
+.notes-desktop-title p {
+  font-size: 16px;
+  color: var(--text-secondary);
+  margin-top: 4px;
 }
 
 .notes-mobile-tools {
@@ -251,9 +265,9 @@
   justify-content: center;
   gap: 6px;
   padding: 9px 12px;
-  border-radius: 14px;
+  border-radius: 12px;
   border: 1px solid var(--border);
-  background: color-mix(in srgb, var(--card) 88%, var(--bg-elevated));
+  background: var(--card-solid);
   color: var(--text);
   font-size: 12px;
   font-weight: 600;
@@ -261,9 +275,9 @@
 }
 
 .header-tool-btn.primary {
-  background: linear-gradient(135deg, #FF9500 0%, #ff8c00 100%);
+  background: var(--primary);
   color: white;
-  border-color: rgba(255, 149, 0, 0.45);
+  border-color: transparent;
 }
 
 .header-tool-btn.active {
@@ -277,11 +291,16 @@
   font-weight: 600;
 }
 
+.notes-desktop-title {
+  display: none;
+}
+
 .notes-controls {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+  padding-top: 4px;
 }
 
 .zoom-btn {
@@ -291,7 +310,7 @@
   width: 32px;
   height: 32px;
   border: 1px solid var(--border);
-  background: var(--card);
+  background: var(--card-solid);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease-out;
@@ -321,13 +340,20 @@
   overflow: auto;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-xl);
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-lg);
 }
 
 .canvas-content {
   position: relative;
   width: 4000px;
   height: 4000px;
-  background: transparent;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(0, 122, 255, 0.08), transparent 26%),
+    radial-gradient(circle at 80% 14%, rgba(88, 86, 214, 0.06), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.16));
 }
 
 .connections-svg {
@@ -416,12 +442,12 @@
 
 .note-card {
   position: absolute;
-  background: color-mix(in srgb, var(--card) 86%, var(--bg-elevated));
+  background: var(--card-solid);
   border: 1px solid var(--border);
-  backdrop-filter: blur(20px);
-  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  border-radius: var(--radius-md);
   padding: 16px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
   cursor: grab;
   user-select: none;
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -437,8 +463,8 @@
 
 .note-card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15);
-  background: color-mix(in srgb, var(--card) 92%, var(--bg-elevated));
+  box-shadow: var(--shadow-lg);
+  background: var(--card-solid);
   border-color: var(--border-strong);
 }
 
@@ -458,18 +484,18 @@
 }
 
 .note-card.note-low {
-  background: linear-gradient(145deg, rgba(52, 199, 89, 0.09), color-mix(in srgb, var(--card) 85%, var(--bg-elevated)) 65%);
+  background: linear-gradient(145deg, rgba(52, 199, 89, 0.08), var(--card-solid) 62%);
   border-color: color-mix(in srgb, var(--success) 28%, var(--border));
 }
 
 .note-card.note-medium {
-  background: linear-gradient(145deg, rgba(0, 122, 255, 0.1), color-mix(in srgb, var(--card) 85%, var(--bg-elevated)) 65%);
+  background: linear-gradient(145deg, rgba(0, 122, 255, 0.08), var(--card-solid) 62%);
   border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
 }
 
 .note-card.note-high {
   border-left: 4px solid var(--warning);
-  background: linear-gradient(145deg, rgba(255, 149, 0, 0.13), color-mix(in srgb, var(--card) 82%, var(--bg-elevated)) 70%);
+  background: linear-gradient(145deg, rgba(255, 149, 0, 0.1), var(--card-solid) 68%);
   border-color: color-mix(in srgb, var(--warning) 30%, var(--border));
 }
 
@@ -575,22 +601,22 @@
 .action-btn {
   flex: 1;
   padding: 6px;
-  border: 1px solid #e5e5ea;
-  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--border);
+  background: var(--bg);
   border-radius: 6px;
   cursor: pointer;
   font-size: 12px;
   font-weight: 500;
   transition: all 0.2s ease-out;
-  color: #1a1a1a;
+  color: var(--text);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .action-btn:hover {
-  background: rgba(0, 0, 0, 0.04);
-  border-color: #d0d0d5;
+  background: var(--card-solid);
+  border-color: var(--border-strong);
 }
 
 .action-btn.delete-btn:hover {
@@ -628,7 +654,7 @@
   padding: 8px 12px;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--primary) 30%, var(--border));
-  background: color-mix(in srgb, var(--primary-bg) 52%, var(--card));
+  background: color-mix(in srgb, var(--primary-bg) 62%, var(--card-solid));
   color: var(--text);
   cursor: pointer;
 }
@@ -653,7 +679,7 @@
   padding: 14px 15px;
   border-radius: 16px;
   border: 1px solid var(--border);
-  background: color-mix(in srgb, var(--card) 90%, var(--bg-elevated));
+  background: var(--bg);
   text-align: left;
   cursor: pointer;
   transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
@@ -666,9 +692,9 @@
 }
 
 .task-picker-card.active {
-  border-color: rgba(0, 224, 255, 0.75);
-  background: linear-gradient(135deg, rgba(0, 224, 255, 0.11), rgba(122, 92, 255, 0.1));
-  box-shadow: 0 0 0 1px rgba(0, 224, 255, 0.28), 0 14px 28px rgba(0, 224, 255, 0.12);
+  border-color: var(--primary);
+  background: var(--primary-bg);
+  box-shadow: 0 0 0 1px rgba(0, 122, 255, 0.12);
 }
 
 .task-picker-card-header {
@@ -751,8 +777,6 @@
   margin: 8px 0 0 0;
   font-size: 13px;
   color: var(--text-secondary);
-}
-
 /* Create Note Button */
 
 .create-note-btn {
@@ -823,6 +847,7 @@
 
 /* Modal Overlay */
 
+.modal-content.share-modal {
   max-width: 460px;
 }
 
@@ -1113,13 +1138,12 @@
     display: none;
   }
 
-  .notes-header {
-    align-items: center;
-    padding: 20px 30px;
-  }
-
   .notes-header-main {
     gap: 0;
+  }
+
+  .notes-desktop-title {
+    display: block;
   }
 
   .notes-mobile-tools {
@@ -1162,6 +1186,16 @@
     font-size: 14px;
   }
 
+
+@media (max-width: 639px) {
+  .notes-page-header {
+    margin-bottom: 12px;
+  }
+
+  .notes-canvas {
+    border-radius: 20px;
+  }
+}
   .modal-content {
     padding: 32px;
     max-width: 400px;

@@ -423,8 +423,12 @@ export default function NotesPage() {
   return (
     <div className="notes-container" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
       {/* Header */}
-      <div className="notes-header">
+      <div className="page-header notes-page-header">
         <div className="notes-header-main">
+          <div className="notes-desktop-title">
+            <h2>Notizen</h2>
+            <p>Visuell planen, verbinden und direkt aus vorhandenen Terminen weiterdenken</p>
+          </div>
           <div className="notes-mobile-tools">
             <button type="button" className={`header-tool-btn ${toolboxOpen ? 'active' : ''}`} onClick={() => setToolboxOpen((prev) => !prev)}>
               <PanelsTopLeft size={16} />
@@ -464,7 +468,7 @@ export default function NotesPage() {
           <div className="toolbox-header">
             <div>
               <div className="toolbox-kicker">Werkzeuge</div>
-              <h2 className="toolbox-title">Board Control</h2>
+              <h2 className="toolbox-title">Schnellaktionen</h2>
             </div>
             <button className="toolbox-toggle" onClick={() => setToolboxOpen((prev) => !prev)} type="button">
               <PanelsTopLeft size={16} />
@@ -494,7 +498,7 @@ export default function NotesPage() {
 
           <div className="toolbox-section">
             <div className="toolbox-section-head">
-              <h3>Schnelle Termine</h3>
+              <h3>Termine & Aufgaben</h3>
               <span>{shortcutTasks.length}</span>
             </div>
             <p className="toolbox-helper">Desktop: auf das Board ziehen. Mobile: antippen, um daraus direkt eine Note zu bauen.</p>
