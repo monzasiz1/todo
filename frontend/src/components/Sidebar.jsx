@@ -54,15 +54,6 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
           <CheckSquare size={22} />
         </div>
         <h1>Taski</h1>
-        <button
-          type="button"
-          className="sidebar-desktop-toggle"
-          onClick={onToggleCollapse}
-          aria-label={isCollapsed ? 'Sidebar ausklappen' : 'Sidebar einklappen'}
-          title={isCollapsed ? 'Sidebar ausklappen' : 'Sidebar einklappen'}
-        >
-          {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-        </button>
       </div>
 
       {/* Navigation */}
@@ -161,6 +152,18 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
         ))}
         </div>
       </div>
+
+      {/* Collapse toggle — desktop only */}
+      <button
+        type="button"
+        className="sidebar-desktop-toggle"
+        onClick={onToggleCollapse}
+        aria-label={isCollapsed ? 'Sidebar ausklappen' : 'Sidebar einklappen'}
+        title={isCollapsed ? 'Sidebar ausklappen' : 'Sidebar einklappen'}
+      >
+        {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+        <span className="sidebar-toggle-label">{isCollapsed ? 'Ausklappen' : 'Einklappen'}</span>
+      </button>
 
       {/* User */}
       <div className="sidebar-bottom">

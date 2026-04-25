@@ -230,34 +230,18 @@ input, textarea, select {
   gap: 12px;
   padding: 8px 12px;
   margin-bottom: 32px;
-  position: relative;
 }
 
 .sidebar-desktop-toggle {
-  position: absolute;
-  top: 10px;
-  right: -18px;
-  width: 36px;
-  height: 36px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--primary) 16%, var(--border));
-  background: linear-gradient(180deg, color-mix(in srgb, var(--card-solid) 94%, white), color-mix(in srgb, var(--bg-elevated) 90%, white));
-  color: color-mix(in srgb, var(--primary) 55%, var(--text));
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
-  z-index: 2;
-  transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  display: none; /* shown only on desktop via media query below */
 }
 
-.sidebar-desktop-toggle:hover {
-  transform: translateX(2px) scale(1.03);
-  background: linear-gradient(180deg, color-mix(in srgb, white 92%, var(--primary) 8%), color-mix(in srgb, var(--card-solid) 88%, var(--primary) 12%));
-  color: var(--primary);
-  border-color: color-mix(in srgb, var(--primary) 32%, var(--border));
-  box-shadow: 0 14px 28px rgba(0, 122, 255, 0.18);
+.sidebar-toggle-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: inherit;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .sidebar-ai-hint {
@@ -540,6 +524,34 @@ input, textarea, select {
     padding-right: 10px;
   }
 
+  .sidebar-desktop-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 16px;
+    margin-bottom: 8px;
+    border: none;
+    background: none;
+    border-radius: var(--radius-sm);
+    color: var(--text-tertiary);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+    flex-shrink: 0;
+  }
+
+  .sidebar-desktop-toggle:hover {
+    background: var(--hover);
+    color: var(--primary);
+  }
+
+  .sidebar-desktop-toggle svg {
+    flex-shrink: 0;
+  }
+
   .app-sidebar.collapsed .sidebar-logo {
     padding-left: 4px;
     padding-right: 4px;
@@ -556,12 +568,19 @@ input, textarea, select {
   .app-sidebar.collapsed .sidebar-pricing-link,
   .app-sidebar.collapsed .sidebar-user-info,
   .app-sidebar.collapsed .sidebar-logout-label,
-  .app-sidebar.collapsed .sidebar-link-label {
+  .app-sidebar.collapsed .sidebar-link-label,
+  .app-sidebar.collapsed .sidebar-toggle-label {
     display: none;
   }
 
   .app-sidebar.collapsed .sidebar-desktop-toggle {
-    right: -14px;
+    justify-content: center;
+    padding: 10px;
+    gap: 0;
+  }
+
+  .app-sidebar.collapsed .sidebar-toggle-label {
+    display: none;
   }
 
   .app-sidebar.collapsed .sidebar-nav {
