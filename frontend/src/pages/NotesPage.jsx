@@ -152,7 +152,11 @@ export default function NotesPage() {
   const [notePeopleMap, setNotePeopleMap] = useState(() => readNotePeopleCache());
   const [isMobileView, setIsMobileView] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 640 : false));
   const canvasRef = useRef(null);
+  const containerRef = useRef(null);
   const pinchStateRef = useRef(null);
+  // Store latest handlers in refs so the non-passive listeners always see current closures
+  const handleTouchMoveRef = useRef(null);
+  const handleCanvasTouchStartRef = useRef(null);
 
   const refreshConnections = async (sourceNotes = notes) => {
     if (!sourceNotes.length) {
@@ -181,6 +185,26 @@ export default function NotesPage() {
       setConnections([]);
     }
   };
+
+  // Register touch listeners with { passive: false } so preventDefault() works without browser warnings
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas && !container) return;
+
+    const onCanvasTouchStart = (e) => handleCanvasTouchStartRef.current?.(e);
+    const onTouchMove = (e) => handleTouchMoveRef.current?.(e);
+
+    canvas?.addEventListener('touchstart', onCanvasTouchStart, { passive: false });
+    canvas?.addEventListener('touchmove', onTouchMove, { passive: false });
+    container?.addEventListener('touchmove', onTouchMove, { passive: false });
+
+    return () => {
+      canvas?.removeEventListener('touchstart', onCanvasTouchStart);
+      canvas?.removeEventListener('touchmove', onTouchMove);
+      container?.removeEventListener('touchmove', onTouchMove);
+    };
+  }, []); // empty deps – refs always hold latest handlers
 
   // Load notes on mount
   useEffect(() => {
@@ -434,6 +458,10 @@ export default function NotesPage() {
     moveDragging(touch.clientX, touch.clientY);
     if (event.cancelable) event.preventDefault();
   };
+
+  // Update refs after function definitions so useEffect always calls the latest version
+  handleTouchMoveRef.current = handleTouchMove;
+  handleCanvasTouchStartRef.current = handleCanvasTouchStart;
 
   const handleTouchEnd = () => {
     if (isDragging?.noteId) {
@@ -1004,11 +1032,11 @@ export default function NotesPage() {
 
   return (
     <div
+      ref={containerRef}
       className="notes-container"
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
-      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
     >
@@ -1151,8 +1179,6 @@ export default function NotesPage() {
         className="notes-canvas"
         ref={canvasRef}
         onMouseDown={handleCanvasMouseDown}
-        onTouchStart={handleCanvasTouchStart}
-        onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchEnd}
         onDragOver={(event) => event.preventDefault()}
