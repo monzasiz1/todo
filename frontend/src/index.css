@@ -1321,6 +1321,12 @@ input, textarea, select {
   overflow: hidden;
 }
 
+@media (min-width: 1180px) {
+  .calendar-wrapper.calendar-view-week {
+    overflow: visible;
+  }
+}
+
 .calendar-wrapper.calendar-view-day .calendar-day-header,
 .calendar-wrapper.calendar-view-day .mobile-week-grid-header,
 .calendar-wrapper.calendar-view-day .mobile-week-grid-wrap {
@@ -6122,13 +6128,17 @@ body.cal-is-dragging * {
   .desktop-week-layout {
     display: grid;
     grid-template-columns: 230px 1fr;
-    min-height: 680px;
+    height: calc(100dvh - 178px);
+    min-height: 480px;
   }
 
   .desktop-calendar-sidebar {
     border-right: 1px solid #dfe3eb;
     background: #fff;
     padding: 14px 12px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0,0,0,0.12) transparent;
   }
 
   .desktop-calendar-sidebar-title {
@@ -6202,6 +6212,8 @@ body.cal-is-dragging * {
     background: #fbfcfe;
     display: grid;
     grid-template-rows: auto auto minmax(0, 1fr);
+    height: 100%;
+    overflow: hidden;
   }
 
   .desktop-week-days-row,
@@ -6287,29 +6299,8 @@ body.cal-is-dragging * {
   .desktop-week-time-wrap {
     display: grid;
     grid-template-columns: 72px 1fr;
-    max-height: calc(100dvh - 250px);
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(126, 138, 161, 0.45) transparent;
-  }
-
-  .desktop-week-time-wrap::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  .desktop-week-time-wrap::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .desktop-week-time-wrap::-webkit-scrollbar-thumb {
-    background: rgba(126, 138, 161, 0.35);
-    border-radius: 999px;
-  }
-
-  .desktop-week-time-wrap:hover::-webkit-scrollbar-thumb {
-    background: rgba(126, 138, 161, 0.55);
+    overflow: hidden;
+    height: 100%;
   }
 
   .desktop-week-hours-col {

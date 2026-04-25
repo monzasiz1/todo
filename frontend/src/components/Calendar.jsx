@@ -122,6 +122,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const desktopWeekColsRef = useRef(null);
   const desktopWeekWrapRef = useRef(null);
   const resizeInfoRef = useRef(null);
+  const wkHRef = useRef(WK_H); // dynamic hour height, updated by ResizeObserver
+  const [wkHState, setWkHState] = useState(WK_H);
 
   const triggerRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -239,16 +241,24 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     };
   }, []);
 
-  // ── Auto-scroll desktop week view to current time on load / week change ──
+  // ── ResizeObserver: berechnet wkH dynamisch aus verfügbarer Containerhöhe ──
   useEffect(() => {
-    if (view !== 'week' || !isWideDesktopCalendar) return;
+    if (!isWideDesktopCalendar) return;
     const wrap = desktopWeekWrapRef.current;
     if (!wrap) return;
-    const now = new Date();
-    const targetHour = Math.max(WK_START, now.getHours() - 1);
-    const scrollTop = Math.max(0, (targetHour - WK_START) * WK_H - 20);
-    wrap.scrollTo({ top: scrollTop, behavior: 'smooth' });
-  }, [view, isWideDesktopCalendar, currentDate]);
+    const recalc = () => {
+      const h = wrap.clientHeight;
+      if (h > 0) {
+        const newH = Math.max(28, Math.floor((h - 28) / (WK_END - WK_START)));
+        wkHRef.current = newH;
+        setWkHState(newH);
+      }
+    };
+    const observer = new ResizeObserver(recalc);
+    observer.observe(wrap);
+    recalc();
+    return () => observer.disconnect();
+  }, [isWideDesktopCalendar]);
 
   const isMobile = !isDesktop;
 
@@ -351,7 +361,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       if (col) {
         const colRect = col.getBoundingClientRect();
         const relY = Math.max(0, ev.clientY - colRect.top - clickOffsetY);
-        const rawMins = (relY / WK_H) * 60;
+        const rawMins = (relY / wkHRef.current) * 60;
         const snapped = Math.round(rawMins / 15) * 15;
         const startMins = Math.max(WK_START * 60, Math.min(WK_END * 60 - 30, WK_START * 60 + snapped));
         previewTime = minsToTime(startMins);
@@ -402,7 +412,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       if (isTimeCol && liveTask.time) {
         const colRect = col.getBoundingClientRect();
         const relY = Math.max(0, ev.clientY - colRect.top - clickOffsetY);
-        const rawMins = (relY / WK_H) * 60;
+        const rawMins = (relY / wkHRef.current) * 60;
         const snapped = Math.round(rawMins / 15) * 15;
         const newStartMins = Math.max(WK_START * 60, Math.min(WK_END * 60 - 30, WK_START * 60 + snapped));
 
@@ -824,7 +834,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
 
     const startHour = WK_START;
     const endHour = WK_END;
-    const hourHeight = WK_H;
+    const hourHeight = wkHState;
     const totalHeight = (endHour - startHour) * hourHeight + 28;
     const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
     const now = new Date(nowTs);
@@ -1037,7 +1047,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       {!ended && (
                         <div
                           className="cal-resize-handle cal-resize-handle-top"
-                          onPointerDown={(e) => handleResizePointerDown(e, t, 'start', desktopWeekColsRef.current, WK_H, WK_START)}
+                          onPointerDown={(e) => handleResizePointerDown(e, t, 'start', desktopWeekColsRef.current, wkHRef.current, WK_START)}
                         />
                       )}
                       {!ended && (
@@ -1058,7 +1068,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       {!ended && (
                         <div
                           className="cal-resize-handle cal-resize-handle-bottom"
-                          onPointerDown={(e) => handleResizePointerDown(e, t, 'end', desktopWeekColsRef.current, WK_H, WK_START)}
+                          onPointerDown={(e) => handleResizePointerDown(e, t, 'end', desktopWeekColsRef.current, wkHRef.current, WK_START)}
                         />
                       )}
                     </div>
