@@ -849,6 +849,47 @@
 
 /* Modal Overlay */
 
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 28, 30, 0.38);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1000;
+  padding: 0;
+}
+
+.modal-content {
+  width: 100%;
+  max-width: none;
+  max-height: 94dvh;
+  min-height: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--card-solid);
+  border-radius: 24px 24px 0 0;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-xl);
+  padding: 18px 16px calc(env(safe-area-inset-bottom, 0px) + 18px);
+}
+
+.create-note-modal {
+  min-height: 88dvh;
+}
+
+.create-note-modal::before {
+  content: '';
+  display: block;
+  width: 36px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.11);
+  margin: 2px auto 14px;
+}
+
 .modal-content.share-modal {
   max-width: 460px;
 }
@@ -1152,9 +1193,67 @@
     display: none;
   }
 
-  .notes-compact-status {
+  .modal-overlay {
+    align-items: center;
+    padding: 24px;
+  }
+
+  .modal-content {
+    padding: 32px;
+    max-width: 400px;
+    max-height: 90vh;
+    border-radius: var(--radius-xl);
+  }
+
+  .create-note-modal {
+    min-height: auto;
+    max-width: 520px;
+  }
+
+  .create-note-modal::before {
+    display: none;
+  }
+
+  .modal-content.share-modal {
+    max-width: 460px;
+  }
+
+  .modal-title {
+    font-size: 24px;
+    margin-bottom: 12px;
+  }
+
+  .form-label {
     font-size: 13px;
   }
+
+  .form-input,
+  .form-textarea {
+    font-size: 14px;
+    padding: 12px 16px;
+  }
+
+  .form-textarea {
+    min-height: 100px;
+  }
+
+  .friend-item {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .permission-buttons {
+    width: auto;
+  }
+
+  .perm-btn {
+    flex: 0 0 auto;
+    min-width: 82px;
+  }
+}
+
+@media (max-width: 639px) {
 
   .zoom-btn {
     width: 36px;
@@ -1163,45 +1262,6 @@
   }
 
   .zoom-display {
-    width: 35px;
-    font-size: 12px;
-  }
-
-  .note-card {
-    border-radius: 20px;
-    padding: 20px;
-  }
-
-  .note-title {
-    font-size: 18px;
-  }
-
-  .note-content {
-    font-size: 14px;
-  }
-
-  .create-note-btn {
-    display: flex;
-    bottom: 30px;
-    right: 30px;
-    padding: 14px 20px;
-    font-size: 14px;
-  }
-
-
-@media (max-width: 639px) {
-  .notes-page-header {
-    margin-bottom: 12px;
-  }
-
-  .notes-canvas {
-    border-radius: 20px;
-  }
-}
-  .modal-content {
-    padding: 32px;
-    max-width: 400px;
-  }
 
   .modal-title {
     font-size: 24px;

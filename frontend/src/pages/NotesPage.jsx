@@ -692,7 +692,7 @@ export default function NotesPage() {
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="modal-content share-modal"
+              className="modal-content share-modal create-note-modal"
               onClick={(e) => e.stopPropagation()}
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
