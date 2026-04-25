@@ -183,11 +183,11 @@ export default function NotesPage() {
   const didInitialViewportFitRef = useRef(false);
 
   const getAdaptiveZoom = (screenWidth) => {
-    if (screenWidth >= 1920) return 72;
-    if (screenWidth >= 1600) return 74;
-    if (screenWidth >= 1440) return 76;
-    if (screenWidth >= 1200) return 80;
-    if (screenWidth >= 640) return 86;
+    if (screenWidth >= 1920) return 125;
+    if (screenWidth >= 1600) return 115;
+    if (screenWidth >= 1440) return 108;
+    if (screenWidth >= 1200) return 100;
+    if (screenWidth >= 640) return 95;
     return 100;
   };
 
