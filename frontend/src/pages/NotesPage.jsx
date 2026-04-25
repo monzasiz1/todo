@@ -141,11 +141,12 @@ export default function NotesPage() {
   const [zoom, setZoom] = useState(() => {
     if (typeof window === 'undefined') return 80;
     const w = window.innerWidth;
-    if (w >= 2560) return 110;
-    if (w >= 1920) return 95;
-    if (w >= 1440) return 85;
-    if (w >= 640)  return 75;
-    return 65;
+    if (w >= 1920) return 72;
+    if (w >= 1600) return 74;
+    if (w >= 1440) return 76;
+    if (w >= 1200) return 80;
+    if (w >= 640)  return 86;
+    return 100;
   });
   const [mobileViewMode, setMobileViewMode] = useState('grid'); // 'grid' | 'canvas'
   const [mobileSearch, setMobileSearch] = useState('');
@@ -181,12 +182,12 @@ export default function NotesPage() {
   const didManualZoomRef = useRef(false);
 
   const getAdaptiveZoom = (screenWidth) => {
-    if (screenWidth >= 2400) return 142;
-    if (screenWidth >= 1920) return 128;
-    if (screenWidth >= 1680) return 118;
-    if (screenWidth >= 1440) return 108;
-    if (screenWidth >= 1200) return 100;
-    return 96;
+    if (screenWidth >= 1920) return 72;
+    if (screenWidth >= 1600) return 74;
+    if (screenWidth >= 1440) return 76;
+    if (screenWidth >= 1200) return 80;
+    if (screenWidth >= 640) return 86;
+    return 100;
   };
 
   const setZoomManual = (nextZoom) => {
