@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import FeedbackToast from './FeedbackToast';
 import BottomNav from './BottomNav';
+import QuickAddSheet from './QuickAddSheet';
 import { useState, useRef, useEffect } from 'react';
 import { Menu, X, CheckSquare, MessageCircle } from 'lucide-react';
 import NotificationBell from './NotificationBell';
@@ -12,17 +13,11 @@ import GroupChatPanel from './GroupChatPanel';
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  const [dragGhost, setDragGhost] = useState(null); // { x, y, title, time }
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [dragGhost, setDragGhost] = useState(null);
   const aiInputRef = useRef(null);
 
-  const handleFabClick = () => {
-    // Focus the AI input field when FAB is pressed
-    const aiInput = document.querySelector('.ai-input-field');
-    if (aiInput) {
-      aiInput.focus();
-      aiInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  };
+  const handleFabClick = () => setShowQuickAdd(true);
 
   useEffect(() => {
     const onDragStart = (e) => {
@@ -104,6 +99,9 @@ export default function Layout() {
 
       {/* Bottom Navigation (mobile) */}
       <BottomNav onAddClick={handleFabClick} />
+
+      {/* Universal Quick-Add Sheet */}
+      <QuickAddSheet open={showQuickAdd} onClose={() => setShowQuickAdd(false)} />
 
       {/* Toast Notifications */}
       <FeedbackToast />
