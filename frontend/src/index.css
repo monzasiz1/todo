@@ -4120,16 +4120,18 @@ body.cal-is-dragging * {
     gap: 6px;
   }
 
-  /* Calendar */
+  /* Calendar — Vollbild auf Mobile */
   .calendar-wrapper {
-    border-radius: 22px;
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
     overflow: hidden;
   }
 
   .calendar-header {
-    padding: 14px 14px 10px;
+    padding: 10px 14px 8px;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
     background: #fff;
     border-bottom: 1px solid #eef0f5;
     position: relative;
@@ -4194,14 +4196,64 @@ body.cal-is-dragging * {
     font-size: 12px;
   }
 
-  .calendar-grid {
-    background: #fff;
-    /* Extra space so month grid doesn't hide behind the fixed modebar */
-    padding-bottom: 60px;
+  /* ── Calendar Page: Vollbild wie native App ── */
+  .calendar-page-wrap {
+    position: fixed;
+    top: calc(56px + env(safe-area-inset-top, 0px));
+    left: 0;
+    right: 0;
+    bottom: calc(116px + env(safe-area-inset-bottom, 0px));
+    padding: 0;
+    margin: 0;
+    z-index: 1;
+    overflow: hidden;
   }
 
-  .calendar-page-wrap {
-    padding-bottom: 58px;
+  .calendar-page-wrap .page-header {
+    display: none;
+  }
+
+  .calendar-page-wrap .calendar-wrapper {
+    height: 100%;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .calendar-page-wrap .calendar-header {
+    flex-shrink: 0;
+    background: #fff;
+    border-bottom: 1px solid #eef0f5;
+  }
+
+  .calendar-page-wrap .calendar-grid {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-bottom: 0;
+    background: #fff;
+  }
+
+  .calendar-page-wrap .mobile-week-grid-wrap {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .calendar-page-wrap .mobile-week-grid-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .calendar-grid {
+    background: #fff;
   }
 
   .calendar-day-header {
@@ -4337,11 +4389,18 @@ body.cal-is-dragging * {
   .mobile-day-view {
     padding: 0 0 8px;
     background: #fff;
-    max-height: calc(100dvh - 170px);
+    flex: 1;
+    min-height: 0;
+    max-height: none;
     overflow-y: auto;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: 16px;
+  }
+
+  .calendar-page-wrap .mobile-day-view {
+    flex: 1;
+    min-height: 0;
   }
 
   .mobile-day-grid {
