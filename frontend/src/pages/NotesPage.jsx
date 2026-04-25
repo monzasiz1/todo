@@ -88,7 +88,7 @@ function deduplicatePickerTasks(tasks) {
 }
 
 export default function NotesPage() {
-  const { notes, createNote, updateNote, deleteNote, linkNoteToTask, shareNoteWithFriend, connectNotes, getNoteConnections } = useNotesStore();
+  const { notes, createNote, updateNote, deleteNote, linkNoteToTask, shareNoteWithFriend, connectNotes, disconnectNotes, getNoteConnections } = useNotesStore();
   const { friends } = useFriendsStore();
   const { tasks, fetchTasks } = useTaskStore();
 
@@ -107,6 +107,7 @@ export default function NotesPage() {
   const [toolboxOpen, setToolboxOpen] = useState(false);
   const [quickCreatePosition, setQuickCreatePosition] = useState(null);
   const [quickConnectMode, setQuickConnectMode] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 640 : false));
   const canvasRef = useRef(null);
 
   const refreshConnections = async (sourceNotes = notes) => {
@@ -142,6 +143,16 @@ export default function NotesPage() {
     useNotesStore.getState().fetchNotes?.();
     fetchTasks?.({ limit: '2000', completed: 'false' }, { force: true });
   }, [fetchTasks]);
+
+  useEffect(() => {
+    const syncViewport = () => {
+      setIsMobileView(window.innerWidth < 640);
+    };
+
+    syncViewport();
+    window.addEventListener('resize', syncViewport);
+    return () => window.removeEventListener('resize', syncViewport);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -298,6 +309,15 @@ export default function NotesPage() {
       setShowConnectModal(null);
     } catch (err) {
       console.error('Connect notes error:', err);
+    }
+  };
+
+  const handleDisconnectNotes = async (noteId1, noteId2) => {
+    try {
+      await disconnectNotes(noteId1, noteId2);
+      await refreshConnections();
+    } catch (err) {
+      console.error('Disconnect notes error:', err);
     }
   };
 
@@ -460,6 +480,29 @@ export default function NotesPage() {
       if (secondId === current) connectedNoteIds.add(firstId);
     });
   }
+
+  const modalConnectedEntries = showConnectModal
+    ? connections
+      .map((connection) => {
+        const firstId = String(connection?.note_id_1 || connection?.noteId1 || '');
+        const secondId = String(connection?.note_id_2 || connection?.noteId2 || '');
+        const current = String(showConnectModal);
+        const otherId = firstId === current ? secondId : secondId === current ? firstId : null;
+        if (!otherId) return null;
+
+        const otherNote = notes.find((entry) => String(entry.id) === otherId);
+        if (!otherNote) return null;
+
+        return {
+          connectionKey: connection.id || `${firstId}-${secondId}`,
+          otherId,
+          otherNote,
+        };
+      })
+      .filter(Boolean)
+    : [];
+
+  const modalConnectedIds = new Set(modalConnectedEntries.map((entry) => String(entry.otherId)));
 
   const getNoteGeometry = (noteId) => {
     const note = notes.find((entry) => String(entry.id) === String(noteId));
@@ -680,8 +723,8 @@ export default function NotesPage() {
                   style={{
                     left: `${(notePositions[note.id]?.x ?? note.x ?? 100)}px`,
                     top: `${(notePositions[note.id]?.y ?? note.y ?? 100)}px`,
-                    width: `${note.width || 300}px`,
-                    minHeight: `${note.height || 150}px`,
+                    width: `${note.width || (isMobileView ? 240 : 300)}px`,
+                    minHeight: `${note.height || (isMobileView ? 132 : 150)}px`,
                   }}
                   onMouseDown={(e) => handleNoteMouseDown(e, note.id)}
                   onClick={(event) => handleNoteCardClick(event, note.id)}
@@ -1114,9 +1157,32 @@ export default function NotesPage() {
               <h2 className="modal-title">Note verknüpfen</h2>
               <p className="modal-description">Mit welcher anderen Note möchtest du diese verknüpfen?</p>
 
+              {modalConnectedEntries.length > 0 && (
+                <>
+                  <p className="modal-description">Bestehende Verknüpfungen</p>
+                  <div className="notes-list">
+                    {modalConnectedEntries.map((entry) => (
+                      <div key={entry.connectionKey} className="note-item note-item-connected">
+                        <div>
+                          <div className="note-item-title">{entry.otherNote.title}</div>
+                          <div className="note-item-preview">{entry.otherNote.content?.substring(0, 50)}...</div>
+                        </div>
+                        <button
+                          className="unlink-btn"
+                          onClick={() => handleDisconnectNotes(showConnectModal, entry.otherId)}
+                        >
+                          Entfernen
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
               <div className="notes-list">
                 {notes
                   .filter((n) => n.id !== showConnectModal)
+                  .filter((n) => !modalConnectedIds.has(String(n.id)))
                   .map((note) => (
                     <div
                       key={note.id}

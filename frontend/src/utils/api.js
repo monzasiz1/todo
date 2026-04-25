@@ -532,5 +532,16 @@ export const api = {
       }),
     }),
 
+  disconnectNotes: (noteId1, noteId2) =>
+    request('/notes', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'disconnect',
+        id: noteId1,
+        note_id: noteId2,
+        other_note_id: noteId2,
+      }),
+    }),
+
   getNoteConnections: (noteId) => request(`/notes?id=${encodeURIComponent(noteId)}&view=connections`),
 };

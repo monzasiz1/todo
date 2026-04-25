@@ -151,6 +151,17 @@ export const useNotesStore = create((set, get) => ({
     }
   },
 
+  // Remove note connection
+  disconnectNotes: async (noteId1, noteId2) => {
+    try {
+      await api.disconnectNotes?.(noteId1, noteId2);
+      return true;
+    } catch (err) {
+      set({ error: err.message });
+      throw err;
+    }
+  },
+
   // Get note connections
   getNoteConnections: async (noteId) => {
     try {

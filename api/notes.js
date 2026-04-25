@@ -735,6 +735,55 @@ module.exports = async function handler(req, res) {
       return res.status(201).json({ connection: connected.rows[0] });
     }
 
+    // POST /api/notes/:id/disconnect
+    if (
+      (segments.length === 2 && ['disconnect', 'unlink'].includes(segments[1]) && req.method === 'POST') ||
+      (isLegacyNoteAction && req.method === 'POST' && ['disconnect', 'unlink'].includes(legacyMethod)) ||
+      (isRootAction && ['disconnect', 'unlink'].includes(rootAction))
+    ) {
+      if (!isOwner && note.shared_permission !== 'edit') {
+        return res.status(403).json({ error: 'Keine Berechtigung zum Bearbeiten' });
+      }
+
+      const otherNoteId = req.body?.other_note_id || req.body?.note_id;
+
+      if (!isUuid(otherNoteId) || otherNoteId === noteId) {
+        return res.status(400).json({ error: 'Ungueltige Ziel-Note' });
+      }
+
+      const otherAccess = await pool.query(
+        `SELECT id
+           FROM notes
+          WHERE id = $1
+            AND (
+              user_id::text = $2
+              OR EXISTS (
+                SELECT 1 FROM note_shares ns WHERE ns.note_id = notes.id AND ns.friend_id::text = $2
+              )
+            )
+          LIMIT 1`,
+        [otherNoteId, userIdText]
+      );
+
+      if (otherAccess.rows.length === 0) {
+        return res.status(404).json({ error: 'Ziel-Note nicht gefunden oder kein Zugriff' });
+      }
+
+      const pair = noteId < otherNoteId ? [noteId, otherNoteId] : [otherNoteId, noteId];
+
+      const removed = await pool.query(
+        `DELETE FROM note_connections
+          WHERE note_id_1 = $1 AND note_id_2 = $2
+          RETURNING *`,
+        [pair[0], pair[1]]
+      );
+
+      return res.status(200).json({
+        removed: removed.rows.length > 0,
+        connection: removed.rows[0] || null,
+      });
+    }
+
     return res.status(404).json({ error: 'Route nicht gefunden' });
   } catch (error) {
     console.error('Notes endpoint error:', error);
