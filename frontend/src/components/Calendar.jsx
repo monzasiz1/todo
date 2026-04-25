@@ -905,25 +905,25 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
               const dayTasks = getTasksForDate(d).filter((t) => !t.time);
               return (
                 <div key={`allday-${d.toISOString()}`} className="desktop-week-all-day-cell" data-caldate={format(d, 'yyyy-MM-dd')}>
-                  {dayTasks.slice(0, 2).map((t) => (
-                    (() => {
-                      const ended = isEventEnded(t, nowTs);
-                      return (
-                    <button
-                      key={t.id}
-                      className={`desktop-week-all-day-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}`}
-                      style={{ background: ended ? 'rgba(142, 142, 147, 0.4)' : (t.group_color || t.category_color || '#4C7BD9') }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDetailTask(t);
-                      }}
-                    >
-                      {t.teams_join_url && <Video size={11} className="calendar-inline-teams-icon" />}
-                      {t.title}{ended ? ' · beendet' : ''}
-                    </button>
-                      );
-                    })()
-                  ))}
+                  {dayTasks.slice(0, 3).map((t) => {
+                    const ended     = isEventEnded(t, nowTs);
+                    const doneOrOld = t.completed || ended;
+                    return (
+                      <button
+                        key={t.id}
+                        className={`desktop-week-all-day-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${t.completed ? ' completed' : ''}`}
+                        style={{ background: doneOrOld ? 'rgba(142,142,147,0.4)' : (t.group_color || t.category_color || '#4C7BD9') }}
+                        onClick={(e) => { e.stopPropagation(); setDetailTask(t); }}
+                      >
+                        {t.teams_join_url && <Video size={11} className="calendar-inline-teams-icon" />}
+                        <span className={doneOrOld ? 'cal-allday-strike' : ''}>{t.title}</span>
+                        {ended && !t.completed && <span style={{ opacity: 0.75, marginLeft: 3 }}>· beendet</span>}
+                      </button>
+                    );
+                  })}
+                  {dayTasks.length > 3 && (
+                    <div className="desktop-week-allday-more">+{dayTasks.length - 3} weitere</div>
+                  )}
                 </div>
               );
             })}
@@ -1107,6 +1107,41 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
           ))}
         </div>
 
+        {/* ── All-Day Strip ──────────────────────────────────── */}
+        {(() => {
+          const hasAny = days.some((d) => getTasksForDate(d).some((t) => !t.time));
+          if (!hasAny) return null;
+          return (
+            <div className="mobile-week-allday-strip">
+              <div className="mobile-week-allday-corner">Ganztg.</div>
+              {days.map((d) => {
+                const adTasks = getTasksForDate(d).filter((t) => !t.time);
+                return (
+                  <div key={`mwad-${d.toISOString()}`} className="mobile-week-allday-col">
+                    {adTasks.slice(0, 2).map((t) => {
+                      const ended     = isEventEnded(t, nowTs);
+                      const doneOrOld = t.completed || ended;
+                      return (
+                        <div
+                          key={`mwadt-${t.id}`}
+                          className={`mobile-week-allday-pill${doneOrOld ? ' done' : ''}`}
+                          style={{ background: doneOrOld ? 'rgba(142,142,147,0.35)' : (t.group_color || t.category_color || '#4C7BD9') }}
+                          onClick={(e) => { e.stopPropagation(); setDetailTask(t); }}
+                        >
+                          <span>{t.title}</span>
+                        </div>
+                      );
+                    })}
+                    {adTasks.length > 2 && (
+                      <div className="mobile-week-allday-more">+{adTasks.length - 2}</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
+
         {/* scrollable time grid */}
         <div className="mobile-week-grid-scroll">
           {/* hour labels */}
@@ -1241,8 +1276,42 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       handleDayClick(pickedDate);
     };
 
+    const allDayTasks = dayTasks.filter((t) => !t.time);
+    const timedTasks  = dayTasks.filter((t) => t.time);
+
     return (
       <div className="mobile-day-view">
+
+        {/* ── All-Day Section — TOP ──────────────────────────────── */}
+        {allDayTasks.length > 0 && (
+          <div className="mobile-day-allday-top">
+            <span className="mobile-day-allday-label">Ganztägig</span>
+            {allDayTasks.map((t) => {
+              const ended    = isEventEnded(t, nowTs);
+              const doneOrOld = t.completed || ended;
+              const color    = doneOrOld
+                ? 'rgba(142,142,147,0.35)'
+                : (t.group_color || t.category_color || '#4C7BD9');
+              return (
+                <button
+                  key={`adtop-${t.id}`}
+                  className={`mobile-day-allday-chip${doneOrOld ? ' done' : ''}`}
+                  style={{ background: color }}
+                  onClick={(e) => { e.stopPropagation(); setDetailTask(t); }}
+                >
+                  {t.group_id && (
+                    <AvatarBadge name={t.group_name} color={t.group_color || '#5856D6'} avatarUrl={t.group_image_url} size={12} />
+                  )}
+                  {t.teams_join_url && <Video size={11} />}
+                  <span className={doneOrOld ? 'mobile-day-allday-chip-done' : ''}>{t.title}</span>
+                  {ended && !t.completed && <span className="mobile-day-chip-badge">Beendet</span>}
+                  {t.completed && <span className="mobile-day-chip-badge">Erledigt</span>}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         <div className="mobile-day-grid" ref={mobileDayRef} style={{ height: `${totalHeight}px` }} onClick={handleGridClick}>
           {hours.map((h) => (
             <div key={`h-${h}`} className="mobile-day-hour-row" style={{ top: `${(h - startHour) * hourHeight}px` }}>
@@ -1256,7 +1325,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
             </div>
           )}
 
-          {dayTasks.filter((t) => t.time).map((t) => {
+          {timedTasks.map((t) => {
             const ended = isEventEnded(t, nowTs);
             const start = toMinutes(t.time) ?? (startHour * 60);
             const endRaw = toMinutes(t.time_end);
@@ -1326,29 +1395,6 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
           })}
         </div>
 
-        {dayTasks.filter((t) => !t.time).length > 0 && (
-          <div className="mobile-day-allday">
-            {dayTasks.filter((t) => !t.time).map((t) => (
-              (() => {
-                const ended = isEventEnded(t, nowTs);
-                return (
-              <button
-                key={`ad-${t.id}`}
-                className={`mobile-day-allday-item ${ended ? 'ended-event' : ''}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setDetailTask(t);
-                }}
-              >
-                {t.teams_join_url && <Video size={11} className="calendar-day-task-teams-icon" />}
-                {t.title}
-                {ended && <span className="mobile-day-event-ended">Beendet</span>}
-              </button>
-                );
-              })()
-            ))}
-          </div>
-        )}
       </div>
     );
   };
