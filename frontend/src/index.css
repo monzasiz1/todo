@@ -233,15 +233,11 @@ input, textarea, select {
 }
 
 .sidebar-desktop-toggle {
-  display: none; /* shown only on desktop via media query below */
+  display: none; /* shown only on desktop via media query */
 }
 
 .sidebar-toggle-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: inherit;
-  white-space: nowrap;
-  overflow: hidden;
+  display: none;
 }
 
 .sidebar-ai-hint {
@@ -527,25 +523,23 @@ input, textarea, select {
   .sidebar-desktop-toggle {
     display: flex;
     align-items: center;
-    gap: 10px;
-    width: 100%;
-    padding: 10px 16px;
-    margin-bottom: 8px;
-    border: none;
-    background: none;
-    border-radius: var(--radius-sm);
-    color: var(--text-tertiary);
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
+    justify-content: center;
+    margin-left: auto;
     flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   }
 
   .sidebar-desktop-toggle:hover {
     background: var(--hover);
     color: var(--primary);
+    border-color: color-mix(in srgb, var(--primary) 25%, var(--border));
   }
 
   .sidebar-desktop-toggle svg {
@@ -553,11 +547,10 @@ input, textarea, select {
   }
 
   .app-sidebar.collapsed .sidebar-logo {
-    padding-left: 4px;
-    padding-right: 4px;
-    justify-content: center;
+    justify-content: space-between;
+    padding-left: 6px;
+    padding-right: 6px;
     gap: 0;
-    position: relative;
   }
 
   .app-sidebar.collapsed .sidebar-logo h1,
@@ -574,9 +567,7 @@ input, textarea, select {
   }
 
   .app-sidebar.collapsed .sidebar-desktop-toggle {
-    justify-content: center;
-    padding: 10px;
-    gap: 0;
+    margin-left: 0;
   }
 
   .app-sidebar.collapsed .sidebar-toggle-label {
@@ -5451,14 +5442,14 @@ body.cal-is-dragging * {
   overflow: hidden;
   display: flex !important;
   flex-direction: column;
-  padding-top: env(safe-area-inset-top, 0px);
+  /* NO padding-top here — the header handles safe-area */
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .is-mobile-fullscreen .task-detail-header,
 .is-mobile-fullscreen .task-edit-header {
-  padding-top: calc(env(safe-area-inset-top, 0px) + 8px);
-  min-height: calc(env(safe-area-inset-top, 0px) + 56px);
+  /* Only the header gets the notch offset — not the container too */
+  padding-top: env(safe-area-inset-top, 0px);
   flex-shrink: 0;
   background: var(--card-solid);
   position: sticky;
@@ -5471,7 +5462,7 @@ body.cal-is-dragging * {
 }
 
 .is-mobile-fullscreen .task-detail-header-actions {
-  top: calc(env(safe-area-inset-top, 0px) + 14px);
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
 }
 
 .is-mobile-fullscreen .task-detail-main,
