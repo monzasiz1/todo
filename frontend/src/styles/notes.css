@@ -1053,13 +1053,22 @@
 
 /* Empty State */
 
-.empty-state {
+.canvas-empty-overlay {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  z-index: 6;
+}
+
+.empty-state {
   text-align: center;
-  z-index: 5;
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--card-solid) 90%, var(--bg));
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  box-shadow: var(--shadow-sm);
 }
 
 .empty-state-text {

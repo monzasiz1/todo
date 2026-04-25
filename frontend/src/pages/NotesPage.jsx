@@ -576,6 +576,11 @@ export default function NotesPage() {
           participant_ids: Array.isArray(newNote.participant_ids) ? newNote.participant_ids : [],
           responsible_user_id: newNote.responsible_user_id || null,
         });
+        await syncParticipantsToShare(
+          created.id,
+          Array.isArray(newNote.participant_ids) ? newNote.participant_ids : [],
+          newNote.responsible_user_id || null
+        );
       }
       setNewNote({ title: '', content: '', importance: 'medium', date: '', linked_task_id: null, participant_ids: [], responsible_user_id: null });
       setTaskSearch('');
@@ -642,6 +647,27 @@ export default function NotesPage() {
       };
     });
     setCommentDraft('');
+  };
+
+  const syncParticipantsToShare = async (noteId, participantIds = [], responsibleId = null) => {
+    if (!noteId) return;
+
+    const ids = [...new Set([
+      ...((participantIds || []).map(String)),
+      responsibleId ? String(responsibleId) : null,
+    ].filter(Boolean))];
+
+    if (ids.length === 0) return;
+
+    await Promise.all(
+      ids.map((personId) =>
+        shareNoteWithFriend(
+          noteId,
+          personId,
+          String(personId) === String(responsibleId || '') ? 'edit' : 'view'
+        ).catch(() => null)
+      )
+    );
   };
 
   const openBlankCreateModal = (position = null) => {
@@ -1087,19 +1113,7 @@ export default function NotesPage() {
 
           {/* Notes */}
           <AnimatePresence>
-            {notes.length === 0 ? (
-              <motion.div
-                key="empty"
-                className="empty-state"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <p className="empty-state-text">Keine Notes vorhanden</p>
-                <p className="empty-state-subtitle">Klicke "Neue Note", um zu beginnen</p>
-              </motion.div>
-            ) : (
-              notes.map((note) => (
+            {notes.map((note) => (
                 (() => {
                   const noteId = String(note.id);
                   const isHovered = hoveredNoteId && noteId === String(hoveredNoteId);
@@ -1204,10 +1218,24 @@ export default function NotesPage() {
                 </motion.div>
                   );
                 })()
-              ))
-            )}
+              ))}
           </AnimatePresence>
         </div>
+
+        {notes.length === 0 && (
+          <motion.div
+            key="empty-overlay"
+            className="canvas-empty-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div className="empty-state">
+              <p className="empty-state-text">Keine Notes vorhanden</p>
+              <p className="empty-state-subtitle">Klicke "Neue Note", um zu beginnen</p>
+            </div>
+          </motion.div>
+        )}
       </div>
         </div>
 
@@ -1706,6 +1734,11 @@ export default function NotesPage() {
                         participant_ids: Array.isArray(editingNote.participant_ids) ? editingNote.participant_ids : [],
                         responsible_user_id: editingNote.responsible_user_id || null,
                       });
+                      await syncParticipantsToShare(
+                        editingNote.id,
+                        Array.isArray(editingNote.participant_ids) ? editingNote.participant_ids : [],
+                        editingNote.responsible_user_id || null
+                      );
                       setEditingNote(null);
                     } catch (err) {
                       console.error('Update error:', err);

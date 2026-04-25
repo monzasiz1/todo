@@ -39,8 +39,25 @@ export const useNotesStore = create((set, get) => ({
 
     set({ loading: true });
     try {
-      const data = await api.getNotes?.();
-      const notes = data?.notes || [];
+      const [ownData, sharedData] = await Promise.all([
+        api.getNotes?.(),
+        api.getSharedNotes?.().catch(() => ({ notes: [] })),
+      ]);
+
+      const ownNotes = ownData?.notes || [];
+      const sharedNotes = sharedData?.notes || [];
+
+      const mergedById = new Map();
+      ownNotes.forEach((note) => {
+        mergedById.set(String(note.id), note);
+      });
+      sharedNotes.forEach((note) => {
+        const key = String(note.id);
+        if (mergedById.has(key)) return;
+        mergedById.set(key, { ...note, is_shared_note: true });
+      });
+
+      const notes = [...mergedById.values()];
       writeNotesCache(notes);
       set({ notes, loading: false, error: null, lastFetchAt: now });
       return notes;
