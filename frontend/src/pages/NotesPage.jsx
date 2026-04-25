@@ -139,14 +139,8 @@ export default function NotesPage() {
   const { tasks, fetchTasks } = useTaskStore();
 
   const [zoom, setZoom] = useState(() => {
-    if (typeof window === 'undefined') return 80;
-    const w = window.innerWidth;
-    if (w >= 1920) return 72;
-    if (w >= 1600) return 74;
-    if (w >= 1440) return 76;
-    if (w >= 1200) return 80;
-    if (w >= 640)  return 86;
-    return 100;
+    if (typeof window === 'undefined') return 65;
+    return window.innerWidth < 640 ? 100 : 65;
   });
   const [mobileViewMode, setMobileViewMode] = useState('grid'); // 'grid' | 'canvas'
   const [mobileSearch, setMobileSearch] = useState('');
@@ -169,7 +163,7 @@ export default function NotesPage() {
   const [quickConnectMode, setQuickConnectMode] = useState(false);
   const [connectionType, setConnectionType] = useState('related');
   const [activeNoteId, setActiveNoteId] = useState(null);
-    const [selectedTask, setSelectedTask] = useState(null);
+  const [selectedTask, setSelectedTask] = useState(null);
   const [contextTab, setContextTab] = useState('details');
   const [noteComments, setNoteComments] = useState({});
   const [commentDraft, setCommentDraft] = useState('');
@@ -185,13 +179,38 @@ export default function NotesPage() {
   const didInitialViewportFitRef = useRef(false);
   const noteDragOccurredRef = useRef(false);
 
-  const getAdaptiveZoom = (screenWidth) => {
-    if (screenWidth >= 1920) return 125;
-    if (screenWidth >= 1600) return 115;
-    if (screenWidth >= 1440) return 108;
-    if (screenWidth >= 1200) return 100;
-    if (screenWidth >= 640) return 95;
-    return 100;
+  const getAdaptiveZoom = (screenWidth, screenHeight = (typeof window !== 'undefined' ? window.innerHeight : 900)) => {
+    if (screenWidth < 640) return 100;
+
+    const baseZoom = 65;
+    if (!Array.isArray(notes) || notes.length === 0) return baseZoom;
+
+    const dims = getNoteDimensions(screenWidth);
+    const spreadPaddingX = 320;
+    const spreadPaddingY = 260;
+
+    const bounds = notes.reduce((acc, note) => {
+      const pos = notePositions[note.id] || { x: note.x ?? 100, y: note.y ?? 100 };
+      acc.minX = Math.min(acc.minX, pos.x);
+      acc.minY = Math.min(acc.minY, pos.y);
+      acc.maxX = Math.max(acc.maxX, pos.x + (note.width || dims.width));
+      acc.maxY = Math.max(acc.maxY, pos.y + (note.height || dims.height));
+      return acc;
+    }, { minX: Infinity, minY: Infinity, maxX: 0, maxY: 0 });
+
+    const spreadWidth = Math.max(1, (bounds.maxX - bounds.minX) + spreadPaddingX);
+    const spreadHeight = Math.max(1, (bounds.maxY - bounds.minY) + spreadPaddingY);
+
+    const viewportWidth = Math.max(420, screenWidth - 120);
+    const viewportHeight = Math.max(320, screenHeight - 220);
+    const fitRatio = Math.min(viewportWidth / spreadWidth, viewportHeight / spreadHeight);
+
+    // Start at 65% and zoom out only if the notes cluster exceeds the comfortable overview area.
+    if (fitRatio >= 1) return baseZoom;
+
+    const countPenalty = notes.length > 18 ? Math.min(0.18, (notes.length - 18) * 0.008) : 0;
+    const autoZoom = baseZoom * fitRatio * (1 - countPenalty);
+    return Math.max(35, Math.min(baseZoom, Math.round(autoZoom)));
   };
 
   const getNoteDimensions = (screenWidth) => {
@@ -240,7 +259,7 @@ export default function NotesPage() {
       setZoom(100);
       return;
     }
-    setZoom(window.innerWidth < 640 ? 100 : getAdaptiveZoom(window.innerWidth));
+    setZoom(window.innerWidth < 640 ? 100 : getAdaptiveZoom(window.innerWidth, window.innerHeight));
   };
 
   const refreshConnections = async (sourceNotes = notes) => {
@@ -371,14 +390,14 @@ export default function NotesPage() {
     const syncViewport = () => {
       setIsMobileView(window.innerWidth < 640);
       if (!didManualZoomRef.current) {
-        setZoom(window.innerWidth < 640 ? 100 : getAdaptiveZoom(window.innerWidth));
+        setZoom(window.innerWidth < 640 ? 100 : getAdaptiveZoom(window.innerWidth, window.innerHeight));
       }
     };
 
     syncViewport();
     window.addEventListener('resize', syncViewport);
     return () => window.removeEventListener('resize', syncViewport);
-  }, []);
+  }, [notes.length]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1127,7 +1146,7 @@ export default function NotesPage() {
     return searchable.includes(normalizedTaskSearch);
   });
 
-  const selectedTask = newNote.linked_task_id
+  const selectedLinkedTask = newNote.linked_task_id
     ? pickerTasks.find((task) => String(task.id) === String(newNote.linked_task_id))
       || tasks.find((task) => String(task.id) === String(newNote.linked_task_id))
     : null;
@@ -1652,16 +1671,15 @@ export default function NotesPage() {
 
           {/* Notes */}
           <AnimatePresence>
-            {notes.map((note) => (
-                (() => {
-                  const noteId = String(note.id);
-                  const isHovered = hoveredNoteId && noteId === String(hoveredNoteId);
-                  const isConnected = hoveredNoteId && connectedNoteIds.has(noteId);
-                  const isMuted = hoveredNoteId && !isHovered && !isConnected;
-                  const notePeople = getPeopleForNote(note.id);
-                  const responsibleName = notePeople.responsible_user_id ? resolvePersonName(notePeople.responsible_user_id) : null;
+            {notes.map((note) => {
+              const noteId = String(note.id);
+              const isHovered = hoveredNoteId && noteId === String(hoveredNoteId);
+              const isConnected = hoveredNoteId && connectedNoteIds.has(noteId);
+              const isMuted = hoveredNoteId && !isHovered && !isConnected;
+              const notePeople = getPeopleForNote(note.id);
+              const responsibleName = notePeople.responsible_user_id ? resolvePersonName(notePeople.responsible_user_id) : null;
 
-                  return (
+              return (
                 <motion.div
                   key={note.id}
                   className={`note-card note-${note.importance} ${isUrgent(note.date) ? 'note-urgent' : ''} ${isHovered ? 'note-focus' : ''} ${isConnected ? 'note-connected' : ''} ${isMuted ? 'note-muted' : ''}`}
@@ -1671,85 +1689,13 @@ export default function NotesPage() {
                     width: `${note.width || getNoteDimensions(window.innerWidth).width}px`,
                     minHeight: `${note.height || getNoteDimensions(window.innerWidth).height}px`,
                   }}
-                        </AnimatePresence>
-                  onMouseLeave={() => setHoveredNoteId(null)}
-                        {/* Task Detail Modal */}
-                        <AnimatePresence>
-                          {selectedTask && (
-                            <motion.div
-                              className="modal-overlay"
-                              onClick={() => setSelectedTask(null)}
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              exit={{ opacity: 0 }}
-                            >
-                              <motion.div
-                                className="modal-content task-detail-modal"
-                                onClick={(e) => e.stopPropagation()}
-                                initial={{ scale: 0.9, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 0.9, opacity: 0 }}
-                              >
-                                <div className="task-detail-header">
-                                  <h2 className="task-detail-title">{selectedTask.title}</h2>
-                                  <div className="task-detail-badge" style={{ background: getImportanceColor(selectedTask.importance || 'medium').bg }}>
-                                    {selectedTask.importance === 'high' && '⭐ Wichtig'}
-                                    {selectedTask.importance === 'medium' && '● Normal'}
-                                    {selectedTask.importance === 'low' && '− Niedrig'}
-                                  </div>
-                                </div>
-
-                                <div className="task-detail-grid">
-                                  <div className="task-detail-row">
-                                    <span className="task-detail-label">📌 Typ:</span>
-                                    <span className="task-detail-value">{selectedTask.type === 'event' ? 'Termin' : 'Aufgabe'}</span>
-                                  </div>
-                                  {selectedTask.start_date && (
-                                    <div className="task-detail-row">
-                                      <span className="task-detail-label">📅 Start:</span>
-                                      <span className="task-detail-value">{formatTaskDate(selectedTask)}</span>
-                                    </div>
-                                  )}
-                                  {selectedTask.end_date && selectedTask.type === 'event' && (
-                                    <div className="task-detail-row">
-                                      <span className="task-detail-label">⏰ Ende:</span>
-                                      <span className="task-detail-value">{new Date(selectedTask.end_date).toLocaleDateString('de-DE')}</span>
-                                    </div>
-                                  )}
-                                  {selectedTask.category && (
-                                    <div className="task-detail-row">
-                                      <span className="task-detail-label">🏷️ Kategorie:</span>
-                                      <span className="task-detail-value">{selectedTask.category}</span>
-                                    </div>
-                                  )}
-                                  {selectedTask.description && (
-                                    <div className="task-detail-row">
-                                      <span className="task-detail-label">📝 Beschreibung:</span>
-                                      <span className="task-detail-value" style={{ whiteSpace: 'pre-wrap' }}>{selectedTask.description}</span>
-                                    </div>
-                                  )}
-                                </div>
-
-                                <div className="modal-actions">
-                                  <button
-                                    className="btn-secondary"
-                                    onClick={() => setSelectedTask(null)}
-                                  >
-                                    Schließen
-                                  </button>
-                                </div>
-                              </motion.div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    );
-                  }
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                   whileHover={{ y: -8 }}
+                  onMouseEnter={() => setHoveredNoteId(note.id)}
+                  onMouseLeave={() => setHoveredNoteId(null)}
                 >
                   <div className="note-header">
                     <h3 className="note-title">{note.title}</h3>
@@ -1776,8 +1722,8 @@ export default function NotesPage() {
                       }}
                       onMouseLeave={() => setHoveredTaskPreview(null)}
                       onClick={() => {
-                        setActiveNoteId(note.id);
-                        setContextTab('events');
+                        const task = linkedTask(note.id);
+                        if (task) setSelectedTask(task);
                         setHoveredTaskPreview(null);
                       }}
                       title={`Hover für Übersicht, Klick für Details: ${linkedTask(note.id)?.title}`}
@@ -1856,9 +1802,8 @@ export default function NotesPage() {
                     </button>
                   </div>
                 </motion.div>
-                  );
-                })()
-              ))}
+              );
+            })}
           </AnimatePresence>
         </div>
 
@@ -1877,53 +1822,52 @@ export default function NotesPage() {
           </motion.div>
         )}
       </div>
-        </div>
 
-        {hoveredTaskPreview && hoveredTaskPreview.task && (
-          <div
-            className="task-preview-modal"
-            style={{
-              position: 'fixed',
-              left: `${hoveredTaskPreview.x}px`,
-              top: `${hoveredTaskPreview.y}px`,
-              zIndex: 1000,
-              cursor: 'pointer',
-            }}
-            onClick={() => {
-              setActiveNoteId(hoveredTaskPreview.noteId);
-              setContextTab('events');
-              setHoveredTaskPreview(null);
-            }}
-                        onClick={() => {
-                          setSelectedTask(hoveredTaskPreview.task);
-                          setHoveredTaskPreview(null);
-                        }}
-                {hoveredTaskPreview.task.importance === 'high' && '⭐'}
-                {hoveredTaskPreview.task.importance === 'medium' && '●'}
-                {hoveredTaskPreview.task.importance === 'low' && '−'}
-              </div>
+      {hoveredTaskPreview && hoveredTaskPreview.task && (
+        <div
+          className="task-preview-modal"
+          style={{
+            position: 'fixed',
+            left: `${hoveredTaskPreview.x}px`,
+            top: `${hoveredTaskPreview.y}px`,
+            zIndex: 1000,
+            cursor: 'pointer',
+          }}
+          onClick={() => {
+            setSelectedTask(hoveredTaskPreview.task);
+            setHoveredTaskPreview(null);
+          }}
+          onMouseLeave={() => setHoveredTaskPreview(null)}
+        >
+          <div className="task-preview-header">
+            <div className="task-preview-title">{hoveredTaskPreview.task.title}</div>
+            <div className="task-preview-importance" style={{ background: getImportanceColor(hoveredTaskPreview.task.importance || 'medium').bg }}>
+              {hoveredTaskPreview.task.importance === 'high' && '⭐'}
+              {hoveredTaskPreview.task.importance === 'medium' && '●'}
+              {hoveredTaskPreview.task.importance === 'low' && '−'}
             </div>
-            <div className="task-preview-grid">
-              <div className="task-preview-row">
-                <span className="task-preview-label">📅 Datum:</span>
-                <span className="task-preview-value">{formatTaskDate(hoveredTaskPreview.task)}</span>
-              </div>
-              {hoveredTaskPreview.task.type && (
-                <div className="task-preview-row">
-                  <span className="task-preview-label">📌 Typ:</span>
-                  <span className="task-preview-value">{hoveredTaskPreview.task.type === 'event' ? 'Termin' : 'Aufgabe'}</span>
-                </div>
-              )}
-              {hoveredTaskPreview.task.category && (
-                <div className="task-preview-row">
-                  <span className="task-preview-label">🏷️ Kategorie:</span>
-                  <span className="task-preview-value">{hoveredTaskPreview.task.category}</span>
-                </div>
-              )}
-            </div>
-            <div className="task-preview-footer">Klick für vollständige Details</div>
           </div>
-        )}
+          <div className="task-preview-grid">
+            <div className="task-preview-row">
+              <span className="task-preview-label">📅 Datum:</span>
+              <span className="task-preview-value">{formatTaskDate(hoveredTaskPreview.task)}</span>
+            </div>
+            {hoveredTaskPreview.task.type && (
+              <div className="task-preview-row">
+                <span className="task-preview-label">📌 Typ:</span>
+                <span className="task-preview-value">{hoveredTaskPreview.task.type === 'event' ? 'Termin' : 'Aufgabe'}</span>
+              </div>
+            )}
+            {hoveredTaskPreview.task.category && (
+              <div className="task-preview-row">
+                <span className="task-preview-label">🏷️ Kategorie:</span>
+                <span className="task-preview-value">{hoveredTaskPreview.task.category}</span>
+              </div>
+            )}
+          </div>
+          <div className="task-preview-footer">Klick für vollständige Details</div>
+        </div>
+      )}
 
         <aside className={`notes-context-panel ${activeNote ? 'open' : ''}`}>
           {!activeNote ? (
@@ -2063,6 +2007,7 @@ export default function NotesPage() {
             </>
           )}
         </aside>
+      </div>
       </div>
       )} {/* end canvas/desktop workspace */}
 
@@ -2214,14 +2159,14 @@ export default function NotesPage() {
                     </div>
                   </div>
 
-                  {selectedTask && (
+                  {selectedLinkedTask && (
                     <button
                       type="button"
                       className="selected-task-pill"
                       onClick={() => setNewNote({ ...newNote, linked_task_id: null })}
                     >
-                      <span>{selectedTask.title}</span>
-                      <span>{formatTaskDate(selectedTask)}</span>
+                      <span>{selectedLinkedTask.title}</span>
+                      <span>{formatTaskDate(selectedLinkedTask)}</span>
                       <X size={14} />
                     </button>
                   )}
