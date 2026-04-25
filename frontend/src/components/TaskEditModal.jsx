@@ -46,7 +46,7 @@ function parseVirtualTaskId(taskId) {
 }
 
 export default function TaskEditModal({ task, onClose, onSaved }) {
-  const { updateTask, categories, fetchCategories, addToast } = useTaskStore();
+  const { updateTask, fetchTasks, categories, fetchCategories, addToast } = useTaskStore();
   const { friends, fetchFriends } = useFriendsStore();
   const [isMobile, setIsMobile] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
@@ -295,6 +295,12 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
       addToast('✅ Änderungen gespeichert');
 
       onSaved?.(finalTask);
+      
+      // Force reload next fetch to ensure calendar updates immediately
+      if (fetchTasks) {
+        setTimeout(() => fetchTasks({ force: true }), 150);
+      }
+      
       onClose();
     } catch (err) {
       addToast('❌ ' + (err.message || 'Speichern fehlgeschlagen'), 'error');

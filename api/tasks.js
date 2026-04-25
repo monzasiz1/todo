@@ -641,6 +641,10 @@ module.exports = async function handler(req, res) {
       const { title, description, date, date_end, time, time_end, priority, category_id, reminder_at,
               recurrence_rule, recurrence_interval, recurrence_end, type } = req.body;
       const taskType = type === 'event' ? 'event' : (type === 'task' ? 'task' : undefined);
+      
+      console.log(`[API Update] User ${user.id} updating task ${taskId} with:`, {
+        title, date, time, priority, category_id, reminder_at, type: taskType
+      });
 
       const virtual = parseVirtualId(taskId);
       if (virtual) {
@@ -693,7 +697,21 @@ module.exports = async function handler(req, res) {
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Aufgabe nicht gefunden' });
       }
-      return res.json({ task: normalizeTaskRow(result.rows[0]) });
+      
+      const updatedTask = result.rows[0];
+      console.log(`[API Update] SUCCESS: Task ${taskId} updated. New state:`, {
+        title: updatedTask.title,
+        date: updatedTask.date,
+        time: updatedTask.time,
+        priority: updatedTask.priority,
+        updated_at: updatedTask.updated_at
+      });
+      
+      // 🚀 Invalidate caches after update so calendar/dashboard refresh
+      console.log(`[API Update] Invalidating cache for user ${user.id} after updating task ${taskId}`);
+      await cacheManager.invalidateByEvent(String(user.id), 'task_updated');
+      
+      return res.json({ task: normalizeTaskRow(updatedTask) });
     } catch (err) {
       console.error('Update error:', err);
       return res.status(500).json({ error: 'Fehler beim Aktualisieren' });

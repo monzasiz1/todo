@@ -526,5 +526,70 @@ module.exports = async function handler(req, res) {
     }
   }
 
+  // GET /api/notifications/debug-updates – debug task update consistency
+  if (segments[0] === 'debug-updates' && req.method === 'GET') {
+    try {
+      const taskId = req.query.task_id;
+      
+      if (!taskId) {
+        // Return summary of recent updates
+        const { rows: recentUpdates } = await pool.query(
+          `SELECT id, title, priority, date, time, updated_at 
+           FROM tasks 
+           WHERE user_id = $1 
+           ORDER BY updated_at DESC 
+           LIMIT 10`,
+          [user.id]
+        );
+        
+        const { rows: updates7d } = await pool.query(
+          `SELECT COUNT(*)::int as count 
+           FROM tasks 
+           WHERE user_id = $1 AND updated_at >= NOW() - INTERVAL '7 days'`,
+          [user.id]
+        );
+        
+        return res.json({
+          debug_type: 'summary',
+          recent_updates: recentUpdates,
+          updates_7d: updates7d[0]?.count || 0,
+          timestamp: new Date().toISOString()
+        });
+      }
+      
+      // Detailed check for a specific task
+      const { rows: taskRows } = await pool.query(
+        `SELECT id, title, priority, date, time, completed, updated_at, last_edited_by 
+         FROM tasks 
+         WHERE id = $1 AND user_id = $2`,
+        [taskId, user.id]
+      );
+      
+      if (taskRows.length === 0) {
+        return res.status(404).json({ error: 'Task nicht gefunden' });
+      }
+      
+      const task = taskRows[0];
+      return res.json({
+        debug_type: 'task_detail',
+        task: {
+          id: task.id,
+          title: task.title,
+          priority: task.priority,
+          date: task.date,
+          time: task.time,
+          completed: task.completed,
+          updated_at: task.updated_at,
+          last_edited_by: task.last_edited_by
+        },
+        timestamp: new Date().toISOString(),
+        notes: 'Wenn updated_at alt ist, prüfe dass der Frontend die Änderung sendet. Wenn neu, aber nicht sichtbar im Kalender, prüfe Browser-Cache.'
+      });
+    } catch (err) {
+      console.error('Debug updates error:', err);
+      return res.status(500).json({ error: 'Fehler beim Debuggen', details: err.message });
+    }
+  }
+
   return res.status(404).json({ error: 'Nicht gefunden' });
 };

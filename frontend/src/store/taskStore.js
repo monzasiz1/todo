@@ -278,16 +278,26 @@ export const useTaskStore = create((set, get) => ({
 
   updateTask: async (id, updates) => {
     try {
+      console.log(`[taskStore] Updating task ${id} with:`, updates);
       const data = await api.updateTask(id, updates);
+      console.log(`[taskStore] Update successful, got:`, data.task);
+      
+      // Update store immediately (optimistic update)
       set((s) => ({
         tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...data.task } : t)),
-        lastTasksFetchKey: '',
-        lastTasksFetchAt: 0,
       }));
+      
+      // Reset fetch cache to force next load from server (ensures consistency)
+      set({ lastTasksFetchKey: '', lastTasksFetchAt: 0 });
+      console.log(`[taskStore] Invalidated fetch cache, next load will fetch fresh data`);
+      
       const current = get().tasks.find((t) => t.id === id);
       return current || data.task;
     } catch (err) {
+      console.error('[taskStore] updateTask error:', err);
       get().addToast('❌ ' + err.message, 'error');
+      // On error: also reset cache to ensure fresh data on retry
+      set({ lastTasksFetchKey: '', lastTasksFetchAt: 0 });
       return null;
     }
   },
