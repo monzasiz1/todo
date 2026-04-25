@@ -193,6 +193,41 @@ export default function NotesPage() {
     return 100;
   };
 
+  const getNoteDimensions = (screenWidth) => {
+    if (screenWidth < 640) {
+      return { width: 240, height: 132 };
+    }
+    if (screenWidth < 1024) {
+      return { width: 260, height: 140 };
+    }
+    if (screenWidth < 1280) {
+      return { width: 280, height: 145 };
+    }
+    if (screenWidth < 1600) {
+      return { width: 300, height: 150 };
+    }
+    if (screenWidth < 1920) {
+      return { width: 320, height: 160 };
+    }
+    return { width: 340, height: 170 };
+  };
+
+  const getNewNoteDimensions = (screenWidth) => {
+    if (screenWidth < 640) {
+      return { width: 240, height: 140 };
+    }
+    if (screenWidth < 1024) {
+      return { width: 280, height: 150 };
+    }
+    if (screenWidth < 1280) {
+      return { width: 300, height: 160 };
+    }
+    if (screenWidth < 1440) {
+      return { width: 320, height: 180 };
+    }
+    return { width: 380, height: 210 };
+  };
+
   const setZoomManual = (nextZoom) => {
     didManualZoomRef.current = true;
     setZoom(Math.round(clampZoom(nextZoom)));
@@ -524,15 +559,27 @@ export default function NotesPage() {
 
   // Handle canvas pan
   const handleCanvasMouseDown = (e) => {
-    if (e.target === canvasRef.current || e.target.classList.contains('notes-canvas')) {
-      setActiveNoteId(null);
-      setIsDragging({ x: e.clientX, y: e.clientY, isPan: true });
-    }
+    // Don't pan if clicking on a note card, button, or interactive element
+    if (e.target.closest('.note-card, button, input, textarea, select, a')) return;
+    
+    // Don't pan if clicking on the task preview modal
+    if (e.target.closest('.task-preview-modal')) return;
+    
+    setActiveNoteId(null);
+    setHoveredTaskPreview(null);
+    setIsDragging({ x: e.clientX, y: e.clientY, isPan: true });
+    e.preventDefault();
   };
 
   const handleCanvasWheel = (e) => {
     if (!canvasRef.current) return;
+    if (e.ctrlKey || e.metaKey) {
+      // Let browser handle pinch zoom on trackpad with Ctrl/Cmd
+      return;
+    }
+    
     e.preventDefault();
+    e.stopPropagation();
     didManualZoomRef.current = true;
 
     const zoomStep = 5;
@@ -680,8 +727,9 @@ export default function NotesPage() {
     }, new Map());
 
     const layout = {};
-    const noteWidth = isMobileView ? 240 : 300;
-    const noteHeight = isMobileView ? 132 : 150;
+    const dims = getNoteDimensions(window.innerWidth);
+    const noteWidth = dims.width;
+    const noteHeight = dims.height;
     const perRow = isMobileView ? 1 : 2;
     let baseX = 120;
 
@@ -754,12 +802,13 @@ export default function NotesPage() {
         y: 100 + notes.length * 40,
       };
       const targetPosition = quickCreatePosition || fallbackPosition;
+      const newDims = getNewNoteDimensions(window.innerWidth);
       const noteData = {
         ...newNote,
         x: targetPosition.x,
         y: targetPosition.y,
-        width: isMobileView ? 240 : (window.innerWidth >= 1440 ? 380 : 320),
-        height: isMobileView ? 140 : (window.innerWidth >= 1440 ? 210 : 180),
+        width: newDims.width,
+        height: newDims.height,
       };
       const created = await createNote(noteData);
       if (created?.id) {
@@ -1583,8 +1632,8 @@ export default function NotesPage() {
                   style={{
                     left: `${(notePositions[note.id]?.x ?? note.x ?? 100)}px`,
                     top: `${(notePositions[note.id]?.y ?? note.y ?? 100)}px`,
-                    width: `${note.width || (isMobileView ? 240 : 300)}px`,
-                    minHeight: `${note.height || (isMobileView ? 132 : 150)}px`,
+                    width: `${note.width || getNoteDimensions(window.innerWidth).width}px`,
+                    minHeight: `${note.height || getNoteDimensions(window.innerWidth).height}px`,
                   }}
                   onMouseDown={(e) => handleNoteMouseDown(e, note.id)}
                   onTouchStart={(event) => handleNoteTouchStart(event, note.id)}
@@ -1618,7 +1667,7 @@ export default function NotesPage() {
                       onMouseEnter={(e) => {
                         const task = linkedTask(note.id);
                         const rect = e.currentTarget.getBoundingClientRect();
-                        setHoveredTaskPreview({ task, x: rect.left, y: rect.bottom + 8 });
+                        setHoveredTaskPreview({ task, noteId: note.id, x: rect.left, y: rect.bottom + 8 });
                       }}
                       onMouseLeave={() => setHoveredTaskPreview(null)}
                       onClick={() => {
@@ -1733,6 +1782,12 @@ export default function NotesPage() {
               left: `${hoveredTaskPreview.x}px`,
               top: `${hoveredTaskPreview.y}px`,
               zIndex: 1000,
+              cursor: 'pointer',
+            }}
+            onClick={() => {
+              setActiveNoteId(hoveredTaskPreview.noteId);
+              setContextTab('events');
+              setHoveredTaskPreview(null);
             }}
             onMouseLeave={() => setHoveredTaskPreview(null)}
           >
