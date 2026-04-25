@@ -216,6 +216,35 @@ async function resolveFriendUserId(pool, rawFriendId, userId) {
   return String(row.user_id) === currentUserIdText ? row.friend_id : row.user_id;
 }
 
+/**
+ * Synchronise note_shares with participant_ids.
+ * - Adds shares for newly added participant IDs.
+ * - Removes shares for participant IDs that were removed.
+ * ownerIdText must be excluded from shares.
+ */
+async function syncParticipantShares(pool, noteId, ownerIdText, prevParticipantIds, nextParticipantIds) {
+  const prevSet = new Set((prevParticipantIds || []).map(String));
+  const nextSet = new Set((nextParticipantIds || []).map(String));
+
+  const added = [...nextSet].filter((id) => !prevSet.has(id) && id !== ownerIdText);
+  const removed = [...prevSet].filter((id) => !nextSet.has(id) && id !== ownerIdText);
+
+  for (const id of added) {
+    await pool.query(
+      `INSERT INTO note_shares (note_id, friend_id, permission)
+       VALUES ($1, $2, 'view')
+       ON CONFLICT (note_id, friend_id) DO NOTHING`,
+      [noteId, Number(id)]
+    ).catch(() => null);
+  }
+  for (const id of removed) {
+    await pool.query(
+      `DELETE FROM note_shares WHERE note_id = $1 AND friend_id::text = $2`,
+      [noteId, id]
+    ).catch(() => null);
+  }
+}
+
 module.exports = async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -285,6 +314,8 @@ module.exports = async function handler(req, res) {
         linked_task_id = null,
         x = null,
         y = null,
+        participant_ids = [],
+        responsible_user_id = null,
       } = req.body || {};
 
       if (!title || !String(title).trim()) {
@@ -314,11 +345,16 @@ module.exports = async function handler(req, res) {
         return res.status(403).json({ error: 'Keine Berechtigung fuer verknuepfte Aufgabe' });
       }
 
+      const safeParticipantIds = Array.isArray(participant_ids)
+        ? participant_ids.map(Number).filter((n) => Number.isInteger(n) && n > 0)
+        : [];
+      const safeResponsibleId = responsible_user_id ? Number(responsible_user_id) || null : null;
+
       let insert;
       try {
         insert = await pool.query(
-          `INSERT INTO notes (user_id, title, content, importance, date, linked_task_id, x, y)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          `INSERT INTO notes (user_id, title, content, importance, date, linked_task_id, x, y, participant_ids, responsible_user_id)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
            RETURNING *`,
           [
             ownerId.value,
@@ -329,6 +365,8 @@ module.exports = async function handler(req, res) {
             normalizedTask.value,
             x === null || x === undefined ? null : Number(x),
             y === null || y === undefined ? null : Number(y),
+            safeParticipantIds,
+            safeResponsibleId,
           ]
         );
       } catch (err) {
@@ -349,7 +387,13 @@ module.exports = async function handler(req, res) {
         );
       }
 
-      return res.status(201).json({ note: insert.rows[0] });
+      const createdNote = insert.rows[0];
+      // Auto-sync shares for participants
+      if (safeParticipantIds.length > 0) {
+        await syncParticipantShares(pool, createdNote.id, userIdText, [], safeParticipantIds);
+      }
+
+      return res.status(201).json({ note: createdNote });
     }
 
     // GET /api/notes/shared
@@ -464,6 +508,24 @@ module.exports = async function handler(req, res) {
         values.push(updates.y === null ? null : Number(updates.y));
       }
 
+      // participant_ids and responsible_user_id – owner-only
+      let prevParticipantIds = note.participant_ids || [];
+      let nextParticipantIds = prevParticipantIds;
+      let participantsChanged = false;
+      if (isOwner && updates.participant_ids !== undefined) {
+        nextParticipantIds = Array.isArray(updates.participant_ids)
+          ? updates.participant_ids.map(Number).filter((n) => Number.isInteger(n) && n > 0)
+          : [];
+        fields.push(`participant_ids = $${idx++}`);
+        values.push(nextParticipantIds);
+        participantsChanged = true;
+      }
+      if (isOwner && updates.responsible_user_id !== undefined) {
+        const safeResponsible = updates.responsible_user_id ? Number(updates.responsible_user_id) || null : null;
+        fields.push(`responsible_user_id = $${idx++}`);
+        values.push(safeResponsible);
+      }
+
       fields.push('updated_at = NOW()');
 
       if (fields.length === 1) {
@@ -572,10 +634,14 @@ module.exports = async function handler(req, res) {
         );
       }
 
-      return res.status(200).json({ note: update.rows[0] });
+      const finalNote = update.rows[0];
+      // Sync shares after update
+      if (participantsChanged) {
+        await syncParticipantShares(pool, noteId, userIdText, prevParticipantIds, nextParticipantIds);
+      }
+      return res.status(200).json({ note: finalNote });
     }
 
-    // DELETE /api/notes/:id
     if (
       (segments.length === 1 && req.method === 'DELETE') ||
       (isLegacyNoteAction && req.method === 'POST' && ['delete', 'remove'].includes(legacyMethod)) ||

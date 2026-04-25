@@ -218,6 +218,26 @@ export default function NotesPage() {
     };
   }, [notes, getNoteConnections]);
 
+  // Sync notePeopleMap from DB data whenever notes change (supports shared notes recipients)
+  useEffect(() => {
+    if (!notes.length) return;
+    setNotePeopleMap((prev) => {
+      const patch = { ...prev };
+      notes.forEach((note) => {
+        const key = String(note.id);
+        const dbParticipants = Array.isArray(note.participant_ids) ? note.participant_ids.map(String) : [];
+        const dbResponsible = note.responsible_user_id ? String(note.responsible_user_id) : null;
+        if (dbParticipants.length > 0 || dbResponsible) {
+          patch[key] = {
+            participant_ids: dbParticipants,
+            responsible_user_id: dbResponsible,
+          };
+        }
+      });
+      return patch;
+    });
+  }, [notes]);
+
   useEffect(() => {
     setNotePositions((prev) => {
       const next = { ...prev };
@@ -573,15 +593,13 @@ export default function NotesPage() {
       };
       const created = await createNote(noteData);
       if (created?.id) {
+        const participantIds = Array.isArray(newNote.participant_ids) ? newNote.participant_ids.map(Number) : [];
+        const responsibleId = newNote.responsible_user_id ? Number(newNote.responsible_user_id) : null;
         updatePeopleForNote(created.id, {
-          participant_ids: Array.isArray(newNote.participant_ids) ? newNote.participant_ids : [],
-          responsible_user_id: newNote.responsible_user_id || null,
+          participant_ids: participantIds.map(String),
+          responsible_user_id: responsibleId ? String(responsibleId) : null,
         });
-        await syncParticipantsToShare(
-          created.id,
-          Array.isArray(newNote.participant_ids) ? newNote.participant_ids : [],
-          newNote.responsible_user_id || null
-        );
+        // Backend already handled shares via participant_ids in the INSERT
       }
       setNewNote({ title: '', content: '', importance: 'medium', date: '', linked_task_id: null, participant_ids: [], responsible_user_id: null });
       setTaskSearch('');
@@ -1221,9 +1239,23 @@ export default function NotesPage() {
 
                   {(responsibleName || notePeople.participant_ids.length > 0) && (
                     <div className="note-people-meta">
-                      {responsibleName && <span className="note-people-chip">Verantwortlich: {responsibleName}</span>}
-                      {notePeople.participant_ids.length > 0 && (
-                        <span className="note-people-chip">Teilnehmer: {notePeople.participant_ids.length}</span>
+                      {responsibleName && (
+                        <span className="note-people-chip note-people-responsible" title="Verantwortlich">
+                          👑 {responsibleName}
+                        </span>
+                      )}
+                      {notePeople.participant_ids
+                        .filter((id) => id !== String(notePeople.responsible_user_id))
+                        .slice(0, 3)
+                        .map((id) => (
+                          <span key={id} className="note-people-chip" title="Teilnehmer">
+                            {resolvePersonName(id)}
+                          </span>
+                        ))}
+                      {notePeople.participant_ids.filter((id) => id !== String(notePeople.responsible_user_id)).length > 3 && (
+                        <span className="note-people-chip note-people-more">
+                          +{notePeople.participant_ids.filter((id) => id !== String(notePeople.responsible_user_id)).length - 3}
+                        </span>
                       )}
                     </div>
                   )}
@@ -1777,32 +1809,21 @@ export default function NotesPage() {
                   className="btn-primary"
                   onClick={async () => {
                     try {
-                      const previousPeople = getPeopleForNote(editingNote.id);
-                      const nextParticipantIds = Array.isArray(editingNote.participant_ids) ? editingNote.participant_ids : [];
-                      const nextResponsibleId = editingNote.responsible_user_id || null;
+                      const nextParticipantIds = Array.isArray(editingNote.participant_ids) ? editingNote.participant_ids.map(Number) : [];
+                      const nextResponsibleId = editingNote.responsible_user_id ? Number(editingNote.responsible_user_id) : null;
 
                       await updateNote(editingNote.id, {
                         title: editingNote.title,
                         content: editingNote.content,
                         importance: editingNote.importance,
                         date: editingNote.date || null,
-                      });
-                      updatePeopleForNote(editingNote.id, {
                         participant_ids: nextParticipantIds,
                         responsible_user_id: nextResponsibleId,
                       });
-                      await syncParticipantsToShare(
-                        editingNote.id,
-                        nextParticipantIds,
-                        nextResponsibleId
-                      );
-                      await syncRemovedParticipants(
-                        editingNote.id,
-                        Array.isArray(previousPeople.participant_ids) ? previousPeople.participant_ids : [],
-                        previousPeople.responsible_user_id || null,
-                        nextParticipantIds,
-                        nextResponsibleId
-                      );
+                      updatePeopleForNote(editingNote.id, {
+                        participant_ids: nextParticipantIds.map(String),
+                        responsible_user_id: nextResponsibleId ? String(nextResponsibleId) : null,
+                      });
                       setEditingNote(null);
                     } catch (err) {
                       console.error('Update error:', err);

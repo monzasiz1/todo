@@ -1433,7 +1433,7 @@
 .note-people-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 5px;
 }
 
 .note-people-chip {
@@ -1441,11 +1441,32 @@
   align-items: center;
   gap: 4px;
   border-radius: 999px;
-  padding: 4px 8px;
-  font-size: 11px;
+  padding: 3px 8px;
+  font-size: 10.5px;
   font-weight: 600;
   background: color-mix(in srgb, var(--primary-bg) 70%, var(--card));
   color: var(--text-secondary);
+  border: 1px solid var(--border);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note-people-responsible {
+  background: color-mix(in srgb, #f59e0b 12%, var(--card));
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #b45309;
+}
+
+.dark .note-people-responsible {
+  color: #fbbf24;
+}
+
+.note-people-more {
+  background: color-mix(in srgb, var(--primary) 10%, var(--card));
+  border-color: rgba(0, 122, 255, 0.25);
+  color: var(--primary);
 }
 
 /* Friends List */
