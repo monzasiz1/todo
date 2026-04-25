@@ -105,6 +105,7 @@ input, textarea, select {
   left: 0;
   bottom: 0;
   z-index: 100;
+  overflow: visible;
   transition: transform 0.3s ease, width 0.24s ease, padding 0.24s ease;
 }
 
@@ -233,10 +234,6 @@ input, textarea, select {
 }
 
 .sidebar-desktop-toggle {
-  display: none; /* shown only on desktop via media query */
-}
-
-.sidebar-toggle-label {
   display: none;
 }
 
@@ -524,34 +521,33 @@ input, textarea, select {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-left: auto;
-    flex-shrink: 0;
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
+    position: absolute;
+    top: 20px;
+    right: -13px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
     border: 1px solid var(--border);
-    background: transparent;
+    background: var(--card-solid);
     color: var(--text-tertiary);
     cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+    z-index: 101;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
   }
 
   .sidebar-desktop-toggle:hover {
     background: var(--hover);
     color: var(--primary);
-    border-color: color-mix(in srgb, var(--primary) 25%, var(--border));
+    border-color: color-mix(in srgb, var(--primary) 30%, var(--border));
+    box-shadow: 0 4px 12px rgba(0,122,255,0.15);
   }
 
   .sidebar-desktop-toggle svg {
     flex-shrink: 0;
   }
 
-  .app-sidebar.collapsed .sidebar-logo {
-    justify-content: space-between;
-    padding-left: 6px;
-    padding-right: 6px;
-    gap: 0;
-  }
+  /* sidebar-logo unchanged when collapsed */
 
   .app-sidebar.collapsed .sidebar-logo h1,
   .app-sidebar.collapsed .sidebar-section-head,
@@ -566,9 +562,7 @@ input, textarea, select {
     display: none;
   }
 
-  .app-sidebar.collapsed .sidebar-desktop-toggle {
-    margin-left: 0;
-  }
+  /* sidebar-desktop-toggle unchanged when collapsed */
 
   .app-sidebar.collapsed .sidebar-toggle-label {
     display: none;
