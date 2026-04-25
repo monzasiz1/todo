@@ -4196,6 +4196,12 @@ body.cal-is-dragging * {
 
   .calendar-grid {
     background: #fff;
+    /* Extra space so month grid doesn't hide behind the fixed modebar */
+    padding-bottom: 60px;
+  }
+
+  .calendar-page-wrap {
+    padding-bottom: 58px;
   }
 
   .calendar-day-header {
@@ -4429,21 +4435,25 @@ body.cal-is-dragging * {
   }
 
   .mobile-calendar-modebar {
-    position: sticky;
-    bottom: 0;
-    z-index: 5;
+    position: fixed;
+    bottom: 64px; /* direkt über der Bottom-Nav */
+    left: 0;
+    right: 0;
+    z-index: 90;
     margin: 0;
-    padding: 0 6px calc(env(safe-area-inset-bottom, 4px) + 4px);
-    border-radius: 0 0 22px 22px;
-    background: rgba(255, 255, 255, 0.97);
-    border-top: 1px solid rgba(0, 0, 0, 0.07);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
+    padding: 0 8px;
+    border-radius: 0;
+    background: rgba(252, 252, 255, 0.97);
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     display: flex;
     align-items: stretch;
     justify-content: space-around;
-    min-height: 54px;
+    min-height: 52px;
     gap: 0;
+    box-shadow: 0 -1px 8px rgba(0, 0, 0, 0.06);
   }
 
   .mobile-calendar-modebar-tabs {
@@ -4483,10 +4493,10 @@ body.cal-is-dragging * {
     top: 0;
     left: 50%;
     transform: translateX(-50%);
-    width: 28px;
+    width: 32px;
     height: 2.5px;
     background: #007AFF;
-    border-radius: 0 0 3px 3px;
+    border-radius: 0 0 4px 4px;
   }
 
   .mobile-calendar-add-btn {
