@@ -299,22 +299,42 @@ function buildInheritedConnectionClause(noteAlias, userIdTextParam, userIdParam)
  * - Removes shares for participant IDs that were removed.
  * ownerIdText must be excluded from shares.
  */
-async function syncParticipantShares(pool, noteId, ownerIdText, prevParticipantIds, nextParticipantIds) {
-  const prevSet = new Set((prevParticipantIds || []).map(String));
-  const nextSet = new Set((nextParticipantIds || []).map(String));
+async function syncParticipantShares(pool, noteId, ownerIdText, prevParticipantIds, nextParticipantIds, prevResponsibleId = null, nextResponsibleId = null) {
+  const prevPermissions = new Map();
+  const nextPermissions = new Map();
 
-  const added = [...nextSet].filter((id) => !prevSet.has(id) && id !== ownerIdText);
-  const removed = [...prevSet].filter((id) => !nextSet.has(id) && id !== ownerIdText);
+  (prevParticipantIds || []).map(String).filter(Boolean).forEach((id) => {
+    if (id !== ownerIdText) prevPermissions.set(id, 'view');
+  });
+  (nextParticipantIds || []).map(String).filter(Boolean).forEach((id) => {
+    if (id !== ownerIdText) nextPermissions.set(id, 'view');
+  });
 
-  for (const id of added) {
+  const prevResponsibleText = prevResponsibleId ? String(prevResponsibleId) : null;
+  const nextResponsibleText = nextResponsibleId ? String(nextResponsibleId) : null;
+
+  if (prevResponsibleText && prevResponsibleText !== ownerIdText) {
+    prevPermissions.set(prevResponsibleText, 'edit');
+  }
+  if (nextResponsibleText && nextResponsibleText !== ownerIdText) {
+    nextPermissions.set(nextResponsibleText, 'edit');
+  }
+
+  for (const [id, permission] of nextPermissions.entries()) {
+    const prevPermission = prevPermissions.get(id);
+    if (prevPermission === permission) continue;
+
     await pool.query(
       `INSERT INTO note_shares (note_id, friend_id, permission)
-       VALUES ($1, $2, 'view')
-       ON CONFLICT (note_id, friend_id) DO NOTHING`,
-      [noteId, Number(id)]
+       VALUES ($1, $2, $3)
+       ON CONFLICT (note_id, friend_id)
+       DO UPDATE SET permission = EXCLUDED.permission`,
+      [noteId, Number(id), permission]
     ).catch(() => null);
   }
-  for (const id of removed) {
+
+  for (const id of prevPermissions.keys()) {
+    if (nextPermissions.has(id)) continue;
     await pool.query(
       `DELETE FROM note_shares WHERE note_id = $1 AND friend_id::text = $2`,
       [noteId, id]
@@ -412,7 +432,7 @@ module.exports = async function handler(req, res) {
         }
 
         if (normalizedParticipantIds.length === 0) continue;
-        await syncParticipantShares(pool, note.id, userIdText, [], normalizedParticipantIds).catch(() => null);
+        await syncParticipantShares(pool, note.id, userIdText, [], normalizedParticipantIds, null, normalizedResponsibleId).catch(() => null);
       }
 
       return res.status(200).json({ notes: ownNotes });
@@ -543,8 +563,8 @@ module.exports = async function handler(req, res) {
 
       const createdNote = insert.rows[0];
       // Always sync shares via note_shares table (works even without participant_ids column)
-      if (safeParticipantIds.length > 0) {
-        await syncParticipantShares(pool, createdNote.id, userIdText, [], safeParticipantIds);
+      if (safeParticipantIds.length > 0 || safeResponsibleId) {
+        await syncParticipantShares(pool, createdNote.id, userIdText, [], safeParticipantIds, null, safeResponsibleId);
       }
 
       return res.status(201).json({ note: createdNote });
@@ -559,7 +579,10 @@ module.exports = async function handler(req, res) {
       const inheritedAccessClause = buildInheritedConnectionClause('n', '$1', '$2');
       try {
         const shared = await pool.query(
-          `SELECT DISTINCT n.*, COALESCE(ns.permission, 'view') AS permission,
+            `SELECT DISTINCT n.*, CASE
+                WHEN n.responsible_user_id = $2 THEN 'edit'
+                ELSE COALESCE(ns.permission, 'view')
+              END AS permission,
                   u.name AS owner_name,
                   t.title AS linked_task_title
              FROM notes n
@@ -602,7 +625,10 @@ module.exports = async function handler(req, res) {
     const directNoteAccessClause = buildAccessibleNoteClause('n', 'ns', '$2', '$3');
     const inheritedNoteAccessClause = buildInheritedConnectionClause('n', '$2', '$3');
     const noteAccess = await pool.query(
-      `SELECT n.*, ns.permission AS shared_permission
+      `SELECT n.*, CASE
+                  WHEN n.responsible_user_id = $3 THEN 'edit'
+                  ELSE ns.permission
+                END AS shared_permission
          FROM notes n
          LEFT JOIN note_shares ns ON ns.note_id = n.id AND ns.friend_id::text = $2
         WHERE n.id = $1
@@ -620,6 +646,8 @@ module.exports = async function handler(req, res) {
 
     const note = noteAccess.rows[0];
     const isOwner = String(note.user_id) === userIdText;
+    const isResponsible = String(note.responsible_user_id || '') === userIdText;
+    const canEditNote = isOwner || isResponsible || note.shared_permission === 'edit';
 
     // PATCH /api/notes/:id
     if (
@@ -627,7 +655,7 @@ module.exports = async function handler(req, res) {
       (isLegacyNoteAction && req.method === 'POST' && ['update', 'edit'].includes(legacyMethod)) ||
       (isRootAction && ['update', 'edit'].includes(rootAction))
     ) {
-      if (!isOwner && note.shared_permission !== 'edit') {
+      if (!canEditNote) {
         return res.status(403).json({ error: 'Keine Berechtigung zum Bearbeiten' });
       }
 
@@ -702,10 +730,11 @@ module.exports = async function handler(req, res) {
       // participant_ids and responsible_user_id – owner-only
       // Read previous participants from note row (may be null if column doesn't exist)
       let prevParticipantIds = Array.isArray(note.participant_ids) ? note.participant_ids : [];
+      const prevResponsibleId = note.responsible_user_id || null;
       let nextParticipantIds = prevParticipantIds;
       let participantsChanged = false;
       let participantFieldsToAdd = [];
-      let participantValuesToAdd = [];
+      let nextResponsibleId = prevResponsibleId;
 
       if (isOwner && updates.participant_ids !== undefined) {
         nextParticipantIds = await normalizeParticipantIdsForDb(pool, updates.participant_ids, userId);
@@ -717,8 +746,11 @@ module.exports = async function handler(req, res) {
         const safeResponsible = updates.responsible_user_id
           ? await resolveParticipantUserId(pool, updates.responsible_user_id, userId)
           : null;
+        nextResponsibleId = safeResponsible;
         participantFieldsToAdd.push({ field: `responsible_user_id = $${idx}`, value: safeResponsible });
         idx++;
+      } else {
+        nextResponsibleId = prevResponsibleId;
       }
       // Add participant fields to main query (may fail if columns don't exist – handled below)
       participantFieldsToAdd.forEach(({ field, value }) => {
@@ -805,7 +837,7 @@ module.exports = async function handler(req, res) {
         if (rebuiltFields.length === 1) {
           // Only updated_at – still sync shares then return existing note
           if (participantsChanged) {
-            await syncParticipantShares(pool, noteId, userIdText, prevParticipantIds, nextParticipantIds);
+            await syncParticipantShares(pool, noteId, userIdText, prevParticipantIds, nextParticipantIds, prevResponsibleId, nextResponsibleId);
           }
           return res.status(200).json({ note });
         }
@@ -819,8 +851,8 @@ module.exports = async function handler(req, res) {
 
       const finalNote = update.rows[0];
       // Sync shares after update
-      if (participantsChanged) {
-        await syncParticipantShares(pool, noteId, userIdText, prevParticipantIds, nextParticipantIds);
+      if (participantsChanged || String(prevResponsibleId || '') !== String(nextResponsibleId || '')) {
+        await syncParticipantShares(pool, noteId, userIdText, prevParticipantIds, nextParticipantIds, prevResponsibleId, nextResponsibleId);
       }
       return res.status(200).json({ note: finalNote });
     }
@@ -847,7 +879,7 @@ module.exports = async function handler(req, res) {
       (isLegacyNoteAction && req.method === 'POST' && ['link-task', 'link_task', 'linktask'].includes(legacyMethod)) ||
       (isRootAction && ['link-task', 'link_task', 'linktask'].includes(rootAction))
     ) {
-      if (!isOwner && note.shared_permission !== 'edit') {
+      if (!canEditNote) {
         return res.status(403).json({ error: 'Keine Berechtigung zum Bearbeiten' });
       }
 
@@ -1007,7 +1039,7 @@ module.exports = async function handler(req, res) {
       (isLegacyNoteAction && req.method === 'POST' && ['connect', 'connections'].includes(legacyMethod)) ||
       (isRootAction && ['connect', 'connections'].includes(rootAction))
     ) {
-      if (!isOwner && note.shared_permission !== 'edit') {
+      if (!canEditNote) {
         return res.status(403).json({ error: 'Keine Berechtigung zum Bearbeiten' });
       }
 
@@ -1027,9 +1059,11 @@ module.exports = async function handler(req, res) {
               OR EXISTS (
                 SELECT 1 FROM note_shares ns WHERE ns.note_id = notes.id AND ns.friend_id::text = $2
               )
+              OR $3 = ANY(COALESCE(notes.participant_ids, '{}'::integer[]))
+              OR notes.responsible_user_id = $3
             )
           LIMIT 1`,
-        [otherNoteId, userIdText]
+        [otherNoteId, userIdText, userId]
       );
 
       if (otherAccess.rows.length === 0) {
@@ -1063,7 +1097,7 @@ module.exports = async function handler(req, res) {
       (isLegacyNoteAction && req.method === 'POST' && ['disconnect', 'unlink'].includes(legacyMethod)) ||
       (isRootAction && ['disconnect', 'unlink'].includes(rootAction))
     ) {
-      if (!isOwner && note.shared_permission !== 'edit') {
+      if (!canEditNote) {
         return res.status(403).json({ error: 'Keine Berechtigung zum Bearbeiten' });
       }
 
@@ -1082,9 +1116,11 @@ module.exports = async function handler(req, res) {
               OR EXISTS (
                 SELECT 1 FROM note_shares ns WHERE ns.note_id = notes.id AND ns.friend_id::text = $2
               )
+              OR $3 = ANY(COALESCE(notes.participant_ids, '{}'::integer[]))
+              OR notes.responsible_user_id = $3
             )
           LIMIT 1`,
-        [otherNoteId, userIdText]
+        [otherNoteId, userIdText, userId]
       );
 
       if (otherAccess.rows.length === 0) {

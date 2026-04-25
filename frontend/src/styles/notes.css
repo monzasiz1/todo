@@ -87,6 +87,10 @@
   cursor: pointer; flex-shrink: 0; padding: 0; transition: background 0.15s, color 0.15s;
 }
 .nmlv-card-delete:active { background: rgba(255,59,48,0.12); color: #FF3B30; }
+.nmlv-card-delete:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 .nmlv-card-content {
   font-size: 11.5px; color: var(--text-secondary); line-height: 1.4; margin: 0;
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
@@ -108,6 +112,32 @@
 }
 .nmlv-person-chip.responsible { background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.3); color: #b45309; }
 .nmlv-person-chip.more { color: var(--primary); background: var(--primary-bg); }
+.nmlv-card-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 4px;
+}
+.nmlv-action-btn {
+  min-height: 34px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+  font-family: inherit;
+  padding: 0 8px;
+}
+.nmlv-action-btn.done {
+  background: color-mix(in srgb, #10b981 14%, var(--card));
+  border-color: rgba(16, 185, 129, 0.34);
+  color: #047857;
+}
+.nmlv-action-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 .nmlv-empty {
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 12px; padding: 40px 20px; color: var(--text-secondary); text-align: center;
@@ -1326,6 +1356,17 @@
 .action-btn:hover {
   background: var(--card-solid);
   border-color: var(--border-strong);
+}
+
+.action-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.action-btn:disabled:hover {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--text);
 }
 
 .action-btn.delete-btn:hover {

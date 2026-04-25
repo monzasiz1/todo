@@ -3,6 +3,7 @@ import { Plus, ZoomIn, ZoomOut, Maximize2, Share2, Link2, Trash2, Edit2, X, Cale
 import { useNotesStore } from '../store/notesStore';
 import { useFriendsStore } from '../store/friendsStore';
 import { useTaskStore } from '../store/taskStore';
+import { useAuthStore } from '../store/authStore';
 import '../styles/notes.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import TaskDetailModal from '../components/TaskDetailModal';
@@ -139,6 +140,7 @@ export default function NotesPage() {
   const { notes, createNote, updateNote, deleteNote, linkNoteToTask, shareNoteWithFriend, unshareNoteForFriend, connectNotes, disconnectNotes, getNoteConnections } = useNotesStore();
   const { friends, fetchFriends } = useFriendsStore();
   const { tasks, fetchTasks } = useTaskStore();
+  const currentUser = useAuthStore((state) => state.user);
 
   const [zoom, setZoom] = useState(() => {
     if (typeof window === 'undefined') return 65;
@@ -453,9 +455,12 @@ export default function NotesPage() {
           : null;
 
         if (rawParticipants.length > 0 || dbResponsible) {
+          const mergedParticipants = dbResponsible && !rawParticipants.includes(dbResponsible)
+            ? [...rawParticipants, dbResponsible]
+            : rawParticipants;
           // Always overwrite with DB data when available — this is the source of truth
           patch[key] = {
-            participant_ids: rawParticipants,
+            participant_ids: mergedParticipants,
             responsible_user_id: dbResponsible,
           };
         }
@@ -564,13 +569,18 @@ export default function NotesPage() {
     const key = String(noteId);
     setNotePeopleMap((prev) => {
       const current = prev[key] || { participant_ids: [], responsible_user_id: null };
+      const nextResponsible = Object.prototype.hasOwnProperty.call(patch || {}, 'responsible_user_id')
+        ? (patch.responsible_user_id || null)
+        : current.responsible_user_id;
+      const nextParticipants = Array.isArray(patch?.participant_ids) ? patch.participant_ids : current.participant_ids;
+      const mergedParticipants = nextResponsible && !nextParticipants.includes(String(nextResponsible))
+        ? [...nextParticipants, String(nextResponsible)]
+        : nextParticipants;
       return {
         ...prev,
         [key]: {
-          participant_ids: Array.isArray(patch?.participant_ids) ? patch.participant_ids : current.participant_ids,
-          responsible_user_id: Object.prototype.hasOwnProperty.call(patch || {}, 'responsible_user_id')
-            ? (patch.responsible_user_id || null)
-            : current.responsible_user_id,
+          participant_ids: mergedParticipants,
+          responsible_user_id: nextResponsible,
         },
       };
     });
@@ -586,19 +596,46 @@ export default function NotesPage() {
   };
 
   const friendOptions = useMemo(
-    () => friends
-      .map((friend) => ({
-        id: String(friend.friend_user_id || friend.id),
-        name: friend.name || `User ${friend.friend_user_id || friend.id}`,
-      }))
-      .filter((friend) => !!friend.id),
-    [friends]
+    () => {
+      const options = friends
+        .map((friend) => ({
+          id: String(friend.friend_user_id || friend.id),
+          name: friend.name || `User ${friend.friend_user_id || friend.id}`,
+        }))
+        .filter((friend) => !!friend.id);
+
+      if (currentUser?.id) {
+        options.unshift({
+          id: String(currentUser.id),
+          name: currentUser.name || 'Du',
+        });
+      }
+
+      const deduped = new Map();
+      options.forEach((entry) => {
+        if (!entry?.id || deduped.has(entry.id)) return;
+        deduped.set(entry.id, entry);
+      });
+      return [...deduped.values()];
+    },
+    [currentUser, friends]
   );
+
+  const canManageNote = (note) => {
+    if (!note) return false;
+    const currentUserId = String(currentUser?.id || '');
+    const noteOwnerId = String(note.user_id || '');
+    const responsibleId = String(note.responsible_user_id || getPeopleForNote(note.id).responsible_user_id || '');
+    const permission = String(note.shared_permission || note.permission || '');
+    return currentUserId !== '' && (currentUserId === noteOwnerId || currentUserId === responsibleId || permission === 'edit');
+  };
 
   const resolvePersonName = (personId) => {
     const idText = String(personId || '');
     const found = friendOptions.find((entry) => entry.id === idText);
-    return found?.name || 'Unbekannt';
+    if (found?.name) return found.name;
+    if (currentUser?.id && String(currentUser.id) === idText) return currentUser.name || 'Du';
+    return 'Verantwortlicher unbekannt';
   };
 
   const getPersonAvatarColor = (personId) => {
@@ -1368,6 +1405,7 @@ export default function NotesPage() {
   const activeDependencyState = activeNote ? (dependencyStateByNote[String(activeNote.id)] || { unresolvedIds: [] }) : { unresolvedIds: [] };
   const activeCanCompleteNow = activeDependencyState.unresolvedIds.length === 0;
   const activeIsCompleted = activeNote ? isNoteCompletedByData(activeNote.id) : false;
+  const activeCanManage = activeNote ? canManageNote(activeNote) : false;
   const activeLinkedTask = activeNote ? linkedTask(activeNote.id) : null;
   const activeConnections = activeNote
     ? connections
@@ -1610,11 +1648,16 @@ export default function NotesPage() {
                     : null;
                   const linked = linkedTask(note.id);
                   const urgent = isUrgent(note.date);
+                  const mobileCanManage = canManageNote(note);
+                  const mobileIsCompleted = isNoteCompletedByData(note.id);
+                  const mobileDependencyState = dependencyStateByNote[String(note.id)] || { unresolvedIds: [] };
+                  const mobileCanCompleteNow = mobileDependencyState.unresolvedIds.length === 0;
                   return (
                     <div
                       key={note.id}
                       className={`nmlv-card nmlv-card-${note.importance} ${urgent ? 'nmlv-card-urgent' : ''}`}
                       onClick={() => {
+                        if (!mobileCanManage) return;
                         const people = getPeopleForNote(note.id);
                         setEditingNote({ ...note, participant_ids: people.participant_ids, responsible_user_id: people.responsible_user_id });
                       }}
@@ -1629,6 +1672,7 @@ export default function NotesPage() {
                             type="button"
                             className="nmlv-card-delete"
                             onClick={(e) => { e.stopPropagation(); deleteNote(note.id); }}
+                            disabled={String(note.user_id || '') !== String(currentUser?.id || '')}
                           >
                             <X size={14} />
                           </button>
@@ -1677,6 +1721,44 @@ export default function NotesPage() {
                             )}
                           </div>
                         )}
+
+                        <div className="nmlv-card-actions">
+                          <button
+                            type="button"
+                            className={`nmlv-action-btn ${mobileIsCompleted ? 'done' : ''}`}
+                            disabled={!mobileCanManage || (!mobileIsCompleted && !mobileCanCompleteNow)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              toggleNoteCompletion(note.id, mobileCanCompleteNow);
+                            }}
+                          >
+                            {mobileIsCompleted ? 'Offen' : 'Abhaken'}
+                          </button>
+                          <button
+                            type="button"
+                            className="nmlv-action-btn"
+                            disabled={!mobileCanManage}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setConnectSearch('');
+                              setShowConnectModal(note.id);
+                            }}
+                          >
+                            Verbinden
+                          </button>
+                          <button
+                            type="button"
+                            className="nmlv-action-btn"
+                            disabled={!mobileCanManage}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              const people = getPeopleForNote(note.id);
+                              setEditingNote({ ...note, participant_ids: people.participant_ids, responsible_user_id: people.responsible_user_id });
+                            }}
+                          >
+                            Bearbeiten
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -1877,6 +1959,8 @@ export default function NotesPage() {
               const visibleParticipantIds = participantOnlyIds.slice(0, 3);
               const hiddenParticipantCount = Math.max(0, participantOnlyIds.length - visibleParticipantIds.length);
               const responsibleName = notePeople.responsible_user_id ? resolvePersonName(notePeople.responsible_user_id) : null;
+              const canManageThisNote = canManageNote(note);
+              const isOwnerNote = String(note.user_id || '') === String(currentUser?.id || '');
 
               return (
                 <motion.div
@@ -1910,7 +1994,7 @@ export default function NotesPage() {
                           event.stopPropagation();
                           toggleNoteCompletion(note.id, canCompleteNow);
                         }}
-                        disabled={!isCompleted && !canCompleteNow}
+                        disabled={!canManageThisNote || (!isCompleted && !canCompleteNow)}
                       >
                         {isCompleted ? <CheckCircle2 size={14} /> : <Circle size={14} />}
                       </button>
@@ -2030,6 +2114,7 @@ export default function NotesPage() {
                   <div className="note-actions">
                     <button
                       className="action-btn"
+                      disabled={!canManageThisNote}
                       onClick={() => {
                         const people = getPeopleForNote(note.id);
                         setEditingNote({
@@ -2044,6 +2129,7 @@ export default function NotesPage() {
                     </button>
                     <button
                       className="action-btn"
+                      disabled={!canManageThisNote}
                       onClick={() => {
                         setConnectSearch('');
                         setShowConnectModal(note.id);
@@ -2054,6 +2140,7 @@ export default function NotesPage() {
                     </button>
                     <button
                       className="action-btn"
+                      disabled={!isOwnerNote}
                       onClick={() => setShowShareModal(note.id)}
                       title="Teilen"
                     >
@@ -2061,6 +2148,7 @@ export default function NotesPage() {
                     </button>
                     <button
                       className="action-btn delete-btn"
+                      disabled={!isOwnerNote}
                       onClick={() => handleDeleteNote(note.id)}
                       title="Löschen"
                     >
@@ -2235,7 +2323,7 @@ export default function NotesPage() {
                     type="button"
                     className={`context-complete-toggle ${activeIsCompleted ? 'done' : ''}`}
                     onClick={() => toggleNoteCompletion(activeNote.id, activeCanCompleteNow)}
-                    disabled={!activeIsCompleted && !activeCanCompleteNow}
+                    disabled={!activeCanManage || (!activeIsCompleted && !activeCanCompleteNow)}
                   >
                     {activeIsCompleted ? 'Erledigt' : 'Als erledigt markieren'}
                   </button>
@@ -2298,7 +2386,7 @@ export default function NotesPage() {
                               {CONNECTION_TYPE_LABELS[entry.relationshipType] || CONNECTION_TYPE_LABELS.related}
                             </span>
                           </div>
-                          <button type="button" className="unlink-btn" onClick={() => handleDisconnectNotes(activeNote.id, entry.otherId)}>
+                          <button type="button" className="unlink-btn" disabled={!activeCanManage} onClick={() => handleDisconnectNotes(activeNote.id, entry.otherId)}>
                             Entfernen
                           </button>
                         </div>
@@ -2314,7 +2402,7 @@ export default function NotesPage() {
                     <div className="context-task-card">
                       <strong>{activeLinkedTask.title}</strong>
                       <span>{formatTaskDate(activeLinkedTask)}</span>
-                      <button type="button" className="btn-secondary" onClick={() => updateNote(activeNote.id, { linked_task_id: null })}>
+                      <button type="button" className="btn-secondary" disabled={!activeCanManage} onClick={() => updateNote(activeNote.id, { linked_task_id: null })}>
                         Termin lösen
                       </button>
                     </div>
