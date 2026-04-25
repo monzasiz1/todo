@@ -181,6 +181,7 @@ export default function NotesPage() {
   const handleCanvasTouchStartRef = useRef(null);
   const didManualZoomRef = useRef(false);
   const didInitialViewportFitRef = useRef(false);
+  const noteDragOccurredRef = useRef(false);
 
   const getAdaptiveZoom = (screenWidth) => {
     if (screenWidth >= 1920) return 125;
@@ -505,6 +506,7 @@ export default function NotesPage() {
       const note = notes.find((n) => n.id === isDragging.noteId);
 
       if (note) {
+        noteDragOccurredRef.current = true;
         const current = notePositions[isDragging.noteId] || { x: note.x ?? 100, y: note.y ?? 100 };
         const newX = Math.max(0, current.x + deltaX / (zoom / 100));
         const newY = Math.max(0, current.y + deltaY / (zoom / 100));
@@ -910,6 +912,13 @@ export default function NotesPage() {
 
   const handleNoteCardClick = async (event, noteId) => {
     if (event.target.closest('button, input, textarea, select, a')) return;
+    
+    // Ignore click if a note drag just occurred
+    if (noteDragOccurredRef.current) {
+      noteDragOccurredRef.current = false;
+      return;
+    }
+    
     setActiveNoteId(noteId);
 
     if (!quickConnectMode) return;
@@ -1590,9 +1599,17 @@ export default function NotesPage() {
                   <p className="note-content">{note.content}</p>
 
                   {linkedTask(note.id) && (
-                    <div className="note-linked-task">
+                    <button
+                      type="button"
+                      className="note-linked-task"
+                      onClick={() => {
+                        setActiveNoteId(note.id);
+                        setContextTab('events');
+                      }}
+                      title={`Klick um Details anzuzeigen: ${linkedTask(note.id)?.title}`}
+                    >
                       📌 {linkedTask(note.id)?.title || 'Task verknüpft'}
-                    </div>
+                    </button>
                   )}
 
                   {note.date && (
