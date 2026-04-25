@@ -250,6 +250,33 @@ async function normalizeParticipantIdsForDb(pool, participantIds, userId) {
   return resolvedIds;
 }
 
+function buildAccessibleNoteClause(noteAlias, noteShareAlias, userIdTextParam, userIdParam) {
+  return `(
+    ${noteAlias}.user_id::text = ${userIdTextParam}
+    OR ${noteShareAlias}.friend_id::text = ${userIdTextParam}
+    OR ${userIdParam} = ANY(COALESCE(${noteAlias}.participant_ids, '{}'::integer[]))
+    OR ${noteAlias}.responsible_user_id = ${userIdParam}
+  )`;
+}
+
+function buildInheritedConnectionClause(noteAlias, userIdTextParam, userIdParam) {
+  const anchorAccess = buildAccessibleNoteClause('anchor', 'anchor_share', userIdTextParam, userIdParam);
+  return `EXISTS (
+    SELECT 1
+      FROM note_connections nc
+      JOIN notes anchor
+        ON anchor.id = CASE
+          WHEN nc.note_id_1 = ${noteAlias}.id THEN nc.note_id_2
+          ELSE nc.note_id_1
+        END
+      LEFT JOIN note_shares anchor_share
+        ON anchor_share.note_id = anchor.id
+       AND anchor_share.friend_id::text = ${userIdTextParam}
+     WHERE (nc.note_id_1 = ${noteAlias}.id OR nc.note_id_2 = ${noteAlias}.id)
+       AND ${anchorAccess}
+  )`;
+}
+
 /**
  * Synchronise note_shares with participant_ids.
  * - Adds shares for newly added participant IDs.
@@ -494,19 +521,22 @@ module.exports = async function handler(req, res) {
       (segments.length === 1 && segments[0] === 'shared' && req.method === 'GET') ||
       (segments.length === 0 && req.method === 'GET' && requestedView === 'shared')
     ) {
+      const directAccessClause = buildAccessibleNoteClause('n', 'ns', '$1', '$2');
+      const inheritedAccessClause = buildInheritedConnectionClause('n', '$1', '$2');
       try {
         const shared = await pool.query(
-          `SELECT n.*, ns.permission,
+          `SELECT DISTINCT n.*, COALESCE(ns.permission, 'view') AS permission,
                   u.name AS owner_name,
                   t.title AS linked_task_title
              FROM notes n
              LEFT JOIN note_shares ns ON ns.note_id = n.id AND ns.friend_id::text = $1
              JOIN users u ON u.id = n.user_id
              LEFT JOIN tasks t ON t.id::text = n.linked_task_id::text
-            WHERE (
-                ns.friend_id::text = $1
-               OR (n.user_id::text <> $1 AND ($2 = ANY(COALESCE(n.participant_ids, '{}'::integer[])) OR n.responsible_user_id = $2))
-            )
+            WHERE n.user_id::text <> $1
+              AND (
+                ${directAccessClause}
+                OR ${inheritedAccessClause}
+              )
             ORDER BY n.updated_at DESC, n.created_at DESC`,
           [userIdText, userId]
         );
@@ -535,16 +565,16 @@ module.exports = async function handler(req, res) {
       return res.status(404).json({ error: 'Route nicht gefunden' });
     }
 
+    const directNoteAccessClause = buildAccessibleNoteClause('n', 'ns', '$2', '$3');
+    const inheritedNoteAccessClause = buildInheritedConnectionClause('n', '$2', '$3');
     const noteAccess = await pool.query(
       `SELECT n.*, ns.permission AS shared_permission
          FROM notes n
          LEFT JOIN note_shares ns ON ns.note_id = n.id AND ns.friend_id::text = $2
         WHERE n.id = $1
           AND (
-            n.user_id::text = $2
-            OR ns.friend_id::text = $2
-            OR $3 = ANY(COALESCE(n.participant_ids, '{}'::integer[]))
-            OR n.responsible_user_id = $3
+            ${directNoteAccessClause}
+            OR ${inheritedNoteAccessClause}
           )
         LIMIT 1`,
       [noteId, userIdText, userId]

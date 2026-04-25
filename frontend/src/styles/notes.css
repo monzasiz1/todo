@@ -292,62 +292,24 @@
 .toolbox-action-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px;
-  border-radius: 18px;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 16px;
   border: 1px solid var(--border);
-  background: linear-gradient(180deg, color-mix(in srgb, var(--card-solid) 92%, var(--bg)), color-mix(in srgb, var(--bg) 92%, var(--card-solid)));
+  background: var(--bg);
   color: var(--text);
   font-weight: 600;
-  justify-content: flex-start;
-  text-align: left;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  justify-content: center;
 }
 
 .toolbox-action-card.emphasis {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--primary-bg) 92%, var(--card-solid)), color-mix(in srgb, var(--card-solid) 84%, white));
+  background: var(--primary-bg);
   border-color: color-mix(in srgb, var(--primary) 24%, var(--border));
 }
 
 .toolbox-action-card.active {
-  border-color: color-mix(in srgb, var(--primary) 44%, var(--border));
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 18%, transparent), 0 14px 30px rgba(9, 18, 42, 0.12);
-}
-
-.toolbox-action-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: color-mix(in srgb, var(--bg) 72%, white);
-  border: 1px solid color-mix(in srgb, var(--border) 84%, white);
-  color: var(--text);
-}
-
-.toolbox-action-card.emphasis .toolbox-action-icon {
-  background: color-mix(in srgb, white 78%, var(--primary-bg));
-  color: var(--primary);
-}
-
-.toolbox-action-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-
-.toolbox-action-copy strong {
-  font-size: 15px;
-  line-height: 1.15;
-}
-
-.toolbox-action-copy small {
-  font-size: 12px;
-  line-height: 1.35;
-  color: var(--text-secondary);
+  border-color: rgba(0, 224, 255, 0.6);
+  box-shadow: 0 0 0 1px rgba(0, 224, 255, 0.22);
 }
 
 .toolbox-status-card {
@@ -1934,9 +1896,9 @@
   .notes-toolbox {
     position: relative;
     inset: auto;
-    width: 320px;
-    min-width: 320px;
-    max-width: 320px;
+    width: 296px;
+    min-width: 296px;
+    max-width: 296px;
     height: calc(100vh - 150px);
     transform: none;
     opacity: 1;
@@ -1965,9 +1927,9 @@
   }
 
   .notes-context-panel {
-    width: 360px;
-    min-width: 360px;
-    max-width: 360px;
+    width: 320px;
+    min-width: 320px;
+    max-width: 320px;
   }
 
   .context-tabs {
@@ -2236,8 +2198,8 @@
 
 /* ── Große Desktop-Screens (≥ 1400px) ── */
 @media (min-width: 1400px) {
-  .notes-toolbox { width: 360px; min-width: 360px; max-width: 360px; }
-  .notes-context-panel { width: 420px; min-width: 420px; max-width: 420px; }
+  .notes-toolbox { width: 320px; min-width: 320px; max-width: 320px; }
+  .notes-context-panel { width: 360px; min-width: 360px; max-width: 360px; }
   .notes-workspace { gap: 24px; padding: 22px 28px 28px; }
   .canvas-content { width: 5000px; height: 4600px; }
   .note-card { padding: 20px; border-radius: 20px; gap: 14px; }
@@ -2253,8 +2215,8 @@
 
 /* ── Extra großer Screen (≥ 1920px) ── */
 @media (min-width: 1920px) {
-  .notes-toolbox { width: 390px; min-width: 390px; max-width: 390px; }
-  .notes-context-panel { width: 440px; min-width: 440px; max-width: 440px; }
+  .notes-toolbox { width: 340px; min-width: 340px; max-width: 340px; }
+  .notes-context-panel { width: 380px; min-width: 380px; max-width: 380px; }
   .notes-workspace { gap: 28px; padding: 28px 36px 36px; }
   .canvas-content { width: 5600px; height: 5000px; }
   .note-card { padding: 22px; border-radius: 22px; gap: 16px; }

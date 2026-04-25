@@ -180,6 +180,7 @@ export default function NotesPage() {
   const handleTouchMoveRef = useRef(null);
   const handleCanvasTouchStartRef = useRef(null);
   const didManualZoomRef = useRef(false);
+  const didInitialViewportFitRef = useRef(false);
 
   const getAdaptiveZoom = (screenWidth) => {
     if (screenWidth >= 1920) return 72;
@@ -232,17 +233,41 @@ export default function NotesPage() {
     }
   };
 
-  // Auto-scroll canvas to center on first load
+  // Focus the viewport on the actual notes cluster on first load.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const CANVAS_SIZE = 4000;
+    if (didInitialViewportFitRef.current) return;
+
     requestAnimationFrame(() => {
-      canvas.scrollLeft = (CANVAS_SIZE * zoom / 100 - canvas.clientWidth) / 2;
-      canvas.scrollTop  = (CANVAS_SIZE * zoom / 100 - canvas.clientHeight) / 2;
+      if (notes.length === 0) {
+        const CANVAS_SIZE = 4400;
+        canvas.scrollLeft = Math.max(0, (CANVAS_SIZE * zoom / 100 - canvas.clientWidth) / 2);
+        canvas.scrollTop = Math.max(0, (CANVAS_SIZE * zoom / 100 - canvas.clientHeight) / 2);
+        didInitialViewportFitRef.current = true;
+        return;
+      }
+
+      const padding = isMobileView ? 120 : 220;
+      const noteWidth = isMobileView ? 240 : 300;
+      const noteHeight = isMobileView ? 132 : 150;
+      const bounds = notes.reduce((acc, note) => {
+        const pos = notePositions[note.id] || { x: note.x ?? 100, y: note.y ?? 100 };
+        acc.minX = Math.min(acc.minX, pos.x);
+        acc.minY = Math.min(acc.minY, pos.y);
+        acc.maxX = Math.max(acc.maxX, pos.x + (note.width || noteWidth));
+        acc.maxY = Math.max(acc.maxY, pos.y + (note.height || noteHeight));
+        return acc;
+      }, { minX: Infinity, minY: Infinity, maxX: 0, maxY: 0 });
+
+      const targetCenterX = ((bounds.minX + bounds.maxX) / 2) * (zoom / 100);
+      const targetCenterY = ((bounds.minY + bounds.maxY) / 2) * (zoom / 100);
+
+      canvas.scrollLeft = Math.max(0, targetCenterX - canvas.clientWidth / 2 - padding / 2);
+      canvas.scrollTop = Math.max(0, targetCenterY - canvas.clientHeight / 2 - padding / 2);
+      didInitialViewportFitRef.current = true;
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isMobileView, notePositions, notes, zoom]);
 
   // Register touch listeners with { passive: false } so preventDefault() works without browser warnings
   useEffect(() => {
@@ -254,11 +279,13 @@ export default function NotesPage() {
     const onTouchMove = (e) => handleTouchMoveRef.current?.(e);
 
     canvas?.addEventListener('touchstart', onCanvasTouchStart, { passive: false });
+    container?.addEventListener('touchstart', onCanvasTouchStart, { passive: false });
     canvas?.addEventListener('touchmove', onTouchMove, { passive: false });
     container?.addEventListener('touchmove', onTouchMove, { passive: false });
 
     return () => {
       canvas?.removeEventListener('touchstart', onCanvasTouchStart);
+      container?.removeEventListener('touchstart', onCanvasTouchStart);
       canvas?.removeEventListener('touchmove', onTouchMove);
       container?.removeEventListener('touchmove', onTouchMove);
     };
@@ -541,6 +568,7 @@ export default function NotesPage() {
       const centerX = (first.clientX + second.clientX) / 2;
       const centerY = (first.clientY + second.clientY) / 2;
 
+      didManualZoomRef.current = true;
       setZoom(Math.round(nextZoom));
       canvasRef.current.scrollLeft -= centerX - pinchStateRef.current.lastCenterX;
       canvasRef.current.scrollTop -= centerY - pinchStateRef.current.lastCenterY;
@@ -1377,18 +1405,12 @@ export default function NotesPage() {
 
           <div className="toolbox-actions-grid">
             <button className="toolbox-action-card emphasis" type="button" onClick={() => openBlankCreateModal()}>
-              <span className="toolbox-action-icon"><Plus size={18} /></span>
-              <span className="toolbox-action-copy">
-                <strong>Neue Note</strong>
-                <small>Leer starten und frei platzieren</small>
-              </span>
+              <Plus size={18} />
+              <span>Neue Note</span>
             </button>
             <button className={`toolbox-action-card ${quickConnectMode ? 'active' : ''}`} type="button" onClick={handleQuickConnectToggle}>
-              <span className="toolbox-action-icon"><Workflow size={18} /></span>
-              <span className="toolbox-action-copy">
-                <strong>{quickConnectMode ? 'Connect aktiv' : 'Quick Connect'}</strong>
-                <small>{quickConnectMode ? 'Direkt zwei Notes verbinden' : 'Verbindungen in einem Zug setzen'}</small>
-              </span>
+              <Workflow size={18} />
+              <span>{quickConnectMode ? 'Connect aktiv' : 'Quick Connect'}</span>
             </button>
           </div>
 
