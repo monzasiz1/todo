@@ -1,10 +1,91 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Plus, ZoomIn, ZoomOut, Maximize2, Share2, Link2, Trash2, Edit2, X, CalendarDays, Sparkles, PanelsTopLeft, Workflow } from 'lucide-react';
 import { useNotesStore } from '../store/notesStore';
 import { useFriendsStore } from '../store/friendsStore';
 import { useTaskStore } from '../store/taskStore';
 import '../styles/notes.css';
 import { motion, AnimatePresence } from 'framer-motion';
+
+function getPickerSeriesKey(task) {
+  if (!task?.recurrence_rule) return null;
+  const ownerId = task.user_id || 'u';
+  const title = String(task.title || '').toLowerCase().trim();
+  return `${ownerId}::${title}::${task.recurrence_rule}`;
+}
+
+function getPickerTaskDate(task) {
+  if (!task?.date) return null;
+  const parsed = new Date(String(task.date));
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function getPickerEventEnd(task) {
+  if (!task || task.type !== 'event') return null;
+  const datePart = String(task.date_end || task.date || '').slice(0, 10);
+  if (!datePart) return null;
+
+  const rawEnd = String(task.time_end || task.time || '23:59');
+  const match = rawEnd.match(/(\d{1,2}):(\d{2})/);
+  const hh = String(Math.min(23, Math.max(0, Number(match?.[1]) || 23))).padStart(2, '0');
+  const mm = String(Math.min(59, Math.max(0, Number(match?.[2]) || 59))).padStart(2, '0');
+  const dt = new Date(`${datePart}T${hh}:${mm}:00`);
+  return Number.isNaN(dt.getTime()) ? null : dt;
+}
+
+function isPickerEventEnded(task, nowTs = Date.now()) {
+  const end = getPickerEventEnd(task);
+  return !!end && end.getTime() < nowTs;
+}
+
+function deduplicatePickerTasks(tasks) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const seenIds = new Set();
+  const uniqueTasks = tasks.filter((task) => {
+    if (seenIds.has(task.id)) return false;
+    seenIds.add(task.id);
+    return true;
+  });
+
+  const seriesMap = new Map();
+
+  for (const task of uniqueTasks) {
+    const seriesKey = getPickerSeriesKey(task);
+    if (!seriesKey) continue;
+
+    const existing = seriesMap.get(seriesKey);
+    if (!existing) {
+      seriesMap.set(seriesKey, task);
+      continue;
+    }
+
+    const taskDate = getPickerTaskDate(task);
+    const existingDate = getPickerTaskDate(existing);
+    if (!taskDate) continue;
+    if (!existingDate) {
+      seriesMap.set(seriesKey, task);
+      continue;
+    }
+
+    const taskFuture = taskDate >= today;
+    const existingFuture = existingDate >= today;
+
+    if (taskFuture && !existingFuture) {
+      seriesMap.set(seriesKey, task);
+    } else if (taskFuture && existingFuture && taskDate < existingDate) {
+      seriesMap.set(seriesKey, task);
+    } else if (!taskFuture && !existingFuture && taskDate > existingDate) {
+      seriesMap.set(seriesKey, task);
+    }
+  }
+
+  return uniqueTasks.filter((task) => {
+    const seriesKey = getPickerSeriesKey(task);
+    if (!seriesKey) return true;
+    return seriesMap.get(seriesKey)?.id === task.id;
+  });
+}
 
 export default function NotesPage() {
   const { notes, createNote, updateNote, deleteNote, linkNoteToTask, shareNoteWithFriend, connectNotes, getNoteConnections } = useNotesStore();
@@ -59,7 +140,7 @@ export default function NotesPage() {
   // Load notes on mount
   useEffect(() => {
     useNotesStore.getState().fetchNotes?.();
-    fetchTasks?.({ limit: '1000' }, { force: true });
+    fetchTasks?.({ limit: '2000', completed: 'false' }, { force: true });
   }, [fetchTasks]);
 
   useEffect(() => {
@@ -333,17 +414,25 @@ export default function NotesPage() {
   };
 
   const normalizedTaskSearch = taskSearch.trim().toLowerCase();
-  const sortedTasks = [...tasks].sort((left, right) => {
-    const leftIsEvent = left.type === 'event' ? 0 : 1;
-    const rightIsEvent = right.type === 'event' ? 0 : 1;
-    if (leftIsEvent !== rightIsEvent) return leftIsEvent - rightIsEvent;
+  const pickerTasks = useMemo(() => {
+    const cleaned = deduplicatePickerTasks(tasks).filter((task) => {
+      if (task.completed) return false;
+      if (isPickerEventEnded(task)) return false;
+      return true;
+    });
 
-    const leftDate = left.date ? new Date(left.date).getTime() : Number.MAX_SAFE_INTEGER;
-    const rightDate = right.date ? new Date(right.date).getTime() : Number.MAX_SAFE_INTEGER;
-    return leftDate - rightDate;
-  });
+    return cleaned.sort((left, right) => {
+      const leftIsEvent = left.type === 'event' ? 0 : 1;
+      const rightIsEvent = right.type === 'event' ? 0 : 1;
+      if (leftIsEvent !== rightIsEvent) return leftIsEvent - rightIsEvent;
 
-  const visibleTasks = sortedTasks.filter((task) => {
+      const leftDate = left.date ? new Date(left.date).getTime() : Number.MAX_SAFE_INTEGER;
+      const rightDate = right.date ? new Date(right.date).getTime() : Number.MAX_SAFE_INTEGER;
+      return leftDate - rightDate;
+    });
+  }, [tasks]);
+
+  const visibleTasks = pickerTasks.filter((task) => {
     if (!normalizedTaskSearch) return true;
 
     const searchable = [task.title, task.date, task.date_end, task.type]
@@ -355,9 +444,10 @@ export default function NotesPage() {
   });
 
   const selectedTask = newNote.linked_task_id
-    ? tasks.find((task) => String(task.id) === String(newNote.linked_task_id))
+    ? pickerTasks.find((task) => String(task.id) === String(newNote.linked_task_id))
+      || tasks.find((task) => String(task.id) === String(newNote.linked_task_id))
     : null;
-  const shortcutTasks = visibleTasks.filter((task) => !task.completed).slice(0, 10);
+  const shortcutTasks = visibleTasks.slice(0, 10);
 
   const connectedNoteIds = new Set();
   if (hoveredNoteId) {

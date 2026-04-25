@@ -1262,6 +1262,9 @@
   }
 
   .zoom-display {
+    width: 36px;
+    font-size: 10px;
+  }
 
   .modal-title {
     font-size: 24px;
