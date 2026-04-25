@@ -930,6 +930,52 @@
   filter: saturate(0.8);
 }
 
+.note-card.note-dependency-blocked {
+  border-color: color-mix(in srgb, #f97316 38%, var(--border));
+  box-shadow: 0 12px 28px rgba(249, 115, 22, 0.18);
+}
+
+.note-card.note-dependency-ready {
+  border-color: color-mix(in srgb, #10b981 36%, var(--border));
+  box-shadow: 0 12px 28px rgba(16, 185, 129, 0.16);
+}
+
+.note-dependency-state {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border-radius: 10px;
+  padding: 7px 9px;
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.note-dependency-state strong {
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.note-dependency-state.blocked {
+  background: color-mix(in srgb, #f97316 12%, var(--card));
+  border: 1px solid rgba(249, 115, 22, 0.34);
+  color: #c2410c;
+}
+
+.note-dependency-state.ready {
+  background: color-mix(in srgb, #10b981 12%, var(--card));
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #047857;
+}
+
+.dark .note-dependency-state.blocked {
+  color: #fdba74;
+}
+
+.dark .note-dependency-state.ready {
+  color: #6ee7b7;
+}
+
 .note-card.note-low {
   background: linear-gradient(145deg, rgba(52, 199, 89, 0.08), var(--card-solid) 62%);
   border-color: color-mix(in srgb, var(--success) 28%, var(--border));

@@ -1152,6 +1152,64 @@ export default function NotesPage() {
     return note?.linked_task_id ? tasks.find(t => t.id === note.linked_task_id) : null;
   };
 
+  const notesById = useMemo(() => {
+    const map = new Map();
+    notes.forEach((note) => map.set(String(note.id), note));
+    return map;
+  }, [notes]);
+
+  const tasksById = useMemo(() => {
+    const map = new Map();
+    tasks.forEach((task) => map.set(String(task.id), task));
+    return map;
+  }, [tasks]);
+
+  const dependencyStateByNote = useMemo(() => {
+    const state = {};
+
+    notes.forEach((note) => {
+      state[String(note.id)] = {
+        blockerIds: [],
+        unresolvedIds: [],
+        resolvedIds: [],
+      };
+    });
+
+    const isNoteCompleted = (noteId) => {
+      const note = notesById.get(String(noteId));
+      if (!note) return false;
+
+      if (note.completed === true || note.is_done === true) return true;
+      const status = String(note.status || '').toLowerCase();
+      if (status === 'done' || status === 'completed') return true;
+
+      if (!note.linked_task_id) return false;
+      const linked = tasksById.get(String(note.linked_task_id));
+      return !!linked?.completed;
+    };
+
+    connections.forEach((connection) => {
+      const relationshipType = String(connection?.relationship_type || 'related');
+      const blockerId = String(connection?.note_id_1 || connection?.noteId1 || '');
+      const blockedId = String(connection?.note_id_2 || connection?.noteId2 || '');
+
+      if (!blockerId || !blockedId) return;
+      if (!['depends_on', 'blocks'].includes(relationshipType)) return;
+      if (!state[blockedId]) return;
+
+      state[blockedId].blockerIds.push(blockerId);
+    });
+
+    Object.keys(state).forEach((noteId) => {
+      const uniqueBlockers = [...new Set(state[noteId].blockerIds)].filter((id) => id !== noteId);
+      state[noteId].blockerIds = uniqueBlockers;
+      state[noteId].resolvedIds = uniqueBlockers.filter((id) => isNoteCompleted(id));
+      state[noteId].unresolvedIds = uniqueBlockers.filter((id) => !isNoteCompleted(id));
+    });
+
+    return state;
+  }, [connections, notes, notesById, tasksById]);
+
   const formatTaskDate = (task) => {
     const startDate = task?.date ? new Date(task.date) : null;
     if (!startDate || Number.isNaN(startDate.getTime())) return 'Ohne Datum';
@@ -1735,6 +1793,14 @@ export default function NotesPage() {
               const isHovered = hoveredNoteId && noteId === String(hoveredNoteId);
               const isConnected = hoveredNoteId && connectedNoteIds.has(noteId);
               const isMuted = hoveredNoteId && !isHovered && !isConnected;
+              const dependencyState = dependencyStateByNote[noteId] || { blockerIds: [], unresolvedIds: [], resolvedIds: [] };
+              const hasDependency = dependencyState.blockerIds.length > 0;
+              const isBlockedByDependency = hasDependency && dependencyState.unresolvedIds.length > 0;
+              const isDependencyReady = hasDependency && dependencyState.unresolvedIds.length === 0;
+              const unresolvedNames = dependencyState.unresolvedIds
+                .map((id) => notesById.get(String(id))?.title || `Note ${id}`)
+                .slice(0, 2);
+              const moreUnresolved = Math.max(0, dependencyState.unresolvedIds.length - unresolvedNames.length);
               const notePeople = getPeopleForNote(note.id);
               const participantOnlyIds = notePeople.participant_ids.filter((id) => id !== String(notePeople.responsible_user_id));
               const visibleParticipantIds = participantOnlyIds.slice(0, 3);
@@ -1744,7 +1810,7 @@ export default function NotesPage() {
               return (
                 <motion.div
                   key={note.id}
-                  className={`note-card note-${note.importance} ${isUrgent(note.date) ? 'note-urgent' : ''} ${isHovered ? 'note-focus' : ''} ${isConnected ? 'note-connected' : ''} ${isMuted ? 'note-muted' : ''}`}
+                  className={`note-card note-${note.importance} ${isUrgent(note.date) ? 'note-urgent' : ''} ${isHovered ? 'note-focus' : ''} ${isConnected ? 'note-connected' : ''} ${isMuted ? 'note-muted' : ''} ${isBlockedByDependency ? 'note-dependency-blocked' : ''} ${isDependencyReady ? 'note-dependency-ready' : ''}`}
                   style={{
                     left: `${(notePositions[note.id]?.x ?? note.x ?? 100)}px`,
                     top: `${(notePositions[note.id]?.y ?? note.y ?? 100)}px`,
@@ -1775,6 +1841,25 @@ export default function NotesPage() {
                   </div>
 
                   <p className="note-content">{note.content}</p>
+
+                  {hasDependency && (
+                    <div className={`note-dependency-state ${isBlockedByDependency ? 'blocked' : 'ready'}`}>
+                      {isBlockedByDependency ? (
+                        <>
+                          <strong>Blockiert von</strong>
+                          <span>
+                            {unresolvedNames.join(', ')}
+                            {moreUnresolved > 0 ? ` +${moreUnresolved}` : ''}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <strong>Aktiv</strong>
+                          <span>Abhängigkeiten erfüllt</span>
+                        </>
+                      )}
+                    </div>
+                  )}
 
                   {linkedTask(note.id) && (
                     <button
