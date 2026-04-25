@@ -4,7 +4,7 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: linear-gradient(135deg, #f8f8f8 0%, #ffffff 100%);
+  background: transparent;
   overflow: hidden;
 }
 
@@ -13,8 +13,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  background: rgba(255, 255, 255, 0.9);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  background: var(--glass);
+  border-bottom: 1px solid var(--border);
   backdrop-filter: blur(10px);
   gap: 16px;
 }
@@ -83,8 +83,7 @@
   position: relative;
   width: 4000px;
   height: 4000px;
-  background: radial-gradient(circle at 20% 50%, rgba(0, 122, 255, 0.02) 0%, transparent 50%),
-              radial-gradient(circle at 80% 80%, rgba(255, 149, 0, 0.02) 0%, transparent 50%);
+  background: transparent;
 }
 
 .connections-svg {
@@ -101,8 +100,8 @@
 
 .note-card {
   position: absolute;
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: color-mix(in srgb, var(--card) 86%, var(--bg-elevated));
+  border: 1px solid var(--border);
   backdrop-filter: blur(20px);
   border-radius: 16px;
   padding: 16px;
@@ -123,13 +122,24 @@
 .note-card:hover {
   transform: translateY(-6px);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15);
-  background: rgba(255, 255, 255, 0.85);
-  border-color: rgba(255, 255, 255, 0.6);
+  background: color-mix(in srgb, var(--card) 92%, var(--bg-elevated));
+  border-color: var(--border-strong);
+}
+
+.note-card.note-low {
+  background: linear-gradient(145deg, rgba(52, 199, 89, 0.09), color-mix(in srgb, var(--card) 85%, var(--bg-elevated)) 65%);
+  border-color: color-mix(in srgb, var(--success) 28%, var(--border));
+}
+
+.note-card.note-medium {
+  background: linear-gradient(145deg, rgba(0, 122, 255, 0.1), color-mix(in srgb, var(--card) 85%, var(--bg-elevated)) 65%);
+  border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
 }
 
 .note-card.note-high {
-  border-left: 4px solid #FF9500;
-  background: rgba(255, 149, 0, 0.08) !important;
+  border-left: 4px solid var(--warning);
+  background: linear-gradient(145deg, rgba(255, 149, 0, 0.13), color-mix(in srgb, var(--card) 82%, var(--bg-elevated)) 70%);
+  border-color: color-mix(in srgb, var(--warning) 30%, var(--border));
 }
 
 .note-card.note-high::before {
@@ -140,7 +150,7 @@
   right: 0;
   bottom: 0;
   border-radius: 16px;
-  box-shadow: inset 0 0 15px rgba(255, 149, 0, 0.1), 0 0 15px rgba(255, 149, 0, 0.1);
+  box-shadow: inset 0 0 15px rgba(255, 149, 0, 0.1), 0 0 15px rgba(255, 149, 0, 0.08);
   pointer-events: none;
 }
 
@@ -670,7 +680,7 @@
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   .notes-container {
-    background: linear-gradient(135deg, #1a1a1a 0%, #242424 100%);
+    background: transparent;
   }
 
   .notes-header,
