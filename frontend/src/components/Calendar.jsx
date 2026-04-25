@@ -124,6 +124,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const resizeInfoRef = useRef(null);
   const wkHRef = useRef(WK_H); // dynamic hour height, updated by ResizeObserver
   const [wkHState, setWkHState] = useState(WK_H);
+  const swipeRef = useRef({ startX: 0, startY: 0 });
 
   const triggerRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -326,6 +327,22 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     setSelectedDate(date);
     setCurrentDate(date);
     onDayClick?.(date);
+  };
+
+  // ── Mobile Swipe-Navigation ──────────────────────────────────────
+  const handleSwipeTouchStart = (e) => {
+    if (!isMobile) return;
+    swipeRef.current = { startX: e.touches[0].clientX, startY: e.touches[0].clientY };
+  };
+
+  const handleSwipeTouchEnd = (e) => {
+    if (!isMobile) return;
+    const dx = e.changedTouches[0].clientX - swipeRef.current.startX;
+    const dy = e.changedTouches[0].clientY - swipeRef.current.startY;
+    // Nur als horizontaler Swipe werten wenn dx dominant und groß genug
+    if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.8) {
+      navigate(dx < 0 ? 'next' : 'prev');
+    }
   };
 
   const getTasksForSelectedDay = () => {
@@ -1400,9 +1417,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   };
 
   const headerText = view === 'month'
-    ? (isDesktop
-        ? format(currentDate, 'MMMM yyyy', { locale: de })
-        : format(selectedDate || currentDate, 'EEEE, d. MMMM yyyy', { locale: de }))
+    ? format(currentDate, 'MMMM yyyy', { locale: de })
     : view === 'day'
       ? format(selectedDate || currentDate, 'EEEE, d. MMMM yyyy', { locale: de })
       : `KW ${format(currentDate, 'w')} · ${format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'd. MMM', { locale: de })} – ${format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'd. MMM yyyy', { locale: de })}`;
@@ -1413,6 +1428,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
+      onTouchStart={handleSwipeTouchStart}
+      onTouchEnd={handleSwipeTouchEnd}
     >
       <div className="calendar-header">
         <div className="cal-mp-wrap">
