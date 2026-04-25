@@ -1325,18 +1325,6 @@ module.exports = async function handler(req, res) {
         );
 
         for (const member of memberRows.rows) {
-          await pool.query(
-            `INSERT INTO notification_log (user_id, type, task_id, title, body)
-             VALUES ($1, $2, $3, $4, $5)`,
-            [
-              member.user_id,
-              'team_task_created',
-              firstTask.id,
-              `Neue Gruppenaufgabe: ${groupInfo.name}`,
-              `${title} wurde in der Gruppe ${groupInfo.name} erstellt`,
-            ]
-          ).catch(() => null);
-
           await sendPushToUser(
             member.user_id,
             {

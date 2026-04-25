@@ -62,13 +62,11 @@ async function sendPushToUser(userId, payload, type, taskId = null) {
     }
   }
 
-  // Log notification
-  if (sent > 0) {
-    await pool.query(
-      'INSERT INTO notification_log (user_id, type, task_id, title, body) VALUES ($1, $2, $3, $4, $5)',
-      [userId, type, taskId, payload.title, payload.body]
-    );
-  }
+  // Always log for in-app notification center, even when push delivery is 0.
+  await pool.query(
+    'INSERT INTO notification_log (user_id, type, task_id, title, body) VALUES ($1, $2, $3, $4, $5)',
+    [userId, type, taskId, payload.title, payload.body]
+  );
 
   return sent;
 }
