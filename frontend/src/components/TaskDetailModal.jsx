@@ -42,7 +42,13 @@ export default function TaskDetailModal({ task, onClose, onUpdated }) {
     return () => mq.removeEventListener('change', handler);
   }, []);
 
-  if (!task) return null;
+  const currentUser = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || 'null');
+    } catch {
+      return null;
+    }
+  }, []);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return null;
@@ -69,23 +75,21 @@ export default function TaskDetailModal({ task, onClose, onUpdated }) {
     return Number.isNaN(end.getTime()) ? null : end;
   };
 
-  const isOverdue = task.date && !task.completed && isPast(parseISO(task.date)) && !isToday(parseISO(task.date));
-  const priority = priorityConfig[task.priority] || priorityConfig.medium;
+  const isOverdue = task?.date && !task?.completed && isPast(parseISO(task.date)) && !isToday(parseISO(task.date));
+  const priority = priorityConfig[task?.priority] || priorityConfig.medium;
   const PriorityIcon = priority.icon;
-  const canEdit = task.is_owner === false ? (task.can_edit === true) : true;
-  const isShared = task.visibility && task.visibility !== 'private';
-  const isEvent = task.type === 'event';
+  const canEdit = task?.is_owner === false ? (task?.can_edit === true) : true;
+  const isShared = task?.visibility && task.visibility !== 'private';
+  const isEvent = task?.type === 'event';
   const eventEndAt = isEvent ? getEventEndDate(task) : null;
   const isEventEnded = isEvent && !!eventEndAt && eventEndAt.getTime() < Date.now();
-  const currentUser = useMemo(() => {
-    try {
-      return JSON.parse(localStorage.getItem('user') || 'null');
-    } catch {
-      return null;
-    }
-  }, []);
 
   useEffect(() => {
+    if (!task?.id) {
+      setComments([]);
+      return;
+    }
+
     const loadComments = async () => {
       try {
         const response = await api.getComments(task.id);
@@ -99,7 +103,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated }) {
       }
     };
     loadComments();
-  }, [task.id]);
+  }, [task?.id]);
 
   useEffect(() => {
     const onClickOutside = (e) => {
@@ -113,6 +117,8 @@ export default function TaskDetailModal({ task, onClose, onUpdated }) {
     }
     return () => document.removeEventListener('mousedown', onClickOutside);
   }, [showMenu, showEmojiPicker]);
+
+  if (!task) return null;
 
   const handleToggle = async () => {
     const updated = await toggleTask(task.id);
