@@ -1696,6 +1696,9 @@ export default function NotesPage() {
                   whileHover={{ y: -8 }}
                   onMouseEnter={() => setHoveredNoteId(note.id)}
                   onMouseLeave={() => setHoveredNoteId(null)}
+                  onMouseDown={(e) => handleNoteMouseDown(e, note.id)}
+                  onTouchStart={(event) => handleNoteTouchStart(event, note.id)}
+                  onClick={(event) => handleNoteCardClick(event, note.id)}
                 >
                   <div className="note-header">
                     <h3 className="note-title">{note.title}</h3>
@@ -1868,6 +1871,64 @@ export default function NotesPage() {
           <div className="task-preview-footer">Klick für vollständige Details</div>
         </div>
       )}
+
+      <AnimatePresence>
+        {selectedTask && (
+          <motion.div
+            className="modal-overlay"
+            onClick={() => setSelectedTask(null)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="modal-content task-detail-modal"
+              onClick={(e) => e.stopPropagation()}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+            >
+              <div className="task-detail-header">
+                <h2 className="task-detail-title">{selectedTask.title}</h2>
+                <div className="task-detail-badge" style={{ background: getImportanceColor(selectedTask.importance || 'medium').bg }}>
+                  {selectedTask.importance === 'high' && '⭐ Wichtig'}
+                  {selectedTask.importance === 'medium' && '● Normal'}
+                  {selectedTask.importance === 'low' && '− Niedrig'}
+                </div>
+              </div>
+
+              <div className="task-detail-grid">
+                <div className="task-detail-row">
+                  <span className="task-detail-label">📌 Typ:</span>
+                  <span className="task-detail-value">{selectedTask.type === 'event' ? 'Termin' : 'Aufgabe'}</span>
+                </div>
+                <div className="task-detail-row">
+                  <span className="task-detail-label">📅 Datum:</span>
+                  <span className="task-detail-value">{formatTaskDate(selectedTask)}</span>
+                </div>
+                {selectedTask.category && (
+                  <div className="task-detail-row">
+                    <span className="task-detail-label">🏷️ Kategorie:</span>
+                    <span className="task-detail-value">{selectedTask.category}</span>
+                  </div>
+                )}
+                {selectedTask.description && (
+                  <div className="task-detail-row">
+                    <span className="task-detail-label">📝 Beschreibung:</span>
+                    <span className="task-detail-value" style={{ whiteSpace: 'pre-wrap' }}>{selectedTask.description}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="modal-actions">
+                <button type="button" className="btn-secondary" onClick={() => setSelectedTask(null)}>
+                  Schließen
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
         <aside className={`notes-context-panel ${activeNote ? 'open' : ''}`}>
           {!activeNote ? (
