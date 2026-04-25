@@ -780,7 +780,7 @@ input, textarea, select {
 
 .manual-task-form-panel {
   margin-top: 0;
-  padding: 28px;
+  padding: 18px;
   border: 1px solid var(--border);
   border-top: none;
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
@@ -7373,8 +7373,8 @@ body.cal-is-dragging * {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 24px 28px;
-  padding-bottom: 28px;
+  padding: 16px 20px;
+  padding-bottom: 20px;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -12710,6 +12710,20 @@ body.cal-is-dragging * {
   box-shadow: none;
   padding: 0;
   background: transparent;
+}
+
+/* Im Desktop-Erstellen-Modal bekommt die eingebettete Form wieder Innenabstand */
+@media (min-width: 769px) {
+  .manual-task-modal-body .manual-task-attachment.embedded .manual-task-form-panel {
+    padding: 36px 72px 40px;
+  }
+}
+
+/* Auch auf kleineren Viewports: kein Randkleben im Erstellen-Modal */
+@media (max-width: 768px) {
+  .manual-task-modal-body .manual-task-attachment.embedded .manual-task-form-panel {
+    padding: 18px 18px 20px;
+  }
 }
 
 .manual-task-attachment.embedded .manual-task-form-panel > div:first-child {
