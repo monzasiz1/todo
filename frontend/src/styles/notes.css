@@ -777,6 +777,8 @@
   margin: 8px 0 0 0;
   font-size: 13px;
   color: var(--text-secondary);
+}
+
 /* Create Note Button */
 
 .create-note-btn {
