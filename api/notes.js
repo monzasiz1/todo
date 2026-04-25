@@ -71,16 +71,39 @@ module.exports = async function handler(req, res) {
 
     // GET /api/notes
     if (segments.length === 0 && req.method === 'GET') {
-      const result = await pool.query(
-        `SELECT n.*, t.title AS linked_task_title
-           FROM notes n
-           LEFT JOIN tasks t ON t.id::text = n.linked_task_id::text
-          WHERE n.user_id = $1
-          ORDER BY n.updated_at DESC, n.created_at DESC`,
-        [userId]
-      );
-
-      return res.status(200).json({ notes: result.rows });
+      try {
+        const result = await pool.query(
+          `SELECT n.*, t.title AS linked_task_title
+             FROM notes n
+             LEFT JOIN tasks t ON t.id::text = n.linked_task_id::text
+            WHERE n.user_id = $1
+            ORDER BY n.updated_at DESC, n.created_at DESC`,
+          [userId]
+        );
+        return res.status(200).json({ notes: result.rows });
+      } catch (errWithJoin) {
+        try {
+          // Fallback for installations with incompatible tasks/notes id types or missing task linkage.
+          const resultNoJoin = await pool.query(
+            `SELECT n.*
+               FROM notes n
+              WHERE n.user_id = $1
+              ORDER BY n.updated_at DESC, n.created_at DESC`,
+            [userId]
+          );
+          return res.status(200).json({ notes: resultNoJoin.rows });
+        } catch (errNoJoin) {
+          // Last resort for legacy schemas without updated_at.
+          const resultLegacyOrder = await pool.query(
+            `SELECT n.*
+               FROM notes n
+              WHERE n.user_id = $1
+              ORDER BY n.created_at DESC`,
+            [userId]
+          );
+          return res.status(200).json({ notes: resultLegacyOrder.rows });
+        }
+      }
     }
 
     // POST /api/notes
@@ -219,20 +242,33 @@ module.exports = async function handler(req, res) {
 
     // GET /api/notes/shared
     if (segments.length === 1 && segments[0] === 'shared' && req.method === 'GET') {
-      const shared = await pool.query(
-        `SELECT n.*, ns.permission,
-                u.name AS owner_name,
-                t.title AS linked_task_title
-           FROM note_shares ns
-           JOIN notes n ON n.id = ns.note_id
-           JOIN users u ON u.id = n.user_id
-           LEFT JOIN tasks t ON t.id::text = n.linked_task_id::text
-          WHERE ns.friend_id = $1
-          ORDER BY n.updated_at DESC, n.created_at DESC`,
-        [userId]
-      );
-
-      return res.status(200).json({ notes: shared.rows });
+      try {
+        const shared = await pool.query(
+          `SELECT n.*, ns.permission,
+                  u.name AS owner_name,
+                  t.title AS linked_task_title
+             FROM note_shares ns
+             JOIN notes n ON n.id = ns.note_id
+             JOIN users u ON u.id = n.user_id
+             LEFT JOIN tasks t ON t.id::text = n.linked_task_id::text
+            WHERE ns.friend_id = $1
+            ORDER BY n.updated_at DESC, n.created_at DESC`,
+          [userId]
+        );
+        return res.status(200).json({ notes: shared.rows });
+      } catch (errSharedJoin) {
+        const sharedNoJoin = await pool.query(
+          `SELECT n.*, ns.permission,
+                  u.name AS owner_name
+             FROM note_shares ns
+             JOIN notes n ON n.id = ns.note_id
+             JOIN users u ON u.id = n.user_id
+            WHERE ns.friend_id = $1
+            ORDER BY n.created_at DESC`,
+          [userId]
+        );
+        return res.status(200).json({ notes: sharedNoJoin.rows });
+      }
     }
 
     // Below this line, first segment must be a note id (UUID)
