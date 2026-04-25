@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Plus, ZoomIn, ZoomOut, Maximize2, Share2, Link2, Trash2, Edit2, X } from 'lucide-react';
 import { useNotesStore } from '../store/notesStore';
 import { useFriendsStore } from '../store/friendsStore';
@@ -19,8 +19,7 @@ export default function NotesPage() {
   const [showConnectModal, setShowConnectModal] = useState(null);
   const [newNote, setNewNote] = useState({ title: '', content: '', importance: 'medium', date: '', linked_task_id: null });
   const [isDragging, setIsDragging] = useState(null);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [connections, setConnections] = useState(new Map());
+  const [notePositions, setNotePositions] = useState({});
   const canvasRef = useRef(null);
 
   // Load notes on mount
@@ -28,10 +27,37 @@ export default function NotesPage() {
     useNotesStore.getState().fetchNotes?.();
   }, []);
 
+  useEffect(() => {
+    setNotePositions((prev) => {
+      const next = { ...prev };
+
+      notes.forEach((note) => {
+        if (!next[note.id]) {
+          next[note.id] = {
+            x: note.x ?? 100,
+            y: note.y ?? 100,
+          };
+        }
+      });
+
+      Object.keys(next).forEach((id) => {
+        if (!notes.some((n) => String(n.id) === String(id))) {
+          delete next[id];
+        }
+      });
+
+      return next;
+    });
+  }, [notes]);
+
   // Save note position on change
-  const updateNotePosition = (noteId, x, y) => {
-    const note = notes.find(n => n.id === noteId);
-    if (note && (note.x !== x || note.y !== y)) {
+  const updateNotePosition = (noteId, x, y, persist = false) => {
+    setNotePositions((prev) => ({
+      ...prev,
+      [noteId]: { x, y },
+    }));
+
+    if (persist) {
       updateNote(noteId, { x, y }).catch(() => {});
     }
   };
@@ -56,9 +82,10 @@ export default function NotesPage() {
       const note = notes.find(n => n.id === isDragging.noteId);
       
       if (note) {
-        const newX = Math.max(0, note.x + deltaX / (zoom / 100));
-        const newY = Math.max(0, note.y + deltaY / (zoom / 100));
-        updateNotePosition(isDragging.noteId, newX, newY);
+        const current = notePositions[isDragging.noteId] || { x: note.x ?? 100, y: note.y ?? 100 };
+        const newX = Math.max(0, current.x + deltaX / (zoom / 100));
+        const newY = Math.max(0, current.y + deltaY / (zoom / 100));
+        updateNotePosition(isDragging.noteId, newX, newY, false);
       }
 
       setIsDragging(prev => ({
@@ -70,11 +97,18 @@ export default function NotesPage() {
   };
 
   const handleMouseUp = () => {
+    if (isDragging?.noteId) {
+      const pos = notePositions[isDragging.noteId];
+      if (pos) {
+        updateNotePosition(isDragging.noteId, pos.x, pos.y, true);
+      }
+    }
     setIsDragging(null);
   };
 
   const handleNoteMouseDown = (e, noteId) => {
     if (e.button !== 0) return;
+    if (e.target.closest('button, input, textarea, select, a')) return;
     e.stopPropagation();
     setIsDragging({ noteId, startX: e.clientX, startY: e.clientY });
   };
@@ -203,8 +237,8 @@ export default function NotesPage() {
                   key={note.id}
                   className={`note-card note-${note.importance} ${isUrgent(note.date) ? 'note-urgent' : ''}`}
                   style={{
-                    left: `${note.x || 100}px`,
-                    top: `${note.y || 100}px`,
+                    left: `${(notePositions[note.id]?.x ?? note.x ?? 100)}px`,
+                    top: `${(notePositions[note.id]?.y ?? note.y ?? 100)}px`,
                     width: `${note.width || 300}px`,
                     minHeight: `${note.height || 150}px`,
                   }}
@@ -368,7 +402,7 @@ export default function NotesPage() {
                 <select
                   className="form-input"
                   value={newNote.linked_task_id || ''}
-                  onChange={(e) => setNewNote({ ...newNote, linked_task_id: e.target.value ? parseInt(e.target.value) : null })}
+                  onChange={(e) => setNewNote({ ...newNote, linked_task_id: e.target.value || null })}
                 >
                   <option value="">Keinen Termin wählen</option>
                   {tasks.map((task) => (
@@ -474,7 +508,12 @@ export default function NotesPage() {
                   className="btn-primary"
                   onClick={async () => {
                     try {
-                      await updateNote(editingNote.id, editingNote);
+                      await updateNote(editingNote.id, {
+                        title: editingNote.title,
+                        content: editingNote.content,
+                        importance: editingNote.importance,
+                        date: editingNote.date || null,
+                      });
                       setEditingNote(null);
                     } catch (err) {
                       console.error('Update error:', err);
