@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FixedSizeList as VirtualList } from 'react-window';
 import { useTaskStore } from '../store/taskStore';
 import AIInput from '../components/AIInput';
 import ManualTaskForm from '../components/ManualTaskForm';
 import TaskCard from '../components/TaskCard';
-import { CheckCircle2, Circle, Clock, ChevronDown, CalendarDays, AlertTriangle, Target } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, ChevronDown, CalendarDays, AlertTriangle, Target, Plus, X } from 'lucide-react';
 import { isToday, isTomorrow, isThisWeek, isPast, parseISO, format, startOfDay, compareAsc } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { usePlan } from '../hooks/usePlan';
@@ -261,6 +262,7 @@ export default function Dashboard() {
   const [showCompleted, setShowCompleted] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState({ past_events: true });
   const [showTaskLimitModal, setShowTaskLimitModal] = useState(false);
+  const [showManualModal, setShowManualModal] = useState(false);
   const [nowTs, setNowTs] = useState(Date.now());
 
   useEffect(() => {
@@ -472,17 +474,68 @@ export default function Dashboard() {
           </div>
         )}
         <AIInput />
-        <ManualTaskForm
-          onTaskCreated={() => {
-            fetchTasks({
-              dashboard: 'true',
-              limit: DASHBOARD_FETCH_LIMIT,
-              horizon_days: DASHBOARD_HORIZON_DAYS,
-              completed_lookback_days: DASHBOARD_COMPLETED_LOOKBACK_DAYS,
-            }, { force: true });
-          }}
-        />
+
+        {/* Manuell-Launcher — nur auf Desktop sichtbar, öffnet Modal */}
+        <button
+          className="manual-task-launcher dashboard-manual-launcher"
+          onClick={() => setShowManualModal(true)}
+        >
+          <span className="manual-task-launcher-left">
+            <div className="manual-task-launcher-icon"><Plus size={16} /></div>
+            <div className="manual-task-launcher-copy">
+              <strong>Manuell erstellen</strong>
+              <span>Aufgabe oder Termin ohne KI anlegen</span>
+            </div>
+          </span>
+          <ChevronDown size={18} className="manual-task-launcher-chevron" />
+        </button>
       </div>
+
+      {/* Manuell-Erstellungs-Modal (Desktop) */}
+      <AnimatePresence>
+        {showManualModal && createPortal(
+          <motion.div
+            className="modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            onClick={() => setShowManualModal(false)}
+          >
+            <motion.div
+              className="manual-task-modal-wrap"
+              initial={{ opacity: 0, scale: 0.95, y: 24 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 16 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 340 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="manual-task-modal-header">
+                <h3>Aufgabe / Termin erstellen</h3>
+                <button className="manual-task-modal-close" onClick={() => setShowManualModal(false)}>
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="manual-task-modal-body">
+                <ManualTaskForm
+                  embedded
+                  onTaskCreated={() => {
+                    setShowManualModal(false);
+                    fetchTasks({
+                      dashboard: 'true',
+                      limit: DASHBOARD_FETCH_LIMIT,
+                      horizon_days: DASHBOARD_HORIZON_DAYS,
+                      completed_lookback_days: DASHBOARD_COMPLETED_LOOKBACK_DAYS,
+                    }, { force: true });
+                  }}
+                  onCancel={() => setShowManualModal(false)}
+                />
+              </div>
+            </motion.div>
+          </motion.div>,
+          document.body
+        )}
+      </AnimatePresence>
 
       <section className="smart-insights" aria-label="Smart Insights">
         <div className="smart-insights-head">

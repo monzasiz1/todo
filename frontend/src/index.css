@@ -12554,6 +12554,69 @@ body.cal-is-dragging * {
   overflow: hidden;
 }
 
+/* ── Manuell-Erstellen: Desktop-Modal ── */
+.manual-task-modal-wrap {
+  background: var(--card-solid);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 88vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22), 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.manual-task-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.manual-task-modal-header h3 {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.manual-task-modal-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.manual-task-modal-close:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.manual-task-modal-body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 4px 0 8px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,0.12) transparent;
+}
+
+/* Launcher auf Mobile verstecken */
+@media (max-width: 768px) {
+  .dashboard-manual-launcher {
+    display: none !important;
+  }
+}
+
 /* ManualTaskForm embedded overrides */
 .manual-task-attachment.embedded {
   margin-top: 0;
