@@ -470,4 +470,47 @@ export const api = {
       method: 'DELETE',
       body: JSON.stringify({ task_id }),
     }),
+
+  // Notes
+  getNotes: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/notes${query ? '?' + query : ''}`);
+  },
+
+  createNote: (note) =>
+    request('/notes', {
+      method: 'POST',
+      body: JSON.stringify(note),
+    }),
+
+  updateNote: (noteId, updates) =>
+    request(`/notes/${noteId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    }),
+
+  deleteNote: (noteId) =>
+    request(`/notes/${noteId}`, { method: 'DELETE' }),
+
+  linkNoteToTask: (noteId, taskId) =>
+    request(`/notes/${noteId}/link-task`, {
+      method: 'POST',
+      body: JSON.stringify({ task_id: taskId }),
+    }),
+
+  shareNote: (noteId, data) =>
+    request(`/notes/${noteId}/share`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  getSharedNotes: () => request('/notes/shared'),
+
+  connectNotes: (noteId1, noteId2, relationshipType = 'related') =>
+    request(`/notes/${noteId1}/connect`, {
+      method: 'POST',
+      body: JSON.stringify({ note_id: noteId2, relationship_type: relationshipType }),
+    }),
+
+  getNoteConnections: (noteId) => request(`/notes/${noteId}/connections`),
 };
