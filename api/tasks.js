@@ -838,7 +838,7 @@ module.exports = async function handler(req, res) {
                  AND (
                    t.date IS NULL
                    OR (COALESCE(t.completed, false) = true AND t.date >= CURRENT_DATE - ($5::int * INTERVAL '1 day'))
-                   OR (COALESCE(t.completed, false) = false AND (t.date < CURRENT_DATE OR t.date <= CURRENT_DATE + ($4::int * INTERVAL '1 day')))
+                   OR (COALESCE(t.completed, false) = false AND t.date >= CURRENT_DATE AND t.date <= CURRENT_DATE + ($4::int * INTERVAL '1 day'))
                  )
                ${dashboardOrderBy}
                LIMIT $3

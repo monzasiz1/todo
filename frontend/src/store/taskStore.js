@@ -128,6 +128,8 @@ export const useTaskStore = create((set, get) => ({
         : '';
       const typeMsg = task.type === 'event' ? '📅 Termin' : '✅ Aufgabe';
       get().addToast(`${typeMsg} erstellt${groupMsg}${recurrenceMsg}`);
+        // Invalidate dashboard cache to ensure Dashboard stays in sync with new task
+        set((s) => ({ lastTasksFetchKey: '', lastTasksFetchAt: 0 }));
       return data;
     } catch (err) {
       get().addToast('❌ ' + err.message, 'error');
