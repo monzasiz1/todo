@@ -12559,28 +12559,30 @@ body.cal-is-dragging * {
   background: var(--card-solid);
   border-radius: 20px;
   width: 100%;
-  max-width: 600px;
-  max-height: 88vh;
+  max-width: 860px;
+  max-height: 90vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22), 0 4px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 .manual-task-modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 22px 14px;
+  padding: 20px 28px 16px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  background: var(--card-solid);
 }
 
 .manual-task-modal-header h3 {
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 700;
   color: var(--text);
   margin: 0;
+  letter-spacing: -0.2px;
 }
 
 .manual-task-modal-close {
@@ -12594,7 +12596,7 @@ body.cal-is-dragging * {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 
 .manual-task-modal-close:hover {
@@ -12605,7 +12607,6 @@ body.cal-is-dragging * {
 .manual-task-modal-body {
   overflow-y: auto;
   flex: 1;
-  padding: 4px 0 8px;
   scrollbar-width: thin;
   scrollbar-color: rgba(0,0,0,0.12) transparent;
 }
@@ -12614,6 +12615,88 @@ body.cal-is-dragging * {
 @media (max-width: 768px) {
   .dashboard-manual-launcher {
     display: none !important;
+  }
+}
+
+/* ── Zwei-Spalten-Layout für ManualTaskForm im Desktop-Modal ── */
+@media (min-width: 769px) {
+  .manual-task-modal-body .manual-task-form-panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 28px;
+    row-gap: 0;
+    padding: 28px 32px 24px;
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  /* ── Volle Breite (beide Spalten) ── */
+  .manual-task-modal-body .manual-task-form-panel > div:first-child,
+  .manual-task-modal-body .manual-task-form-panel .task-type-toggle,
+  .manual-task-modal-body .manual-task-form-panel .task-edit-field:has(input[type="text"]),
+  .manual-task-modal-body .manual-task-form-panel .task-edit-field:has(textarea),
+  .manual-task-modal-body .manual-task-form-panel .manual-task-two-col,
+  .manual-task-modal-body .manual-task-form-panel .manual-task-allday-toggle,
+  .manual-task-modal-body .manual-task-form-panel .task-edit-field:has(.manual-task-stack),
+  .manual-task-modal-body .manual-task-form-panel .task-edit-sharing,
+  .manual-task-modal-body .manual-task-form-panel > div:last-child {
+    grid-column: 1 / -1;
+  }
+
+  /* Volle Breite: recurrence hint und Teams-Feld */
+  .manual-task-modal-body .manual-task-form-panel > div[style*="font-size: 12px"],
+  .manual-task-modal-body .manual-task-form-panel .task-edit-field:has(label > button[role="switch"]) {
+    grid-column: 1 / -1;
+  }
+
+  /* Abstände zwischen Feldern */
+  .manual-task-modal-body .manual-task-form-panel .task-edit-field,
+  .manual-task-modal-body .manual-task-form-panel .task-edit-row,
+  .manual-task-modal-body .manual-task-form-panel .manual-task-allday-toggle,
+  .manual-task-modal-body .manual-task-form-panel .task-edit-sharing {
+    margin-bottom: 20px;
+  }
+
+  /* Section-Trennlinie: vor Gruppe */
+  .manual-task-modal-body .manual-task-form-panel .task-edit-field:has(.manual-task-stack) {
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    margin-top: 4px;
+  }
+
+  /* Section-Trennlinie: vor Teilen */
+  .manual-task-modal-body .manual-task-form-panel .task-edit-sharing {
+    padding-top: 4px;
+  }
+
+  /* Aktions-Buttons besser */
+  .manual-task-modal-body .manual-task-form-panel > div:last-child {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    margin-top: 4px;
+  }
+
+  .manual-task-modal-body .task-edit-save {
+    padding: 10px 28px;
+    font-size: 15px;
+    border-radius: 12px;
+  }
+
+  .manual-task-modal-body .task-edit-cancel {
+    padding: 10px 20px;
+    font-size: 15px;
+    border-radius: 12px;
+  }
+
+  /* Form-Animation deaktivieren im Modal (sofort anzeigen) */
+  .manual-task-modal-body .manual-task-form-panel {
+    animation: none !important;
+    height: auto !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 
