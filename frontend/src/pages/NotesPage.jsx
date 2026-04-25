@@ -169,6 +169,7 @@ export default function NotesPage() {
   const [quickConnectMode, setQuickConnectMode] = useState(false);
   const [connectionType, setConnectionType] = useState('related');
   const [activeNoteId, setActiveNoteId] = useState(null);
+    const [selectedTask, setSelectedTask] = useState(null);
   const [contextTab, setContextTab] = useState('details');
   const [noteComments, setNoteComments] = useState({});
   const [commentDraft, setCommentDraft] = useState('');
@@ -1670,11 +1671,80 @@ export default function NotesPage() {
                     width: `${note.width || getNoteDimensions(window.innerWidth).width}px`,
                     minHeight: `${note.height || getNoteDimensions(window.innerWidth).height}px`,
                   }}
-                  onMouseDown={(e) => handleNoteMouseDown(e, note.id)}
-                  onTouchStart={(event) => handleNoteTouchStart(event, note.id)}
-                  onClick={(event) => handleNoteCardClick(event, note.id)}
-                  onMouseEnter={() => setHoveredNoteId(note.id)}
+                        </AnimatePresence>
                   onMouseLeave={() => setHoveredNoteId(null)}
+                        {/* Task Detail Modal */}
+                        <AnimatePresence>
+                          {selectedTask && (
+                            <motion.div
+                              className="modal-overlay"
+                              onClick={() => setSelectedTask(null)}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                            >
+                              <motion.div
+                                className="modal-content task-detail-modal"
+                                onClick={(e) => e.stopPropagation()}
+                                initial={{ scale: 0.9, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.9, opacity: 0 }}
+                              >
+                                <div className="task-detail-header">
+                                  <h2 className="task-detail-title">{selectedTask.title}</h2>
+                                  <div className="task-detail-badge" style={{ background: getImportanceColor(selectedTask.importance || 'medium').bg }}>
+                                    {selectedTask.importance === 'high' && '⭐ Wichtig'}
+                                    {selectedTask.importance === 'medium' && '● Normal'}
+                                    {selectedTask.importance === 'low' && '− Niedrig'}
+                                  </div>
+                                </div>
+
+                                <div className="task-detail-grid">
+                                  <div className="task-detail-row">
+                                    <span className="task-detail-label">📌 Typ:</span>
+                                    <span className="task-detail-value">{selectedTask.type === 'event' ? 'Termin' : 'Aufgabe'}</span>
+                                  </div>
+                                  {selectedTask.start_date && (
+                                    <div className="task-detail-row">
+                                      <span className="task-detail-label">📅 Start:</span>
+                                      <span className="task-detail-value">{formatTaskDate(selectedTask)}</span>
+                                    </div>
+                                  )}
+                                  {selectedTask.end_date && selectedTask.type === 'event' && (
+                                    <div className="task-detail-row">
+                                      <span className="task-detail-label">⏰ Ende:</span>
+                                      <span className="task-detail-value">{new Date(selectedTask.end_date).toLocaleDateString('de-DE')}</span>
+                                    </div>
+                                  )}
+                                  {selectedTask.category && (
+                                    <div className="task-detail-row">
+                                      <span className="task-detail-label">🏷️ Kategorie:</span>
+                                      <span className="task-detail-value">{selectedTask.category}</span>
+                                    </div>
+                                  )}
+                                  {selectedTask.description && (
+                                    <div className="task-detail-row">
+                                      <span className="task-detail-label">📝 Beschreibung:</span>
+                                      <span className="task-detail-value" style={{ whiteSpace: 'pre-wrap' }}>{selectedTask.description}</span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="modal-actions">
+                                  <button
+                                    className="btn-secondary"
+                                    onClick={() => setSelectedTask(null)}
+                                  >
+                                    Schließen
+                                  </button>
+                                </div>
+                              </motion.div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    );
+                  }
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
@@ -1824,11 +1894,10 @@ export default function NotesPage() {
               setContextTab('events');
               setHoveredTaskPreview(null);
             }}
-            onMouseLeave={() => setHoveredTaskPreview(null)}
-          >
-            <div className="task-preview-header">
-              <div className="task-preview-title">{hoveredTaskPreview.task.title}</div>
-              <div className="task-preview-importance" style={{ background: getImportanceColor(hoveredTaskPreview.task.importance || 'medium').bg }}>
+                        onClick={() => {
+                          setSelectedTask(hoveredTaskPreview.task);
+                          setHoveredTaskPreview(null);
+                        }}
                 {hoveredTaskPreview.task.importance === 'high' && '⭐'}
                 {hoveredTaskPreview.task.importance === 'medium' && '●'}
                 {hoveredTaskPreview.task.importance === 'low' && '−'}
