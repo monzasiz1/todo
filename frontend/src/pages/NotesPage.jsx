@@ -630,6 +630,12 @@ export default function NotesPage() {
     return currentUserId !== '' && (currentUserId === noteOwnerId || currentUserId === responsibleId || permission === 'edit');
   };
 
+  const isResponsibleForNote = (note) => {
+    if (!note || !currentUser?.id) return false;
+    const responsibleId = String(note.responsible_user_id || getPeopleForNote(note.id).responsible_user_id || '');
+    return responsibleId !== '' && responsibleId === String(currentUser.id);
+  };
+
   const resolvePersonName = (personId) => {
     const idText = String(personId || '');
     const found = friendOptions.find((entry) => entry.id === idText);
@@ -1406,6 +1412,7 @@ export default function NotesPage() {
   const activeCanCompleteNow = activeDependencyState.unresolvedIds.length === 0;
   const activeIsCompleted = activeNote ? isNoteCompletedByData(activeNote.id) : false;
   const activeCanManage = activeNote ? canManageNote(activeNote) : false;
+  const activeIsResponsible = activeNote ? isResponsibleForNote(activeNote) : false;
   const activeLinkedTask = activeNote ? linkedTask(activeNote.id) : null;
   const activeConnections = activeNote
     ? connections
@@ -1652,6 +1659,8 @@ export default function NotesPage() {
                   const mobileIsCompleted = isNoteCompletedByData(note.id);
                   const mobileDependencyState = dependencyStateByNote[String(note.id)] || { unresolvedIds: [] };
                   const mobileCanCompleteNow = mobileDependencyState.unresolvedIds.length === 0;
+                  const mobileIsOwner = String(note.user_id || '') === String(currentUser?.id || '');
+                  const mobileIsResponsible = isResponsibleForNote(note);
                   return (
                     <div
                       key={note.id}
@@ -1668,15 +1677,20 @@ export default function NotesPage() {
                       <div className="nmlv-card-body">
                         <div className="nmlv-card-header">
                           <h3 className="nmlv-card-title">{note.title}</h3>
-                          <button
-                            type="button"
-                            className="nmlv-card-delete"
-                            onClick={(e) => { e.stopPropagation(); deleteNote(note.id); }}
-                            disabled={String(note.user_id || '') !== String(currentUser?.id || '')}
-                          >
-                            <X size={14} />
-                          </button>
+                          {mobileIsOwner && (
+                            <button
+                              type="button"
+                              className="nmlv-card-delete"
+                              onClick={(e) => { e.stopPropagation(); deleteNote(note.id); }}
+                            >
+                              <X size={14} />
+                            </button>
+                          )}
                         </div>
+
+                        {mobileIsResponsible && (
+                          <div className="nmlv-responsible-badge">Du bist verantwortlich</div>
+                        )}
 
                         {note.content && (
                           <p className="nmlv-card-content">{note.content}</p>
@@ -1961,6 +1975,7 @@ export default function NotesPage() {
               const responsibleName = notePeople.responsible_user_id ? resolvePersonName(notePeople.responsible_user_id) : null;
               const canManageThisNote = canManageNote(note);
               const isOwnerNote = String(note.user_id || '') === String(currentUser?.id || '');
+              const isResponsibleNote = isResponsibleForNote(note);
 
               return (
                 <motion.div
@@ -2010,6 +2025,10 @@ export default function NotesPage() {
                   </div>
 
                   <p className="note-content">{note.content}</p>
+
+                  {isResponsibleNote && (
+                    <div className="note-responsible-badge">Du bist verantwortlich</div>
+                  )}
 
                   {hasDependency && (
                     <div className={`note-dependency-state ${isBlockedByDependency ? 'blocked' : 'ready'}`}>
@@ -2138,22 +2157,24 @@ export default function NotesPage() {
                     >
                       <Link2 size={14} />
                     </button>
-                    <button
-                      className="action-btn"
-                      disabled={!isOwnerNote}
-                      onClick={() => setShowShareModal(note.id)}
-                      title="Teilen"
-                    >
-                      <Share2 size={14} />
-                    </button>
-                    <button
-                      className="action-btn delete-btn"
-                      disabled={!isOwnerNote}
-                      onClick={() => handleDeleteNote(note.id)}
-                      title="Löschen"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    {isOwnerNote && (
+                      <button
+                        className="action-btn"
+                        onClick={() => setShowShareModal(note.id)}
+                        title="Teilen"
+                      >
+                        <Share2 size={14} />
+                      </button>
+                    )}
+                    {isOwnerNote && (
+                      <button
+                        className="action-btn delete-btn"
+                        onClick={() => handleDeleteNote(note.id)}
+                        title="Löschen"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </div>
                 </motion.div>
               );
@@ -2292,6 +2313,7 @@ export default function NotesPage() {
                 <div>
                   <div className="context-kicker">Kontext</div>
                   <h3>{activeNote.title || 'Ohne Titel'}</h3>
+                  {activeIsResponsible && <div className="context-responsible-badge">Du bist verantwortlich</div>}
                 </div>
                 <button type="button" className="context-close" onClick={() => setActiveNoteId(null)}>
                   <X size={14} />

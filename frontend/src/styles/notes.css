@@ -112,6 +112,18 @@
 }
 .nmlv-person-chip.responsible { background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.3); color: #b45309; }
 .nmlv-person-chip.more { color: var(--primary); background: var(--primary-bg); }
+.nmlv-responsible-badge {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  color: #b45309;
+  font-size: 10px;
+  font-weight: 700;
+}
 .nmlv-card-actions {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -597,6 +609,19 @@
   gap: 6px;
   font-size: 12px;
   color: var(--text-secondary);
+}
+
+.context-responsible-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.26);
+  color: #b45309;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .context-empty-line {
@@ -1994,6 +2019,19 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.note-responsible-badge {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  color: #b45309;
+  font-size: 10.5px;
+  font-weight: 700;
 }
 
 .note-people-chip {
