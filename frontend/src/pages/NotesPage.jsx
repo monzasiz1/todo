@@ -375,7 +375,7 @@ export default function NotesPage() {
         lastCenterY: centerY,
       };
       setIsDragging(null);
-      event.preventDefault();
+      if (event.cancelable) event.preventDefault();
       return;
     }
 
@@ -403,7 +403,7 @@ export default function NotesPage() {
 
       pinchStateRef.current.lastCenterX = centerX;
       pinchStateRef.current.lastCenterY = centerY;
-      event.preventDefault();
+      if (event.cancelable) event.preventDefault();
       return;
     }
 
@@ -412,7 +412,7 @@ export default function NotesPage() {
     if (!isDragging?.isPan && !isDragging?.noteId) return;
 
     moveDragging(touch.clientX, touch.clientY);
-    event.preventDefault();
+    if (event.cancelable) event.preventDefault();
   };
 
   const handleTouchEnd = () => {
