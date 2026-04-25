@@ -424,9 +424,26 @@ export default function NotesPage() {
     <div className="notes-container" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
       {/* Header */}
       <div className="notes-header">
-        <div>
-          <h1 className="notes-title">Thoughts Board</h1>
-          <p className="notes-subtitle">Kreative Ideensammlung & Planung</p>
+        <div className="notes-header-main">
+          <div className="notes-mobile-tools">
+            <button type="button" className={`header-tool-btn ${toolboxOpen ? 'active' : ''}`} onClick={() => setToolboxOpen((prev) => !prev)}>
+              <PanelsTopLeft size={16} />
+              <span>Tools</span>
+            </button>
+            <button type="button" className="header-tool-btn primary" onClick={() => openBlankCreateModal()}>
+              <Plus size={16} />
+              <span>Neu</span>
+            </button>
+            <button type="button" className={`header-tool-btn ${quickConnectMode ? 'active' : ''}`} onClick={handleQuickConnectToggle}>
+              <Link2 size={16} />
+              <span>Connect</span>
+            </button>
+          </div>
+          {quickConnectMode && (
+            <div className="notes-compact-status">
+              {selectedNote ? 'Zweite Note wählen' : 'Quick Connect aktiv'}
+            </div>
+          )}
         </div>
         <div className="notes-controls">
           <button className="zoom-btn" onClick={() => setZoom(Math.max(50, zoom - 10))} title="Zoom out">
@@ -659,21 +676,6 @@ export default function NotesPage() {
         <Plus size={24} />
         <span>Neue Note</span>
       </motion.button>
-
-      <div className="notes-mobile-dock">
-        <button type="button" className={`mobile-dock-btn ${toolboxOpen ? 'active' : ''}`} onClick={() => setToolboxOpen((prev) => !prev)}>
-          <PanelsTopLeft size={18} />
-          <span>Tools</span>
-        </button>
-        <button type="button" className="mobile-dock-btn primary" onClick={() => openBlankCreateModal()}>
-          <Plus size={18} />
-          <span>Neu</span>
-        </button>
-        <button type="button" className={`mobile-dock-btn ${quickConnectMode ? 'active' : ''}`} onClick={handleQuickConnectToggle}>
-          <Link2 size={18} />
-          <span>Connect</span>
-        </button>
-      </div>
 
       {/* Create Modal */}
       <AnimatePresence>
