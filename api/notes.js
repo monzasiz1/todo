@@ -183,36 +183,37 @@ async function normalizeLinkedTaskForDb(pool, rawTaskId, userId) {
 async function resolveFriendUserId(pool, rawFriendId, userId) {
   if (rawFriendId === null || rawFriendId === undefined) return null;
 
-  const numeric = Number(rawFriendId);
-  if (!(Number.isInteger(numeric) && numeric > 0)) return null;
+  const currentUserIdText = String(userId || '').trim();
+  const friendIdText = String(rawFriendId || '').trim();
+  if (!currentUserIdText || !friendIdText) return null;
 
-  const userExists = await pool.query('SELECT id FROM users WHERE id = $1 LIMIT 1', [numeric]);
-  if (userExists.rows.length > 0 && numeric !== userId) {
+  const userExists = await pool.query('SELECT id FROM users WHERE id::text = $1 LIMIT 1', [friendIdText]);
+  if (userExists.rows.length > 0 && String(userExists.rows[0].id) !== currentUserIdText) {
     // Ensure there is an accepted friendship in either direction.
     const accepted = await pool.query(
       `SELECT id
          FROM friends
         WHERE status = 'accepted'
-          AND ((user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1))
+          AND ((user_id::text = $1 AND friend_id::text = $2) OR (user_id::text = $2 AND friend_id::text = $1))
         LIMIT 1`,
-      [userId, numeric]
+      [currentUserIdText, friendIdText]
     );
-    return accepted.rows.length > 0 ? numeric : null;
+    return accepted.rows.length > 0 ? userExists.rows[0].id : null;
   }
 
   const friendship = await pool.query(
     `SELECT user_id, friend_id
        FROM friends
-      WHERE id = $1
+      WHERE id::text = $1
         AND status = 'accepted'
-        AND (user_id = $2 OR friend_id = $2)
+        AND (user_id::text = $2 OR friend_id::text = $2)
       LIMIT 1`,
-    [numeric, userId]
+    [friendIdText, currentUserIdText]
   );
 
   if (friendship.rows.length === 0) return null;
   const row = friendship.rows[0];
-  return row.user_id === userId ? row.friend_id : row.user_id;
+  return String(row.user_id) === currentUserIdText ? row.friend_id : row.user_id;
 }
 
 module.exports = async function handler(req, res) {
@@ -635,13 +636,13 @@ module.exports = async function handler(req, res) {
       }
 
       const { friend_id, permission = 'view' } = req.body || {};
-      const targetUserId = await resolveFriendUserId(pool, friend_id, userId);
+      const targetUserId = await resolveFriendUserId(pool, friend_id, user.id);
 
       if (!targetUserId) {
         return res.status(400).json({ error: 'friend_id ist ungueltig oder keine bestaetigte Freundschaft' });
       }
 
-      if (targetUserId === userId) {
+      if (String(targetUserId) === userIdText) {
         return res.status(400).json({ error: 'Eigene Note kann nicht mit dir selbst geteilt werden' });
       }
 
@@ -700,13 +701,13 @@ module.exports = async function handler(req, res) {
            FROM notes
           WHERE id = $1
             AND (
-              user_id = $2
+              user_id::text = $2
               OR EXISTS (
-                SELECT 1 FROM note_shares ns WHERE ns.note_id = notes.id AND ns.friend_id = $2
+                SELECT 1 FROM note_shares ns WHERE ns.note_id = notes.id AND ns.friend_id::text = $2
               )
             )
           LIMIT 1`,
-        [otherNoteId, userId]
+        [otherNoteId, userIdText]
       );
 
       if (otherAccess.rows.length === 0) {
