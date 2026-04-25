@@ -636,10 +636,26 @@ module.exports = async function handler(req, res) {
       }
 
       const { friend_id, permission = 'view' } = req.body || {};
-      const targetUserId = await resolveFriendUserId(pool, friend_id, user.id);
+      const friendIdStr = String(friend_id || '').trim();
+      if (!friendIdStr) {
+        return res.status(400).json({ error: 'friend_id ist erforderlich' });
+      }
+
+      // First try direct user lookup (participants may not be friends with owner)
+      let targetUserId = null;
+      const directUser = await pool.query(
+        'SELECT id FROM users WHERE id::text = $1 LIMIT 1',
+        [friendIdStr]
+      );
+      if (directUser.rows.length > 0 && String(directUser.rows[0].id) !== userIdText) {
+        targetUserId = directUser.rows[0].id;
+      } else if (!targetUserId) {
+        // Fallback: legacy friendship-id resolution
+        targetUserId = await resolveFriendUserId(pool, friend_id, user.id);
+      }
 
       if (!targetUserId) {
-        return res.status(400).json({ error: 'friend_id ist ungueltig oder keine bestaetigte Freundschaft' });
+        return res.status(400).json({ error: 'Ziel-Nutzer nicht gefunden' });
       }
 
       if (String(targetUserId) === userIdText) {
@@ -687,7 +703,16 @@ module.exports = async function handler(req, res) {
 
       let targetUserId = existingTarget.rows[0]?.friend_id || null;
       if (!targetUserId) {
-        targetUserId = await resolveFriendUserId(pool, friend_id, user.id);
+        // Try direct user lookup first
+        const directUser = await pool.query(
+          'SELECT id FROM users WHERE id::text = $1 LIMIT 1',
+          [friendIdText]
+        );
+        if (directUser.rows.length > 0) {
+          targetUserId = directUser.rows[0].id;
+        } else {
+          targetUserId = await resolveFriendUserId(pool, friend_id, user.id);
+        }
       }
 
       if (!targetUserId) {

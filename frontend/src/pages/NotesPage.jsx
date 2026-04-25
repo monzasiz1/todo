@@ -134,6 +134,7 @@ export default function NotesPage() {
   const [selectedNote, setSelectedNote] = useState(null);
   const [showShareModal, setShowShareModal] = useState(null);
   const [showConnectModal, setShowConnectModal] = useState(null);
+  const [connectSearch, setConnectSearch] = useState('');
   const [newNote, setNewNote] = useState({ title: '', content: '', importance: 'medium', date: '', linked_task_id: null, participant_ids: [], responsible_user_id: null });
   const [isDragging, setIsDragging] = useState(null);
   const [notePositions, setNotePositions] = useState({});
@@ -183,7 +184,7 @@ export default function NotesPage() {
 
   // Load notes on mount
   useEffect(() => {
-    useNotesStore.getState().fetchNotes?.();
+    useNotesStore.getState().fetchNotes?.({ force: true });
     fetchTasks?.({ limit: '2000', completed: 'false' }, { force: true });
     fetchFriends?.();
   }, [fetchTasks, fetchFriends]);
@@ -889,6 +890,23 @@ export default function NotesPage() {
     : [];
 
   const modalConnectedIds = new Set(modalConnectedEntries.map((entry) => String(entry.otherId)));
+  const modalSourceNote = showConnectModal
+    ? notes.find((entry) => String(entry.id) === String(showConnectModal))
+    : null;
+  const normalizedConnectSearch = String(connectSearch || '').trim().toLowerCase();
+  const modalAvailableNotes = showConnectModal
+    ? notes
+      .filter((n) => String(n.id) !== String(showConnectModal))
+      .filter((n) => !modalConnectedIds.has(String(n.id)))
+      .filter((n) => {
+        if (!normalizedConnectSearch) return true;
+        const text = [n.title, n.content]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        return text.includes(normalizedConnectSearch);
+      })
+    : [];
 
   const activeNote = activeNoteId
     ? notes.find((entry) => String(entry.id) === String(activeNoteId))
@@ -1227,7 +1245,10 @@ export default function NotesPage() {
                     </button>
                     <button
                       className="action-btn"
-                      onClick={() => setShowConnectModal(note.id)}
+                      onClick={() => {
+                        setConnectSearch('');
+                        setShowConnectModal(note.id);
+                      }}
                       title="Verknüpfen"
                     >
                       <Link2 size={14} />
@@ -1865,20 +1886,47 @@ export default function NotesPage() {
         {showConnectModal && (
           <motion.div
             className="modal-overlay"
-            onClick={() => setShowConnectModal(null)}
+            onClick={() => {
+              setShowConnectModal(null);
+              setConnectSearch('');
+            }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="modal-content"
+              className="modal-content connect-note-modal"
               onClick={(e) => e.stopPropagation()}
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
             >
-              <h2 className="modal-title">Note verknüpfen</h2>
+              <div className="note-editor-head connect-modal-head">
+                <div className="note-editor-handle" aria-hidden="true" />
+                <div className="note-editor-topbar">
+                  <button
+                    type="button"
+                    className="note-editor-back-btn"
+                    onClick={() => {
+                      setShowConnectModal(null);
+                      setConnectSearch('');
+                    }}
+                    aria-label="Zurück"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  <h2 className="modal-title note-editor-title">Note verknüpfen</h2>
+                </div>
+              </div>
+
               <p className="modal-description">Mit welcher anderen Note möchtest du diese verknüpfen?</p>
+
+              {modalSourceNote && (
+                <div className="connect-source-note">
+                  <div className="connect-source-kicker">Ausgangs-Note</div>
+                  <div className="connect-source-title">{modalSourceNote.title}</div>
+                </div>
+              )}
 
               <div className="form-group">
                 <label className="form-label">Verbindungstyp</label>
@@ -1896,6 +1944,17 @@ export default function NotesPage() {
                 </div>
               </div>
 
+              <div className="form-group">
+                <label className="form-label">Note suchen</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="Titel oder Inhalt"
+                  value={connectSearch}
+                  onChange={(e) => setConnectSearch(e.target.value)}
+                />
+              </div>
+
               {modalConnectedEntries.length > 0 && (
                 <>
                   <p className="modal-description">Bestehende Verknüpfungen</p>
@@ -1910,6 +1969,7 @@ export default function NotesPage() {
                           <div className="note-item-preview">{entry.otherNote.content?.substring(0, 50)}...</div>
                         </div>
                         <button
+                          type="button"
                           className="unlink-btn"
                           onClick={() => handleDisconnectNotes(showConnectModal, entry.otherId)}
                         >
@@ -1922,23 +1982,38 @@ export default function NotesPage() {
               )}
 
               <div className="notes-list">
-                {notes
-                  .filter((n) => n.id !== showConnectModal)
-                  .filter((n) => !modalConnectedIds.has(String(n.id)))
-                  .map((note) => (
-                    <div
-                      key={note.id}
-                      className="note-item"
-                      onClick={() => handleConnectNotes(showConnectModal, note.id)}
-                    >
+                {modalAvailableNotes.map((note) => (
+                  <div
+                    key={note.id}
+                    className="note-item note-item-connectable"
+                  >
+                    <div>
                       <div className="note-item-title">{note.title}</div>
                       <div className="note-item-preview">{note.content?.substring(0, 50)}...</div>
                     </div>
-                  ))}
+                    <button
+                      type="button"
+                      className="link-btn"
+                      onClick={() => handleConnectNotes(showConnectModal, note.id)}
+                    >
+                      Verbinden
+                    </button>
+                  </div>
+                ))}
+
+                {modalAvailableNotes.length === 0 && (
+                  <div className="task-picker-empty">Keine passenden Notes gefunden.</div>
+                )}
               </div>
 
               <div className="modal-actions">
-                <button className="btn-secondary" onClick={() => setShowConnectModal(null)}>
+                <button
+                  className="btn-secondary"
+                  onClick={() => {
+                    setShowConnectModal(null);
+                    setConnectSearch('');
+                  }}
+                >
                   Abbrechen
                 </button>
               </div>
