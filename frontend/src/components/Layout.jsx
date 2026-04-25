@@ -2,7 +2,8 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import FeedbackToast from './FeedbackToast';
 import BottomNav from './BottomNav';
-import QuickAddSheet from './QuickAddSheet';
+import DayCreateModal from './DayCreateModal';
+import { AnimatePresence } from 'framer-motion';
 import { useState, useRef, useEffect } from 'react';
 import { Menu, X, CheckSquare, MessageCircle } from 'lucide-react';
 import NotificationBell from './NotificationBell';
@@ -100,8 +101,17 @@ export default function Layout() {
       {/* Bottom Navigation (mobile) */}
       <BottomNav onAddClick={handleFabClick} />
 
-      {/* Universal Quick-Add Sheet */}
-      <QuickAddSheet open={showQuickAdd} onClose={() => setShowQuickAdd(false)} />
+      {/* Universal Quick-Add — DayCreateModal für heute */}
+      <AnimatePresence>
+        {showQuickAdd && (
+          <DayCreateModal
+            date={new Date()}
+            tasks={[]}
+            onClose={() => setShowQuickAdd(false)}
+            onTaskCreated={() => setShowQuickAdd(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Toast Notifications */}
       <FeedbackToast />

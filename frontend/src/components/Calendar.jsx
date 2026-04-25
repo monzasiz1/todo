@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../store/taskStore';
-import { ChevronLeft, ChevronRight, ChevronDown, Plus, Video } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, Video } from 'lucide-react';
 import TaskDetailModal from './TaskDetailModal';
 import AvatarBadge from './AvatarBadge';
 import {
@@ -1523,9 +1523,6 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
             <button className={view === 'week' ? 'active' : ''} onClick={() => setView('week')}>Woche</button>
             <button className={view === 'month' ? 'active' : ''} onClick={() => setView('month')}>Monat</button>
           </div>
-          <button className="mobile-calendar-add-btn" onClick={() => onDayClick?.(selectedDate || new Date())}>
-            <Plus size={20} />
-          </button>
         </div>,
         document.body
       )}

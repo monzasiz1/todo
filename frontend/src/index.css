@@ -4767,7 +4767,7 @@ body.cal-is-dragging * {
   }
 
   .mobile-calendar-modebar-tabs {
-    display: contents;
+    display: contents; /* Tabs füllen die volle Breite des Modebare */
   }
 
   .mobile-calendar-modebar-tabs button {
