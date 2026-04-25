@@ -449,6 +449,18 @@ export const api = {
 
   getOrganization: (id) => request(`/organizations/${id}`),
 
+  getOrganizationGroups: (id) => request(`/organizations/${id}/groups`),
+
+  assignGroupToOrganization: (organizationId, groupId) =>
+    request(`/organizations/${organizationId}/groups/${groupId}`, {
+      method: 'PUT',
+    }),
+
+  removeGroupFromOrganization: (organizationId, groupId) =>
+    request(`/organizations/${organizationId}/groups/${groupId}`, {
+      method: 'DELETE',
+    }),
+
   // Plans
   getPlans: () => request('/plans'),
 

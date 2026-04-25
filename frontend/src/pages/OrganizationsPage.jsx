@@ -1,19 +1,25 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Building2, Plus, LogIn, Users, Copy, Check } from 'lucide-react';
+import { Building2, Plus, LogIn, Users, Copy, Check, Link2, Unlink2, UsersRound } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useOrganizationStore } from '../store/organizationStore';
 import { useWorkspaceStore } from '../store/workspaceStore';
+import { useGroupStore } from '../store/groupStore';
 
 export default function OrganizationsPage() {
   const {
     organizations,
     members,
+    groups: organizationGroups,
     currentOrganization,
     fetchOrganizations,
     fetchOrganization,
+    fetchOrganizationGroups,
     createOrganization,
     joinOrganization,
+    assignGroup,
+    removeGroup,
   } = useOrganizationStore();
+  const { groups: myGroups, fetchGroups } = useGroupStore();
   const { activeWorkspace, setActiveWorkspace } = useWorkspaceStore();
   const [name, setName] = useState('');
   const [joinCode, setJoinCode] = useState('');
@@ -22,16 +28,30 @@ export default function OrganizationsPage() {
 
   useEffect(() => {
     fetchOrganizations();
-  }, [fetchOrganizations]);
+    fetchGroups();
+  }, [fetchOrganizations, fetchGroups]);
 
   useEffect(() => {
-    if (selectedId) fetchOrganization(selectedId);
-  }, [selectedId, fetchOrganization]);
+    if (selectedId) {
+      fetchOrganization(selectedId);
+      fetchOrganizationGroups(selectedId);
+    }
+  }, [selectedId, fetchOrganization, fetchOrganizationGroups]);
 
   const selectedOrganization = useMemo(() => {
     if (!selectedId) return null;
     return organizations.find((item) => String(item.id) === String(selectedId)) || currentOrganization;
   }, [organizations, currentOrganization, selectedId]);
+
+  const availableGroups = useMemo(() => {
+    if (!selectedOrganization) return [];
+    return (myGroups || []).filter((group) => String(group.organization_id || '') !== String(selectedOrganization.id));
+  }, [myGroups, selectedOrganization]);
+
+  const linkedGroupIds = useMemo(
+    () => new Set((organizationGroups || []).map((group) => String(group.id))),
+    [organizationGroups]
+  );
 
   const handleCreate = async (event) => {
     event.preventDefault();
@@ -68,6 +88,28 @@ export default function OrganizationsPage() {
     } catch {
       // ignore clipboard issues
     }
+  };
+
+  const handleAssignGroup = async (groupId) => {
+    if (!selectedOrganization) return;
+    await assignGroup(selectedOrganization.id, groupId);
+    await Promise.all([
+      fetchOrganizationGroups(selectedOrganization.id),
+      fetchGroups(),
+      fetchOrganizations(),
+      fetchOrganization(selectedOrganization.id),
+    ]);
+  };
+
+  const handleRemoveGroup = async (groupId) => {
+    if (!selectedOrganization) return;
+    await removeGroup(selectedOrganization.id, groupId);
+    await Promise.all([
+      fetchOrganizationGroups(selectedOrganization.id),
+      fetchGroups(),
+      fetchOrganizations(),
+      fetchOrganization(selectedOrganization.id),
+    ]);
   };
 
   return (
@@ -186,6 +228,10 @@ export default function OrganizationsPage() {
               <Building2 size={16} />
               <span>{selectedOrganization.task_count || 0} Eintraege</span>
             </div>
+            <div>
+              <UsersRound size={16} />
+              <span>{organizationGroups.length} Gruppen verknuepft</span>
+            </div>
           </div>
 
           <div className="workspace-member-grid">
@@ -200,6 +246,60 @@ export default function OrganizationsPage() {
                 </div>
               </div>
             ))}
+          </div>
+
+          <div className="workspace-groups-panel">
+            <div className="workspace-page-card-head">
+              <h3>Verknuepfte Gruppen</h3>
+              <span>{organizationGroups.length}</span>
+            </div>
+            <div className="workspace-group-list">
+              {organizationGroups.map((group) => (
+                <div key={group.id} className="workspace-group-item">
+                  <div>
+                    <strong>{group.name}</strong>
+                    <small>{group.member_count || 0} Mitglieder</small>
+                  </div>
+                  <button
+                    type="button"
+                    className="workspace-link-btn danger"
+                    onClick={() => handleRemoveGroup(group.id)}
+                  >
+                    <Unlink2 size={14} /> Trennen
+                  </button>
+                </div>
+              ))}
+              {organizationGroups.length === 0 && (
+                <div className="workspace-empty-state">Noch keine Gruppen mit dieser Organisation verknuepft.</div>
+              )}
+            </div>
+          </div>
+
+          <div className="workspace-groups-panel">
+            <div className="workspace-page-card-head">
+              <h3>Gruppen zuordnen</h3>
+              <span>{availableGroups.length}</span>
+            </div>
+            <div className="workspace-group-list">
+              {availableGroups.filter((group) => !linkedGroupIds.has(String(group.id))).map((group) => (
+                <div key={`candidate-${group.id}`} className="workspace-group-item">
+                  <div>
+                    <strong>{group.name}</strong>
+                    <small>{group.member_count || 0} Mitglieder</small>
+                  </div>
+                  <button
+                    type="button"
+                    className="workspace-link-btn"
+                    onClick={() => handleAssignGroup(group.id)}
+                  >
+                    <Link2 size={14} /> Zuordnen
+                  </button>
+                </div>
+              ))}
+              {availableGroups.filter((group) => !linkedGroupIds.has(String(group.id))).length === 0 && (
+                <div className="workspace-empty-state">Keine weiteren Gruppen verfuegbar.</div>
+              )}
+            </div>
           </div>
         </motion.section>
       )}

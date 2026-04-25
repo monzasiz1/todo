@@ -437,6 +437,10 @@ module.exports = async function handler(req, res) {
              ))
              OR (t.visibility = 'selected_users' AND tp.can_view = true)
              OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
+             OR (t.source_scope = 'organization' AND EXISTS (
+               SELECT 1 FROM organization_members om
+               WHERE om.organization_id = t.source_organization_id AND om.user_id = $1
+             ))
            ) AND (
              (t.date >= $2 AND t.date <= $3)
              OR (t.date_end IS NOT NULL AND t.date <= $3 AND t.date_end >= $2)
@@ -454,7 +458,11 @@ module.exports = async function handler(req, res) {
            LEFT JOIN groups grp ON grp.id = gt.group_id
            LEFT JOIN users gtc ON gtc.id = gt.created_by
            WHERE (t.user_id = $1
-             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1))
+             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
+             OR (t.source_scope = 'organization' AND EXISTS (
+               SELECT 1 FROM organization_members om
+               WHERE om.organization_id = t.source_organization_id AND om.user_id = $1
+             )))
              AND (
                (t.date >= $2 AND t.date <= $3)
                OR (t.date_end IS NOT NULL AND t.date <= $3 AND t.date_end >= $2)
@@ -506,6 +514,10 @@ module.exports = async function handler(req, res) {
              ))
              OR (t.visibility = 'selected_users' AND tp.can_view = true)
              OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
+             OR (t.source_scope = 'organization' AND EXISTS (
+               SELECT 1 FROM organization_members om
+               WHERE om.organization_id = t.source_organization_id AND om.user_id = $1
+             ))
            )
            AND t.recurrence_rule IS NOT NULL
            AND t.recurrence_parent_id IS NULL
@@ -521,7 +533,11 @@ module.exports = async function handler(req, res) {
            LEFT JOIN group_tasks gt ON gt.task_id = t.id
            LEFT JOIN groups grp ON grp.id = gt.group_id
            WHERE (t.user_id = $1
-             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1))
+             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
+             OR (t.source_scope = 'organization' AND EXISTS (
+               SELECT 1 FROM organization_members om
+               WHERE om.organization_id = t.source_organization_id AND om.user_id = $1
+             )))
            AND t.recurrence_rule IS NOT NULL
            AND t.recurrence_parent_id IS NULL
            AND t.date <= $3
@@ -757,7 +773,11 @@ module.exports = async function handler(req, res) {
                AND ((f.user_id = t.user_id AND f.friend_id = $1) OR (f.user_id = $1 AND f.friend_id = t.user_id))
              ))
              OR (t.visibility = 'selected_users' AND tp.can_view = true)
-             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1))
+             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
+             OR (t.source_scope = 'organization' AND EXISTS (
+               SELECT 1 FROM organization_members om
+               WHERE om.organization_id = t.source_organization_id AND om.user_id = $1
+             )))
              AND t.type != 'event'`,
           [user.id]
         );
@@ -770,7 +790,11 @@ module.exports = async function handler(req, res) {
              COUNT(*) FILTER (WHERE t.completed = false AND t.priority IN ('urgent', 'high') AND t.type != 'event') as urgent_count
            FROM tasks t
            WHERE (t.user_id = $1
-             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1))
+             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
+             OR (t.source_scope = 'organization' AND EXISTS (
+               SELECT 1 FROM organization_members om
+               WHERE om.organization_id = t.source_organization_id AND om.user_id = $1
+             )))
              AND t.type != 'event'`,
           [user.id]
         );
@@ -781,7 +805,11 @@ module.exports = async function handler(req, res) {
          FROM tasks t
          LEFT JOIN group_tasks gt ON gt.task_id = t.id
          WHERE (t.user_id = $1
-           OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1))
+           OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
+           OR (t.source_scope = 'organization' AND EXISTS (
+             SELECT 1 FROM organization_members om
+             WHERE om.organization_id = t.source_organization_id AND om.user_id = $1
+           )))
            AND t.type != 'event'`,
         [user.id]
       );
@@ -878,6 +906,16 @@ module.exports = async function handler(req, res) {
                FROM group_tasks gt
                JOIN group_members gm ON gm.group_id = gt.group_id
                WHERE gm.user_id = $1
+
+               UNION ALL
+
+               SELECT t.id
+               FROM tasks t
+               WHERE t.source_scope = 'organization'
+                 AND EXISTS (
+                   SELECT 1 FROM organization_members om
+                   WHERE om.organization_id = t.source_organization_id AND om.user_id = $1
+                 )
              ),
              task_ids AS (
                SELECT DISTINCT id FROM visible_ids
@@ -977,6 +1015,16 @@ module.exports = async function handler(req, res) {
                FROM group_tasks gt
                JOIN group_members gm ON gm.group_id = gt.group_id
                WHERE gm.user_id = $1
+
+               UNION ALL
+
+               SELECT t.id
+               FROM tasks t
+               WHERE t.source_scope = 'organization'
+                 AND EXISTS (
+                   SELECT 1 FROM organization_members om
+                   WHERE om.organization_id = t.source_organization_id AND om.user_id = $1
+                 )
              ),
              uniq_ids AS (
                SELECT DISTINCT id FROM task_ids
@@ -1110,6 +1158,10 @@ module.exports = async function handler(req, res) {
                    JOIN group_members gm ON gm.group_id = gt2.group_id
                    WHERE gt2.task_id = t.id AND gm.user_id = $1
                  )
+                 OR (t.source_scope = 'organization' AND EXISTS (
+                   SELECT 1 FROM organization_members om
+                   WHERE om.organization_id = t.source_organization_id AND om.user_id = $1
+                 ))
                )
                  AND t.recurrence_rule IS NOT NULL
                  AND t.recurrence_parent_id IS NULL
@@ -1147,7 +1199,11 @@ module.exports = async function handler(req, res) {
                  ORDER BY gt.group_id
                  LIMIT 1
                ) g ON true
-               WHERE t.user_id = $1
+               WHERE (t.user_id = $1
+                 OR (t.source_scope = 'organization' AND EXISTS (
+                   SELECT 1 FROM organization_members om
+                   WHERE om.organization_id = t.source_organization_id AND om.user_id = $1
+                 )))
                  AND t.recurrence_rule IS NOT NULL
                  AND t.recurrence_parent_id IS NULL
                  AND t.date <= $2
@@ -1211,6 +1267,10 @@ module.exports = async function handler(req, res) {
              ))
              OR (t.visibility = 'selected_users' AND tp.can_view = true)
              OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
+             OR (t.source_scope = 'organization' AND EXISTS (
+               SELECT 1 FROM organization_members om
+               WHERE om.organization_id = t.source_organization_id AND om.user_id = $1
+             ))
            ${completedClause}
            ORDER BY t.sort_order ASC, t.created_at DESC`,
           [user.id]
@@ -1227,6 +1287,10 @@ module.exports = async function handler(req, res) {
            LEFT JOIN users gtc ON gtc.id = gt.created_by
            WHERE t.user_id = $1
              OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
+             OR (t.source_scope = 'organization' AND EXISTS (
+               SELECT 1 FROM organization_members om
+               WHERE om.organization_id = t.source_organization_id AND om.user_id = $1
+             ))
            ${completedClause}
            ORDER BY t.sort_order ASC, t.created_at DESC`,
           [user.id]

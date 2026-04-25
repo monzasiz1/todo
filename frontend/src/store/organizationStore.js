@@ -5,6 +5,7 @@ export const useOrganizationStore = create((set) => ({
   organizations: [],
   currentOrganization: null,
   members: [],
+  groups: [],
   loading: false,
 
   fetchOrganizations: async () => {
@@ -45,5 +46,26 @@ export const useOrganizationStore = create((set) => ({
       set({ loading: false });
       return null;
     }
+  },
+
+  fetchOrganizationGroups: async (id) => {
+    try {
+      const data = await api.getOrganizationGroups(id);
+      set({ groups: data.groups || [] });
+      return data.groups || [];
+    } catch {
+      set({ groups: [] });
+      return [];
+    }
+  },
+
+  assignGroup: async (organizationId, groupId) => {
+    const data = await api.assignGroupToOrganization(organizationId, groupId);
+    return data.group;
+  },
+
+  removeGroup: async (organizationId, groupId) => {
+    const data = await api.removeGroupFromOrganization(organizationId, groupId);
+    return data.group;
   },
 }));
