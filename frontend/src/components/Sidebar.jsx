@@ -11,8 +11,8 @@ import {
   Users,
   UsersRound,
   ChevronDown,
-  PanelLeftClose,
-  PanelLeftOpen,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import FriendsList from './FriendsList';
 import CategoryManager from './CategoryManager';
@@ -61,7 +61,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
           aria-label={isCollapsed ? 'Sidebar ausklappen' : 'Sidebar einklappen'}
           title={isCollapsed ? 'Sidebar ausklappen' : 'Sidebar einklappen'}
         >
-          {isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+          {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
       </div>
 
@@ -100,17 +100,12 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
         <NotificationBell />
       </div>
 
-      <div style={{
-        background: 'linear-gradient(135deg, rgba(0,122,255,0.08), rgba(88,86,214,0.08))',
-        borderRadius: 12,
-        padding: '14px 16px',
-        marginBottom: 24,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-          <Sparkles size={16} style={{ color: 'var(--primary)' }} />
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)' }}>KI Eingabe</span>
+      <div className="sidebar-ai-hint">
+        <div className="sidebar-ai-hint-head">
+          <Sparkles size={16} className="sidebar-ai-hint-icon" />
+          <span className="sidebar-ai-hint-title">KI Eingabe</span>
         </div>
-        <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+        <p className="sidebar-ai-hint-text">
           Schreibe z.B. "Freitag Reinigung 18 Uhr" und die KI erkennt alles automatisch.
         </p>
       </div>

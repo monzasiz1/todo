@@ -235,28 +235,60 @@ input, textarea, select {
 
 .sidebar-desktop-toggle {
   position: absolute;
-  top: 8px;
-  right: -28px;
-  width: 28px;
-  height: 56px;
-  border-radius: 0 14px 14px 0;
-  border: 1px solid var(--border);
-  border-left: none;
-  background: color-mix(in srgb, var(--card-solid) 92%, white);
-  color: var(--text-secondary);
+  top: 10px;
+  right: -18px;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--primary) 16%, var(--border));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--card-solid) 94%, white), color-mix(in srgb, var(--bg-elevated) 90%, white));
+  color: color-mix(in srgb, var(--primary) 55%, var(--text));
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
   z-index: 2;
-  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+  transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .sidebar-desktop-toggle:hover {
-  background: var(--hover);
-  color: var(--text);
-  border-color: color-mix(in srgb, var(--primary) 24%, var(--border));
+  transform: translateX(2px) scale(1.03);
+  background: linear-gradient(180deg, color-mix(in srgb, white 92%, var(--primary) 8%), color-mix(in srgb, var(--card-solid) 88%, var(--primary) 12%));
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 32%, var(--border));
+  box-shadow: 0 14px 28px rgba(0, 122, 255, 0.18);
+}
+
+.sidebar-ai-hint {
+  background: linear-gradient(135deg, rgba(0, 122, 255, 0.08), rgba(88, 86, 214, 0.08));
+  border: 1px solid color-mix(in srgb, var(--primary) 10%, transparent);
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-bottom: 24px;
+}
+
+.sidebar-ai-hint-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.sidebar-ai-hint-icon {
+  color: var(--primary);
+}
+
+.sidebar-ai-hint-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.sidebar-ai-hint-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
 }
 
 .sidebar-logo-icon {
@@ -519,12 +551,17 @@ input, textarea, select {
   .app-sidebar.collapsed .sidebar-logo h1,
   .app-sidebar.collapsed .sidebar-section-head,
   .app-sidebar.collapsed .sidebar-notif-row,
+  .app-sidebar.collapsed .sidebar-ai-hint,
   .app-sidebar.collapsed .sidebar-categories-wrap,
   .app-sidebar.collapsed .sidebar-pricing-link,
   .app-sidebar.collapsed .sidebar-user-info,
   .app-sidebar.collapsed .sidebar-logout-label,
   .app-sidebar.collapsed .sidebar-link-label {
     display: none;
+  }
+
+  .app-sidebar.collapsed .sidebar-desktop-toggle {
+    right: -14px;
   }
 
   .app-sidebar.collapsed .sidebar-nav {
