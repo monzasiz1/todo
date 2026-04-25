@@ -4,6 +4,9 @@ const { verifyToken, cors } = require('./_lib/auth');
 let linkedTaskColumnTypeCache = null;
 let linkedTaskColumnTypeCacheAt = 0;
 const LINKED_TASK_TYPE_CACHE_TTL_MS = 60 * 1000;
+let notesUserIdTypeCache = null;
+let notesUserIdTypeCacheAt = 0;
+const NOTES_USER_TYPE_CACHE_TTL_MS = 60 * 1000;
 
 function isUuid(value) {
   return (
@@ -57,6 +60,76 @@ async function getLinkedTaskColumnType(pool) {
   linkedTaskColumnTypeCache = type;
   linkedTaskColumnTypeCacheAt = now;
   return type;
+}
+
+async function getNotesUserIdColumnType(pool) {
+  const now = Date.now();
+  if (notesUserIdTypeCache && now - notesUserIdTypeCacheAt < NOTES_USER_TYPE_CACHE_TTL_MS) {
+    return notesUserIdTypeCache;
+  }
+
+  const result = await pool.query(
+    `SELECT data_type, udt_name
+       FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'notes'
+        AND column_name = 'user_id'
+      LIMIT 1`
+  );
+
+  const row = result.rows[0] || null;
+  let type = 'unknown';
+  if (row) {
+    const dataType = String(row.data_type || '').toLowerCase();
+    const udtName = String(row.udt_name || '').toLowerCase();
+    if (dataType.includes('uuid') || udtName === 'uuid') type = 'uuid';
+    else if (dataType.includes('int') || ['int2', 'int4', 'int8'].includes(udtName)) type = 'integer';
+  }
+
+  notesUserIdTypeCache = type;
+  notesUserIdTypeCacheAt = now;
+  return type;
+}
+
+async function tryAutoRepairNotesUserIdType(pool) {
+  const userType = await getNotesUserIdColumnType(pool);
+  if (userType !== 'uuid') return false;
+
+  const countRes = await pool.query('SELECT COUNT(*)::int AS c FROM notes');
+  const count = Number(countRes.rows?.[0]?.c || 0);
+  if (count > 0) return false;
+
+  try {
+    await pool.query('ALTER TABLE notes DROP CONSTRAINT IF EXISTS notes_user_id_fkey');
+    await pool.query('ALTER TABLE notes ALTER COLUMN user_id DROP NOT NULL');
+    await pool.query('ALTER TABLE notes ALTER COLUMN user_id TYPE INTEGER USING NULL');
+    await pool.query('ALTER TABLE notes ALTER COLUMN user_id SET NOT NULL');
+    await pool.query('ALTER TABLE notes ADD CONSTRAINT notes_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE');
+
+    notesUserIdTypeCache = 'integer';
+    notesUserIdTypeCacheAt = Date.now();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function normalizeNotesOwnerIdForDb(pool, rawUserId) {
+  const userType = await getNotesUserIdColumnType(pool);
+  const asText = String(rawUserId);
+
+  if (userType === 'integer') {
+    const n = Number(rawUserId);
+    if (Number.isInteger(n) && n > 0) return { value: n, valid: true };
+    return { value: null, valid: false };
+  }
+
+  if (userType === 'uuid') {
+    if (isUuid(asText)) return { value: asText, valid: true };
+    return { value: null, valid: false };
+  }
+
+  return { value: null, valid: false };
 }
 
 async function resolveAccessibleTaskId(pool, rawTaskId, userId) {
@@ -152,9 +225,6 @@ module.exports = async function handler(req, res) {
 
     const userIdText = String(user.id);
     const userId = Number(user.id);
-    if (!Number.isInteger(userId) || userId <= 0) {
-      return res.status(401).json({ error: 'Ungueltiger Nutzer im Token' });
-    }
 
     const pool = getPool();
     const subPath = req.query.__path || '';
@@ -214,6 +284,21 @@ module.exports = async function handler(req, res) {
       const validImportance = ['low', 'medium', 'high'].includes(importance) ? importance : 'medium';
       const hasLinkedTaskInput = !(linked_task_id === null || linked_task_id === undefined || String(linked_task_id).trim() === '');
       const normalizedTask = await normalizeLinkedTaskForDb(pool, linked_task_id, userId);
+      let ownerId = await normalizeNotesOwnerIdForDb(pool, user.id);
+
+      if (!ownerId.valid) {
+        const repaired = await tryAutoRepairNotesUserIdType(pool);
+        if (repaired) {
+          ownerId = await normalizeNotesOwnerIdForDb(pool, user.id);
+        }
+      }
+
+      if (!ownerId.valid) {
+        return res.status(500).json({
+          error: 'Schema-Mismatch: notes.user_id passt nicht zur User-ID. Bitte Notes-Migration ausfuehren.',
+          detail: 'notes.user_id type incompatible',
+        });
+      }
 
       if (hasLinkedTaskInput && !normalizedTask.allowed) {
         return res.status(403).json({ error: 'Keine Berechtigung fuer verknuepfte Aufgabe' });
@@ -226,7 +311,7 @@ module.exports = async function handler(req, res) {
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
            RETURNING *`,
           [
-            userId,
+            ownerId.value,
             String(title).trim(),
             String(content || ''),
             validImportance,
@@ -244,7 +329,7 @@ module.exports = async function handler(req, res) {
            VALUES ($1, $2, $3, $4, $5, $6)
            RETURNING *`,
           [
-            userId,
+            ownerId.value,
             String(title).trim(),
             String(content || ''),
             validImportance,
