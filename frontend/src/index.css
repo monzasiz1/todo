@@ -5179,7 +5179,7 @@ body.cal-is-dragging * {
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 20px;
+  padding: 40px;
 }
 
 .task-detail-modal {
@@ -12558,8 +12558,8 @@ body.cal-is-dragging * {
 .manual-task-modal-wrap {
   background: var(--card-solid);
   border-radius: 20px;
-  width: 100%;
-  max-width: 860px;
+  width: calc(100vw - 80px);
+  max-width: 1040px;
   max-height: 90vh;
   overflow: hidden;
   display: flex;
@@ -12571,18 +12571,18 @@ body.cal-is-dragging * {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 28px 16px;
+  padding: 22px 36px 18px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   background: var(--card-solid);
 }
 
 .manual-task-modal-header h3 {
-  font-size: 19px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--text);
   margin: 0;
-  letter-spacing: -0.2px;
+  letter-spacing: -0.3px;
 }
 
 .manual-task-modal-close {
@@ -12623,9 +12623,9 @@ body.cal-is-dragging * {
   .manual-task-modal-body .manual-task-form-panel {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    column-gap: 28px;
+    column-gap: 36px;
     row-gap: 0;
-    padding: 28px 32px 24px;
+    padding: 32px 40px 28px;
     overflow: visible !important;
     height: auto !important;
   }
