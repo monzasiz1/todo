@@ -454,7 +454,7 @@ export default function NotesPage() {
     }
   }, [activeNoteId, notes]);
 
-  // Register wheel event with passive: false
+  // Register wheel event with passive: false and zoom to mouse position
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -472,7 +472,27 @@ export default function NotesPage() {
       const zoomStep = 5;
       const direction = e.deltaY > 0 ? -1 : 1;
       const newZoom = clampZoom(zoom + direction * zoomStep);
+      
+      // Zoom towards mouse position
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      
+      // Store scroll position before zoom
+      const scrollLeftBefore = canvas.scrollLeft;
+      const scrollTopBefore = canvas.scrollTop;
+      
       setZoom(Math.round(newZoom));
+      
+      // Adjust scroll to keep mouse position in place
+      setTimeout(() => {
+        const scale = newZoom / 100;
+        const scaleBefore = zoom / 100;
+        const scaleFactor = scale / scaleBefore;
+        
+        canvas.scrollLeft = scrollLeftBefore * scaleFactor + (mouseX * (scaleFactor - 1));
+        canvas.scrollTop = scrollTopBefore * scaleFactor + (mouseY * (scaleFactor - 1));
+      }, 0);
     };
 
     canvas.addEventListener('wheel', wheelHandler, { passive: false });
@@ -1596,6 +1616,8 @@ export default function NotesPage() {
         ref={canvasRef}
         onMouseDown={handleCanvasMouseDown}
         onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchEnd}
         onDragOver={(event) => event.preventDefault()}
