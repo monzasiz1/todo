@@ -77,10 +77,17 @@ async function request(endpoint, options = {}) {
       throw unauthorized;
     }
 
-    const data = await res.json();
+    const contentType = res.headers.get('content-type') || '';
+    let data = null;
+    if (contentType.includes('application/json')) {
+      data = await res.json();
+    } else {
+      const text = await res.text();
+      data = text ? { error: text } : {};
+    }
 
     if (!res.ok) {
-      throw new Error(data.error || 'Anfrage fehlgeschlagen');
+      throw new Error(data?.error || `Anfrage fehlgeschlagen (${res.status})`);
     }
 
     if (isRead) {
