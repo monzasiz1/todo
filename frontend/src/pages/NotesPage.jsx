@@ -104,7 +104,6 @@ const CONNECTION_TYPE_LABELS = {
 };
 
 const NOTE_PEOPLE_CACHE_KEY = 'taski_note_people_v1';
-const NOTE_STATUS_CACHE_KEY = 'taski_note_status_v1';
 
 function getUserScopedKey(baseKey) {
   if (typeof window === 'undefined') return `${baseKey}:anon`;
@@ -131,26 +130,6 @@ function writeNotePeopleCache(data) {
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(getUserScopedKey(NOTE_PEOPLE_CACHE_KEY), JSON.stringify(data || {}));
-  } catch {
-    // ignore quota/security errors
-  }
-}
-
-function readNoteStatusCache() {
-  if (typeof window === 'undefined') return {};
-  try {
-    const raw = localStorage.getItem(getUserScopedKey(NOTE_STATUS_CACHE_KEY));
-    const parsed = raw ? JSON.parse(raw) : {};
-    return parsed && typeof parsed === 'object' ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-function writeNoteStatusCache(data) {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(getUserScopedKey(NOTE_STATUS_CACHE_KEY), JSON.stringify(data || {}));
   } catch {
     // ignore quota/security errors
   }
@@ -192,7 +171,6 @@ export default function NotesPage() {
   const [noteComments, setNoteComments] = useState({});
   const [commentDraft, setCommentDraft] = useState('');
   const [notePeopleMap, setNotePeopleMap] = useState(() => readNotePeopleCache());
-  const [noteStatusMap, setNoteStatusMap] = useState(() => readNoteStatusCache());
   const [isMobileView, setIsMobileView] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 640 : false));
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
@@ -410,22 +388,6 @@ export default function NotesPage() {
   useEffect(() => {
     writeNotePeopleCache(notePeopleMap);
   }, [notePeopleMap]);
-
-  useEffect(() => {
-    writeNoteStatusCache(noteStatusMap);
-  }, [noteStatusMap]);
-
-  useEffect(() => {
-    if (!notes.length) return;
-    setNoteStatusMap((prev) => {
-      const validIds = new Set(notes.map((note) => String(note.id)));
-      const next = {};
-      Object.entries(prev || {}).forEach(([key, value]) => {
-        if (validIds.has(String(key))) next[key] = value;
-      });
-      return next;
-    });
-  }, [notes]);
 
   useEffect(() => {
     const syncViewport = () => {
@@ -1190,16 +1152,10 @@ export default function NotesPage() {
     return note?.linked_task_id ? tasks.find(t => t.id === note.linked_task_id) : null;
   };
 
-  const isNoteLocallyCompleted = (noteId) => {
-    const local = noteStatusMap[String(noteId)];
-    return local === true || local?.completed === true;
-  };
-
   const isNoteCompletedByData = (noteId) => {
     const note = notesById.get(String(noteId));
     if (!note) return false;
 
-    if (isNoteLocallyCompleted(noteId)) return true;
     if (note.completed === true || note.is_done === true) return true;
 
     const status = String(note.status || '').toLowerCase();
@@ -1210,21 +1166,20 @@ export default function NotesPage() {
     return !!linked?.completed;
   };
 
-  const toggleNoteCompletion = (noteId, allowComplete = true) => {
-    const key = String(noteId);
-    const currentlyCompleted = isNoteLocallyCompleted(key);
+  const toggleNoteCompletion = async (noteId, allowComplete = true) => {
+    const currentlyCompleted = isNoteCompletedByData(noteId);
 
     if (!currentlyCompleted && !allowComplete) return;
 
-    setNoteStatusMap((prev) => {
-      const next = { ...prev };
-      if (currentlyCompleted) {
-        delete next[key];
-      } else {
-        next[key] = { completed: true, completedAt: new Date().toISOString() };
-      }
-      return next;
-    });
+    try {
+      await updateNote(noteId, {
+        completed: !currentlyCompleted,
+        status: currentlyCompleted ? 'open' : 'done',
+        completed_at: currentlyCompleted ? null : new Date().toISOString(),
+      });
+    } catch (err) {
+      console.error('Toggle note completion error:', err);
+    }
   };
 
   const notesById = useMemo(() => {
@@ -1293,7 +1248,7 @@ export default function NotesPage() {
     });
 
     return state;
-  }, [connections, notes, notesById, tasksById, noteStatusMap]);
+  }, [connections, notes, notesById, tasksById]);
 
   const formatTaskDate = (task) => {
     const startDate = task?.date ? new Date(task.date) : null;
