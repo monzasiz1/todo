@@ -556,6 +556,7 @@
   overflow: auto;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+  touch-action: none;
   border-radius: var(--radius-xl);
   background: var(--glass);
   border: 1px solid var(--glass-border);
@@ -680,6 +681,7 @@
   background: var(--card-solid);
   border: 1px solid var(--border);
   backdrop-filter: blur(12px);
+  touch-action: none;
   border-radius: var(--radius-md);
   padding: 16px;
   box-shadow: var(--shadow-md);

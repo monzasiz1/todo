@@ -128,6 +128,7 @@ export default function NotesPage() {
   const [commentDraft, setCommentDraft] = useState('');
   const [isMobileView, setIsMobileView] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 640 : false));
   const canvasRef = useRef(null);
+  const pinchStateRef = useRef(null);
 
   const refreshConnections = async (sourceNotes = notes) => {
     if (!sourceNotes.length) {
@@ -233,12 +234,115 @@ export default function NotesPage() {
     }
   };
 
+  const clampZoom = (value) => Math.min(220, Math.max(25, value));
+
+  const moveDragging = (clientX, clientY) => {
+    if (isDragging?.isPan && canvasRef.current) {
+      const deltaX = clientX - isDragging.x;
+      const deltaY = clientY - isDragging.y;
+      canvasRef.current.scrollLeft -= deltaX;
+      canvasRef.current.scrollTop -= deltaY;
+      setIsDragging({ x: clientX, y: clientY, isPan: true });
+      return;
+    }
+
+    if (isDragging?.noteId && canvasRef.current) {
+      const deltaX = clientX - isDragging.startX;
+      const deltaY = clientY - isDragging.startY;
+      const note = notes.find((n) => n.id === isDragging.noteId);
+
+      if (note) {
+        const current = notePositions[isDragging.noteId] || { x: note.x ?? 100, y: note.y ?? 100 };
+        const newX = Math.max(0, current.x + deltaX / (zoom / 100));
+        const newY = Math.max(0, current.y + deltaY / (zoom / 100));
+        updateNotePosition(isDragging.noteId, newX, newY, false);
+      }
+
+      setIsDragging((prev) => ({
+        ...prev,
+        startX: clientX,
+        startY: clientY,
+      }));
+    }
+  };
+
   // Handle canvas pan
   const handleCanvasMouseDown = (e) => {
     if (e.target === canvasRef.current || e.target.classList.contains('notes-canvas')) {
       setActiveNoteId(null);
       setIsDragging({ x: e.clientX, y: e.clientY, isPan: true });
     }
+  };
+
+  const handleCanvasTouchStart = (event) => {
+    if (!canvasRef.current) return;
+    if (event.target.closest('.modal-overlay')) return;
+
+    if (event.touches.length === 2) {
+      const [first, second] = event.touches;
+      const dx = first.clientX - second.clientX;
+      const dy = first.clientY - second.clientY;
+      const distance = Math.hypot(dx, dy);
+      const centerX = (first.clientX + second.clientX) / 2;
+      const centerY = (first.clientY + second.clientY) / 2;
+
+      pinchStateRef.current = {
+        startZoom: zoom,
+        startDistance: distance,
+        lastCenterX: centerX,
+        lastCenterY: centerY,
+      };
+      setIsDragging(null);
+      event.preventDefault();
+      return;
+    }
+
+    if (event.touches.length === 1) {
+      if (event.target.closest('.note-card')) return;
+      const touch = event.touches[0];
+      setActiveNoteId(null);
+      setIsDragging({ x: touch.clientX, y: touch.clientY, isPan: true, isTouch: true });
+    }
+  };
+
+  const handleTouchMove = (event) => {
+    if (pinchStateRef.current && canvasRef.current && event.touches.length === 2) {
+      const [first, second] = event.touches;
+      const dx = first.clientX - second.clientX;
+      const dy = first.clientY - second.clientY;
+      const distance = Math.hypot(dx, dy);
+      const nextZoom = clampZoom((distance / pinchStateRef.current.startDistance) * pinchStateRef.current.startZoom);
+      const centerX = (first.clientX + second.clientX) / 2;
+      const centerY = (first.clientY + second.clientY) / 2;
+
+      setZoom(Math.round(nextZoom));
+      canvasRef.current.scrollLeft -= centerX - pinchStateRef.current.lastCenterX;
+      canvasRef.current.scrollTop -= centerY - pinchStateRef.current.lastCenterY;
+
+      pinchStateRef.current.lastCenterX = centerX;
+      pinchStateRef.current.lastCenterY = centerY;
+      event.preventDefault();
+      return;
+    }
+
+    if (event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    if (!isDragging?.isPan && !isDragging?.noteId) return;
+
+    moveDragging(touch.clientX, touch.clientY);
+    event.preventDefault();
+  };
+
+  const handleTouchEnd = () => {
+    if (isDragging?.noteId) {
+      const pos = notePositions[isDragging.noteId];
+      if (pos) {
+        updateNotePosition(isDragging.noteId, pos.x, pos.y, true);
+      }
+    }
+
+    pinchStateRef.current = null;
+    setIsDragging(null);
   };
 
   const handleAutoLayout = async () => {
@@ -339,30 +443,7 @@ export default function NotesPage() {
   };
 
   const handleMouseMove = (e) => {
-    if (isDragging?.isPan && canvasRef.current) {
-      const deltaX = e.clientX - isDragging.x;
-      const deltaY = e.clientY - isDragging.y;
-      canvasRef.current.scrollLeft -= deltaX;
-      canvasRef.current.scrollTop -= deltaY;
-      setIsDragging({ x: e.clientX, y: e.clientY, isPan: true });
-    } else if (isDragging?.noteId && canvasRef.current) {
-      const deltaX = e.clientX - isDragging.startX;
-      const deltaY = e.clientY - isDragging.startY;
-      const note = notes.find(n => n.id === isDragging.noteId);
-      
-      if (note) {
-        const current = notePositions[isDragging.noteId] || { x: note.x ?? 100, y: note.y ?? 100 };
-        const newX = Math.max(0, current.x + deltaX / (zoom / 100));
-        const newY = Math.max(0, current.y + deltaY / (zoom / 100));
-        updateNotePosition(isDragging.noteId, newX, newY, false);
-      }
-
-      setIsDragging(prev => ({
-        ...prev,
-        startX: e.clientX,
-        startY: e.clientY,
-      }));
-    }
+    moveDragging(e.clientX, e.clientY);
   };
 
   const handleMouseUp = () => {
@@ -380,6 +461,16 @@ export default function NotesPage() {
     if (e.target.closest('button, input, textarea, select, a')) return;
     e.stopPropagation();
     setIsDragging({ noteId, startX: e.clientX, startY: e.clientY });
+  };
+
+  const handleNoteTouchStart = (event, noteId) => {
+    if (event.touches.length !== 1) return;
+    if (event.target.closest('button, input, textarea, select, a')) return;
+
+    const touch = event.touches[0];
+    setActiveNoteId(noteId);
+    setIsDragging({ noteId, startX: touch.clientX, startY: touch.clientY, isTouch: true });
+    event.stopPropagation();
   };
 
   const createNewNote = async () => {
@@ -728,7 +819,15 @@ export default function NotesPage() {
   };
 
   return (
-    <div className="notes-container" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
+    <div
+      className="notes-container"
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+    >
       {/* Header */}
       <div className="page-header notes-page-header">
         <div className="notes-header-main">
@@ -868,6 +967,10 @@ export default function NotesPage() {
         className="notes-canvas"
         ref={canvasRef}
         onMouseDown={handleCanvasMouseDown}
+        onTouchStart={handleCanvasTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
         onDragOver={(event) => event.preventDefault()}
         onDrop={handleCanvasDrop}
         style={{ cursor: isDragging?.isPan ? 'grabbing' : 'grab' }}
@@ -924,6 +1027,7 @@ export default function NotesPage() {
                     minHeight: `${note.height || (isMobileView ? 132 : 150)}px`,
                   }}
                   onMouseDown={(e) => handleNoteMouseDown(e, note.id)}
+                  onTouchStart={(event) => handleNoteTouchStart(event, note.id)}
                   onClick={(event) => handleNoteCardClick(event, note.id)}
                   onMouseEnter={() => setHoveredNoteId(note.id)}
                   onMouseLeave={() => setHoveredNoteId(null)}
