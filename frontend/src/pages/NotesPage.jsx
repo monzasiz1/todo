@@ -306,14 +306,21 @@ export default function NotesPage() {
       const patch = { ...prev };
       notes.forEach((note) => {
         const key = String(note.id);
-        const dbParticipants = Array.isArray(note.participant_ids) ? note.participant_ids.map(String) : [];
-        const dbResponsible = note.responsible_user_id ? String(note.responsible_user_id) : null;
-        if (dbParticipants.length > 0 || dbResponsible) {
+        const rawParticipants = Array.isArray(note.participant_ids)
+          ? note.participant_ids.map(String).filter(Boolean)
+          : [];
+        const dbResponsible = note.responsible_user_id
+          ? String(note.responsible_user_id)
+          : null;
+
+        if (rawParticipants.length > 0 || dbResponsible) {
+          // Always overwrite with DB data when available — this is the source of truth
           patch[key] = {
-            participant_ids: dbParticipants,
+            participant_ids: rawParticipants,
             responsible_user_id: dbResponsible,
           };
         }
+        // If DB has no data but localStorage does, keep the localStorage version (patch[key] stays)
       });
       return patch;
     });

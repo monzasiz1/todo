@@ -88,7 +88,18 @@ export const useNotesStore = create((set, get) => ({
   createNote: async (noteData) => {
     try {
       const result = await api.createNote?.(noteData);
-      const newNote = result?.note || noteData;
+      const serverNote = result?.note;
+
+      // Merge: server data takes priority (id, timestamps) but input data fills gaps
+      // so participant_ids / responsible_user_id from the form are never lost
+      const newNote = serverNote
+        ? {
+            ...noteData,
+            ...serverNote,
+            participant_ids: serverNote.participant_ids ?? noteData.participant_ids ?? [],
+            responsible_user_id: serverNote.responsible_user_id ?? noteData.responsible_user_id ?? null,
+          }
+        : noteData;
 
       set((s) => {
         const updated = [...s.notes, newNote];
@@ -106,14 +117,27 @@ export const useNotesStore = create((set, get) => ({
   updateNote: async (noteId, updates) => {
     try {
       const result = await api.updateNote?.(noteId, updates);
-      const updatedNote = result?.note;
+      const serverNote = result?.note;
+
+      // Merge: preserve participant data from updates if server didn't return it
+      const merged = serverNote
+        ? {
+            ...updates,
+            ...serverNote,
+            participant_ids: serverNote.participant_ids ?? updates.participant_ids,
+            responsible_user_id: serverNote.responsible_user_id ?? updates.responsible_user_id,
+          }
+        : updates;
 
       set((s) => {
-        const updated = s.notes.map((n) => (n.id === noteId ? { ...n, ...updatedNote } : n));
+        // Use String comparison to avoid number/string type mismatch
+        const updated = s.notes.map((n) =>
+          String(n.id) === String(noteId) ? { ...n, ...merged } : n
+        );
         writeNotesCache(updated);
         return { notes: updated };
       });
-      return updatedNote;
+      return merged;
     } catch (err) {
       set({ error: err.message });
       throw err;
