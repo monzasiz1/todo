@@ -5,6 +5,7 @@ import { useTaskStore } from '../store/taskStore';
 import { api } from '../utils/api';
 import AvatarBadge from './AvatarBadge';
 import { useFriendsStore } from '../store/friendsStore';
+import { getWorkspaceLabel, useWorkspaceStore } from '../store/workspaceStore';
 
 const PRIORITIES = [
   { value: 'low', label: 'Niedrig', color: 'var(--success)' },
@@ -46,6 +47,7 @@ function localToISO(dtLocal) {
 export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embedded = false, onCancel }) {
   const { createTask, categories, fetchCategories } = useTaskStore();
   const { friends, fetchFriends } = useFriendsStore();
+  const { activeWorkspace } = useWorkspaceStore();
   const [isOpen, setIsOpen] = useState(embedded);
   const [taskType, setTaskType] = useState('task');
   const [title, setTitle] = useState('');
@@ -68,6 +70,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
   const [addTeamsMeeting, setAddTeamsMeeting] = useState(false);
   const [teamsConnected, setTeamsConnected] = useState(null); // null=unknown, true/false
   const [saving, setSaving] = useState(false);
+  const isPrivateWorkspace = activeWorkspace.scope === 'private';
 
   useEffect(() => {
     if (categories.length === 0) fetchCategories();
@@ -89,6 +92,15 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
     if (!defaultDate) return;
     setDate((current) => current || toDateValue(defaultDate));
   }, [defaultDate]);
+
+  useEffect(() => {
+    setGroupId('');
+    if (!isPrivateWorkspace) {
+      setVisibility('private');
+      setPermissions([]);
+      setShowSharing(false);
+    }
+  }, [activeWorkspace.scope, activeWorkspace.id, isPrivateWorkspace]);
 
   const resetForm = () => {
     setTaskType('task');
@@ -160,7 +172,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
         recurrence_rule: recurrenceRule || null,
         recurrence_interval: recurrenceRule ? 1 : null,
         recurrence_end: recurrenceEnd || null,
-        group_id: groupId || null,
+        group_id: isPrivateWorkspace ? (groupId || null) : null,
         visibility,
         permissions: visibility === 'selected_users'
           ? permissions.map((permission) => ({
@@ -251,7 +263,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
             <div>
               <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Manuell erstellen</div>
               <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                Für Aufgaben und Termine mit Datum, Uhrzeit, Erinnerung, Wiederholung und Gruppe.
+                Aktiv fuer {getWorkspaceLabel(activeWorkspace)}. Quelle und Scope werden automatisch gesetzt.
               </div>
             </div>
 
@@ -402,7 +414,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
               </div>
             )}
 
-            <div className="task-edit-field" style={{ marginBottom: 0 }}>
+            {isPrivateWorkspace && <div className="task-edit-field" style={{ marginBottom: 0 }}>
               <label><UsersRound size={14} /> Gruppe</label>
               <div className="manual-task-stack">
                 <div
@@ -436,9 +448,9 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
                   <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Keine Gruppen vorhanden.</div>
                 )}
               </div>
-            </div>
+            </div>}
 
-            <div className="task-edit-sharing" style={{ marginTop: 2 }}>
+            {isPrivateWorkspace && <div className="task-edit-sharing" style={{ marginTop: 2 }}>
               <button
                 type="button"
                 className="task-edit-sharing-toggle"
@@ -559,7 +571,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
                   </motion.div>
                 )}
               </AnimatePresence>
-            </div>
+            </div>}
 
             {/* Teams Meeting Toggle (events only) */}
             {taskType === 'event' && (

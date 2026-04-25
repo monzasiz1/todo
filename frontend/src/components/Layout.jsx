@@ -10,6 +10,7 @@ import NotificationBell from './NotificationBell';
 import ReminderChecker from './ReminderChecker';
 import HelpChat from './HelpChat';
 import GroupChatPanel from './GroupChatPanel';
+import { getWorkspaceLabel, useWorkspaceStore } from '../store/workspaceStore';
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -18,6 +19,8 @@ export default function Layout() {
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [dragGhost, setDragGhost] = useState(null);
   const aiInputRef = useRef(null);
+  const { activeWorkspace } = useWorkspaceStore();
+  const workspaceLabel = getWorkspaceLabel(activeWorkspace);
 
   const handleFabClick = () => setShowQuickAdd(true);
 
@@ -116,6 +119,13 @@ export default function Layout() {
       {/* Main Content */}
       <main className={`app-main ${sidebarCollapsed ? 'desktop-sidebar-collapsed' : ''}`}>
         <div className="app-content-shell">
+          <div className="workspace-context-banner">
+            <span className="workspace-context-dot" style={{ background: activeWorkspace.color || '#4C7BD9' }} />
+            <div className="workspace-context-copy">
+              <strong>{workspaceLabel}</strong>
+              <small>Kalender, Dashboard und neue Eintraege folgen diesem aktiven Workspace.</small>
+            </div>
+          </div>
           <Outlet />
         </div>
       </main>

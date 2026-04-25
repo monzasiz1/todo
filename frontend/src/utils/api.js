@@ -185,10 +185,15 @@ export const api = {
     return request(`/tasks/dashboard${query ? `?${query}` : ''}`);
   },
 
-  getTasksSummary: () => request('/tasks/summary'),
+  getTasksSummary: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/tasks/summary${query ? `?${query}` : ''}`);
+  },
 
-  getTasksRange: (start, end) =>
-    request(`/tasks/range?start=${start}&end=${end}`),
+  getTasksRange: (start, end, params = {}) => {
+    const query = new URLSearchParams({ start, end, ...params }).toString();
+    return request(`/tasks/range?${query}`);
+  },
 
   createTask: (task) =>
     request('/tasks', {
@@ -426,6 +431,23 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify({ pinned }),
     }),
+
+  // Organizations
+  getOrganizations: () => request('/organizations'),
+
+  createOrganization: (data) =>
+    request('/organizations', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  joinOrganization: (code) =>
+    request('/organizations/join', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    }),
+
+  getOrganization: (id) => request(`/organizations/${id}`),
 
   // Plans
   getPlans: () => request('/plans'),

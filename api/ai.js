@@ -324,6 +324,9 @@ module.exports = async function handler(req, res) {
         type: typeHint,
         groupContext,
         reminder_at_override,
+        source_scope,
+        source_group_id,
+        source_organization_id,
       } = req.body;
       if (!input) {
         return res.status(400).json({ error: 'Eingabe ist erforderlich' });
@@ -457,16 +460,21 @@ module.exports = async function handler(req, res) {
         reminderAt = new Date(`${parsed.date}T${rTime}:00`).toISOString();
       }
 
+      const normalizedScope = source_scope === 'organization'
+        ? 'organization'
+        : ((groupContext?.id || source_group_id) ? 'group' : 'private');
+
       const result = await pool.query(
         `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order, visibility,
-         recurrence_rule, recurrence_interval, recurrence_end, type)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+         recurrence_rule, recurrence_interval, recurrence_end, type, source_scope, source_group_id, source_organization_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
          RETURNING *`,
         [user.id, parsed.title, parsed.description || null, parsed.date || null,
          parsed.date_end || null, parsed.time || null, parsed.time_end || null,
          parsed.priority || 'medium', categoryId,
          reminderAt, maxOrder.rows[0].next_order, finalVisibility,
-         recurrenceRule, recurrenceInterval, recurrenceEnd, taskType]
+         recurrenceRule, recurrenceInterval, recurrenceEnd, taskType,
+         normalizedScope, groupContext?.id || source_group_id || null, source_organization_id || null]
       );
 
       const firstTask = result.rows[0];
@@ -479,15 +487,16 @@ module.exports = async function handler(req, res) {
 
         const ins = await pool.query(
           `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order, visibility,
-           recurrence_rule, recurrence_interval, recurrence_end, recurrence_parent_id, type)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+            recurrence_rule, recurrence_interval, recurrence_end, recurrence_parent_id, type, source_scope, source_group_id, source_organization_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
            RETURNING *`,
           [user.id, parsed.title, parsed.description || null, occurrenceDate,
            occurrenceDateEnd, parsed.time || null, parsed.time_end || null,
            parsed.priority || 'medium', categoryId,
            parsed.hasReminder ? new Date(`${occurrenceDate}T${parsed.time || '09:00'}:00`).toISOString() : null,
            maxOrder.rows[0].next_order + i + 1, finalVisibility,
-           recurrenceRule, recurrenceInterval, recurrenceEnd, firstTask.id, taskType]
+            recurrenceRule, recurrenceInterval, recurrenceEnd, firstTask.id, taskType,
+            normalizedScope, groupContext?.id || source_group_id || null, source_organization_id || null]
         );
 
         createdTasks.push(ins.rows[0]);

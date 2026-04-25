@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { api } from '../utils/api';
 import { getAllQueued, removeQueued, incrementRetry } from '../utils/offlineQueue';
+import { buildWorkspaceTaskPayload, getWorkspaceTaskParams, useWorkspaceStore } from './workspaceStore';
 
 const TASK_CACHE_KEY = 'taski_tasks_cache_v1';
 
@@ -44,7 +45,9 @@ export const useTaskStore = create((set, get) => ({
 
   // Task CRUD
   fetchTasks: async (params = {}, options = {}) => {
-    const fetchKey = JSON.stringify(params || {});
+    const workspaceParams = getWorkspaceTaskParams(useWorkspaceStore.getState().activeWorkspace);
+    const requestParams = { ...params, ...workspaceParams };
+    const fetchKey = JSON.stringify(requestParams || {});
     const now = Date.now();
     const maxAgeMs = 15000;
     const force = options?.force === true;
@@ -58,7 +61,6 @@ export const useTaskStore = create((set, get) => ({
     set({ loading: true });
     try {
       const useDashboardEndpoint = params?.dashboard === 'true' || params?.dashboard === true || params?.lite === 'true' || params?.lite === true;
-      const requestParams = { ...params };
       delete requestParams.dashboard;
       const data = useDashboardEndpoint ? await api.getDashboardTasks(requestParams) : await api.getTasks(requestParams);
       set({
@@ -75,7 +77,8 @@ export const useTaskStore = create((set, get) => ({
 
   fetchTasksRange: async (start, end) => {
     try {
-      const data = await api.getTasksRange(start, end);
+      const workspaceParams = getWorkspaceTaskParams(useWorkspaceStore.getState().activeWorkspace);
+      const data = await api.getTasksRange(start, end, workspaceParams);
       return data.tasks;
     } catch (err) {
       set({ error: err.message });
@@ -85,7 +88,8 @@ export const useTaskStore = create((set, get) => ({
 
   fetchTasksSummary: async () => {
     try {
-      const data = await api.getTasksSummary();
+      const workspaceParams = getWorkspaceTaskParams(useWorkspaceStore.getState().activeWorkspace);
+      const data = await api.getTasksSummary(workspaceParams);
       set({
         taskSummary: {
           open: Number(data.open || 0),
@@ -103,7 +107,11 @@ export const useTaskStore = create((set, get) => ({
 
   createTask: async (task) => {
     try {
-      const data = await api.createTask(task);
+      const workspace = useWorkspaceStore.getState().activeWorkspace;
+      const data = await api.createTask({
+        ...task,
+        ...buildWorkspaceTaskPayload(workspace),
+      });
 
       // Offline: task wurde in Queue eingereiht → optimistisch als Platzhalter einfügen
       if (data?.__queued) {
@@ -184,6 +192,12 @@ export const useTaskStore = create((set, get) => ({
 
   aiCreateTask: async (input) => {
     try {
+      const workspace = useWorkspaceStore.getState().activeWorkspace;
+      const workspacePayload = buildWorkspaceTaskPayload(workspace);
+      const groupContext = workspace.scope === 'group' && workspace.id
+        ? { id: workspace.id, name: workspace.name }
+        : null;
+
       // Step 1: Classify intent
       const smart = await api.smartAction(input);
 
@@ -240,7 +254,11 @@ export const useTaskStore = create((set, get) => ({
       }
 
       // Create (default / redirect)
-      const data = await api.parseAndCreateTask(input);
+      const data = await api.parseAndCreateTask(input, null, groupContext, {
+        source_scope: workspacePayload.source_scope,
+        source_group_id: workspacePayload.source_group_id,
+        source_organization_id: workspacePayload.source_organization_id,
+      });
       const created = Array.isArray(data.created_tasks) && data.created_tasks.length > 0
         ? data.created_tasks
         : [data.task];

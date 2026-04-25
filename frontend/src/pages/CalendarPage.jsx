@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Calendar from '../components/Calendar';
 import DayCreateModal from '../components/DayCreateModal';
 import { useTaskStore } from '../store/taskStore';
 import { format } from 'date-fns';
+import { getWorkspaceLabel, useWorkspaceStore } from '../store/workspaceStore';
 
 export default function CalendarPage() {
   const { fetchTasksRange } = useTaskStore();
+  const { activeWorkspace } = useWorkspaceStore();
   const [calendarTasks, setCalendarTasks] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
   const [showDayModal, setShowDayModal] = useState(false);
@@ -15,12 +17,18 @@ export default function CalendarPage() {
 
   const loadRange = async (start, end, force = false) => {
     if (!start || !end) return;
-    const key = `${start}|${end}`;
+    const key = `${activeWorkspace.scope}:${activeWorkspace.id || 'private'}:${start}|${end}`;
     if (!force && visibleRange.key === key) return;
     const tasks = await fetchTasksRange(start, end);
     setCalendarTasks(tasks);
     setVisibleRange({ start, end, key });
   };
+
+  useEffect(() => {
+    if (visibleRange.start && visibleRange.end) {
+      loadRange(visibleRange.start, visibleRange.end, true);
+    }
+  }, [activeWorkspace.scope, activeWorkspace.id]);
 
   const handleTaskCreated = () => {
     if (visibleRange.start && visibleRange.end) {
@@ -60,8 +68,8 @@ export default function CalendarPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <h2>Kalender</h2>
-        <p>Klicke auf einen Tag, um Aufgaben zu sehen oder zu erstellen</p>
+        <h2>{getWorkspaceLabel(activeWorkspace)}</h2>
+        <p>Klicke auf einen Tag, um Eintraege im aktiven Workspace zu sehen oder zu erstellen</p>
       </motion.div>
 
       <Calendar

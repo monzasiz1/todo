@@ -10,6 +10,7 @@ import { isToday, isTomorrow, isThisWeek, isPast, parseISO, format, startOfDay, 
 import { de } from 'date-fns/locale';
 import { usePlan } from '../hooks/usePlan';
 import UpgradeModal from '../components/UpgradeModal';
+import { getWorkspaceLabel, useWorkspaceStore } from '../store/workspaceStore';
 
 function getSeriesKey(task) {
   // Use user_id + normalized title + recurrence_rule as key.
@@ -257,6 +258,7 @@ function TaskRow({ index, style, data }) {
 
 export default function Dashboard() {
   const { tasks, fetchTasks, filter, setFilter } = useTaskStore();
+  const { activeWorkspace } = useWorkspaceStore();
   const { limit, atLimit } = usePlan();
   const [showCompleted, setShowCompleted] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState({ past_events: true });
@@ -301,7 +303,7 @@ export default function Dashboard() {
       window.removeEventListener('focus', refreshOnFocus);
       document.removeEventListener('visibilitychange', refreshOnFocus);
     };
-  }, []);
+  }, [activeWorkspace.scope, activeWorkspace.id]);
 
   useEffect(() => {
     let intervalId = null;
@@ -453,7 +455,7 @@ export default function Dashboard() {
         transition={{ duration: 0.4 }}
       >
         <h2>{greeting} 👋</h2>
-        <p>Was steht heute an?</p>
+        <p>{getWorkspaceLabel(activeWorkspace)} ist aktiv. Was steht heute an?</p>
       </motion.div>
 
       {/* Task-Limit Warning / Upgrade Modal */}
