@@ -7373,8 +7373,8 @@ body.cal-is-dragging * {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 16px 20px;
-  padding-bottom: 20px;
+  padding: 24px 28px;
+  padding-bottom: 28px;
   display: flex;
   flex-direction: column;
   gap: 14px;
