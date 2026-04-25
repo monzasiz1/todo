@@ -138,7 +138,15 @@ export default function NotesPage() {
   const { friends, fetchFriends } = useFriendsStore();
   const { tasks, fetchTasks } = useTaskStore();
 
-  const [zoom, setZoom] = useState(100);
+  const [zoom, setZoom] = useState(() => {
+    if (typeof window === 'undefined') return 80;
+    const w = window.innerWidth;
+    if (w >= 2560) return 110;
+    if (w >= 1920) return 95;
+    if (w >= 1440) return 85;
+    if (w >= 640)  return 75;
+    return 65;
+  });
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingNote, setEditingNote] = useState(null);
   const [selectedNote, setSelectedNote] = useState(null);
@@ -195,6 +203,18 @@ export default function NotesPage() {
       setConnections([]);
     }
   };
+
+  // Auto-scroll canvas to center on first load
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const CANVAS_SIZE = 4000;
+    requestAnimationFrame(() => {
+      canvas.scrollLeft = (CANVAS_SIZE * zoom / 100 - canvas.clientWidth) / 2;
+      canvas.scrollTop  = (CANVAS_SIZE * zoom / 100 - canvas.clientHeight) / 2;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Register touch listeners with { passive: false } so preventDefault() works without browser warnings
   useEffect(() => {
@@ -658,8 +678,8 @@ export default function NotesPage() {
         ...newNote,
         x: targetPosition.x,
         y: targetPosition.y,
-        width: 300,
-        height: 150,
+        width: isMobileView ? 240 : (window.innerWidth >= 1440 ? 380 : 320),
+        height: isMobileView ? 140 : (window.innerWidth >= 1440 ? 210 : 180),
       };
       const created = await createNote(noteData);
       if (created?.id) {
@@ -1215,7 +1235,38 @@ export default function NotesPage() {
           </div>
         </aside>
 
-        <div className="notes-canvas-shell">
+        <div className="notes-canvas-shell" style={{ position: 'relative' }}>
+          {/* Quick Connect Banner */}
+          <AnimatePresence>
+            {quickConnectMode && (
+              <motion.div
+                className="quick-connect-banner"
+                initial={{ opacity: 0, y: -16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -16 }}
+                transition={{ type: 'spring', damping: 22, stiffness: 300 }}
+              >
+                <Workflow size={16} />
+                <span>{selectedNote ? '2. Note wählen zum Verbinden' : 'Quick Connect aktiv — 1. Note wählen'}</span>
+                <div className="quick-connect-type-pills">
+                  {CONNECTION_TYPES.map((ct) => (
+                    <button
+                      key={ct.value}
+                      type="button"
+                      className={`qc-type-pill ${connectionType === ct.value ? 'active' : ''}`}
+                      onClick={() => setConnectionType(ct.value)}
+                    >
+                      {ct.label}
+                    </button>
+                  ))}
+                </div>
+                <button type="button" className="qc-cancel-btn" onClick={() => { setQuickConnectMode(false); setSelectedNote(null); }}>
+                  <X size={14} />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
       {/* Canvas */}
       <div
         className="notes-canvas"

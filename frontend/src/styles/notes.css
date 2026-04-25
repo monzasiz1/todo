@@ -1,5 +1,69 @@
 /* Notes Page Styles - Mobile First */
 
+/* ── Quick Connect Banner ── */
+.quick-connect-banner {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #5856D6, #7C3AED);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 4px 20px rgba(88, 86, 214, 0.45), 0 2px 8px rgba(0,0,0,0.12);
+  white-space: nowrap;
+  pointer-events: auto;
+}
+
+.quick-connect-type-pills {
+  display: flex;
+  gap: 4px;
+  margin-left: 4px;
+}
+
+.qc-type-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(255,255,255,0.35);
+  background: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.82);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.qc-type-pill.active {
+  background: rgba(255,255,255,0.95);
+  color: #5856D6;
+  border-color: transparent;
+}
+
+.qc-cancel-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-left: 4px;
+  transition: background 0.15s;
+}
+
+.qc-cancel-btn:hover {
+  background: rgba(255,255,255,0.35);
+}
+
 .notes-container {
   display: flex;
   flex-direction: column;
@@ -1947,3 +2011,38 @@
   }
 }
 
+
+/* ── Große Desktop-Screens (≥ 1400px) ── */
+@media (min-width: 1400px) {
+  .notes-toolbox { width: 380px; min-width: 380px; max-width: 380px; }
+  .notes-context-panel { width: 420px; min-width: 420px; max-width: 420px; }
+  .notes-workspace { gap: 24px; padding: 22px 28px 28px; }
+  .note-card { padding: 20px; border-radius: 20px; gap: 14px; }
+  .note-title { font-size: 17px; }
+  .note-content { font-size: 14px; -webkit-line-clamp: 4; }
+  .toolbox-action-card { padding: 16px 18px; font-size: 14px; border-radius: 18px; }
+  .create-note-modal { max-width: 680px; }
+  .modal-content.connect-note-modal { max-width: 640px; }
+  .modal-title { font-size: 26px; }
+  .form-input, .form-textarea { font-size: 15px; padding: 13px 18px; }
+  .zoom-btn { width: 36px; height: 36px; }
+}
+
+/* ── Extra großer Screen (≥ 1920px) ── */
+@media (min-width: 1920px) {
+  .notes-toolbox { width: 420px; min-width: 420px; max-width: 420px; }
+  .notes-context-panel { width: 460px; min-width: 460px; max-width: 460px; }
+  .notes-workspace { gap: 28px; padding: 28px 36px 36px; }
+  .note-card { padding: 22px; border-radius: 22px; gap: 16px; }
+  .note-title { font-size: 18px; }
+  .note-content { font-size: 15px; -webkit-line-clamp: 5; }
+  .note-actions .action-btn { padding: 8px 12px; font-size: 13px; gap: 6px; }
+  .create-note-modal { max-width: 780px; }
+  .canvas-content {
+    background:
+      radial-gradient(circle at 12% 8%, rgba(0, 122, 255, 0.1), transparent 30%),
+      radial-gradient(circle at 78% 12%, rgba(88, 86, 214, 0.08), transparent 28%),
+      radial-gradient(circle at 50% 50%, rgba(52, 199, 89, 0.04), transparent 40%),
+      linear-gradient(180deg, rgba(255,255,255,0.35), rgba(255,255,255,0.18));
+  }
+}
