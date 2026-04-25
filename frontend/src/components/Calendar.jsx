@@ -789,49 +789,43 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
               <span className="calendar-day-number">{format(d, 'd')}</span>
               {dayTasks.length > 0 && (
                 <div className="calendar-day-tasks">
-                  {dayTasks.slice(0, isDesktop ? 4 : 3).map((t) => (
-                    (() => {
-                      const ended = isEventEnded(t, nowTs);
-                      return (
-                    <div
-                      key={t.id}
-                      className={`calendar-day-task ${t.completed ? 'completed' : ''} ${t.group_id ? 'group-task' : ''} ${ended ? 'ended-event' : ''} ${dragInfo?.task.id === t.id ? 'cal-dragging' : ''}`}
-                      style={{
-                        background: ended
-                          ? 'rgba(142, 142, 147, 0.12)'
-                          : t.group_id
-                          ? `${t.group_color || '#5856D6'}15`
-                          : t.category_color ? `${t.category_color}20` : 'var(--primary-bg)',
-                        color: ended
-                          ? '#59606B'
-                          : t.group_id
-                          ? (t.group_color || '#5856D6')
-                          : t.category_color || 'var(--primary)',
-                        borderLeft: `2px solid ${ended ? 'rgba(142, 142, 147, 0.55)' : (t.group_id ? (t.group_color || '#5856D6') : (t.category_color || 'var(--primary)'))}`,
-                        cursor: isDesktop && !ended ? 'grab' : 'pointer',
-                        userSelect: 'none',
-                      }}
-                      onPointerDown={isDesktop && !ended ? (e) => handlePointerDown(e, t) : undefined}
-                      onClick={(e) => { e.stopPropagation(); if (!wasDragging.current) setDetailTask(t); }}
-                    >
-                      {t.group_id && (
-                        <AvatarBadge
-                          name={t.group_name}
-                          color={t.group_color || '#5856D6'}
-                          avatarUrl={t.group_image_url}
-                          size={10}
-                        />
-                      )}
-                      {t.teams_join_url && <Video size={10} className="calendar-day-task-teams-icon" />}
-                      {t.time && <span className="calendar-day-task-time">{t.time.slice(0, 5)}</span>}
-                      <span className="calendar-day-task-title">{t.title}</span>
-                      {ended && <span className="calendar-day-task-ended">Beendet</span>}
-                    </div>
-                      );
-                    })()
-                  ))}
-                  {dayTasks.length > (isDesktop ? 4 : 3) && (
-                    <div className="calendar-day-more">+{dayTasks.length - (isDesktop ? 4 : 3)}</div>
+                  {dayTasks.slice(0, isDesktop ? 4 : 2).map((t) => {
+                    const ended = isEventEnded(t, nowTs);
+                    const accentColor = ended
+                      ? 'rgba(142,142,147,0.6)'
+                      : (t.group_color || t.category_color || '#4C7BD9');
+                    return (
+                      <div
+                        key={t.id}
+                        className={`calendar-day-task ${t.completed ? 'completed' : ''} ${t.group_id ? 'group-task' : ''} ${ended ? 'ended-event' : ''} ${dragInfo?.task.id === t.id ? 'cal-dragging' : ''}`}
+                        style={isMobile ? {
+                          background: accentColor,
+                          color: ended ? '#999' : '#fff',
+                          borderLeft: 'none',
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                        } : {
+                          background: ended ? 'rgba(142,142,147,0.12)' : t.group_id ? `${t.group_color || '#5856D6'}15` : t.category_color ? `${t.category_color}20` : 'var(--primary-bg)',
+                          color: ended ? '#59606B' : t.group_id ? (t.group_color || '#5856D6') : t.category_color || 'var(--primary)',
+                          borderLeft: `2px solid ${ended ? 'rgba(142,142,147,0.55)' : accentColor}`,
+                          cursor: isDesktop && !ended ? 'grab' : 'pointer',
+                          userSelect: 'none',
+                        }}
+                        onPointerDown={isDesktop && !ended ? (e) => handlePointerDown(e, t) : undefined}
+                        onClick={(e) => { e.stopPropagation(); if (!wasDragging.current) setDetailTask(t); }}
+                      >
+                        {!isMobile && t.group_id && (
+                          <AvatarBadge name={t.group_name} color={t.group_color || '#5856D6'} avatarUrl={t.group_image_url} size={10} />
+                        )}
+                        {t.teams_join_url && <Video size={10} className="calendar-day-task-teams-icon" />}
+                        {t.time && <span className="calendar-day-task-time">{t.time.slice(0, 5)}</span>}
+                        <span className="calendar-day-task-title">{t.title}</span>
+                        {!isMobile && ended && <span className="calendar-day-task-ended">Beendet</span>}
+                      </div>
+                    );
+                  })}
+                  {dayTasks.length > (isDesktop ? 4 : 2) && (
+                    <div className="calendar-day-more">+{dayTasks.length - (isDesktop ? 4 : 2)}</div>
                   )}
                 </div>
               )}
