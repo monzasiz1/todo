@@ -1,5 +1,12 @@
 const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
+const { sendPushToUser } = require('./_lib/pushService');
+
+function parsePositiveInt(value, fallback, max) {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return Math.min(parsed, max);
+}
 
 module.exports = async function handler(req, res) {
   cors(res);
@@ -71,18 +78,79 @@ module.exports = async function handler(req, res) {
   // GET /api/notifications/log – recent notification history
   if (segments[0] === 'log' && req.method === 'GET') {
     try {
+      const limit = parsePositiveInt(req.query.limit, 30, 200);
+      const offset = Math.max(0, Number.parseInt(String(req.query.offset || '0'), 10) || 0);
+      const type = String(req.query.type || '').trim();
+      const since = String(req.query.since || '').trim();
+      const params = [user.id];
+      const where = ['user_id = $1'];
+
+      if (type) {
+        params.push(type);
+        where.push(`type = $${params.length}`);
+      }
+
+      if (since) {
+        params.push(since);
+        where.push(`sent_at >= $${params.length}::timestamptz`);
+      }
+
+      params.push(limit);
+      const limitParam = `$${params.length}`;
+      params.push(offset);
+      const offsetParam = `$${params.length}`;
+
       const { rows } = await pool.query(
         `SELECT id, type, task_id, title, body, sent_at
          FROM notification_log
-         WHERE user_id = $1
+         WHERE ${where.join(' AND ')}
          ORDER BY sent_at DESC
-         LIMIT 30`,
-        [user.id]
+         LIMIT ${limitParam}
+         OFFSET ${offsetParam}`,
+        params
       );
-      return res.json({ notifications: rows });
+
+      const { rows: countRows } = await pool.query(
+        `SELECT COUNT(*)::int AS total
+         FROM notification_log
+         WHERE ${where.join(' AND ')}`,
+        params.slice(0, where.length)
+      );
+
+      return res.json({
+        notifications: rows,
+        paging: {
+          total: countRows[0]?.total || 0,
+          limit,
+          offset,
+        },
+      });
     } catch (err) {
       console.error('Log error:', err);
       return res.status(500).json({ error: 'Fehler beim Laden' });
+    }
+  }
+
+  // DELETE /api/notifications/log – clear current user's log (optional by type)
+  if (segments[0] === 'log' && req.method === 'DELETE' && segments.length === 1) {
+    try {
+      const type = String(req.body?.type || req.query?.type || '').trim();
+      if (type) {
+        const deleted = await pool.query(
+          'DELETE FROM notification_log WHERE user_id = $1 AND type = $2 RETURNING id',
+          [user.id, type]
+        );
+        return res.json({ success: true, deleted: deleted.rowCount, scope: { type } });
+      }
+
+      const deleted = await pool.query(
+        'DELETE FROM notification_log WHERE user_id = $1 RETURNING id',
+        [user.id]
+      );
+      return res.json({ success: true, deleted: deleted.rowCount, scope: 'all' });
+    } catch (err) {
+      console.error('Log clear error:', err);
+      return res.status(500).json({ error: 'Fehler beim Leeren des Logs' });
     }
   }
 
@@ -101,6 +169,161 @@ module.exports = async function handler(req, res) {
       return res.json({ subscribed: parseInt(subRows[0].count) > 0, prefs });
     } catch (err) {
       return res.status(500).json({ error: 'Fehler' });
+    }
+  }
+
+  // GET /api/notifications/subscriptions – list current device subscriptions
+  if (segments[0] === 'subscriptions' && req.method === 'GET') {
+    try {
+      const { rows } = await pool.query(
+        `SELECT id, endpoint, created_at
+         FROM push_subscriptions
+         WHERE user_id = $1
+         ORDER BY created_at DESC`,
+        [user.id]
+      );
+
+      const subscriptions = rows.map((row) => {
+        const endpointText = String(row.endpoint || '');
+        return {
+          id: row.id,
+          endpoint: endpointText,
+          endpoint_preview: endpointText.length > 60
+            ? `${endpointText.slice(0, 30)}...${endpointText.slice(-20)}`
+            : endpointText,
+          created_at: row.created_at,
+        };
+      });
+
+      return res.json({ subscriptions, count: subscriptions.length });
+    } catch (err) {
+      console.error('Subscriptions list error:', err);
+      return res.status(500).json({ error: 'Fehler beim Laden der Subscriptions' });
+    }
+  }
+
+  // DELETE /api/notifications/subscriptions/:id – remove one subscription by id
+  if (segments[0] === 'subscriptions' && segments.length === 2 && req.method === 'DELETE') {
+    try {
+      const subId = Number.parseInt(String(segments[1]), 10);
+      if (!Number.isFinite(subId) || subId <= 0) {
+        return res.status(400).json({ error: 'Ungueltige Subscription-ID' });
+      }
+
+      const deleted = await pool.query(
+        'DELETE FROM push_subscriptions WHERE id = $1 AND user_id = $2 RETURNING id',
+        [subId, user.id]
+      );
+
+      if (deleted.rowCount === 0) {
+        return res.status(404).json({ error: 'Subscription nicht gefunden' });
+      }
+
+      return res.json({ success: true, removedId: subId });
+    } catch (err) {
+      console.error('Subscription remove error:', err);
+      return res.status(500).json({ error: 'Fehler beim Entfernen der Subscription' });
+    }
+  }
+
+  // POST /api/notifications/test – send a test push to the current user
+  if (segments[0] === 'test' && req.method === 'POST') {
+    try {
+      const title = String(req.body?.title || 'Test-Benachrichtigung');
+      const body = String(req.body?.body || 'Push funktioniert auf diesem Geraet.');
+      const url = String(req.body?.url || '/');
+      const tag = String(req.body?.tag || `test-${Date.now()}`);
+
+      const sent = await sendPushToUser(
+        user.id,
+        { title, body, url, tag },
+        'test',
+        null
+      );
+
+      return res.json({ success: true, sent });
+    } catch (err) {
+      console.error('Test push error:', err);
+      return res.status(500).json({ error: 'Fehler beim Senden des Test-Push' });
+    }
+  }
+
+  // GET /api/notifications/preview – operational preview for upcoming deliveries
+  if (segments[0] === 'preview' && req.method === 'GET') {
+    try {
+      const { rows: prefsRows } = await pool.query(
+        'SELECT notification_prefs FROM users WHERE id = $1',
+        [user.id]
+      );
+      const prefs = prefsRows[0]?.notification_prefs || { reminder: true, daily_tasks: true, engagement: true, team_task: true };
+
+      const { rows: subRows } = await pool.query(
+        'SELECT COUNT(*)::int as count FROM push_subscriptions WHERE user_id = $1',
+        [user.id]
+      );
+
+      const { rows: dueRows } = await pool.query(
+        `SELECT COUNT(*)::int as due
+           FROM tasks
+          WHERE user_id = $1
+            AND completed = false
+            AND reminder_at IS NOT NULL
+            AND reminder_at <= NOW()
+            AND reminder_at > NOW() - INTERVAL '1 hour'`,
+        [user.id]
+      );
+
+      const { rows: nextRows } = await pool.query(
+        `SELECT id, title, date, time, reminder_at
+           FROM tasks
+          WHERE user_id = $1
+            AND completed = false
+            AND reminder_at IS NOT NULL
+            AND reminder_at > NOW()
+          ORDER BY reminder_at ASC
+          LIMIT 5`,
+        [user.id]
+      );
+
+      const now = new Date();
+      return res.json({
+        subscribed: (subRows[0]?.count || 0) > 0,
+        subscription_count: subRows[0]?.count || 0,
+        prefs,
+        due_in_window_count: dueRows[0]?.due || 0,
+        next_reminders: nextRows,
+        server_time: now.toISOString(),
+      });
+    } catch (err) {
+      console.error('Preview error:', err);
+      return res.status(500).json({ error: 'Fehler beim Erstellen der Vorschau' });
+    }
+  }
+
+  // GET /api/notifications/health – diagnostics for push setup
+  if (segments[0] === 'health' && req.method === 'GET') {
+    try {
+      const { rows: subRows } = await pool.query(
+        'SELECT COUNT(*)::int as count FROM push_subscriptions WHERE user_id = $1',
+        [user.id]
+      );
+      const { rows: userRows } = await pool.query(
+        'SELECT notification_prefs, last_active_at FROM users WHERE id = $1',
+        [user.id]
+      );
+
+      return res.json({
+        ok: true,
+        vapidConfigured: !!(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY),
+        cronConfigured: !!process.env.CRON_SECRET,
+        hasSubscription: (subRows[0]?.count || 0) > 0,
+        subscriptionCount: subRows[0]?.count || 0,
+        prefs: userRows[0]?.notification_prefs || null,
+        lastActiveAt: userRows[0]?.last_active_at || null,
+      });
+    } catch (err) {
+      console.error('Health error:', err);
+      return res.status(500).json({ error: 'Fehler beim Laden der Notification-Health' });
     }
   }
 

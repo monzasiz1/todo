@@ -103,9 +103,12 @@ const useNotificationStore = create((set, get) => ({
   // Request permission + subscribe to push
   subscribe: async () => {
     if (typeof Notification === 'undefined') return false;
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
+    if (!window.isSecureContext) return false;
 
-    // Request permission
-    const perm = await Notification.requestPermission();
+    // Request permission only if needed
+    const currentPerm = Notification.permission;
+    const perm = currentPerm === 'granted' ? 'granted' : await Notification.requestPermission();
     set({ permission: perm });
     if (perm !== 'granted') return false;
 
@@ -117,13 +120,19 @@ const useNotificationStore = create((set, get) => ({
       const { publicKey } = await api.getVapidKey();
       if (!publicKey) return false;
 
-      // Subscribe to push
-      const subscription = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicKey),
-      });
+      // Reuse existing subscription when present (common on mobile/PWA)
+      let subscription = await reg.pushManager.getSubscription();
+      if (!subscription) {
+        subscription = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicKey),
+        });
+      }
 
       const subJSON = subscription.toJSON();
+      if (!subJSON?.endpoint || !subJSON?.keys?.p256dh || !subJSON?.keys?.auth) {
+        return false;
+      }
 
       // Send to backend
       await api.subscribePush({

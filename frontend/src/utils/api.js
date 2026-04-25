@@ -235,6 +235,20 @@ export const api = {
     request('/notifications/subscribe', { method: 'DELETE', body: JSON.stringify(data) }),
   getNotificationStatus: () => request('/notifications/status'),
   getNotificationLog: () => request('/notifications/log'),
+  getNotificationLogFiltered: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/notifications/log${query ? `?${query}` : ''}`);
+  },
+  clearNotificationLog: (type = null) =>
+    request(`/notifications/log${type ? `?type=${encodeURIComponent(type)}` : ''}`, {
+      method: 'DELETE',
+    }),
+  getNotificationSubscriptions: () => request('/notifications/subscriptions'),
+  removeNotificationSubscription: (id) => request(`/notifications/subscriptions/${id}`, { method: 'DELETE' }),
+  sendTestNotification: (payload = {}) =>
+    request('/notifications/test', { method: 'POST', body: JSON.stringify(payload) }),
+  getNotificationPreview: () => request('/notifications/preview'),
+  getNotificationHealth: () => request('/notifications/health'),
   updateNotificationPrefs: (prefs) =>
     request('/notifications/prefs', { method: 'PUT', body: JSON.stringify({ prefs }) }),
 

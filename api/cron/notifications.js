@@ -1,5 +1,5 @@
 const { getPool } = require('../_lib/db');
-const { sendPushToUser, wasSentToday, wasTaskReminderSent } = require('../_lib/pushService');
+const { sendPushToUser, wasSentToday, wasTaskReminderSent, wasTaskTypeSent } = require('../_lib/pushService');
 
 /**
  * Cron endpoint – called by Vercel Cron every 5 minutes.
@@ -36,7 +36,7 @@ module.exports = async function handler(req, res) {
        WHERE t.completed = false
          AND t.reminder_at IS NOT NULL
          AND t.reminder_at <= NOW()
-         AND t.reminder_at > NOW() - INTERVAL '1 hour'`
+         AND t.reminder_at > NOW() - INTERVAL '12 hours'`
     );
 
     for (const task of dueReminders) {
@@ -147,7 +147,7 @@ module.exports = async function handler(req, res) {
 
         for (const member of members) {
           if (!(await isTypeEnabled(member.user_id, 'team_task'))) continue;
-          const already = await wasTaskReminderSent(member.user_id, task.id);
+          const already = await wasTaskTypeSent(member.user_id, task.id, 'team_task');
           if (already) continue;
 
           await sendPushToUser(

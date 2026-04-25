@@ -1,6 +1,7 @@
 const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
 const { cacheManager } = require('./_lib/cache');
+const { sendPushToUser } = require('./_lib/pushService');
 
 function calcNextDate(currentDate, rule, interval) {
   if (!currentDate) return null;
@@ -526,14 +527,67 @@ module.exports = async function handler(req, res) {
   // GET /api/tasks/reminders/due
   if (segments[0] === 'reminders' && segments[1] === 'due' && req.method === 'GET') {
     try {
-      const result = await pool.query(
-        `SELECT t.*, c.name as category_name, c.color as category_color
-         FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
-         WHERE t.user_id = $1 AND t.completed = false
-         AND t.reminder_at IS NOT NULL AND t.reminder_at <= NOW()
-         ORDER BY t.reminder_at ASC`,
-        [user.id]
-      );
+      let result;
+      try {
+        result = await pool.query(
+          `WITH visible_ids AS (
+             SELECT t.id
+             FROM tasks t
+             WHERE t.user_id = $1
+
+             UNION ALL
+
+             SELECT t.id
+             FROM tasks t
+             WHERE t.visibility = 'shared'
+               AND EXISTS (
+                 SELECT 1
+                 FROM friends f
+                 WHERE f.status = 'accepted'
+                   AND ((f.user_id = t.user_id AND f.friend_id = $1) OR (f.user_id = $1 AND f.friend_id = t.user_id))
+               )
+
+             UNION ALL
+
+             SELECT tp.task_id AS id
+             FROM task_permissions tp
+             WHERE tp.user_id = $1 AND tp.can_view = true
+
+             UNION ALL
+
+             SELECT gt.task_id AS id
+             FROM group_tasks gt
+             JOIN group_members gm ON gm.group_id = gt.group_id
+             WHERE gm.user_id = $1
+           ),
+           due_ids AS (
+             SELECT DISTINCT id FROM visible_ids
+           )
+           SELECT t.*, c.name as category_name, c.color as category_color
+           FROM due_ids ids
+           JOIN tasks t ON t.id = ids.id
+           LEFT JOIN categories c ON t.category_id = c.id
+           WHERE t.completed = false
+             AND t.reminder_at IS NOT NULL
+             AND t.reminder_at <= NOW()
+             AND t.reminder_at > NOW() - INTERVAL '24 hours'
+           ORDER BY t.reminder_at ASC`,
+          [user.id]
+        );
+      } catch {
+        // Fallback for legacy schemas without collaboration columns/tables.
+        result = await pool.query(
+          `SELECT t.*, c.name as category_name, c.color as category_color
+           FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
+           WHERE t.user_id = $1 AND t.completed = false
+             AND t.reminder_at IS NOT NULL
+             AND t.reminder_at <= NOW()
+             AND t.reminder_at > NOW() - INTERVAL '24 hours'
+           ORDER BY t.reminder_at ASC`,
+          [user.id]
+        );
+      }
+
       return res.json({ tasks: normalizeTaskRows(result.rows) });
     } catch (err) {
       console.error('Reminders error:', err);
@@ -1261,6 +1315,60 @@ module.exports = async function handler(req, res) {
            ON CONFLICT DO NOTHING`,
           [groupInfo.id, firstTask.id, user.id]
         );
+
+        // Immediate team notification for other members (log + push best-effort)
+        const memberRows = await pool.query(
+          `SELECT gm.user_id
+           FROM group_members gm
+           WHERE gm.group_id = $1 AND gm.user_id != $2`,
+          [groupInfo.id, user.id]
+        );
+
+        for (const member of memberRows.rows) {
+          await pool.query(
+            `INSERT INTO notification_log (user_id, type, task_id, title, body)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [
+              member.user_id,
+              'team_task_created',
+              firstTask.id,
+              `Neue Gruppenaufgabe: ${groupInfo.name}`,
+              `${title} wurde in der Gruppe ${groupInfo.name} erstellt`,
+            ]
+          ).catch(() => null);
+
+          await sendPushToUser(
+            member.user_id,
+            {
+              title: `Neue Gruppenaufgabe: ${groupInfo.name}`,
+              body: `${title} wurde erstellt`,
+              tag: `team-created-${firstTask.id}`,
+              url: '/groups',
+            },
+            'team_task_created',
+            firstTask.id
+          ).catch(() => null);
+        }
+      }
+
+      // Immediate in-app info when a reminder was scheduled
+      if (reminder_at) {
+        const reminderDate = new Date(reminder_at);
+        const formatted = Number.isNaN(reminderDate.getTime())
+          ? String(reminder_at)
+          : reminderDate.toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' });
+
+        await pool.query(
+          `INSERT INTO notification_log (user_id, type, task_id, title, body)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [
+            user.id,
+            'reminder_created',
+            firstTask.id,
+            'Erinnerung geplant',
+            `${title} erinnert am ${formatted}`,
+          ]
+        ).catch(() => null);
       }
 
       const decoratedTask = normalizeTaskRow({

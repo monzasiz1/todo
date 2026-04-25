@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useTaskStore } from '../store/taskStore';
 import { useNotificationStore } from '../store/notificationStore';
+import { api } from '../utils/api';
 
 /**
  * Client-side Reminder Checker – läuft alle 30 Sekunden,
@@ -10,22 +11,34 @@ import { useNotificationStore } from '../store/notificationStore';
  * 3. Loggt in die NotificationBell-Liste
  */
 export default function ReminderChecker() {
-  const { tasks, addToast } = useTaskStore();
+  const { addToast } = useTaskStore();
   const { fetchLog, addLocalNotification } = useNotificationStore();
   const firedRef = useRef(new Set()); // Track already-fired reminders
 
-  useEffect(() => {
-    const check = () => {
-      const now = Date.now();
+  const buildReminderKey = (task) => `${task.id}:${task.reminder_at || ''}`;
 
-      for (const task of tasks) {
+  useEffect(() => {
+    const check = async () => {
+      const now = Date.now();
+      let dueTasks = [];
+
+      try {
+        const response = await api.getDueReminders?.();
+        dueTasks = Array.isArray(response?.tasks) ? response.tasks : [];
+      } catch {
+        // ignore transient API errors; next interval retries
+        return;
+      }
+
+      for (const task of dueTasks) {
         if (!task.reminder_at || task.completed) continue;
-        if (firedRef.current.has(task.id)) continue;
+        const reminderKey = buildReminderKey(task);
+        if (firedRef.current.has(reminderKey)) continue;
 
         const reminderTime = new Date(task.reminder_at).getTime();
-        // Fire if reminder is due (within the last 5 minutes)
-        if (reminderTime <= now && reminderTime > now - 5 * 60 * 1000) {
-          firedRef.current.add(task.id);
+        // Fire if reminder is due (within the last 12 hours)
+        if (reminderTime <= now && reminderTime > now - 12 * 60 * 60 * 1000) {
+          firedRef.current.add(reminderKey);
 
           const title = '⏰ Erinnerung';
           const body = `${task.title}${task.time ? ' um ' + task.time.slice(0, 5) : ''}`;
@@ -75,19 +88,22 @@ export default function ReminderChecker() {
     check();
     const interval = setInterval(check, 30000);
     return () => clearInterval(interval);
-  }, [tasks]);
+  }, [addLocalNotification, addToast, fetchLog]);
 
   // Cleanup old fired IDs (prevent memory leak)
   useEffect(() => {
     const cleanup = setInterval(() => {
-      const now = Date.now();
-      const taskIds = new Set(tasks.map(t => t.id));
-      for (const id of firedRef.current) {
-        if (!taskIds.has(id)) firedRef.current.delete(id);
+      for (const key of firedRef.current) {
+        const reminderAt = key.split(':').slice(1).join(':');
+        if (!reminderAt) continue;
+        const ts = new Date(reminderAt).getTime();
+        if (!Number.isFinite(ts) || ts < Date.now() - 24 * 60 * 60 * 1000) {
+          firedRef.current.delete(key);
+        }
       }
     }, 60000);
     return () => clearInterval(cleanup);
-  }, [tasks]);
+  }, []);
 
   return null; // Invisible component
 }

@@ -102,4 +102,15 @@ async function wasTaskReminderSent(userId, taskId) {
   return rows.length > 0;
 }
 
-module.exports = { sendPushToUser, wasSentToday, wasTaskReminderSent };
+async function wasTaskTypeSent(userId, taskId, type) {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    `SELECT 1 FROM notification_log
+     WHERE user_id = $1 AND task_id = $2 AND type = $3
+     LIMIT 1`,
+    [userId, taskId, type]
+  );
+  return rows.length > 0;
+}
+
+module.exports = { sendPushToUser, wasSentToday, wasTaskReminderSent, wasTaskTypeSent };
