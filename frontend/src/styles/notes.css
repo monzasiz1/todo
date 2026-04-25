@@ -21,6 +21,7 @@
   min-height: 0;
   display: flex;
   position: relative;
+  gap: 12px;
 }
 
 .notes-toolbox {
@@ -221,6 +222,221 @@
   min-height: 0;
 }
 
+.notes-context-panel {
+  display: none;
+  width: 320px;
+  min-width: 320px;
+  max-width: 320px;
+  background: var(--card-solid);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  box-shadow: var(--shadow-lg);
+  padding: 14px;
+  overflow-y: auto;
+}
+
+.notes-context-panel.open {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.context-empty h3 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+
+.context-empty p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.context-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.context-kicker {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  margin-bottom: 2px;
+}
+
+.context-panel-header h3 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.context-close {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.context-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.context-tab {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 8px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.context-tab.active {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+  color: var(--text);
+  background: color-mix(in srgb, var(--primary-bg) 55%, var(--card));
+}
+
+.context-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.context-detail-pill {
+  align-self: flex-start;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.context-note-body {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.context-meta-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.context-empty-line {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.context-comments-list,
+.context-connection-list,
+.context-task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.context-comment-item {
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.context-comment-item p {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.context-comment-item span {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.context-comment-input {
+  min-height: 86px;
+}
+
+.context-comment-add {
+  width: 100%;
+}
+
+.context-connection-item {
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.context-connection-item strong {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.context-task-card {
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.context-task-card strong {
+  font-size: 13px;
+}
+
+.context-task-card span {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.context-task-item {
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.context-task-item span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.context-task-item small {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
 .notes-header {
   display: contents;
 }
@@ -387,6 +603,25 @@
 
 .connection-group.active .connection-node {
   r: 5.5;
+}
+
+.connection-group.type-depends_on .connection-path-glow,
+.connection-group.type-depends_on .connection-path-core {
+  stroke: #f59e0b;
+}
+
+.connection-group.type-belongs_to .connection-path-glow,
+.connection-group.type-belongs_to .connection-path-core {
+  stroke: #2563eb;
+}
+
+.connection-group.type-blocks .connection-path-glow,
+.connection-group.type-blocks .connection-path-core {
+  stroke: #ef4444;
+}
+
+.connection-group.type-blocks .connection-path-core {
+  stroke-dasharray: 4 8;
 }
 
 .connection-group.muted {
@@ -744,6 +979,60 @@
 
 .task-picker-clear {
   border-style: dashed;
+}
+
+.connection-type-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.connection-type-option {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-secondary);
+  border-radius: 10px;
+  padding: 10px 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.connection-type-option.active {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+  background: color-mix(in srgb, var(--primary-bg) 60%, var(--card));
+}
+
+.connection-type-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+}
+
+.connection-type-badge.type-related {
+  background: rgba(122, 92, 255, 0.12);
+  color: #7a5cff;
+}
+
+.connection-type-badge.type-depends_on {
+  background: rgba(245, 158, 11, 0.14);
+  color: #f59e0b;
+}
+
+.connection-type-badge.type-belongs_to {
+  background: rgba(37, 99, 235, 0.14);
+  color: #2563eb;
+}
+
+.connection-type-badge.type-blocks {
+  background: rgba(239, 68, 68, 0.14);
+  color: #ef4444;
 }
 
 .task-picker-empty {
@@ -1216,6 +1505,10 @@
     display: none;
   }
 
+  .notes-context-panel.open {
+    display: flex;
+  }
+
   .modal-overlay {
     align-items: center;
     padding: 24px;
@@ -1277,6 +1570,25 @@
 }
 
 @media (max-width: 639px) {
+  .notes-context-panel {
+    display: none;
+    position: fixed;
+    inset: auto 10px 88px 10px;
+    min-width: 0;
+    max-width: none;
+    width: auto;
+    z-index: 125;
+    max-height: 56vh;
+  }
+
+  .notes-context-panel.open {
+    display: flex;
+  }
+
+  .context-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .notes-mobile-tools {
     gap: 6px;
   }

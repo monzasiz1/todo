@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Plus, ZoomIn, ZoomOut, Maximize2, Share2, Link2, Trash2, Edit2, X, CalendarDays, Sparkles, PanelsTopLeft, Workflow } from 'lucide-react';
+import { Plus, ZoomIn, ZoomOut, Maximize2, Share2, Link2, Trash2, Edit2, X, CalendarDays, Sparkles, PanelsTopLeft, Workflow, LayoutGrid } from 'lucide-react';
 import { useNotesStore } from '../store/notesStore';
 import { useFriendsStore } from '../store/friendsStore';
 import { useTaskStore } from '../store/taskStore';
@@ -87,6 +87,20 @@ function deduplicatePickerTasks(tasks) {
   });
 }
 
+const CONNECTION_TYPES = [
+  { value: 'related', label: 'Verwandt' },
+  { value: 'depends_on', label: 'Abhängig von' },
+  { value: 'belongs_to', label: 'Gehört zu' },
+  { value: 'blocks', label: 'Blockiert' },
+];
+
+const CONNECTION_TYPE_LABELS = {
+  related: 'Verwandt',
+  depends_on: 'Abhängig von',
+  belongs_to: 'Gehört zu',
+  blocks: 'Blockiert',
+};
+
 export default function NotesPage() {
   const { notes, createNote, updateNote, deleteNote, linkNoteToTask, shareNoteWithFriend, connectNotes, disconnectNotes, getNoteConnections } = useNotesStore();
   const { friends } = useFriendsStore();
@@ -107,6 +121,11 @@ export default function NotesPage() {
   const [toolboxOpen, setToolboxOpen] = useState(false);
   const [quickCreatePosition, setQuickCreatePosition] = useState(null);
   const [quickConnectMode, setQuickConnectMode] = useState(false);
+  const [connectionType, setConnectionType] = useState('related');
+  const [activeNoteId, setActiveNoteId] = useState(null);
+  const [contextTab, setContextTab] = useState('details');
+  const [noteComments, setNoteComments] = useState({});
+  const [commentDraft, setCommentDraft] = useState('');
   const [isMobileView, setIsMobileView] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 640 : false));
   const canvasRef = useRef(null);
 
@@ -192,6 +211,16 @@ export default function NotesPage() {
     });
   }, [notes]);
 
+  useEffect(() => {
+    if (!activeNoteId) return;
+    const stillExists = notes.some((entry) => String(entry.id) === String(activeNoteId));
+    if (!stillExists) {
+      setActiveNoteId(null);
+      setContextTab('details');
+      setCommentDraft('');
+    }
+  }, [activeNoteId, notes]);
+
   // Save note position on change
   const updateNotePosition = (noteId, x, y, persist = false) => {
     setNotePositions((prev) => ({
@@ -207,8 +236,106 @@ export default function NotesPage() {
   // Handle canvas pan
   const handleCanvasMouseDown = (e) => {
     if (e.target === canvasRef.current || e.target.classList.contains('notes-canvas')) {
+      setActiveNoteId(null);
       setIsDragging({ x: e.clientX, y: e.clientY, isPan: true });
     }
+  };
+
+  const handleAutoLayout = async () => {
+    if (!notes.length) return;
+
+    const adjacency = new Map();
+    notes.forEach((note) => adjacency.set(String(note.id), new Set()));
+
+    connections.forEach((connection) => {
+      const firstId = String(connection?.note_id_1 || connection?.noteId1 || '');
+      const secondId = String(connection?.note_id_2 || connection?.noteId2 || '');
+      if (!adjacency.has(firstId) || !adjacency.has(secondId)) return;
+      adjacency.get(firstId).add(secondId);
+      adjacency.get(secondId).add(firstId);
+    });
+
+    const taskById = new Map(tasks.map((task) => [String(task.id), task]));
+    const visited = new Set();
+    const components = [];
+
+    notes.forEach((note) => {
+      const startId = String(note.id);
+      if (visited.has(startId)) return;
+
+      const stack = [startId];
+      const bucket = [];
+      visited.add(startId);
+
+      while (stack.length) {
+        const currentId = stack.pop();
+        bucket.push(currentId);
+        const neighbors = adjacency.get(currentId) || new Set();
+        neighbors.forEach((nextId) => {
+          if (visited.has(nextId)) return;
+          visited.add(nextId);
+          stack.push(nextId);
+        });
+      }
+
+      bucket.sort((left, right) => {
+        const leftDegree = adjacency.get(left)?.size || 0;
+        const rightDegree = adjacency.get(right)?.size || 0;
+        return rightDegree - leftDegree;
+      });
+
+      const scoreByGroup = new Map();
+      bucket.forEach((id) => {
+        const note = notes.find((entry) => String(entry.id) === id);
+        if (!note?.linked_task_id) return;
+        const task = taskById.get(String(note.linked_task_id));
+        const groupKey = String(task?.group_id || 'ohne-gruppe');
+        scoreByGroup.set(groupKey, (scoreByGroup.get(groupKey) || 0) + 1);
+      });
+
+      const groupKey = [...scoreByGroup.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || 'ohne-gruppe';
+      components.push({ ids: bucket, groupKey });
+    });
+
+    const grouped = components.reduce((acc, component) => {
+      if (!acc.has(component.groupKey)) acc.set(component.groupKey, []);
+      acc.get(component.groupKey).push(component);
+      return acc;
+    }, new Map());
+
+    const layout = {};
+    const noteWidth = isMobileView ? 240 : 300;
+    const noteHeight = isMobileView ? 132 : 150;
+    const perRow = isMobileView ? 1 : 2;
+    let baseX = 120;
+
+    [...grouped.entries()].forEach(([, groupComponents]) => {
+      let groupY = 120;
+
+      groupComponents.forEach((component) => {
+        component.ids.forEach((id, index) => {
+          const row = Math.floor(index / perRow);
+          const col = index % perRow;
+          layout[id] = {
+            x: baseX + col * (noteWidth + 46),
+            y: groupY + row * (noteHeight + 54),
+          };
+        });
+
+        const rows = Math.ceil(component.ids.length / perRow);
+        groupY += rows * (noteHeight + 54) + 88;
+      });
+
+      baseX += perRow * (noteWidth + 46) + 170;
+    });
+
+    setNotePositions((prev) => ({ ...prev, ...layout }));
+
+    await Promise.all(
+      Object.entries(layout).map(([id, position]) =>
+        updateNote(id, { x: position.x, y: position.y }).catch(() => null)
+      )
+    );
   };
 
   const handleMouseMove = (e) => {
@@ -302,7 +429,7 @@ export default function NotesPage() {
 
   const handleConnectNotes = async (noteId1, noteId2) => {
     try {
-      await connectNotes(noteId1, noteId2, 'related');
+      await connectNotes(noteId1, noteId2, connectionType);
       await refreshConnections();
       setSelectedNote(null);
       setQuickConnectMode(false);
@@ -319,6 +446,24 @@ export default function NotesPage() {
     } catch (err) {
       console.error('Disconnect notes error:', err);
     }
+  };
+
+  const handleAddComment = () => {
+    if (!activeNoteId || !commentDraft.trim()) return;
+    const payload = {
+      id: `${Date.now()}`,
+      text: commentDraft.trim(),
+      createdAt: new Date().toISOString(),
+    };
+
+    setNoteComments((prev) => {
+      const key = String(activeNoteId);
+      return {
+        ...prev,
+        [key]: [...(prev[key] || []), payload],
+      };
+    });
+    setCommentDraft('');
   };
 
   const openBlankCreateModal = (position = null) => {
@@ -352,6 +497,8 @@ export default function NotesPage() {
 
   const handleNoteCardClick = async (event, noteId) => {
     if (event.target.closest('button, input, textarea, select, a')) return;
+    setActiveNoteId(noteId);
+
     if (!quickConnectMode) return;
 
     event.stopPropagation();
@@ -497,12 +644,38 @@ export default function NotesPage() {
           connectionKey: connection.id || `${firstId}-${secondId}`,
           otherId,
           otherNote,
+          relationshipType: String(connection?.relationship_type || 'related'),
         };
       })
       .filter(Boolean)
     : [];
 
   const modalConnectedIds = new Set(modalConnectedEntries.map((entry) => String(entry.otherId)));
+
+  const activeNote = activeNoteId
+    ? notes.find((entry) => String(entry.id) === String(activeNoteId))
+    : null;
+  const activeLinkedTask = activeNote ? linkedTask(activeNote.id) : null;
+  const activeConnections = activeNote
+    ? connections
+      .map((connection) => {
+        const firstId = String(connection?.note_id_1 || connection?.noteId1 || '');
+        const secondId = String(connection?.note_id_2 || connection?.noteId2 || '');
+        const current = String(activeNote.id);
+        const otherId = firstId === current ? secondId : secondId === current ? firstId : null;
+        if (!otherId) return null;
+        const otherNote = notes.find((entry) => String(entry.id) === otherId);
+        if (!otherNote) return null;
+        return {
+          id: connection.id || `${firstId}-${secondId}`,
+          relationshipType: String(connection?.relationship_type || 'related'),
+          otherId,
+          otherNote,
+        };
+      })
+      .filter(Boolean)
+    : [];
+  const activeNoteComments = activeNote ? (noteComments[String(activeNote.id)] || []) : [];
 
   const getNoteGeometry = (noteId) => {
     const note = notes.find((entry) => String(entry.id) === String(noteId));
@@ -538,11 +711,12 @@ export default function NotesPage() {
     const pulseDelay = `${(index % 6) * 0.35}s`;
     const isActive = hoveredNoteId && [String(firstId), String(secondId)].includes(String(hoveredNoteId));
     const isMuted = hoveredNoteId && !isActive;
+    const relationshipType = String(connection?.relationship_type || 'related');
 
     return (
       <g
         key={connection.id || `${firstId}-${secondId}`}
-        className={`connection-group ${isActive ? 'active' : ''} ${isMuted ? 'muted' : ''}`}
+        className={`connection-group type-${relationshipType} ${isActive ? 'active' : ''} ${isMuted ? 'muted' : ''}`}
         style={{ animationDelay: pulseDelay }}
       >
         <path className="connection-path connection-path-glow" d={path} />
@@ -583,12 +757,15 @@ export default function NotesPage() {
           )}
         </div>
         <div className="notes-controls">
-          <button className="zoom-btn" onClick={() => setZoom(Math.max(50, zoom - 10))} title="Zoom out">
+          <button className="zoom-btn" onClick={() => setZoom(Math.max(25, zoom - 10))} title="Zoom out">
             <ZoomOut size={18} />
           </button>
           <span className="zoom-display">{zoom}%</span>
           <button className="zoom-btn" onClick={() => setZoom(Math.min(200, zoom + 10))} title="Zoom in">
             <ZoomIn size={18} />
+          </button>
+          <button className="zoom-btn" onClick={handleAutoLayout} title="Ordnen">
+            <LayoutGrid size={18} />
           </button>
           <button className="zoom-btn" onClick={() => setZoom(100)} title="Reset zoom">
             <Maximize2 size={18} />
@@ -619,12 +796,32 @@ export default function NotesPage() {
             </button>
           </div>
 
+          <div className="toolbox-section">
+            <div className="toolbox-section-head">
+              <h3>Verbindungstyp</h3>
+            </div>
+            <div className="connection-type-grid">
+              {CONNECTION_TYPES.map((type) => (
+                <button
+                  key={type.value}
+                  type="button"
+                  className={`connection-type-option ${connectionType === type.value ? 'active' : ''}`}
+                  onClick={() => setConnectionType(type.value)}
+                >
+                  {type.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {quickConnectMode && (
             <div className="toolbox-status-card">
               <Sparkles size={16} />
               <div>
                 <strong>{selectedNote ? 'Ziel-Note wählen' : 'Start-Note wählen'}</strong>
-                <span>Tippe nacheinander zwei Notes an, um sofort einen Verbindungsstrang zu bauen.</span>
+                <span>
+                  Typ: {CONNECTION_TYPE_LABELS[connectionType] || CONNECTION_TYPE_LABELS.related}. Tippe nacheinander zwei Notes an, um sofort einen Verbindungsstrang zu bauen.
+                </span>
               </div>
             </div>
           )}
@@ -801,6 +998,137 @@ export default function NotesPage() {
         </div>
       </div>
         </div>
+
+        <aside className={`notes-context-panel ${activeNote ? 'open' : ''}`}>
+          {!activeNote ? (
+            <div className="context-empty">
+              <h3>Kontext</h3>
+              <p>Klicke eine Note an, um Details, Kommentare, Verbindungen und Termine zu sehen.</p>
+            </div>
+          ) : (
+            <>
+              <div className="context-panel-header">
+                <div>
+                  <div className="context-kicker">Kontext</div>
+                  <h3>{activeNote.title || 'Ohne Titel'}</h3>
+                </div>
+                <button type="button" className="context-close" onClick={() => setActiveNoteId(null)}>
+                  <X size={14} />
+                </button>
+              </div>
+
+              <div className="context-tabs" role="tablist" aria-label="Note Kontext Tabs">
+                {[
+                  { key: 'details', label: 'Details' },
+                  { key: 'comments', label: 'Kommentare' },
+                  { key: 'connections', label: 'Verbindungen' },
+                  { key: 'events', label: 'Termine' },
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    className={`context-tab ${contextTab === tab.key ? 'active' : ''}`}
+                    onClick={() => setContextTab(tab.key)}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {contextTab === 'details' && (
+                <div className="context-pane">
+                  <div className="context-detail-pill">Priorität: {activeNote.importance || 'medium'}</div>
+                  <p className="context-note-body">{activeNote.content || 'Kein Inhalt hinterlegt.'}</p>
+                  <div className="context-meta-list">
+                    <span>Deadline: {activeNote.date ? new Date(activeNote.date).toLocaleDateString('de-DE') : 'Keine'}</span>
+                    <span>Verknüpft: {activeConnections.length} Notes</span>
+                  </div>
+                </div>
+              )}
+
+              {contextTab === 'comments' && (
+                <div className="context-pane">
+                  <div className="context-comments-list">
+                    {activeNoteComments.length === 0 ? (
+                      <p className="context-empty-line">Noch keine Kommentare zu dieser Note.</p>
+                    ) : (
+                      activeNoteComments.map((comment) => (
+                        <div key={comment.id} className="context-comment-item">
+                          <p>{comment.text}</p>
+                          <span>{new Date(comment.createdAt).toLocaleString('de-DE')}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <textarea
+                    className="form-textarea context-comment-input"
+                    rows="3"
+                    placeholder="Kommentar eingeben..."
+                    value={commentDraft}
+                    onChange={(event) => setCommentDraft(event.target.value)}
+                  />
+                  <button type="button" className="btn-primary context-comment-add" onClick={handleAddComment}>
+                    Kommentar hinzufügen
+                  </button>
+                </div>
+              )}
+
+              {contextTab === 'connections' && (
+                <div className="context-pane">
+                  {activeConnections.length === 0 ? (
+                    <p className="context-empty-line">Keine Verbindungen vorhanden.</p>
+                  ) : (
+                    <div className="context-connection-list">
+                      {activeConnections.map((entry) => (
+                        <div key={entry.id} className="context-connection-item">
+                          <div>
+                            <strong>{entry.otherNote.title}</strong>
+                            <span className={`connection-type-badge type-${entry.relationshipType}`}>
+                              {CONNECTION_TYPE_LABELS[entry.relationshipType] || CONNECTION_TYPE_LABELS.related}
+                            </span>
+                          </div>
+                          <button type="button" className="unlink-btn" onClick={() => handleDisconnectNotes(activeNote.id, entry.otherId)}>
+                            Entfernen
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {contextTab === 'events' && (
+                <div className="context-pane">
+                  {activeLinkedTask ? (
+                    <div className="context-task-card">
+                      <strong>{activeLinkedTask.title}</strong>
+                      <span>{formatTaskDate(activeLinkedTask)}</span>
+                      <button type="button" className="btn-secondary" onClick={() => updateNote(activeNote.id, { linked_task_id: null })}>
+                        Termin lösen
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="context-empty-line">Kein Termin verknüpft.</p>
+                  )}
+
+                  <div className="context-task-list">
+                    {pickerTasks.slice(0, 6).map((task) => (
+                      <button
+                        key={task.id}
+                        type="button"
+                        className="context-task-item"
+                        onClick={() => linkNoteToTask(activeNote.id, task.id)}
+                      >
+                        <span>{task.title}</span>
+                        <small>{formatTaskDate(task)}</small>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </aside>
       </div>
 
       {/* Create Button */}
@@ -1157,6 +1485,22 @@ export default function NotesPage() {
               <h2 className="modal-title">Note verknüpfen</h2>
               <p className="modal-description">Mit welcher anderen Note möchtest du diese verknüpfen?</p>
 
+              <div className="form-group">
+                <label className="form-label">Verbindungstyp</label>
+                <div className="connection-type-grid">
+                  {CONNECTION_TYPES.map((type) => (
+                    <button
+                      key={type.value}
+                      type="button"
+                      className={`connection-type-option ${connectionType === type.value ? 'active' : ''}`}
+                      onClick={() => setConnectionType(type.value)}
+                    >
+                      {type.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {modalConnectedEntries.length > 0 && (
                 <>
                   <p className="modal-description">Bestehende Verknüpfungen</p>
@@ -1165,6 +1509,9 @@ export default function NotesPage() {
                       <div key={entry.connectionKey} className="note-item note-item-connected">
                         <div>
                           <div className="note-item-title">{entry.otherNote.title}</div>
+                          <div className={`connection-type-badge type-${entry.relationshipType}`}>
+                            {CONNECTION_TYPE_LABELS[entry.relationshipType] || CONNECTION_TYPE_LABELS.related}
+                          </div>
                           <div className="note-item-preview">{entry.otherNote.content?.substring(0, 50)}...</div>
                         </div>
                         <button
