@@ -43,10 +43,6 @@ export default function TaskDetailModal({ task, onClose, onUpdated }) {
   }, []);
 
   if (!task) return null;
-    return () => mq.removeEventListener('change', handler);
-  }, []);
-
-  if (!task) return null;
 
   const formatDate = (dateStr) => {
     if (!dateStr) return null;
