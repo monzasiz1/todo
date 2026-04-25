@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Plus, ZoomIn, ZoomOut, Maximize2, Share2, Link2, Trash2, Edit2, X, CalendarDays, Sparkles, PanelsTopLeft, Workflow, LayoutGrid } from 'lucide-react';
+import { Plus, ZoomIn, ZoomOut, Maximize2, Share2, Link2, Trash2, Edit2, X, CalendarDays, Sparkles, PanelsTopLeft, Workflow, LayoutGrid, ChevronLeft } from 'lucide-react';
 import { useNotesStore } from '../store/notesStore';
 import { useFriendsStore } from '../store/friendsStore';
 import { useTaskStore } from '../store/taskStore';
@@ -1257,13 +1257,21 @@ export default function NotesPage() {
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="modal-content share-modal create-note-modal"
+              className="modal-content create-note-modal note-editor-modal"
               onClick={(e) => e.stopPropagation()}
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
             >
-              <h2 className="modal-title">Neue Note</h2>
+              <div className="note-editor-head">
+                <div className="note-editor-handle" aria-hidden="true" />
+                <div className="note-editor-topbar">
+                  <button type="button" className="note-editor-back-btn" onClick={() => setShowCreateModal(false)} aria-label="Zurück">
+                    <ChevronLeft size={18} />
+                  </button>
+                  <h2 className="modal-title note-editor-title">Neue Note</h2>
+                </div>
+              </div>
 
               <div className="form-group">
                 <label className="form-label">Titel</label>
@@ -1414,13 +1422,21 @@ export default function NotesPage() {
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="modal-content"
+              className="modal-content note-editor-modal edit-note-modal"
               onClick={(e) => e.stopPropagation()}
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
             >
-              <h2 className="modal-title">Note bearbeiten</h2>
+              <div className="note-editor-head">
+                <div className="note-editor-handle" aria-hidden="true" />
+                <div className="note-editor-topbar">
+                  <button type="button" className="note-editor-back-btn" onClick={() => setEditingNote(null)} aria-label="Zurück">
+                    <ChevronLeft size={18} />
+                  </button>
+                  <h2 className="modal-title note-editor-title">Note bearbeiten</h2>
+                </div>
+              </div>
 
               <div className="form-group">
                 <label className="form-label">Titel</label>
