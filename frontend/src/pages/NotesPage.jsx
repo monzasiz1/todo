@@ -5,6 +5,7 @@ import { useFriendsStore } from '../store/friendsStore';
 import { useTaskStore } from '../store/taskStore';
 import '../styles/notes.css';
 import { motion, AnimatePresence } from 'framer-motion';
+import TaskDetailModal from '../components/TaskDetailModal';
 
 function getPickerSeriesKey(task) {
   if (!task?.recurrence_rule) return null;
@@ -1872,63 +1873,11 @@ export default function NotesPage() {
         </div>
       )}
 
-      <AnimatePresence>
-        {selectedTask && (
-          <motion.div
-            className="modal-overlay"
-            onClick={() => setSelectedTask(null)}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.div
-              className="modal-content task-detail-modal"
-              onClick={(e) => e.stopPropagation()}
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-            >
-              <div className="task-detail-header">
-                <h2 className="task-detail-title">{selectedTask.title}</h2>
-                <div className="task-detail-badge" style={{ background: getImportanceColor(selectedTask.importance || 'medium').bg }}>
-                  {selectedTask.importance === 'high' && '⭐ Wichtig'}
-                  {selectedTask.importance === 'medium' && '● Normal'}
-                  {selectedTask.importance === 'low' && '− Niedrig'}
-                </div>
-              </div>
-
-              <div className="task-detail-grid">
-                <div className="task-detail-row">
-                  <span className="task-detail-label">📌 Typ:</span>
-                  <span className="task-detail-value">{selectedTask.type === 'event' ? 'Termin' : 'Aufgabe'}</span>
-                </div>
-                <div className="task-detail-row">
-                  <span className="task-detail-label">📅 Datum:</span>
-                  <span className="task-detail-value">{formatTaskDate(selectedTask)}</span>
-                </div>
-                {selectedTask.category && (
-                  <div className="task-detail-row">
-                    <span className="task-detail-label">🏷️ Kategorie:</span>
-                    <span className="task-detail-value">{selectedTask.category}</span>
-                  </div>
-                )}
-                {selectedTask.description && (
-                  <div className="task-detail-row">
-                    <span className="task-detail-label">📝 Beschreibung:</span>
-                    <span className="task-detail-value" style={{ whiteSpace: 'pre-wrap' }}>{selectedTask.description}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={() => setSelectedTask(null)}>
-                  Schließen
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <TaskDetailModal
+        task={selectedTask}
+        onClose={() => setSelectedTask(null)}
+        onUpdated={() => fetchTasks?.({ limit: '2000', completed: 'false' }, { force: true })}
+      />
 
         <aside className={`notes-context-panel ${activeNote ? 'open' : ''}`}>
           {!activeNote ? (
