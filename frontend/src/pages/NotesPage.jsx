@@ -1172,6 +1172,9 @@ export default function NotesPage() {
         blockerIds: [],
         unresolvedIds: [],
         resolvedIds: [],
+        dependentIds: [],
+        belongsToParentId: null,
+        childIds: [],
       };
     });
 
@@ -1190,19 +1193,37 @@ export default function NotesPage() {
 
     connections.forEach((connection) => {
       const relationshipType = String(connection?.relationship_type || 'related');
-      const blockerId = String(connection?.note_id_1 || connection?.noteId1 || '');
-      const blockedId = String(connection?.note_id_2 || connection?.noteId2 || '');
+      const noteId1 = String(connection?.note_id_1 || connection?.noteId1 || '');
+      const noteId2 = String(connection?.note_id_2 || connection?.noteId2 || '');
+      if (!noteId1 || !noteId2) return;
 
-      if (!blockerId || !blockedId) return;
+      if (relationshipType === 'belongs_to') {
+        // noteId1 gehoert zu noteId2 (Kind -> Parent)
+        if (state[noteId1]) state[noteId1].belongsToParentId = noteId2;
+        if (state[noteId2]) state[noteId2].childIds.push(noteId1);
+        return;
+      }
+
       if (!['depends_on', 'blocks'].includes(relationshipType)) return;
-      if (!state[blockedId]) return;
+
+      // blocks: note1 blockiert note2
+      // depends_on: note1 haengt von note2 ab
+      const blockerId = relationshipType === 'depends_on' ? noteId2 : noteId1;
+      const blockedId = relationshipType === 'depends_on' ? noteId1 : noteId2;
+
+      if (!state[blockedId] || !state[blockerId]) return;
 
       state[blockedId].blockerIds.push(blockerId);
+      state[blockerId].dependentIds.push(blockedId);
     });
 
     Object.keys(state).forEach((noteId) => {
       const uniqueBlockers = [...new Set(state[noteId].blockerIds)].filter((id) => id !== noteId);
+      const uniqueDependents = [...new Set(state[noteId].dependentIds)].filter((id) => id !== noteId);
+      const uniqueChildren = [...new Set(state[noteId].childIds)].filter((id) => id !== noteId);
       state[noteId].blockerIds = uniqueBlockers;
+      state[noteId].dependentIds = uniqueDependents;
+      state[noteId].childIds = uniqueChildren;
       state[noteId].resolvedIds = uniqueBlockers.filter((id) => isNoteCompleted(id));
       state[noteId].unresolvedIds = uniqueBlockers.filter((id) => !isNoteCompleted(id));
     });
@@ -1346,6 +1367,27 @@ export default function NotesPage() {
       .filter(Boolean)
     : [];
   const activeNoteComments = activeNote ? (noteComments[String(activeNote.id)] || []) : [];
+  const selectedNoteTitle = selectedNote
+    ? (notesById.get(String(selectedNote))?.title || 'ausgewaehlte Note')
+    : null;
+
+  const quickConnectHeadline = !selectedNote
+    ? 'Start-Note waehlen'
+    : connectionType === 'depends_on'
+      ? `Wovon haengt "${selectedNoteTitle}" ab?`
+      : connectionType === 'blocks'
+        ? `Was wird von "${selectedNoteTitle}" blockiert?`
+        : connectionType === 'belongs_to'
+          ? `Wozu gehoert "${selectedNoteTitle}"?`
+          : `Womit ist "${selectedNoteTitle}" verwandt?`;
+
+  const quickConnectHint = connectionType === 'depends_on'
+    ? 'Reihenfolge: 1) abhaengige Note, 2) Voraussetzung/Blocker.'
+    : connectionType === 'blocks'
+      ? 'Reihenfolge: 1) blockierende Note, 2) blockierte Note.'
+      : connectionType === 'belongs_to'
+        ? 'Reihenfolge: 1) Kind-Note, 2) Parent-Note.'
+        : 'Reihenfolge: 1) Start-Note, 2) verknuepfte Note.';
 
   const getNoteGeometry = (noteId) => {
     const note = notes.find((entry) => String(entry.id) === String(noteId));
@@ -1675,9 +1717,9 @@ export default function NotesPage() {
             <div className="toolbox-status-card">
               <Sparkles size={16} />
               <div>
-                <strong>{selectedNote ? 'Ziel-Note wählen' : 'Start-Note wählen'}</strong>
+                <strong>{quickConnectHeadline}</strong>
                 <span>
-                  Typ: {CONNECTION_TYPE_LABELS[connectionType] || CONNECTION_TYPE_LABELS.related}. Tippe nacheinander zwei Notes an, um sofort einen Verbindungsstrang zu bauen.
+                  Typ: {CONNECTION_TYPE_LABELS[connectionType] || CONNECTION_TYPE_LABELS.related}. {quickConnectHint}
                 </span>
               </div>
             </div>
@@ -1797,6 +1839,11 @@ export default function NotesPage() {
               const hasDependency = dependencyState.blockerIds.length > 0;
               const isBlockedByDependency = hasDependency && dependencyState.unresolvedIds.length > 0;
               const isDependencyReady = hasDependency && dependencyState.unresolvedIds.length === 0;
+              const dependentCount = dependencyState.dependentIds?.length || 0;
+              const parentNoteTitle = dependencyState.belongsToParentId
+                ? (notesById.get(String(dependencyState.belongsToParentId))?.title || 'unbekannt')
+                : null;
+              const childCount = dependencyState.childIds?.length || 0;
               const unresolvedNames = dependencyState.unresolvedIds
                 .map((id) => notesById.get(String(id))?.title || `Note ${id}`)
                 .slice(0, 2);
@@ -1858,6 +1905,27 @@ export default function NotesPage() {
                           <span>Abhängigkeiten erfüllt</span>
                         </>
                       )}
+                    </div>
+                  )}
+
+                  {dependentCount > 0 && (
+                    <div className="note-relation-state blocking" title="Diese Note blockiert andere Notes">
+                      <strong>Blockiert</strong>
+                      <span>{dependentCount} {dependentCount === 1 ? 'Note' : 'Notes'}</span>
+                    </div>
+                  )}
+
+                  {parentNoteTitle && (
+                    <div className="note-relation-state hierarchy" title={`Diese Note gehoert zu ${parentNoteTitle}`}>
+                      <strong>Gehoert zu</strong>
+                      <span>{parentNoteTitle}</span>
+                    </div>
+                  )}
+
+                  {childCount > 0 && (
+                    <div className="note-relation-state children" title="Untergeordnete Notes">
+                      <strong>Enthaelt</strong>
+                      <span>{childCount} {childCount === 1 ? 'Unter-Note' : 'Unter-Notes'}</span>
                     </div>
                   )}
 
@@ -2043,7 +2111,7 @@ export default function NotesPage() {
               setCanvasContextMenu(null);
             }}
           >
-            ✨ Neue Note erstellen
+            Neue Note erstellen
           </button>
           <button
             type="button"
@@ -2053,7 +2121,7 @@ export default function NotesPage() {
               setCanvasContextMenu(null);
             }}
           >
-            {quickConnectMode ? '🔗 Quick Connect beenden' : '🔗 Quick Connect starten'}
+            {quickConnectMode ? 'Quick Connect beenden' : 'Quick Connect starten'}
           </button>
           <button
             type="button"
@@ -2063,7 +2131,7 @@ export default function NotesPage() {
               setCanvasContextMenu(null);
             }}
           >
-            🧠 Auto-Layout
+            Auto-Layout
           </button>
           <button
             type="button"
@@ -2073,10 +2141,10 @@ export default function NotesPage() {
               setCanvasContextMenu(null);
             }}
           >
-            🔍 Zoom automatisch
+            Zoom automatisch
           </button>
           <div className="notes-canvas-menu-divider" />
-          <div className="notes-canvas-menu-hint">Meeting-Teilnehmer automatisch: folgt als Nächstes</div>
+          <div className="notes-canvas-menu-hint">Weitere Optionen folgen</div>
         </div>
       )}
 

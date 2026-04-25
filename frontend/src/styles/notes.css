@@ -976,6 +976,52 @@
   color: #6ee7b7;
 }
 
+.note-relation-state {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border-radius: 10px;
+  padding: 7px 9px;
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.note-relation-state strong {
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.note-relation-state.blocking {
+  background: color-mix(in srgb, #ef4444 11%, var(--card));
+  border: 1px solid rgba(239, 68, 68, 0.32);
+  color: #b91c1c;
+}
+
+.note-relation-state.hierarchy {
+  background: color-mix(in srgb, #2563eb 10%, var(--card));
+  border: 1px solid rgba(37, 99, 235, 0.28);
+  color: #1d4ed8;
+}
+
+.note-relation-state.children {
+  background: color-mix(in srgb, #4f46e5 10%, var(--card));
+  border: 1px solid rgba(79, 70, 229, 0.26);
+  color: #4338ca;
+}
+
+.dark .note-relation-state.blocking {
+  color: #fca5a5;
+}
+
+.dark .note-relation-state.hierarchy {
+  color: #93c5fd;
+}
+
+.dark .note-relation-state.children {
+  color: #c7d2fe;
+}
+
 .note-card.note-low {
   background: linear-gradient(145deg, rgba(52, 199, 89, 0.08), var(--card-solid) 62%);
   border-color: color-mix(in srgb, var(--success) 28%, var(--border));
@@ -1884,30 +1930,30 @@
 .notes-canvas-context-menu {
   position: fixed;
   z-index: 1200;
-  min-width: 236px;
-  padding: 8px;
-  border-radius: 12px;
+  min-width: 192px;
+  max-width: 216px;
+  padding: 6px;
+  border-radius: 9px;
   border: 1px solid var(--border);
-  background: color-mix(in srgb, var(--card-solid) 90%, rgba(255, 255, 255, 0.62));
-  box-shadow: 0 18px 34px rgba(2, 8, 24, 0.2);
-  backdrop-filter: blur(10px);
+  background: var(--card-solid);
+  box-shadow: 0 8px 20px rgba(2, 8, 24, 0.14);
 }
 
 .notes-canvas-menu-item {
   width: 100%;
   border: 1px solid transparent;
   background: transparent;
-  border-radius: 9px;
+  border-radius: 7px;
   color: var(--text);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12.5px;
+  font-weight: 500;
   text-align: left;
-  padding: 9px 10px;
+  padding: 7px 9px;
 }
 
 .notes-canvas-menu-item:hover {
-  background: color-mix(in srgb, var(--primary-bg) 74%, var(--card));
-  border-color: color-mix(in srgb, var(--primary) 22%, var(--border));
+  background: color-mix(in srgb, var(--bg) 80%, var(--card));
+  border-color: var(--border);
 }
 
 .notes-canvas-menu-divider {
@@ -1917,8 +1963,8 @@
 }
 
 .notes-canvas-menu-hint {
-  padding: 2px 8px 4px;
-  font-size: 11px;
+  padding: 3px 8px 2px;
+  font-size: 10.5px;
   color: var(--text-secondary);
 }
 
