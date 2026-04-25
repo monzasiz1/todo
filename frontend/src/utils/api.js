@@ -518,6 +518,12 @@ export const api = {
       body: JSON.stringify({ action: 'share', id: noteId, ...data }),
     }),
 
+  unshareNote: (noteId, friendId) =>
+    request('/notes', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'unshare', id: noteId, friend_id: friendId }),
+    }),
+
   getSharedNotes: () => request('/notes?view=shared'),
 
   connectNotes: (noteId1, noteId2, relationshipType = 'related') =>

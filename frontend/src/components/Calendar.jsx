@@ -87,6 +87,64 @@ const isEventEnded = (task, nowTs = Date.now()) => {
   return !!end && end.getTime() < nowTs;
 };
 
+const buildOverlapLaneMap = (tasks, getRange) => {
+  const normalized = (Array.isArray(tasks) ? tasks : [])
+    .map((task) => {
+      const range = getRange?.(task);
+      if (!range) return null;
+      const start = Number(range.start);
+      const end = Number(range.end);
+      if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+      return {
+        id: String(task.id),
+        start,
+        end: Math.max(start + 1, end),
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => (a.start - b.start) || (a.end - b.end));
+
+  const laneMap = new Map();
+  let active = [];
+  let clusterIds = new Set();
+  let clusterMaxLane = -1;
+
+  const flushCluster = () => {
+    if (clusterIds.size === 0) return;
+    const laneCount = Math.max(1, clusterMaxLane + 1);
+    clusterIds.forEach((id) => {
+      const existing = laneMap.get(id) || { lane: 0, laneCount: 1 };
+      laneMap.set(id, { ...existing, laneCount });
+    });
+    clusterIds = new Set();
+    clusterMaxLane = -1;
+  };
+
+  normalized.forEach((entry) => {
+    active = active.filter((activeEntry) => activeEntry.end > entry.start);
+    if (active.length === 0) {
+      flushCluster();
+    }
+
+    const usedLanes = new Set(active.map((activeEntry) => activeEntry.lane));
+    let lane = 0;
+    while (usedLanes.has(lane)) lane += 1;
+
+    const current = { id: entry.id, lane, end: entry.end };
+    active.push(current);
+    laneMap.set(entry.id, { lane, laneCount: 1 });
+
+    clusterIds.add(entry.id);
+    active.forEach((activeEntry) => {
+      clusterIds.add(activeEntry.id);
+      if (activeEntry.lane > clusterMaxLane) clusterMaxLane = activeEntry.lane;
+    });
+  });
+
+  flushCluster();
+  return laneMap;
+};
+
 // ── Throttle helper for smooth drag ──
 const throttle = (fn, delay) => {
   let lastRun = 0;
@@ -861,6 +919,27 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       const taskEnd = (t.date_end || t.date).substring(0, 10);
       return taskStart <= weekEndStr && taskEnd >= weekStartStr;
     });
+    const desktopOverlapByDate = new Map(
+      days.map((d) => {
+        const dayKey = format(d, 'yyyy-MM-dd');
+        const sameDayTimed = weekTimedTasks.filter((t) => {
+          const startKey = String(t.date || '').slice(0, 10);
+          const endKey = String(t.date_end || t.date || '').slice(0, 10);
+          return startKey === dayKey && endKey === dayKey;
+        });
+
+        const laneMap = buildOverlapLaneMap(sameDayTimed, (task) => {
+          const start = timeToMinutes(task.time) ?? (startHour * 60);
+          const rawEnd = timeToMinutes(task.time_end);
+          const end = rawEnd && rawEnd > start ? rawEnd : start + 60;
+          const clampedStart = Math.max(startHour * 60, start);
+          const clampedEnd = Math.min(endHour * 60, end);
+          return { start: clampedStart, end: clampedEnd };
+        });
+
+        return [dayKey, laneMap];
+      })
+    );
 
     return (
       <div className="desktop-week-layout">
@@ -1028,17 +1107,28 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   const startIdx = differenceInCalendarDays(parseISO(liveSpanStart), parseISO(weekStartStr));
                   const endIdx = differenceInCalendarDays(parseISO(liveSpanEnd), parseISO(weekStartStr));
                   const spanDays = Math.max(1, endIdx - startIdx + 1);
+                  const isSingleDay = liveSpanStart === liveSpanEnd;
 
                   const top = ((liveCStart - startHour * 60) / 60) * hourHeight;
                   const height = Math.max(24, ((liveCEnd - liveCStart) / 60) * hourHeight - 2);
+
+                  const laneMeta = isSingleDay
+                    ? desktopOverlapByDate.get(liveSpanStart)?.get(String(t.id))
+                    : null;
+                  const lane = laneMeta?.lane ?? 0;
+                  const laneCount = Math.max(1, laneMeta?.laneCount || 1);
+                  const dayPercent = 100 / 7;
+                  const lanePercent = dayPercent / laneCount;
+                  const singleDayLeft = `calc(${(startIdx * dayPercent) + (lane * lanePercent)}% + 4px)`;
+                  const singleDayWidth = `calc(${lanePercent}% - 8px)`;
 
                   return (
                     <div
                       key={t.id}
                       className={`desktop-week-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
                       style={{
-                        left: `calc((100% / 7) * ${startIdx} + 4px)`,
-                        width: `calc((100% / 7) * ${spanDays} - 8px)`,
+                        left: isSingleDay ? singleDayLeft : `calc((100% / 7) * ${startIdx} + 4px)`,
+                        width: isSingleDay ? singleDayWidth : `calc((100% / 7) * ${spanDays} - 8px)`,
                         top: `${top}px`,
                         height: `${height}px`,
                         background: ended ? 'rgba(142, 142, 147, 0.72)' : (t.group_color || t.category_color || '#4C7BD9'),
@@ -1168,6 +1258,14 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
           <div className="mobile-week-grid-cols">
             {days.map((d, di) => {
               const dayTasks = getTasksForDate(d).filter((t) => t.time);
+              const dayLaneMap = buildOverlapLaneMap(dayTasks, (task) => {
+                const start = timeToMins(task.time) ?? (mwStartH * 60);
+                const rawEnd = timeToMins(task.time_end);
+                const end = rawEnd && rawEnd > start ? rawEnd : start + 60;
+                const clampedStart = Math.max(mwStartH * 60, start);
+                const clampedEnd = Math.min(mwEndH * 60, end);
+                return { start: clampedStart, end: clampedEnd };
+              });
               return (
                 <div
                   key={`mwcol-${d.toISOString()}`}
@@ -1202,6 +1300,10 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
 
                     const top    = ((liveCStart - mwStartH * 60) / 60) * mwHourH;
                     const height = Math.max(16, ((liveCEnd - liveCStart) / 60) * mwHourH - 2);
+                    const laneMeta = dayLaneMap.get(String(t.id));
+                    const lane = laneMeta?.lane ?? 0;
+                    const laneCount = Math.max(1, laneMeta?.laneCount || 1);
+                    const lanePercent = 100 / laneCount;
 
                     return (
                       <div
@@ -1209,6 +1311,9 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         className={`mobile-week-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
                         style={{
                           top: `${top}px`, height: `${height}px`,
+                          left: `calc(${lane * lanePercent}% + 1px)`,
+                          width: `calc(${lanePercent}% - 2px)`,
+                          right: 'auto',
                           background: ended ? 'rgba(142, 142, 147, 0.72)' : (t.group_color || t.category_color || '#4C7BD9'),
                           touchAction: 'none',
                         }}
@@ -1289,6 +1394,14 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
 
     const allDayTasks = dayTasks.filter((t) => !t.time);
     const timedTasks  = dayTasks.filter((t) => t.time);
+    const timedLaneMap = buildOverlapLaneMap(timedTasks, (task) => {
+      const start = toMinutes(task.time) ?? (startHour * 60);
+      const rawEnd = toMinutes(task.time_end);
+      const end = rawEnd && rawEnd > start ? rawEnd : start + 60;
+      const clampedStart = Math.max(startHour * 60, start);
+      const clampedEnd = Math.min(endHour * 60, end);
+      return { start: clampedStart, end: clampedEnd };
+    });
 
     return (
       <div className="mobile-day-view">
@@ -1358,12 +1471,22 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
 
             const top    = ((liveClampedStart - startHour * 60) / 60) * hourHeight;
             const height = Math.max(36, ((liveClampedEnd - liveClampedStart) / 60) * hourHeight - 4);
+            const laneMeta = timedLaneMap.get(String(t.id));
+            const lane = laneMeta?.lane ?? 0;
+            const laneCount = Math.max(1, laneMeta?.laneCount || 1);
+            const availableLeft = 58;
+            const availableWidth = 100 - availableLeft;
+            const laneWidth = availableWidth / laneCount;
+            const laneLeft = availableLeft + (lane * laneWidth);
 
             return (
               <div
                 key={t.id}
                 className={`mobile-day-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
                 style={{
+                  left: `${laneLeft}%`,
+                  width: `${laneWidth}%`,
+                  right: 'auto',
                   top: `${top}px`,
                   height: `${height}px`,
                   background: ended ? 'rgba(142, 142, 147, 0.72)' : (t.group_color || t.category_color || '#4C7BD9'),

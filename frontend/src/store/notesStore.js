@@ -146,6 +146,17 @@ export const useNotesStore = create((set, get) => ({
     }
   },
 
+  // Remove note share for friend
+  unshareNoteForFriend: async (noteId, friendId) => {
+    try {
+      const result = await api.unshareNote?.(noteId, friendId);
+      return result;
+    } catch (err) {
+      set({ error: err.message });
+      throw err;
+    }
+  },
+
   // Get notes shared with me
   getSharedNotes: async () => {
     try {

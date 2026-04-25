@@ -660,6 +660,54 @@ module.exports = async function handler(req, res) {
       return res.status(201).json({ share: shared.rows[0] });
     }
 
+    // POST /api/notes/:id/unshare
+    if (
+      (segments.length === 2 && ['unshare', 'remove-share', 'unshare-friend'].includes(segments[1]) && req.method === 'POST') ||
+      (isLegacyNoteAction && req.method === 'POST' && ['unshare', 'remove-share'].includes(legacyMethod)) ||
+      (isRootAction && ['unshare', 'remove-share'].includes(rootAction))
+    ) {
+      if (!isOwner) {
+        return res.status(403).json({ error: 'Nur Eigentuemer kann Freigaben entfernen' });
+      }
+
+      const { friend_id } = req.body || {};
+      const friendIdText = String(friend_id || '').trim();
+      if (!friendIdText) {
+        return res.status(400).json({ error: 'friend_id ist erforderlich' });
+      }
+
+      const existingTarget = await pool.query(
+        `SELECT friend_id
+           FROM note_shares
+          WHERE note_id = $1
+            AND friend_id::text = $2
+          LIMIT 1`,
+        [noteId, friendIdText]
+      );
+
+      let targetUserId = existingTarget.rows[0]?.friend_id || null;
+      if (!targetUserId) {
+        targetUserId = await resolveFriendUserId(pool, friend_id, user.id);
+      }
+
+      if (!targetUserId) {
+        return res.status(400).json({ error: 'friend_id ist ungueltig' });
+      }
+
+      const removed = await pool.query(
+        `DELETE FROM note_shares
+          WHERE note_id = $1
+            AND friend_id = $2
+          RETURNING *`,
+        [noteId, targetUserId]
+      );
+
+      return res.status(200).json({
+        removed: removed.rows.length > 0,
+        share: removed.rows[0] || null,
+      });
+    }
+
     // GET /api/notes/:id/connections
     if (
       (segments.length === 2 && segments[1] === 'connections' && req.method === 'GET') ||

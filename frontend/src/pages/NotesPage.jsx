@@ -124,7 +124,7 @@ function writeNotePeopleCache(data) {
 }
 
 export default function NotesPage() {
-  const { notes, createNote, updateNote, deleteNote, linkNoteToTask, shareNoteWithFriend, connectNotes, disconnectNotes, getNoteConnections } = useNotesStore();
+  const { notes, createNote, updateNote, deleteNote, linkNoteToTask, shareNoteWithFriend, unshareNoteForFriend, connectNotes, disconnectNotes, getNoteConnections } = useNotesStore();
   const { friends, fetchFriends } = useFriendsStore();
   const { tasks, fetchTasks } = useTaskStore();
 
@@ -666,6 +666,38 @@ export default function NotesPage() {
           personId,
           String(personId) === String(responsibleId || '') ? 'edit' : 'view'
         ).catch(() => null)
+      )
+    );
+  };
+
+  const syncRemovedParticipants = async (
+    noteId,
+    previousParticipantIds = [],
+    previousResponsibleId = null,
+    nextParticipantIds = [],
+    nextResponsibleId = null
+  ) => {
+    if (!noteId) return;
+
+    const previousIds = new Set(
+      [
+        ...((previousParticipantIds || []).map(String)),
+        previousResponsibleId ? String(previousResponsibleId) : null,
+      ].filter(Boolean)
+    );
+    const nextIds = new Set(
+      [
+        ...((nextParticipantIds || []).map(String)),
+        nextResponsibleId ? String(nextResponsibleId) : null,
+      ].filter(Boolean)
+    );
+
+    const removedIds = [...previousIds].filter((id) => !nextIds.has(id));
+    if (removedIds.length === 0) return;
+
+    await Promise.all(
+      removedIds.map((personId) =>
+        unshareNoteForFriend(noteId, personId).catch(() => null)
       )
     );
   };
@@ -1724,6 +1756,10 @@ export default function NotesPage() {
                   className="btn-primary"
                   onClick={async () => {
                     try {
+                      const previousPeople = getPeopleForNote(editingNote.id);
+                      const nextParticipantIds = Array.isArray(editingNote.participant_ids) ? editingNote.participant_ids : [];
+                      const nextResponsibleId = editingNote.responsible_user_id || null;
+
                       await updateNote(editingNote.id, {
                         title: editingNote.title,
                         content: editingNote.content,
@@ -1731,13 +1767,20 @@ export default function NotesPage() {
                         date: editingNote.date || null,
                       });
                       updatePeopleForNote(editingNote.id, {
-                        participant_ids: Array.isArray(editingNote.participant_ids) ? editingNote.participant_ids : [],
-                        responsible_user_id: editingNote.responsible_user_id || null,
+                        participant_ids: nextParticipantIds,
+                        responsible_user_id: nextResponsibleId,
                       });
                       await syncParticipantsToShare(
                         editingNote.id,
-                        Array.isArray(editingNote.participant_ids) ? editingNote.participant_ids : [],
-                        editingNote.responsible_user_id || null
+                        nextParticipantIds,
+                        nextResponsibleId
+                      );
+                      await syncRemovedParticipants(
+                        editingNote.id,
+                        Array.isArray(previousPeople.participant_ids) ? previousPeople.participant_ids : [],
+                        previousPeople.responsible_user_id || null,
+                        nextParticipantIds,
+                        nextResponsibleId
                       );
                       setEditingNote(null);
                     } catch (err) {
