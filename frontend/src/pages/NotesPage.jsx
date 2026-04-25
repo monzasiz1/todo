@@ -147,6 +147,9 @@ export default function NotesPage() {
     if (w >= 640)  return 75;
     return 65;
   });
+  const [mobileViewMode, setMobileViewMode] = useState('grid'); // 'grid' | 'canvas'
+  const [mobileSearch, setMobileSearch] = useState('');
+  const [mobileFilter, setMobileFilter] = useState('all'); // 'all' | 'high' | 'medium' | 'low'
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingNote, setEditingNote] = useState(null);
   const [selectedNote, setSelectedNote] = useState(null);
@@ -1116,43 +1119,222 @@ export default function NotesPage() {
             <h2>Notizen</h2>
             <p>Visuell planen, verbinden und direkt aus vorhandenen Terminen weiterdenken</p>
           </div>
-          <div className="notes-mobile-tools">
-            <button type="button" className={`header-tool-btn ${toolboxOpen ? 'active' : ''}`} onClick={() => setToolboxOpen((prev) => !prev)}>
-              <PanelsTopLeft size={16} />
-              <span>Tools</span>
-            </button>
-            <button type="button" className="header-tool-btn primary" onClick={() => openBlankCreateModal()}>
-              <Plus size={16} />
-              <span>Neu</span>
-            </button>
-            <button type="button" className={`header-tool-btn ${quickConnectMode ? 'active' : ''}`} onClick={handleQuickConnectToggle}>
-              <Link2 size={16} />
-              <span>Connect</span>
-            </button>
-          </div>
+
+          {/* Mobile Header Tools */}
+          {isMobileView && (
+            <div className="notes-mobile-tools">
+              <div className="notes-mobile-view-toggle">
+                <button
+                  type="button"
+                  className={`nmvt-btn ${mobileViewMode === 'grid' ? 'active' : ''}`}
+                  onClick={() => setMobileViewMode('grid')}
+                >
+                  <LayoutGrid size={15} />
+                  <span>Liste</span>
+                </button>
+                <button
+                  type="button"
+                  className={`nmvt-btn ${mobileViewMode === 'canvas' ? 'active' : ''}`}
+                  onClick={() => setMobileViewMode('canvas')}
+                >
+                  <Maximize2 size={15} />
+                  <span>Tafel</span>
+                </button>
+              </div>
+              {mobileViewMode === 'canvas' && (
+                <>
+                  <button type="button" className={`header-tool-btn ${quickConnectMode ? 'active' : ''}`} onClick={handleQuickConnectToggle}>
+                    <Link2 size={16} />
+                  </button>
+                  <button type="button" className="header-tool-btn" onClick={handleAutoLayout}>
+                    <LayoutGrid size={16} />
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Desktop Mobile Tools */}
+          {!isMobileView && (
+            <div className="notes-mobile-tools" style={{ display: 'none' }} />
+          )}
+
           {quickConnectMode && (
             <div className="notes-compact-status">
               {selectedNote ? 'Zweite Note wählen' : 'Quick Connect aktiv'}
             </div>
           )}
         </div>
-        <div className="notes-controls">
-          <button className="zoom-btn" onClick={() => setZoom(Math.max(25, zoom - 10))} title="Zoom out">
-            <ZoomOut size={18} />
-          </button>
-          <span className="zoom-display">{zoom}%</span>
-          <button className="zoom-btn" onClick={() => setZoom(Math.min(200, zoom + 10))} title="Zoom in">
-            <ZoomIn size={18} />
-          </button>
-          <button className="zoom-btn" onClick={handleAutoLayout} title="Ordnen">
-            <LayoutGrid size={18} />
-          </button>
-          <button className="zoom-btn" onClick={() => setZoom(100)} title="Reset zoom">
-            <Maximize2 size={18} />
-          </button>
-        </div>
+        {/* Zoom controls — desktop only */}
+        {!isMobileView && (
+          <div className="notes-controls">
+            <button className="zoom-btn" onClick={() => setZoom(Math.max(25, zoom - 10))} title="Zoom out">
+              <ZoomOut size={18} />
+            </button>
+            <span className="zoom-display">{zoom}%</span>
+            <button className="zoom-btn" onClick={() => setZoom(Math.min(200, zoom + 10))} title="Zoom in">
+              <ZoomIn size={18} />
+            </button>
+            <button className="zoom-btn" onClick={handleAutoLayout} title="Ordnen">
+              <LayoutGrid size={18} />
+            </button>
+            <button className="zoom-btn" onClick={() => setZoom(100)} title="Reset zoom">
+              <Maximize2 size={18} />
+            </button>
+          </div>
+        )}
       </div>
 
+      {/* ── Mobile Grid View ────────────────────────────────────────── */}
+      {isMobileView && mobileViewMode === 'grid' && (() => {
+        const q = mobileSearch.toLowerCase();
+        const filtered = notes.filter((n) => {
+          if (mobileFilter !== 'all' && n.importance !== mobileFilter) return false;
+          if (q && !n.title?.toLowerCase().includes(q) && !n.content?.toLowerCase().includes(q)) return false;
+          return true;
+        });
+
+        return (
+          <div className="notes-mobile-list-view">
+            {/* Search */}
+            <div className="nmlv-search-bar">
+              <input
+                className="nmlv-search-input"
+                placeholder="Notizen suchen…"
+                value={mobileSearch}
+                onChange={(e) => setMobileSearch(e.target.value)}
+              />
+              {mobileSearch && (
+                <button className="nmlv-search-clear" onClick={() => setMobileSearch('')} type="button">
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            {/* Filter chips */}
+            <div className="nmlv-filters">
+              {[
+                { value: 'all',    label: 'Alle' },
+                { value: 'high',   label: '🔥 Hoch' },
+                { value: 'medium', label: '● Mittel' },
+                { value: 'low',    label: '− Niedrig' },
+              ].map((f) => (
+                <button
+                  key={f.value}
+                  type="button"
+                  className={`nmlv-filter-chip ${mobileFilter === f.value ? 'active' : ''}`}
+                  onClick={() => setMobileFilter(f.value)}
+                >
+                  {f.label}
+                </button>
+              ))}
+              <span className="nmlv-count">{filtered.length} Notiz{filtered.length !== 1 ? 'en' : ''}</span>
+            </div>
+
+            {/* Notes grid */}
+            {filtered.length === 0 ? (
+              <div className="nmlv-empty">
+                <div className="nmlv-empty-icon">📝</div>
+                <p>{notes.length === 0 ? 'Noch keine Notizen' : 'Keine Treffer'}</p>
+                {notes.length === 0 && (
+                  <button className="nmlv-empty-btn" onClick={() => openBlankCreateModal()} type="button">
+                    <Plus size={16} /> Erste Notiz erstellen
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="nmlv-grid">
+                {filtered.map((note) => {
+                  const notePeople = getPeopleForNote(note.id);
+                  const responsibleName = notePeople.responsible_user_id
+                    ? resolvePersonName(notePeople.responsible_user_id)
+                    : null;
+                  const linked = linkedTask(note.id);
+                  const urgent = isUrgent(note.date);
+                  return (
+                    <div
+                      key={note.id}
+                      className={`nmlv-card nmlv-card-${note.importance} ${urgent ? 'nmlv-card-urgent' : ''}`}
+                      onClick={() => {
+                        const people = getPeopleForNote(note.id);
+                        setEditingNote({ ...note, participant_ids: people.participant_ids, responsible_user_id: people.responsible_user_id });
+                      }}
+                    >
+                      {/* Importance bar */}
+                      <div className={`nmlv-card-bar imp-${note.importance}`} />
+
+                      <div className="nmlv-card-body">
+                        <div className="nmlv-card-header">
+                          <h3 className="nmlv-card-title">{note.title}</h3>
+                          <button
+                            type="button"
+                            className="nmlv-card-delete"
+                            onClick={(e) => { e.stopPropagation(); deleteNote(note.id); }}
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+
+                        {note.content && (
+                          <p className="nmlv-card-content">{note.content}</p>
+                        )}
+
+                        <div className="nmlv-card-meta">
+                          {note.date && (
+                            <span className={`nmlv-meta-chip ${urgent ? 'urgent' : ''}`}>
+                              📅 {new Date(note.date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}
+                            </span>
+                          )}
+                          {linked && (
+                            <span className="nmlv-meta-chip link">
+                              📌 {linked.title?.slice(0, 20)}
+                            </span>
+                          )}
+                          {connections.some((c) =>
+                            String(c.note_id_1 || c.noteId1) === String(note.id) ||
+                            String(c.note_id_2 || c.noteId2) === String(note.id)
+                          ) && (
+                            <span className="nmlv-meta-chip connect">
+                              <Link2 size={10} /> Verbunden
+                            </span>
+                          )}
+                        </div>
+
+                        {(responsibleName || notePeople.participant_ids.length > 0) && (
+                          <div className="nmlv-card-people">
+                            {responsibleName && (
+                              <span className="nmlv-person-chip responsible">👑 {responsibleName}</span>
+                            )}
+                            {notePeople.participant_ids
+                              .filter((id) => id !== String(notePeople.responsible_user_id))
+                              .slice(0, 2)
+                              .map((id) => (
+                                <span key={id} className="nmlv-person-chip">{resolvePersonName(id)}</span>
+                              ))}
+                            {notePeople.participant_ids.filter((id) => id !== String(notePeople.responsible_user_id)).length > 2 && (
+                              <span className="nmlv-person-chip more">
+                                +{notePeople.participant_ids.filter((id) => id !== String(notePeople.responsible_user_id)).length - 2}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* FAB */}
+            <button className="nmlv-fab" onClick={() => openBlankCreateModal()} type="button">
+              <Plus size={24} />
+            </button>
+          </div>
+        );
+      })()}
+
+      {/* ── Canvas / Desktop Workspace ───────────────────────────────── */}
+      {(!isMobileView || mobileViewMode === 'canvas') && (
       <div className="notes-workspace">
         <aside className={`notes-toolbox ${toolboxOpen ? 'open' : ''}`}>
           <div className="toolbox-header">
@@ -1589,8 +1771,9 @@ export default function NotesPage() {
           )}
         </aside>
       </div>
+      )} {/* end canvas/desktop workspace */}
 
-      {/* Create Button */}
+      {/* Create Button — Desktop only */}
       <motion.button
         className="create-note-btn"
         onClick={() => openBlankCreateModal()}

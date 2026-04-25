@@ -1,5 +1,138 @@
 /* Notes Page Styles - Mobile First */
 
+/* ── Mobile View Toggle (Liste/Tafel) in Header ── */
+.notes-mobile-view-toggle {
+  display: flex;
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--border);
+}
+.nmvt-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.nmvt-btn.active { background: #fff; color: #007AFF; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+
+/* ── Mobile List View ── */
+.notes-mobile-list-view {
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column;
+  overflow: hidden; position: relative;
+  padding-bottom: 90px;
+}
+.nmlv-search-bar { display: flex; align-items: center; gap: 8px; padding: 0 16px 12px; position: relative; }
+.nmlv-search-input {
+  flex: 1; height: 42px; padding: 0 40px 0 16px;
+  border-radius: 12px; border: 1.5px solid var(--border);
+  background: var(--card-solid); color: var(--text);
+  font-size: 14px; font-family: inherit; outline: none; transition: border-color 0.15s;
+}
+.nmlv-search-input:focus { border-color: #007AFF; }
+.nmlv-search-input::placeholder { color: var(--text-tertiary); }
+.nmlv-search-clear {
+  position: absolute; right: 28px; top: 50%; transform: translateY(-56%);
+  width: 24px; height: 24px; border-radius: 50%; border: none;
+  background: var(--bg); color: var(--text-secondary);
+  display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
+}
+.nmlv-filters {
+  display: flex; gap: 8px; align-items: center; padding: 0 16px 12px;
+  overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; flex-shrink: 0;
+}
+.nmlv-filters::-webkit-scrollbar { display: none; }
+.nmlv-filter-chip {
+  padding: 6px 14px; border-radius: 999px; border: 1.5px solid var(--border);
+  background: var(--bg); color: var(--text-secondary); font-size: 12px;
+  font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.15s; font-family: inherit;
+}
+.nmlv-filter-chip.active { background: #007AFF; border-color: #007AFF; color: #fff; }
+.nmlv-count { margin-left: auto; font-size: 12px; color: var(--text-tertiary); white-space: nowrap; flex-shrink: 0; }
+.nmlv-grid {
+  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 0 12px;
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 10px; align-content: start;
+}
+.nmlv-card {
+  position: relative; background: var(--card-solid); border: 1px solid var(--border);
+  border-radius: 18px; overflow: hidden; display: flex; flex-direction: column;
+  cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; -webkit-tap-highlight-color: transparent;
+}
+.nmlv-card:active { transform: scale(0.97); }
+.nmlv-card-bar { height: 3px; width: 100%; flex-shrink: 0; }
+.nmlv-card-bar.imp-high   { background: #5856D6; }
+.nmlv-card-bar.imp-medium { background: #007AFF; }
+.nmlv-card-bar.imp-low    { background: #34C759; }
+.nmlv-card-urgent { box-shadow: 0 0 0 2px rgba(0,122,255,0.3); }
+.nmlv-card-body { padding: 12px; display: flex; flex-direction: column; gap: 7px; flex: 1; }
+.nmlv-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; }
+.nmlv-card-title { font-size: 13px; font-weight: 700; color: var(--text); margin: 0; line-height: 1.35; word-break: break-word; flex: 1; }
+.nmlv-card-delete {
+  width: 22px; height: 22px; border-radius: 50%; border: none;
+  background: var(--bg); color: var(--text-tertiary);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; padding: 0; transition: background 0.15s, color 0.15s;
+}
+.nmlv-card-delete:active { background: rgba(255,59,48,0.12); color: #FF3B30; }
+.nmlv-card-content {
+  font-size: 11.5px; color: var(--text-secondary); line-height: 1.4; margin: 0;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.nmlv-card-meta { display: flex; flex-wrap: wrap; gap: 4px; }
+.nmlv-meta-chip {
+  display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px;
+  border-radius: 999px; background: var(--bg); border: 1px solid var(--border);
+  font-size: 10px; font-weight: 500; color: var(--text-secondary);
+}
+.nmlv-meta-chip.urgent { background: rgba(0,122,255,0.1); border-color: rgba(0,122,255,0.3); color: #007AFF; font-weight: 700; }
+.nmlv-meta-chip.link { color: #007AFF; }
+.nmlv-meta-chip.connect { color: #5856D6; }
+.nmlv-card-people { display: flex; flex-wrap: wrap; gap: 4px; }
+.nmlv-person-chip {
+  display: inline-flex; align-items: center; padding: 2px 7px;
+  border-radius: 999px; background: var(--bg); border: 1px solid var(--border);
+  font-size: 10px; font-weight: 600; color: var(--text-secondary);
+}
+.nmlv-person-chip.responsible { background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.3); color: #b45309; }
+.nmlv-person-chip.more { color: var(--primary); background: var(--primary-bg); }
+.nmlv-empty {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; padding: 40px 20px; color: var(--text-secondary); text-align: center;
+}
+.nmlv-empty-icon { font-size: 48px; }
+.nmlv-empty p { margin: 0; font-size: 15px; font-weight: 500; }
+.nmlv-empty-btn {
+  display: flex; align-items: center; gap: 6px; padding: 12px 24px;
+  border-radius: 14px; border: none; background: #007AFF; color: #fff;
+  font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+}
+.nmlv-fab {
+  position: fixed;
+  bottom: calc(116px + env(safe-area-inset-bottom, 0px));
+  right: 20px;
+  width: 56px; height: 56px; border-radius: 50%; border: none;
+  background: linear-gradient(135deg, #007AFF, #5856D6);
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px rgba(0,122,255,0.4), 0 2px 6px rgba(0,0,0,0.15);
+  cursor: pointer; z-index: 50;
+  transition: transform 0.15s, box-shadow 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.nmlv-fab:active { transform: scale(0.92); box-shadow: 0 2px 8px rgba(0,122,255,0.3); }
+
 /* ── Quick Connect Banner ── */
 .quick-connect-banner {
   position: absolute;
