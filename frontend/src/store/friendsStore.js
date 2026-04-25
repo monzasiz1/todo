@@ -3,9 +3,18 @@ import { api } from '../utils/api';
 
 const FRIENDS_CACHE_KEY = 'taski_friends_cache_v1';
 
+function getFriendsCacheKey() {
+  try {
+    const token = localStorage.getItem('token') || 'anon';
+    return `${FRIENDS_CACHE_KEY}:${token.slice(0, 24)}`;
+  } catch {
+    return `${FRIENDS_CACHE_KEY}:anon`;
+  }
+}
+
 function readFriendsCache() {
   try {
-    const raw = localStorage.getItem(FRIENDS_CACHE_KEY);
+    const raw = localStorage.getItem(getFriendsCacheKey());
     const parsed = raw ? JSON.parse(raw) : null;
     if (!parsed || typeof parsed !== 'object') return null;
     return {
@@ -19,7 +28,7 @@ function readFriendsCache() {
 
 function writeFriendsCache(state) {
   try {
-    localStorage.setItem(FRIENDS_CACHE_KEY, JSON.stringify({
+    localStorage.setItem(getFriendsCacheKey(), JSON.stringify({
       friends: state.friends || [],
       pending: state.pending || [],
     }));

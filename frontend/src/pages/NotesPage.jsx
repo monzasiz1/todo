@@ -178,6 +178,30 @@ export default function NotesPage() {
   // Store latest handlers in refs so the non-passive listeners always see current closures
   const handleTouchMoveRef = useRef(null);
   const handleCanvasTouchStartRef = useRef(null);
+  const didManualZoomRef = useRef(false);
+
+  const getAdaptiveZoom = (screenWidth) => {
+    if (screenWidth >= 2400) return 142;
+    if (screenWidth >= 1920) return 128;
+    if (screenWidth >= 1680) return 118;
+    if (screenWidth >= 1440) return 108;
+    if (screenWidth >= 1200) return 100;
+    return 96;
+  };
+
+  const setZoomManual = (nextZoom) => {
+    didManualZoomRef.current = true;
+    setZoom(Math.round(clampZoom(nextZoom)));
+  };
+
+  const resetZoomToViewport = () => {
+    didManualZoomRef.current = false;
+    if (typeof window === 'undefined') {
+      setZoom(100);
+      return;
+    }
+    setZoom(window.innerWidth < 640 ? 100 : getAdaptiveZoom(window.innerWidth));
+  };
 
   const refreshConnections = async (sourceNotes = notes) => {
     if (!sourceNotes.length) {
@@ -280,6 +304,9 @@ export default function NotesPage() {
   useEffect(() => {
     const syncViewport = () => {
       setIsMobileView(window.innerWidth < 640);
+      if (!didManualZoomRef.current) {
+        setZoom(window.innerWidth < 640 ? 100 : getAdaptiveZoom(window.innerWidth));
+      }
     };
 
     syncViewport();
@@ -1168,17 +1195,17 @@ export default function NotesPage() {
         {/* Zoom controls — desktop only */}
         {!isMobileView && (
           <div className="notes-controls">
-            <button className="zoom-btn" onClick={() => setZoom(Math.max(25, zoom - 10))} title="Zoom out">
+            <button className="zoom-btn" onClick={() => setZoomManual(zoom - 10)} title="Zoom out">
               <ZoomOut size={18} />
             </button>
             <span className="zoom-display">{zoom}%</span>
-            <button className="zoom-btn" onClick={() => setZoom(Math.min(200, zoom + 10))} title="Zoom in">
+            <button className="zoom-btn" onClick={() => setZoomManual(zoom + 10)} title="Zoom in">
               <ZoomIn size={18} />
             </button>
             <button className="zoom-btn" onClick={handleAutoLayout} title="Ordnen">
               <LayoutGrid size={18} />
             </button>
-            <button className="zoom-btn" onClick={() => setZoom(100)} title="Reset zoom">
+            <button className="zoom-btn" onClick={resetZoomToViewport} title="An Bildschirm anpassen">
               <Maximize2 size={18} />
             </button>
           </div>
@@ -1349,12 +1376,18 @@ export default function NotesPage() {
 
           <div className="toolbox-actions-grid">
             <button className="toolbox-action-card emphasis" type="button" onClick={() => openBlankCreateModal()}>
-              <Plus size={18} />
-              <span>Neue Note</span>
+              <span className="toolbox-action-icon"><Plus size={18} /></span>
+              <span className="toolbox-action-copy">
+                <strong>Neue Note</strong>
+                <small>Leer starten und frei platzieren</small>
+              </span>
             </button>
             <button className={`toolbox-action-card ${quickConnectMode ? 'active' : ''}`} type="button" onClick={handleQuickConnectToggle}>
-              <Workflow size={18} />
-              <span>{quickConnectMode ? 'Connect aktiv' : 'Quick Connect'}</span>
+              <span className="toolbox-action-icon"><Workflow size={18} /></span>
+              <span className="toolbox-action-copy">
+                <strong>{quickConnectMode ? 'Connect aktiv' : 'Quick Connect'}</strong>
+                <small>{quickConnectMode ? 'Direkt zwei Notes verbinden' : 'Verbindungen in einem Zug setzen'}</small>
+              </span>
             </button>
           </div>
 

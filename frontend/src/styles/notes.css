@@ -143,29 +143,32 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 16px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #5856D6, #7C3AED);
-  color: #fff;
+  flex-wrap: wrap;
+  max-width: min(calc(100% - 24px), 980px);
+  padding: 10px 14px;
+  border-radius: 22px;
+  border: 1px solid color-mix(in srgb, var(--primary) 20%, var(--border));
+  background: color-mix(in srgb, var(--card-solid) 90%, var(--primary-bg));
+  color: var(--text);
   font-size: 13px;
   font-weight: 600;
-  box-shadow: 0 4px 20px rgba(88, 86, 214, 0.45), 0 2px 8px rgba(0,0,0,0.12);
-  white-space: nowrap;
+  box-shadow: 0 14px 32px rgba(9, 18, 42, 0.14);
   pointer-events: auto;
 }
 
 .quick-connect-type-pills {
   display: flex;
-  gap: 4px;
-  margin-left: 4px;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
 }
 
 .qc-type-pill {
-  padding: 4px 10px;
+  padding: 6px 11px;
   border-radius: 999px;
-  border: 1.5px solid rgba(255,255,255,0.35);
-  background: rgba(255,255,255,0.12);
-  color: rgba(255,255,255,0.82);
+  border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--border));
+  background: color-mix(in srgb, var(--bg) 76%, var(--card-solid));
+  color: var(--text-secondary);
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
@@ -173,18 +176,18 @@
 }
 
 .qc-type-pill.active {
-  background: rgba(255,255,255,0.95);
-  color: #5856D6;
-  border-color: transparent;
+  background: color-mix(in srgb, var(--primary-bg) 68%, var(--card-solid));
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
 }
 
 .qc-cancel-btn {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  border: none;
-  background: rgba(255,255,255,0.2);
-  color: #fff;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg) 80%, var(--card-solid));
+  color: var(--text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -194,7 +197,7 @@
 }
 
 .qc-cancel-btn:hover {
-  background: rgba(255,255,255,0.35);
+  background: color-mix(in srgb, var(--primary-bg) 55%, var(--card-solid));
 }
 
 .notes-container {
@@ -289,24 +292,62 @@
 .toolbox-action-card {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 14px;
-  border-radius: 16px;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 18px;
   border: 1px solid var(--border);
-  background: var(--bg);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--card-solid) 92%, var(--bg)), color-mix(in srgb, var(--bg) 92%, var(--card-solid)));
   color: var(--text);
   font-weight: 600;
-  justify-content: center;
+  justify-content: flex-start;
+  text-align: left;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 .toolbox-action-card.emphasis {
-  background: var(--primary-bg);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--primary-bg) 92%, var(--card-solid)), color-mix(in srgb, var(--card-solid) 84%, white));
   border-color: color-mix(in srgb, var(--primary) 24%, var(--border));
 }
 
 .toolbox-action-card.active {
-  border-color: rgba(0, 224, 255, 0.6);
-  box-shadow: 0 0 0 1px rgba(0, 224, 255, 0.22);
+  border-color: color-mix(in srgb, var(--primary) 44%, var(--border));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 18%, transparent), 0 14px 30px rgba(9, 18, 42, 0.12);
+}
+
+.toolbox-action-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--bg) 72%, white);
+  border: 1px solid color-mix(in srgb, var(--border) 84%, white);
+  color: var(--text);
+}
+
+.toolbox-action-card.emphasis .toolbox-action-icon {
+  background: color-mix(in srgb, white 78%, var(--primary-bg));
+  color: var(--primary);
+}
+
+.toolbox-action-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.toolbox-action-copy strong {
+  font-size: 15px;
+  line-height: 1.15;
+}
+
+.toolbox-action-copy small {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text-secondary);
 }
 
 .toolbox-status-card {
@@ -314,8 +355,8 @@
   gap: 12px;
   padding: 14px;
   border-radius: 18px;
-  background: color-mix(in srgb, var(--primary-bg) 58%, var(--bg-elevated));
-  border: 1px solid color-mix(in srgb, var(--primary) 14%, var(--border));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--card-solid) 94%, var(--bg)), color-mix(in srgb, var(--primary-bg) 26%, var(--card-solid)));
+  border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--border));
   color: var(--text);
 }
 
@@ -743,10 +784,10 @@
 }
 
 .zoom-display {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  width: 30px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  width: 42px;
   text-align: center;
 }
 
@@ -767,8 +808,8 @@
 
 .canvas-content {
   position: relative;
-  width: 4000px;
-  height: 4000px;
+  width: 4400px;
+  height: 4200px;
   background:
     radial-gradient(circle at 15% 10%, rgba(0, 122, 255, 0.08), transparent 26%),
     radial-gradient(circle at 80% 14%, rgba(88, 86, 214, 0.06), transparent 24%),
@@ -2038,6 +2079,45 @@
 }
 
 @media (max-width: 639px) {
+  .quick-connect-banner {
+    left: 10px;
+    right: 10px;
+    top: 10px;
+    transform: none;
+    max-width: none;
+    border-radius: 18px;
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .quick-connect-type-pills {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .qc-type-pill {
+    flex: 1 1 calc(50% - 6px);
+    text-align: center;
+  }
+
+  .toolbox-action-card {
+    padding: 14px;
+  }
+
+  .toolbox-action-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+  }
+
+  .toolbox-action-copy strong {
+    font-size: 14px;
+  }
+
+  .toolbox-action-copy small {
+    font-size: 11px;
+  }
+
   .notes-context-panel {
     display: none;
     position: fixed;
@@ -2150,6 +2230,7 @@
   .notes-toolbox { width: 380px; min-width: 380px; max-width: 380px; }
   .notes-context-panel { width: 420px; min-width: 420px; max-width: 420px; }
   .notes-workspace { gap: 24px; padding: 22px 28px 28px; }
+  .canvas-content { width: 5000px; height: 4600px; }
   .note-card { padding: 20px; border-radius: 20px; gap: 14px; }
   .note-title { font-size: 17px; }
   .note-content { font-size: 14px; -webkit-line-clamp: 4; }
@@ -2166,6 +2247,7 @@
   .notes-toolbox { width: 420px; min-width: 420px; max-width: 420px; }
   .notes-context-panel { width: 460px; min-width: 460px; max-width: 460px; }
   .notes-workspace { gap: 28px; padding: 28px 36px 36px; }
+  .canvas-content { width: 5600px; height: 5000px; }
   .note-card { padding: 22px; border-radius: 22px; gap: 16px; }
   .note-title { font-size: 18px; }
   .note-content { font-size: 15px; -webkit-line-clamp: 5; }

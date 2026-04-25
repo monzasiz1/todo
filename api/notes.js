@@ -499,13 +499,16 @@ module.exports = async function handler(req, res) {
           `SELECT n.*, ns.permission,
                   u.name AS owner_name,
                   t.title AS linked_task_title
-             FROM note_shares ns
-             JOIN notes n ON n.id = ns.note_id
+             FROM notes n
+             LEFT JOIN note_shares ns ON ns.note_id = n.id AND ns.friend_id::text = $1
              JOIN users u ON u.id = n.user_id
              LEFT JOIN tasks t ON t.id::text = n.linked_task_id::text
-            WHERE ns.friend_id::text = $1
+            WHERE (
+                ns.friend_id::text = $1
+               OR (n.user_id::text <> $1 AND ($2 = ANY(COALESCE(n.participant_ids, '{}'::integer[])) OR n.responsible_user_id = $2))
+            )
             ORDER BY n.updated_at DESC, n.created_at DESC`,
-          [userIdText]
+          [userIdText, userId]
         );
         return res.status(200).json({ notes: shared.rows });
       } catch {
@@ -537,9 +540,14 @@ module.exports = async function handler(req, res) {
          FROM notes n
          LEFT JOIN note_shares ns ON ns.note_id = n.id AND ns.friend_id::text = $2
         WHERE n.id = $1
-          AND (n.user_id::text = $2 OR ns.friend_id::text = $2)
+          AND (
+            n.user_id::text = $2
+            OR ns.friend_id::text = $2
+            OR $3 = ANY(COALESCE(n.participant_ids, '{}'::integer[]))
+            OR n.responsible_user_id = $3
+          )
         LIMIT 1`,
-      [noteId, userIdText]
+      [noteId, userIdText, userId]
     );
 
     if (noteAccess.rows.length === 0) {
