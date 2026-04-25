@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FixedSizeList as VirtualList } from 'react-window';
 import { useTaskStore } from '../store/taskStore';
@@ -493,14 +492,16 @@ export default function Dashboard() {
 
       {/* Manuell-Erstellungs-Modal (Desktop) */}
       <AnimatePresence>
-        {showManualModal && createPortal(
+        {showManualModal && (
           <motion.div
+            key="manual-modal"
             className="modal-overlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
             onClick={() => setShowManualModal(false)}
+            style={{ zIndex: 1000 }}
           >
             <motion.div
               className="manual-task-modal-wrap"
@@ -532,8 +533,7 @@ export default function Dashboard() {
                 />
               </div>
             </motion.div>
-          </motion.div>,
-          document.body
+          </motion.div>
         )}
       </AnimatePresence>
 
