@@ -96,6 +96,56 @@
   z-index: 1;
 }
 
+.connection-group {
+  opacity: 0.92;
+  animation: connection-pulse 4.6s ease-in-out infinite;
+}
+
+.connection-path {
+  fill: none;
+  stroke-linecap: round;
+}
+
+.connection-path-glow {
+  stroke: url(#connectionGradient);
+  stroke-width: 10;
+  opacity: 0.22;
+  filter: url(#connectionGlow);
+}
+
+.connection-path-core {
+  stroke: url(#connectionGradient);
+  stroke-width: 2.6;
+  stroke-dasharray: 8 10;
+  filter: url(#connectionGlow);
+  animation: connection-flow 7s linear infinite;
+}
+
+.connection-node {
+  fill: #f7fbff;
+  stroke: rgba(0, 224, 255, 0.75);
+  stroke-width: 2;
+  filter: url(#connectionGlow);
+}
+
+@keyframes connection-flow {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -72;
+  }
+}
+
+@keyframes connection-pulse {
+  0%, 100% {
+    opacity: 0.75;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 /* Note Card */
 
 .note-card {

@@ -7,9 +7,9 @@ import '../styles/notes.css';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function NotesPage() {
-  const { notes, createNote, updateNote, deleteNote, linkNoteToTask, shareNoteWithFriend, connectNotes } = useNotesStore();
+  const { notes, createNote, updateNote, deleteNote, linkNoteToTask, shareNoteWithFriend, connectNotes, getNoteConnections } = useNotesStore();
   const { friends } = useFriendsStore();
-  const { tasks } = useTaskStore();
+  const { tasks, fetchTasks } = useTaskStore();
 
   const [zoom, setZoom] = useState(100);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -20,12 +20,57 @@ export default function NotesPage() {
   const [newNote, setNewNote] = useState({ title: '', content: '', importance: 'medium', date: '', linked_task_id: null });
   const [isDragging, setIsDragging] = useState(null);
   const [notePositions, setNotePositions] = useState({});
+  const [connections, setConnections] = useState([]);
   const canvasRef = useRef(null);
+
+  const refreshConnections = async (sourceNotes = notes) => {
+    if (!sourceNotes.length) {
+      setConnections([]);
+      return;
+    }
+
+    try {
+      const groups = await Promise.all(sourceNotes.map((note) => getNoteConnections(note.id)));
+      const seen = new Set();
+      const merged = [];
+
+      groups.flat().forEach((connection) => {
+        const firstId = connection?.note_id_1 || connection?.noteId1;
+        const secondId = connection?.note_id_2 || connection?.noteId2;
+        if (!firstId || !secondId) return;
+
+        const key = [String(firstId), String(secondId)].sort().join(':');
+        if (seen.has(key)) return;
+        seen.add(key);
+        merged.push(connection);
+      });
+
+      setConnections(merged);
+    } catch {
+      setConnections([]);
+    }
+  };
 
   // Load notes on mount
   useEffect(() => {
     useNotesStore.getState().fetchNotes?.();
-  }, []);
+    fetchTasks?.({}, { force: false });
+  }, [fetchTasks]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadConnections = async () => {
+      await refreshConnections(notes);
+      if (cancelled) return;
+    };
+
+    loadConnections();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [notes, getNoteConnections]);
 
   useEffect(() => {
     setNotePositions((prev) => {
@@ -154,6 +199,7 @@ export default function NotesPage() {
   const handleConnectNotes = async (noteId1, noteId2) => {
     try {
       await connectNotes(noteId1, noteId2, 'related');
+      await refreshConnections();
       setShowConnectModal(null);
     } catch (err) {
       console.error('Connect notes error:', err);
@@ -181,6 +227,49 @@ export default function NotesPage() {
   const linkedTask = (noteId) => {
     const note = notes.find(n => n.id === noteId);
     return note?.linked_task_id ? tasks.find(t => t.id === note.linked_task_id) : null;
+  };
+
+  const getNoteGeometry = (noteId) => {
+    const note = notes.find((entry) => String(entry.id) === String(noteId));
+    if (!note) return null;
+
+    const position = notePositions[note.id] || { x: note.x ?? 100, y: note.y ?? 100 };
+    const width = note.width || 300;
+    const height = note.height || 150;
+
+    return {
+      x: position.x,
+      y: position.y,
+      width,
+      height,
+      centerX: position.x + width / 2,
+      centerY: position.y + height / 2,
+    };
+  };
+
+  const renderConnection = (connection, index) => {
+    const firstId = connection?.note_id_1 || connection?.noteId1;
+    const secondId = connection?.note_id_2 || connection?.noteId2;
+    const start = getNoteGeometry(firstId);
+    const end = getNoteGeometry(secondId);
+
+    if (!start || !end) return null;
+
+    const deltaX = end.centerX - start.centerX;
+    const curveOffset = Math.max(80, Math.min(Math.abs(deltaX) * 0.35, 220));
+    const controlX1 = start.centerX + curveOffset;
+    const controlX2 = end.centerX - curveOffset;
+    const path = `M ${start.centerX} ${start.centerY} C ${controlX1} ${start.centerY - 28}, ${controlX2} ${end.centerY + 28}, ${end.centerX} ${end.centerY}`;
+    const pulseDelay = `${(index % 6) * 0.35}s`;
+
+    return (
+      <g key={connection.id || `${firstId}-${secondId}`} className="connection-group" style={{ animationDelay: pulseDelay }}>
+        <path className="connection-path connection-path-glow" d={path} />
+        <path className="connection-path connection-path-core" d={path} />
+        <circle className="connection-node" cx={start.centerX} cy={start.centerY} r="4.5" />
+        <circle className="connection-node" cx={end.centerX} cy={end.centerY} r="4.5" />
+      </g>
+    );
   };
 
   return (
@@ -214,8 +303,22 @@ export default function NotesPage() {
       >
         <div className="canvas-content" style={{ transform: `scale(${zoom / 100})`, transformOrigin: '0 0' }}>
           {/* SVG Connections */}
-          <svg className="connections-svg">
-            {/* Connection lines will be rendered here */}
+          <svg className="connections-svg" aria-hidden="true">
+            <defs>
+              <linearGradient id="connectionGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="rgba(0, 224, 255, 0.95)" />
+                <stop offset="50%" stopColor="rgba(122, 92, 255, 0.9)" />
+                <stop offset="100%" stopColor="rgba(255, 87, 199, 0.92)" />
+              </linearGradient>
+              <filter id="connectionGlow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="7" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+            {connections.map(renderConnection)}
           </svg>
 
           {/* Notes */}
@@ -407,7 +510,7 @@ export default function NotesPage() {
                   <option value="">Keinen Termin wählen</option>
                   {tasks.map((task) => (
                     <option key={task.id} value={task.id}>
-                      {task.title}
+                      {task.title}{task.date ? ` · ${new Date(task.date).toLocaleDateString('de-DE')}` : ''}
                     </option>
                   ))}
                 </select>
