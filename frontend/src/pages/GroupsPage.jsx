@@ -504,11 +504,25 @@ function GroupDetail({ groupId, onBack }) {
   };
 
   const isAdmin = myRole === 'owner' || myRole === 'admin';
+  const activeTasks = useMemo(() => groupTasks.filter((t) => !t.completed && !isEventEnded(t)), [groupTasks]);
+  const pastTasks = useMemo(() => groupTasks.filter((t) => t.completed || isEventEnded(t)), [groupTasks]);
+  const completionRate = groupTasks.length > 0 ? Math.round((pastTasks.length / groupTasks.length) * 100) : 0;
+  const sortedMembers = useMemo(() => {
+    const roleWeight = { owner: 0, admin: 1, member: 2 };
+    return [...members].sort((a, b) => {
+      const weightDiff = (roleWeight[a.role] ?? 3) - (roleWeight[b.role] ?? 3);
+      if (weightDiff !== 0) return weightDiff;
+      if (a.user_id === user?.id) return -1;
+      if (b.user_id === user?.id) return 1;
+      return String(a.name || '').localeCompare(String(b.name || ''), 'de');
+    });
+  }, [members, user?.id]);
+  const adminCount = useMemo(() => members.filter((m) => m.role === 'admin' || m.role === 'owner').length, [members]);
 
   if (!currentGroup) return <div className="group-loading">Laden...</div>;
 
   return (
-    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+    <motion.div className="group-detail-shell" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
       {/* Header */}
       <div className="group-detail-header">
         <button className="group-back-btn" onClick={onBack}><ArrowLeft size={20} /></button>
@@ -522,7 +536,32 @@ function GroupDetail({ groupId, onBack }) {
         <div className="group-detail-info">
           <h2>{currentGroup.name}</h2>
           {currentGroup.description && <p>{currentGroup.description}</p>}
+          <div className="group-detail-role-row">
+            <span className={`group-role-badge ${myRole}`}>
+              {ROLE_CONFIG[myRole]?.label || 'Mitglied'}
+            </span>
+            <span className="group-detail-role-hint">Collaboration Space</span>
+          </div>
         </div>
+      </div>
+
+      <div className="group-quick-stats" aria-label="Gruppenübersicht">
+        <article className="group-quick-stat">
+          <span>Mitglieder</span>
+          <strong>{members.length}</strong>
+        </article>
+        <article className="group-quick-stat">
+          <span>Aktive Aufgaben</span>
+          <strong>{activeTasks.length}</strong>
+        </article>
+        <article className="group-quick-stat">
+          <span>Abgeschlossen</span>
+          <strong>{completionRate}%</strong>
+        </article>
+        <article className="group-quick-stat">
+          <span>Admins</span>
+          <strong>{adminCount}</strong>
+        </article>
       </div>
 
       {/* Invite Code */}
@@ -553,65 +592,67 @@ function GroupDetail({ groupId, onBack }) {
       {/* Tasks Tab */}
       {tab === 'tasks' && (
         <div className="group-tab-content">
-          <button className="group-add-task-btn" onClick={() => setShowAddTask(true)}>
-            <Plus size={16} /> Aufgabe hinzufügen
-          </button>
+          <div className="group-tab-toolbar">
+            <div className="group-tab-heading-wrap">
+              <h3 className="group-tab-heading">Aufgabenboard</h3>
+              <p>Fokus auf offene Aufgaben, Vergangenes optional einblendbar.</p>
+            </div>
+            <button className="group-add-task-btn" onClick={() => setShowAddTask(true)}>
+              <Plus size={16} /> Aufgabe hinzufügen
+            </button>
+          </div>
 
           {groupTasks.length === 0 ? (
             <div className="group-empty-tab">Noch keine Aufgaben in dieser Gruppe</div>
-          ) : (() => {
-            const activeTasks = groupTasks.filter((t) => !t.completed && !isEventEnded(t));
-            const pastTasks = groupTasks.filter((t) => t.completed || isEventEnded(t));
-            return (
-              <div className="group-task-list">
-                {activeTasks.slice(0, visibleCount).map((task) => (
-                  <GroupTaskCard
-                    key={task.id}
-                    task={task}
-                    groupId={groupId}
-                    canRemove={isAdmin || task.user_id === user?.id}
-                    onRemove={async (gId, tId) => {
-                      await removeGroupTask(gId, tId);
-                      fetchTasks(...DASHBOARD_REFRESH_PARAMS);
-                    }}
-                    onOpenTask={setDetailTask}
-                  />
-                ))}
-                {visibleCount < activeTasks.length && (
+          ) : (
+            <div className="group-task-list">
+              {activeTasks.slice(0, visibleCount).map((task) => (
+                <GroupTaskCard
+                  key={task.id}
+                  task={task}
+                  groupId={groupId}
+                  canRemove={isAdmin || task.user_id === user?.id}
+                  onRemove={async (gId, tId) => {
+                    await removeGroupTask(gId, tId);
+                    fetchTasks(...DASHBOARD_REFRESH_PARAMS);
+                  }}
+                  onOpenTask={setDetailTask}
+                />
+              ))}
+              {visibleCount < activeTasks.length && (
+                <button
+                  className="group-load-more-btn"
+                  onClick={() => setVisibleCount(v => v + 15)}
+                >
+                  Mehr anzeigen ({activeTasks.length - visibleCount} weitere)
+                </button>
+              )}
+              {pastTasks.length > 0 && (
+                <div className="group-past-section">
                   <button
-                    className="group-load-more-btn"
-                    onClick={() => setVisibleCount(v => v + 15)}
+                    className="group-past-toggle"
+                    onClick={() => setShowPastGroupTasks(v => !v)}
                   >
-                    Mehr anzeigen ({activeTasks.length - visibleCount} weitere)
+                    <span>Vergangene / Erledigte ({pastTasks.length})</span>
+                    <ChevronDown size={14} style={{ transform: showPastGroupTasks ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
                   </button>
-                )}
-                {pastTasks.length > 0 && (
-                  <div className="group-past-section">
-                    <button
-                      className="group-past-toggle"
-                      onClick={() => setShowPastGroupTasks(v => !v)}
-                    >
-                      <span>Vergangene / Erledigte ({pastTasks.length})</span>
-                      <ChevronDown size={14} style={{ transform: showPastGroupTasks ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-                    </button>
-                    {showPastGroupTasks && pastTasks.map((task) => (
-                      <GroupTaskCard
-                        key={task.id}
-                        task={task}
-                        groupId={groupId}
-                        canRemove={isAdmin || task.user_id === user?.id}
-                        onRemove={async (gId, tId) => {
-                          await removeGroupTask(gId, tId);
-                          fetchTasks(...DASHBOARD_REFRESH_PARAMS);
-                        }}
-                        onOpenTask={setDetailTask}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
+                  {showPastGroupTasks && pastTasks.map((task) => (
+                    <GroupTaskCard
+                      key={task.id}
+                      task={task}
+                      groupId={groupId}
+                      canRemove={isAdmin || task.user_id === user?.id}
+                      onRemove={async (gId, tId) => {
+                        await removeGroupTask(gId, tId);
+                        fetchTasks(...DASHBOARD_REFRESH_PARAMS);
+                      }}
+                      onOpenTask={setDetailTask}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {showAddTask && (
             <AddGroupTask
@@ -642,7 +683,11 @@ function GroupDetail({ groupId, onBack }) {
       {/* Members Tab */}
       {tab === 'members' && (
         <div className="group-tab-content">
-          {members.map((m) => {
+          <div className="group-tab-heading-wrap" style={{ marginBottom: 12 }}>
+            <h3 className="group-tab-heading">Mitgliederverwaltung</h3>
+            <p>Rollen, Verantwortlichkeiten und Zugriffe im Team steuern.</p>
+          </div>
+          {sortedMembers.map((m) => {
             const RoleIcon = ROLE_CONFIG[m.role]?.icon || Users;
             return (
               <div key={m.user_id} className="group-member-card">
@@ -708,16 +753,22 @@ function GroupDetail({ groupId, onBack }) {
 
       {/* Settings Tab */}
       {tab === 'settings' && isAdmin && (
-        <GroupSettings
-          group={currentGroup}
-          onUpdate={(data) => updateGroup(groupId, data)}
-          onDelete={async () => {
-            await deleteGroup(groupId);
-            addToast('Gruppe gelöscht');
-            onBack();
-          }}
-          isOwner={myRole === 'owner'}
-        />
+        <>
+          <div className="group-tab-heading-wrap" style={{ marginBottom: 12 }}>
+            <h3 className="group-tab-heading">Gruppeneinstellungen</h3>
+            <p>Branding, Beschreibung und sensible Aktionen zentral verwalten.</p>
+          </div>
+          <GroupSettings
+            group={currentGroup}
+            onUpdate={(data) => updateGroup(groupId, data)}
+            onDelete={async () => {
+              await deleteGroup(groupId);
+              addToast('Gruppe gelöscht');
+              onBack();
+            }}
+            isOwner={myRole === 'owner'}
+          />
+        </>
       )}
     </motion.div>
   );

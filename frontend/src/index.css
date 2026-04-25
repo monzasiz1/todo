@@ -10378,15 +10378,25 @@ body.cal-is-dragging * {
 }
 
 /* --- Group Detail Header --- */
+.group-detail-shell {
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 18px;
+  background:
+    radial-gradient(280px 140px at 2% -6%, color-mix(in srgb, var(--primary) 18%, transparent), transparent 70%),
+    radial-gradient(280px 140px at 102% 0%, color-mix(in srgb, var(--success) 12%, transparent), transparent 72%),
+    var(--card-solid);
+}
+
 .group-detail-header {
   display: flex;
   align-items: center;
   gap: 16px;
   margin-bottom: 16px;
-  padding: 20px;
-  background: linear-gradient(135deg, var(--primary-bg) 0%, var(--surface) 100%);
-  border-radius: 20px;
-  border: 1px solid var(--border);
+  padding: 18px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 13%, var(--surface)) 0%, var(--surface) 60%);
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--border));
   position: relative;
   overflow: hidden;
 }
@@ -10428,7 +10438,53 @@ body.cal-is-dragging * {
 .group-detail-info p {
   font-size: 13px;
   color: var(--text-secondary);
-  margin: 0;
+  margin: 0 0 8px;
+}
+
+.group-detail-role-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.group-detail-role-hint {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-tertiary);
+}
+
+.group-quick-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.group-quick-stat {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  padding: 10px 12px;
+}
+
+.group-quick-stat span {
+  display: block;
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.group-quick-stat strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 22px;
+  line-height: 1.1;
+  color: var(--text);
 }
 
 /* --- Invite Code --- */
@@ -10437,7 +10493,7 @@ body.cal-is-dragging * {
   align-items: center;
   gap: 10px;
   margin-bottom: 18px;
-  padding: 10px 14px;
+  padding: 11px 14px;
   background: var(--surface);
   border-radius: 12px;
   border: 1px solid var(--border);
@@ -10479,8 +10535,9 @@ body.cal-is-dragging * {
 .group-tabs {
   display: flex;
   gap: 2px;
-  background: rgba(0,0,0,0.04);
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
   border-radius: 14px;
+  border: 1px solid var(--border);
   padding: 4px;
   margin-bottom: 20px;
 }
@@ -10505,9 +10562,9 @@ body.cal-is-dragging * {
   background: rgba(255,255,255,0.5);
 }
 .group-tab.active {
-  background: #fff;
+  background: linear-gradient(180deg, #fff 0%, color-mix(in srgb, #fff 72%, var(--surface)) 100%);
   color: var(--text-primary);
-  box-shadow: 0 1px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
 }
 .group-tab-count {
   min-width: 20px;
@@ -10530,6 +10587,33 @@ body.cal-is-dragging * {
 .group-tab-content {
   min-height: 100px;
 }
+
+.group-tab-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.group-tab-heading-wrap {
+  min-width: 0;
+}
+
+.group-tab-heading {
+  margin: 0 0 3px;
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 750;
+  color: var(--text);
+}
+
+.group-tab-heading-wrap p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
 .group-empty-tab {
   text-align: center;
   padding: 40px 20px;
@@ -10544,13 +10628,13 @@ body.cal-is-dragging * {
 
 /* --- Add Task Button --- */
 .group-add-task-btn {
-  width: 100%;
-  padding: 12px;
+  width: auto;
+  padding: 11px 14px;
   border-radius: 14px;
-  border: 2px dashed var(--border);
-  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--border));
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--primary);
   display: flex;
   align-items: center;
@@ -10558,11 +10642,11 @@ body.cal-is-dragging * {
   gap: 8px;
   cursor: pointer;
   transition: all 0.2s;
-  margin-bottom: 16px;
 }
 .group-add-task-btn:hover {
   border-color: var(--primary);
-  background: var(--primary-bg);
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  transform: translateY(-1px);
 }
 
 /* --- Group Task List --- */
@@ -10575,7 +10659,7 @@ body.cal-is-dragging * {
   display: flex;
   align-items: flex-start;
   gap: 0;
-  background: var(--surface);
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
   border-radius: 14px;
   border: 1px solid var(--border);
   transition: all 0.2s;
@@ -10589,7 +10673,7 @@ body.cal-is-dragging * {
   outline-offset: 2px;
 }
 .group-task-card:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.07);
+  box-shadow: 0 8px 16px rgba(2, 12, 40, 0.08);
   transform: translateY(-1px);
 }
 .group-task-card.completed {
@@ -10708,14 +10792,14 @@ body.cal-is-dragging * {
   align-items: center;
   gap: 12px;
   padding: 12px 14px;
-  background: var(--surface);
+  background: color-mix(in srgb, var(--surface) 84%, transparent);
   border-radius: 14px;
   border: 1px solid var(--border);
   margin-bottom: 8px;
   transition: all 0.15s;
 }
 .group-member-card:hover {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
 }
 .group-member-avatar {
   width: 40px;
@@ -10946,6 +11030,28 @@ body.cal-is-dragging * {
 @media (max-width: 768px) {
   .group-detail-header {
     padding: 12px;
+  }
+  .group-detail-shell {
+    padding: 12px;
+    border-radius: 18px;
+  }
+  .group-quick-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .group-quick-stat {
+    padding: 9px 10px;
+  }
+  .group-quick-stat strong {
+    font-size: 18px;
+  }
+  .group-tab-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .group-add-task-btn {
+    width: 100%;
+    justify-content: center;
   }
   .group-detail-avatar {
     width: 44px;
