@@ -103,10 +103,20 @@ const CONNECTION_TYPE_LABELS = {
 
 const NOTE_PEOPLE_CACHE_KEY = 'taski_note_people_v1';
 
+function getUserScopedKey(baseKey) {
+  if (typeof window === 'undefined') return `${baseKey}:anon`;
+  try {
+    const token = localStorage.getItem('token') || 'anon';
+    return `${baseKey}:${token.slice(0, 24)}`;
+  } catch {
+    return `${baseKey}:anon`;
+  }
+}
+
 function readNotePeopleCache() {
   if (typeof window === 'undefined') return {};
   try {
-    const raw = localStorage.getItem(NOTE_PEOPLE_CACHE_KEY);
+    const raw = localStorage.getItem(getUserScopedKey(NOTE_PEOPLE_CACHE_KEY));
     const parsed = raw ? JSON.parse(raw) : {};
     return parsed && typeof parsed === 'object' ? parsed : {};
   } catch {
@@ -117,7 +127,7 @@ function readNotePeopleCache() {
 function writeNotePeopleCache(data) {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(NOTE_PEOPLE_CACHE_KEY, JSON.stringify(data || {}));
+    localStorage.setItem(getUserScopedKey(NOTE_PEOPLE_CACHE_KEY), JSON.stringify(data || {}));
   } catch {
     // ignore quota/security errors
   }
@@ -216,7 +226,7 @@ export default function NotesPage() {
   // One-time backfill: push localStorage participant data to DB for old notes
   useEffect(() => {
     if (!notes.length) return;
-    const BACKFILL_KEY = 'taski_people_backfill_done_v1';
+    const BACKFILL_KEY = getUserScopedKey('taski_people_backfill_done_v1');
     if (localStorage.getItem(BACKFILL_KEY)) return;
     const localCache = readNotePeopleCache();
     if (!localCache || !Object.keys(localCache).length) return;
@@ -360,7 +370,12 @@ export default function NotesPage() {
   };
 
   const friendOptions = useMemo(
-    () => friends.map((friend) => ({ id: String(friend.id), name: friend.name || `User ${friend.id}` })),
+    () => friends
+      .map((friend) => ({
+        id: String(friend.friend_user_id || friend.id),
+        name: friend.name || `User ${friend.friend_user_id || friend.id}`,
+      }))
+      .filter((friend) => !!friend.id),
     [friends]
   );
 

@@ -3,9 +3,18 @@ import { api } from '../utils/api';
 
 const NOTES_CACHE_KEY = 'taski_notes_cache_v1';
 
+function getNotesCacheKey() {
+  try {
+    const token = localStorage.getItem('token') || 'anon';
+    return `${NOTES_CACHE_KEY}:${token.slice(0, 24)}`;
+  } catch {
+    return `${NOTES_CACHE_KEY}:anon`;
+  }
+}
+
 function readNotesCache() {
   try {
-    const raw = localStorage.getItem(NOTES_CACHE_KEY);
+    const raw = localStorage.getItem(getNotesCacheKey());
     const parsed = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? parsed : [];
   } catch {
@@ -15,7 +24,7 @@ function readNotesCache() {
 
 function writeNotesCache(notes) {
   try {
-    localStorage.setItem(NOTES_CACHE_KEY, JSON.stringify(Array.isArray(notes) ? notes : []));
+    localStorage.setItem(getNotesCacheKey(), JSON.stringify(Array.isArray(notes) ? notes : []));
   } catch {
     // ignore quota/security errors
   }
@@ -205,7 +214,7 @@ export const useNotesStore = create((set, get) => ({
 
   // Clear cache
   clearCache: () => {
-    localStorage.removeItem(NOTES_CACHE_KEY);
+    localStorage.removeItem(getNotesCacheKey());
     set({ notes: [], lastFetchAt: 0 });
   },
 }));

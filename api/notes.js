@@ -216,6 +216,40 @@ async function resolveFriendUserId(pool, rawFriendId, userId) {
   return String(row.user_id) === currentUserIdText ? row.friend_id : row.user_id;
 }
 
+async function resolveParticipantUserId(pool, rawParticipantId, userId) {
+  if (rawParticipantId === null || rawParticipantId === undefined) return null;
+
+  const participantIdText = String(rawParticipantId || '').trim();
+  if (!participantIdText) return null;
+
+  const directUser = await pool.query(
+    'SELECT id FROM users WHERE id::text = $1 LIMIT 1',
+    [participantIdText]
+  );
+  if (directUser.rows.length > 0) {
+    return Number(directUser.rows[0].id) || null;
+  }
+
+  const resolvedFriendUserId = await resolveFriendUserId(pool, participantIdText, userId);
+  return resolvedFriendUserId ? Number(resolvedFriendUserId) || null : null;
+}
+
+async function normalizeParticipantIdsForDb(pool, participantIds, userId) {
+  const resolvedIds = [];
+  const seen = new Set();
+
+  for (const rawId of Array.isArray(participantIds) ? participantIds : []) {
+    const resolvedId = await resolveParticipantUserId(pool, rawId, userId);
+    if (!resolvedId) continue;
+    const key = String(resolvedId);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    resolvedIds.push(resolvedId);
+  }
+
+  return resolvedIds;
+}
+
 /**
  * Synchronise note_shares with participant_ids.
  * - Adds shares for newly added participant IDs.
@@ -304,11 +338,37 @@ module.exports = async function handler(req, res) {
         }
       }
 
-      // Backfill note_shares for notes that have participant_ids but missing share entries
+      // Backfill and repair participant IDs for notes created before the frontend used real user IDs.
       for (const note of ownNotes) {
-        const ids = Array.isArray(note.participant_ids) ? note.participant_ids.filter(Boolean) : [];
-        if (ids.length === 0) continue;
-        await syncParticipantShares(pool, note.id, userIdText, [], ids).catch(() => null);
+        const rawParticipantIds = Array.isArray(note.participant_ids) ? note.participant_ids.filter(Boolean) : [];
+        const normalizedParticipantIds = await normalizeParticipantIdsForDb(pool, rawParticipantIds, userId);
+        const normalizedResponsibleId = note.responsible_user_id
+          ? await resolveParticipantUserId(pool, note.responsible_user_id, userId)
+          : null;
+        const participantIdsChanged = JSON.stringify(rawParticipantIds.map(String)) !== JSON.stringify(normalizedParticipantIds.map(String));
+        const responsibleChanged = String(note.responsible_user_id || '') !== String(normalizedResponsibleId || '');
+
+        if (participantIdsChanged || responsibleChanged) {
+          const repaired = await pool.query(
+            `UPDATE notes
+                SET participant_ids = $1,
+                    responsible_user_id = $2,
+                    updated_at = NOW()
+              WHERE id = $3
+              RETURNING *`,
+            [normalizedParticipantIds, normalizedResponsibleId, note.id]
+          ).catch(() => null);
+
+          if (repaired?.rows?.[0]) {
+            Object.assign(note, repaired.rows[0]);
+          } else {
+            note.participant_ids = normalizedParticipantIds;
+            note.responsible_user_id = normalizedResponsibleId;
+          }
+        }
+
+        if (normalizedParticipantIds.length === 0) continue;
+        await syncParticipantShares(pool, note.id, userIdText, [], normalizedParticipantIds).catch(() => null);
       }
 
       return res.status(200).json({ notes: ownNotes });
@@ -355,10 +415,10 @@ module.exports = async function handler(req, res) {
         return res.status(403).json({ error: 'Keine Berechtigung fuer verknuepfte Aufgabe' });
       }
 
-      const safeParticipantIds = Array.isArray(participant_ids)
-        ? participant_ids.map(Number).filter((n) => Number.isInteger(n) && n > 0)
-        : [];
-      const safeResponsibleId = responsible_user_id ? Number(responsible_user_id) || null : null;
+      const safeParticipantIds = await normalizeParticipantIdsForDb(pool, participant_ids, userId);
+      const safeResponsibleId = responsible_user_id
+        ? await resolveParticipantUserId(pool, responsible_user_id, userId)
+        : null;
 
       let insert;
       // Try with participant columns first; fall back gracefully if columns don't exist yet
@@ -550,15 +610,15 @@ module.exports = async function handler(req, res) {
       let participantValuesToAdd = [];
 
       if (isOwner && updates.participant_ids !== undefined) {
-        nextParticipantIds = Array.isArray(updates.participant_ids)
-          ? updates.participant_ids.map(Number).filter((n) => Number.isInteger(n) && n > 0)
-          : [];
+        nextParticipantIds = await normalizeParticipantIdsForDb(pool, updates.participant_ids, userId);
         participantFieldsToAdd.push({ field: `participant_ids = $${idx}`, value: nextParticipantIds });
         idx++;
         participantsChanged = true;
       }
       if (isOwner && updates.responsible_user_id !== undefined) {
-        const safeResponsible = updates.responsible_user_id ? Number(updates.responsible_user_id) || null : null;
+        const safeResponsible = updates.responsible_user_id
+          ? await resolveParticipantUserId(pool, updates.responsible_user_id, userId)
+          : null;
         participantFieldsToAdd.push({ field: `responsible_user_id = $${idx}`, value: safeResponsible });
         idx++;
       }
