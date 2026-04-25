@@ -53,6 +53,7 @@ body {
   background: var(--bg);
   color: var(--text);
   line-height: 1.5;
+  min-height: 100dvh;
   min-height: 100vh;
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
@@ -61,6 +62,7 @@ body {
 }
 
 #root {
+  min-height: 100dvh;
   min-height: 100vh;
 }
 
