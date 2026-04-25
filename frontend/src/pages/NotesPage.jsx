@@ -454,6 +454,31 @@ export default function NotesPage() {
     }
   }, [activeNoteId, notes]);
 
+  // Register wheel event with passive: false
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const wheelHandler = (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        // Let browser handle pinch zoom on trackpad with Ctrl/Cmd
+        return;
+      }
+      
+      e.preventDefault();
+      e.stopPropagation();
+      didManualZoomRef.current = true;
+
+      const zoomStep = 5;
+      const direction = e.deltaY > 0 ? -1 : 1;
+      const newZoom = clampZoom(zoom + direction * zoomStep);
+      setZoom(Math.round(newZoom));
+    };
+
+    canvas.addEventListener('wheel', wheelHandler, { passive: false });
+    return () => canvas.removeEventListener('wheel', wheelHandler);
+  }, [zoom]);
+
   // Save note position on change
   const updateNotePosition = (noteId, x, y, persist = false) => {
     setNotePositions((prev) => ({
@@ -569,23 +594,6 @@ export default function NotesPage() {
     setHoveredTaskPreview(null);
     setIsDragging({ x: e.clientX, y: e.clientY, isPan: true });
     e.preventDefault();
-  };
-
-  const handleCanvasWheel = (e) => {
-    if (!canvasRef.current) return;
-    if (e.ctrlKey || e.metaKey) {
-      // Let browser handle pinch zoom on trackpad with Ctrl/Cmd
-      return;
-    }
-    
-    e.preventDefault();
-    e.stopPropagation();
-    didManualZoomRef.current = true;
-
-    const zoomStep = 5;
-    const direction = e.deltaY > 0 ? -1 : 1;
-    const newZoom = clampZoom(zoom + direction * zoomStep);
-    setZoom(Math.round(newZoom));
   };
 
   const handleCanvasTouchStart = (event) => {
@@ -1587,12 +1595,12 @@ export default function NotesPage() {
         className="notes-canvas"
         ref={canvasRef}
         onMouseDown={handleCanvasMouseDown}
-        onWheel={handleCanvasWheel}
+        onMouseMove={handleMouseMove}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchEnd}
         onDragOver={(event) => event.preventDefault()}
         onDrop={handleCanvasDrop}
-        style={{ cursor: isDragging?.isPan ? 'grabbing' : 'grab' }}
+        style={{ cursor: isDragging?.isPan ? 'grabbing' : 'grab', touchAction: 'none' }}
       >
         <div className="canvas-content" style={{ transform: `scale(${zoom / 100})`, transformOrigin: '0 0' }}>
           {/* SVG Connections */}
