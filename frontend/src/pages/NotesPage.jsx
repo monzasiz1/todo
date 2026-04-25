@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Plus, ZoomIn, ZoomOut, Maximize2, Share2, Link2, Trash2, Edit2, X } from 'lucide-react';
+import { Plus, ZoomIn, ZoomOut, Maximize2, Share2, Link2, Trash2, Edit2, X, CalendarDays, Sparkles, PanelsTopLeft, Workflow } from 'lucide-react';
 import { useNotesStore } from '../store/notesStore';
 import { useFriendsStore } from '../store/friendsStore';
 import { useTaskStore } from '../store/taskStore';
@@ -23,6 +23,9 @@ export default function NotesPage() {
   const [connections, setConnections] = useState([]);
   const [hoveredNoteId, setHoveredNoteId] = useState(null);
   const [taskSearch, setTaskSearch] = useState('');
+  const [toolboxOpen, setToolboxOpen] = useState(false);
+  const [quickCreatePosition, setQuickCreatePosition] = useState(null);
+  const [quickConnectMode, setQuickConnectMode] = useState(false);
   const canvasRef = useRef(null);
 
   const refreshConnections = async (sourceNotes = notes) => {
@@ -56,7 +59,7 @@ export default function NotesPage() {
   // Load notes on mount
   useEffect(() => {
     useNotesStore.getState().fetchNotes?.();
-    fetchTasks?.({ dashboard: 'true', limit: '300', horizon_days: '365', completed_lookback_days: '60' }, { force: false });
+    fetchTasks?.({ limit: '1000' }, { force: true });
   }, [fetchTasks]);
 
   useEffect(() => {
@@ -164,16 +167,22 @@ export default function NotesPage() {
     if (!newNote.title.trim()) return;
 
     try {
-      const noteData = {
-        ...newNote,
+      const fallbackPosition = {
         x: 100 + notes.length * 40,
         y: 100 + notes.length * 40,
+      };
+      const targetPosition = quickCreatePosition || fallbackPosition;
+      const noteData = {
+        ...newNote,
+        x: targetPosition.x,
+        y: targetPosition.y,
         width: 300,
         height: 150,
       };
       await createNote(noteData);
       setNewNote({ title: '', content: '', importance: 'medium', date: '', linked_task_id: null });
       setTaskSearch('');
+      setQuickCreatePosition(null);
       setShowCreateModal(false);
     } catch (err) {
       console.error('Create note error:', err);
@@ -203,10 +212,79 @@ export default function NotesPage() {
     try {
       await connectNotes(noteId1, noteId2, 'related');
       await refreshConnections();
+      setSelectedNote(null);
+      setQuickConnectMode(false);
       setShowConnectModal(null);
     } catch (err) {
       console.error('Connect notes error:', err);
     }
+  };
+
+  const openBlankCreateModal = (position = null) => {
+    setQuickCreatePosition(position);
+    setNewNote({ title: '', content: '', importance: 'medium', date: '', linked_task_id: null });
+    setTaskSearch('');
+    setShowCreateModal(true);
+    setToolboxOpen(false);
+  };
+
+  const openCreateFromTask = (task, position = null) => {
+    setQuickCreatePosition(position);
+    setNewNote({
+      title: task?.title || '',
+      content: '',
+      importance: 'medium',
+      date: task?.date ? String(task.date).slice(0, 10) : '',
+      linked_task_id: task?.id || null,
+    });
+    setTaskSearch(task?.title || '');
+    setShowCreateModal(true);
+    setToolboxOpen(false);
+  };
+
+  const handleQuickConnectToggle = () => {
+    setQuickConnectMode((prev) => {
+      if (prev) setSelectedNote(null);
+      return !prev;
+    });
+  };
+
+  const handleNoteCardClick = async (event, noteId) => {
+    if (event.target.closest('button, input, textarea, select, a')) return;
+    if (!quickConnectMode) return;
+
+    event.stopPropagation();
+
+    if (!selectedNote) {
+      setSelectedNote(noteId);
+      return;
+    }
+
+    if (String(selectedNote) === String(noteId)) {
+      setSelectedNote(null);
+      return;
+    }
+
+    await handleConnectNotes(selectedNote, noteId);
+  };
+
+  const handleTaskShortcutDragStart = (event, taskId) => {
+    event.dataTransfer.effectAllowed = 'copy';
+    event.dataTransfer.setData('text/thoughts-task-id', String(taskId));
+  };
+
+  const handleCanvasDrop = (event) => {
+    event.preventDefault();
+    const taskId = event.dataTransfer.getData('text/thoughts-task-id');
+    if (!taskId || !canvasRef.current) return;
+
+    const task = tasks.find((entry) => String(entry.id) === String(taskId));
+    if (!task) return;
+
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = (event.clientX - rect.left + canvasRef.current.scrollLeft) / (zoom / 100) - 150;
+    const y = (event.clientY - rect.top + canvasRef.current.scrollTop) / (zoom / 100) - 90;
+    openCreateFromTask(task, { x: Math.max(40, x), y: Math.max(40, y) });
   };
 
   const getImportanceColor = (importance) => {
@@ -279,6 +357,7 @@ export default function NotesPage() {
   const selectedTask = newNote.linked_task_id
     ? tasks.find((task) => String(task.id) === String(newNote.linked_task_id))
     : null;
+  const shortcutTasks = visibleTasks.filter((task) => !task.completed).slice(0, 10);
 
   const connectedNoteIds = new Set();
   if (hoveredNoteId) {
@@ -363,11 +442,83 @@ export default function NotesPage() {
         </div>
       </div>
 
+      <div className="notes-workspace">
+        <aside className={`notes-toolbox ${toolboxOpen ? 'open' : ''}`}>
+          <div className="toolbox-header">
+            <div>
+              <div className="toolbox-kicker">Werkzeuge</div>
+              <h2 className="toolbox-title">Board Control</h2>
+            </div>
+            <button className="toolbox-toggle" onClick={() => setToolboxOpen((prev) => !prev)} type="button">
+              <PanelsTopLeft size={16} />
+            </button>
+          </div>
+
+          <div className="toolbox-actions-grid">
+            <button className="toolbox-action-card emphasis" type="button" onClick={() => openBlankCreateModal()}>
+              <Plus size={18} />
+              <span>Neue Note</span>
+            </button>
+            <button className={`toolbox-action-card ${quickConnectMode ? 'active' : ''}`} type="button" onClick={handleQuickConnectToggle}>
+              <Workflow size={18} />
+              <span>{quickConnectMode ? 'Connect aktiv' : 'Quick Connect'}</span>
+            </button>
+          </div>
+
+          {quickConnectMode && (
+            <div className="toolbox-status-card">
+              <Sparkles size={16} />
+              <div>
+                <strong>{selectedNote ? 'Ziel-Note wählen' : 'Start-Note wählen'}</strong>
+                <span>Tippe nacheinander zwei Notes an, um sofort einen Verbindungsstrang zu bauen.</span>
+              </div>
+            </div>
+          )}
+
+          <div className="toolbox-section">
+            <div className="toolbox-section-head">
+              <h3>Schnelle Termine</h3>
+              <span>{shortcutTasks.length}</span>
+            </div>
+            <p className="toolbox-helper">Desktop: auf das Board ziehen. Mobile: antippen, um daraus direkt eine Note zu bauen.</p>
+            <div className="toolbox-shortcut-list">
+              {shortcutTasks.length === 0 ? (
+                <div className="toolbox-empty">Keine offenen Termine oder Aufgaben gefunden.</div>
+              ) : (
+                shortcutTasks.map((task) => (
+                  <button
+                    key={task.id}
+                    type="button"
+                    className="toolbox-shortcut-card"
+                    draggable
+                    onDragStart={(event) => handleTaskShortcutDragStart(event, task.id)}
+                    onClick={() => openCreateFromTask(task)}
+                  >
+                    <div className="toolbox-shortcut-topline">
+                      <span className="toolbox-shortcut-title">{task.title}</span>
+                      <span className={`task-picker-badge ${task.type === 'event' ? 'event' : 'task'}`}>
+                        {task.type === 'event' ? 'Termin' : 'Aufgabe'}
+                      </span>
+                    </div>
+                    <div className="toolbox-shortcut-meta">
+                      <CalendarDays size={13} />
+                      <span>{formatTaskDate(task)}</span>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </aside>
+
+        <div className="notes-canvas-shell">
       {/* Canvas */}
       <div
         className="notes-canvas"
         ref={canvasRef}
         onMouseDown={handleCanvasMouseDown}
+        onDragOver={(event) => event.preventDefault()}
+        onDrop={handleCanvasDrop}
         style={{ cursor: isDragging?.isPan ? 'grabbing' : 'grab' }}
       >
         <div className="canvas-content" style={{ transform: `scale(${zoom / 100})`, transformOrigin: '0 0' }}>
@@ -422,6 +573,7 @@ export default function NotesPage() {
                     minHeight: `${note.height || 150}px`,
                   }}
                   onMouseDown={(e) => handleNoteMouseDown(e, note.id)}
+                  onClick={(event) => handleNoteCardClick(event, note.id)}
                   onMouseEnter={() => setHoveredNoteId(note.id)}
                   onMouseLeave={() => setHoveredNoteId(null)}
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -494,17 +646,34 @@ export default function NotesPage() {
           </AnimatePresence>
         </div>
       </div>
+        </div>
+      </div>
 
       {/* Create Button */}
       <motion.button
         className="create-note-btn"
-        onClick={() => setShowCreateModal(true)}
+        onClick={() => openBlankCreateModal()}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
         <Plus size={24} />
         <span>Neue Note</span>
       </motion.button>
+
+      <div className="notes-mobile-dock">
+        <button type="button" className={`mobile-dock-btn ${toolboxOpen ? 'active' : ''}`} onClick={() => setToolboxOpen((prev) => !prev)}>
+          <PanelsTopLeft size={18} />
+          <span>Tools</span>
+        </button>
+        <button type="button" className="mobile-dock-btn primary" onClick={() => openBlankCreateModal()}>
+          <Plus size={18} />
+          <span>Neu</span>
+        </button>
+        <button type="button" className={`mobile-dock-btn ${quickConnectMode ? 'active' : ''}`} onClick={handleQuickConnectToggle}>
+          <Link2 size={18} />
+          <span>Connect</span>
+        </button>
+      </div>
 
       {/* Create Modal */}
       <AnimatePresence>
