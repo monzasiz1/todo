@@ -10691,10 +10691,37 @@ body.cal-is-dragging * {
   padding: 12px 14px;
 }
 .group-task-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
   font-size: 14px;
   font-weight: 600;
   margin: 0 0 6px;
   color: var(--text-primary);
+}
+
+.group-entry-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.group-entry-type-badge.task {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 28%, transparent);
+}
+
+.group-entry-type-badge.event {
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
+  color: color-mix(in srgb, var(--warning) 76%, #503000);
+  border-color: color-mix(in srgb, var(--warning) 30%, transparent);
 }
 .group-task-meta {
   display: flex;

@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Plus, Hash, Copy, Check, ChevronRight, ChevronDown, Crown,
   Shield, UserMinus, Settings, Trash2, LogOut, X,
-  Calendar, Clock, Flag, Search, ArrowLeft
+  Calendar, CalendarCheck, Clock, Flag, Search, ArrowLeft, ListTodo
 } from 'lucide-react';
 import AvatarBadge from '../components/AvatarBadge';
 import TaskDetailModal from '../components/TaskDetailModal';
@@ -208,7 +208,7 @@ function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick })
             <strong>{stats.totalMembers}</strong>
           </article>
           <article className="groups-hub-stat-card">
-            <span>Aufgaben gesamt</span>
+            <span>Einträge gesamt</span>
             <strong>{stats.totalTasks}</strong>
           </article>
           <article className="groups-hub-stat-card">
@@ -290,7 +290,7 @@ function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick })
                 </div>
                 <div className="group-card-meta">
                   <span><Users size={12} /> {g.member_count} Mitglieder</span>
-                  <span><Calendar size={12} /> {g.task_count} Aufgaben</span>
+                  <span><Calendar size={12} /> {g.task_count} Einträge</span>
                 </div>
               </div>
               <ChevronRight size={18} className="group-card-chevron" />
@@ -577,7 +577,7 @@ function GroupDetail({ groupId, onBack }) {
       {/* Tabs */}
       <div className="group-tabs">
         <button className={`group-tab ${tab === 'tasks' ? 'active' : ''}`} onClick={() => setTab('tasks')}>
-          Aufgaben <span className="group-tab-count">{groupTasks.length}</span>
+          Einträge <span className="group-tab-count">{groupTasks.length}</span>
         </button>
         <button className={`group-tab ${tab === 'members' ? 'active' : ''}`} onClick={() => setTab('members')}>
           Mitglieder <span className="group-tab-count">{members.length}</span>
@@ -594,16 +594,16 @@ function GroupDetail({ groupId, onBack }) {
         <div className="group-tab-content">
           <div className="group-tab-toolbar">
             <div className="group-tab-heading-wrap">
-              <h3 className="group-tab-heading">Aufgabenboard</h3>
-              <p>Fokus auf offene Aufgaben, Vergangenes optional einblendbar.</p>
+              <h3 className="group-tab-heading">Team-Planung</h3>
+              <p>Aufgaben und Termine zentral planen, Vergangenes optional einblendbar.</p>
             </div>
             <button className="group-add-task-btn" onClick={() => setShowAddTask(true)}>
-              <Plus size={16} /> Aufgabe hinzufügen
+              <Plus size={16} /> Eintrag hinzufügen
             </button>
           </div>
 
           {groupTasks.length === 0 ? (
-            <div className="group-empty-tab">Noch keine Aufgaben in dieser Gruppe</div>
+            <div className="group-empty-tab">Noch keine Einträge in dieser Gruppe</div>
           ) : (
             <div className="group-task-list">
               {activeTasks.slice(0, visibleCount).map((task) => (
@@ -660,7 +660,7 @@ function GroupDetail({ groupId, onBack }) {
               onClose={() => setShowAddTask(false)}
               onAdd={async (task) => {
                 await addGroupTask(groupId, task);
-                addToast('✅ Aufgabe zur Gruppe hinzugefügt');
+                addToast(`✅ ${task.type === 'event' ? 'Termin' : 'Aufgabe'} zur Gruppe hinzugefügt`);
                 setShowAddTask(false);
                 fetchTasks(...DASHBOARD_REFRESH_PARAMS);
               }}
@@ -802,6 +802,10 @@ function GroupTaskCard({ task, groupId, canRemove, onRemove, onOpenTask }) {
       <div className="group-task-priority" style={{ background: priorityColors[task.priority] }} />
       <div className="group-task-content">
         <div className="group-task-title">
+          <span className={`group-entry-type-badge ${task.type === 'event' ? 'event' : 'task'}`}>
+            {task.type === 'event' ? <CalendarCheck size={11} /> : <ListTodo size={11} />}
+            {task.type === 'event' ? 'Termin' : 'Aufgabe'}
+          </span>
           {task.title}
           {endedEvent && <span className="group-task-status">Beendet</span>}
         </div>
@@ -846,9 +850,11 @@ function GroupTaskCard({ task, groupId, canRemove, onRemove, onOpenTask }) {
 // Add Task to Group (Quick Form)
 // ============================================
 function AddGroupTask({ groupId, onClose, onAdd }) {
+  const [type, setType] = useState('task');
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
+  const [timeEnd, setTimeEnd] = useState('');
   const [priority, setPriority] = useState('medium');
   const [saving, setSaving] = useState(false);
 
@@ -857,7 +863,14 @@ function AddGroupTask({ groupId, onClose, onAdd }) {
     if (!title.trim()) return;
     setSaving(true);
     try {
-      await onAdd({ title: title.trim(), date: date || null, time: time || null, priority });
+      await onAdd({
+        type,
+        title: title.trim(),
+        date: date || null,
+        time: time || null,
+        time_end: type === 'event' ? (timeEnd || null) : null,
+        priority,
+      });
     } finally {
       setSaving(false);
     }
@@ -879,15 +892,34 @@ function AddGroupTask({ groupId, onClose, onAdd }) {
         onSubmit={handleSubmit}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-          <h4 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>Neue Gruppenaufgabe</h4>
+          <h4 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>
+            Neuer Gruppeneintrag
+          </h4>
           <button type="button" onClick={onClose} style={{ background: 'var(--hover)', border: 'none', borderRadius: 10, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-secondary)' }}><X size={18} /></button>
+        </div>
+
+        <div className="task-type-toggle">
+          <button
+            type="button"
+            className={`task-type-btn ${type === 'task' ? 'active' : ''}`}
+            onClick={() => setType('task')}
+          >
+            <ListTodo size={16} /> Aufgabe
+          </button>
+          <button
+            type="button"
+            className={`task-type-btn event ${type === 'event' ? 'active' : ''}`}
+            onClick={() => setType('event')}
+          >
+            <CalendarCheck size={16} /> Termin
+          </button>
         </div>
 
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Was muss erledigt werden?"
+          placeholder={type === 'event' ? 'Wie heißt der Termin?' : 'Was muss erledigt werden?'}
           autoFocus
         />
 
@@ -900,6 +932,12 @@ function AddGroupTask({ groupId, onClose, onAdd }) {
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}><Clock size={12} /> Uhrzeit</label>
             <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
           </div>
+          {type === 'event' && (
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}><Clock size={12} /> Endzeit</label>
+              <input type="time" value={timeEnd} onChange={(e) => setTimeEnd(e.target.value)} />
+            </div>
+          )}
         </div>
 
         <div>
@@ -923,7 +961,7 @@ function AddGroupTask({ groupId, onClose, onAdd }) {
         </div>
 
         <button type="submit" className="group-submit-btn" disabled={!title.trim() || saving}>
-          {saving ? 'Hinzufügen...' : 'Zur Gruppe hinzufügen'}
+          {saving ? 'Hinzufügen...' : `${type === 'event' ? 'Termin' : 'Aufgabe'} zur Gruppe hinzufügen`}
         </button>
       </motion.form>
     </motion.div>

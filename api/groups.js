@@ -350,7 +350,8 @@ module.exports = async function handler(req, res) {
         // Members can only add tasks, not restricted further for now
       }
 
-      const { existing_task_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at } = req.body;
+      const { existing_task_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, type } = req.body;
+      const entryType = type === 'event' ? 'event' : 'task';
 
       let task;
 
@@ -380,14 +381,14 @@ module.exports = async function handler(req, res) {
       } else {
         if (!title) return res.status(400).json({ error: 'Titel erforderlich' });
 
-        // Create the task owned by the user
+        // Create the entry (task or event) owned by the user
         const taskResult = await pool.query(
-          `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order)
+          `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order, type)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-             (SELECT COALESCE(MAX(sort_order),0)+1 FROM tasks WHERE user_id = $1))
+             (SELECT COALESCE(MAX(sort_order),0)+1 FROM tasks WHERE user_id = $1), $11)
            RETURNING *`,
           [user.id, title.trim(), description || null, date || null, date_end || null,
-           time || null, time_end || null, priority || 'medium', category_id || null, reminder_at || null]
+           time || null, time_end || null, priority || 'medium', category_id || null, reminder_at || null, entryType]
         );
         task = taskResult.rows[0];
 
@@ -409,7 +410,7 @@ module.exports = async function handler(req, res) {
       });
     } catch (err) {
       console.error('Add group task error:', err);
-      return res.status(500).json({ error: 'Fehler beim Erstellen der Aufgabe' });
+      return res.status(500).json({ error: 'Fehler beim Erstellen des Eintrags' });
     }
   }
 
