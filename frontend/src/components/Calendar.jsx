@@ -1453,7 +1453,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
         renderWeekView()
       )}
 
-      {isMobile && (
+      {isMobile && createPortal(
         <div className="mobile-calendar-modebar">
           <div className="mobile-calendar-modebar-tabs">
             <button className={view === 'day' ? 'active' : ''} onClick={() => setView('day')}>Tag</button>
@@ -1463,7 +1463,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
           <button className="mobile-calendar-add-btn" onClick={() => onDayClick?.(selectedDate || new Date())}>
             <Plus size={20} />
           </button>
-        </div>
+        </div>,
+        document.body
       )}
 
       {detailTask && createPortal(

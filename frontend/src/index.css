@@ -4436,7 +4436,7 @@ body.cal-is-dragging * {
 
   .mobile-calendar-modebar {
     position: fixed;
-    bottom: 64px; /* direkt über der Bottom-Nav */
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px)); /* direkt über der Bottom-Nav inkl. iPhone Safe Area */
     left: 0;
     right: 0;
     z-index: 90;
