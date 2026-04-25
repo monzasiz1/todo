@@ -150,6 +150,7 @@ module.exports = async function handler(req, res) {
     const user = verifyToken(req);
     if (!user) return res.status(401).json({ error: 'Nicht autorisiert' });
 
+    const userIdText = String(user.id);
     const userId = Number(user.id);
     if (!Number.isInteger(userId) || userId <= 0) {
       return res.status(401).json({ error: 'Ungueltiger Nutzer im Token' });
@@ -166,9 +167,9 @@ module.exports = async function handler(req, res) {
           `SELECT n.*, t.title AS linked_task_title
              FROM notes n
              LEFT JOIN tasks t ON t.id::text = n.linked_task_id::text
-            WHERE n.user_id = $1
+            WHERE n.user_id::text = $1
             ORDER BY n.updated_at DESC, n.created_at DESC`,
-          [userId]
+          [userIdText]
         );
         return res.status(200).json({ notes: result.rows });
       } catch {
@@ -176,18 +177,18 @@ module.exports = async function handler(req, res) {
           const resultNoJoin = await pool.query(
             `SELECT n.*
                FROM notes n
-              WHERE n.user_id = $1
+              WHERE n.user_id::text = $1
               ORDER BY n.updated_at DESC, n.created_at DESC`,
-            [userId]
+            [userIdText]
           );
           return res.status(200).json({ notes: resultNoJoin.rows });
         } catch {
           const resultLegacy = await pool.query(
             `SELECT n.*
                FROM notes n
-              WHERE n.user_id = $1
+              WHERE n.user_id::text = $1
               ORDER BY n.created_at DESC`,
-            [userId]
+            [userIdText]
           );
           return res.status(200).json({ notes: resultLegacy.rows });
         }
@@ -267,9 +268,9 @@ module.exports = async function handler(req, res) {
              JOIN notes n ON n.id = ns.note_id
              JOIN users u ON u.id = n.user_id
              LEFT JOIN tasks t ON t.id::text = n.linked_task_id::text
-            WHERE ns.friend_id = $1
+            WHERE ns.friend_id::text = $1
             ORDER BY n.updated_at DESC, n.created_at DESC`,
-          [userId]
+          [userIdText]
         );
         return res.status(200).json({ notes: shared.rows });
       } catch {
@@ -279,9 +280,9 @@ module.exports = async function handler(req, res) {
              FROM note_shares ns
              JOIN notes n ON n.id = ns.note_id
              JOIN users u ON u.id = n.user_id
-            WHERE ns.friend_id = $1
+            WHERE ns.friend_id::text = $1
             ORDER BY n.created_at DESC`,
-          [userId]
+          [userIdText]
         );
         return res.status(200).json({ notes: sharedNoJoin.rows });
       }
@@ -295,11 +296,11 @@ module.exports = async function handler(req, res) {
     const noteAccess = await pool.query(
       `SELECT n.*, ns.permission AS shared_permission
          FROM notes n
-         LEFT JOIN note_shares ns ON ns.note_id = n.id AND ns.friend_id = $2
+         LEFT JOIN note_shares ns ON ns.note_id = n.id AND ns.friend_id::text = $2
         WHERE n.id = $1
-          AND (n.user_id = $2 OR ns.friend_id = $2)
+          AND (n.user_id::text = $2 OR ns.friend_id::text = $2)
         LIMIT 1`,
-      [noteId, userId]
+      [noteId, userIdText]
     );
 
     if (noteAccess.rows.length === 0) {
@@ -307,7 +308,7 @@ module.exports = async function handler(req, res) {
     }
 
     const note = noteAccess.rows[0];
-    const isOwner = Number(note.user_id) === userId;
+    const isOwner = String(note.user_id) === userIdText;
 
     // PATCH /api/notes/:id
     if (segments.length === 1 && req.method === 'PATCH') {
@@ -476,7 +477,7 @@ module.exports = async function handler(req, res) {
 
       await pool.query('DELETE FROM note_shares WHERE note_id = $1', [noteId]);
       await pool.query('DELETE FROM note_connections WHERE note_id_1 = $1 OR note_id_2 = $1', [noteId]);
-      await pool.query('DELETE FROM notes WHERE id = $1 AND user_id = $2', [noteId, userId]);
+      await pool.query('DELETE FROM notes WHERE id = $1 AND user_id::text = $2', [noteId, userIdText]);
 
       return res.status(200).json({ success: true });
     }
