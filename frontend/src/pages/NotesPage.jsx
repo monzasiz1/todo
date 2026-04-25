@@ -162,6 +162,7 @@ export default function NotesPage() {
   const [notePositions, setNotePositions] = useState({});
   const [connections, setConnections] = useState([]);
   const [hoveredNoteId, setHoveredNoteId] = useState(null);
+  const [hoveredTaskPreview, setHoveredTaskPreview] = useState(null);
   const [taskSearch, setTaskSearch] = useState('');
   const [toolboxOpen, setToolboxOpen] = useState(false);
   const [quickCreatePosition, setQuickCreatePosition] = useState(null);
@@ -527,6 +528,17 @@ export default function NotesPage() {
       setActiveNoteId(null);
       setIsDragging({ x: e.clientX, y: e.clientY, isPan: true });
     }
+  };
+
+  const handleCanvasWheel = (e) => {
+    if (!canvasRef.current) return;
+    e.preventDefault();
+    didManualZoomRef.current = true;
+
+    const zoomStep = 5;
+    const direction = e.deltaY > 0 ? -1 : 1;
+    const newZoom = clampZoom(zoom + direction * zoomStep);
+    setZoom(Math.round(newZoom));
   };
 
   const handleCanvasTouchStart = (event) => {
@@ -1526,6 +1538,7 @@ export default function NotesPage() {
         className="notes-canvas"
         ref={canvasRef}
         onMouseDown={handleCanvasMouseDown}
+        onWheel={handleCanvasWheel}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchEnd}
         onDragOver={(event) => event.preventDefault()}
@@ -1602,11 +1615,18 @@ export default function NotesPage() {
                     <button
                       type="button"
                       className="note-linked-task"
+                      onMouseEnter={(e) => {
+                        const task = linkedTask(note.id);
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setHoveredTaskPreview({ task, x: rect.left, y: rect.bottom + 8 });
+                      }}
+                      onMouseLeave={() => setHoveredTaskPreview(null)}
                       onClick={() => {
                         setActiveNoteId(note.id);
                         setContextTab('events');
+                        setHoveredTaskPreview(null);
                       }}
-                      title={`Klick um Details anzuzeigen: ${linkedTask(note.id)?.title}`}
+                      title={`Hover für Übersicht, Klick für Details: ${linkedTask(note.id)?.title}`}
                     >
                       📌 {linkedTask(note.id)?.title || 'Task verknüpft'}
                     </button>
@@ -1704,6 +1724,47 @@ export default function NotesPage() {
         )}
       </div>
         </div>
+
+        {hoveredTaskPreview && hoveredTaskPreview.task && (
+          <div
+            className="task-preview-modal"
+            style={{
+              position: 'fixed',
+              left: `${hoveredTaskPreview.x}px`,
+              top: `${hoveredTaskPreview.y}px`,
+              zIndex: 1000,
+            }}
+            onMouseLeave={() => setHoveredTaskPreview(null)}
+          >
+            <div className="task-preview-header">
+              <div className="task-preview-title">{hoveredTaskPreview.task.title}</div>
+              <div className="task-preview-importance" style={{ background: getImportanceColor(hoveredTaskPreview.task.importance || 'medium').bg }}>
+                {hoveredTaskPreview.task.importance === 'high' && '⭐'}
+                {hoveredTaskPreview.task.importance === 'medium' && '●'}
+                {hoveredTaskPreview.task.importance === 'low' && '−'}
+              </div>
+            </div>
+            <div className="task-preview-grid">
+              <div className="task-preview-row">
+                <span className="task-preview-label">📅 Datum:</span>
+                <span className="task-preview-value">{formatTaskDate(hoveredTaskPreview.task)}</span>
+              </div>
+              {hoveredTaskPreview.task.type && (
+                <div className="task-preview-row">
+                  <span className="task-preview-label">📌 Typ:</span>
+                  <span className="task-preview-value">{hoveredTaskPreview.task.type === 'event' ? 'Termin' : 'Aufgabe'}</span>
+                </div>
+              )}
+              {hoveredTaskPreview.task.category && (
+                <div className="task-preview-row">
+                  <span className="task-preview-label">🏷️ Kategorie:</span>
+                  <span className="task-preview-value">{hoveredTaskPreview.task.category}</span>
+                </div>
+              )}
+            </div>
+            <div className="task-preview-footer">Klick für vollständige Details</div>
+          </div>
+        )}
 
         <aside className={`notes-context-panel ${activeNote ? 'open' : ''}`}>
           {!activeNote ? (
