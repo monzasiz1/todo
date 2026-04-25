@@ -495,59 +495,42 @@ export const api = {
     }),
 
   updateNote: (noteId, updates) =>
-    request(`/notes/${noteId}`, {
-      method: 'PATCH',
-      body: JSON.stringify(updates),
+    request('/notes', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'update', id: noteId, ...updates }),
     }),
 
   deleteNote: (noteId) =>
-    request(`/notes/${noteId}`, { method: 'DELETE' }),
-
-  linkNoteToTask: (noteId, taskId) =>
-    request(`/notes/${noteId}/link-task`, {
+    request('/notes', {
       method: 'POST',
-      body: JSON.stringify({ task_id: taskId }),
+      body: JSON.stringify({ action: 'delete', id: noteId }),
     }),
 
-  shareNote: async (noteId, data) => {
-    try {
-      return await request(`/notes/${noteId}/share`, {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
-    } catch (err) {
-      // Legacy compatibility: older backend versions expected query params instead of path segments.
-      if (err?.status === 404 || err?.status === 405) {
-        const legacyQuery = new URLSearchParams({ id: String(noteId), method: 'share' }).toString();
-        return request(`/notes?${legacyQuery}`, {
-          method: 'POST',
-          body: JSON.stringify(data),
-        });
-      }
-      throw err;
-    }
-  },
+  linkNoteToTask: (noteId, taskId) =>
+    request('/notes', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'link-task', id: noteId, task_id: taskId }),
+    }),
 
-  getSharedNotes: () => request('/notes/shared'),
+  shareNote: (noteId, data) =>
+    request('/notes', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'share', id: noteId, ...data }),
+    }),
 
-  connectNotes: async (noteId1, noteId2, relationshipType = 'related') => {
-    try {
-      return await request(`/notes/${noteId1}/connect`, {
-        method: 'POST',
-        body: JSON.stringify({ note_id: noteId2, other_note_id: noteId2, relationship_type: relationshipType }),
-      });
-    } catch (err) {
-      // Legacy compatibility: older backend versions handled note connections via method=connections.
-      if (err?.status === 404 || err?.status === 405) {
-        const legacyQuery = new URLSearchParams({ id: String(noteId1), method: 'connections' }).toString();
-        return request(`/notes?${legacyQuery}`, {
-          method: 'POST',
-          body: JSON.stringify({ note_id: noteId2, other_note_id: noteId2, relationship_type: relationshipType }),
-        });
-      }
-      throw err;
-    }
-  },
+  getSharedNotes: () => request('/notes?view=shared'),
 
-  getNoteConnections: (noteId) => request(`/notes/${noteId}/connections`),
+  connectNotes: (noteId1, noteId2, relationshipType = 'related') =>
+    request('/notes', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'connect',
+        id: noteId1,
+        note_id: noteId2,
+        other_note_id: noteId2,
+        relationship_type: relationshipType,
+      }),
+    }),
+
+  getNoteConnections: (noteId) => request(`/notes?id=${encodeURIComponent(noteId)}&view=connections`),
 };

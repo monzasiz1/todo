@@ -229,9 +229,18 @@ module.exports = async function handler(req, res) {
     const pool = getPool();
     const subPath = req.query.__path || '';
     const segments = subPath.split('/').filter(Boolean);
+    const legacyMethod = String(
+      Array.isArray(req.query.method) ? req.query.method[0] : (req.query.method || '')
+    ).toLowerCase();
+    const legacyNoteId = Array.isArray(req.query.id) ? req.query.id[0] : req.query.id;
+    const requestedView = String(
+      Array.isArray(req.query.view) ? req.query.view[0] : (req.query.view || '')
+    ).toLowerCase();
+    const rootAction = String(req.body?.action || '').toLowerCase();
+    const rootActionNoteId = req.body?.id || req.body?.noteId || null;
 
     // GET /api/notes
-    if (segments.length === 0 && req.method === 'GET') {
+    if (segments.length === 0 && req.method === 'GET' && !requestedView) {
       try {
         const result = await pool.query(
           `SELECT n.*, t.title AS linked_task_title
@@ -266,7 +275,7 @@ module.exports = async function handler(req, res) {
     }
 
     // POST /api/notes
-    if (segments.length === 0 && req.method === 'POST') {
+    if (segments.length === 0 && req.method === 'POST' && !legacyMethod && !rootAction) {
       const {
         title,
         content = '',
@@ -343,7 +352,10 @@ module.exports = async function handler(req, res) {
     }
 
     // GET /api/notes/shared
-    if (segments.length === 1 && segments[0] === 'shared' && req.method === 'GET') {
+    if (
+      (segments.length === 1 && segments[0] === 'shared' && req.method === 'GET') ||
+      (segments.length === 0 && req.method === 'GET' && requestedView === 'shared')
+    ) {
       try {
         const shared = await pool.query(
           `SELECT n.*, ns.permission,
@@ -373,7 +385,11 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    const noteId = segments[0];
+    const noteId = segments[0] || legacyNoteId || rootActionNoteId;
+    const isLegacyNoteAction = segments.length === 0 && !!legacyMethod && !!legacyNoteId;
+    const isRootAction = segments.length === 0 && req.method === 'POST' && !!rootAction && !!noteId;
+    const isRootConnectionsView = segments.length === 0 && req.method === 'GET' && requestedView === 'connections' && !!noteId;
+
     if (!noteId || !isUuid(noteId)) {
       return res.status(404).json({ error: 'Route nicht gefunden' });
     }
@@ -396,7 +412,11 @@ module.exports = async function handler(req, res) {
     const isOwner = String(note.user_id) === userIdText;
 
     // PATCH /api/notes/:id
-    if (segments.length === 1 && req.method === 'PATCH') {
+    if (
+      (segments.length === 1 && (req.method === 'PATCH' || req.method === 'PUT')) ||
+      (isLegacyNoteAction && req.method === 'POST' && ['update', 'edit'].includes(legacyMethod)) ||
+      (isRootAction && ['update', 'edit'].includes(rootAction))
+    ) {
       if (!isOwner && note.shared_permission !== 'edit') {
         return res.status(403).json({ error: 'Keine Berechtigung zum Bearbeiten' });
       }
@@ -555,7 +575,11 @@ module.exports = async function handler(req, res) {
     }
 
     // DELETE /api/notes/:id
-    if (segments.length === 1 && req.method === 'DELETE') {
+    if (
+      (segments.length === 1 && req.method === 'DELETE') ||
+      (isLegacyNoteAction && req.method === 'POST' && ['delete', 'remove'].includes(legacyMethod)) ||
+      (isRootAction && ['delete', 'remove'].includes(rootAction))
+    ) {
       if (!isOwner) {
         return res.status(403).json({ error: 'Nur Eigentuemer kann loeschen' });
       }
@@ -568,7 +592,11 @@ module.exports = async function handler(req, res) {
     }
 
     // POST /api/notes/:id/link-task
-    if (segments.length === 2 && segments[1] === 'link-task' && req.method === 'POST') {
+    if (
+      (segments.length === 2 && segments[1] === 'link-task' && req.method === 'POST') ||
+      (isLegacyNoteAction && req.method === 'POST' && ['link-task', 'link_task', 'linktask'].includes(legacyMethod)) ||
+      (isRootAction && ['link-task', 'link_task', 'linktask'].includes(rootAction))
+    ) {
       if (!isOwner && note.shared_permission !== 'edit') {
         return res.status(403).json({ error: 'Keine Berechtigung zum Bearbeiten' });
       }
@@ -597,7 +625,11 @@ module.exports = async function handler(req, res) {
     }
 
     // POST /api/notes/:id/share
-    if (segments.length === 2 && segments[1] === 'share' && req.method === 'POST') {
+    if (
+      (segments.length === 2 && segments[1] === 'share' && req.method === 'POST') ||
+      (isLegacyNoteAction && req.method === 'POST' && legacyMethod === 'share') ||
+      (isRootAction && rootAction === 'share')
+    ) {
       if (!isOwner) {
         return res.status(403).json({ error: 'Nur Eigentuemer kann teilen' });
       }
@@ -628,7 +660,11 @@ module.exports = async function handler(req, res) {
     }
 
     // GET /api/notes/:id/connections
-    if (segments.length === 2 && segments[1] === 'connections' && req.method === 'GET') {
+    if (
+      (segments.length === 2 && segments[1] === 'connections' && req.method === 'GET') ||
+      (isLegacyNoteAction && ['GET', 'POST'].includes(req.method) && legacyMethod === 'connections') ||
+      isRootConnectionsView
+    ) {
       const connections = await pool.query(
         `SELECT nc.*, n1.title AS note_1_title, n2.title AS note_2_title
            FROM note_connections nc
@@ -643,7 +679,11 @@ module.exports = async function handler(req, res) {
     }
 
     // POST /api/notes/:id/connect
-    if (segments.length === 2 && segments[1] === 'connect' && req.method === 'POST') {
+    if (
+      (segments.length === 2 && segments[1] === 'connect' && req.method === 'POST') ||
+      (isLegacyNoteAction && req.method === 'POST' && ['connect', 'connections'].includes(legacyMethod)) ||
+      (isRootAction && ['connect', 'connections'].includes(rootAction))
+    ) {
       if (!isOwner && note.shared_permission !== 'edit') {
         return res.status(403).json({ error: 'Keine Berechtigung zum Bearbeiten' });
       }
