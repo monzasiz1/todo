@@ -2036,7 +2036,11 @@ body.cal-is-dragging * {
   font-weight: 500;
   color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
+  line-height: 1;
   transform: translateY(-50%);
+  background: var(--bg);
+  padding: 0 1px;
+  user-select: none;
   user-select: none;
 }
 .desktop-week-event-ended {
@@ -6400,6 +6404,10 @@ body.cal-is-dragging * {
     color: #8a95aa;
     font-variant-numeric: tabular-nums;
     line-height: 1;
+    transform: translateY(-50%);
+    background: #f8f9fc;
+    padding: 0 2px;
+    user-select: none;
   }
 
   .desktop-week-day-head.today {

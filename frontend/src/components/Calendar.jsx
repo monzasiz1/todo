@@ -924,8 +924,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
               {hours.map((h) => (
                 <div
                   key={h}
-                  className={`desktop-week-hour-label${h === startHour ? ' first' : ''}`}
-                  style={{ top: `${h === startHour ? 4 : (h - startHour) * hourHeight - 7}px` }}
+                  className="desktop-week-hour-label"
+                  style={{ top: `${(h - startHour) * hourHeight}px` }}
                 >
                   {String(h === 24 ? 0 : h).padStart(2, '0')}:00
                 </div>
@@ -1102,7 +1102,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
           {/* hour labels */}
           <div className="mobile-week-grid-hours" style={{ height: `${mwTotalH}px` }}>
             {mwHours.map((h) => (
-              <div key={`mwhl-${h}`} className="mobile-week-grid-hour-label" style={{ top: `${h === mwStartH ? 4 : (h - mwStartH) * mwHourH - 6}px` }}>
+              <div key={`mwhl-${h}`} className="mobile-week-grid-hour-label" style={{ top: `${(h - mwStartH) * mwHourH}px` }}>
                 {String(h === 24 ? 0 : h).padStart(2, '0')}
               </div>
             ))}
