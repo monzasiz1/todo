@@ -352,9 +352,6 @@ export const api = {
 
   // Groups
   getGroups: () => request('/groups'),
-  
-  // Organizations
-  getOrganizations: () => request('/organizations'),
 
   createGroup: (data) =>
     request('/groups', {
@@ -368,20 +365,6 @@ export const api = {
       body: JSON.stringify({ code }),
     }),
 
-
-  createOrganization: (data) =>
-    request('/organizations', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-
-  joinOrganization: (code) =>
-    request('/organizations/join', {
-      method: 'POST',
-      body: JSON.stringify({ code }),
-    }),
-
-  getOrganization: (id) => request(`/organizations/${id}`),
   getGroup: (id) => request(`/groups/${id}`),
 
   updateGroup: (id, data) =>

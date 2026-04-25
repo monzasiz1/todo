@@ -132,28 +132,6 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const tasks = Array.isArray(tasksProp) ? tasksProp : storeTasks;
 
   const getTaskSource = (t) => {
-    if (t.source_scope === 'organization' || t.source_organization_id || t.organization_id) {
-      const orgId = t.source_organization_id || t.organization_id;
-      return {
-        key: `org:${orgId || t.organization_name || 'default'}`,
-        name: t.organization_name || 'Organisation',
-        color: t.organization_color || '#0A84FF',
-      };
-    }
-
-    if (t.source_scope === 'group' || t.source_group_id || t.group_id || t.group_name) {
-      const groupId = t.source_group_id || t.group_id || t.group_name;
-      return {
-        key: `group:${groupId}`,
-        name: t.group_name || 'Gruppe',
-        color: t.group_color || '#5856D6',
-      };
-    }
-
-    if (t.source_scope === 'private') {
-      return { key: 'default:persoenlich', name: 'Persoenlich', color: '#4C7BD9' };
-    }
-
     if (t.group_id || t.group_name) {
       return {
         key: `group:${t.group_id || t.group_name}`,
@@ -183,17 +161,6 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   }, [tasks]);
 
   const [visibleSources, setVisibleSources] = useState({});
-  const [visibleScopes, setVisibleScopes] = useState({
-    private: true,
-    group: true,
-    organization: true,
-  });
-
-  const getTaskScope = (t) => {
-    if (t.source_scope === 'organization' || t.source_organization_id || t.organization_id) return 'organization';
-    if (t.source_scope === 'group' || t.source_group_id || t.group_id || t.group_name) return 'group';
-    return 'private';
-  };
 
   useEffect(() => {
     tasksRef.current = tasks;
@@ -214,12 +181,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   }, [calendarSources]);
 
   const filteredTasks = useMemo(
-    () => tasks.filter((t) => {
-      const scope = getTaskScope(t);
-      if (visibleScopes[scope] === false) return false;
-      return visibleSources[getTaskSource(t).key] !== false;
-    }),
-    [tasks, visibleSources, visibleScopes]
+    () => tasks.filter((t) => visibleSources[getTaskSource(t).key] !== false),
+    [tasks, visibleSources]
   );
 
   useEffect(() => {
@@ -916,36 +879,6 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.2 }}
               >
-                <div className="desktop-calendar-source-group-title">Quelltypen</div>
-                <label className="desktop-calendar-source-item">
-                  <input
-                    type="checkbox"
-                    checked={visibleScopes.private !== false}
-                    onChange={(e) => setVisibleScopes((s) => ({ ...s, private: e.target.checked }))}
-                  />
-                  <span className="desktop-calendar-source-dot" style={{ background: '#4C7BD9' }} />
-                  <span className="desktop-calendar-source-name">Privat</span>
-                </label>
-                <label className="desktop-calendar-source-item">
-                  <input
-                    type="checkbox"
-                    checked={visibleScopes.group !== false}
-                    onChange={(e) => setVisibleScopes((s) => ({ ...s, group: e.target.checked }))}
-                  />
-                  <span className="desktop-calendar-source-dot" style={{ background: '#5856D6' }} />
-                  <span className="desktop-calendar-source-name">Gruppen</span>
-                </label>
-                <label className="desktop-calendar-source-item">
-                  <input
-                    type="checkbox"
-                    checked={visibleScopes.organization !== false}
-                    onChange={(e) => setVisibleScopes((s) => ({ ...s, organization: e.target.checked }))}
-                  />
-                  <span className="desktop-calendar-source-dot" style={{ background: '#0A84FF' }} />
-                  <span className="desktop-calendar-source-name">Organisationen</span>
-                </label>
-
-                <div className="desktop-calendar-source-group-title">Quellen</div>
                 {calendarSources.map((source) => (
                   <label key={source.key} className="desktop-calendar-source-item">
                     <input

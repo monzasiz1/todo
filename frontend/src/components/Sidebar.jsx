@@ -10,7 +10,6 @@ import {
   Sparkles,
   Users,
   UsersRound,
-  Building2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -41,7 +40,6 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/calendar', icon: CalendarDays, label: 'Kalender' },
     { to: '/groups', icon: UsersRound, label: 'Gruppen' },
-    { to: '/organizations', icon: Building2, label: 'Organisationen' },
   ];
 
   const getTaskCount = (categoryId) => {
