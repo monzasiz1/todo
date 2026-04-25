@@ -530,11 +530,24 @@ export const api = {
 
   getSharedNotes: () => request('/notes/shared'),
 
-  connectNotes: (noteId1, noteId2, relationshipType = 'related') =>
-    request(`/notes/${noteId1}/connect`, {
-      method: 'POST',
-      body: JSON.stringify({ note_id: noteId2, relationship_type: relationshipType }),
-    }),
+  connectNotes: async (noteId1, noteId2, relationshipType = 'related') => {
+    try {
+      return await request(`/notes/${noteId1}/connect`, {
+        method: 'POST',
+        body: JSON.stringify({ note_id: noteId2, other_note_id: noteId2, relationship_type: relationshipType }),
+      });
+    } catch (err) {
+      // Legacy compatibility: older backend versions handled note connections via method=connections.
+      if (err?.status === 404 || err?.status === 405) {
+        const legacyQuery = new URLSearchParams({ id: String(noteId1), method: 'connections' }).toString();
+        return request(`/notes?${legacyQuery}`, {
+          method: 'POST',
+          body: JSON.stringify({ note_id: noteId2, other_note_id: noteId2, relationship_type: relationshipType }),
+        });
+      }
+      throw err;
+    }
+  },
 
   getNoteConnections: (noteId) => request(`/notes/${noteId}/connections`),
 };
