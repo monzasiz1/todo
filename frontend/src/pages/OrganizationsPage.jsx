@@ -8,6 +8,14 @@ export default function OrganizationsPage() {
   const [error, setError] = useState('');
   const [createData, setCreateData] = useState({ name: '', description: '', color: '#0A84FF' });
   const [joinCode, setJoinCode] = useState('');
+  const [entryData, setEntryData] = useState({
+    organization_id: '',
+    title: '',
+    date: '',
+    time: '',
+    time_end: '',
+    type: 'event',
+  });
 
   const loadOrganizations = async () => {
     setLoading(true);
@@ -47,6 +55,25 @@ export default function OrganizationsPage() {
       await loadOrganizations();
     } catch (err) {
       setError(err.message || 'Beitritt fehlgeschlagen');
+    }
+  };
+
+  const handleCreateOrgEntry = async (e) => {
+    e.preventDefault();
+    if (!entryData.organization_id || !entryData.title.trim()) return;
+    try {
+      await api.createTask({
+        title: entryData.title.trim(),
+        date: entryData.date || null,
+        time: entryData.time || null,
+        time_end: entryData.time_end || null,
+        type: entryData.type,
+        source_scope: 'organization',
+        source_organization_id: entryData.organization_id,
+      });
+      setEntryData((s) => ({ ...s, title: '', date: '', time: '', time_end: '' }));
+    } catch (err) {
+      setError(err.message || 'Organisations-Eintrag konnte nicht erstellt werden');
     }
   };
 
@@ -101,6 +128,66 @@ export default function OrganizationsPage() {
               onChange={(e) => setJoinCode(e.target.value)}
             />
             <button className="org-btn-secondary" type="submit">Code einlösen</button>
+          </form>
+        </section>
+
+        <section className="org-panel">
+          <h3><Building2 size={16} /> Organisations-Termin</h3>
+          <form onSubmit={handleCreateOrgEntry} className="org-form">
+            <select
+              className="org-input"
+              value={entryData.organization_id}
+              onChange={(e) => setEntryData((s) => ({ ...s, organization_id: e.target.value }))}
+            >
+              <option value="">Organisation wählen</option>
+              {organizations.map((org) => (
+                <option key={org.id} value={org.id}>{org.name}</option>
+              ))}
+            </select>
+            <input
+              className="org-input"
+              type="text"
+              placeholder="Titel"
+              value={entryData.title}
+              onChange={(e) => setEntryData((s) => ({ ...s, title: e.target.value }))}
+            />
+            <div className="org-entry-grid">
+              <input
+                className="org-input"
+                type="date"
+                value={entryData.date}
+                onChange={(e) => setEntryData((s) => ({ ...s, date: e.target.value }))}
+              />
+              <input
+                className="org-input"
+                type="time"
+                value={entryData.time}
+                onChange={(e) => setEntryData((s) => ({ ...s, time: e.target.value }))}
+              />
+              <input
+                className="org-input"
+                type="time"
+                value={entryData.time_end}
+                onChange={(e) => setEntryData((s) => ({ ...s, time_end: e.target.value }))}
+              />
+            </div>
+            <div className="org-entry-type-row">
+              <button
+                type="button"
+                className={`org-type-btn ${entryData.type === 'event' ? 'active' : ''}`}
+                onClick={() => setEntryData((s) => ({ ...s, type: 'event' }))}
+              >
+                Termin
+              </button>
+              <button
+                type="button"
+                className={`org-type-btn ${entryData.type === 'task' ? 'active' : ''}`}
+                onClick={() => setEntryData((s) => ({ ...s, type: 'task' }))}
+              >
+                Aufgabe
+              </button>
+            </div>
+            <button className="org-btn-primary" type="submit">Eintrag erstellen</button>
           </form>
         </section>
       </div>

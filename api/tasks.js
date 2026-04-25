@@ -337,6 +337,16 @@ function buildDashboardOrderByClause() {
              t.created_at DESC`;
 }
 
+async function hasTaskSourceColumns(pool) {
+  const result = await pool.query(
+    `SELECT COUNT(*)::int AS cnt
+     FROM information_schema.columns
+     WHERE table_name = 'tasks'
+       AND column_name IN ('source_scope', 'source_user_id', 'source_group_id', 'source_organization_id')`
+  );
+  return Number(result.rows[0]?.cnt || 0) === 4;
+}
+
 module.exports = async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -1193,7 +1203,8 @@ module.exports = async function handler(req, res) {
     try {
       const { title, description, date, date_end, time, time_end, priority, category_id, reminder_at,
               recurrence_rule, recurrence_interval, recurrence_end, group_id,
-              visibility, permissions, type } = req.body;
+              visibility, permissions, type,
+              source_scope, source_user_id, source_group_id, source_organization_id } = req.body;
       if (!title) {
         return res.status(400).json({ error: 'Titel ist erforderlich' });
       }
@@ -1205,6 +1216,7 @@ module.exports = async function handler(req, res) {
       );
       const collabEnabled = visibilityResult.rows[0]?.has_visibility === true;
       const finalVisibility = collabEnabled ? (visibility || 'private') : 'private';
+      const sourceColumnsEnabled = await hasTaskSourceColumns(pool);
 
       let groupInfo = null;
       if (group_id) {
@@ -1220,6 +1232,49 @@ module.exports = async function handler(req, res) {
           return res.status(403).json({ error: 'Keine Berechtigung für diese Gruppe' });
         }
         groupInfo = groupAccess.rows[0];
+      }
+
+      let finalSourceScope = 'private';
+      let finalSourceUserId = user.id;
+      let finalSourceGroupId = null;
+      let finalSourceOrganizationId = null;
+
+      if (sourceColumnsEnabled) {
+        const requestedScope = source_scope || (source_organization_id ? 'organization' : (source_group_id || group_id ? 'group' : 'private'));
+
+        if (requestedScope === 'organization') {
+          if (!source_organization_id) {
+            return res.status(400).json({ error: 'source_organization_id ist erforderlich' });
+          }
+          const membership = await pool.query(
+            `SELECT role FROM organization_members WHERE organization_id = $1 AND user_id = $2 LIMIT 1`,
+            [source_organization_id, user.id]
+          );
+          if (membership.rows.length === 0) {
+            return res.status(403).json({ error: 'Kein Zugriff auf diese Organisation' });
+          }
+          finalSourceScope = 'organization';
+          finalSourceUserId = null;
+          finalSourceOrganizationId = source_organization_id;
+        } else if (requestedScope === 'group') {
+          const effectiveGroupId = source_group_id || group_id;
+          if (!effectiveGroupId) {
+            return res.status(400).json({ error: 'source_group_id ist erforderlich' });
+          }
+          const membership = await pool.query(
+            `SELECT role FROM group_members WHERE group_id = $1 AND user_id = $2 LIMIT 1`,
+            [effectiveGroupId, user.id]
+          );
+          if (membership.rows.length === 0) {
+            return res.status(403).json({ error: 'Kein Zugriff auf diese Gruppe' });
+          }
+          finalSourceScope = 'group';
+          finalSourceUserId = null;
+          finalSourceGroupId = effectiveGroupId;
+        } else {
+          finalSourceScope = 'private';
+          finalSourceUserId = source_user_id || user.id;
+        }
       }
 
       const maxOrder = await pool.query(
@@ -1241,15 +1296,30 @@ module.exports = async function handler(req, res) {
       // Occurrences are generated on-the-fly in range/dashboard queries.
       // (No more bulk INSERT of hundreds of child rows.)
 
-      const result = await pool.query(
-        `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order,
-        recurrence_rule, recurrence_interval, recurrence_end, visibility, type)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-         RETURNING *`,
-        [user.id, title, description || null, date || null, date_end || null, time || null, time_end || null,
-         priority || 'medium', category_id || null, reminder_at || null,
-        maxOrder.rows[0].next_order, recurrenceRule, recurrenceInterval, recurrenceEnd, finalVisibility, taskType]
-      );
+      let result;
+      if (sourceColumnsEnabled) {
+        result = await pool.query(
+          `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order,
+          recurrence_rule, recurrence_interval, recurrence_end, visibility, type,
+          source_scope, source_user_id, source_group_id, source_organization_id)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+           RETURNING *`,
+          [user.id, title, description || null, date || null, date_end || null, time || null, time_end || null,
+           priority || 'medium', category_id || null, reminder_at || null,
+           maxOrder.rows[0].next_order, recurrenceRule, recurrenceInterval, recurrenceEnd, finalVisibility, taskType,
+           finalSourceScope, finalSourceUserId, finalSourceGroupId, finalSourceOrganizationId]
+        );
+      } else {
+        result = await pool.query(
+          `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order,
+          recurrence_rule, recurrence_interval, recurrence_end, visibility, type)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+           RETURNING *`,
+          [user.id, title, description || null, date || null, date_end || null, time || null, time_end || null,
+           priority || 'medium', category_id || null, reminder_at || null,
+           maxOrder.rows[0].next_order, recurrenceRule, recurrenceInterval, recurrenceEnd, finalVisibility, taskType]
+        );
+      }
 
       const firstTask = result.rows[0];
 

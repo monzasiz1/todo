@@ -15928,6 +15928,34 @@ body.cal-is-dragging * {
   gap: 10px;
 }
 
+.org-entry-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.org-entry-type-row {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  width: fit-content;
+}
+
+.org-type-btn {
+  border: none;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.org-type-btn.active {
+  background: var(--primary);
+  color: #fff;
+}
+
 .org-input,
 .org-textarea {
   width: 100%;
@@ -16052,6 +16080,22 @@ body.cal-is-dragging * {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+.desktop-calendar-source-group-title {
+  margin-top: 8px;
+  margin-bottom: 4px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .org-entry-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Input row */
