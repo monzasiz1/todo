@@ -1257,13 +1257,6 @@ export default function NotesPage() {
         };
       }));
     }
-  if (e.target.closest('.note-card, .canvas-text-node, button, input, textarea, select, a')) return;
-  if (event.target.closest('.note-card, .canvas-text-node, button, input, textarea, select, a')) return;
-  if (event.target.closest('.note-card, .canvas-text-node, .task-preview-modal, .modal-overlay')) return;
-  if (event.target.closest('.note-card, .canvas-text-node, .notes-context-panel')) return;
-  if (event.target.closest('.note-card, .canvas-text-node, .notes-context-panel')) return;
-  if (event.target.closest('button, input, textarea, select, a')) return;
-
     isDraggingRef.current = null;
     setIsDragging(null);
   };
