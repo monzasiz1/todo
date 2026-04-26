@@ -435,6 +435,8 @@ export default function NotesPage() {
   const commitZoomTimerRef = useRef(null);
   const canvasTextElRefs = useRef({});
   const canvasTextLSSaveTimer = useRef(null);
+  const canvasTextPendingUpsert = useRef({});
+  const canvasTextUpsertTimer = useRef(null);
   // isDragging ref mirrors state for use inside non-reactive callbacks
   const isDraggingRef = useRef(null);
 
@@ -812,16 +814,28 @@ export default function NotesPage() {
     writeNotePeopleCache(notePeopleMap);
   }, [notePeopleMap]);
 
+  // Load canvas texts from DB on mount (with localStorage fallback)
+  useEffect(() => {
+    let cancelled = false;
+    api.getCanvasTexts().then((data) => {
+      if (cancelled) return;
+      const rows = Array.isArray(data?.canvasTexts) ? data.canvasTexts : [];
+      if (rows.length > 0) {
+        setCanvasTexts(rows);
+        try { localStorage.setItem(getUserScopedKey(NOTE_CANVAS_TEXT_CACHE_KEY), JSON.stringify(rows)); } catch {}
+      }
+    }).catch(() => {/* use localStorage fallback already set as initial state */});
+    return () => { cancelled = true; };
+  }, []);
+
+  // Debounced DB upsert for any changed canvas texts
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    // Also keep localStorage in sync
     if (canvasTextLSSaveTimer.current) clearTimeout(canvasTextLSSaveTimer.current);
     canvasTextLSSaveTimer.current = setTimeout(() => {
-      try {
-        localStorage.setItem(getUserScopedKey(NOTE_CANVAS_TEXT_CACHE_KEY), JSON.stringify(Array.isArray(canvasTexts) ? canvasTexts : []));
-      } catch {
-        // ignore quota/security errors
-      }
-    }, 800);
+      try { localStorage.setItem(getUserScopedKey(NOTE_CANVAS_TEXT_CACHE_KEY), JSON.stringify(Array.isArray(canvasTexts) ? canvasTexts : [])); } catch {}
+    }, 300);
   }, [canvasTexts]);
 
   useEffect(() => {
@@ -1238,21 +1252,24 @@ export default function NotesPage() {
 
       setCanvasTexts((prev) => prev.map((entry) => {
         if (String(entry.id) !== String(drag.textId)) return entry;
+        let updated;
         if (drag.attachedNoteId) {
           const note = notes.find((n) => String(n.id) === String(drag.attachedNoteId));
           if (note) {
             const notePos = notePositions[note.id] || { x: note.x ?? 100, y: note.y ?? 100 };
-            return {
+            updated = {
               ...entry,
               offset_x: Math.round(finalX - Number(notePos.x || 0)),
               offset_y: Math.round(finalY - Number(notePos.y || 0)),
               x: Math.round(finalX),
               y: Math.round(finalY),
             };
+            scheduleCanvasTextUpsert(updated);
+            return updated;
           }
         }
 
-        return {
+        updated = {
           ...entry,
           x: Math.round(finalX),
           y: Math.round(finalY),
@@ -1260,6 +1277,8 @@ export default function NotesPage() {
           offset_x: 0,
           offset_y: 0,
         };
+        scheduleCanvasTextUpsert(updated);
+        return updated;
       }));
     }
     isDraggingRef.current = null;
@@ -1462,21 +1481,23 @@ export default function NotesPage() {
 
       setCanvasTexts((prev) => prev.map((entry) => {
         if (String(entry.id) !== String(drag.textId)) return entry;
+        let updated;
         if (drag.attachedNoteId) {
           const note = notes.find((n) => String(n.id) === String(drag.attachedNoteId));
           if (note) {
             const notePos = notePositions[note.id] || { x: note.x ?? 100, y: note.y ?? 100 };
-            return {
+            updated = {
               ...entry,
               offset_x: Math.round(finalX - Number(notePos.x || 0)),
               offset_y: Math.round(finalY - Number(notePos.y || 0)),
               x: Math.round(finalX),
               y: Math.round(finalY),
             };
+            scheduleCanvasTextUpsert(updated);
+            return updated;
           }
         }
-
-        return {
+        updated = {
           ...entry,
           x: Math.round(finalX),
           y: Math.round(finalY),
@@ -1484,6 +1505,8 @@ export default function NotesPage() {
           offset_x: 0,
           offset_y: 0,
         };
+        scheduleCanvasTextUpsert(updated);
+        return updated;
       }));
     }
 
@@ -2008,6 +2031,16 @@ export default function NotesPage() {
     }
   };
 
+  const scheduleCanvasTextUpsert = (entry) => {
+    canvasTextPendingUpsert.current[String(entry.id)] = entry;
+    if (canvasTextUpsertTimer.current) clearTimeout(canvasTextUpsertTimer.current);
+    canvasTextUpsertTimer.current = setTimeout(() => {
+      const pending = { ...canvasTextPendingUpsert.current };
+      canvasTextPendingUpsert.current = {};
+      Object.values(pending).forEach((e) => api.upsertCanvasText(e).catch(() => {}));
+    }, 1200);
+  };
+
   const createCanvasTextAt = (x, y) => {
     const id = `txt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const payload = {
@@ -2027,14 +2060,16 @@ export default function NotesPage() {
     setCanvasTexts((prev) => [...prev, payload]);
     setActiveCanvasTextId(id);
     setEditingCanvasTextId(id);
+    scheduleCanvasTextUpsert(payload);
   };
 
   const updateCanvasTextText = (textId, text) => {
-    setCanvasTexts((prev) => prev.map((entry) => (
-      String(entry.id) === String(textId)
-        ? { ...entry, text: String(text || '') }
-        : entry
-    )));
+    setCanvasTexts((prev) => prev.map((entry) => {
+      if (String(entry.id) !== String(textId)) return entry;
+      const updated = { ...entry, text: String(text || '') };
+      scheduleCanvasTextUpsert(updated);
+      return updated;
+    }));
   };
 
   const updateCanvasTextStyle = (textId, patch = {}) => {
@@ -2043,13 +2078,11 @@ export default function NotesPage() {
 
       const nextSize = Number.isFinite(Number(patch.font_size))
         ? Math.min(72, Math.max(12, Number(patch.font_size)))
-        : Number(entry.font_size || 28);
+        : Number(entry.font_size || 32);
 
-      return {
-        ...entry,
-        ...patch,
-        font_size: nextSize,
-      };
+      const updated = { ...entry, ...patch, font_size: nextSize };
+      scheduleCanvasTextUpsert(updated);
+      return updated;
     }));
   };
 
@@ -2057,6 +2090,7 @@ export default function NotesPage() {
     setCanvasTexts((prev) => prev.filter((entry) => String(entry.id) !== String(textId)));
     if (String(activeCanvasTextId || '') === String(textId)) setActiveCanvasTextId(null);
     if (String(editingCanvasTextId || '') === String(textId)) setEditingCanvasTextId(null);
+    api.deleteCanvasText(textId).catch(() => {});
   };
 
   const attachCanvasTextToNote = (textId, noteId) => {
@@ -2064,29 +2098,24 @@ export default function NotesPage() {
       if (String(entry.id) !== String(textId)) return entry;
 
       const currentPos = getCanvasTextPosition(entry);
+      let updated;
       if (!noteId) {
-        return {
+        updated = { ...entry, x: Math.round(currentPos.x), y: Math.round(currentPos.y), attached_note_id: null, offset_x: 0, offset_y: 0 };
+      } else {
+        const note = notes.find((n) => String(n.id) === String(noteId));
+        if (!note) return entry;
+        const notePos = notePositions[note.id] || { x: note.x ?? 100, y: note.y ?? 100 };
+        updated = {
           ...entry,
           x: Math.round(currentPos.x),
           y: Math.round(currentPos.y),
-          attached_note_id: null,
-          offset_x: 0,
-          offset_y: 0,
+          attached_note_id: String(noteId),
+          offset_x: Math.round(currentPos.x - Number(notePos.x || 0)),
+          offset_y: Math.round(currentPos.y - Number(notePos.y || 0)),
         };
       }
-
-      const note = notes.find((n) => String(n.id) === String(noteId));
-      if (!note) return entry;
-      const notePos = notePositions[note.id] || { x: note.x ?? 100, y: note.y ?? 100 };
-
-      return {
-        ...entry,
-        x: Math.round(currentPos.x),
-        y: Math.round(currentPos.y),
-        attached_note_id: String(noteId),
-        offset_x: Math.round(currentPos.x - Number(notePos.x || 0)),
-        offset_y: Math.round(currentPos.y - Number(notePos.y || 0)),
-      };
+      scheduleCanvasTextUpsert(updated);
+      return updated;
     }));
   };
 

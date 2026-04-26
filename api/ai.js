@@ -1,6 +1,12 @@
 const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
-const { parseTaskWithAI, parsePermissionsWithAI, classifyIntentWithAI, answerCalendarQueryWithAI } = require('./_lib/mistral');
+const {
+  parseTaskWithAI,
+  parsePermissionsWithAI,
+  classifyIntentWithAI,
+  answerCalendarQueryWithAI,
+  parseChecklistWithAI,
+} = require('./_lib/mistral');
 
 function toDateOnly(value) {
   if (!value) return null;
@@ -311,6 +317,43 @@ module.exports = async function handler(req, res) {
     } catch (err) {
       console.error('AI permissions error:', err);
       return res.status(500).json({ error: 'KI-Berechtigungsanalyse fehlgeschlagen' });
+    }
+  }
+
+  // POST /api/ai/note-checklist
+  if (action === 'note-checklist') {
+    try {
+      const { input } = req.body || {};
+      if (!String(input || '').trim()) {
+        return res.status(400).json({ error: 'Eingabe ist erforderlich' });
+      }
+
+      const parsed = await parseChecklistWithAI(input);
+
+      const intro = parsed?.intro ? String(parsed.intro).trim() : null;
+      const items = Array.isArray(parsed?.items)
+        ? parsed.items
+            .map((entry) => ({
+              text: String(entry?.text || '').trim(),
+              checked: entry?.checked === true,
+            }))
+            .filter((entry) => entry.text.length > 0)
+            .slice(0, 20)
+        : [];
+
+      const checklist_markdown = items.map((entry) => `- [${entry.checked ? 'x' : ' '}] ${entry.text}`).join('\n');
+
+      return res.json({
+        parsed: {
+          intro,
+          items,
+          checklist_markdown,
+          confidence: Number(parsed?.confidence) || 0.5,
+        },
+      });
+    } catch (err) {
+      console.error('AI note-checklist error:', err);
+      return res.status(500).json({ error: 'KI-Checklist-Analyse fehlgeschlagen' });
     }
   }
 

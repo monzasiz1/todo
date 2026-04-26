@@ -469,4 +469,79 @@ ${calendarContext.days.map(d => {
   return data.choices?.[0]?.message?.content?.trim() || 'Ich konnte deinen Kalender leider nicht analysieren.';
 }
 
-module.exports = { parseTaskWithAI, parsePermissionsWithAI, classifyIntentWithAI, answerCalendarQueryWithAI };
+async function parseChecklistWithAI(input) {
+  const key = process.env.MISTRAL_API_KEY;
+  if (!key) throw new Error('MISTRAL_API_KEY nicht konfiguriert');
+
+  const systemPrompt = `Du bist ein Assistent fuer Notizen. Deine Aufgabe: aus freiem Text eine abhakbare To-do-Liste erzeugen.
+
+Regeln:
+- Erkenne Aufgaben/Artikel in Texten wie: "gemuese, aepfel, bananen", "bitte kaufen: Milch, Eier", "Packen: Shirt, Hose".
+- Entferne Fuellwoerter und gib kurze, klare Item-Texte aus.
+- Liefere maximal 20 Items.
+- Erhalte die Reihenfolge aus dem Ursprungstext.
+- Wenn kein Listeninhalt erkennbar ist, gib items als leeres Array zurueck.
+- Antworte NUR mit validem JSON.
+
+JSON Format:
+{
+  "intro": "string oder null",
+  "items": [
+    { "text": "string", "checked": false }
+  ],
+  "confidence": 0.0-1.0
+}`;
+
+  const response = await fetch(MISTRAL_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify({
+      model: 'mistral-small-latest',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: String(input || '') },
+      ],
+      temperature: 0.1,
+      max_tokens: 350,
+      response_format: { type: 'json_object' },
+    }),
+  });
+
+  if (!response.ok) throw new Error(`Mistral API Fehler: ${response.status}`);
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error('Keine Antwort von Mistral');
+
+  try {
+    const parsed = JSON.parse(content);
+    const items = Array.isArray(parsed.items)
+      ? parsed.items
+          .map((entry) => ({
+            text: String(entry?.text || '').trim(),
+            checked: entry?.checked === true,
+          }))
+          .filter((entry) => entry.text.length > 0)
+          .slice(0, 20)
+      : [];
+
+    return {
+      intro: parsed.intro ? String(parsed.intro).trim() : null,
+      items,
+      confidence: Number(parsed.confidence) || 0.5,
+    };
+  } catch {
+    return { intro: null, items: [], confidence: 0.2 };
+  }
+}
+
+module.exports = {
+  parseTaskWithAI,
+  parsePermissionsWithAI,
+  classifyIntentWithAI,
+  answerCalendarQueryWithAI,
+  parseChecklistWithAI,
+};

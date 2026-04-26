@@ -587,4 +587,17 @@ export const api = {
     }),
 
   getNoteConnections: (noteId) => request(`/notes?id=${encodeURIComponent(noteId)}&view=connections`),
+
+  // Canvas Texts
+  getCanvasTexts: () => request('/canvas-texts'),
+  upsertCanvasText: (entry) =>
+    request('/canvas-texts', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'upsert', ...entry }),
+    }),
+  deleteCanvasText: (id) =>
+    request('/canvas-texts', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'delete', id }),
+    }),
 };

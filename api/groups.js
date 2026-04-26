@@ -696,17 +696,13 @@ module.exports = async function handler(req, res) {
       const groupId = segments[0];
       const targetUserId = segments[2];
       const membership = await getMembership(groupId);
-      if (!membership || membership.role === 'member') {
-        return res.status(403).json({ error: 'Keine Berechtigung' });
+      if (!membership || membership.role !== 'owner') {
+        return res.status(403).json({ error: 'Nur der Ersteller kann Rollen ändern' });
       }
 
       const { role } = req.body;
       if (!['admin', 'member'].includes(role)) {
         return res.status(400).json({ error: 'Ungültige Rolle' });
-      }
-      // Only owner can change to admin
-      if (role === 'admin' && membership.role !== 'owner') {
-        return res.status(403).json({ error: 'Nur der Ersteller kann Admins ernennen' });
       }
       // Can't change owner role
       const target = await pool.query(
@@ -756,6 +752,11 @@ module.exports = async function handler(req, res) {
       // Members can only remove themselves
       if (membership.role === 'member' && !isSelf) {
         return res.status(403).json({ error: 'Keine Berechtigung' });
+      }
+
+      // Admins can remove members, but not other admins/owner
+      if (membership.role === 'admin' && !isSelf && target.rows[0].role !== 'member') {
+        return res.status(403).json({ error: 'Admins können nur Mitglieder entfernen' });
       }
 
       await pool.query('DELETE FROM group_members WHERE group_id = $1 AND user_id = $2', [groupId, targetUserId]);
