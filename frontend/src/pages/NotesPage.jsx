@@ -227,11 +227,10 @@ function markdownToHtml(content, options = {}) {
         html += '<ul class="note-md-list">';
       }
       const checked = checkbox[1].toLowerCase() === 'x';
-      const symbol = checked ? '☑' : '☐';
       const classes = ['note-md-checkbox'];
       if (checked) classes.push('checked');
       if (interactiveChecklist) classes.push('interactive');
-      html += `<li class="${classes.join(' ')}" data-line-index="${lineIndex}"><span class="note-md-checkbox-symbol">${symbol}</span><span class="note-md-checkbox-label">${renderInlineMarkdown(checkbox[2])}</span></li>`;
+      html += `<li class="${classes.join(' ')}" data-line-index="${lineIndex}"><span class="note-md-checkbox-box" aria-hidden="true"></span><span class="note-md-checkbox-label">${renderInlineMarkdown(checkbox[2])}</span></li>`;
       return;
     }
 
