@@ -1764,6 +1764,9 @@
   justify-content: center;
   z-index: 1000;
   padding: 0;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
 }
 
 .modal-content {
@@ -1778,10 +1781,14 @@
   border: 1px solid var(--border);
   box-shadow: var(--shadow-xl);
   padding: 18px 16px calc(env(safe-area-inset-bottom, 0px) + 18px);
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
 }
 
 .create-note-modal {
   min-height: 88dvh;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
 }
 
 .note-editor-modal {
@@ -1796,6 +1803,8 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
 }
 
 .connect-note-modal {
@@ -1888,10 +1897,13 @@
 .note-editor-modal .note-editor-body {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   padding: 0 16px;
   padding-left: calc(env(safe-area-inset-left, 0px) + 16px);
   padding-right: calc(env(safe-area-inset-right, 0px) + 16px);
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
 }
 
 .note-editor-modal .modal-actions {
