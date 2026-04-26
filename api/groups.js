@@ -1,5 +1,6 @@
 const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
+const { sendPushToUser } = require('./_lib/pushService');
 
 function parseVirtualId(id) {
   if (typeof id !== 'string' || !id.startsWith('v_')) return null;
@@ -54,6 +55,44 @@ module.exports = async function handler(req, res) {
       [groupId, user.id]
     );
     return r.rows[0] || null;
+  }
+
+  async function isGroupNotificationEnabled(userId, type) {
+    try {
+      const { rows } = await pool.query('SELECT notification_prefs FROM users WHERE id = $1', [userId]);
+      const prefs = rows[0]?.notification_prefs || {};
+      return prefs[type] !== false;
+    } catch {
+      return true;
+    }
+  }
+
+  async function notifyGroupMembers(groupId, actorUserId, payloadBuilder) {
+    const membersResult = await pool.query(
+      `SELECT gm.user_id
+       FROM group_members gm
+       WHERE gm.group_id = $1 AND gm.user_id != $2`,
+      [groupId, actorUserId]
+    );
+
+    for (const member of membersResult.rows) {
+      const payload = payloadBuilder(member.user_id);
+      if (!payload) continue;
+      const enabled = await isGroupNotificationEnabled(member.user_id, payload.prefKey || payload.type);
+      if (!enabled) continue;
+
+      await sendPushToUser(
+        member.user_id,
+        {
+          title: payload.title,
+          body: payload.body,
+          tag: payload.tag,
+          url: payload.url || '/groups',
+        },
+        payload.type,
+        payload.taskId || null
+      ).catch(() => null);
+    }
   }
 
   // Helper: generate unique invite code
@@ -651,6 +690,18 @@ module.exports = async function handler(req, res) {
       await pool.query('UPDATE groups SET updated_at = NOW() WHERE id = $1', [groupId]);
 
       const message = await loadMessageWithMeta(groupId, ins.rows[0].id);
+
+      const groupMeta = await pool.query('SELECT name FROM groups WHERE id = $1 LIMIT 1', [groupId]);
+      const groupName = groupMeta.rows[0]?.name || 'Gruppe';
+      await notifyGroupMembers(groupId, user.id, () => ({
+        type: 'group_message',
+        prefKey: 'group_message',
+        title: `Neue Nachricht in ${groupName}`,
+        body: content.slice(0, 120),
+        tag: `group-msg-${groupId}-${message.id}`,
+        url: '/groups',
+      }));
+
       return res.status(201).json({ message });
     } catch (err) {
       console.error('Share task to chat error:', err);
@@ -861,6 +912,33 @@ module.exports = async function handler(req, res) {
       const sender = senderResult.rows[0];
 
       await pool.query('UPDATE groups SET updated_at = NOW() WHERE id = $1', [groupId]);
+
+      const groupMeta = await pool.query('SELECT name FROM groups WHERE id = $1 LIMIT 1', [groupId]);
+      const groupName = groupMeta.rows[0]?.name || 'Gruppe';
+      const taskTitle = task?.title || 'Neue Aufgabe';
+
+      await notifyGroupMembers(groupId, user.id, () => ({
+        type: 'team_task_created',
+        prefKey: 'team_task',
+        title: `Neue Gruppenaufgabe: ${groupName}`,
+        body: `${taskTitle} wurde hinzugefügt`,
+        tag: `team-created-${task.id}`,
+        url: '/groups',
+        taskId: task.id,
+      }));
+
+      const groupMeta = await pool.query('SELECT name FROM groups WHERE id = $1 LIMIT 1', [groupId]);
+      const groupName = groupMeta.rows[0]?.name || 'Gruppe';
+      const preview = content.trim().slice(0, 120);
+
+      await notifyGroupMembers(groupId, user.id, () => ({
+        type: 'group_message',
+        prefKey: 'group_message',
+        title: `Neue Nachricht in ${groupName}`,
+        body: `${sender.name}: ${preview}`,
+        tag: `group-msg-${groupId}-${msg.id}`,
+        url: '/groups',
+      }));
 
       return res.status(201).json({
         message: {

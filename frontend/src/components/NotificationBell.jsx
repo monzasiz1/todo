@@ -12,6 +12,7 @@ const TYPE_CONFIG = {
   engagement: { icon: Sparkles, color: '#AF52DE', label: 'Motivations-Tipps', desc: 'Nach längerer Inaktivität' },
   team_task: { icon: Users, color: '#5856D6', label: 'Team-Aufgaben', desc: 'Neue Aufgaben in Gruppen' },
   team_task_created: { icon: Users, color: '#5856D6', label: 'Neue Gruppenaufgabe', desc: 'Sofort bei Erstellung in der Gruppe' },
+  group_message: { icon: Users, color: '#2F80ED', label: 'Gruppennachrichten', desc: 'Neue Nachrichten im Gruppenchat' },
   test: { icon: Bell, color: '#34C759', label: 'Test', desc: 'Test-Benachrichtigung' },
 };
 

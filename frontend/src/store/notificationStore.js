@@ -11,7 +11,7 @@ function readNotifCache() {
     return {
       subscribed: !!parsed.subscribed,
       notifications: Array.isArray(parsed.notifications) ? parsed.notifications : [],
-      prefs: parsed.prefs || { reminder: true, daily_tasks: true, engagement: true, team_task: true },
+      prefs: parsed.prefs || { reminder: true, daily_tasks: true, engagement: true, team_task: true, group_message: true },
     };
   } catch {
     return null;
@@ -23,7 +23,7 @@ function writeNotifCache(state) {
     localStorage.setItem(NOTIF_CACHE_KEY, JSON.stringify({
       subscribed: !!state.subscribed,
       notifications: state.notifications || [],
-      prefs: state.prefs || { reminder: true, daily_tasks: true, engagement: true, team_task: true },
+      prefs: state.prefs || { reminder: true, daily_tasks: true, engagement: true, team_task: true, group_message: true },
     }));
   } catch {
     // ignore
@@ -57,7 +57,7 @@ const useNotificationStore = create((set, get) => ({
   notifications: notifCached?.notifications ?? [],
   loading: false,
   lastSeenAt: getLastSeenAt(),
-  prefs: notifCached?.prefs ?? { reminder: true, daily_tasks: true, engagement: true, team_task: true },
+  prefs: notifCached?.prefs ?? { reminder: true, daily_tasks: true, engagement: true, team_task: true, group_message: true },
 
   // Mark all current notifications as seen
   markAsSeen: () => {
@@ -93,7 +93,7 @@ const useNotificationStore = create((set, get) => ({
       const data = await api.getNotificationStatus();
       set({
         subscribed: data?.subscribed || false,
-        prefs: data?.prefs || { reminder: true, daily_tasks: true, engagement: true, team_task: true },
+        prefs: data?.prefs || { reminder: true, daily_tasks: true, engagement: true, team_task: true, group_message: true },
       });
 
       // Auto-resubscribe: if browser already has permission + subscription exists in browser

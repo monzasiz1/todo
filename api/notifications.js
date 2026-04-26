@@ -165,7 +165,7 @@ module.exports = async function handler(req, res) {
         'SELECT notification_prefs FROM users WHERE id = $1',
         [user.id]
       );
-      const prefs = userRows[0]?.notification_prefs || { reminder: true, daily_tasks: true, engagement: true, team_task: true };
+      const prefs = userRows[0]?.notification_prefs || { reminder: true, daily_tasks: true, engagement: true, team_task: true, group_message: true };
       return res.json({ subscribed: parseInt(subRows[0].count) > 0, prefs });
     } catch (err) {
       return res.status(500).json({ error: 'Fehler' });
@@ -267,7 +267,7 @@ module.exports = async function handler(req, res) {
         'SELECT notification_prefs FROM users WHERE id = $1',
         [user.id]
       );
-      const prefs = prefsRows[0]?.notification_prefs || { reminder: true, daily_tasks: true, engagement: true, team_task: true };
+      const prefs = prefsRows[0]?.notification_prefs || { reminder: true, daily_tasks: true, engagement: true, team_task: true, group_message: true };
 
       const { rows: subRows } = await pool.query(
         'SELECT COUNT(*)::int as count FROM push_subscriptions WHERE user_id = $1',
@@ -510,7 +510,7 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ error: 'Ungültige Preferences' });
       }
       // Only allow known keys
-      const allowed = ['reminder', 'daily_tasks', 'engagement', 'team_task'];
+      const allowed = ['reminder', 'daily_tasks', 'engagement', 'team_task', 'group_message'];
       const clean = {};
       for (const k of allowed) {
         clean[k] = prefs[k] !== false;
