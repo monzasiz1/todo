@@ -271,6 +271,15 @@ module.exports = async function handler(req, res) {
       return res.json({ groups: result.rows });
     } catch (err) {
       console.error('List groups error:', err);
+      // Fail-open for partial/missing schema in production:
+      // if essential relation is missing, return empty list instead of 500.
+      if (err?.code === '42P01' || err?.code === '42703') {
+        return res.status(200).json({
+          groups: [],
+          warning: 'Gruppen-Schema unvollstaendig in DB. Bitte Migration ausfuehren.',
+          db_code: err.code,
+        });
+      }
       return res.status(500).json({ error: 'Fehler beim Laden der Gruppen' });
     }
   }
@@ -937,20 +946,6 @@ module.exports = async function handler(req, res) {
       const sender = senderResult.rows[0];
 
       await pool.query('UPDATE groups SET updated_at = NOW() WHERE id = $1', [groupId]);
-
-      const groupMeta = await pool.query('SELECT name FROM groups WHERE id = $1 LIMIT 1', [groupId]);
-      const groupName = groupMeta.rows[0]?.name || 'Gruppe';
-      const taskTitle = task?.title || 'Neue Aufgabe';
-
-      await notifyGroupMembers(groupId, user.id, () => ({
-        type: 'team_task_created',
-        prefKey: 'team_task',
-        title: `Neue Gruppenaufgabe: ${groupName}`,
-        body: `${taskTitle} wurde hinzugefügt`,
-        tag: `team-created-${task.id}`,
-        url: '/groups',
-        taskId: task.id,
-      }));
 
       const groupMeta = await pool.query('SELECT name FROM groups WHERE id = $1 LIMIT 1', [groupId]);
       const groupName = groupMeta.rows[0]?.name || 'Gruppe';
