@@ -186,6 +186,30 @@ module.exports = async function handler(req, res) {
     }
   }
 
+  // DELETE /api/notifications/log/:id – delete one notification entry
+  if (segments[0] === 'log' && req.method === 'DELETE' && segments.length === 2) {
+    try {
+      const logId = Number.parseInt(String(segments[1]), 10);
+      if (!Number.isFinite(logId) || logId <= 0) {
+        return res.status(400).json({ error: 'Ungueltige Log-ID' });
+      }
+
+      const deleted = await pool.query(
+        'DELETE FROM notification_log WHERE id = $1 AND user_id = $2 RETURNING id',
+        [logId, user.id]
+      );
+
+      if (deleted.rowCount === 0) {
+        return res.status(404).json({ error: 'Benachrichtigung nicht gefunden' });
+      }
+
+      return res.json({ success: true, deletedId: logId });
+    } catch (err) {
+      console.error('Log item delete error:', err);
+      return res.status(500).json({ error: 'Fehler beim Loeschen der Benachrichtigung' });
+    }
+  }
+
   // GET /api/notifications/status – check subscription status + preferences
   if (segments[0] === 'status' && req.method === 'GET') {
     try {

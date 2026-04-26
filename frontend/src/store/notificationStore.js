@@ -212,6 +212,49 @@ const useNotificationStore = create((set, get) => ({
       set({ prefs: { ...newPrefs, [type]: !enabled } });
     }
   },
+
+  // Update multiple preference keys with one request
+  updatePrefsBatch: async (updates) => {
+    const prevPrefs = { ...get().prefs };
+    const newPrefs = { ...prevPrefs, ...(updates || {}) };
+    set({ prefs: newPrefs });
+    try {
+      await api.updateNotificationPrefs(newPrefs);
+    } catch {
+      set({ prefs: prevPrefs });
+    }
+  },
+
+  // Delete one notification entry from bell
+  deleteNotification: async (id) => {
+    if (!id) return false;
+    const prev = get().notifications || [];
+    set({ notifications: prev.filter((n) => String(n.id) !== String(id)) });
+
+    // Local-only entries are already removed in-memory
+    if (String(id).startsWith('local-')) return true;
+
+    try {
+      await api.deleteNotificationLogEntry(id);
+      return true;
+    } catch {
+      set({ notifications: prev });
+      return false;
+    }
+  },
+
+  // Delete all notifications from bell (server + local)
+  clearAllNotifications: async () => {
+    const prev = get().notifications || [];
+    set({ notifications: [] });
+    try {
+      await api.clearNotificationLog();
+      return true;
+    } catch {
+      set({ notifications: prev });
+      return false;
+    }
+  },
 }));
 
 export { useNotificationStore };

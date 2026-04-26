@@ -16,10 +16,45 @@ const TYPE_CONFIG = {
   test: { icon: Bell, color: '#34C759', label: 'Test', desc: 'Test-Benachrichtigung' },
 };
 
+const SETTINGS_CONFIG = [
+  {
+    key: 'reminder',
+    icon: Clock,
+    color: '#FF9500',
+    label: 'Erinnerungen',
+    desc: 'Termin-Erinnerung und Erinnerung geplant',
+    prefKeys: ['reminder'],
+  },
+  {
+    key: 'group_activity',
+    icon: Users,
+    color: '#2F80ED',
+    label: 'Gruppen-Benachrichtigungen',
+    desc: 'Neue Gruppenaufgaben und Gruppennachrichten',
+    prefKeys: ['team_task', 'group_message'],
+  },
+  {
+    key: 'daily_tasks',
+    icon: CheckCircle2,
+    color: '#007AFF',
+    label: 'Tägliche Zusammenfassung',
+    desc: 'Offene Aufgaben am Abend',
+    prefKeys: ['daily_tasks'],
+  },
+  {
+    key: 'engagement',
+    icon: Sparkles,
+    color: '#AF52DE',
+    label: 'Motivations-Tipps',
+    desc: 'Nach längerer Inaktivität',
+    prefKeys: ['engagement'],
+  },
+];
+
 export default function NotificationBell() {
   const {
     permission, subscribed, notifications, prefs, loading,
-    subscribe, unsubscribe, fetchLog, checkStatus, updatePref,
+    subscribe, unsubscribe, fetchLog, checkStatus, updatePref, updatePrefsBatch, deleteNotification, clearAllNotifications,
     markAsSeen, getUnseenNotifications
   } = useNotificationStore();
 
@@ -104,6 +139,29 @@ export default function NotificationBell() {
     }
   };
 
+  const handleToggleSetting = async (setting) => {
+    const prefKeys = Array.isArray(setting.prefKeys) ? setting.prefKeys : [setting.key];
+    const isEnabled = prefKeys.every((k) => prefs[k] !== false);
+    const nextValue = !isEnabled;
+
+    if (prefKeys.length === 1) {
+      await updatePref(prefKeys[0], nextValue);
+      return;
+    }
+
+    const patch = {};
+    for (const k of prefKeys) patch[k] = nextValue;
+    await updatePrefsBatch(patch);
+  };
+
+  const handleDeleteNotification = async (id) => {
+    await deleteNotification(id);
+  };
+
+  const handleClearAll = async () => {
+    await clearAllNotifications();
+  };
+
   const unseenNotifications = getUnseenNotifications();
   const unseenCount = unseenNotifications.length;
   const allNotifications = notifications || [];
@@ -149,6 +207,15 @@ export default function NotificationBell() {
               <div style={{ display: 'flex', gap: 4, marginLeft: 'auto', alignItems: 'center' }}>
                 {view === 'list' && (
                   <>
+                    <button
+                      className="notif-clear-all"
+                      onClick={handleClearAll}
+                      aria-label="Alle Benachrichtigungen löschen"
+                      title="Alle löschen"
+                      disabled={sortedNotifications.length === 0}
+                    >
+                      Alle löschen
+                    </button>
                     <button
                       className="notif-settings-btn"
                       onClick={handleManualRefresh}
@@ -222,11 +289,12 @@ export default function NotificationBell() {
 
                 {/* Per-Type Toggles */}
                 <div className="notif-types-label">Benachrichtigungstypen</div>
-                {Object.entries(TYPE_CONFIG).filter(([k]) => k !== 'test').map(([key, cfg]) => {
+                {SETTINGS_CONFIG.map((cfg) => {
                   const Icon = cfg.icon;
-                  const enabled = prefs[key] !== false;
+                  const prefKeys = Array.isArray(cfg.prefKeys) ? cfg.prefKeys : [cfg.key];
+                  const enabled = prefKeys.every((k) => prefs[k] !== false);
                   return (
-                    <div key={key} className={`notif-type-row ${!subscribed ? 'disabled' : ''}`}>
+                    <div key={cfg.key} className={`notif-type-row ${!subscribed ? 'disabled' : ''}`}>
                       <div className="notif-type-icon" style={{ background: `${cfg.color}15`, color: cfg.color }}>
                         <Icon size={16} />
                       </div>
@@ -237,7 +305,7 @@ export default function NotificationBell() {
                       <button
                         className={`notif-toggle ${enabled ? 'active' : ''}`}
                         disabled={!subscribed}
-                        onClick={() => updatePref(key, !enabled)}
+                        onClick={() => handleToggleSetting(cfg)}
                       >
                         <span className="notif-toggle-knob" />
                       </button>
@@ -324,6 +392,14 @@ export default function NotificationBell() {
                               {formatDistanceToNow(parseISO(n.sent_at), { addSuffix: true, locale: de })}
                             </div>
                           </div>
+                          <button
+                            className="notif-item-delete"
+                            aria-label="Benachrichtigung löschen"
+                            title="Löschen"
+                            onClick={() => handleDeleteNotification(n.id)}
+                          >
+                            <X size={12} />
+                          </button>
                           {isUnseen && <div className="notif-unseen-dot" />}
                         </div>
                       );

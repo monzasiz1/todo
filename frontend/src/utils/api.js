@@ -245,6 +245,7 @@ export const api = {
     request(`/notifications/log${type ? `?type=${encodeURIComponent(type)}` : ''}`, {
       method: 'DELETE',
     }),
+  deleteNotificationLogEntry: (id) => request(`/notifications/log/${id}`, { method: 'DELETE' }),
   getNotificationSubscriptions: () => request('/notifications/subscriptions'),
   removeNotificationSubscription: (id) => request(`/notifications/subscriptions/${id}`, { method: 'DELETE' }),
   sendTestNotification: (payload = {}) =>

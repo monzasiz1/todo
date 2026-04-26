@@ -13864,6 +13864,29 @@ body.cal-is-dragging * {
   min-width: 0;
 }
 
+.notif-item-delete {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-left: 4px;
+  opacity: 0.85;
+  transition: all 0.15s;
+}
+
+.notif-item-delete:hover {
+  color: var(--danger, #FF3B30);
+  background: rgba(255, 59, 48, 0.1);
+  opacity: 1;
+}
+
 .notif-item-text {
   font-size: 13px;
   font-weight: 500;
@@ -13917,6 +13940,28 @@ body.cal-is-dragging * {
   transition: all 0.15s;
 }
 .notif-settings-btn:hover { background: var(--bg); color: var(--text); }
+
+.notif-clear-all {
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.notif-clear-all:hover:not(:disabled) {
+  color: var(--danger, #FF3B30);
+  background: rgba(255, 59, 48, 0.1);
+}
+
+.notif-clear-all:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
 
 .notif-settings {
   padding: 4px 12px 12px;
