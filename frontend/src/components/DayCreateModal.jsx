@@ -150,42 +150,54 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated }) 
             {localTasks.map((task) => (
               (() => {
                 const endedEvent = isEventEnded(task);
+                const catColor = task.group_category_color || task.category_color;
+                const accentColor = catColor || (task.group_id ? (task.group_color || '#5856D6') : null);
+                const catName = task.group_category_name || task.category;
                 return (
               <div
                 key={task.id}
                 className={`day-create-task-item ${task.completed ? 'completed' : ''} ${endedEvent ? 'ended-event' : ''}`}
                 style={{
-                  borderLeft: `3px solid ${task.group_id ? (task.group_color || '#5856D6') : (task.category_color || 'var(--primary)')}`,
+                  borderLeft: `3px solid ${endedEvent ? 'rgba(142,142,147,0.28)' : (accentColor || 'var(--primary)')}`,
                   background: endedEvent
                     ? 'rgba(142, 142, 147, 0.10)'
-                    : task.group_id
-                    ? `${task.group_color || '#5856D6'}10`
-                    : task.category_color ? `${task.category_color}10` : 'var(--hover)',
+                    : accentColor ? `${accentColor}12` : 'var(--hover)',
                   cursor: 'pointer',
                 }}
                 onClick={() => setDetailTask(task)}
               >
                 <div className="day-create-task-info">
-                  {task.type === 'event' && (
-                    <CalendarCheck size={14} style={{ color: '#AF52DE', flexShrink: 0 }} />
-                  )}
-                  {task.group_id && (
-                    <AvatarBadge
-                      name={task.group_name}
-                      color={task.group_color || '#5856D6'}
-                      avatarUrl={task.group_image_url}
-                      size={14}
-                    />
-                  )}
-                  <span className={`day-create-task-title ${task.completed ? 'completed' : ''}`}>
-                    {task.title}
-                  </span>
-                  {task.teams_join_url && (
-                    <span className="day-create-task-chip teams">
-                      <Video size={11} /> Teams
+                  <div className="day-create-task-main">
+                    {task.type === 'event' && (
+                      <CalendarCheck size={14} style={{ color: '#AF52DE', flexShrink: 0 }} />
+                    )}
+                    {task.group_id && (
+                      <AvatarBadge
+                        name={task.group_name}
+                        color={task.group_color || '#5856D6'}
+                        avatarUrl={task.group_image_url}
+                        size={14}
+                      />
+                    )}
+                    <span className={`day-create-task-title ${task.completed ? 'completed' : ''}`}>
+                      {task.title}
                     </span>
+                    {task.teams_join_url && (
+                      <span className="day-create-task-chip teams">
+                        <Video size={11} /> Teams
+                      </span>
+                    )}
+                    {endedEvent && <span className="day-create-task-status">Beendet</span>}
+                  </div>
+                  {catName && !endedEvent && (
+                    <div className="day-create-task-cat">
+                      <span
+                        className="day-create-task-cat-dot"
+                        style={{ background: catColor || '#8E8E93' }}
+                      />
+                      <span className="day-create-task-cat-label">{catName}</span>
+                    </div>
                   )}
-                  {endedEvent && <span className="day-create-task-status">Beendet</span>}
                 </div>
                 {task.time && (
                   <span className="day-create-task-time">{task.time.slice(0, 5)}</span>

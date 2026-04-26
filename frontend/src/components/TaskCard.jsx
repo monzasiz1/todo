@@ -267,22 +267,21 @@ function TaskCard({ task, index, disableLayout = false }) {
           <span
             className="task-group-combo-badge"
             style={{
-              background: `linear-gradient(135deg, ${(task.group_color || '#5856D6')}cc 0%, ${(task.group_color || '#5856D6')}88 48%, ${(task.group_category_color || '#8E8E93')}bb 100%)`,
-              borderColor: `${task.group_color || '#5856D6'}cc`,
-              boxShadow: `inset -32px 0 0 ${(task.group_category_color || '#8E8E93')}66`,
+              background: `linear-gradient(to right, ${(task.group_color || '#5856D6')}28 0%, ${(task.group_category_color || '#8E8E93')}30 100%)`,
+              borderColor: `${task.group_color || '#5856D6'}55`,
             }}
           >
             <AvatarBadge
               name={task.group_name}
               color={task.group_color || '#5856D6'}
               avatarUrl={task.group_image_url}
-              size={12}
+              size={11}
             />
-            <span className="task-group-combo-name" style={{ color: '#fff' }}>{task.group_name}</span>
-            <span className="task-group-combo-cat" style={{ color: '#fff' }}>
+            <span className="task-group-combo-name" style={{ color: task.group_color || '#5856D6' }}>{task.group_name}</span>
+            <span className="task-group-combo-cat" style={{ color: task.group_category_color || '#636366' }}>
               <span
                 className="task-group-category-dot"
-                style={{ background: '#fff', opacity: 0.9 }}
+                style={{ background: task.group_category_color || '#8E8E93' }}
               />
               {task.group_category_name}
             </span>
