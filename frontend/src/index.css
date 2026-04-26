@@ -1992,6 +1992,21 @@ input, textarea, select {
   min-height: 0;
 }
 
+/* Modals portaled into fullscreen container must fill viewport */
+.calendar-wrapper:fullscreen .modal-overlay,
+.calendar-wrapper:-webkit-full-screen .modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+}
+
+.calendar-wrapper:fullscreen .task-detail-modal-overlay,
+.calendar-wrapper:-webkit-full-screen .task-detail-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+}
+
 /* ---- Month Grid ---- */
 .calendar-grid {
   display: grid;

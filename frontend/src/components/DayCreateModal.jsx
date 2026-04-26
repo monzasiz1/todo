@@ -34,7 +34,7 @@ function isEventEnded(task) {
   return !!end && end.getTime() < Date.now();
 }
 
-export default function DayCreateModal({ date, tasks, onClose, onTaskCreated }) {
+export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, portalTarget }) {
   const [mode, setMode] = useState(null); // null | 'ai' | 'manual'
   const [aiInput, setAiInput] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
@@ -372,6 +372,7 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated }) 
       {detailTask && (
         <TaskDetailModal
           task={detailTask}
+          portalTarget={portalTarget || document.body}
           onClose={() => setDetailTask(null)}
           onUpdated={(updatedTask) => {
             if (!updatedTask?.id) return;
@@ -381,6 +382,6 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated }) 
         />
       )}
     </motion.div>,
-    document.body
+    portalTarget || document.body
   );
 }

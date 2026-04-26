@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import Calendar from '../components/Calendar';
-import DayCreateModal from '../components/DayCreateModal';
 import { useTaskStore } from '../store/taskStore';
-import { format } from 'date-fns';
 
 function filterTasksForRange(tasks, start, end) {
   if (!Array.isArray(tasks) || !start || !end) return [];
@@ -21,8 +18,6 @@ function filterTasksForRange(tasks, start, end) {
 export default function CalendarPage() {
   const { fetchTasksRange, tasks: cachedTasks } = useTaskStore();
   const [calendarTasks, setCalendarTasks] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [showDayModal, setShowDayModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [visibleRange, setVisibleRange] = useState({ start: null, end: null, key: '' });
   const inflightRangeKeyRef = useRef('');
@@ -36,10 +31,8 @@ export default function CalendarPage() {
     if (!force && (visibleRange.key === key || inflightRangeKeyRef.current === key)) return;
 
     inflightRangeKeyRef.current = key;
-    // Mark range immediately to avoid repeated same-range loads before await resolves.
     setVisibleRange((prev) => (prev.key === key ? prev : { start: normStart, end: normEnd, key }));
 
-    // Instant paint from local cache, then background refresh from API.
     const localRangeTasks = filterTasksForRange(cachedTasks, normStart, normEnd);
     if (localRangeTasks.length > 0) {
       setCalendarTasks(localRangeTasks);
@@ -83,50 +76,17 @@ export default function CalendarPage() {
     setCalendarTasks((prev) => prev.map((t) => (t.id === updatedTask.id ? { ...t, ...updatedTask } : t)));
   };
 
-  const handleDayClick = (date) => {
-    setSelectedDate(date);
-    setShowDayModal(true);
-  };
-
-  const selectedTasks = selectedDate
-    ? calendarTasks.filter((t) => {
-        if (!t.date) return false;
-        const dateStr = format(selectedDate, 'yyyy-MM-dd');
-        const taskStart = t.date.substring(0, 10);
-        const taskEnd = t.date_end ? t.date_end.substring(0, 10) : taskStart;
-        return dateStr >= taskStart && dateStr <= taskEnd;
-      })
-    : [];
-
   return (
     <div className="calendar-page-wrap">
-      <motion.div
-        className="page-header"
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-      >
-        <h2>Kalender</h2>
-        <p>Klicke auf einen Tag, um Aufgaben zu sehen oder zu erstellen</p>
-      </motion.div>
+      <h2 style={{ padding: '16px 20px 0', fontWeight: 700, fontSize: '1.4rem' }}>Kalender</h2>
+      <p style={{ padding: '2px 20px 12px', opacity: 0.6, fontSize: '0.85rem' }}>Klicke auf einen Tag, um Aufgaben zu sehen oder zu erstellen</p>
 
       <Calendar
-        onDayClick={handleDayClick}
         tasks={calendarTasks}
         onVisibleRangeChange={handleVisibleRangeChange}
         onTaskUpdated={handleTaskUpdated}
+        onTaskCreated={handleTaskCreated}
       />
-
-      <AnimatePresence>
-        {showDayModal && selectedDate && (
-          <DayCreateModal
-            date={selectedDate}
-            tasks={selectedTasks}
-            onClose={() => setShowDayModal(false)}
-            onTaskCreated={handleTaskCreated}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 }

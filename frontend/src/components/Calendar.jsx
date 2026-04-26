@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../store/taskStore';
 import { ChevronLeft, ChevronRight, ChevronDown, Maximize2, Minimize2, Video } from 'lucide-react';
 import TaskDetailModal from './TaskDetailModal';
+import DayCreateModal from './DayCreateModal';
 import AvatarBadge from './AvatarBadge';
 import {
   format,
@@ -157,12 +158,13 @@ const throttle = (fn, delay) => {
   };
 };
 
-export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeChange, onTaskUpdated }) {
+export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeChange, onTaskUpdated, onTaskCreated }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [nowTs, setNowTs] = useState(Date.now());
   const [view, setView] = useState(window.innerWidth >= CALENDAR_WEEK_DEFAULT_BREAKPOINT ? 'week' : 'month');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [detailTask, setDetailTask] = useState(null);
+  const [showDayModal, setShowDayModal] = useState(false);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [showSidebarCategories, setShowSidebarCategories] = useState(true);
   const [isCalendarFullscreen, setIsCalendarFullscreen] = useState(false);
@@ -402,6 +404,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const handleDayClick = (date) => {
     setSelectedDate(date);
     setCurrentDate(date);
+    setShowDayModal(true);
     onDayClick?.(date);
   };
 
@@ -1725,8 +1728,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       )}
 
       {detailTask && createPortal(
-        <TaskDetailModal task={detailTask} onClose={() => setDetailTask(null)} onUpdated={onTaskUpdated} />,
-        document.body
+        <TaskDetailModal task={detailTask} portalTarget={isCalendarFullscreen && calendarWrapperRef.current ? calendarWrapperRef.current : document.body} onClose={() => setDetailTask(null)} onUpdated={onTaskUpdated} />,
+        isCalendarFullscreen && calendarWrapperRef.current ? calendarWrapperRef.current : document.body
       )}
 
       {dragInfo && createPortal(
@@ -1779,6 +1782,32 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
         </div>,
         document.body
       )}
+
+      {/* DayCreateModal — portals into fullscreen container when fullscreen */}
+      <AnimatePresence>
+        {showDayModal && selectedDate && (() => {
+          const modalTarget = isCalendarFullscreen && calendarWrapperRef.current ? calendarWrapperRef.current : document.body;
+          const dateStr = format(selectedDate, 'yyyy-MM-dd');
+          const dayTasks = tasks.filter((t) => {
+            if (!t.date) return false;
+            const start = t.date.substring(0, 10);
+            const end = t.date_end ? t.date_end.substring(0, 10) : start;
+            return dateStr >= start && dateStr <= end;
+          });
+          return (
+            <DayCreateModal
+              date={selectedDate}
+              tasks={dayTasks}
+              portalTarget={modalTarget}
+              onClose={() => setShowDayModal(false)}
+              onTaskCreated={() => {
+                onTaskCreated?.();
+                onVisibleRangeChange?.(null, null);
+              }}
+            />
+          );
+        })()}
+      </AnimatePresence>
     </motion.div>
   );
 }

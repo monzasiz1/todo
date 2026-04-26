@@ -21,7 +21,7 @@ const priorityConfig = {
   urgent: { label: 'Dringend', color: 'var(--danger)', icon: AlertTriangle },
 };
 
-export default function TaskDetailModal({ task, onClose, onUpdated }) {
+export default function TaskDetailModal({ task, onClose, onUpdated, portalTarget }) {
   const { toggleTask, deleteTask, fetchTasks, addToast } = useTaskStore();
   const [showEdit, setShowEdit] = useState(false);
   const [sharingToChat, setSharingToChat] = useState(false);
@@ -533,7 +533,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated }) {
             onClose();
           }}
         />,
-        document.body
+        portalTarget || document.body
       )}
     </>
   );
