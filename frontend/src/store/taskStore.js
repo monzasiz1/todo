@@ -61,7 +61,7 @@ export const useTaskStore = create((set, get) => ({
       return;
     }
 
-    set({ loading: true });
+    set({ loading: get().tasks.length === 0, error: null });
     try {
       // Keep one canonical task source for dashboard/calendar sync.
       // Only explicit lite mode may use the dashboard endpoint.

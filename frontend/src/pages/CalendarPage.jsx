@@ -5,8 +5,21 @@ import DayCreateModal from '../components/DayCreateModal';
 import { useTaskStore } from '../store/taskStore';
 import { format } from 'date-fns';
 
+function filterTasksForRange(tasks, start, end) {
+  if (!Array.isArray(tasks) || !start || !end) return [];
+  const startDay = String(start).slice(0, 10);
+  const endDay = String(end).slice(0, 10);
+
+  return tasks.filter((t) => {
+    if (!t?.date) return false;
+    const taskStart = String(t.date).slice(0, 10);
+    const taskEnd = String(t.date_end || t.date).slice(0, 10);
+    return taskStart <= endDay && taskEnd >= startDay;
+  });
+}
+
 export default function CalendarPage() {
-  const { fetchTasksRange } = useTaskStore();
+  const { fetchTasksRange, tasks: cachedTasks } = useTaskStore();
   const [calendarTasks, setCalendarTasks] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
   const [showDayModal, setShowDayModal] = useState(false);
@@ -17,8 +30,17 @@ export default function CalendarPage() {
     if (!start || !end) return;
     const key = `${start}|${end}`;
     if (!force && visibleRange.key === key) return;
+
+    // Instant paint from local cache, then background refresh from API.
+    const localRangeTasks = filterTasksForRange(cachedTasks, start, end);
+    if (localRangeTasks.length > 0) {
+      setCalendarTasks(localRangeTasks);
+    }
+
     const tasks = await fetchTasksRange(start, end);
-    setCalendarTasks(tasks);
+    if (Array.isArray(tasks)) {
+      setCalendarTasks(tasks);
+    }
     setVisibleRange({ start, end, key });
   };
 
@@ -42,7 +64,7 @@ export default function CalendarPage() {
 
     window.addEventListener('taski:tasks-changed', onTasksChanged);
     return () => window.removeEventListener('taski:tasks-changed', onTasksChanged);
-  }, [visibleRange.start, visibleRange.end]);
+  }, [visibleRange.start, visibleRange.end, cachedTasks]);
 
   const handleTaskUpdated = (updatedTask) => {
     setCalendarTasks((prev) => prev.map((t) => (t.id === updatedTask.id ? { ...t, ...updatedTask } : t)));

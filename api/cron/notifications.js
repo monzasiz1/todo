@@ -4,7 +4,20 @@ const { sendPushToUser, wasSentToday, wasTaskReminderSent, wasTaskTypeSent } = r
 const REMINDER_GRACE_WINDOW = '6 hours';
 const EVENT_REMINDER_OFFSET = '5 hours';
 const EVENT_DEFAULT_START_TIME = '12:00';
-const APP_TIME_ZONE = process.env.APP_TIME_ZONE || 'Europe/Berlin';
+function resolveAppTimeZone(value) {
+  const fallback = 'Europe/Berlin';
+  const candidate = String(value || fallback).trim();
+  try {
+    new Intl.DateTimeFormat('de-DE', { timeZone: candidate });
+    return candidate;
+  } catch {
+    return fallback;
+  }
+}
+
+const APP_TIME_ZONE = resolveAppTimeZone(process.env.APP_TIME_ZONE);
+// Keep local wall-clock semantics (DST-safe): convert local date+time to timestamptz first, then subtract offset.
+const EVENT_DUE_AT_SQL = `(((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp AT TIME ZONE '${APP_TIME_ZONE}') - INTERVAL '${EVENT_REMINDER_OFFSET}')`;
 
 /**
  * Cron endpoint – called by Vercel Cron every minute.
@@ -45,7 +58,7 @@ module.exports = async function handler(req, res) {
       `SELECT t.id, t.title, t.time, t.user_id, t.reminder_at,
               CASE
                 WHEN t.type = 'event' AND t.date IS NOT NULL
-                  THEN (((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp AT TIME ZONE '${APP_TIME_ZONE}') - INTERVAL '${EVENT_REMINDER_OFFSET}')
+                  THEN ${EVENT_DUE_AT_SQL}
                 ELSE t.reminder_at
               END AS due_at,
               c.name as category_name, c.color as category_color
@@ -56,8 +69,8 @@ module.exports = async function handler(req, res) {
            (
              t.type = 'event'
              AND t.date IS NOT NULL
-             AND (((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp AT TIME ZONE '${APP_TIME_ZONE}') - INTERVAL '${EVENT_REMINDER_OFFSET}') <= NOW()
-             AND (((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp AT TIME ZONE '${APP_TIME_ZONE}') - INTERVAL '${EVENT_REMINDER_OFFSET}') > NOW() - INTERVAL '${REMINDER_GRACE_WINDOW}'
+             AND ${EVENT_DUE_AT_SQL} <= NOW()
+             AND ${EVENT_DUE_AT_SQL} > NOW() - INTERVAL '${REMINDER_GRACE_WINDOW}'
            )
            OR
            (
