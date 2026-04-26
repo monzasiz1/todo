@@ -199,6 +199,7 @@ export default function NotesPage() {
   const [canvasContextMenu, setCanvasContextMenu] = useState(null);
   const [quickConnectMode, setQuickConnectMode] = useState(false);
   const [connectionType, setConnectionType] = useState('related');
+  const [actionNoteId, setActionNoteId] = useState(null);
   const [activeNoteId, setActiveNoteId] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
   const [contextTab, setContextTab] = useState('details');
@@ -850,6 +851,7 @@ export default function NotesPage() {
     if (event.target.closest('.notes-context-panel, .task-preview-modal')) return;
 
     setActiveNoteId(null);
+    setActionNoteId(null);
     setHoveredTaskPreview(null);
     setCanvasContextMenu(null);
     const panState = { x: event.clientX, y: event.clientY, isPan: true, pointerId: event.pointerId, pointerType: event.pointerType };
@@ -928,6 +930,7 @@ export default function NotesPage() {
       if (event.target.closest('.note-card, .notes-context-panel')) return;
       const touch = event.touches[0];
       setActiveNoteId(null);
+      setActionNoteId(null);
       const panState = { x: touch.clientX, y: touch.clientY, isPan: true, isTouch: true };
       isDraggingRef.current = panState;
       setIsDragging(panState);
@@ -1142,6 +1145,7 @@ export default function NotesPage() {
     if (event.pointerType === 'touch' && event.isPrimary === false) return;
 
     event.stopPropagation();
+    setActionNoteId(String(noteId));
     const note = notes.find((n) => String(n.id) === String(noteId));
     const basePos = notePositions[noteId] || { x: note?.x ?? 100, y: note?.y ?? 100 };
     const dragState = {
@@ -1163,6 +1167,7 @@ export default function NotesPage() {
     if (event.target.closest('button, input, textarea, select, a')) return;
 
     const touch = event.touches[0];
+    setActionNoteId(String(noteId));
     const note = notes.find((n) => String(n.id) === String(noteId));
     const basePos = notePositions[noteId] || { x: note?.x ?? 100, y: note?.y ?? 100 };
     const dragState = { noteId, startClientX: touch.clientX, startClientY: touch.clientY, lastClientX: touch.clientX, lastClientY: touch.clientY, basePos, isTouch: true };
@@ -1352,6 +1357,7 @@ export default function NotesPage() {
   const handleNoteDoubleClick = (event, noteId) => {
     if (event.target.closest('button, input, textarea, select, a')) return;
     if (noteDragOccurredRef.current) return;
+    setActionNoteId(String(noteId));
     setActiveNoteId(noteId);
   };
 
@@ -1363,6 +1369,8 @@ export default function NotesPage() {
       noteDragOccurredRef.current = false;
       return;
     }
+
+    setActionNoteId(String(noteId));
 
     if (!quickConnectMode) return;
 
@@ -2239,6 +2247,7 @@ export default function NotesPage() {
               const canManageThisNote = canManageNote(note);
               const isOwnerNote = String(note.user_id || '') === String(currentUser?.id || '');
               const isResponsibleNote = isResponsibleForNote(note);
+              const showActions = String(actionNoteId) === String(note.id) || String(isDragging?.noteId || '') === String(note.id);
 
               return (
                 <div
@@ -2389,7 +2398,7 @@ export default function NotesPage() {
                     </div>
                   )}
 
-                  <div className="note-actions">
+                  <div className={`note-actions ${showActions ? 'visible' : ''}`}>
                     <button
                       className="action-btn"
                       disabled={!canManageThisNote}

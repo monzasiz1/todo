@@ -1416,6 +1416,16 @@
   gap: 6px;
   padding-top: 8px;
   border-top: 1px solid rgba(0, 0, 0, 0.05);
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.note-actions.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
 }
 
 .action-btn {
