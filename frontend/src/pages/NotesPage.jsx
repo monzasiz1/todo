@@ -105,6 +105,13 @@ const CONNECTION_TYPE_LABELS = {
   blocks: 'Blockiert',
 };
 
+const CANVAS_TEXT_FONT_OPTIONS = [
+  { value: '"Poppins", "Segoe UI", sans-serif', label: 'Poppins' },
+  { value: '"Merriweather", Georgia, serif', label: 'Merriweather' },
+  { value: '"JetBrains Mono", "Consolas", monospace', label: 'JetBrains Mono' },
+  { value: '"Nunito", "Segoe UI", sans-serif', label: 'Nunito' },
+];
+
 const NOTE_PEOPLE_CACHE_KEY = 'taski_note_people_v1';
 const NOTE_VIEW_CACHE_KEY = 'taski_note_view_v1';
 const NOTE_CANVAS_TEXT_CACHE_KEY = 'taski_note_canvas_text_v1';
@@ -1416,7 +1423,7 @@ export default function NotesPage() {
     if (event.touches.length !== 1) return;
     const touch = event.touches[0];
     const drag = isDraggingRef.current;
-    if (!drag?.isPan && !drag?.noteId) return;
+    if (!drag?.isPan && !drag?.noteId && !drag?.textId) return;
 
     moveDragging(touch.clientX, touch.clientY);
     if (event.cancelable) event.preventDefault();
@@ -1440,6 +1447,46 @@ export default function NotesPage() {
       const finalX = Math.max(0, drag.basePos.x + totalDX / scale);
       const finalY = Math.max(0, drag.basePos.y + totalDY / scale);
       updateNotePosition(drag.noteId, finalX, finalY, true);
+    }
+
+    if (drag?.textId) {
+      const el = canvasTextElRefs.current[drag.textId];
+      const totalDX = (drag.lastClientX ?? drag.startClientX) - drag.startClientX;
+      const totalDY = (drag.lastClientY ?? drag.startClientY) - drag.startClientY;
+      const scale = zoomRef.current / 100;
+      if (el) {
+        el.style.transform = '';
+        el.style.zIndex = '';
+      }
+
+      const finalX = Math.max(0, (drag.basePos?.x || 0) + totalDX / scale);
+      const finalY = Math.max(0, (drag.basePos?.y || 0) + totalDY / scale);
+
+      setCanvasTexts((prev) => prev.map((entry) => {
+        if (String(entry.id) !== String(drag.textId)) return entry;
+        if (drag.attachedNoteId) {
+          const note = notes.find((n) => String(n.id) === String(drag.attachedNoteId));
+          if (note) {
+            const notePos = notePositions[note.id] || { x: note.x ?? 100, y: note.y ?? 100 };
+            return {
+              ...entry,
+              offset_x: Math.round(finalX - Number(notePos.x || 0)),
+              offset_y: Math.round(finalY - Number(notePos.y || 0)),
+              x: Math.round(finalX),
+              y: Math.round(finalY),
+            };
+          }
+        }
+
+        return {
+          ...entry,
+          x: Math.round(finalX),
+          y: Math.round(finalY),
+          attached_note_id: null,
+          offset_x: 0,
+          offset_y: 0,
+        };
+      }));
     }
 
     if (pinchStateRef.current) {
@@ -1962,6 +2009,9 @@ export default function NotesPage() {
       text: 'Neuer Text',
       x: Math.round(x),
       y: Math.round(y),
+      font_family: CANVAS_TEXT_FONT_OPTIONS[0].value,
+      font_size: 28,
+      font_weight: 500,
       attached_note_id: null,
       offset_x: 0,
       offset_y: 0,
@@ -1978,6 +2028,22 @@ export default function NotesPage() {
         ? { ...entry, text: String(text || '') }
         : entry
     )));
+  };
+
+  const updateCanvasTextStyle = (textId, patch = {}) => {
+    setCanvasTexts((prev) => prev.map((entry) => {
+      if (String(entry.id) !== String(textId)) return entry;
+
+      const nextSize = Number.isFinite(Number(patch.font_size))
+        ? Math.min(72, Math.max(12, Number(patch.font_size)))
+        : Number(entry.font_size || 28);
+
+      return {
+        ...entry,
+        ...patch,
+        font_size: nextSize,
+      };
+    }));
   };
 
   const removeCanvasText = (textId) => {
@@ -2972,6 +3038,11 @@ export default function NotesPage() {
             const attachedNote = entry.attached_note_id
               ? notes.find((note) => String(note.id) === String(entry.attached_note_id))
               : null;
+            const textStyle = {
+              fontFamily: entry.font_family || CANVAS_TEXT_FONT_OPTIONS[0].value,
+              fontSize: `${Math.min(72, Math.max(12, Number(entry.font_size || 28)))}px`,
+              fontWeight: Number(entry.font_weight || 500) >= 700 ? 700 : 500,
+            };
 
             return (
               <div
@@ -2994,17 +3065,42 @@ export default function NotesPage() {
                   <textarea
                     className="canvas-text-editor"
                     value={entry.text || ''}
+                    style={textStyle}
                     onChange={(event) => updateCanvasTextText(entry.id, event.target.value)}
                     onBlur={() => setEditingCanvasTextId(null)}
                     onPointerDown={(event) => event.stopPropagation()}
                     autoFocus
                   />
                 ) : (
-                  <div className="canvas-text-content">{entry.text || 'Text eingeben'}</div>
+                  <div className="canvas-text-content" style={textStyle}>{entry.text || 'Text eingeben'}</div>
                 )}
 
                 {isActive && (
                   <div className="canvas-text-toolbar" onPointerDown={(event) => event.stopPropagation()}>
+                    <select
+                      className="canvas-text-font-select"
+                      value={entry.font_family || CANVAS_TEXT_FONT_OPTIONS[0].value}
+                      onChange={(event) => updateCanvasTextStyle(entry.id, { font_family: event.target.value })}
+                    >
+                      {CANVAS_TEXT_FONT_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      className="canvas-text-size-input"
+                      min="12"
+                      max="72"
+                      value={Number(entry.font_size || 28)}
+                      onChange={(event) => updateCanvasTextStyle(entry.id, { font_size: Number(event.target.value || 28) })}
+                    />
+                    <button
+                      type="button"
+                      className={`canvas-text-tool-btn ${Number(entry.font_weight || 500) >= 700 ? 'active' : ''}`}
+                      onClick={() => updateCanvasTextStyle(entry.id, { font_weight: Number(entry.font_weight || 500) >= 700 ? 500 : 700 })}
+                    >
+                      Bold
+                    </button>
                     <select
                       className="canvas-text-attach-select"
                       value={entry.attached_note_id || ''}
@@ -3020,14 +3116,14 @@ export default function NotesPage() {
                       className="canvas-text-tool-btn"
                       onClick={() => setEditingCanvasTextId(entry.id)}
                     >
-                      Bearbeiten
+                      Edit
                     </button>
                     <button
                       type="button"
                       className="canvas-text-tool-btn danger"
                       onClick={() => removeCanvasText(entry.id)}
                     >
-                      Entfernen
+                      X
                     </button>
                   </div>
                 )}

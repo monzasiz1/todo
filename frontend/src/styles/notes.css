@@ -1231,74 +1231,91 @@
 .canvas-text-node {
   position: absolute;
   z-index: 8;
-  min-width: 160px;
-  max-width: 280px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid color-mix(in srgb, #0a84ff 22%, var(--border));
-  background: color-mix(in srgb, #0a84ff 8%, var(--card-solid));
-  box-shadow: 0 8px 20px rgba(10, 132, 255, 0.12);
+  min-width: 48px;
+  max-width: 520px;
   cursor: move;
   user-select: none;
+  padding: 2px 4px;
 }
 
 .canvas-text-node.active {
-  border-color: color-mix(in srgb, #0a84ff 50%, var(--border));
-  box-shadow: 0 0 0 1px rgba(10, 132, 255, 0.22), 0 10px 24px rgba(10, 132, 255, 0.18);
+  outline: 1px dashed color-mix(in srgb, #0a84ff 52%, transparent);
+  outline-offset: 2px;
 }
 
 .canvas-text-node.attached {
-  border-color: color-mix(in srgb, #f59e0b 48%, var(--border));
-  background: color-mix(in srgb, #f59e0b 10%, var(--card-solid));
+  outline-color: color-mix(in srgb, #f59e0b 58%, transparent);
 }
 
 .canvas-text-content {
-  font-size: 13px;
   color: var(--text);
-  line-height: 1.35;
+  line-height: 1.2;
   white-space: pre-wrap;
   word-break: break-word;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.55);
 }
 
 .canvas-text-editor {
-  width: 100%;
-  min-height: 70px;
-  border: 1px solid var(--border);
+  width: min(420px, 56vw);
+  min-height: 58px;
+  border: 1px dashed color-mix(in srgb, #0a84ff 45%, var(--border));
   border-radius: 8px;
-  padding: 8px;
-  font-size: 13px;
-  line-height: 1.35;
-  resize: vertical;
+  padding: 8px 10px;
+  line-height: 1.2;
+  resize: both;
   color: var(--text);
-  background: var(--card);
+  background: color-mix(in srgb, var(--card) 88%, transparent);
 }
 
 .canvas-text-toolbar {
-  margin-top: 8px;
+  margin-top: 6px;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  background: color-mix(in srgb, var(--card-solid) 94%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
 }
 
+.canvas-text-font-select,
+.canvas-text-size-input,
 .canvas-text-attach-select {
-  flex: 1 1 130px;
-  min-width: 130px;
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 8px;
   padding: 5px 7px;
   background: var(--card);
   color: var(--text);
   font-size: 12px;
 }
 
+.canvas-text-font-select {
+  min-width: 120px;
+}
+
+.canvas-text-size-input {
+  width: 62px;
+}
+
+.canvas-text-attach-select {
+  min-width: 140px;
+}
+
 .canvas-text-tool-btn {
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 8px;
   background: var(--card);
   color: var(--text);
   font-size: 12px;
   font-weight: 600;
   padding: 5px 8px;
+}
+
+.canvas-text-tool-btn.active {
+  border-color: color-mix(in srgb, #0a84ff 58%, var(--border));
+  color: #0a84ff;
+  background: color-mix(in srgb, #0a84ff 10%, var(--card));
 }
 
 .canvas-text-tool-btn.danger {
@@ -1307,7 +1324,7 @@
 }
 
 .canvas-text-anchor {
-  margin-top: 6px;
+  margin-top: 4px;
   font-size: 11px;
   color: var(--text-secondary);
   white-space: nowrap;
