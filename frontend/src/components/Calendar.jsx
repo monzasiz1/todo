@@ -1126,6 +1126,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   const lanePercent = dayPercent / laneCount;
                   const singleDayLeft = `calc(${(startIdx * dayPercent) + (lane * lanePercent)}% + 4px)`;
                   const singleDayWidth = `calc(${lanePercent}% - 8px)`;
+                  const minDisplayHeight = t.group_category_name && !doneOrEnded ? 42 : 28;
 
                   return (
                     <div
@@ -1135,7 +1136,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         left: isSingleDay ? singleDayLeft : `calc((100% / 7) * ${startIdx} + 4px)`,
                         width: isSingleDay ? singleDayWidth : `calc((100% / 7) * ${spanDays} - 8px)`,
                         top: `${top}px`,
-                        height: `${height}px`,
+                        height: `${Math.max(minDisplayHeight, height)}px`,
                         background: doneOrEnded ? 'rgba(142, 142, 147, 0.72)' : (t.category_color || t.group_category_color || t.group_color || '#4C7BD9'),
                         touchAction: 'none',
                       }}
@@ -1164,7 +1165,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       )}
                       <span className="desktop-week-event-title">{t.title}</span>
                       <span className="desktop-week-event-time">{t.time?.slice(0, 5)}{t.time_end ? ` - ${t.time_end.slice(0, 5)}` : ''}</span>
-                      {t.group_category_name && !doneOrEnded && height > 44 && (
+                      {t.group_category_name && !doneOrEnded && height > 38 && (
                         <span className="cal-group-cat-pill" style={{ background: t.group_category_color ? `${t.group_category_color}44` : 'rgba(255,255,255,0.25)', color: '#fff' }}>{t.group_category_name}</span>
                       )}
                       {t.completed && <span className="desktop-week-event-ended">Erledigt</span>}

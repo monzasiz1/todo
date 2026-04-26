@@ -7156,7 +7156,7 @@ body.cal-is-dragging * {
     display: block;
     font-size: 12px;
     font-weight: 600;
-    line-height: 1.35;
+    line-height: 1.25;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -7164,10 +7164,20 @@ body.cal-is-dragging * {
 
   .desktop-week-event-time {
     display: block;
-    margin-top: 2px;
-    font-size: 10px;
+    margin-top: 3px;
+    font-size: 11px;
+    line-height: 1.2;
     font-weight: 500;
-    opacity: 0.88;
+    opacity: 0.92;
+  }
+
+  .desktop-week-event .cal-group-cat-pill {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 4px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    max-width: calc(100% - 4px);
   }
 }
 
@@ -11232,6 +11242,35 @@ body.cal-is-dragging * {
   flex-direction: column;
   gap: 16px;
 }
+.group-settings-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: 14px;
+  align-items: start;
+}
+.group-settings-card {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  padding: 14px;
+}
+.group-settings-card-head h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.group-settings-card-head p {
+  margin: 4px 0 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.group-settings-form-card .group-form {
+  max-width: none;
+}
+.group-settings-form-card .group-form-preview {
+  margin-bottom: 2px;
+}
 .group-cat-manager {
   display: flex;
   flex-direction: column;
@@ -11328,7 +11367,7 @@ body.cal-is-dragging * {
   color: var(--text-tertiary);
 }
 .group-danger-zone {
-  margin-top: 24px;
+  margin-top: 16px;
   padding: 16px;
   border: 1px solid rgba(255,59,48,0.2);
   border-radius: 16px;
@@ -11450,6 +11489,14 @@ body.cal-is-dragging * {
 }
 
 @media (max-width: 768px) {
+  .group-settings-layout {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .group-settings-card {
+    padding: 11px;
+    border-radius: 14px;
+  }
   .group-cat-create-row {
     grid-template-columns: 1fr auto;
   }

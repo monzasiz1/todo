@@ -803,17 +803,19 @@ function GroupDetail({ groupId, onBack }) {
             <h3 className="group-tab-heading">Gruppeneinstellungen</h3>
             <p>Branding, Beschreibung und sensible Aktionen zentral verwalten.</p>
           </div>
-          <GroupCategoryManager groupId={groupId} />
-          <GroupSettings
-            group={currentGroup}
-            onUpdate={(data) => updateGroup(groupId, data)}
-            onDelete={async () => {
-              await deleteGroup(groupId);
-              addToast('Gruppe gelöscht');
-              onBack();
-            }}
-            isOwner={myRole === 'owner'}
-          />
+          <div className="group-settings-layout">
+            <GroupCategoryManager groupId={groupId} />
+            <GroupSettings
+              group={currentGroup}
+              onUpdate={(data) => updateGroup(groupId, data)}
+              onDelete={async () => {
+                await deleteGroup(groupId);
+                addToast('Gruppe geloescht');
+                onBack();
+              }}
+              isOwner={myRole === 'owner'}
+            />
+          </div>
         </>
       )}
     </motion.div>
@@ -1108,7 +1110,7 @@ function GroupCategoryManager({ groupId }) {
   };
 
   return (
-    <div className="group-tab-content group-cat-manager">
+    <section className="group-settings-card group-cat-manager">
       <div className="group-cat-head">
         <div>
           <h4>Gruppenkategorien</h4>
@@ -1169,7 +1171,7 @@ function GroupCategoryManager({ groupId }) {
           ))}
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
@@ -1202,7 +1204,11 @@ function GroupSettings({ group, onUpdate, onDelete, isOwner }) {
   };
 
   return (
-    <div className="group-tab-content">
+    <section className="group-settings-card group-settings-form-card">
+      <div className="group-settings-card-head">
+        <h4>Gruppenprofil</h4>
+        <p>Name, Beschreibung, Farbe und Gruppenbild bearbeiten.</p>
+      </div>
       <div className="group-form">
         <div className="group-form-preview">
           <AvatarBadge
@@ -1282,6 +1288,6 @@ function GroupSettings({ group, onUpdate, onDelete, isOwner }) {
           )}
         </div>
       )}
-    </div>
+    </section>
   );
 }
