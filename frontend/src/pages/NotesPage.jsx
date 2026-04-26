@@ -855,14 +855,25 @@ export default function NotesPage() {
       const dx = first.clientX - second.clientX;
       const dy = first.clientY - second.clientY;
       const distance = Math.hypot(dx, dy);
-      const nextZoom = clampZoom((distance / pinchStateRef.current.startDistance) * pinchStateRef.current.startZoom);
       const centerX = (first.clientX + second.clientX) / 2;
       const centerY = (first.clientY + second.clientY) / 2;
 
+      const scaleBefore = zoomRef.current / 100;
+      const rawNext = (distance / pinchStateRef.current.startDistance) * pinchStateRef.current.startZoom;
+      const nextZoom = applyZoom(rawNext);
+      const scaleAfter = nextZoom / 100;
       didManualZoomRef.current = true;
-      applyZoom(nextZoom);
-      canvasRef.current.scrollLeft -= centerX - pinchStateRef.current.lastCenterX;
-      canvasRef.current.scrollTop -= centerY - pinchStateRef.current.lastCenterY;
+
+      const canvas = canvasRef.current;
+      // Correct focal-point scroll: finger center stays fixed on screen
+      const focalX = (canvas.scrollLeft + centerX) / scaleBefore;
+      const focalY = (canvas.scrollTop  + centerY) / scaleBefore;
+      canvas.scrollLeft = focalX * scaleAfter - centerX;
+      canvas.scrollTop  = focalY * scaleAfter - centerY;
+
+      // Also pan if fingers moved laterally
+      canvas.scrollLeft -= centerX - pinchStateRef.current.lastCenterX;
+      canvas.scrollTop  -= centerY - pinchStateRef.current.lastCenterY;
 
       pinchStateRef.current.lastCenterX = centerX;
       pinchStateRef.current.lastCenterY = centerY;
@@ -872,7 +883,8 @@ export default function NotesPage() {
 
     if (event.touches.length !== 1) return;
     const touch = event.touches[0];
-    if (!isDragging?.isPan && !isDragging?.noteId) return;
+    const drag = isDraggingRef.current;
+    if (!drag?.isPan && !drag?.noteId) return;
 
     moveDragging(touch.clientX, touch.clientY);
     if (event.cancelable) event.preventDefault();
