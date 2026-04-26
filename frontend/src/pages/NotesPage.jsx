@@ -105,6 +105,7 @@ const CONNECTION_TYPE_LABELS = {
 };
 
 const NOTE_PEOPLE_CACHE_KEY = 'taski_note_people_v1';
+const NOTE_VIEW_CACHE_KEY = 'taski_note_view_v1';
 
 function getUserScopedKey(baseKey) {
   if (typeof window === 'undefined') return `${baseKey}:anon`;
@@ -136,6 +137,30 @@ function writeNotePeopleCache(data) {
   }
 }
 
+function readNoteViewCache() {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(getUserScopedKey(NOTE_VIEW_CACHE_KEY));
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeNoteViewCache(data) {
+  if (typeof window === 'undefined') return;
+  try {
+    const prev = readNoteViewCache();
+    localStorage.setItem(
+      getUserScopedKey(NOTE_VIEW_CACHE_KEY),
+      JSON.stringify({ ...(prev || {}), ...(data || {}) })
+    );
+  } catch {
+    // ignore quota/security errors
+  }
+}
+
 export default function NotesPage() {
   const { notes, createNote, updateNote, deleteNote, linkNoteToTask, shareNoteWithFriend, unshareNoteForFriend, connectNotes, disconnectNotes, getNoteConnections } = useNotesStore();
   const { friends, fetchFriends } = useFriendsStore();
@@ -144,9 +169,16 @@ export default function NotesPage() {
 
   const [zoom, setZoom] = useState(() => {
     if (typeof window === 'undefined') return 65;
-    return window.innerWidth < 640 ? 100 : 65;
+    const cached = readNoteViewCache();
+    if (Number.isFinite(cached?.zoom)) {
+      return Math.min(220, Math.max(25, Number(cached.zoom)));
+    }
+    return window.innerWidth < 640 ? 92 : 65;
   });
-  const [mobileViewMode, setMobileViewMode] = useState('grid'); // 'grid' | 'canvas'
+  const [mobileViewMode, setMobileViewMode] = useState(() => {
+    const cachedMode = readNoteViewCache()?.mobileViewMode;
+    return cachedMode === 'canvas' ? 'canvas' : 'grid';
+  }); // 'grid' | 'canvas'
   const [mobileSearch, setMobileSearch] = useState('');
   const [mobileFilter, setMobileFilter] = useState('all'); // 'all' | 'high' | 'medium' | 'low'
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -180,8 +212,10 @@ export default function NotesPage() {
   const pinchStateRef = useRef(null);
   const handleTouchMoveRef = useRef(null);
   const handleCanvasTouchStartRef = useRef(null);
+  const mobileViewModeRef = useRef(mobileViewMode);
   const didManualZoomRef = useRef(false);
   const didInitialViewportFitRef = useRef(false);
+  const didRestoreViewportRef = useRef(false);
   const noteDragOccurredRef = useRef(false);
   // DOM refs for note elements — used for zero-re-render drag via CSS transform
   const noteElRefs = useRef({});
@@ -195,7 +229,7 @@ export default function NotesPage() {
   const isDraggingRef = useRef(null);
 
   const getAdaptiveZoom = (screenWidth, screenHeight = (typeof window !== 'undefined' ? window.innerHeight : 900)) => {
-    if (screenWidth < 640) return 100;
+    if (screenWidth < 640) return 92;
 
     const baseZoom = 65;
     if (!Array.isArray(notes) || notes.length === 0) return baseZoom;
@@ -230,7 +264,7 @@ export default function NotesPage() {
 
   const getNoteDimensions = (screenWidth) => {
     if (screenWidth < 640) {
-      return { width: 240, height: 132 };
+      return { width: 210, height: 116 };
     }
     if (screenWidth < 1024) {
       return { width: 260, height: 140 };
@@ -249,7 +283,7 @@ export default function NotesPage() {
 
   const getNewNoteDimensions = (screenWidth) => {
     if (screenWidth < 640) {
-      return { width: 240, height: 140 };
+      return { width: 220, height: 122 };
     }
     if (screenWidth < 1024) {
       return { width: 280, height: 150 };
@@ -273,11 +307,27 @@ export default function NotesPage() {
   const resetZoomToViewport = () => {
     didManualZoomRef.current = false;
     const next = typeof window !== 'undefined'
-      ? (window.innerWidth < 640 ? 100 : getAdaptiveZoom(window.innerWidth, window.innerHeight))
+      ? (window.innerWidth < 640 ? 92 : getAdaptiveZoom(window.innerWidth, window.innerHeight))
       : 100;
     applyZoom(next);
     setZoom(next);
   };
+
+  const persistNoteViewState = (overrides = {}) => {
+    const canvas = canvasRef.current;
+    writeNoteViewCache({
+      zoom: Math.round(zoomRef.current),
+      mobileViewMode: mobileViewModeRef.current,
+      scrollLeft: canvas ? canvas.scrollLeft : undefined,
+      scrollTop: canvas ? canvas.scrollTop : undefined,
+      updatedAt: Date.now(),
+      ...overrides,
+    });
+  };
+
+  useEffect(() => {
+    mobileViewModeRef.current = mobileViewMode;
+  }, [mobileViewMode]);
 
   const refreshConnections = async (sourceNotes = notes) => {
     if (!sourceNotes.length) {
@@ -312,6 +362,17 @@ export default function NotesPage() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     if (didInitialViewportFitRef.current) return;
+
+    const cachedView = readNoteViewCache();
+    if (!didRestoreViewportRef.current && Number.isFinite(cachedView?.scrollLeft) && Number.isFinite(cachedView?.scrollTop)) {
+      requestAnimationFrame(() => {
+        canvas.scrollLeft = Math.max(0, Number(cachedView.scrollLeft) || 0);
+        canvas.scrollTop = Math.max(0, Number(cachedView.scrollTop) || 0);
+        didRestoreViewportRef.current = true;
+        didInitialViewportFitRef.current = true;
+      });
+      return;
+    }
 
     requestAnimationFrame(() => {
       if (notes.length === 0) {
@@ -407,7 +468,7 @@ export default function NotesPage() {
     const syncViewport = () => {
       setIsMobileView(window.innerWidth < 640);
       if (!didManualZoomRef.current) {
-        const next = window.innerWidth < 640 ? 100 : getAdaptiveZoom(window.innerWidth, window.innerHeight);
+        const next = window.innerWidth < 640 ? 92 : getAdaptiveZoom(window.innerWidth, window.innerHeight);
         applyZoom(next);
         setZoom(next);
       }
@@ -1680,7 +1741,10 @@ export default function NotesPage() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const onScroll = () => updateCanvasViewport();
+    const onScroll = () => {
+      updateCanvasViewport();
+      persistNoteViewState();
+    };
     const onResize = () => updateCanvasViewport();
 
     canvas.addEventListener('scroll', onScroll, { passive: true });
@@ -1689,6 +1753,27 @@ export default function NotesPage() {
     return () => {
       canvas.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onResize);
+    };
+  }, []);
+
+  useEffect(() => {
+    persistNoteViewState();
+  }, [mobileViewMode, zoom]);
+
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') persistNoteViewState();
+    };
+    const onBeforeUnload = () => persistNoteViewState();
+
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('beforeunload', onBeforeUnload);
+    window.addEventListener('pagehide', onBeforeUnload);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      window.removeEventListener('pagehide', onBeforeUnload);
     };
   }, []);
 
