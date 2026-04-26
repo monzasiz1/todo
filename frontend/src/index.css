@@ -11232,6 +11232,61 @@ body.cal-is-dragging * {
   flex-direction: column;
   gap: 16px;
 }
+.group-cat-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.group-cat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.group-cat-head h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.group-cat-head span {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.group-cat-create-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+}
+.group-cat-color {
+  width: 42px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+}
+.group-cat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.group-cat-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.group-cat-manage-hint {
+  margin: 6px 2px 0;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
 .group-danger-zone {
   margin-top: 24px;
   padding: 16px;
@@ -11352,6 +11407,16 @@ body.cal-is-dragging * {
 }
 .group-add-actions .submit:disabled {
   opacity: 0.5;
+}
+
+@media (max-width: 768px) {
+  .group-cat-create-row {
+    grid-template-columns: 1fr auto;
+  }
+  .group-cat-create-row .group-submit-btn {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
 }
 
 /* --- Task Group Badge (on TaskCard) --- */

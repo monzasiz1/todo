@@ -803,6 +803,7 @@ function GroupDetail({ groupId, onBack }) {
             <h3 className="group-tab-heading">Gruppeneinstellungen</h3>
             <p>Branding, Beschreibung und sensible Aktionen zentral verwalten.</p>
           </div>
+          <GroupCategoryManager groupId={groupId} />
           <GroupSettings
             group={currentGroup}
             onUpdate={(data) => updateGroup(groupId, data)}
@@ -911,9 +912,6 @@ function AddGroupTask({ groupId, onClose, onAdd }) {
   const [priority, setPriority] = useState('medium');
   const [groupCategories, setGroupCategories] = useState([]);
   const [groupCategoryId, setGroupCategoryId] = useState('');
-  const [newCategoryName, setNewCategoryName] = useState('');
-  const [newCategoryColor, setNewCategoryColor] = useState('#8E8E93');
-  const [creatingCategory, setCreatingCategory] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const loadGroupCategories = async () => {
@@ -928,29 +926,6 @@ function AddGroupTask({ groupId, onClose, onAdd }) {
   useEffect(() => {
     loadGroupCategories();
   }, [groupId]);
-
-  const handleCreateGroupCategory = async () => {
-    const name = newCategoryName.trim();
-    if (!name) return;
-    setCreatingCategory(true);
-    try {
-      const data = await api.createGroupCategory(groupId, { name, color: newCategoryColor });
-      const created = data?.category;
-      if (created?.id) {
-        setGroupCategories((prev) => {
-          const filtered = prev.filter((c) => String(c.id) !== String(created.id));
-          return [...filtered, created].sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'de'));
-        });
-        setGroupCategoryId(String(created.id));
-      } else {
-        await loadGroupCategories();
-      }
-      setNewCategoryName('');
-      setNewCategoryColor('#8E8E93');
-    } finally {
-      setCreatingCategory(false);
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -1063,32 +1038,7 @@ function AddGroupTask({ groupId, onClose, onAdd }) {
               <option key={cat.id} value={cat.id}>{cat.name}</option>
             ))}
           </select>
-
-          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-            <input
-              type="text"
-              value={newCategoryName}
-              onChange={(e) => setNewCategoryName(e.target.value)}
-              placeholder="Neue Kategorie"
-              className="task-edit-input"
-            />
-            <input
-              type="color"
-              value={newCategoryColor}
-              onChange={(e) => setNewCategoryColor(e.target.value)}
-              title="Kategoriefarbe"
-              style={{ width: 44, height: 38, border: '1px solid var(--border)', borderRadius: 10, background: 'transparent' }}
-            />
-            <button
-              type="button"
-              className="group-cancel-btn"
-              onClick={handleCreateGroupCategory}
-              disabled={!newCategoryName.trim() || creatingCategory}
-              style={{ whiteSpace: 'nowrap' }}
-            >
-              {creatingCategory ? '...' : 'Anlegen'}
-            </button>
-          </div>
+          <p className="group-cat-manage-hint">Kategorien im Tab Einstellungen verwalten.</p>
         </div>
 
         <button type="submit" className="group-submit-btn" disabled={!title.trim() || saving}>
@@ -1096,6 +1046,126 @@ function AddGroupTask({ groupId, onClose, onAdd }) {
         </button>
       </motion.form>
     </motion.div>
+  );
+}
+
+function GroupCategoryManager({ groupId }) {
+  const [categories, setCategories] = useState([]);
+  const [name, setName] = useState('');
+  const [color, setColor] = useState('#8E8E93');
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+
+  const loadCategories = async () => {
+    setLoading(true);
+    try {
+      const data = await api.getGroupCategories(groupId);
+      const next = Array.isArray(data?.categories) ? data.categories : [];
+      setCategories(next.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'de')));
+    } catch {
+      setCategories([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCategories();
+  }, [groupId]);
+
+  const handleCreate = async () => {
+    const trimmed = String(name || '').trim();
+    if (!trimmed || saving) return;
+    setSaving(true);
+    try {
+      const data = await api.createGroupCategory(groupId, { name: trimmed, color });
+      const created = data?.category;
+      if (created?.id) {
+        setCategories((prev) => {
+          const next = [...prev.filter((c) => String(c.id) !== String(created.id)), created];
+          return next.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'de'));
+        });
+      } else {
+        await loadCategories();
+      }
+      setName('');
+      setColor('#8E8E93');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (categoryId) => {
+    if (!categoryId || deletingId) return;
+    setDeletingId(categoryId);
+    try {
+      await api.deleteGroupCategory(groupId, categoryId);
+      setCategories((prev) => prev.filter((c) => String(c.id) !== String(categoryId)));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  return (
+    <div className="group-tab-content group-cat-manager">
+      <div className="group-cat-head">
+        <h4>Gruppenkategorien</h4>
+        <span>{categories.length} vorhanden</span>
+      </div>
+
+      <div className="group-cat-create-row">
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="task-edit-input"
+          placeholder="Neue Gruppenkategorie"
+          maxLength={80}
+        />
+        <input
+          type="color"
+          value={color}
+          onChange={(e) => setColor(e.target.value)}
+          title="Kategoriefarbe"
+          className="group-cat-color"
+        />
+        <button
+          type="button"
+          className="group-submit-btn"
+          onClick={handleCreate}
+          disabled={!name.trim() || saving}
+        >
+          {saving ? 'Anlegen...' : 'Kategorie anlegen'}
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="group-empty-tab">Kategorien laden...</div>
+      ) : categories.length === 0 ? (
+        <div className="group-empty-tab">Noch keine Gruppenkategorien vorhanden.</div>
+      ) : (
+        <div className="group-cat-list">
+          {categories.map((cat) => (
+            <div key={cat.id} className="group-cat-item">
+              <span className="group-task-category" style={{ background: `${cat.color || '#8E8E93'}22`, color: cat.color || '#5E5E66' }}>
+                <span className="group-task-category-dot" style={{ background: cat.color || '#8E8E93' }} />
+                {cat.name}
+              </span>
+              <button
+                type="button"
+                className="group-member-action-btn danger"
+                onClick={() => handleDelete(cat.id)}
+                disabled={String(deletingId) === String(cat.id)}
+                title="Kategorie löschen"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
