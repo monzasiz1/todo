@@ -151,26 +151,6 @@ function readNoteViewCache() {
 }
 
 function writeNoteViewCache(data) {
-
-  function readCanvasTextCache() {
-    if (typeof window === 'undefined') return [];
-    try {
-      const raw = localStorage.getItem(getUserScopedKey(NOTE_CANVAS_TEXT_CACHE_KEY));
-      const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  }
-
-  function writeCanvasTextCache(items) {
-    if (typeof window === 'undefined') return;
-    try {
-      localStorage.setItem(getUserScopedKey(NOTE_CANVAS_TEXT_CACHE_KEY), JSON.stringify(Array.isArray(items) ? items : []));
-    } catch {
-      // ignore quota/security errors
-    }
-  }
   if (typeof window === 'undefined') return;
   try {
     const prev = readNoteViewCache();
@@ -206,10 +186,11 @@ function renderInlineMarkdown(value) {
   return text;
 }
 
-function markdownToHtml(content) {
+function markdownToHtml(content, options = {}) {
   const lines = String(content || '').split(/\r?\n/);
   let html = '';
   let inList = false;
+  const interactiveChecklist = options?.interactiveChecklist === true;
 
   const closeList = () => {
     if (inList) {
@@ -218,7 +199,7 @@ function markdownToHtml(content) {
     }
   };
 
-  lines.forEach((rawLine) => {
+  lines.forEach((rawLine, lineIndex) => {
     const line = String(rawLine || '');
     const trimmed = line.trim();
 
@@ -247,7 +228,10 @@ function markdownToHtml(content) {
       }
       const checked = checkbox[1].toLowerCase() === 'x';
       const symbol = checked ? '☑' : '☐';
-      html += `<li class="note-md-checkbox">${symbol} ${renderInlineMarkdown(checkbox[2])}</li>`;
+      const classes = ['note-md-checkbox'];
+      if (checked) classes.push('checked');
+      if (interactiveChecklist) classes.push('interactive');
+      html += `<li class="${classes.join(' ')}" data-line-index="${lineIndex}"><span class="note-md-checkbox-symbol">${symbol}</span><span class="note-md-checkbox-label">${renderInlineMarkdown(checkbox[2])}</span></li>`;
       return;
     }
 
@@ -267,6 +251,19 @@ function markdownToHtml(content) {
 
   closeList();
   return html;
+}
+
+function toggleChecklistLine(content, lineIndex) {
+  const lines = String(content || '').split(/\r?\n/);
+  if (!Number.isInteger(lineIndex) || lineIndex < 0 || lineIndex >= lines.length) return content;
+
+  const line = String(lines[lineIndex] || '');
+  const match = line.match(/^(\s*[-*]\s\[)(x|X|\s)(\]\s.*)$/);
+  if (!match) return content;
+
+  const nextMark = match[2].toLowerCase() === 'x' ? ' ' : 'x';
+  lines[lineIndex] = `${match[1]}${nextMark}${match[3]}`;
+  return lines.join('\n');
 }
 
 function markdownToPlainText(content) {
@@ -392,7 +389,16 @@ export default function NotesPage() {
   const [fsToolbarPos, setFsToolbarPos] = useState({ x: 14, y: 86 });
   const [newChecklistStatus, setNewChecklistStatus] = useState({ loading: false, error: '' });
   const [editChecklistStatus, setEditChecklistStatus] = useState({ loading: false, error: '' });
-  const [canvasTexts, setCanvasTexts] = useState(() => readCanvasTextCache());
+  const [canvasTexts, setCanvasTexts] = useState(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const raw = localStorage.getItem(getUserScopedKey(NOTE_CANVAS_TEXT_CACHE_KEY));
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
   const [activeCanvasTextId, setActiveCanvasTextId] = useState(null);
   const [editingCanvasTextId, setEditingCanvasTextId] = useState(null);
   const canvasRef = useRef(null);
@@ -799,7 +805,12 @@ export default function NotesPage() {
   }, [notePeopleMap]);
 
   useEffect(() => {
-    writeCanvasTextCache(canvasTexts);
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(getUserScopedKey(NOTE_CANVAS_TEXT_CACHE_KEY), JSON.stringify(Array.isArray(canvasTexts) ? canvasTexts : []));
+    } catch {
+      // ignore quota/security errors
+    }
   }, [canvasTexts]);
 
   useEffect(() => {
@@ -1924,6 +1935,29 @@ export default function NotesPage() {
     }
   };
 
+  const handleChecklistToggle = async (event, note, canManage) => {
+    const target = event.target?.closest?.('.note-md-checkbox');
+    if (!target) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!canManage || !note) return;
+
+    const lineIndex = Number(target.getAttribute('data-line-index'));
+    if (!Number.isInteger(lineIndex)) return;
+
+    const current = String(note.content || '');
+    const nextContent = toggleChecklistLine(current, lineIndex);
+    if (nextContent === current) return;
+
+    try {
+      await updateNote(note.id, { content: nextContent });
+    } catch {
+      // ignore toggle errors to keep UI interaction lightweight
+    }
+  };
+
   const createCanvasTextAt = (x, y) => {
     const id = `txt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const payload = {
@@ -2736,7 +2770,8 @@ export default function NotesPage() {
                         {note.content && (
                           <div
                             className="nmlv-card-content note-content-renderer"
-                            dangerouslySetInnerHTML={{ __html: markdownToHtml(note.content) }}
+                            dangerouslySetInnerHTML={{ __html: markdownToHtml(note.content, { interactiveChecklist: mobileCanManage }) }}
+                            onClick={(event) => handleChecklistToggle(event, note, mobileCanManage)}
                           />
                         )}
 
@@ -3081,7 +3116,8 @@ export default function NotesPage() {
 
                   <div
                     className="note-content note-content-renderer"
-                    dangerouslySetInnerHTML={{ __html: markdownToHtml(note.content) }}
+                    dangerouslySetInnerHTML={{ __html: markdownToHtml(note.content, { interactiveChecklist: canManageThisNote }) }}
+                    onClick={(event) => handleChecklistToggle(event, note, canManageThisNote)}
                   />
 
                   {isResponsibleNote && (
@@ -3468,7 +3504,8 @@ export default function NotesPage() {
                   {activeNote.content ? (
                     <div
                       className="context-note-body note-content-renderer"
-                      dangerouslySetInnerHTML={{ __html: markdownToHtml(activeNote.content) }}
+                      dangerouslySetInnerHTML={{ __html: markdownToHtml(activeNote.content, { interactiveChecklist: activeCanManage }) }}
+                      onClick={(event) => handleChecklistToggle(event, activeNote, activeCanManage)}
                     />
                   ) : (
                     <p className="context-note-body">Kein Inhalt hinterlegt.</p>

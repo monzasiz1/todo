@@ -1623,6 +1623,36 @@
   margin-left: -16px;
 }
 
+.note-content-renderer .note-md-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.note-content-renderer .note-md-checkbox-symbol {
+  line-height: 1.2;
+  min-width: 14px;
+}
+
+.note-content-renderer .note-md-checkbox-label {
+  flex: 1;
+}
+
+.note-content-renderer .note-md-checkbox.checked .note-md-checkbox-label {
+  text-decoration: line-through;
+  opacity: 0.72;
+}
+
+.note-content-renderer .note-md-checkbox.interactive {
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 1px 3px;
+}
+
+.note-content-renderer .note-md-checkbox.interactive:hover {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
 .note-content-renderer .note-md-image {
   display: block;
   width: 100%;
