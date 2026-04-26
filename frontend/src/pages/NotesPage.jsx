@@ -390,7 +390,6 @@ export default function NotesPage() {
   const [commentDraft, setCommentDraft] = useState('');
   const [notePeopleMap, setNotePeopleMap] = useState(() => readNotePeopleCache());
   const [isMobileView, setIsMobileView] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 640 : false));
-  const [canvasViewport, setCanvasViewport] = useState({ left: 0, top: 0, right: 0, bottom: 0 });
   const [isCanvasFullscreen, setIsCanvasFullscreen] = useState(false);
   const [isCanvasPseudoFullscreen, setIsCanvasPseudoFullscreen] = useState(false);
   const [fsToolbarPos, setFsToolbarPos] = useState({ x: 14, y: 86 });
@@ -1157,17 +1156,6 @@ export default function NotesPage() {
     }, 120);
   };
 
-  const updateCanvasViewport = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const scale = zoom / 100;
-    const left = canvas.scrollLeft / scale;
-    const top = canvas.scrollTop / scale;
-    const right = left + (canvas.clientWidth / scale);
-    const bottom = top + (canvas.clientHeight / scale);
-    setCanvasViewport({ left, top, right, bottom });
-  };
-
   const moveDragging = (clientX, clientY) => {
     const drag = isDraggingRef.current;
     if (!drag) return;
@@ -1404,6 +1392,17 @@ export default function NotesPage() {
   };
 
   const handleTouchMove = (event) => {
+    // Track movement for tap-vs-drag detection on canvas texts
+    if (event.touches.length === 1) {
+      const drag = isDraggingRef.current;
+      if (drag?.textId && !drag.didMove) {
+        const t = event.touches[0];
+        const dx = t.clientX - (drag.startClientX || 0);
+        const dy = t.clientY - (drag.startClientY || 0);
+        if (Math.hypot(dx, dy) > 8) drag.didMove = true;
+      }
+    }
+
     if (pinchStateRef.current && canvasContentRef.current && event.touches.length === 2) {
       const ps = pinchStateRef.current;
       const [first, second] = event.touches;
@@ -1528,6 +1527,8 @@ export default function NotesPage() {
     pinchStateRef.current = null;
     isDraggingRef.current = null;
     setIsDragging(null);
+    // If a text was being dragged (not just tapped), close edit mode
+    setEditingCanvasTextId(null);
   };
 
   const handleAutoLayout = async () => {
@@ -2525,50 +2526,22 @@ export default function NotesPage() {
   const screenWidthCache = typeof window !== 'undefined' ? window.innerWidth : 1024;
   const defaultNoteDims = useMemo(() => getNoteDimensions(screenWidthCache), [isMobileView]);
 
-  const visibleNoteIds = useMemo(() => {
-    const padding = 160;
-    const ids = new Set();
-    notes.forEach((note) => {
-      const position = notePositions[note.id] || { x: note.x ?? 100, y: note.y ?? 100 };
-      const width = note.width || 300;
-      const height = note.height || 150;
-      const noteLeft = position.x;
-      const noteTop = position.y;
-      const noteRight = noteLeft + width;
-      const noteBottom = noteTop + height;
-
-      const outside =
-        noteRight < canvasViewport.left - padding ||
-        noteLeft > canvasViewport.right + padding ||
-        noteBottom < canvasViewport.top - padding ||
-        noteTop > canvasViewport.bottom + padding;
-
-      if (!outside) ids.add(String(note.id));
-    });
-    return ids;
-  }, [notes, notePositions, canvasViewport]);
-
   const visibleConnections = useMemo(() => {
     return connections.filter((connection) => {
       const firstId = String(connection?.note_id_1 || connection?.noteId1 || '');
       const secondId = String(connection?.note_id_2 || connection?.noteId2 || '');
-      return firstId && secondId && visibleNoteIds.has(firstId) && visibleNoteIds.has(secondId);
+      return !!(firstId && secondId);
     });
-  }, [connections, visibleNoteIds]);
-
-  useEffect(() => {
-    updateCanvasViewport();
-  }, [zoom, notes.length, notePositions]);
+  }, [connections]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const onScroll = () => {
-      updateCanvasViewport();
       persistNoteViewState();
     };
-    const onResize = () => updateCanvasViewport();
+    const onResize = () => {};
 
     canvas.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onResize);
@@ -3076,7 +3049,7 @@ export default function NotesPage() {
         onDrop={handleCanvasDrop}
         style={{ cursor: isDragging?.isPan ? 'grabbing' : 'grab', touchAction: 'none' }}
       >
-        <div ref={canvasContentRef} className="canvas-content" style={{ transform: `scale(${zoom / 100})`, transformOrigin: '0 0' }}>
+        <div ref={canvasContentRef} className="canvas-content" style={{ transform: `scale(${zoom / 100})`, transformOrigin: '0 0', willChange: 'transform' }}>
           {/* SVG Connections */}
           <svg className="connections-svg" aria-hidden="true">
             <defs>
@@ -3129,15 +3102,28 @@ export default function NotesPage() {
                     lastClientY: touch.clientY,
                     pointerId: null,
                     pointerType: 'touch',
+                    didMove: false,
                   };
                   isDraggingRef.current = dragState;
                   setIsDragging(dragState);
                   setActiveCanvasTextId(entry.id);
                 }}
+                onTouchEnd={() => {
+                  const drag = isDraggingRef.current;
+                  // tap (no movement) on active text → enter edit mode
+                  if (drag?.textId === entry.id && !drag.didMove) {
+                    if (String(activeCanvasTextId || '') === String(entry.id)) {
+                      setEditingCanvasTextId(entry.id);
+                    }
+                    isDraggingRef.current = null;
+                    setIsDragging(null);
+                  }
+                }}
                 onClick={(event) => {
                   event.stopPropagation();
+                  // On touch devices, onClick also fires after tap — only handle mouse clicks
+                  if (event.pointerType === 'touch') return;
                   if (String(activeCanvasTextId || '') === String(entry.id)) {
-                    // second tap on already-active → enter edit mode
                     setEditingCanvasTextId(entry.id);
                   } else {
                     setActiveCanvasTextId(entry.id);
@@ -3240,7 +3226,6 @@ export default function NotesPage() {
 
           {/* Notes */}
           {notes.map((note) => {
-              if (!visibleNoteIds.has(String(note.id))) return null;
               const noteId = String(note.id);
               const isHovered = hoveredNoteId && noteId === String(hoveredNoteId);
               const isConnected = hoveredNoteId && connectedNoteIds.has(noteId);
