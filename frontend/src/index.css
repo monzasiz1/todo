@@ -11239,7 +11239,7 @@ body.cal-is-dragging * {
 }
 .group-cat-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
 }
@@ -11249,9 +11249,18 @@ body.cal-is-dragging * {
   font-weight: 700;
   color: var(--text-primary);
 }
+.group-cat-head p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
 .group-cat-head span {
   font-size: 12px;
   color: var(--text-secondary);
+  background: var(--hover);
+  border: 1px solid var(--border);
+  padding: 3px 8px;
+  border-radius: 999px;
 }
 .group-cat-create-row {
   display: grid;
@@ -11260,11 +11269,11 @@ body.cal-is-dragging * {
   align-items: center;
 }
 .group-cat-color {
-  width: 42px;
-  height: 38px;
+  width: 44px;
+  height: 40px;
   padding: 0;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   background: transparent;
 }
 .group-cat-list {
@@ -11276,11 +11285,42 @@ body.cal-is-dragging * {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 8px 10px;
+  gap: 10px;
+  padding: 10px 12px;
   border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.68), rgba(255,255,255,0.52));
+}
+.group-cat-item:hover {
+  border-color: rgba(0,122,255,0.24);
+}
+.group-cat-item .group-task-category {
+  max-width: calc(100% - 120px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.group-cat-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(255,59,48,0.24);
+  background: rgba(255,59,48,0.08);
+  color: #d3352d;
+  border-radius: 10px;
+  padding: 6px 9px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.group-cat-delete-btn:hover:not(:disabled) {
+  background: rgba(255,59,48,0.14);
+  border-color: rgba(255,59,48,0.35);
+}
+.group-cat-delete-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 .group-cat-manage-hint {
   margin: 6px 2px 0;
@@ -11416,6 +11456,20 @@ body.cal-is-dragging * {
   .group-cat-create-row .group-submit-btn {
     grid-column: 1 / -1;
     width: 100%;
+  }
+  .group-cat-item {
+    padding: 9px 10px;
+  }
+  .group-cat-item .group-task-category {
+    max-width: calc(100% - 92px);
+  }
+  .group-cat-delete-btn {
+    padding: 6px 8px;
+    min-width: 34px;
+    justify-content: center;
+  }
+  .group-cat-delete-btn svg + * {
+    display: none;
   }
 }
 

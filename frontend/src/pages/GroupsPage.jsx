@@ -1110,7 +1110,10 @@ function GroupCategoryManager({ groupId }) {
   return (
     <div className="group-tab-content group-cat-manager">
       <div className="group-cat-head">
-        <h4>Gruppenkategorien</h4>
+        <div>
+          <h4>Gruppenkategorien</h4>
+          <p>Zentrale Kategorien fuer alle Gruppentermine und Aufgaben.</p>
+        </div>
         <span>{categories.length} vorhanden</span>
       </div>
 
@@ -1154,12 +1157,13 @@ function GroupCategoryManager({ groupId }) {
               </span>
               <button
                 type="button"
-                className="group-member-action-btn danger"
+                className="group-cat-delete-btn"
                 onClick={() => handleDelete(cat.id)}
                 disabled={String(deletingId) === String(cat.id)}
                 title="Kategorie löschen"
               >
                 <Trash2 size={14} />
+                {String(deletingId) === String(cat.id) ? 'Loesche...' : 'Loeschen'}
               </button>
             </div>
           ))}
