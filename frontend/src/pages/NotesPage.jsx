@@ -1331,6 +1331,24 @@ export default function NotesPage() {
     setToolboxOpen(false);
   };
 
+  const openBlankCreateModalAtViewport = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      openBlankCreateModal();
+      return;
+    }
+
+    const scale = (zoomRef.current || 100) / 100;
+    const dims = getNewNoteDimensions(typeof window !== 'undefined' ? window.innerWidth : 1024);
+    const centerX = (canvas.scrollLeft + canvas.clientWidth / 2) / scale;
+    const centerY = (canvas.scrollTop + canvas.clientHeight / 2) / scale;
+
+    openBlankCreateModal({
+      x: Math.max(32, centerX - dims.width / 2),
+      y: Math.max(32, centerY - dims.height / 2),
+    });
+  };
+
   const openCreateFromTask = (task, position = null) => {
     setQuickCreatePosition(position);
     setNewNote({
@@ -2463,6 +2481,17 @@ export default function NotesPage() {
             </div>
           </motion.div>
         )}
+
+        <motion.button
+          type="button"
+          className="canvas-quick-create-btn"
+          title="Neue Note in der Tafel erstellen"
+          onClick={openBlankCreateModalAtViewport}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.94 }}
+        >
+          <Plus size={18} />
+        </motion.button>
       </div>
 
       {hoveredTaskPreview && hoveredTaskPreview.task && (
@@ -3179,7 +3208,7 @@ export default function NotesPage() {
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="modal-content connect-note-modal"
+              className="modal-content note-editor-modal connect-note-modal"
               onClick={(e) => e.stopPropagation()}
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -3202,6 +3231,8 @@ export default function NotesPage() {
                   <h2 className="modal-title note-editor-title">Note verknüpfen</h2>
                 </div>
               </div>
+
+              <div className="note-editor-body">
 
               <p className="modal-description">Mit welcher anderen Note möchtest du diese verknüpfen?</p>
 
@@ -3289,6 +3320,8 @@ export default function NotesPage() {
                   <div className="task-picker-empty">Keine passenden Notes gefunden.</div>
                 )}
               </div>
+
+              </div>{/* end note-editor-body */}
 
               <div className="modal-actions">
                 <button

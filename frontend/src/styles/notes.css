@@ -900,6 +900,27 @@
   box-shadow: var(--shadow-lg);
 }
 
+.canvas-quick-create-btn {
+  position: absolute;
+  right: 14px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--primary) 36%, transparent);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 26px rgba(0, 122, 255, 0.35);
+  z-index: 15;
+}
+
+.canvas-quick-create-btn:active {
+  transform: scale(0.95);
+}
+
 .canvas-content {
   position: relative;
   width: max(4400px, calc(100vw - 40px));
@@ -1808,13 +1829,28 @@
 }
 
 .connect-note-modal {
-  min-height: 88dvh;
+  width: 100vw;
+  max-width: 100vw;
+  min-height: 100dvh;
+  max-height: 100dvh;
+  height: 100dvh;
+  border-radius: 0;
+  border: none;
+  padding: 0 0 calc(env(safe-area-inset-bottom, 0px) + 16px);
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
+}
+
+.connect-note-modal .note-editor-body {
+  padding: 0 16px;
+  padding-left: calc(env(safe-area-inset-left, 0px) + 16px);
+  padding-right: calc(env(safe-area-inset-right, 0px) + 16px);
 }
 
 .connect-note-modal .modal-actions {
   position: sticky;
-  bottom: calc(env(safe-area-inset-bottom, 0px) * -1);
-  background: linear-gradient(to top, var(--card-solid) 72%, rgba(255, 255, 255, 0));
+  bottom: 0;
+  background: linear-gradient(to top, var(--card-solid) 74%, rgba(255, 255, 255, 0));
   padding-top: 12px;
   margin-top: 18px;
 }
