@@ -554,7 +554,7 @@ module.exports = async function handler(req, res) {
           `SELECT t.id, t.user_id, t.title, t.time, t.reminder_at, t.completed,
                   CASE
                     WHEN t.type = 'event' AND t.date IS NOT NULL
-                      THEN ((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp - INTERVAL '${EVENT_REMINDER_OFFSET}')::timestamptz
+                      THEN (((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp AT TIME ZONE '${APP_TIME_ZONE}') - INTERVAL '${EVENT_REMINDER_OFFSET}')
                     ELSE t.reminder_at
                   END AS due_at,
                   c.name as category_name, c.color as category_color
@@ -565,8 +565,8 @@ module.exports = async function handler(req, res) {
                (
                  t.type = 'event'
                  AND t.date IS NOT NULL
-                 AND ((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp - INTERVAL '${EVENT_REMINDER_OFFSET}')::timestamptz <= NOW()
-                 AND ((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp - INTERVAL '${EVENT_REMINDER_OFFSET}')::timestamptz > NOW() - INTERVAL '${REMINDER_GRACE_WINDOW}'
+                 AND (((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp AT TIME ZONE '${APP_TIME_ZONE}') - INTERVAL '${EVENT_REMINDER_OFFSET}') <= NOW()
+                 AND (((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp AT TIME ZONE '${APP_TIME_ZONE}') - INTERVAL '${EVENT_REMINDER_OFFSET}') > NOW() - INTERVAL '${REMINDER_GRACE_WINDOW}'
                )
                OR
                (
@@ -607,7 +607,7 @@ module.exports = async function handler(req, res) {
           `SELECT t.id, t.user_id, t.title, t.time, t.reminder_at, t.completed,
                   CASE
                     WHEN t.type = 'event' AND t.date IS NOT NULL
-                      THEN ((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp - INTERVAL '${EVENT_REMINDER_OFFSET}')::timestamptz
+                      THEN (((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp AT TIME ZONE '${APP_TIME_ZONE}') - INTERVAL '${EVENT_REMINDER_OFFSET}')
                     ELSE t.reminder_at
                   END AS due_at,
                   c.name as category_name, c.color as category_color
@@ -619,8 +619,8 @@ module.exports = async function handler(req, res) {
                (
                  t.type = 'event'
                  AND t.date IS NOT NULL
-                 AND ((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp - INTERVAL '${EVENT_REMINDER_OFFSET}')::timestamptz <= NOW()
-                 AND ((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp - INTERVAL '${EVENT_REMINDER_OFFSET}')::timestamptz > NOW() - INTERVAL '${REMINDER_GRACE_WINDOW}'
+                 AND (((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp AT TIME ZONE '${APP_TIME_ZONE}') - INTERVAL '${EVENT_REMINDER_OFFSET}') <= NOW()
+                 AND (((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp AT TIME ZONE '${APP_TIME_ZONE}') - INTERVAL '${EVENT_REMINDER_OFFSET}') > NOW() - INTERVAL '${REMINDER_GRACE_WINDOW}'
                )
                OR
                (

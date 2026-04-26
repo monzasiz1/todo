@@ -4,6 +4,7 @@ const { sendPushToUser, wasSentToday, wasTaskReminderSent, wasTaskTypeSent } = r
 const REMINDER_GRACE_WINDOW = '6 hours';
 const EVENT_REMINDER_OFFSET = '5 hours';
 const EVENT_DEFAULT_START_TIME = '12:00';
+const APP_TIME_ZONE = process.env.APP_TIME_ZONE || 'Europe/Berlin';
 
 /**
  * Cron endpoint – called by Vercel Cron every minute.
@@ -44,7 +45,7 @@ module.exports = async function handler(req, res) {
       `SELECT t.id, t.title, t.time, t.user_id, t.reminder_at,
               CASE
                 WHEN t.type = 'event' AND t.date IS NOT NULL
-                  THEN ((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp - INTERVAL '${EVENT_REMINDER_OFFSET}')::timestamptz
+                  THEN (((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp AT TIME ZONE '${APP_TIME_ZONE}') - INTERVAL '${EVENT_REMINDER_OFFSET}')
                 ELSE t.reminder_at
               END AS due_at,
               c.name as category_name, c.color as category_color
@@ -55,8 +56,8 @@ module.exports = async function handler(req, res) {
            (
              t.type = 'event'
              AND t.date IS NOT NULL
-             AND ((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp - INTERVAL '${EVENT_REMINDER_OFFSET}')::timestamptz <= NOW()
-             AND ((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp - INTERVAL '${EVENT_REMINDER_OFFSET}')::timestamptz > NOW() - INTERVAL '${REMINDER_GRACE_WINDOW}'
+             AND (((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp AT TIME ZONE '${APP_TIME_ZONE}') - INTERVAL '${EVENT_REMINDER_OFFSET}') <= NOW()
+             AND (((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp AT TIME ZONE '${APP_TIME_ZONE}') - INTERVAL '${EVENT_REMINDER_OFFSET}') > NOW() - INTERVAL '${REMINDER_GRACE_WINDOW}'
            )
            OR
            (
