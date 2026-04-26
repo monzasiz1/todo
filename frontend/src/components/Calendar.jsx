@@ -851,7 +851,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                     const ended = isEventEnded(t, nowTs);
                     const accentColor = ended
                       ? 'rgba(142,142,147,0.6)'
-                      : (t.group_color || t.category_color || '#4C7BD9');
+                      : (t.category_color || t.group_color || '#4C7BD9');
                     return (
                       <div
                         key={t.id}
@@ -863,8 +863,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                           cursor: 'pointer',
                           userSelect: 'none',
                         } : {
-                          background: ended ? 'rgba(142,142,147,0.12)' : t.group_id ? `${t.group_color || '#5856D6'}15` : t.category_color ? `${t.category_color}20` : 'var(--primary-bg)',
-                          color: ended ? '#59606B' : t.group_id ? (t.group_color || '#5856D6') : t.category_color || 'var(--primary)',
+                          background: ended ? 'rgba(142,142,147,0.12)' : t.category_color ? `${t.category_color}20` : t.group_id ? `${t.group_color || '#5856D6'}15` : 'var(--primary-bg)',
+                          color: ended ? '#59606B' : t.category_color || (t.group_id ? (t.group_color || '#5856D6') : 'var(--primary)'),
                           borderLeft: `2px solid ${ended ? 'rgba(142,142,147,0.55)' : accentColor}`,
                           cursor: isDesktop && !ended ? 'grab' : 'pointer',
                           userSelect: 'none',
@@ -1005,7 +1005,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       <button
                         key={t.id}
                         className={`desktop-week-all-day-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${t.completed ? ' completed' : ''}`}
-                        style={{ background: doneOrOld ? 'rgba(142,142,147,0.4)' : (t.group_color || t.category_color || '#4C7BD9') }}
+                        style={{ background: doneOrOld ? 'rgba(142,142,147,0.4)' : (t.category_color || t.group_color || '#4C7BD9') }}
                         onClick={(e) => { e.stopPropagation(); setDetailTask(t); }}
                       >
                         {t.teams_join_url && <Video size={11} className="calendar-inline-teams-icon" />}
@@ -1135,7 +1135,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         width: isSingleDay ? singleDayWidth : `calc((100% / 7) * ${spanDays} - 8px)`,
                         top: `${top}px`,
                         height: `${height}px`,
-                        background: doneOrEnded ? 'rgba(142, 142, 147, 0.72)' : (t.group_color || t.category_color || '#4C7BD9'),
+                        background: doneOrEnded ? 'rgba(142, 142, 147, 0.72)' : (t.category_color || t.group_color || '#4C7BD9'),
                         touchAction: 'none',
                       }}
                       onPointerDown={(e) => {
@@ -1234,7 +1234,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         <div
                           key={`mwadt-${t.id}`}
                           className={`mobile-week-allday-pill${doneOrOld ? ' done' : ''}`}
-                          style={{ background: doneOrOld ? 'rgba(142,142,147,0.35)' : (t.group_color || t.category_color || '#4C7BD9') }}
+                          style={{ background: doneOrOld ? 'rgba(142,142,147,0.35)' : (t.category_color || t.group_color || '#4C7BD9') }}
                           onClick={(e) => { e.stopPropagation(); setDetailTask(t); }}
                         >
                           <span>{t.title}</span>
@@ -1323,7 +1323,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                           left: `calc(${lane * lanePercent}% + 1px)`,
                           width: `calc(${lanePercent}% - 2px)`,
                           right: 'auto',
-                          background: doneOrEnded ? 'rgba(142, 142, 147, 0.72)' : (t.group_color || t.category_color || '#4C7BD9'),
+                          background: doneOrEnded ? 'rgba(142, 142, 147, 0.72)' : (t.category_color || t.group_color || '#4C7BD9'),
                           touchAction: 'none',
                         }}
                         onPointerDown={(e) => {
@@ -1425,7 +1425,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
               const doneOrOld = t.completed || ended;
               const color    = doneOrOld
                 ? 'rgba(142,142,147,0.35)'
-                : (t.group_color || t.category_color || '#4C7BD9');
+                : (t.category_color || t.group_color || '#4C7BD9');
               return (
                 <button
                   key={`adtop-${t.id}`}
@@ -1500,7 +1500,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   right: 'auto',
                   top: `${top}px`,
                   height: `${height}px`,
-                  background: doneOrEnded ? 'rgba(142, 142, 147, 0.72)' : (t.group_color || t.category_color || '#4C7BD9'),
+                  background: doneOrEnded ? 'rgba(142, 142, 147, 0.72)' : (t.category_color || t.group_color || '#4C7BD9'),
                   touchAction: 'none',
                   cursor: doneOrEnded ? 'pointer' : 'grab',
                 }}
@@ -1674,13 +1674,14 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
           opacity: 0.85,
           transform: 'rotate(2deg) scale(1.08)',
           maxWidth: 180,
-          background: dragInfo.task.group_id
-            ? `${dragInfo.task.group_color || '#5856D6'}20`
-            : dragInfo.task.category_color ? `${dragInfo.task.category_color}25` : 'var(--primary-bg)',
-          color: dragInfo.task.group_id
-            ? (dragInfo.task.group_color || '#5856D6')
-            : dragInfo.task.category_color || 'var(--primary)',
-          borderLeft: `3px solid ${dragInfo.task.group_id ? (dragInfo.task.group_color || '#5856D6') : (dragInfo.task.category_color || 'var(--primary)')}`,
+          background: dragInfo.task.category_color
+            ? `${dragInfo.task.category_color}25`
+            : dragInfo.task.group_id ? `${dragInfo.task.group_color || '#5856D6'}20` : 'var(--primary-bg)',
+          color: dragInfo.task.category_color
+            ? dragInfo.task.category_color
+            : dragInfo.task.group_id ? (dragInfo.task.group_color || '#5856D6') : 'var(--primary)',
+          borderLeft: `3px solid ${dragInfo.task.category_color || (dragInfo.task.group_id ? (dragInfo.task.group_color || '#5856D6') : 'var(--primary)')}`,
+
           borderRadius: 4,
           padding: '3px 8px',
           fontSize: '0.75rem',

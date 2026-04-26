@@ -533,7 +533,7 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
 
           {/* Category */}
           <div className="task-edit-field">
-            <label><Tag size={14} /> Kategorie</label>
+            <label><Tag size={14} /> Persönliche Kategorie</label>
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}

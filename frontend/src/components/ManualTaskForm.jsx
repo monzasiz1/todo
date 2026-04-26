@@ -386,7 +386,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
             </div>
 
             <div className="task-edit-field" style={{ marginBottom: 0 }}>
-              <label><Tag size={14} /> Kategorie</label>
+              <label><Tag size={14} /> Persönliche Kategorie</label>
               <select
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}

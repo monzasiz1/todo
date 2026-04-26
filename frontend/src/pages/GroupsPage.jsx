@@ -511,14 +511,14 @@ function GroupDetail({ groupId, onBack }) {
   const categoryOptions = useMemo(() => {
     const map = new Map();
     groupTasks.forEach((task) => {
-      const label = task.group_category_name || task.category_name;
-      if (!label) return;
-      const key = String(task.group_category_id || task.category_id || label);
+      // Nur echte Gruppen-Kategorien anzeigen – keine persönlichen Kategorien
+      if (!task.group_category_name) return;
+      const key = String(task.group_category_id || task.group_category_name);
       if (!map.has(key)) {
         map.set(key, {
           value: key,
-          label,
-          color: task.group_category_color || task.category_color || '#8E8E93',
+          label: task.group_category_name,
+          color: task.group_category_color || '#8E8E93',
         });
       }
     });
@@ -526,11 +526,11 @@ function GroupDetail({ groupId, onBack }) {
   }, [groupTasks]);
   const filteredActiveTasks = useMemo(() => {
     if (categoryFilter === 'all') return activeTasks;
-    return activeTasks.filter((task) => String(task.group_category_id || task.category_id || task.group_category_name || task.category_name) === categoryFilter);
+    return activeTasks.filter((task) => String(task.group_category_id || task.group_category_name) === categoryFilter);
   }, [activeTasks, categoryFilter]);
   const filteredPastTasks = useMemo(() => {
     if (categoryFilter === 'all') return pastTasks;
-    return pastTasks.filter((task) => String(task.group_category_id || task.category_id || task.group_category_name || task.category_name) === categoryFilter);
+    return pastTasks.filter((task) => String(task.group_category_id || task.group_category_name) === categoryFilter);
   }, [pastTasks, categoryFilter]);
   const completionRate = groupTasks.length > 0 ? Math.round((pastTasks.length / groupTasks.length) * 100) : 0;
   const sortedMembers = useMemo(() => {
@@ -829,8 +829,8 @@ function GroupTaskCard({ task, groupId, canRemove, onRemove, onOpenTask }) {
   };
 
   const endedEvent = isEventEnded(task);
-  const categoryLabel = task.group_category_name || task.category_name;
-  const categoryColor = task.group_category_color || task.category_color || '#8E8E93';
+  const categoryLabel = task.group_category_name;
+  const categoryColor = task.group_category_color || '#8E8E93';
 
   return (
     <div
