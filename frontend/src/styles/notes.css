@@ -1226,6 +1226,95 @@
   }
 }
 
+/* Free Canvas Text */
+
+.canvas-text-node {
+  position: absolute;
+  z-index: 8;
+  min-width: 160px;
+  max-width: 280px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, #0a84ff 22%, var(--border));
+  background: color-mix(in srgb, #0a84ff 8%, var(--card-solid));
+  box-shadow: 0 8px 20px rgba(10, 132, 255, 0.12);
+  cursor: move;
+  user-select: none;
+}
+
+.canvas-text-node.active {
+  border-color: color-mix(in srgb, #0a84ff 50%, var(--border));
+  box-shadow: 0 0 0 1px rgba(10, 132, 255, 0.22), 0 10px 24px rgba(10, 132, 255, 0.18);
+}
+
+.canvas-text-node.attached {
+  border-color: color-mix(in srgb, #f59e0b 48%, var(--border));
+  background: color-mix(in srgb, #f59e0b 10%, var(--card-solid));
+}
+
+.canvas-text-content {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.35;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.canvas-text-editor {
+  width: 100%;
+  min-height: 70px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 13px;
+  line-height: 1.35;
+  resize: vertical;
+  color: var(--text);
+  background: var(--card);
+}
+
+.canvas-text-toolbar {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.canvas-text-attach-select {
+  flex: 1 1 130px;
+  min-width: 130px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 5px 7px;
+  background: var(--card);
+  color: var(--text);
+  font-size: 12px;
+}
+
+.canvas-text-tool-btn {
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--card);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 8px;
+}
+
+.canvas-text-tool-btn.danger {
+  border-color: rgba(255, 69, 58, 0.4);
+  color: #d92d20;
+}
+
+.canvas-text-anchor {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Note Card */
 
 .note-card {

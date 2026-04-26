@@ -107,6 +107,7 @@ const CONNECTION_TYPE_LABELS = {
 
 const NOTE_PEOPLE_CACHE_KEY = 'taski_note_people_v1';
 const NOTE_VIEW_CACHE_KEY = 'taski_note_view_v1';
+const NOTE_CANVAS_TEXT_CACHE_KEY = 'taski_note_canvas_text_v1';
 
 function getUserScopedKey(baseKey) {
   if (typeof window === 'undefined') return `${baseKey}:anon`;
@@ -150,6 +151,26 @@ function readNoteViewCache() {
 }
 
 function writeNoteViewCache(data) {
+
+  function readCanvasTextCache() {
+    if (typeof window === 'undefined') return [];
+    try {
+      const raw = localStorage.getItem(getUserScopedKey(NOTE_CANVAS_TEXT_CACHE_KEY));
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function writeCanvasTextCache(items) {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(getUserScopedKey(NOTE_CANVAS_TEXT_CACHE_KEY), JSON.stringify(Array.isArray(items) ? items : []));
+    } catch {
+      // ignore quota/security errors
+    }
+  }
   if (typeof window === 'undefined') return;
   try {
     const prev = readNoteViewCache();
@@ -371,6 +392,9 @@ export default function NotesPage() {
   const [fsToolbarPos, setFsToolbarPos] = useState({ x: 14, y: 86 });
   const [newChecklistStatus, setNewChecklistStatus] = useState({ loading: false, error: '' });
   const [editChecklistStatus, setEditChecklistStatus] = useState({ loading: false, error: '' });
+  const [canvasTexts, setCanvasTexts] = useState(() => readCanvasTextCache());
+  const [activeCanvasTextId, setActiveCanvasTextId] = useState(null);
+  const [editingCanvasTextId, setEditingCanvasTextId] = useState(null);
   const canvasRef = useRef(null);
   const canvasShellRef = useRef(null);
   const containerRef = useRef(null);
@@ -396,8 +420,27 @@ export default function NotesPage() {
   const newNoteImageInputRef = useRef(null);
   const editNoteImageInputRef = useRef(null);
   const commitZoomTimerRef = useRef(null);
+  const canvasTextElRefs = useRef({});
   // isDragging ref mirrors state for use inside non-reactive callbacks
   const isDraggingRef = useRef(null);
+
+  const getCanvasTextPosition = (entry) => {
+    if (!entry) return { x: 0, y: 0 };
+    if (entry.attached_note_id) {
+      const note = notes.find((n) => String(n.id) === String(entry.attached_note_id));
+      if (note) {
+        const position = notePositions[note.id] || { x: note.x ?? 100, y: note.y ?? 100 };
+        return {
+          x: Number(position.x || 0) + Number(entry.offset_x || 0),
+          y: Number(position.y || 0) + Number(entry.offset_y || 0),
+        };
+      }
+    }
+    return {
+      x: Number(entry.x || 0),
+      y: Number(entry.y || 0),
+    };
+  };
 
   const getAdaptiveZoom = (screenWidth, screenHeight = (typeof window !== 'undefined' ? window.innerHeight : 900)) => {
     if (screenWidth < 640) return 92;
@@ -756,6 +799,10 @@ export default function NotesPage() {
   }, [notePeopleMap]);
 
   useEffect(() => {
+    writeCanvasTextCache(canvasTexts);
+  }, [canvasTexts]);
+
+  useEffect(() => {
     const syncViewport = () => {
       setIsMobileView(window.innerWidth < 640);
       if (!didManualZoomRef.current) {
@@ -868,6 +915,36 @@ export default function NotesPage() {
       setCommentDraft('');
     }
   }, [activeNoteId, notes]);
+
+  useEffect(() => {
+    if (!activeCanvasTextId) return;
+    const exists = canvasTexts.some((entry) => String(entry.id) === String(activeCanvasTextId));
+    if (!exists) setActiveCanvasTextId(null);
+  }, [activeCanvasTextId, canvasTexts]);
+
+  useEffect(() => {
+    if (!editingCanvasTextId) return;
+    const exists = canvasTexts.some((entry) => String(entry.id) === String(editingCanvasTextId));
+    if (!exists) setEditingCanvasTextId(null);
+  }, [editingCanvasTextId, canvasTexts]);
+
+  useEffect(() => {
+    if (!notes.length || !canvasTexts.length) return;
+    const noteIds = new Set(notes.map((note) => String(note.id)));
+    setCanvasTexts((prev) => prev.map((entry) => {
+      if (!entry.attached_note_id) return entry;
+      if (noteIds.has(String(entry.attached_note_id))) return entry;
+      const currentPos = getCanvasTextPosition(entry);
+      return {
+        ...entry,
+        attached_note_id: null,
+        offset_x: 0,
+        offset_y: 0,
+        x: Math.round(currentPos.x),
+        y: Math.round(currentPos.y),
+      };
+    }));
+  }, [notes]);
 
   // Register wheel event with passive: false and zoom to mouse position
   useEffect(() => {
@@ -1082,7 +1159,22 @@ export default function NotesPage() {
       drag.lastClientX = clientX;
       drag.lastClientY = clientY;
     }
+
+    if (drag.textId) {
+      const totalDX = clientX - drag.startClientX;
+      const totalDY = clientY - drag.startClientY;
+      const scale = zoomRef.current / 100;
+      const el = canvasTextElRefs.current[drag.textId];
+      if (el) {
+        el.style.transform = `translate(${totalDX / scale}px, ${totalDY / scale}px)`;
+        el.style.zIndex = '995';
+      }
+      drag.lastClientX = clientX;
+      drag.lastClientY = clientY;
+    }
   };
+  if (!drag?.isPan && !drag?.noteId && !drag?.textId) return;
+  if (!drag?.isPan && !drag?.noteId && !drag?.textId) return;
 
   const handlePointerMove = (event) => {
     const drag = isDraggingRef.current;
@@ -1111,6 +1203,52 @@ export default function NotesPage() {
       updateNotePosition(drag.noteId, finalX, finalY, true);
     }
 
+    if (drag?.textId) {
+      const el = canvasTextElRefs.current[drag.textId];
+      const totalDX = drag.lastClientX != null ? drag.lastClientX - drag.startClientX : 0;
+      const totalDY = drag.lastClientY != null ? drag.lastClientY - drag.startClientY : 0;
+      const scale = zoomRef.current / 100;
+      if (el) {
+        el.style.transform = '';
+        el.style.zIndex = '';
+      }
+
+      const finalX = Math.max(0, (drag.basePos?.x || 0) + totalDX / scale);
+      const finalY = Math.max(0, (drag.basePos?.y || 0) + totalDY / scale);
+
+      setCanvasTexts((prev) => prev.map((entry) => {
+        if (String(entry.id) !== String(drag.textId)) return entry;
+        if (drag.attachedNoteId) {
+          const note = notes.find((n) => String(n.id) === String(drag.attachedNoteId));
+          if (note) {
+            const notePos = notePositions[note.id] || { x: note.x ?? 100, y: note.y ?? 100 };
+            return {
+              ...entry,
+              offset_x: Math.round(finalX - Number(notePos.x || 0)),
+              offset_y: Math.round(finalY - Number(notePos.y || 0)),
+              x: Math.round(finalX),
+              y: Math.round(finalY),
+            };
+          }
+        }
+
+        return {
+          ...entry,
+          x: Math.round(finalX),
+          y: Math.round(finalY),
+          attached_note_id: null,
+          offset_x: 0,
+          offset_y: 0,
+        };
+      }));
+    }
+  if (e.target.closest('.note-card, .canvas-text-node, button, input, textarea, select, a')) return;
+  if (event.target.closest('.note-card, .canvas-text-node, button, input, textarea, select, a')) return;
+  if (event.target.closest('.note-card, .canvas-text-node, .task-preview-modal, .modal-overlay')) return;
+  if (event.target.closest('.note-card, .canvas-text-node, .notes-context-panel')) return;
+  if (event.target.closest('.note-card, .canvas-text-node, .notes-context-panel')) return;
+  if (event.target.closest('button, input, textarea, select, a')) return;
+
     isDraggingRef.current = null;
     setIsDragging(null);
   };
@@ -1126,6 +1264,8 @@ export default function NotesPage() {
     
     // Pan on the canvas (including SVG connections)
     setActiveNoteId(null);
+    setActiveCanvasTextId(null);
+    setEditingCanvasTextId(null);
     setHoveredTaskPreview(null);
     setCanvasContextMenu(null);
     const panState = { x: e.clientX, y: e.clientY, isPan: true };
@@ -1141,6 +1281,8 @@ export default function NotesPage() {
     if (event.target.closest('.notes-context-panel, .task-preview-modal')) return;
 
     setActiveNoteId(null);
+    setActiveCanvasTextId(null);
+    setEditingCanvasTextId(null);
     setActionNoteId(null);
     setHoveredTaskPreview(null);
     setCanvasContextMenu(null);
@@ -1155,6 +1297,8 @@ export default function NotesPage() {
     if (event.target.closest('.note-card, .task-preview-modal, .modal-overlay')) return;
 
     event.preventDefault();
+    setActiveCanvasTextId(null);
+    setEditingCanvasTextId(null);
     const rect = canvasRef.current.getBoundingClientRect();
     const clickX = event.clientX - rect.left;
     const clickY = event.clientY - rect.top;
@@ -1778,6 +1922,91 @@ export default function NotesPage() {
       setDraft({ ...draft, content: checklistMarkdown });
       setStatus({ loading: false, error: '' });
     }
+  };
+
+  const createCanvasTextAt = (x, y) => {
+    const id = `txt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const payload = {
+      id,
+      text: 'Neuer Text',
+      x: Math.round(x),
+      y: Math.round(y),
+      attached_note_id: null,
+      offset_x: 0,
+      offset_y: 0,
+      created_at: Date.now(),
+    };
+    setCanvasTexts((prev) => [...prev, payload]);
+    setActiveCanvasTextId(id);
+    setEditingCanvasTextId(id);
+  };
+
+  const updateCanvasTextText = (textId, text) => {
+    setCanvasTexts((prev) => prev.map((entry) => (
+      String(entry.id) === String(textId)
+        ? { ...entry, text: String(text || '') }
+        : entry
+    )));
+  };
+
+  const removeCanvasText = (textId) => {
+    setCanvasTexts((prev) => prev.filter((entry) => String(entry.id) !== String(textId)));
+    if (String(activeCanvasTextId || '') === String(textId)) setActiveCanvasTextId(null);
+    if (String(editingCanvasTextId || '') === String(textId)) setEditingCanvasTextId(null);
+  };
+
+  const attachCanvasTextToNote = (textId, noteId) => {
+    setCanvasTexts((prev) => prev.map((entry) => {
+      if (String(entry.id) !== String(textId)) return entry;
+
+      const currentPos = getCanvasTextPosition(entry);
+      if (!noteId) {
+        return {
+          ...entry,
+          x: Math.round(currentPos.x),
+          y: Math.round(currentPos.y),
+          attached_note_id: null,
+          offset_x: 0,
+          offset_y: 0,
+        };
+      }
+
+      const note = notes.find((n) => String(n.id) === String(noteId));
+      if (!note) return entry;
+      const notePos = notePositions[note.id] || { x: note.x ?? 100, y: note.y ?? 100 };
+
+      return {
+        ...entry,
+        x: Math.round(currentPos.x),
+        y: Math.round(currentPos.y),
+        attached_note_id: String(noteId),
+        offset_x: Math.round(currentPos.x - Number(notePos.x || 0)),
+        offset_y: Math.round(currentPos.y - Number(notePos.y || 0)),
+      };
+    }));
+  };
+
+  const handleCanvasTextPointerDown = (event, textEntry) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    if (event.target.closest('button, select, option, textarea, input')) return;
+    event.stopPropagation();
+
+    const resolved = getCanvasTextPosition(textEntry);
+    const dragState = {
+      textId: textEntry.id,
+      attachedNoteId: textEntry.attached_note_id || null,
+      basePos: resolved,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      lastClientX: event.clientX,
+      lastClientY: event.clientY,
+      pointerId: event.pointerId,
+      pointerType: event.pointerType,
+    };
+    isDraggingRef.current = dragState;
+    setIsDragging(dragState);
+    setActiveCanvasTextId(textEntry.id);
+    setCanvasContextMenu(null);
   };
 
   const handleQuickConnectToggle = () => {
@@ -2703,6 +2932,79 @@ export default function NotesPage() {
             {visibleConnections.map(renderConnection)}
           </svg>
 
+          {/* Freier Canvas-Text */}
+          {canvasTexts.map((entry) => {
+            const position = getCanvasTextPosition(entry);
+            const isActive = String(activeCanvasTextId || '') === String(entry.id);
+            const isEditing = String(editingCanvasTextId || '') === String(entry.id);
+            const attachedNote = entry.attached_note_id
+              ? notes.find((note) => String(note.id) === String(entry.attached_note_id))
+              : null;
+
+            return (
+              <div
+                key={entry.id}
+                ref={(el) => { canvasTextElRefs.current[entry.id] = el; }}
+                className={`canvas-text-node ${isActive ? 'active' : ''} ${attachedNote ? 'attached' : ''}`}
+                style={{ left: `${position.x}px`, top: `${position.y}px` }}
+                onPointerDown={(event) => handleCanvasTextPointerDown(event, entry)}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setActiveCanvasTextId(entry.id);
+                }}
+                onDoubleClick={(event) => {
+                  event.stopPropagation();
+                  setActiveCanvasTextId(entry.id);
+                  setEditingCanvasTextId(entry.id);
+                }}
+              >
+                {isEditing ? (
+                  <textarea
+                    className="canvas-text-editor"
+                    value={entry.text || ''}
+                    onChange={(event) => updateCanvasTextText(entry.id, event.target.value)}
+                    onBlur={() => setEditingCanvasTextId(null)}
+                    onPointerDown={(event) => event.stopPropagation()}
+                    autoFocus
+                  />
+                ) : (
+                  <div className="canvas-text-content">{entry.text || 'Text eingeben'}</div>
+                )}
+
+                {isActive && (
+                  <div className="canvas-text-toolbar" onPointerDown={(event) => event.stopPropagation()}>
+                    <select
+                      className="canvas-text-attach-select"
+                      value={entry.attached_note_id || ''}
+                      onChange={(event) => attachCanvasTextToNote(entry.id, event.target.value || null)}
+                    >
+                      <option value="">Nicht angeheftet</option>
+                      {notes.map((note) => (
+                        <option key={note.id} value={note.id}>{note.title}</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      className="canvas-text-tool-btn"
+                      onClick={() => setEditingCanvasTextId(entry.id)}
+                    >
+                      Bearbeiten
+                    </button>
+                    <button
+                      type="button"
+                      className="canvas-text-tool-btn danger"
+                      onClick={() => removeCanvasText(entry.id)}
+                    >
+                      Entfernen
+                    </button>
+                  </div>
+                )}
+
+                {attachedNote && <div className="canvas-text-anchor">An Note: {attachedNote.title}</div>}
+              </div>
+            );
+          })}
+
           {/* Notes */}
           {notes.map((note) => {
               const noteId = String(note.id);
@@ -3063,6 +3365,16 @@ export default function NotesPage() {
             }}
           >
             Neue Note erstellen
+          </button>
+          <button
+            type="button"
+            className="notes-canvas-menu-item"
+            onClick={() => {
+              createCanvasTextAt(canvasContextMenu.noteX, canvasContextMenu.noteY);
+              setCanvasContextMenu(null);
+            }}
+          >
+            Text hinzufügen
           </button>
           <button
             type="button"
