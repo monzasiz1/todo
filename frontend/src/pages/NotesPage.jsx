@@ -367,6 +367,7 @@ export default function NotesPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingNote, setEditingNote] = useState(null);
   const [selectedNote, setSelectedNote] = useState(null);
+  const [selectedCanvasNoteIds, setSelectedCanvasNoteIds] = useState([]);
   const [showShareModal, setShowShareModal] = useState(null);
   const [showConnectModal, setShowConnectModal] = useState(null);
   const [connectSearch, setConnectSearch] = useState('');
@@ -1189,12 +1190,17 @@ export default function NotesPage() {
       const totalDX = clientX - drag.startClientX;
       const totalDY = clientY - drag.startClientY;
       const scale = zoomRef.current / 100;
-      const el = noteElRefs.current[drag.noteId];
-      if (el) {
-        noteDragOccurredRef.current = true;
-        el.style.transform = `translate(${totalDX / scale}px, ${totalDY / scale}px)`;
-        el.style.zIndex = '999';
-      }
+      const dragIds = Array.isArray(drag.noteIds) && drag.noteIds.length > 0
+        ? drag.noteIds
+        : [drag.noteId];
+      dragIds.forEach((id) => {
+        const el = noteElRefs.current[id];
+        if (el) {
+          noteDragOccurredRef.current = true;
+          el.style.transform = `translate(${totalDX / scale}px, ${totalDY / scale}px)`;
+          el.style.zIndex = '999';
+        }
+      });
       drag.lastClientX = clientX;
       drag.lastClientY = clientY;
     }
@@ -1228,18 +1234,25 @@ export default function NotesPage() {
     if (drag?.pointerId != null && event.pointerId !== drag.pointerId) return;
 
     if (drag?.noteId) {
-      const el = noteElRefs.current[drag.noteId];
       const totalDX = drag.lastClientX != null ? drag.lastClientX - drag.startClientX : 0;
       const totalDY = drag.lastClientY != null ? drag.lastClientY - drag.startClientY : 0;
       const scale = zoomRef.current / 100;
-      if (el) {
-        el.style.transform = '';
-        el.style.zIndex = '';
-      }
-      const base = drag.basePos;
-      const finalX = Math.max(0, base.x + totalDX / scale);
-      const finalY = Math.max(0, base.y + totalDY / scale);
-      updateNotePosition(drag.noteId, finalX, finalY, true);
+      const dragIds = Array.isArray(drag.noteIds) && drag.noteIds.length > 0
+        ? drag.noteIds
+        : [drag.noteId];
+
+      dragIds.forEach((id) => {
+        const el = noteElRefs.current[id];
+        if (el) {
+          el.style.transform = '';
+          el.style.zIndex = '';
+        }
+        const base = drag.basePositions?.[id] || drag.basePos;
+        if (!base) return;
+        const finalX = Math.max(0, base.x + totalDX / scale);
+        const finalY = Math.max(0, base.y + totalDY / scale);
+        updateNotePosition(id, finalX, finalY, true);
+      });
     }
 
     if (drag?.textId) {
@@ -1323,6 +1336,7 @@ export default function NotesPage() {
     setActionNoteId(null);
     setHoveredTaskPreview(null);
     setCanvasContextMenu(null);
+    setSelectedCanvasNoteIds([]);
     const panState = { x: event.clientX, y: event.clientY, isPan: true, pointerId: event.pointerId, pointerType: event.pointerType };
     isDraggingRef.current = panState;
     setIsDragging(panState);
@@ -1673,16 +1687,34 @@ export default function NotesPage() {
     if (event.pointerType === 'touch' && event.isPrimary === false) return;
 
     event.stopPropagation();
-    setActionNoteId(String(noteId));
-    const note = notes.find((n) => String(n.id) === String(noteId));
-    const basePos = notePositions[noteId] || { x: note?.x ?? 100, y: note?.y ?? 100 };
+    const noteIdText = String(noteId);
+    setActionNoteId(noteIdText);
+
+    const currentSelection = selectedCanvasNoteIds.map((id) => String(id));
+    const dragNoteIds = currentSelection.includes(noteIdText)
+      ? currentSelection
+      : [...currentSelection, noteIdText];
+
+    if (!currentSelection.includes(noteIdText)) {
+      setSelectedCanvasNoteIds(dragNoteIds);
+    }
+
+    const basePositions = {};
+    dragNoteIds.forEach((id) => {
+      const note = notes.find((n) => String(n.id) === String(id));
+      const resolved = notePositions[id] || notePositions[Number(id)] || { x: note?.x ?? 100, y: note?.y ?? 100 };
+      basePositions[id] = resolved;
+    });
+
     const dragState = {
-      noteId,
+      noteId: noteIdText,
+      noteIds: dragNoteIds,
       startClientX: event.clientX,
       startClientY: event.clientY,
       lastClientX: event.clientX,
       lastClientY: event.clientY,
-      basePos,
+      basePos: basePositions[noteIdText],
+      basePositions,
       pointerId: event.pointerId,
       pointerType: event.pointerType,
     };
@@ -2166,6 +2198,7 @@ export default function NotesPage() {
   const handleQuickConnectToggle = () => {
     setQuickConnectMode((prev) => {
       if (prev) setSelectedNote(null);
+      if (!prev) setSelectedCanvasNoteIds([]);
       return !prev;
     });
   };
@@ -2188,7 +2221,18 @@ export default function NotesPage() {
 
     setActionNoteId(String(noteId));
 
-    if (!quickConnectMode) return;
+    if (!quickConnectMode) {
+      event.stopPropagation();
+      const noteIdText = String(noteId);
+      setSelectedCanvasNoteIds((prev) => {
+        const current = prev.map((id) => String(id));
+        if (current.includes(noteIdText)) {
+          return current.filter((id) => id !== noteIdText);
+        }
+        return [...current, noteIdText];
+      });
+      return;
+    }
 
     event.stopPropagation();
 
@@ -2538,6 +2582,11 @@ export default function NotesPage() {
     });
     return map;
   }, [notes]);
+
+  const selectedCanvasNoteIdSet = useMemo(
+    () => new Set(selectedCanvasNoteIds.map((id) => String(id))),
+    [selectedCanvasNoteIds]
+  );
 
   // Cache window.innerWidth for render loop (avoid layout thrashing)
   const screenWidthCache = typeof window !== 'undefined' ? window.innerWidth : 1024;
@@ -3273,7 +3322,7 @@ export default function NotesPage() {
                 <div
                   key={note.id}
                   ref={(el) => { noteElRefs.current[note.id] = el; }}
-                  className={`note-card note-${note.importance} ${isUrgent(note.date) ? 'note-urgent' : ''} ${isHovered ? 'note-focus' : ''} ${isConnected ? 'note-connected' : ''} ${isMuted ? 'note-muted' : ''} ${isBlockedByDependency ? 'note-dependency-blocked' : ''} ${isDependencyReady ? 'note-dependency-ready' : ''} ${isCompleted ? 'note-completed' : ''}`}
+                  className={`note-card note-${note.importance} ${isUrgent(note.date) ? 'note-urgent' : ''} ${isHovered ? 'note-focus' : ''} ${isConnected ? 'note-connected' : ''} ${isMuted ? 'note-muted' : ''} ${isBlockedByDependency ? 'note-dependency-blocked' : ''} ${isDependencyReady ? 'note-dependency-ready' : ''} ${isCompleted ? 'note-completed' : ''} ${selectedCanvasNoteIdSet.has(String(note.id)) ? 'note-selected' : ''}`}
                   style={{
                     left: `${(notePositions[note.id]?.x ?? note.x ?? 100)}px`,
                     top: `${(notePositions[note.id]?.y ?? note.y ?? 100)}px`,

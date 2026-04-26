@@ -1421,6 +1421,11 @@
   box-shadow: 0 0 0 1px rgba(0, 224, 255, 0.4), 0 20px 44px rgba(3, 14, 38, 0.28), 0 0 28px rgba(0, 224, 255, 0.22);
 }
 
+.note-card.note-selected {
+  border-color: color-mix(in srgb, #0a84ff 52%, var(--border));
+  box-shadow: 0 0 0 2px color-mix(in srgb, #0a84ff 28%, transparent), 0 14px 34px rgba(10, 132, 255, 0.18);
+}
+
 .note-card.note-connected {
   border-color: rgba(122, 92, 255, 0.56);
   box-shadow: 0 16px 34px rgba(122, 92, 255, 0.18);
@@ -3066,12 +3071,12 @@
   .note-editor-modal .note-editor-body {
     flex: none;
     overflow: visible;
-    padding: 0;
+    padding: 0 10px;
   }
 
   .note-editor-head {
     position: static;
-    padding: 0;
+    padding: 0 10px;
     margin-bottom: 12px;
   }
 
@@ -3087,7 +3092,7 @@
   .note-editor-modal .modal-actions {
     position: static;
     background: transparent;
-    padding-top: 0;
+    padding: 0 10px;
     margin-top: 24px;
   }
 
