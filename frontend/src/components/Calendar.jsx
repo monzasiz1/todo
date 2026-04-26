@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../store/taskStore';
-import { ChevronLeft, ChevronRight, ChevronDown, Video } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, Maximize2, Minimize2, Video } from 'lucide-react';
 import TaskDetailModal from './TaskDetailModal';
 import AvatarBadge from './AvatarBadge';
 import {
@@ -165,6 +165,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const [detailTask, setDetailTask] = useState(null);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [showSidebarCategories, setShowSidebarCategories] = useState(true);
+  const [isCalendarFullscreen, setIsCalendarFullscreen] = useState(false);
   const [pickerYear, setPickerYear] = useState(getYear(new Date()));
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= MOBILE_BREAKPOINT);
   const [isWideDesktopCalendar, setIsWideDesktopCalendar] = useState(window.innerWidth >= CALENDAR_DESKTOP_BREAKPOINT);
@@ -179,6 +180,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const mobileWeekColRefs = useRef({});
   const desktopWeekColsRef = useRef(null);
   const desktopWeekWrapRef = useRef(null);
+  const calendarWrapperRef = useRef(null);
   const resizeInfoRef = useRef(null);
   const wkHRef = useRef(WK_H); // dynamic hour height, updated by ResizeObserver
   const [wkHState, setWkHState] = useState(WK_H);
@@ -269,6 +271,22 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     };
     window.addEventListener('resize', handler);
     return () => window.removeEventListener('resize', handler);
+  }, []);
+
+  useEffect(() => {
+    const syncFullscreenState = () => {
+      const active = document.fullscreenElement || document.webkitFullscreenElement;
+      setIsCalendarFullscreen(active === calendarWrapperRef.current);
+    };
+
+    document.addEventListener('fullscreenchange', syncFullscreenState);
+    document.addEventListener('webkitfullscreenchange', syncFullscreenState);
+    syncFullscreenState();
+
+    return () => {
+      document.removeEventListener('fullscreenchange', syncFullscreenState);
+      document.removeEventListener('webkitfullscreenchange', syncFullscreenState);
+    };
   }, []);
 
   useEffect(() => {
@@ -1565,9 +1583,36 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       ? format(selectedDate || currentDate, 'EEEE, d. MMMM yyyy', { locale: de })
       : `KW ${format(currentDate, 'w')} · ${format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'd. MMM', { locale: de })} – ${format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'd. MMM yyyy', { locale: de })}`;
 
+  const toggleCalendarFullscreen = async () => {
+    if (isMobile) return;
+    const element = calendarWrapperRef.current;
+    if (!element) return;
+
+    const activeFullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+    try {
+      if (activeFullscreenElement === element) {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+        return;
+      }
+
+      if (element.requestFullscreen) {
+        await element.requestFullscreen();
+      } else if (element.webkitRequestFullscreen) {
+        element.webkitRequestFullscreen();
+      }
+    } catch {
+      // Ignore fullscreen rejections from browser policies.
+    }
+  };
+
   return (
     <motion.div
-      className={`calendar-wrapper calendar-view-${view}`}
+      ref={calendarWrapperRef}
+      className={`calendar-wrapper calendar-view-${view} ${isCalendarFullscreen ? 'calendar-is-fullscreen' : ''}`}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
@@ -1586,6 +1631,15 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
           </button>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          {!isMobile && (
+            <button
+              className={`calendar-fs-btn ${isCalendarFullscreen ? 'active' : ''}`}
+              onClick={toggleCalendarFullscreen}
+              title={isCalendarFullscreen ? 'Vollbild beenden' : 'Kalender im Vollbild'}
+            >
+              {isCalendarFullscreen ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
+            </button>
+          )}
           <div className="calendar-view-toggle">
             <button
               className={`calendar-view-btn ${view === 'month' ? 'active' : ''}`}

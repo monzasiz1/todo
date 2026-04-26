@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Plus, ZoomIn, ZoomOut, Maximize2, Share2, Link2, Trash2, Edit2, X, CalendarDays, Sparkles, PanelsTopLeft, Workflow, LayoutGrid, ChevronLeft, Circle, CheckCircle2 } from 'lucide-react';
+import { Plus, ZoomIn, ZoomOut, Maximize2, Minimize2, Share2, Link2, Trash2, Edit2, X, CalendarDays, Sparkles, PanelsTopLeft, Workflow, LayoutGrid, ChevronLeft, Circle, CheckCircle2 } from 'lucide-react';
 import { useNotesStore } from '../store/notesStore';
 import { useFriendsStore } from '../store/friendsStore';
 import { useTaskStore } from '../store/taskStore';
@@ -208,7 +208,9 @@ export default function NotesPage() {
   const [notePeopleMap, setNotePeopleMap] = useState(() => readNotePeopleCache());
   const [isMobileView, setIsMobileView] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 640 : false));
   const [canvasViewport, setCanvasViewport] = useState({ left: 0, top: 0, right: 0, bottom: 0 });
+  const [isCanvasFullscreen, setIsCanvasFullscreen] = useState(false);
   const canvasRef = useRef(null);
+  const canvasShellRef = useRef(null);
   const containerRef = useRef(null);
   const pinchStateRef = useRef(null);
   const handleTouchMoveRef = useRef(null);
@@ -312,6 +314,31 @@ export default function NotesPage() {
       : 100;
     applyZoom(next);
     setZoom(next);
+  };
+
+  const toggleCanvasFullscreen = async () => {
+    const element = canvasShellRef.current;
+    if (!element) return;
+
+    const activeFullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+    try {
+      if (activeFullscreenElement === element) {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+        return;
+      }
+
+      if (element.requestFullscreen) {
+        await element.requestFullscreen();
+      } else if (element.webkitRequestFullscreen) {
+        element.webkitRequestFullscreen();
+      }
+    } catch {
+      // Ignore browser restrictions (e.g. denied fullscreen gesture)
+    }
   };
 
   const persistNoteViewState = (overrides = {}) => {
@@ -1803,6 +1830,22 @@ export default function NotesPage() {
     };
   }, []);
 
+  useEffect(() => {
+    const syncFullscreenState = () => {
+      const active = document.fullscreenElement || document.webkitFullscreenElement;
+      setIsCanvasFullscreen(active === canvasShellRef.current);
+    };
+
+    document.addEventListener('fullscreenchange', syncFullscreenState);
+    document.addEventListener('webkitfullscreenchange', syncFullscreenState);
+    syncFullscreenState();
+
+    return () => {
+      document.removeEventListener('fullscreenchange', syncFullscreenState);
+      document.removeEventListener('webkitfullscreenchange', syncFullscreenState);
+    };
+  }, []);
+
   const renderConnection = (connection, index) => {
     const firstId = connection?.note_id_1 || connection?.noteId1;
     const secondId = connection?.note_id_2 || connection?.noteId2;
@@ -2176,7 +2219,7 @@ export default function NotesPage() {
           </div>
         </aside>
 
-        <div className="notes-canvas-shell" style={{ position: 'relative' }}>
+        <div ref={canvasShellRef} className="notes-canvas-shell" style={{ position: 'relative' }}>
           {/* Quick Connect Banner */}
           <AnimatePresence>
             {quickConnectMode && (
@@ -2481,18 +2524,29 @@ export default function NotesPage() {
             </div>
           </motion.div>
         )}
-
-        <motion.button
-          type="button"
-          className="canvas-quick-create-btn"
-          title="Neue Note in der Tafel erstellen"
-          onClick={openBlankCreateModalAtViewport}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.94 }}
-        >
-          <Plus size={18} />
-        </motion.button>
       </div>
+
+      <motion.button
+        type="button"
+        className="canvas-quick-create-btn"
+        title="Neue Note in der Tafel erstellen"
+        onClick={openBlankCreateModalAtViewport}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.94 }}
+      >
+        <Plus size={18} />
+      </motion.button>
+
+      <motion.button
+        type="button"
+        className="canvas-fullscreen-btn"
+        title={isCanvasFullscreen ? 'Vollbild beenden' : 'Tafel im Vollbild'}
+        onClick={toggleCanvasFullscreen}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.94 }}
+      >
+        {isCanvasFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+      </motion.button>
 
       {hoveredTaskPreview && hoveredTaskPreview.task && (
         <div

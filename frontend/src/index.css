@@ -1893,6 +1893,31 @@ input, textarea, select {
   align-items: center;
 }
 
+.calendar-fs-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+  background: var(--card-solid);
+  transition: all var(--transition);
+}
+
+.calendar-fs-btn:hover {
+  background: var(--primary-bg);
+  color: var(--primary);
+  border-color: var(--primary-border, rgba(0,122,255,0.2));
+}
+
+.calendar-fs-btn.active {
+  background: color-mix(in srgb, var(--primary-bg) 60%, var(--card-solid));
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 38%, transparent);
+}
+
 .calendar-nav-btn {
   width: 36px;
   height: 36px;
@@ -1931,6 +1956,40 @@ input, textarea, select {
   background: var(--card-solid);
   color: var(--text);
   box-shadow: var(--shadow-sm);
+}
+
+.calendar-wrapper:fullscreen,
+.calendar-wrapper:-webkit-full-screen {
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  margin: 0;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.calendar-wrapper:fullscreen .calendar-header,
+.calendar-wrapper:-webkit-full-screen .calendar-header {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 12px);
+  padding-left: calc(env(safe-area-inset-left, 0px) + 14px);
+  padding-right: calc(env(safe-area-inset-right, 0px) + 14px);
+}
+
+.calendar-wrapper:fullscreen .calendar-grid,
+.calendar-wrapper:-webkit-full-screen .calendar-grid {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.calendar-wrapper:fullscreen .desktop-week-layout,
+.calendar-wrapper:-webkit-full-screen .desktop-week-layout {
+  height: calc(100dvh - 94px);
+  min-height: 0;
 }
 
 /* ---- Month Grid ---- */
