@@ -275,7 +275,7 @@ function TaskCard({ task, index, disableLayout = false }) {
               name={task.group_name}
               color={task.group_color || '#5856D6'}
               avatarUrl={task.group_image_url}
-              size={11}
+              size={10}
             />
             <span className="task-group-combo-name" style={{ color: task.group_color || '#5856D6' }}>{task.group_name}</span>
             <span className="task-group-combo-cat" style={{ color: task.group_category_color || '#636366' }}>

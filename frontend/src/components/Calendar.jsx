@@ -879,9 +879,6 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         {t.teams_join_url && <Video size={10} className="calendar-day-task-teams-icon" />}
                         {t.time && <span className="calendar-day-task-time">{t.time.slice(0, 5)}</span>}
                         <span className="calendar-day-task-title">{t.title}</span>
-                        {!isMobile && t.group_category_name && !ended && (
-                          <span className="cal-group-cat-pill" style={{ background: t.group_category_color ? `${t.group_category_color}33` : 'rgba(142,142,147,0.2)', color: t.group_category_color || '#636366' }}>{t.group_category_name}</span>
-                        )}
                         {!isMobile && ended && <span className="calendar-day-task-ended">Beendet</span>}
                       </div>
                     );
@@ -1126,7 +1123,12 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   const lanePercent = dayPercent / laneCount;
                   const singleDayLeft = `calc(${(startIdx * dayPercent) + (lane * lanePercent)}% + 4px)`;
                   const singleDayWidth = `calc(${lanePercent}% - 8px)`;
-                  const minDisplayHeight = t.group_category_name && !doneOrEnded ? 42 : 28;
+                  const minDisplayHeight = 28;
+                  const eventBg = doneOrEnded
+                    ? 'rgba(142, 142, 147, 0.72)'
+                    : t.group_category_color
+                    ? `linear-gradient(160deg, ${t.group_color || '#5856D6'} 0%, ${t.group_category_color} 100%)`
+                    : (t.category_color || t.group_color || '#4C7BD9');
 
                   return (
                     <div
@@ -1137,7 +1139,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         width: isSingleDay ? singleDayWidth : `calc((100% / 7) * ${spanDays} - 8px)`,
                         top: `${top}px`,
                         height: `${Math.max(minDisplayHeight, height)}px`,
-                        background: doneOrEnded ? 'rgba(142, 142, 147, 0.72)' : (t.category_color || t.group_category_color || t.group_color || '#4C7BD9'),
+                        background: eventBg,
                         touchAction: 'none',
                       }}
                       onPointerDown={(e) => {
@@ -1165,9 +1167,6 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       )}
                       <span className="desktop-week-event-title">{t.title}</span>
                       <span className="desktop-week-event-time">{t.time?.slice(0, 5)}{t.time_end ? ` - ${t.time_end.slice(0, 5)}` : ''}</span>
-                      {t.group_category_name && !doneOrEnded && height > 38 && (
-                        <span className="cal-group-cat-pill" style={{ background: t.group_category_color ? `${t.group_category_color}44` : 'rgba(255,255,255,0.25)', color: '#fff' }}>{t.group_category_name}</span>
-                      )}
                       {t.completed && <span className="desktop-week-event-ended">Erledigt</span>}
                       {!t.completed && ended && <span className="desktop-week-event-ended">Beendet</span>}
                       {!ended && (
@@ -1491,6 +1490,11 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
             const availableWidth = 100 - availableLeft;
             const laneWidth = availableWidth / laneCount;
             const laneLeft = availableLeft + (lane * laneWidth);
+            const mobileEventBg = doneOrEnded
+              ? 'rgba(142, 142, 147, 0.72)'
+              : t.group_category_color
+              ? `linear-gradient(160deg, ${t.group_color || '#5856D6'} 0%, ${t.group_category_color} 100%)`
+              : (t.category_color || t.group_color || '#4C7BD9');
 
             return (
               <div
@@ -1502,7 +1506,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   right: 'auto',
                   top: `${top}px`,
                   height: `${height}px`,
-                  background: doneOrEnded ? 'rgba(142, 142, 147, 0.72)' : (t.category_color || t.group_category_color || t.group_color || '#4C7BD9'),
+                  background: mobileEventBg,
                   touchAction: 'none',
                   cursor: doneOrEnded ? 'pointer' : 'grab',
                 }}
@@ -1525,9 +1529,6 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                 )}
                 <strong>{t.title}</strong>
                 <span>{t.time?.slice(0, 5)}{t.time_end ? `-${t.time_end.slice(0, 5)}` : ''}</span>
-                {t.group_category_name && !doneOrEnded && height > 52 && (
-                  <span className="cal-group-cat-pill" style={{ background: t.group_category_color ? `${t.group_category_color}44` : 'rgba(255,255,255,0.22)', color: '#fff' }}>{t.group_category_name}</span>
-                )}
                 {t.completed && <span className="mobile-day-event-ended">Erledigt</span>}
                 {!t.completed && ended && <span className="mobile-day-event-ended">Beendet</span>}
                 {(t.date_end && t.date_end !== t.date) && (
