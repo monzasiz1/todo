@@ -62,6 +62,7 @@ function TaskCard({ task, index, disableLayout = false }) {
   const canShareToChat = isEvent && !!task.group_id && !isEventEnded;
   const shortTitle = String(task.title || 'Termin').slice(0, 32);
   const timeLabel = task.time ? `${String(task.time).slice(0, 5)} Uhr` : '';
+  const hasGroupCategoryCombo = !!task.group_name && !!task.group_category_name;
 
   useEffect(() => {
     return () => {
@@ -262,7 +263,33 @@ function TaskCard({ task, index, disableLayout = false }) {
           </div>
         )}
         <SharedTaskBadge task={task} />
-        {task.group_name && (
+        {hasGroupCategoryCombo && (
+          <span
+            className="task-group-combo-badge"
+            style={{
+              background: `linear-gradient(135deg, ${(task.group_color || '#5856D6')}1f, ${(task.group_category_color || '#8E8E93')}1f)`,
+              borderColor: `${task.group_color || '#5856D6'}55`,
+              color: task.group_color || '#5856D6',
+            }}
+          >
+            <AvatarBadge
+              name={task.group_name}
+              color={task.group_color || '#5856D6'}
+              avatarUrl={task.group_image_url}
+              size={12}
+            />
+            <span className="task-group-combo-name">{task.group_name}</span>
+            <span className="task-group-combo-sep">•</span>
+            <span className="task-group-combo-cat">
+              <span
+                className="task-group-category-dot"
+                style={{ background: task.group_category_color || '#8E8E93' }}
+              />
+              {task.group_category_name}
+            </span>
+          </span>
+        )}
+        {task.group_name && !hasGroupCategoryCombo && (
           <span
             className="task-group-badge"
             style={{
@@ -279,7 +306,7 @@ function TaskCard({ task, index, disableLayout = false }) {
             {task.group_name}
           </span>
         )}
-        {task.group_category_name && (
+        {task.group_category_name && !hasGroupCategoryCombo && (
           <span
             className="task-group-category-badge"
             style={{
