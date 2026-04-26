@@ -279,6 +279,22 @@ function TaskCard({ task, index, disableLayout = false }) {
             {task.group_name}
           </span>
         )}
+        {task.group_category_name && (
+          <span
+            className="task-group-category-badge"
+            style={{
+              background: task.group_category_color ? `${task.group_category_color}22` : 'rgba(142,142,147,0.12)',
+              color: task.group_category_color || '#636366',
+              borderColor: task.group_category_color ? `${task.group_category_color}55` : 'rgba(142,142,147,0.3)',
+            }}
+          >
+            <span
+              className="task-group-category-dot"
+              style={{ background: task.group_category_color || '#8E8E93' }}
+            />
+            {task.group_category_name}
+          </span>
+        )}
         {task.recurrence_rule && (
           <span
             className="task-group-badge"

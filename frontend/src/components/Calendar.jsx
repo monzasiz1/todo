@@ -878,6 +878,9 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         {t.teams_join_url && <Video size={10} className="calendar-day-task-teams-icon" />}
                         {t.time && <span className="calendar-day-task-time">{t.time.slice(0, 5)}</span>}
                         <span className="calendar-day-task-title">{t.title}</span>
+                        {!isMobile && t.group_category_name && !ended && (
+                          <span className="cal-group-cat-pill" style={{ background: t.group_category_color ? `${t.group_category_color}33` : 'rgba(142,142,147,0.2)', color: t.group_category_color || '#636366' }}>{t.group_category_name}</span>
+                        )}
                         {!isMobile && ended && <span className="calendar-day-task-ended">Beendet</span>}
                       </div>
                     );
@@ -1160,6 +1163,9 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       )}
                       <span className="desktop-week-event-title">{t.title}</span>
                       <span className="desktop-week-event-time">{t.time?.slice(0, 5)}{t.time_end ? ` - ${t.time_end.slice(0, 5)}` : ''}</span>
+                      {t.group_category_name && !doneOrEnded && height > 44 && (
+                        <span className="cal-group-cat-pill" style={{ background: t.group_category_color ? `${t.group_category_color}44` : 'rgba(255,255,255,0.25)', color: '#fff' }}>{t.group_category_name}</span>
+                      )}
                       {t.completed && <span className="desktop-week-event-ended">Erledigt</span>}
                       {!t.completed && ended && <span className="desktop-week-event-ended">Beendet</span>}
                       {!ended && (
@@ -1517,6 +1523,9 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                 )}
                 <strong>{t.title}</strong>
                 <span>{t.time?.slice(0, 5)}{t.time_end ? `-${t.time_end.slice(0, 5)}` : ''}</span>
+                {t.group_category_name && !doneOrEnded && height > 52 && (
+                  <span className="cal-group-cat-pill" style={{ background: t.group_category_color ? `${t.group_category_color}44` : 'rgba(255,255,255,0.22)', color: '#fff' }}>{t.group_category_name}</span>
+                )}
                 {t.completed && <span className="mobile-day-event-ended">Erledigt</span>}
                 {!t.completed && ended && <span className="mobile-day-event-ended">Beendet</span>}
                 {(t.date_end && t.date_end !== t.date) && (

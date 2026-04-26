@@ -416,6 +416,7 @@ module.exports = async function handler(req, res) {
                )
              END as can_edit,
              gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url,
+             gc.id as group_category_id, gc.name as group_category_name, gc.color as group_category_color,
              gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color,
              gtc.avatar_url as group_task_creator_avatar_url,
              COALESCE((
@@ -432,6 +433,7 @@ module.exports = async function handler(req, res) {
            LEFT JOIN task_permissions tp ON tp.task_id = t.id AND tp.user_id = $1
            LEFT JOIN group_tasks gt ON gt.task_id = t.id
            LEFT JOIN groups grp ON grp.id = gt.group_id
+           LEFT JOIN group_categories gc ON gc.id = gt.group_category_id
            LEFT JOIN users gtc ON gtc.id = gt.created_by
            WHERE (
              t.user_id = $1
@@ -452,10 +454,12 @@ module.exports = async function handler(req, res) {
         concreteResult = await pool.query(
           `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
              gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url,
+             gc.id as group_category_id, gc.name as group_category_name, gc.color as group_category_color,
              gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color
            FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
            LEFT JOIN group_tasks gt ON gt.task_id = t.id
            LEFT JOIN groups grp ON grp.id = gt.group_id
+           LEFT JOIN group_categories gc ON gc.id = gt.group_category_id
            LEFT JOIN users gtc ON gtc.id = gt.created_by
            WHERE (t.user_id = $1
              OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1))
@@ -485,6 +489,7 @@ module.exports = async function handler(req, res) {
                )
              END as can_edit,
              gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url,
+             gc.id as group_category_id, gc.name as group_category_name, gc.color as group_category_color,
              gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color,
              gtc.avatar_url as group_task_creator_avatar_url,
              COALESCE((
@@ -501,6 +506,7 @@ module.exports = async function handler(req, res) {
            LEFT JOIN task_permissions tp ON tp.task_id = t.id AND tp.user_id = $1
            LEFT JOIN group_tasks gt ON gt.task_id = t.id
            LEFT JOIN groups grp ON grp.id = gt.group_id
+           LEFT JOIN group_categories gc ON gc.id = gt.group_category_id
            LEFT JOIN users gtc ON gtc.id = gt.created_by
            WHERE (
              t.user_id = $1
@@ -520,10 +526,12 @@ module.exports = async function handler(req, res) {
       } else {
         templateResult = await pool.query(
           `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
-             gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url
+             gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url,
+             gc.id as group_category_id, gc.name as group_category_name, gc.color as group_category_color
            FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
            LEFT JOIN group_tasks gt ON gt.task_id = t.id
            LEFT JOIN groups grp ON grp.id = gt.group_id
+           LEFT JOIN group_categories gc ON gc.id = gt.group_category_id
            WHERE (t.user_id = $1
              OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1))
            AND t.recurrence_rule IS NOT NULL
