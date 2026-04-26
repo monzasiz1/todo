@@ -1126,9 +1126,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   const minDisplayHeight = 28;
                   const eventBg = doneOrEnded
                     ? 'rgba(142, 142, 147, 0.72)'
-                    : t.group_category_color
-                    ? `linear-gradient(160deg, ${t.group_color || '#5856D6'} 0%, ${t.group_category_color} 100%)`
-                    : (t.category_color || t.group_color || '#4C7BD9');
+                    : (t.group_category_color || t.category_color || t.group_color || '#4C7BD9');
 
                   return (
                     <div
@@ -1165,8 +1163,14 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                           onPointerDown={(e) => handleDateExtendPointerDown(e, t, 'start')}
                         />
                       )}
-                      <span className="desktop-week-event-title">{t.title}</span>
+                      <div className="cal-event-header-row">
+                        {t.group_id && <AvatarBadge name={t.group_name} color={t.group_color || '#5856D6'} avatarUrl={t.group_image_url} size={11} />}
+                        <span className="desktop-week-event-title">{t.title}</span>
+                      </div>
                       <span className="desktop-week-event-time">{t.time?.slice(0, 5)}{t.time_end ? ` - ${t.time_end.slice(0, 5)}` : ''}</span>
+                      {t.group_category_name && !doneOrEnded && height > 44 && (
+                        <span className="cal-event-cat-label">{t.group_category_name}</span>
+                      )}
                       {t.completed && <span className="desktop-week-event-ended">Erledigt</span>}
                       {!t.completed && ended && <span className="desktop-week-event-ended">Beendet</span>}
                       {!ended && (
@@ -1486,15 +1490,13 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
             const laneMeta = timedLaneMap.get(String(t.id));
             const lane = laneMeta?.lane ?? 0;
             const laneCount = Math.max(1, laneMeta?.laneCount || 1);
-            const availableLeft = 58;
-            const availableWidth = 100 - availableLeft;
+            const availableLeft = 14;
+            const availableWidth = 84;
             const laneWidth = availableWidth / laneCount;
             const laneLeft = availableLeft + (lane * laneWidth);
             const mobileEventBg = doneOrEnded
               ? 'rgba(142, 142, 147, 0.72)'
-              : t.group_category_color
-              ? `linear-gradient(160deg, ${t.group_color || '#5856D6'} 0%, ${t.group_category_color} 100%)`
-              : (t.category_color || t.group_color || '#4C7BD9');
+              : (t.group_category_color || t.category_color || t.group_color || '#4C7BD9');
 
             return (
               <div
@@ -1527,8 +1529,14 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                     onPointerDown={(e) => handleResizePointerDown(e, t, 'start', mobileDayRef.current, hourHeight, startHour)}
                   />
                 )}
-                <strong>{t.title}</strong>
+                <div className="cal-event-header-row">
+                  {t.group_id && <AvatarBadge name={t.group_name} color={t.group_color || '#5856D6'} avatarUrl={t.group_image_url} size={11} />}
+                  <strong className="cal-event-title-text">{t.title}</strong>
+                </div>
                 <span>{t.time?.slice(0, 5)}{t.time_end ? `-${t.time_end.slice(0, 5)}` : ''}</span>
+                {t.group_category_name && !doneOrEnded && height > 56 && (
+                  <span className="cal-event-cat-label">{t.group_category_name}</span>
+                )}
                 {t.completed && <span className="mobile-day-event-ended">Erledigt</span>}
                 {!t.completed && ended && <span className="mobile-day-event-ended">Beendet</span>}
                 {(t.date_end && t.date_end !== t.date) && (

@@ -7152,6 +7152,13 @@ body.cal-is-dragging * {
     transition: box-shadow 0.15s ease, transform 0.15s ease;
   }
 
+  .cal-event-header-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+
   .desktop-week-event-title {
     display: block;
     font-size: 12px;
@@ -7160,6 +7167,8 @@ body.cal-is-dragging * {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
   }
 
   .desktop-week-event-time {
@@ -7171,14 +7180,39 @@ body.cal-is-dragging * {
     opacity: 0.92;
   }
 
-  .desktop-week-event .cal-group-cat-pill {
-    display: inline-flex;
-    align-items: center;
-    margin-top: 4px;
-    padding: 1px 6px;
-    border-radius: 999px;
-    max-width: calc(100% - 4px);
-  }
+}
+
+/* Calendar event category label — shared desktop + mobile */
+.cal-event-cat-label {
+  display: block;
+  margin-top: 2px;
+  font-size: 9px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.82);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+}
+
+.cal-event-header-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cal-event-title-text {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
 }
 
 .friend-actions {
