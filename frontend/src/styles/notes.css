@@ -1324,6 +1324,24 @@
 }
 
 /* Color picker */
+.canvas-text-edit-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.canvas-text-done-btn {
+  align-self: flex-end;
+  background: #0a84ff;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+
 .canvas-text-color-label {
   position: relative;
   display: inline-flex;

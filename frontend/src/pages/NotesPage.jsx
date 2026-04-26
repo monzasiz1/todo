@@ -1393,7 +1393,7 @@ export default function NotesPage() {
     }
 
     if (event.touches.length === 1) {
-      if (event.target.closest('.note-card, .notes-context-panel')) return;
+      if (event.target.closest('.note-card, .notes-context-panel, .canvas-text-node')) return;
       const touch = event.touches[0];
       setActiveNoteId(null);
       setActionNoteId(null);
@@ -2059,7 +2059,10 @@ export default function NotesPage() {
     };
     setCanvasTexts((prev) => [...prev, payload]);
     setActiveCanvasTextId(id);
-    setEditingCanvasTextId(id);
+    // On mobile, don't auto-enter edit mode — let user tap to activate, then double-tap/tap-again to edit
+    if (typeof window === 'undefined' || window.innerWidth >= 640) {
+      setEditingCanvasTextId(id);
+    }
     scheduleCanvasTextUpsert(payload);
   };
 
@@ -2382,17 +2385,18 @@ export default function NotesPage() {
     : null;
   const shortcutTasks = visibleTasks.slice(0, 10);
 
-  const connectedNoteIds = new Set();
-  if (hoveredNoteId) {
+  const connectedNoteIds = useMemo(() => {
+    const set = new Set();
+    if (!hoveredNoteId) return set;
     connections.forEach((connection) => {
       const firstId = String(connection?.note_id_1 || connection?.noteId1 || '');
       const secondId = String(connection?.note_id_2 || connection?.noteId2 || '');
       const current = String(hoveredNoteId);
-
-      if (firstId === current) connectedNoteIds.add(secondId);
-      if (secondId === current) connectedNoteIds.add(firstId);
+      if (firstId === current) set.add(secondId);
+      if (secondId === current) set.add(firstId);
     });
-  }
+    return set;
+  }, [hoveredNoteId, connections]);
 
   const modalConnectedEntries = showConnectModal
     ? connections
@@ -2504,6 +2508,22 @@ export default function NotesPage() {
       centerY: position.y + height / 2,
     };
   };
+
+  // Pre-compute markdown HTML per note to avoid re-processing on every render
+  const noteMarkdownCache = useMemo(() => {
+    const map = new Map();
+    notes.forEach((note) => {
+      map.set(String(note.id), {
+        any: markdownToHtml(note.content, { interactiveChecklist: true }),
+        readonly: markdownToHtml(note.content, { interactiveChecklist: false }),
+      });
+    });
+    return map;
+  }, [notes]);
+
+  // Cache window.innerWidth for render loop (avoid layout thrashing)
+  const screenWidthCache = typeof window !== 'undefined' ? window.innerWidth : 1024;
+  const defaultNoteDims = useMemo(() => getNoteDimensions(screenWidthCache), [isMobileView]);
 
   const visibleNoteIds = useMemo(() => {
     const padding = 160;
@@ -3094,9 +3114,34 @@ export default function NotesPage() {
                 className={`canvas-text-node ${isActive ? 'active' : ''} ${attachedNote ? 'attached' : ''}`}
                 style={{ left: `${position.x}px`, top: `${position.y}px` }}
                 onPointerDown={(event) => handleCanvasTextPointerDown(event, entry)}
+                onTouchStart={(event) => {
+                  if (event.target.closest('button, select, option, textarea, input')) return;
+                  event.stopPropagation();
+                  const touch = event.touches[0];
+                  const resolved = getCanvasTextPosition(entry);
+                  const dragState = {
+                    textId: entry.id,
+                    attachedNoteId: entry.attached_note_id || null,
+                    basePos: resolved,
+                    startClientX: touch.clientX,
+                    startClientY: touch.clientY,
+                    lastClientX: touch.clientX,
+                    lastClientY: touch.clientY,
+                    pointerId: null,
+                    pointerType: 'touch',
+                  };
+                  isDraggingRef.current = dragState;
+                  setIsDragging(dragState);
+                  setActiveCanvasTextId(entry.id);
+                }}
                 onClick={(event) => {
                   event.stopPropagation();
-                  setActiveCanvasTextId(entry.id);
+                  if (String(activeCanvasTextId || '') === String(entry.id)) {
+                    // second tap on already-active → enter edit mode
+                    setEditingCanvasTextId(entry.id);
+                  } else {
+                    setActiveCanvasTextId(entry.id);
+                  }
                 }}
                 onDoubleClick={(event) => {
                   event.stopPropagation();
@@ -3105,15 +3150,23 @@ export default function NotesPage() {
                 }}
               >
                 {isEditing ? (
-                  <textarea
-                    className="canvas-text-editor"
-                    value={entry.text || ''}
-                    style={textStyle}
-                    onChange={(event) => updateCanvasTextText(entry.id, event.target.value)}
-                    onBlur={() => setEditingCanvasTextId(null)}
-                    onPointerDown={(event) => event.stopPropagation()}
-                    autoFocus
-                  />
+                  <div className="canvas-text-edit-wrap">
+                    <textarea
+                      className="canvas-text-editor"
+                      value={entry.text || ''}
+                      style={textStyle}
+                      onChange={(event) => updateCanvasTextText(entry.id, event.target.value)}
+                      onBlur={() => setEditingCanvasTextId(null)}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      className="canvas-text-done-btn"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => { e.stopPropagation(); setEditingCanvasTextId(null); }}
+                    >Fertig</button>
+                  </div>
                 ) : (
                   <div className="canvas-text-content" style={textStyle}>{entry.text || 'Text eingeben'}</div>
                 )}
@@ -3187,6 +3240,7 @@ export default function NotesPage() {
 
           {/* Notes */}
           {notes.map((note) => {
+              if (!visibleNoteIds.has(String(note.id))) return null;
               const noteId = String(note.id);
               const isHovered = hoveredNoteId && noteId === String(hoveredNoteId);
               const isConnected = hoveredNoteId && connectedNoteIds.has(noteId);
@@ -3224,8 +3278,8 @@ export default function NotesPage() {
                   style={{
                     left: `${(notePositions[note.id]?.x ?? note.x ?? 100)}px`,
                     top: `${(notePositions[note.id]?.y ?? note.y ?? 100)}px`,
-                    width: `${note.width || getNoteDimensions(window.innerWidth).width}px`,
-                    minHeight: `${note.height || getNoteDimensions(window.innerWidth).height}px`,
+                    width: `${note.width || defaultNoteDims.width}px`,
+                    minHeight: `${note.height || defaultNoteDims.height}px`,
                   }}
                   onMouseEnter={() => setHoveredNoteId(note.id)}
                   onMouseLeave={() => setHoveredNoteId(null)}
@@ -3261,7 +3315,7 @@ export default function NotesPage() {
 
                   <div
                     className="note-content note-content-renderer"
-                    dangerouslySetInnerHTML={{ __html: markdownToHtml(note.content, { interactiveChecklist: canManageThisNote }) }}
+                    dangerouslySetInnerHTML={{ __html: noteMarkdownCache.get(noteId)?.[canManageThisNote ? 'any' : 'readonly'] || '' }}
                     onClick={(event) => handleChecklistToggle(event, note, canManageThisNote)}
                   />
 
