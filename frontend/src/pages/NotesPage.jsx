@@ -1189,6 +1189,16 @@ export default function NotesPage() {
     if (drag.noteId) {
       const totalDX = clientX - drag.startClientX;
       const totalDY = clientY - drag.startClientY;
+      const movedDistance = Math.hypot(totalDX, totalDY);
+      if (!drag.didMove && movedDistance < 6) {
+        drag.lastClientX = clientX;
+        drag.lastClientY = clientY;
+        return;
+      }
+      if (!drag.didMove) {
+        drag.didMove = true;
+        noteDragOccurredRef.current = true;
+      }
       const scale = zoomRef.current / 100;
       const dragIds = Array.isArray(drag.noteIds) && drag.noteIds.length > 0
         ? drag.noteIds
@@ -1196,7 +1206,6 @@ export default function NotesPage() {
       dragIds.forEach((id) => {
         const el = noteElRefs.current[id];
         if (el) {
-          noteDragOccurredRef.current = true;
           el.style.transform = `translate(${totalDX / scale}px, ${totalDY / scale}px)`;
           el.style.zIndex = '999';
         }
@@ -1715,6 +1724,7 @@ export default function NotesPage() {
       lastClientY: event.clientY,
       basePos: basePositions[noteIdText],
       basePositions,
+      didMove: false,
       pointerId: event.pointerId,
       pointerType: event.pointerType,
     };
@@ -2205,7 +2215,7 @@ export default function NotesPage() {
 
   const handleNoteDoubleClick = (event, noteId) => {
     if (event.target.closest('button, input, textarea, select, a')) return;
-    if (noteDragOccurredRef.current) return;
+    event.stopPropagation();
     setActionNoteId(String(noteId));
     setActiveNoteId(noteId);
   };
