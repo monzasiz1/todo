@@ -827,13 +827,37 @@ export default function NotesPage() {
       const distance = Math.hypot(dx, dy);
       const centerX = (first.clientX + second.clientX) / 2;
       const centerY = (first.clientY + second.clientY) / 2;
+      const canvas = canvasRef.current;
+      const rect = canvas.getBoundingClientRect();
+      const currentScale = zoomRef.current / 100;
+
+      // Anchor canvas-coordinate under the finger center
+      const tx0 = -canvas.scrollLeft;
+      const ty0 = -canvas.scrollTop;
+      const anchorCanvasX = (centerX - rect.left - tx0) / currentScale;
+      const anchorCanvasY = (centerY - rect.top  - ty0) / currentScale;
+
+      // Switch canvas-content to full-transform mode (no scroll during pinch)
+      if (canvasContentRef.current) {
+        canvasContentRef.current.style.transform =
+          `translate(${tx0}px, ${ty0}px) scale(${currentScale})`;
+      }
+      canvas.scrollLeft = 0;
+      canvas.scrollTop  = 0;
+      canvas.style.overflow = 'hidden';
 
       pinchStateRef.current = {
-        startZoom: zoom,
+        startZoom: zoomRef.current,
         startDistance: distance,
+        anchorCanvasX,
+        anchorCanvasY,
         lastCenterX: centerX,
         lastCenterY: centerY,
+        currentTX: tx0,
+        currentTY: ty0,
+        rect,
       };
+      isDraggingRef.current = null;
       setIsDragging(null);
       if (event.cancelable) event.preventDefault();
       return;
@@ -850,7 +874,8 @@ export default function NotesPage() {
   };
 
   const handleTouchMove = (event) => {
-    if (pinchStateRef.current && canvasRef.current && event.touches.length === 2) {
+    if (pinchStateRef.current && canvasContentRef.current && event.touches.length === 2) {
+      const ps = pinchStateRef.current;
       const [first, second] = event.touches;
       const dx = first.clientX - second.clientX;
       const dy = first.clientY - second.clientY;
@@ -858,25 +883,26 @@ export default function NotesPage() {
       const centerX = (first.clientX + second.clientX) / 2;
       const centerY = (first.clientY + second.clientY) / 2;
 
-      const scaleBefore = zoomRef.current / 100;
-      const rawNext = (distance / pinchStateRef.current.startDistance) * pinchStateRef.current.startZoom;
-      const nextZoom = applyZoom(rawNext);
-      const scaleAfter = nextZoom / 100;
+      const rawNext = (distance / ps.startDistance) * ps.startZoom;
+      const newZoom = clampZoom(rawNext);
+      const newScale = newZoom / 100;
+      zoomRef.current = newZoom;
       didManualZoomRef.current = true;
 
-      const canvas = canvasRef.current;
-      // Correct focal-point scroll: finger center stays fixed on screen
-      const focalX = (canvas.scrollLeft + centerX) / scaleBefore;
-      const focalY = (canvas.scrollTop  + centerY) / scaleBefore;
-      canvas.scrollLeft = focalX * scaleAfter - centerX;
-      canvas.scrollTop  = focalY * scaleAfter - centerY;
+      // Keep anchor canvas-point fixed under fingers — pure math, no scrollLeft
+      const rect = ps.rect;
+      const tx = (centerX - rect.left) - ps.anchorCanvasX * newScale;
+      const ty = (centerY - rect.top)  - ps.anchorCanvasY * newScale;
 
-      // Also pan if fingers moved laterally
-      canvas.scrollLeft -= centerX - pinchStateRef.current.lastCenterX;
-      canvas.scrollTop  -= centerY - pinchStateRef.current.lastCenterY;
+      ps.currentTX = tx;
+      ps.currentTY = ty;
+      ps.lastCenterX = centerX;
+      ps.lastCenterY = centerY;
 
-      pinchStateRef.current.lastCenterX = centerX;
-      pinchStateRef.current.lastCenterY = centerY;
+      // Single GPU-only transform update
+      canvasContentRef.current.style.transform =
+        `translate(${tx}px, ${ty}px) scale(${newScale})`;
+
       if (event.cancelable) event.preventDefault();
       return;
     }
@@ -910,7 +936,21 @@ export default function NotesPage() {
       updateNotePosition(drag.noteId, finalX, finalY, true);
     }
 
-    if (pinchStateRef.current) commitZoom();
+    if (pinchStateRef.current) {
+      const ps = pinchStateRef.current;
+      const canvas = canvasRef.current;
+      if (canvas && canvasContentRef.current) {
+        // Restore scroll+scale from the transform state
+        const finalScale = zoomRef.current / 100;
+        const newScrollX = Math.max(0, -ps.currentTX);
+        const newScrollY = Math.max(0, -ps.currentTY);
+        canvas.style.overflow = '';
+        canvasContentRef.current.style.transform = `scale(${finalScale})`;
+        canvas.scrollLeft = newScrollX;
+        canvas.scrollTop  = newScrollY;
+      }
+      commitZoom();
+    }
     pinchStateRef.current = null;
     isDraggingRef.current = null;
     setIsDragging(null);
@@ -2602,7 +2642,7 @@ export default function NotesPage() {
       <AnimatePresence>
         {showCreateModal && (
           <motion.div
-            className="modal-overlay"
+            className="modal-overlay note-full-overlay"
             onClick={() => setShowCreateModal(false)}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -2611,9 +2651,10 @@ export default function NotesPage() {
             <motion.div
               className="modal-content create-note-modal note-editor-modal"
               onClick={(e) => e.stopPropagation()}
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'tween', duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
             >
               <div className="note-editor-head">
                 <div className="note-editor-handle" aria-hidden="true" />
@@ -2625,6 +2666,7 @@ export default function NotesPage() {
                 </div>
               </div>
 
+              <div className="note-editor-body">
               <div className="form-group">
                 <label className="form-label">Titel</label>
                 <input
@@ -2788,6 +2830,7 @@ export default function NotesPage() {
                   </div>
                 </div>
               </div>
+              </div>{/* end note-editor-body */}
 
               <div className="modal-actions">
                 <button className="btn-secondary" onClick={() => setShowCreateModal(false)}>
@@ -2806,7 +2849,7 @@ export default function NotesPage() {
       <AnimatePresence>
         {editingNote && (
           <motion.div
-            className="modal-overlay"
+            className="modal-overlay note-full-overlay"
             onClick={() => setEditingNote(null)}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -2815,9 +2858,10 @@ export default function NotesPage() {
             <motion.div
               className="modal-content note-editor-modal edit-note-modal"
               onClick={(e) => e.stopPropagation()}
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'tween', duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
             >
               <div className="note-editor-head">
                 <div className="note-editor-handle" aria-hidden="true" />
@@ -2829,6 +2873,7 @@ export default function NotesPage() {
                 </div>
               </div>
 
+              <div className="note-editor-body">
               <div className="form-group">
                 <label className="form-label">Titel</label>
                 <input
@@ -2920,6 +2965,7 @@ export default function NotesPage() {
                   ))}
                 </select>
               </div>
+              </div>{/* end note-editor-body */}
 
               <div className="modal-actions">
                 <button
