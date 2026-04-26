@@ -88,6 +88,12 @@ const isEventEnded = (task, nowTs = Date.now()) => {
   return !!end && end.getTime() < nowTs;
 };
 
+const isAllDayTask = (task) => {
+  if (!task) return false;
+  if (task.all_day === true) return true;
+  return !String(task.time || '').trim();
+};
+
 const buildOverlapLaneMap = (tasks, getRange) => {
   const normalized = (Array.isArray(tasks) ? tasks : [])
     .map((task) => {
@@ -1244,13 +1250,13 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
 
         {/* ── All-Day Strip ──────────────────────────────────── */}
         {(() => {
-          const hasAny = days.some((d) => getTasksForDate(d).some((t) => !t.time));
+          const hasAny = days.some((d) => getTasksForDate(d).some((t) => isAllDayTask(t)));
           if (!hasAny) return null;
           return (
             <div className="mobile-week-allday-strip">
               <div className="mobile-week-allday-corner">Ganztg.</div>
               {days.map((d) => {
-                const adTasks = getTasksForDate(d).filter((t) => !t.time);
+                const adTasks = getTasksForDate(d).filter((t) => isAllDayTask(t));
                 return (
                   <div key={`mwad-${d.toISOString()}`} className="mobile-week-allday-col">
                     {adTasks.slice(0, 2).map((t) => {
@@ -1428,8 +1434,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       handleDayClick(pickedDate);
     };
 
-    const allDayTasks = dayTasks.filter((t) => !t.time);
-    const timedTasks  = dayTasks.filter((t) => t.time);
+    const allDayTasks = dayTasks.filter((t) => isAllDayTask(t));
+    const timedTasks  = dayTasks.filter((t) => !isAllDayTask(t));
     const timedLaneMap = buildOverlapLaneMap(timedTasks, (task) => {
       const start = toMinutes(task.time) ?? (startHour * 60);
       const rawEnd = toMinutes(task.time_end);

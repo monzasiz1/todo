@@ -78,8 +78,10 @@ export default function CalendarPage() {
 
   return (
     <div className="calendar-page-wrap">
-      <h2 style={{ padding: '16px 20px 0', fontWeight: 700, fontSize: '1.4rem' }}>Kalender</h2>
-      <p style={{ padding: '2px 20px 12px', opacity: 0.6, fontSize: '0.85rem' }}>Klicke auf einen Tag, um Aufgaben zu sehen oder zu erstellen</p>
+      <div className="page-header">
+        <h2>Kalender</h2>
+        <p>Klicke auf einen Tag, um Aufgaben zu sehen oder zu erstellen</p>
+      </div>
 
       <Calendar
         tasks={calendarTasks}
