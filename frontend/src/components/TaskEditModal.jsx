@@ -97,6 +97,8 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
   // Group state
   const [userGroups, setUserGroups] = useState([]);
   const [taskGroupId, setTaskGroupId] = useState(task.group_id || null);
+  const [groupCategories, setGroupCategories] = useState([]);
+  const [taskGroupCategoryId, setTaskGroupCategoryId] = useState(task.group_category_id || '');
   const [showGroups, setShowGroups] = useState(!!task.group_id);
 
   const [saving, setSaving] = useState(false);
@@ -155,6 +157,38 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
     initAsync();
     return () => { mounted = false; };
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    if (!taskGroupId) {
+      setGroupCategories([]);
+      setTaskGroupCategoryId('');
+      return () => {
+        mounted = false;
+      };
+    }
+
+    api.getGroupCategories(taskGroupId)
+      .then((data) => {
+        if (!mounted) return;
+        const categories = Array.isArray(data?.categories) ? data.categories : [];
+        setGroupCategories(categories);
+        setTaskGroupCategoryId((prev) => {
+          if (!prev) return '';
+          const exists = categories.some((cat) => String(cat.id) === String(prev));
+          return exists ? prev : '';
+        });
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setGroupCategories([]);
+        setTaskGroupCategoryId('');
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [taskGroupId]);
 
   const toggleFriendPermission = (friendUserId, friendName, friendColor, friendAvatarUrl, action) => {
     setPermissions(prev => {
@@ -251,15 +285,20 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
       try {
         const oldGroupId = task.group_id || null;
         const newGroupId = taskGroupId || null;
+        const groupChanged = oldGroupId !== newGroupId;
+        const groupCategoryChanged = String(taskGroupCategoryId || '') !== String(task.group_category_id || '');
         if (oldGroupId !== newGroupId) {
           // Remove from old group
           if (oldGroupId) {
             await api.removeGroupTask(oldGroupId, seriesTaskId);
           }
-          // Add to new group
-          if (newGroupId) {
-            await api.addGroupTask(newGroupId, { existing_task_id: seriesTaskId });
-          }
+        }
+        // Add/update in selected group (also updates group category on same-group edits)
+        if (newGroupId && (groupChanged || groupCategoryChanged)) {
+          await api.addGroupTask(newGroupId, {
+            existing_task_id: seriesTaskId,
+            group_category_id: taskGroupCategoryId || null,
+          });
         }
       } catch {
         // Ignore if group tables don't exist
@@ -597,7 +636,10 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
                         <div
                           key={g.id}
                           className={`task-edit-shared-item addable ${taskGroupId === g.id ? 'selected' : ''}`}
-                          onClick={() => setTaskGroupId(g.id)}
+                          onClick={() => {
+                            setTaskGroupId(g.id);
+                            setTaskGroupCategoryId('');
+                          }}
                           style={{ cursor: 'pointer' }}
                         >
                           <AvatarBadge
@@ -611,6 +653,22 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
                           {taskGroupId === g.id && <span style={{ marginLeft: 'auto', color: 'var(--primary)', fontSize: 12, fontWeight: 600 }}>✓</span>}
                         </div>
                       ))}
+
+                      {taskGroupId && (
+                        <div className="task-edit-field" style={{ marginTop: 8, marginBottom: 0 }}>
+                          <label><Tag size={14} /> Gruppenkategorie</label>
+                          <select
+                            value={taskGroupCategoryId}
+                            onChange={(e) => setTaskGroupCategoryId(e.target.value)}
+                            className="task-edit-input task-edit-select"
+                          >
+                            <option value="">Keine Gruppenkategorie</option>
+                            {groupCategories.map((cat) => (
+                              <option key={cat.id} value={cat.id}>{cat.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 )}

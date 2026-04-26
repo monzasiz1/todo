@@ -332,6 +332,9 @@ function normalizeTaskRow(row) {
     group_name: row.group_name || null,
     group_color: row.group_color || null,
     group_image_url: row.group_image_url || null,
+    group_category_id: row.group_category_id || null,
+    group_category_name: row.group_category_name || null,
+    group_category_color: row.group_category_color || null,
     group_task_creator_name: row.group_task_creator_name || null,
     group_task_creator_color: row.group_task_creator_color || null,
     group_task_creator_avatar_url: row.group_task_creator_avatar_url || null,
@@ -1330,7 +1333,7 @@ module.exports = async function handler(req, res) {
   if (segments.length === 0 && req.method === 'POST') {
     try {
       const { title, description, date, date_end, time, time_end, priority, category_id, reminder_at,
-              recurrence_rule, recurrence_interval, recurrence_end, group_id,
+              recurrence_rule, recurrence_interval, recurrence_end, group_id, group_category_id,
               visibility, permissions, type } = req.body;
       if (!title) {
         return res.status(400).json({ error: 'Titel ist erforderlich' });
@@ -1342,6 +1345,7 @@ module.exports = async function handler(req, res) {
       const finalVisibility = collabEnabled ? (visibility || 'private') : 'private';
 
       let groupInfo = null;
+      let groupCategoryInfo = null;
       if (group_id) {
         const groupAccess = await pool.query(
           `SELECT g.id, g.name, g.color, g.image_url
@@ -1355,6 +1359,20 @@ module.exports = async function handler(req, res) {
           return res.status(403).json({ error: 'Keine Berechtigung für diese Gruppe' });
         }
         groupInfo = groupAccess.rows[0];
+
+        if (group_category_id !== undefined && group_category_id !== null && String(group_category_id) !== '') {
+          const groupCategoryResult = await pool.query(
+            `SELECT id, name, color
+             FROM group_categories
+             WHERE id = $1 AND group_id = $2
+             LIMIT 1`,
+            [group_category_id, group_id]
+          );
+          if (groupCategoryResult.rows.length === 0) {
+            return res.status(400).json({ error: 'Ungültige Gruppenkategorie' });
+          }
+          groupCategoryInfo = groupCategoryResult.rows[0];
+        }
       }
 
       const maxOrder = await pool.query(
@@ -1402,10 +1420,10 @@ module.exports = async function handler(req, res) {
 
       if (groupInfo) {
         await pool.query(
-          `INSERT INTO group_tasks (group_id, task_id, created_by)
-           VALUES ($1, $2, $3)
+          `INSERT INTO group_tasks (group_id, task_id, created_by, group_category_id)
+           VALUES ($1, $2, $3, $4)
            ON CONFLICT DO NOTHING`,
-          [groupInfo.id, firstTask.id, user.id]
+          [groupInfo.id, firstTask.id, user.id, groupCategoryInfo?.id || null]
         );
 
         // Immediate team notification for other members (log + push best-effort)
@@ -1455,6 +1473,9 @@ module.exports = async function handler(req, res) {
         group_name: groupInfo?.name || null,
         group_color: groupInfo?.color || null,
         group_image_url: groupInfo?.image_url || null,
+        group_category_id: groupCategoryInfo?.id || null,
+        group_category_name: groupCategoryInfo?.name || null,
+        group_category_color: groupCategoryInfo?.color || null,
       });
 
       // 🚀 STUFE 3: Event-driven invalidation (instead of pattern-based)

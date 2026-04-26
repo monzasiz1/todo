@@ -62,6 +62,8 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
   const [recurrenceEnd, setRecurrenceEnd] = useState('');
   const [groups, setGroups] = useState([]);
   const [groupId, setGroupId] = useState('');
+  const [groupCategories, setGroupCategories] = useState([]);
+  const [groupCategoryId, setGroupCategoryId] = useState('');
   const [visibility, setVisibility] = useState('private');
   const [permissions, setPermissions] = useState([]);
   const [showSharing, setShowSharing] = useState(false);
@@ -105,6 +107,8 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
     setRecurrenceRule('');
     setRecurrenceEnd('');
     setGroupId('');
+    setGroupCategoryId('');
+    setGroupCategories([]);
     setVisibility('private');
     setPermissions([]);
     setShowSharing(false);
@@ -161,6 +165,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
         recurrence_interval: recurrenceRule ? 1 : null,
         recurrence_end: recurrenceEnd || null,
         group_id: groupId || null,
+        group_category_id: groupId ? (groupCategoryId || null) : null,
         visibility,
         permissions: visibility === 'selected_users'
           ? permissions.map((permission) => ({
@@ -215,6 +220,38 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
       setSaving(false);
     }
   };
+
+  useEffect(() => {
+    let mounted = true;
+    if (!groupId) {
+      setGroupCategories([]);
+      setGroupCategoryId('');
+      return () => {
+        mounted = false;
+      };
+    }
+
+    api.getGroupCategories(groupId)
+      .then((data) => {
+        if (!mounted) return;
+        const categories = Array.isArray(data?.categories) ? data.categories : [];
+        setGroupCategories(categories);
+        setGroupCategoryId((prev) => {
+          if (!prev) return '';
+          const exists = categories.some((cat) => String(cat.id) === String(prev));
+          return exists ? prev : '';
+        });
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setGroupCategories([]);
+        setGroupCategoryId('');
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [groupId]);
 
   return (
     <div className={`manual-task-attachment ${embedded ? 'embedded' : ''}`}>
@@ -437,6 +474,22 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
                 )}
               </div>
             </div>
+
+            {groupId && (
+              <div className="task-edit-field" style={{ marginBottom: 0 }}>
+                <label><Tag size={14} /> Gruppenkategorie</label>
+                <select
+                  value={groupCategoryId}
+                  onChange={(e) => setGroupCategoryId(e.target.value)}
+                  className="task-edit-input task-edit-select"
+                >
+                  <option value="">Keine Gruppenkategorie</option>
+                  {groupCategories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div className="task-edit-sharing" style={{ marginTop: 2 }}>
               <button
