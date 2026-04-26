@@ -209,6 +209,7 @@ export default function NotesPage() {
   const [isMobileView, setIsMobileView] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 640 : false));
   const [canvasViewport, setCanvasViewport] = useState({ left: 0, top: 0, right: 0, bottom: 0 });
   const [isCanvasFullscreen, setIsCanvasFullscreen] = useState(false);
+  const [isCanvasPseudoFullscreen, setIsCanvasPseudoFullscreen] = useState(false);
   const [fsToolbarPos, setFsToolbarPos] = useState({ x: 14, y: 86 });
   const canvasRef = useRef(null);
   const canvasShellRef = useRef(null);
@@ -324,7 +325,16 @@ export default function NotesPage() {
     if (!element) return;
 
     const activeFullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+    const canUseNativeFullscreen =
+      !!(element.requestFullscreen || element.webkitRequestFullscreen) &&
+      !!(document.exitFullscreen || document.webkitExitFullscreen);
+
     try {
+      if (!canUseNativeFullscreen) {
+        setIsCanvasPseudoFullscreen((prev) => !prev);
+        return;
+      }
+
       if (activeFullscreenElement === element) {
         if (document.exitFullscreen) {
           await document.exitFullscreen();
@@ -337,6 +347,7 @@ export default function NotesPage() {
       if (isMobileView) {
         setMobileViewMode('canvas');
       }
+      setIsCanvasPseudoFullscreen(false);
 
       if (element.requestFullscreen) {
         await element.requestFullscreen();
@@ -344,7 +355,8 @@ export default function NotesPage() {
         element.webkitRequestFullscreen();
       }
     } catch {
-      // Ignore browser restrictions (e.g. denied fullscreen gesture)
+      // Browser may reject native fullscreen on mobile. Fall back to pseudo fullscreen.
+      setIsCanvasPseudoFullscreen((prev) => !prev);
     }
   };
 
@@ -1890,6 +1902,17 @@ export default function NotesPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isCanvasPseudoFullscreen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isCanvasPseudoFullscreen]);
+
+  const canvasFullscreenActive = isCanvasFullscreen || isCanvasPseudoFullscreen;
+
   const renderConnection = (connection, index) => {
     const firstId = connection?.note_id_1 || connection?.noteId1;
     const secondId = connection?.note_id_2 || connection?.noteId2;
@@ -1925,7 +1948,7 @@ export default function NotesPage() {
   return (
     <div
       ref={containerRef}
-      className="notes-container"
+      className={`notes-container ${isCanvasPseudoFullscreen ? 'notes-pseudo-fullscreen' : ''}`}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
@@ -1966,8 +1989,9 @@ export default function NotesPage() {
                   <button type="button" className="header-tool-btn" onClick={openBlankCreateModalAtViewport} title="Neue Note">
                     <Plus size={16} />
                   </button>
-                  <button type="button" className={`header-tool-btn ${isCanvasFullscreen ? 'active' : ''}`} onClick={toggleCanvasFullscreen} title={isCanvasFullscreen ? 'Vollbild beenden' : 'Vollbild'}>
-                    {isCanvasFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                  <button type="button" className={`header-tool-btn header-tool-btn-fullscreen ${canvasFullscreenActive ? 'active' : ''}`} onClick={toggleCanvasFullscreen} title={canvasFullscreenActive ? 'Vollbild schließen' : 'Vollbild öffnen'}>
+                    {canvasFullscreenActive ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                    <span>{canvasFullscreenActive ? 'Schließen' : 'Vollbild'}</span>
                   </button>
                   <button type="button" className={`header-tool-btn ${quickConnectMode ? 'active' : ''}`} onClick={handleQuickConnectToggle}>
                     <Link2 size={16} />
@@ -2004,8 +2028,11 @@ export default function NotesPage() {
             <button className="zoom-btn" onClick={handleAutoLayout} title="Ordnen">
               <LayoutGrid size={18} />
             </button>
-            <button className="zoom-btn" onClick={resetZoomToViewport} title="An Bildschirm anpassen">
+            <button className="zoom-btn" onClick={resetZoomToViewport} title="Ansicht anpassen">
               <Maximize2 size={18} />
+            </button>
+            <button className={`zoom-btn ${canvasFullscreenActive ? 'active' : ''}`} onClick={toggleCanvasFullscreen} title={canvasFullscreenActive ? 'Vollbild schließen' : 'Vollbild öffnen'}>
+              {canvasFullscreenActive ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
             </button>
           </div>
         )}
@@ -2590,15 +2617,15 @@ export default function NotesPage() {
       <motion.button
         type="button"
         className="canvas-fullscreen-btn"
-        title={isCanvasFullscreen ? 'Vollbild beenden' : 'Tafel im Vollbild'}
+        title={canvasFullscreenActive ? 'Vollbild beenden' : 'Tafel im Vollbild'}
         onClick={toggleCanvasFullscreen}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.94 }}
       >
-        {isCanvasFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+        {canvasFullscreenActive ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
       </motion.button>
 
-      {isCanvasFullscreen && (
+      {canvasFullscreenActive && (
         <div
           ref={fsToolbarRef}
           className="notes-fs-toolbar"
