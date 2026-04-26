@@ -6,7 +6,7 @@ import { formatDistanceToNow, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 
 const TYPE_CONFIG = {
-  reminder: { icon: Clock, color: '#FF9500', label: 'Termin-Erinnerungen', desc: 'Wenn ein Termin ansteht' },
+  reminder: { icon: Clock, color: '#FF9500', label: 'Termin-Erinnerungen', desc: 'Automatisch 5 Std. vor Terminbeginn' },
   reminder_created: { icon: Clock, color: '#FFB340', label: 'Erinnerung geplant', desc: 'Beim Setzen einer Erinnerung' },
   daily_tasks: { icon: CheckCircle2, color: '#007AFF', label: 'Tägliche Zusammenfassung', desc: 'Offene Aufgaben am Abend' },
   engagement: { icon: Sparkles, color: '#AF52DE', label: 'Motivations-Tipps', desc: 'Nach längerer Inaktivität' },
@@ -22,7 +22,7 @@ const SETTINGS_CONFIG = [
     icon: Clock,
     color: '#FF9500',
     label: 'Erinnerungen',
-    desc: 'Termin-Erinnerung und Erinnerung geplant',
+    desc: 'Termin-Erinnerung (5 Std. vorher) und Erinnerung geplant',
     prefKeys: ['reminder'],
   },
   {

@@ -1,8 +1,12 @@
 const { getPool } = require('../_lib/db');
 const { sendPushToUser, wasSentToday, wasTaskReminderSent, wasTaskTypeSent } = require('../_lib/pushService');
 
+const REMINDER_GRACE_WINDOW = '6 hours';
+const EVENT_REMINDER_OFFSET = '5 hours';
+const EVENT_DEFAULT_START_TIME = '12:00';
+
 /**
- * Cron endpoint – called by Vercel Cron every 5 minutes.
+ * Cron endpoint – called by Vercel Cron every minute.
  * Handles:
  * 1. Termin-Erinnerungen (reminder_at fällig)
  * 2. Tägliche Aufgaben-Zusammenfassung (18 Uhr Nutzer-Timezone, Fallback UTC)
@@ -33,16 +37,35 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // ─── 1. Termin-Erinnerungen (reminder_at <= NOW und noch nicht gesendet) ───
+    // ─── 1. Termin-Erinnerungen ─────────────────────────────────────────────
+    // Events: always 5h before start
+    // Tasks: only explicit reminder_at
     const { rows: dueReminders } = await pool.query(
       `SELECT t.id, t.title, t.time, t.user_id, t.reminder_at,
+              CASE
+                WHEN t.type = 'event' AND t.date IS NOT NULL
+                  THEN ((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp - INTERVAL '${EVENT_REMINDER_OFFSET}')::timestamptz
+                ELSE t.reminder_at
+              END AS due_at,
               c.name as category_name, c.color as category_color
        FROM tasks t
        LEFT JOIN categories c ON t.category_id = c.id
        WHERE t.completed = false
-         AND t.reminder_at IS NOT NULL
-         AND t.reminder_at <= NOW()
-         AND t.reminder_at > NOW() - INTERVAL '24 hours'`
+         AND (
+           (
+             t.type = 'event'
+             AND t.date IS NOT NULL
+             AND ((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp - INTERVAL '${EVENT_REMINDER_OFFSET}')::timestamptz <= NOW()
+             AND ((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp - INTERVAL '${EVENT_REMINDER_OFFSET}')::timestamptz > NOW() - INTERVAL '${REMINDER_GRACE_WINDOW}'
+           )
+           OR
+           (
+             (t.type IS DISTINCT FROM 'event')
+             AND t.reminder_at IS NOT NULL
+             AND t.reminder_at <= NOW()
+             AND t.reminder_at > NOW() - INTERVAL '${REMINDER_GRACE_WINDOW}'
+           )
+         )`
     );
 
     for (const task of dueReminders) {

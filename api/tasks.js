@@ -4,6 +4,8 @@ const { cacheManager } = require('./_lib/cache');
 const { sendPushToUser } = require('./_lib/pushService');
 
 const REMINDER_GRACE_WINDOW = '6 hours';
+const EVENT_REMINDER_OFFSET = '5 hours';
+const EVENT_DEFAULT_START_TIME = '12:00';
 const APP_TIME_ZONE = process.env.APP_TIME_ZONE || 'Europe/Berlin';
 
 function formatReminderDateForLog(value) {
@@ -550,13 +552,30 @@ module.exports = async function handler(req, res) {
       try {
         result = await pool.query(
           `SELECT t.id, t.user_id, t.title, t.time, t.reminder_at, t.completed,
+                  CASE
+                    WHEN t.type = 'event' AND t.date IS NOT NULL
+                      THEN ((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp - INTERVAL '${EVENT_REMINDER_OFFSET}')::timestamptz
+                    ELSE t.reminder_at
+                  END AS due_at,
                   c.name as category_name, c.color as category_color
            FROM tasks t
            LEFT JOIN categories c ON t.category_id = c.id
            WHERE t.completed = false
-             AND t.reminder_at IS NOT NULL
-             AND t.reminder_at <= NOW()
-             AND t.reminder_at > NOW() - INTERVAL '${REMINDER_GRACE_WINDOW}'
+             AND (
+               (
+                 t.type = 'event'
+                 AND t.date IS NOT NULL
+                 AND ((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp - INTERVAL '${EVENT_REMINDER_OFFSET}')::timestamptz <= NOW()
+                 AND ((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp - INTERVAL '${EVENT_REMINDER_OFFSET}')::timestamptz > NOW() - INTERVAL '${REMINDER_GRACE_WINDOW}'
+               )
+               OR
+               (
+                 (t.type IS DISTINCT FROM 'event')
+                 AND t.reminder_at IS NOT NULL
+                 AND t.reminder_at <= NOW()
+                 AND t.reminder_at > NOW() - INTERVAL '${REMINDER_GRACE_WINDOW}'
+               )
+             )
              AND NOT EXISTS (
                SELECT 1
                FROM notification_log nl
@@ -578,7 +597,7 @@ module.exports = async function handler(req, res) {
                  WHERE gt.task_id = t.id AND gm.user_id = $1
                )
              )
-           ORDER BY t.reminder_at ASC`,
+           ORDER BY due_at ASC NULLS LAST`,
           [user.id]
         );
       } catch (err) {
@@ -586,14 +605,31 @@ module.exports = async function handler(req, res) {
         // Fallback: just user's own tasks
         result = await pool.query(
           `SELECT t.id, t.user_id, t.title, t.time, t.reminder_at, t.completed,
+                  CASE
+                    WHEN t.type = 'event' AND t.date IS NOT NULL
+                      THEN ((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp - INTERVAL '${EVENT_REMINDER_OFFSET}')::timestamptz
+                    ELSE t.reminder_at
+                  END AS due_at,
                   c.name as category_name, c.color as category_color
            FROM tasks t
            LEFT JOIN categories c ON t.category_id = c.id
            WHERE t.user_id = $1
              AND t.completed = false
-             AND t.reminder_at IS NOT NULL
-             AND t.reminder_at <= NOW()
-             AND t.reminder_at > NOW() - INTERVAL '${REMINDER_GRACE_WINDOW}'
+             AND (
+               (
+                 t.type = 'event'
+                 AND t.date IS NOT NULL
+                 AND ((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp - INTERVAL '${EVENT_REMINDER_OFFSET}')::timestamptz <= NOW()
+                 AND ((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp - INTERVAL '${EVENT_REMINDER_OFFSET}')::timestamptz > NOW() - INTERVAL '${REMINDER_GRACE_WINDOW}'
+               )
+               OR
+               (
+                 (t.type IS DISTINCT FROM 'event')
+                 AND t.reminder_at IS NOT NULL
+                 AND t.reminder_at <= NOW()
+                 AND t.reminder_at > NOW() - INTERVAL '${REMINDER_GRACE_WINDOW}'
+               )
+             )
              AND NOT EXISTS (
                SELECT 1
                FROM notification_log nl
@@ -601,7 +637,7 @@ module.exports = async function handler(req, res) {
                  AND nl.task_id = t.id
                  AND nl.type IN ('reminder', 'reminder_seen')
              )
-           ORDER BY t.reminder_at ASC`,
+           ORDER BY due_at ASC NULLS LAST`,
           [user.id]
         );
       }
