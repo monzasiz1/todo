@@ -1404,6 +1404,17 @@ export default function NotesPage() {
   };
 
   const handleTouchMove = (event) => {
+    // Track movement on canvas text drags to distinguish tap vs drag
+    if (event.touches.length === 1) {
+      const drag = isDraggingRef.current;
+      if (drag?.textId && !drag.didMove) {
+        const touch = event.touches[0];
+        const dx = touch.clientX - (drag.touchStartX || drag.startClientX);
+        const dy = touch.clientY - (drag.touchStartY || drag.startClientY);
+        if (Math.hypot(dx, dy) > 8) drag.didMove = true;
+      }
+    }
+
     if (pinchStateRef.current && canvasContentRef.current && event.touches.length === 2) {
       const ps = pinchStateRef.current;
       const [first, second] = event.touches;
@@ -1528,6 +1539,8 @@ export default function NotesPage() {
     pinchStateRef.current = null;
     isDraggingRef.current = null;
     setIsDragging(null);
+    // Close edit mode if a drag happened
+    setEditingCanvasTextId(null);
   };
 
   const handleAutoLayout = async () => {
@@ -3076,7 +3089,7 @@ export default function NotesPage() {
         onDrop={handleCanvasDrop}
         style={{ cursor: isDragging?.isPan ? 'grabbing' : 'grab', touchAction: 'none' }}
       >
-        <div ref={canvasContentRef} className="canvas-content" style={{ transform: `scale(${zoom / 100})`, transformOrigin: '0 0' }}>
+        <div ref={canvasContentRef} className="canvas-content" style={{ transform: `scale(${zoom / 100})`, transformOrigin: '0 0', willChange: 'transform' }}>
           {/* SVG Connections */}
           <svg className="connections-svg" aria-hidden="true">
             <defs>
@@ -3119,25 +3132,41 @@ export default function NotesPage() {
                   event.stopPropagation();
                   const touch = event.touches[0];
                   const resolved = getCanvasTextPosition(entry);
+                  const touchStartX = touch.clientX;
+                  const touchStartY = touch.clientY;
                   const dragState = {
                     textId: entry.id,
                     attachedNoteId: entry.attached_note_id || null,
                     basePos: resolved,
-                    startClientX: touch.clientX,
-                    startClientY: touch.clientY,
-                    lastClientX: touch.clientX,
-                    lastClientY: touch.clientY,
+                    startClientX: touchStartX,
+                    startClientY: touchStartY,
+                    lastClientX: touchStartX,
+                    lastClientY: touchStartY,
                     pointerId: null,
                     pointerType: 'touch',
+                    touchStartX,
+                    touchStartY,
+                    didMove: false,
                   };
                   isDraggingRef.current = dragState;
                   setIsDragging(dragState);
                   setActiveCanvasTextId(entry.id);
                 }}
+                onTouchEnd={(event) => {
+                  const drag = isDraggingRef.current;
+                  // If barely moved = tap, not drag
+                  if (drag?.textId === entry.id && !drag.didMove) {
+                    // tap: activate or enter edit
+                    if (String(activeCanvasTextId || '') === String(entry.id)) {
+                      setEditingCanvasTextId(entry.id);
+                    }
+                  }
+                }}
                 onClick={(event) => {
                   event.stopPropagation();
+                  // Only handle mouse clicks here — touch is handled by onTouchEnd
+                  if (event.pointerType === 'touch') return;
                   if (String(activeCanvasTextId || '') === String(entry.id)) {
-                    // second tap on already-active → enter edit mode
                     setEditingCanvasTextId(entry.id);
                   } else {
                     setActiveCanvasTextId(entry.id);
