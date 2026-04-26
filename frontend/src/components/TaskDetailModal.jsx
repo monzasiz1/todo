@@ -354,6 +354,20 @@ export default function TaskDetailModal({ task, onClose, onUpdated }) {
                 </div>
               </div>
             )}
+            {task.group_category_name && (
+              <div className="task-detail-item">
+                <div className="task-detail-item-icon" style={{ color: task.group_category_color || '#8E8E93' }}><Tag size={18} /></div>
+                <div>
+                  <div className="task-detail-item-label">Gruppenkategorie</div>
+                  <div className="task-detail-item-value">
+                    <span className="task-detail-category-badge" style={{ background: task.group_category_color ? `${task.group_category_color}18` : 'rgba(142,142,147,0.12)', color: task.group_category_color || '#636366', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: task.group_category_color || '#8E8E93', flexShrink: 0, display: 'inline-block' }} />
+                      {task.group_category_name}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
             {task.reminder_at && (
               <div className="task-detail-item">
                 <div className="task-detail-item-icon" style={{ color: 'var(--warning)' }}><Bell size={18} /></div>
