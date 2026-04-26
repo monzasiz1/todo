@@ -3,6 +3,27 @@ import { useTaskStore } from '../store/taskStore';
 import { useNotificationStore } from '../store/notificationStore';
 import { api } from '../utils/api';
 
+const REMINDER_GRACE_MS = 6 * 60 * 60 * 1000;
+const REMINDER_SEEN_KEY = 'taski_reminder_seen_v1';
+
+function readSeenReminderMap() {
+  try {
+    const raw = localStorage.getItem(REMINDER_SEEN_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeSeenReminderMap(map) {
+  try {
+    localStorage.setItem(REMINDER_SEEN_KEY, JSON.stringify(map || {}));
+  } catch {
+    // ignore quota/security errors
+  }
+}
+
 /**
  * Client-side Reminder Checker – läuft alle 30 Sekunden,
  * prüft ob Tasks mit reminder_at fällig sind und zeigt:
@@ -14,6 +35,7 @@ export default function ReminderChecker() {
   const { addToast } = useTaskStore();
   const { fetchLog, addLocalNotification } = useNotificationStore();
   const firedRef = useRef(new Set()); // Track already-fired reminders
+  const seenMapRef = useRef(readSeenReminderMap());
 
   const buildReminderKey = (task) => `${task.id}:${task.reminder_at || ''}`;
 
@@ -59,12 +81,14 @@ export default function ReminderChecker() {
       for (const task of dueTasks) {
         if (!task.reminder_at || task.completed) continue;
         const reminderKey = buildReminderKey(task);
-        if (firedRef.current.has(reminderKey)) continue;
+        if (firedRef.current.has(reminderKey) || seenMapRef.current[reminderKey]) continue;
 
         const reminderTime = new Date(task.reminder_at).getTime();
-        // Fire if reminder is due (within the last 12 hours)
-        if (reminderTime <= now && reminderTime > now - 12 * 60 * 60 * 1000) {
+        // Fire only within a bounded grace window to avoid very old reminders reappearing.
+        if (reminderTime <= now && reminderTime > now - REMINDER_GRACE_MS) {
           firedRef.current.add(reminderKey);
+          seenMapRef.current[reminderKey] = Date.now();
+          writeSeenReminderMap(seenMapRef.current);
           firedAny = true;
 
           const title = '⏰ Erinnerung';
@@ -139,6 +163,16 @@ export default function ReminderChecker() {
           firedRef.current.delete(key);
         }
       }
+
+      const threshold = Date.now() - 24 * 60 * 60 * 1000;
+      const nextSeen = {};
+      for (const [key, seenAt] of Object.entries(seenMapRef.current || {})) {
+        if (Number.isFinite(seenAt) && seenAt >= threshold) {
+          nextSeen[key] = seenAt;
+        }
+      }
+      seenMapRef.current = nextSeen;
+      writeSeenReminderMap(nextSeen);
     }, 60000);
     return () => clearInterval(cleanup);
   }, []);

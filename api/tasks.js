@@ -3,6 +3,8 @@ const { verifyToken, cors } = require('./_lib/auth');
 const { cacheManager } = require('./_lib/cache');
 const { sendPushToUser } = require('./_lib/pushService');
 
+const REMINDER_GRACE_WINDOW = '6 hours';
+
 function calcNextDate(currentDate, rule, interval) {
   if (!currentDate) return null;
   const d = new Date(currentDate);
@@ -540,7 +542,7 @@ module.exports = async function handler(req, res) {
            WHERE t.completed = false
              AND t.reminder_at IS NOT NULL
              AND t.reminder_at <= NOW()
-             AND t.reminder_at > NOW() - INTERVAL '24 hours'
+             AND t.reminder_at > NOW() - INTERVAL '${REMINDER_GRACE_WINDOW}'
              AND NOT EXISTS (
                SELECT 1
                FROM notification_log nl
@@ -577,7 +579,7 @@ module.exports = async function handler(req, res) {
              AND t.completed = false
              AND t.reminder_at IS NOT NULL
              AND t.reminder_at <= NOW()
-             AND t.reminder_at > NOW() - INTERVAL '24 hours'
+             AND t.reminder_at > NOW() - INTERVAL '${REMINDER_GRACE_WINDOW}'
              AND NOT EXISTS (
                SELECT 1
                FROM notification_log nl

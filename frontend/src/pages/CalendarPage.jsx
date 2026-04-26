@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Calendar from '../components/Calendar';
 import DayCreateModal from '../components/DayCreateModal';
@@ -32,6 +32,17 @@ export default function CalendarPage() {
   const handleVisibleRangeChange = (start, end) => {
     loadRange(start, end);
   };
+
+  useEffect(() => {
+    const onTasksChanged = () => {
+      if (visibleRange.start && visibleRange.end) {
+        loadRange(visibleRange.start, visibleRange.end, true);
+      }
+    };
+
+    window.addEventListener('taski:tasks-changed', onTasksChanged);
+    return () => window.removeEventListener('taski:tasks-changed', onTasksChanged);
+  }, [visibleRange.start, visibleRange.end]);
 
   const handleTaskUpdated = (updatedTask) => {
     setCalendarTasks((prev) => prev.map((t) => (t.id === updatedTask.id ? { ...t, ...updatedTask } : t)));

@@ -22,6 +22,12 @@ function writeCachedTasks(tasks) {
   }
 }
 
+function emitTasksChanged() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('taski:tasks-changed'));
+  }
+}
+
 export const useTaskStore = create((set, get) => ({
   tasks: readCachedTasks(),
   taskSummary: { open: 0, completed: 0, today: 0, urgent: 0 },
@@ -57,7 +63,9 @@ export const useTaskStore = create((set, get) => ({
 
     set({ loading: true });
     try {
-      const useDashboardEndpoint = params?.dashboard === 'true' || params?.dashboard === true || params?.lite === 'true' || params?.lite === true;
+      // Keep one canonical task source for dashboard/calendar sync.
+      // Only explicit lite mode may use the dashboard endpoint.
+      const useDashboardEndpoint = params?.lite === 'true' || params?.lite === true;
       const requestParams = { ...params };
       delete requestParams.dashboard;
       const data = useDashboardEndpoint ? await api.getDashboardTasks(requestParams) : await api.getTasks(requestParams);
@@ -122,6 +130,7 @@ export const useTaskStore = create((set, get) => ({
         ? data.created_tasks
         : [data.task];
       set((s) => ({ tasks: [...created, ...s.tasks] }));
+      emitTasksChanged();
       const groupMsg = data.group?.name ? ` · Gruppe: ${data.group.name}` : '';
       const recurrenceMsg = (data.created_count || 0) > 1
         ? ` · ${data.created_count} Termine erstellt`
@@ -245,6 +254,7 @@ export const useTaskStore = create((set, get) => ({
         ? data.created_tasks
         : [data.task];
       set((s) => ({ tasks: [...created, ...s.tasks] }));
+      emitTasksChanged();
       const cat = data.parsed.category ? ` → ${data.parsed.category}` : '';
       const range = data.parsed.date_end ? ` (${data.parsed.date} bis ${data.parsed.date_end})` : '';
       const shared = data.shared_with && data.shared_with.length > 0
@@ -290,6 +300,7 @@ export const useTaskStore = create((set, get) => ({
       // Reset fetch cache to force next load from server (ensures consistency)
       set({ lastTasksFetchKey: '', lastTasksFetchAt: 0 });
       console.log(`[taskStore] Invalidated fetch cache, next load will fetch fresh data`);
+      emitTasksChanged();
       
       const current = get().tasks.find((t) => t.id === id);
       return current || data.task;
@@ -317,6 +328,7 @@ export const useTaskStore = create((set, get) => ({
         tasks = [data.nextTask, ...tasks];
       }
       set({ tasks });
+      emitTasksChanged();
       const task = data.task;
       if (task.completed && data.nextTask) {
         get().addToast('✅ Erledigt! 🔄 Nächste Wiederholung erstellt');
@@ -339,6 +351,7 @@ export const useTaskStore = create((set, get) => ({
   reorderTasks: async (taskIds) => {
     try {
       await api.reorderTasks(taskIds);
+      emitTasksChanged();
     } catch (err) {
       get().addToast('❌ ' + err.message, 'error');
     }
@@ -351,6 +364,7 @@ export const useTaskStore = create((set, get) => ({
     try {
       await api.deleteTask(id);
       get().addToast('🗑️ Gelöscht');
+      emitTasksChanged();
     } catch (err) {
       set({ tasks: prev });
       get().addToast('❌ ' + err.message, 'error');

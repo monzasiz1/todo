@@ -293,13 +293,23 @@ export default function Dashboard() {
         completed_lookback_days: DASHBOARD_COMPLETED_LOOKBACK_DAYS,
       }, { force: true });
     };
+    const refreshOnTaskChanged = () => {
+      fetchTasks({
+        dashboard: 'true',
+        limit: DASHBOARD_FETCH_LIMIT,
+        horizon_days: DASHBOARD_HORIZON_DAYS,
+        completed_lookback_days: DASHBOARD_COMPLETED_LOOKBACK_DAYS,
+      }, { force: true });
+    };
     window.addEventListener('focus', refreshOnFocus);
     document.addEventListener('visibilitychange', refreshOnFocus);
+    window.addEventListener('taski:tasks-changed', refreshOnTaskChanged);
 
     return () => {
       clearInterval(interval);
       window.removeEventListener('focus', refreshOnFocus);
       document.removeEventListener('visibilitychange', refreshOnFocus);
+      window.removeEventListener('taski:tasks-changed', refreshOnTaskChanged);
     };
   }, []);
 
