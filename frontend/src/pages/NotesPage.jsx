@@ -174,6 +174,7 @@ export default function NotesPage() {
   const [commentDraft, setCommentDraft] = useState('');
   const [notePeopleMap, setNotePeopleMap] = useState(() => readNotePeopleCache());
   const [isMobileView, setIsMobileView] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 640 : false));
+  const [canvasViewport, setCanvasViewport] = useState({ left: 0, top: 0, right: 0, bottom: 0 });
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const pinchStateRef = useRef(null);
@@ -673,6 +674,17 @@ export default function NotesPage() {
 
   const clampZoom = (value) => Math.min(220, Math.max(25, value));
 
+  const updateCanvasViewport = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const scale = zoom / 100;
+    const left = canvas.scrollLeft / scale;
+    const top = canvas.scrollTop / scale;
+    const right = left + (canvas.clientWidth / scale);
+    const bottom = top + (canvas.clientHeight / scale);
+    setCanvasViewport({ left, top, right, bottom });
+  };
+
   const moveDragging = (clientX, clientY) => {
     if (isDragging?.isPan && canvasRef.current) {
       const deltaX = clientX - isDragging.x;
@@ -704,6 +716,25 @@ export default function NotesPage() {
     }
   };
 
+  const handlePointerMove = (event) => {
+    if (!isDragging?.isPan && !isDragging?.noteId) return;
+    if (isDragging?.pointerId != null && event.pointerId !== isDragging.pointerId) return;
+    moveDragging(event.clientX, event.clientY);
+  };
+
+  const handlePointerUp = (event) => {
+    if (!isDragging?.isPan && !isDragging?.noteId) return;
+    if (isDragging?.pointerId != null && event.pointerId !== isDragging.pointerId) return;
+
+    if (isDragging?.noteId) {
+      const pos = notePositions[isDragging.noteId];
+      if (pos) {
+        updateNotePosition(isDragging.noteId, pos.x, pos.y, true);
+      }
+    }
+    setIsDragging(null);
+  };
+
   // Handle canvas pan
   const handleCanvasMouseDown = (e) => {
     if (e.button === 2) return;
@@ -720,6 +751,18 @@ export default function NotesPage() {
     setHoveredTaskPreview(null);
     setCanvasContextMenu(null);
     setIsDragging({ x: e.clientX, y: e.clientY, isPan: true });
+  };
+
+  const handleCanvasPointerDown = (event) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    if (event.pointerType === 'touch') return;
+    if (event.target.closest('.modal-overlay')) return;
+    if (event.target.closest('.note-card, button, input, textarea, select, a')) return;
+
+    setActiveNoteId(null);
+    setHoveredTaskPreview(null);
+    setCanvasContextMenu(null);
+    setIsDragging({ x: event.clientX, y: event.clientY, isPan: true, pointerId: event.pointerId, pointerType: event.pointerType });
   };
 
   const handleCanvasContextMenu = (event) => {
@@ -935,6 +978,16 @@ export default function NotesPage() {
     if (e.target.closest('button, input, textarea, select, a')) return;
     e.stopPropagation();
     setIsDragging({ noteId, startX: e.clientX, startY: e.clientY });
+  };
+
+  const handleNotePointerDown = (event, noteId) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    if (event.target.closest('button, input, textarea, select, a')) return;
+    if (event.pointerType === 'touch' && event.isPrimary === false) return;
+
+    event.stopPropagation();
+    setActiveNoteId(noteId);
+    setIsDragging({ noteId, startX: event.clientX, startY: event.clientY, pointerId: event.pointerId, pointerType: event.pointerType });
   };
 
   const handleNoteTouchStart = (event, noteId) => {
@@ -1474,6 +1527,57 @@ export default function NotesPage() {
     };
   };
 
+  const visibleNoteIds = useMemo(() => {
+    const padding = 160;
+    const ids = new Set();
+    notes.forEach((note) => {
+      const position = notePositions[note.id] || { x: note.x ?? 100, y: note.y ?? 100 };
+      const width = note.width || 300;
+      const height = note.height || 150;
+      const noteLeft = position.x;
+      const noteTop = position.y;
+      const noteRight = noteLeft + width;
+      const noteBottom = noteTop + height;
+
+      const outside =
+        noteRight < canvasViewport.left - padding ||
+        noteLeft > canvasViewport.right + padding ||
+        noteBottom < canvasViewport.top - padding ||
+        noteTop > canvasViewport.bottom + padding;
+
+      if (!outside) ids.add(String(note.id));
+    });
+    return ids;
+  }, [notes, notePositions, canvasViewport]);
+
+  const visibleConnections = useMemo(() => {
+    return connections.filter((connection) => {
+      const firstId = String(connection?.note_id_1 || connection?.noteId1 || '');
+      const secondId = String(connection?.note_id_2 || connection?.noteId2 || '');
+      return firstId && secondId && visibleNoteIds.has(firstId) && visibleNoteIds.has(secondId);
+    });
+  }, [connections, visibleNoteIds]);
+
+  useEffect(() => {
+    updateCanvasViewport();
+  }, [zoom, notes.length, notePositions]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const onScroll = () => updateCanvasViewport();
+    const onResize = () => updateCanvasViewport();
+
+    canvas.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onResize);
+
+    return () => {
+      canvas.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onResize);
+    };
+  }, []);
+
   const renderConnection = (connection, index) => {
     const firstId = connection?.note_id_1 || connection?.noteId1;
     const secondId = connection?.note_id_2 || connection?.noteId2;
@@ -1510,9 +1614,9 @@ export default function NotesPage() {
     <div
       ref={containerRef}
       className="notes-container"
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
     >
@@ -1915,11 +2019,11 @@ export default function NotesPage() {
       <div
         className="notes-canvas"
         ref={canvasRef}
-        onMouseDown={handleCanvasMouseDown}
+        onPointerDown={handleCanvasPointerDown}
         onContextMenu={handleCanvasContextMenu}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchEnd}
         onDragOver={(event) => event.preventDefault()}
@@ -1943,7 +2047,7 @@ export default function NotesPage() {
                 </feMerge>
               </filter>
             </defs>
-            {connections.map(renderConnection)}
+            {visibleConnections.map(renderConnection)}
           </svg>
 
           {/* Notes */}
@@ -1994,8 +2098,7 @@ export default function NotesPage() {
                   whileHover={{ y: -8 }}
                   onMouseEnter={() => setHoveredNoteId(note.id)}
                   onMouseLeave={() => setHoveredNoteId(null)}
-                  onMouseDown={(e) => handleNoteMouseDown(e, note.id)}
-                  onTouchStart={(event) => handleNoteTouchStart(event, note.id)}
+                  onPointerDown={(event) => handleNotePointerDown(event, note.id)}
                   onClick={(event) => handleNoteCardClick(event, note.id)}
                 >
                   <div className="note-header">

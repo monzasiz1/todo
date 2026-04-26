@@ -107,7 +107,7 @@ export default function ReminderChecker() {
 
           // 2b. Persist reminder delivery to server log for cross-session dedupe
           api.createNotificationLog?.({
-            type: 'reminder',
+            type: 'reminder_seen',
             task_id: task.id,
             title,
             body,

@@ -142,7 +142,7 @@ module.exports = async function handler(req, res) {
         ? null
         : Number.parseInt(String(rawTaskId), 10);
 
-      const allowedTypes = new Set(['reminder', 'group_message', 'team_task', 'team_task_created', 'test']);
+      const allowedTypes = new Set(['reminder', 'reminder_seen', 'group_message', 'team_task', 'team_task_created', 'test']);
       if (!allowedTypes.has(type)) {
         return res.status(400).json({ error: 'Ungueltiger Typ' });
       }

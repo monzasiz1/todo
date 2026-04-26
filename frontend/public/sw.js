@@ -343,7 +343,7 @@ async function checkAndShowDueReminders() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            type: 'reminder',
+            type: 'reminder_seen',
             task_id: task.id,
             title,
             body,

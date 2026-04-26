@@ -4,6 +4,20 @@ const { cacheManager } = require('./_lib/cache');
 const { sendPushToUser } = require('./_lib/pushService');
 
 const REMINDER_GRACE_WINDOW = '6 hours';
+const APP_TIME_ZONE = process.env.APP_TIME_ZONE || 'Europe/Berlin';
+
+function formatReminderDateForLog(value) {
+  const reminderDate = new Date(value);
+  if (Number.isNaN(reminderDate.getTime())) {
+    return String(value);
+  }
+
+  return new Intl.DateTimeFormat('de-DE', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: APP_TIME_ZONE,
+  }).format(reminderDate);
+}
 
 function calcNextDate(currentDate, rule, interval) {
   if (!currentDate) return null;
@@ -548,7 +562,7 @@ module.exports = async function handler(req, res) {
                FROM notification_log nl
                WHERE nl.user_id = $1
                  AND nl.task_id = t.id
-                 AND nl.type = 'reminder'
+                 AND nl.type IN ('reminder', 'reminder_seen')
              )
              AND (
                t.user_id = $1
@@ -585,7 +599,7 @@ module.exports = async function handler(req, res) {
                FROM notification_log nl
                WHERE nl.user_id = $1
                  AND nl.task_id = t.id
-                 AND nl.type = 'reminder'
+                 AND nl.type IN ('reminder', 'reminder_seen')
              )
            ORDER BY t.reminder_at ASC`,
           [user.id]
@@ -1364,10 +1378,7 @@ module.exports = async function handler(req, res) {
 
       // Immediate in-app info when a reminder was scheduled
       if (reminder_at) {
-        const reminderDate = new Date(reminder_at);
-        const formatted = Number.isNaN(reminderDate.getTime())
-          ? String(reminder_at)
-          : reminderDate.toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' });
+        const formatted = formatReminderDateForLog(reminder_at);
 
         await pool.query(
           `INSERT INTO notification_log (user_id, type, task_id, title, body)
