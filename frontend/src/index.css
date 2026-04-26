@@ -130,6 +130,10 @@ input, textarea, select {
   margin: 0 auto;
 }
 
+.app-content-shell.notes-full-width {
+  max-width: none;
+}
+
 @media (min-width: 1800px) {
   .app-content-shell {
     max-width: 1600px;

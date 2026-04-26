@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import FeedbackToast from './FeedbackToast';
 import BottomNav from './BottomNav';
@@ -12,6 +12,8 @@ import HelpChat from './HelpChat';
 import GroupChatPanel from './GroupChatPanel';
 
 export default function Layout() {
+  const location = useLocation();
+  const isNotesRoute = location.pathname === '/notes';
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
@@ -115,7 +117,7 @@ export default function Layout() {
 
       {/* Main Content */}
       <main className={`app-main ${sidebarCollapsed ? 'desktop-sidebar-collapsed' : ''}`}>
-        <div className="app-content-shell">
+        <div className={`app-content-shell ${isNotesRoute ? 'notes-full-width' : ''}`}>
           <Outlet />
         </div>
       </main>
