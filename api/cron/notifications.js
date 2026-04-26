@@ -10,9 +10,15 @@ const { sendPushToUser, wasSentToday, wasTaskReminderSent, wasTaskTypeSent } = r
  * 4. Team-Aufgaben-Benachrichtigungen
  */
 module.exports = async function handler(req, res) {
-  // Verify cron secret (Vercel sends Authorization header)
+  // Verify cron request.
+  // Prefer CRON_SECRET when configured; otherwise accept native Vercel cron header.
   const authHeader = req.headers.authorization;
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  const cronSecret = process.env.CRON_SECRET;
+  const hasSecret = Boolean(cronSecret);
+  const authOk = hasSecret && authHeader === `Bearer ${cronSecret}`;
+  const isVercelCron = String(req.headers['x-vercel-cron'] || '') === '1';
+
+  if (!authOk && !(isVercelCron && !hasSecret)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
