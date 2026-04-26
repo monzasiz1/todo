@@ -2309,6 +2309,21 @@
   color: var(--primary);
 }
 
+.note-rich-btn:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+
+.note-rich-status {
+  font-size: 12px;
+  line-height: 1.35;
+  margin-bottom: 7px;
+}
+
+.note-rich-status.error {
+  color: #b42318;
+}
+
 .note-rich-image-input {
   display: none;
 }

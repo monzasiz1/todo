@@ -4,6 +4,7 @@ import { useNotesStore } from '../store/notesStore';
 import { useFriendsStore } from '../store/friendsStore';
 import { useTaskStore } from '../store/taskStore';
 import { useAuthStore } from '../store/authStore';
+import { api } from '../utils/api';
 import '../styles/notes.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import TaskDetailModal from '../components/TaskDetailModal';
@@ -260,6 +261,64 @@ function markdownToPlainText(content) {
     .trim();
 }
 
+function splitChecklistCandidates(line) {
+  const trimmed = String(line || '').trim();
+  if (!trimmed) return [];
+
+  const normalized = trimmed
+    .replace(/^[-*]\s\[(x|X|\s)\]\s+/, '')
+    .replace(/^[-*]\s+/, '')
+    .replace(/^#+\s+/, '')
+    .trim();
+
+  if (!normalized) return [];
+
+  if (normalized.includes(',') || normalized.includes(';')) {
+    return normalized
+      .split(/[;,]/)
+      .map((part) => part.trim())
+      .filter(Boolean);
+  }
+
+  const words = normalized.split(/\s+/);
+  if (normalized.includes(' und ') && words.length <= 8) {
+    return normalized
+      .split(/\bund\b/i)
+      .map((part) => part.trim())
+      .filter(Boolean);
+  }
+
+  return [normalized];
+}
+
+function fallbackChecklistFromText(input) {
+  const text = String(input || '').trim();
+  if (!text) return [];
+
+  const source = text
+    .replace(/\r/g, '\n')
+    .replace(/^.*?:\s*/m, (m) => (m.length < 40 ? '' : m));
+
+  const items = source
+    .split('\n')
+    .flatMap(splitChecklistCandidates)
+    .map((entry) => entry.replace(/^[\d)\].\-\s]+/, '').trim())
+    .filter((entry) => entry.length >= 2)
+    .slice(0, 20);
+
+  return [...new Set(items.map((entry) => entry.toLowerCase()))]
+    .map((lower) => items.find((entry) => entry.toLowerCase() === lower))
+    .filter(Boolean);
+}
+
+function checklistItemsToMarkdown(items = []) {
+  return items
+    .map((entry) => String(entry || '').trim())
+    .filter(Boolean)
+    .map((entry) => `- [ ] ${entry}`)
+    .join('\n');
+}
+
 export default function NotesPage() {
   const { notes, createNote, updateNote, deleteNote, linkNoteToTask, shareNoteWithFriend, unshareNoteForFriend, connectNotes, disconnectNotes, getNoteConnections } = useNotesStore();
   const { friends, fetchFriends } = useFriendsStore();
@@ -310,6 +369,8 @@ export default function NotesPage() {
   const [isCanvasFullscreen, setIsCanvasFullscreen] = useState(false);
   const [isCanvasPseudoFullscreen, setIsCanvasPseudoFullscreen] = useState(false);
   const [fsToolbarPos, setFsToolbarPos] = useState({ x: 14, y: 86 });
+  const [newChecklistStatus, setNewChecklistStatus] = useState({ loading: false, error: '' });
+  const [editChecklistStatus, setEditChecklistStatus] = useState({ loading: false, error: '' });
   const canvasRef = useRef(null);
   const canvasShellRef = useRef(null);
   const containerRef = useRef(null);
@@ -1676,6 +1737,49 @@ export default function NotesPage() {
     event.target.value = '';
   };
 
+  const generateChecklistForDraft = async (draft, setDraft, setStatus) => {
+    const contentSource = String(draft?.content || '').trim();
+    const titleSource = String(draft?.title || '').trim();
+    const input = contentSource || titleSource;
+
+    if (!input) {
+      setStatus({ loading: false, error: 'Bitte zuerst Text in den Inhalt schreiben.' });
+      return;
+    }
+
+    setStatus({ loading: true, error: '' });
+
+    try {
+      const response = await api.parseNoteChecklist(input);
+      const aiItems = Array.isArray(response?.parsed?.items)
+        ? response.parsed.items
+            .map((entry) => String(entry?.text || '').trim())
+            .filter(Boolean)
+        : [];
+
+      const fallbackItems = aiItems.length > 0 ? [] : fallbackChecklistFromText(input);
+      const mergedItems = aiItems.length > 0 ? aiItems : fallbackItems;
+
+      if (mergedItems.length === 0) {
+        setStatus({ loading: false, error: 'Keine sinnvollen To-do-Punkte erkannt.' });
+        return;
+      }
+
+      const checklistMarkdown = checklistItemsToMarkdown(mergedItems);
+      setDraft({ ...draft, content: checklistMarkdown });
+      setStatus({ loading: false, error: '' });
+    } catch (_err) {
+      const fallbackItems = fallbackChecklistFromText(input);
+      if (fallbackItems.length === 0) {
+        setStatus({ loading: false, error: 'KI derzeit nicht erreichbar und keine Liste erkennbar.' });
+        return;
+      }
+      const checklistMarkdown = checklistItemsToMarkdown(fallbackItems);
+      setDraft({ ...draft, content: checklistMarkdown });
+      setStatus({ loading: false, error: '' });
+    }
+  };
+
   const handleQuickConnectToggle = () => {
     setQuickConnectMode((prev) => {
       if (prev) setSelectedNote(null);
@@ -2140,6 +2244,18 @@ export default function NotesPage() {
   }, [isCanvasPseudoFullscreen]);
 
   const canvasFullscreenActive = isCanvasFullscreen || isCanvasPseudoFullscreen;
+
+  useEffect(() => {
+    if (!showCreateModal) {
+      setNewChecklistStatus({ loading: false, error: '' });
+    }
+  }, [showCreateModal]);
+
+  useEffect(() => {
+    if (!editingNote) {
+      setEditChecklistStatus({ loading: false, error: '' });
+    }
+  }, [editingNote]);
 
   const renderConnection = (connection, index) => {
     const firstId = connection?.note_id_1 || connection?.noteId1;
@@ -3210,8 +3326,17 @@ export default function NotesPage() {
                   <button type="button" className="note-rich-btn" onClick={() => applyContentCommand(newNoteContentRef, newNote.content, (content) => setNewNote({ ...newNote, content }), 'checkbox')}>Checkbox</button>
                   <button type="button" className="note-rich-btn" onClick={() => applyContentCommand(newNoteContentRef, newNote.content, (content) => setNewNote({ ...newNote, content }), 'bold')}>Fett</button>
                   <button type="button" className="note-rich-btn" onClick={() => applyContentCommand(newNoteContentRef, newNote.content, (content) => setNewNote({ ...newNote, content }), 'italic')}>Kursiv</button>
+                  <button
+                    type="button"
+                    className="note-rich-btn"
+                    disabled={newChecklistStatus.loading}
+                    onClick={() => generateChecklistForDraft(newNote, setNewNote, setNewChecklistStatus)}
+                  >
+                    {newChecklistStatus.loading ? 'KI ...' : 'KI To-do'}
+                  </button>
                   <button type="button" className="note-rich-btn" onClick={() => newNoteImageInputRef.current?.click()}>Bild</button>
                 </div>
+                {newChecklistStatus.error && <div className="note-rich-status error">{newChecklistStatus.error}</div>}
                 <textarea
                   ref={newNoteContentRef}
                   className="form-textarea"
@@ -3432,8 +3557,17 @@ export default function NotesPage() {
                   <button type="button" className="note-rich-btn" onClick={() => applyContentCommand(editNoteContentRef, editingNote.content, (content) => setEditingNote({ ...editingNote, content }), 'checkbox')}>Checkbox</button>
                   <button type="button" className="note-rich-btn" onClick={() => applyContentCommand(editNoteContentRef, editingNote.content, (content) => setEditingNote({ ...editingNote, content }), 'bold')}>Fett</button>
                   <button type="button" className="note-rich-btn" onClick={() => applyContentCommand(editNoteContentRef, editingNote.content, (content) => setEditingNote({ ...editingNote, content }), 'italic')}>Kursiv</button>
+                  <button
+                    type="button"
+                    className="note-rich-btn"
+                    disabled={editChecklistStatus.loading}
+                    onClick={() => generateChecklistForDraft(editingNote, setEditingNote, setEditChecklistStatus)}
+                  >
+                    {editChecklistStatus.loading ? 'KI ...' : 'KI To-do'}
+                  </button>
                   <button type="button" className="note-rich-btn" onClick={() => editNoteImageInputRef.current?.click()}>Bild</button>
                 </div>
+                {editChecklistStatus.error && <div className="note-rich-status error">{editChecklistStatus.error}</div>}
                 <textarea
                   ref={editNoteContentRef}
                   className="form-textarea"

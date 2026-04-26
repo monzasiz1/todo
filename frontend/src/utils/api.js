@@ -295,6 +295,12 @@ export const api = {
       body: JSON.stringify({ input }),
     }),
 
+  parseNoteChecklist: (input) =>
+    request('/ai/note-checklist', {
+      method: 'POST',
+      body: JSON.stringify({ input }),
+    }),
+
   // Help Chat
   helpChat: (message, history = []) =>
     request('/help/chat', {
