@@ -178,12 +178,17 @@ export default function NotesPage() {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const pinchStateRef = useRef(null);
-  // Store latest handlers in refs so the non-passive listeners always see current closures
   const handleTouchMoveRef = useRef(null);
   const handleCanvasTouchStartRef = useRef(null);
   const didManualZoomRef = useRef(false);
   const didInitialViewportFitRef = useRef(false);
   const noteDragOccurredRef = useRef(false);
+  // DOM refs for note elements — used for zero-re-render drag via CSS transform
+  const noteElRefs = useRef({});
+  // Tracks the drag start state without triggering re-renders
+  const activeDragRef = useRef(null);
+  // isDragging ref mirrors state for use inside non-reactive callbacks
+  const isDraggingRef = useRef(null);
 
   const getAdaptiveZoom = (screenWidth, screenHeight = (typeof window !== 'undefined' ? window.innerHeight : 900)) => {
     if (screenWidth < 640) return 100;
@@ -686,52 +691,62 @@ export default function NotesPage() {
   };
 
   const moveDragging = (clientX, clientY) => {
-    if (isDragging?.isPan && canvasRef.current) {
-      const deltaX = clientX - isDragging.x;
-      const deltaY = clientY - isDragging.y;
+    const drag = isDraggingRef.current;
+    if (!drag) return;
+
+    if (drag.isPan && canvasRef.current) {
+      const deltaX = clientX - drag.x;
+      const deltaY = clientY - drag.y;
       canvasRef.current.scrollLeft -= deltaX;
       canvasRef.current.scrollTop -= deltaY;
-      setIsDragging({ x: clientX, y: clientY, isPan: true });
+      drag.x = clientX;
+      drag.y = clientY;
       return;
     }
 
-    if (isDragging?.noteId && canvasRef.current) {
-      const deltaX = clientX - isDragging.startX;
-      const deltaY = clientY - isDragging.startY;
-      const note = notes.find((n) => n.id === isDragging.noteId);
-
-      if (note) {
+    if (drag.noteId) {
+      const totalDX = clientX - drag.startClientX;
+      const totalDY = clientY - drag.startClientY;
+      const scale = zoom / 100;
+      const el = noteElRefs.current[drag.noteId];
+      if (el) {
         noteDragOccurredRef.current = true;
-        const current = notePositions[isDragging.noteId] || { x: note.x ?? 100, y: note.y ?? 100 };
-        const newX = Math.max(0, current.x + deltaX / (zoom / 100));
-        const newY = Math.max(0, current.y + deltaY / (zoom / 100));
-        updateNotePosition(isDragging.noteId, newX, newY, false);
+        el.style.transform = `translate(${totalDX / scale}px, ${totalDY / scale}px)`;
+        el.style.zIndex = '999';
       }
-
-      setIsDragging((prev) => ({
-        ...prev,
-        startX: clientX,
-        startY: clientY,
-      }));
+      drag.lastClientX = clientX;
+      drag.lastClientY = clientY;
     }
   };
 
   const handlePointerMove = (event) => {
-    if (!isDragging?.isPan && !isDragging?.noteId) return;
-    if (isDragging?.pointerId != null && event.pointerId !== isDragging.pointerId) return;
+    const drag = isDraggingRef.current;
+    if (!drag?.isPan && !drag?.noteId) return;
+    if (drag?.pointerId != null && event.pointerId !== drag.pointerId) return;
     moveDragging(event.clientX, event.clientY);
   };
 
   const handlePointerUp = (event) => {
-    if (!isDragging?.isPan && !isDragging?.noteId) return;
-    if (isDragging?.pointerId != null && event.pointerId !== isDragging.pointerId) return;
+    const drag = isDraggingRef.current;
+    if (!drag?.isPan && !drag?.noteId) return;
+    if (drag?.pointerId != null && event.pointerId !== drag.pointerId) return;
 
-    if (isDragging?.noteId) {
-      const pos = notePositions[isDragging.noteId];
-      if (pos) {
-        updateNotePosition(isDragging.noteId, pos.x, pos.y, true);
+    if (drag?.noteId) {
+      const el = noteElRefs.current[drag.noteId];
+      const totalDX = drag.lastClientX != null ? drag.lastClientX - drag.startClientX : 0;
+      const totalDY = drag.lastClientY != null ? drag.lastClientY - drag.startClientY : 0;
+      const scale = zoom / 100;
+      if (el) {
+        el.style.transform = '';
+        el.style.zIndex = '';
       }
+      const base = drag.basePos;
+      const finalX = Math.max(0, base.x + totalDX / scale);
+      const finalY = Math.max(0, base.y + totalDY / scale);
+      updateNotePosition(drag.noteId, finalX, finalY, true);
     }
+
+    isDraggingRef.current = null;
     setIsDragging(null);
   };
 
@@ -750,7 +765,9 @@ export default function NotesPage() {
     setActiveNoteId(null);
     setHoveredTaskPreview(null);
     setCanvasContextMenu(null);
-    setIsDragging({ x: e.clientX, y: e.clientY, isPan: true });
+    const panState = { x: e.clientX, y: e.clientY, isPan: true };
+    isDraggingRef.current = panState;
+    setIsDragging(panState);
   };
 
   const handleCanvasPointerDown = (event) => {
@@ -762,7 +779,9 @@ export default function NotesPage() {
     setActiveNoteId(null);
     setHoveredTaskPreview(null);
     setCanvasContextMenu(null);
-    setIsDragging({ x: event.clientX, y: event.clientY, isPan: true, pointerId: event.pointerId, pointerType: event.pointerType });
+    const panState = { x: event.clientX, y: event.clientY, isPan: true, pointerId: event.pointerId, pointerType: event.pointerType };
+    isDraggingRef.current = panState;
+    setIsDragging(panState);
   };
 
   const handleCanvasContextMenu = (event) => {
@@ -812,7 +831,9 @@ export default function NotesPage() {
       if (event.target.closest('.note-card')) return;
       const touch = event.touches[0];
       setActiveNoteId(null);
-      setIsDragging({ x: touch.clientX, y: touch.clientY, isPan: true, isTouch: true });
+      const panState = { x: touch.clientX, y: touch.clientY, isPan: true, isTouch: true };
+      isDraggingRef.current = panState;
+      setIsDragging(panState);
     }
   };
 
@@ -850,14 +871,23 @@ export default function NotesPage() {
   handleCanvasTouchStartRef.current = handleCanvasTouchStart;
 
   const handleTouchEnd = () => {
-    if (isDragging?.noteId) {
-      const pos = notePositions[isDragging.noteId];
-      if (pos) {
-        updateNotePosition(isDragging.noteId, pos.x, pos.y, true);
+    const drag = isDraggingRef.current;
+    if (drag?.noteId) {
+      const el = noteElRefs.current[drag.noteId];
+      const totalDX = (drag.lastClientX ?? drag.startClientX) - drag.startClientX;
+      const totalDY = (drag.lastClientY ?? drag.startClientY) - drag.startClientY;
+      const scale = zoom / 100;
+      if (el) {
+        el.style.transform = '';
+        el.style.zIndex = '';
       }
+      const finalX = Math.max(0, drag.basePos.x + totalDX / scale);
+      const finalY = Math.max(0, drag.basePos.y + totalDY / scale);
+      updateNotePosition(drag.noteId, finalX, finalY, true);
     }
 
     pinchStateRef.current = null;
+    isDraggingRef.current = null;
     setIsDragging(null);
   };
 
@@ -986,7 +1016,20 @@ export default function NotesPage() {
     if (event.pointerType === 'touch' && event.isPrimary === false) return;
 
     event.stopPropagation();
-    setIsDragging({ noteId, startX: event.clientX, startY: event.clientY, pointerId: event.pointerId, pointerType: event.pointerType });
+    const note = notes.find((n) => String(n.id) === String(noteId));
+    const basePos = notePositions[noteId] || { x: note?.x ?? 100, y: note?.y ?? 100 };
+    const dragState = {
+      noteId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      lastClientX: event.clientX,
+      lastClientY: event.clientY,
+      basePos,
+      pointerId: event.pointerId,
+      pointerType: event.pointerType,
+    };
+    isDraggingRef.current = dragState;
+    setIsDragging(dragState);
   };
 
   const handleNoteTouchStart = (event, noteId) => {
@@ -994,7 +1037,11 @@ export default function NotesPage() {
     if (event.target.closest('button, input, textarea, select, a')) return;
 
     const touch = event.touches[0];
-    setIsDragging({ noteId, startX: touch.clientX, startY: touch.clientY, isTouch: true });
+    const note = notes.find((n) => String(n.id) === String(noteId));
+    const basePos = notePositions[noteId] || { x: note?.x ?? 100, y: note?.y ?? 100 };
+    const dragState = { noteId, startClientX: touch.clientX, startClientY: touch.clientY, lastClientX: touch.clientX, lastClientY: touch.clientY, basePos, isTouch: true };
+    isDraggingRef.current = dragState;
+    setIsDragging(dragState);
     event.stopPropagation();
   };
 
@@ -2036,20 +2083,12 @@ export default function NotesPage() {
                 <stop offset="50%" stopColor="rgba(122, 92, 255, 0.9)" />
                 <stop offset="100%" stopColor="rgba(255, 87, 199, 0.92)" />
               </linearGradient>
-              <filter id="connectionGlow" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="7" result="blur" />
-                <feMerge>
-                  <feMergeNode in="blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
             </defs>
             {visibleConnections.map(renderConnection)}
           </svg>
 
           {/* Notes */}
-          <AnimatePresence>
-            {notes.map((note) => {
+          {notes.map((note) => {
               const noteId = String(note.id);
               const isHovered = hoveredNoteId && noteId === String(hoveredNoteId);
               const isConnected = hoveredNoteId && connectedNoteIds.has(noteId);
@@ -2079,8 +2118,9 @@ export default function NotesPage() {
               const isResponsibleNote = isResponsibleForNote(note);
 
               return (
-                <motion.div
+                <div
                   key={note.id}
+                  ref={(el) => { noteElRefs.current[note.id] = el; }}
                   className={`note-card note-${note.importance} ${isUrgent(note.date) ? 'note-urgent' : ''} ${isHovered ? 'note-focus' : ''} ${isConnected ? 'note-connected' : ''} ${isMuted ? 'note-muted' : ''} ${isBlockedByDependency ? 'note-dependency-blocked' : ''} ${isDependencyReady ? 'note-dependency-ready' : ''} ${isCompleted ? 'note-completed' : ''}`}
                   style={{
                     left: `${(notePositions[note.id]?.x ?? note.x ?? 100)}px`,
@@ -2088,11 +2128,6 @@ export default function NotesPage() {
                     width: `${note.width || getNoteDimensions(window.innerWidth).width}px`,
                     minHeight: `${note.height || getNoteDimensions(window.innerWidth).height}px`,
                   }}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                  whileHover={{ y: -8 }}
                   onMouseEnter={() => setHoveredNoteId(note.id)}
                   onMouseLeave={() => setHoveredNoteId(null)}
                   onPointerDown={(event) => handleNotePointerDown(event, note.id)}
@@ -2277,10 +2312,9 @@ export default function NotesPage() {
                       </button>
                     )}
                   </div>
-                </motion.div>
+                </div>
               );
             })}
-          </AnimatePresence>
         </div>
 
         {notes.length === 0 && (
