@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useGroupStore } from '../store/groupStore';
 import { useAuthStore } from '../store/authStore';
 import { useTaskStore } from '../store/taskStore';
+import { api } from '../utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Plus, Hash, Copy, Check, ChevronRight, ChevronDown, Crown,
@@ -491,6 +492,7 @@ function GroupDetail({ groupId, onBack }) {
   const [visibleCount, setVisibleCount] = useState(15);
   const [detailTask, setDetailTask] = useState(null);
   const [showPastGroupTasks, setShowPastGroupTasks] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState('all');
 
   useEffect(() => { fetchGroup(groupId); }, [groupId]);
   useEffect(() => { setVisibleCount(15); }, [tab]);
@@ -506,6 +508,30 @@ function GroupDetail({ groupId, onBack }) {
   const isAdmin = myRole === 'owner' || myRole === 'admin';
   const activeTasks = useMemo(() => groupTasks.filter((t) => !t.completed && !isEventEnded(t)), [groupTasks]);
   const pastTasks = useMemo(() => groupTasks.filter((t) => t.completed || isEventEnded(t)), [groupTasks]);
+  const categoryOptions = useMemo(() => {
+    const map = new Map();
+    groupTasks.forEach((task) => {
+      const label = task.group_category_name || task.category_name;
+      if (!label) return;
+      const key = String(task.group_category_id || task.category_id || label);
+      if (!map.has(key)) {
+        map.set(key, {
+          value: key,
+          label,
+          color: task.group_category_color || task.category_color || '#8E8E93',
+        });
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, 'de'));
+  }, [groupTasks]);
+  const filteredActiveTasks = useMemo(() => {
+    if (categoryFilter === 'all') return activeTasks;
+    return activeTasks.filter((task) => String(task.group_category_id || task.category_id || task.group_category_name || task.category_name) === categoryFilter);
+  }, [activeTasks, categoryFilter]);
+  const filteredPastTasks = useMemo(() => {
+    if (categoryFilter === 'all') return pastTasks;
+    return pastTasks.filter((task) => String(task.group_category_id || task.category_id || task.group_category_name || task.category_name) === categoryFilter);
+  }, [pastTasks, categoryFilter]);
   const completionRate = groupTasks.length > 0 ? Math.round((pastTasks.length / groupTasks.length) * 100) : 0;
   const sortedMembers = useMemo(() => {
     const roleWeight = { owner: 0, admin: 1, member: 2 };
@@ -518,6 +544,12 @@ function GroupDetail({ groupId, onBack }) {
     });
   }, [members, user?.id]);
   const adminCount = useMemo(() => members.filter((m) => m.role === 'admin' || m.role === 'owner').length, [members]);
+
+  useEffect(() => {
+    if (categoryFilter === 'all') return;
+    const exists = categoryOptions.some((opt) => opt.value === categoryFilter);
+    if (!exists) setCategoryFilter('all');
+  }, [categoryFilter, categoryOptions]);
 
   if (!currentGroup || String(currentGroup.id) !== String(groupId)) return <div className="group-loading">Laden...</div>;
 
@@ -597,6 +629,19 @@ function GroupDetail({ groupId, onBack }) {
               <h3 className="group-tab-heading">Team-Planung</h3>
               <p>Aufgaben und Termine zentral planen, Vergangenes optional einblendbar.</p>
             </div>
+            {categoryOptions.length > 0 && (
+              <select
+                className="task-edit-input"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                style={{ maxWidth: 220 }}
+              >
+                <option value="all">Alle Kategorien</option>
+                {categoryOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            )}
             <button className="group-add-task-btn" onClick={() => setShowAddTask(true)}>
               <Plus size={16} /> Eintrag hinzufügen
             </button>
@@ -606,7 +651,7 @@ function GroupDetail({ groupId, onBack }) {
             <div className="group-empty-tab">Noch keine Einträge in dieser Gruppe</div>
           ) : (
             <div className="group-task-list">
-              {activeTasks.slice(0, visibleCount).map((task) => (
+              {filteredActiveTasks.slice(0, visibleCount).map((task) => (
                 <GroupTaskCard
                   key={task.id}
                   task={task}
@@ -619,24 +664,24 @@ function GroupDetail({ groupId, onBack }) {
                   onOpenTask={setDetailTask}
                 />
               ))}
-              {visibleCount < activeTasks.length && (
+              {visibleCount < filteredActiveTasks.length && (
                 <button
                   className="group-load-more-btn"
                   onClick={() => setVisibleCount(v => v + 15)}
                 >
-                  Mehr anzeigen ({activeTasks.length - visibleCount} weitere)
+                  Mehr anzeigen ({filteredActiveTasks.length - visibleCount} weitere)
                 </button>
               )}
-              {pastTasks.length > 0 && (
+              {filteredPastTasks.length > 0 && (
                 <div className="group-past-section">
                   <button
                     className="group-past-toggle"
                     onClick={() => setShowPastGroupTasks(v => !v)}
                   >
-                    <span>Vergangene / Erledigte ({pastTasks.length})</span>
+                    <span>Vergangene / Erledigte ({filteredPastTasks.length})</span>
                     <ChevronDown size={14} style={{ transform: showPastGroupTasks ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
                   </button>
-                  {showPastGroupTasks && pastTasks.map((task) => (
+                  {showPastGroupTasks && filteredPastTasks.map((task) => (
                     <GroupTaskCard
                       key={task.id}
                       task={task}
@@ -784,6 +829,8 @@ function GroupTaskCard({ task, groupId, canRemove, onRemove, onOpenTask }) {
   };
 
   const endedEvent = isEventEnded(task);
+  const categoryLabel = task.group_category_name || task.category_name;
+  const categoryColor = task.group_category_color || task.category_color || '#8E8E93';
 
   return (
     <div
@@ -810,6 +857,12 @@ function GroupTaskCard({ task, groupId, canRemove, onRemove, onOpenTask }) {
           {endedEvent && <span className="group-task-status">Beendet</span>}
         </div>
         <div className="group-task-meta">
+          {categoryLabel && (
+            <span className="group-task-category">
+              <span className="group-task-category-dot" style={{ background: categoryColor }} />
+              {categoryLabel}
+            </span>
+          )}
           {task.creator_name && (
             <span className="group-task-creator">
               <AvatarBadge
@@ -856,7 +909,48 @@ function AddGroupTask({ groupId, onClose, onAdd }) {
   const [time, setTime] = useState('');
   const [timeEnd, setTimeEnd] = useState('');
   const [priority, setPriority] = useState('medium');
+  const [groupCategories, setGroupCategories] = useState([]);
+  const [groupCategoryId, setGroupCategoryId] = useState('');
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryColor, setNewCategoryColor] = useState('#8E8E93');
+  const [creatingCategory, setCreatingCategory] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const loadGroupCategories = async () => {
+    try {
+      const data = await api.getGroupCategories(groupId);
+      setGroupCategories(Array.isArray(data?.categories) ? data.categories : []);
+    } catch {
+      setGroupCategories([]);
+    }
+  };
+
+  useEffect(() => {
+    loadGroupCategories();
+  }, [groupId]);
+
+  const handleCreateGroupCategory = async () => {
+    const name = newCategoryName.trim();
+    if (!name) return;
+    setCreatingCategory(true);
+    try {
+      const data = await api.createGroupCategory(groupId, { name, color: newCategoryColor });
+      const created = data?.category;
+      if (created?.id) {
+        setGroupCategories((prev) => {
+          const filtered = prev.filter((c) => String(c.id) !== String(created.id));
+          return [...filtered, created].sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'de'));
+        });
+        setGroupCategoryId(String(created.id));
+      } else {
+        await loadGroupCategories();
+      }
+      setNewCategoryName('');
+      setNewCategoryColor('#8E8E93');
+    } finally {
+      setCreatingCategory(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -870,6 +964,7 @@ function AddGroupTask({ groupId, onClose, onAdd }) {
         time: time || null,
         time_end: type === 'event' ? (timeEnd || null) : null,
         priority,
+        group_category_id: groupCategoryId || null,
       });
     } finally {
       setSaving(false);
@@ -957,6 +1052,42 @@ function AddGroupTask({ groupId, onClose, onAdd }) {
                 onClick={() => setPriority(p.v)}
               >{p.l}</button>
             ))}
+          </div>
+        </div>
+
+        <div>
+          <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6, display: 'block' }}>Gruppenkategorie</label>
+          <select value={groupCategoryId} onChange={(e) => setGroupCategoryId(e.target.value)} className="task-edit-input">
+            <option value="">Keine Gruppenkategorie</option>
+            {groupCategories.map((cat) => (
+              <option key={cat.id} value={cat.id}>{cat.name}</option>
+            ))}
+          </select>
+
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            <input
+              type="text"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              placeholder="Neue Kategorie"
+              className="task-edit-input"
+            />
+            <input
+              type="color"
+              value={newCategoryColor}
+              onChange={(e) => setNewCategoryColor(e.target.value)}
+              title="Kategoriefarbe"
+              style={{ width: 44, height: 38, border: '1px solid var(--border)', borderRadius: 10, background: 'transparent' }}
+            />
+            <button
+              type="button"
+              className="group-cancel-btn"
+              onClick={handleCreateGroupCategory}
+              disabled={!newCategoryName.trim() || creatingCategory}
+              style={{ whiteSpace: 'nowrap' }}
+            >
+              {creatingCategory ? '...' : 'Anlegen'}
+            </button>
           </div>
         </div>
 

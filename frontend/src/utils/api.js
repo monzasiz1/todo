@@ -413,6 +413,17 @@ export const api = {
   removeGroupTask: (groupId, taskId) =>
     request(`/groups/${groupId}/tasks/${taskId}`, { method: 'DELETE' }),
 
+  getGroupCategories: (groupId) => request(`/groups/${groupId}/categories`),
+
+  createGroupCategory: (groupId, data) =>
+    request(`/groups/${groupId}/categories`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  deleteGroupCategory: (groupId, categoryId) =>
+    request(`/groups/${groupId}/categories/${categoryId}`, { method: 'DELETE' }),
+
   changeGroupMemberRole: (groupId, userId, role) =>
     request(`/groups/${groupId}/members/${userId}`, {
       method: 'PATCH',

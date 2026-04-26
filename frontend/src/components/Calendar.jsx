@@ -1109,6 +1109,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   const spanDays = Math.max(1, endIdx - startIdx + 1);
                   const isSingleDay = liveSpanStart === liveSpanEnd;
 
+                  const doneOrEnded = t.completed || ended;
                   const top = ((liveCStart - startHour * 60) / 60) * hourHeight;
                   const height = Math.max(24, ((liveCEnd - liveCStart) / 60) * hourHeight - 2);
 
@@ -1125,17 +1126,17 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   return (
                     <div
                       key={t.id}
-                      className={`desktop-week-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
+                      className={`desktop-week-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${t.completed ? ' completed' : ''}${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
                       style={{
                         left: isSingleDay ? singleDayLeft : `calc((100% / 7) * ${startIdx} + 4px)`,
                         width: isSingleDay ? singleDayWidth : `calc((100% / 7) * ${spanDays} - 8px)`,
                         top: `${top}px`,
                         height: `${height}px`,
-                        background: ended ? 'rgba(142, 142, 147, 0.72)' : (t.group_color || t.category_color || '#4C7BD9'),
+                        background: doneOrEnded ? 'rgba(142, 142, 147, 0.72)' : (t.group_color || t.category_color || '#4C7BD9'),
                         touchAction: 'none',
                       }}
                       onPointerDown={(e) => {
-                        if (ended) return;
+                        if (doneOrEnded) return;
                         if (e.target.closest('.cal-resize-handle') || e.target.closest('.cal-date-extend-handle')) return;
                         handlePointerDown(e, t);
                       }}
@@ -1159,7 +1160,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       )}
                       <span className="desktop-week-event-title">{t.title}</span>
                       <span className="desktop-week-event-time">{t.time?.slice(0, 5)}{t.time_end ? ` - ${t.time_end.slice(0, 5)}` : ''}</span>
-                      {ended && <span className="desktop-week-event-ended">Beendet</span>}
+                      {t.completed && <span className="desktop-week-event-ended">Erledigt</span>}
+                      {!t.completed && ended && <span className="desktop-week-event-ended">Beendet</span>}
                       {!ended && (
                         <div
                           className="cal-date-extend-handle cal-date-extend-right"
@@ -1298,6 +1300,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       }
                     }
 
+                    const doneOrEnded = t.completed || ended;
                     const top    = ((liveCStart - mwStartH * 60) / 60) * mwHourH;
                     const height = Math.max(16, ((liveCEnd - liveCStart) / 60) * mwHourH - 2);
                     const laneMeta = dayLaneMap.get(String(t.id));
@@ -1308,17 +1311,17 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                     return (
                       <div
                         key={t.id}
-                        className={`mobile-week-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
+                        className={`mobile-week-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${t.completed ? ' completed' : ''}${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
                         style={{
                           top: `${top}px`, height: `${height}px`,
                           left: `calc(${lane * lanePercent}% + 1px)`,
                           width: `calc(${lanePercent}% - 2px)`,
                           right: 'auto',
-                          background: ended ? 'rgba(142, 142, 147, 0.72)' : (t.group_color || t.category_color || '#4C7BD9'),
+                          background: doneOrEnded ? 'rgba(142, 142, 147, 0.72)' : (t.group_color || t.category_color || '#4C7BD9'),
                           touchAction: 'none',
                         }}
                         onPointerDown={(e) => {
-                          if (ended) return;
+                          if (doneOrEnded) return;
                           if (e.target.closest('.cal-resize-handle')) return;
                           handleMobileWeekEventPointerDown(e, t, di, days);
                         }}
@@ -1333,7 +1336,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         )}
                         <span className="mobile-week-event-title">{t.title}</span>
                         {height > 28 && <span className="mobile-week-event-time">{t.time?.slice(0, 5)}</span>}
-                        {ended && height > 22 && <span className="mobile-week-event-ended">Beendet</span>}
+                        {t.completed && height > 22 && <span className="mobile-week-event-ended">Erledigt</span>}
+                        {!t.completed && ended && height > 22 && <span className="mobile-week-event-ended">Beendet</span>}
                         {!ended && (
                           <div
                             className="cal-resize-handle cal-resize-handle-bottom"
@@ -1469,6 +1473,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
               }
             }
 
+            const doneOrEnded = t.completed || ended;
             const top    = ((liveClampedStart - startHour * 60) / 60) * hourHeight;
             const height = Math.max(36, ((liveClampedEnd - liveClampedStart) / 60) * hourHeight - 4);
             const laneMeta = timedLaneMap.get(String(t.id));
@@ -1482,19 +1487,19 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
             return (
               <div
                 key={t.id}
-                className={`mobile-day-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
+                className={`mobile-day-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${t.completed ? ' completed' : ''}${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
                 style={{
                   left: `${laneLeft}%`,
                   width: `${laneWidth}%`,
                   right: 'auto',
                   top: `${top}px`,
                   height: `${height}px`,
-                  background: ended ? 'rgba(142, 142, 147, 0.72)' : (t.group_color || t.category_color || '#4C7BD9'),
+                  background: doneOrEnded ? 'rgba(142, 142, 147, 0.72)' : (t.group_color || t.category_color || '#4C7BD9'),
                   touchAction: 'none',
-                  cursor: ended ? 'pointer' : 'grab',
+                  cursor: doneOrEnded ? 'pointer' : 'grab',
                 }}
                 onPointerDown={(e) => {
-                  if (ended) return;
+                  if (doneOrEnded) return;
                   if (e.target.closest('.cal-resize-handle')) return;
                   handleMobileEventPointerDown(e, t, mobileDayRef.current, hourHeight, startHour);
                 }}
@@ -1512,7 +1517,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                 )}
                 <strong>{t.title}</strong>
                 <span>{t.time?.slice(0, 5)}{t.time_end ? `-${t.time_end.slice(0, 5)}` : ''}</span>
-                {ended && <span className="mobile-day-event-ended">Beendet</span>}
+                {t.completed && <span className="mobile-day-event-ended">Erledigt</span>}
+                {!t.completed && ended && <span className="mobile-day-event-ended">Beendet</span>}
                 {(t.date_end && t.date_end !== t.date) && (
                   <span style={{ fontSize: 10, opacity: 0.8 }}>
                     {format(parseISO(t.date?.substring(0,10)), 'd.M.')} – {format(parseISO(t.date_end.substring(0,10)), 'd.M.')}

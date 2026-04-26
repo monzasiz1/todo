@@ -346,11 +346,13 @@ module.exports = async function handler(req, res) {
 
       const tasksResult = await pool.query(
         `SELECT t.*, c.name as category_name, c.color as category_color,
+           gt.group_category_id, gc.name as group_category_name, gc.color as group_category_color,
            u.name as creator_name, u.avatar_color as creator_color, u.avatar_url as creator_avatar_url,
            gt.created_at as added_to_group_at
          FROM group_tasks gt
          JOIN tasks t ON t.id = gt.task_id
          LEFT JOIN categories c ON t.category_id = c.id
+         LEFT JOIN group_categories gc ON gc.id = gt.group_category_id
          LEFT JOIN users u ON gt.created_by = u.id
          WHERE gt.group_id = $1
          ORDER BY gt.created_at DESC`,
@@ -412,6 +414,89 @@ module.exports = async function handler(req, res) {
   }
 
   // ============================================
+  // GET /api/groups/:id/categories — Shared categories for this group
+  // ============================================
+  if (segments.length === 2 && segments[1] === 'categories' && req.method === 'GET') {
+    try {
+      const groupId = segments[0];
+      const membership = await getMembership(groupId);
+      if (!membership) return res.status(403).json({ error: 'Kein Zugriff auf diese Gruppe' });
+
+      const result = await pool.query(
+        `SELECT id, group_id, name, color, created_by, created_at
+         FROM group_categories
+         WHERE group_id = $1
+         ORDER BY name ASC`,
+        [groupId]
+      );
+
+      return res.json({ categories: result.rows });
+    } catch (err) {
+      console.error('List group categories error:', err);
+      if (err?.code === '42P01' || err?.code === '42703') {
+        return res.status(200).json({ categories: [], warning: 'group_categories table fehlt in DB' });
+      }
+      return res.status(500).json({ error: 'Fehler beim Laden der Gruppenkategorien' });
+    }
+  }
+
+  // ============================================
+  // POST /api/groups/:id/categories — Create shared category (admin/owner)
+  // ============================================
+  if (segments.length === 2 && segments[1] === 'categories' && req.method === 'POST') {
+    try {
+      const groupId = segments[0];
+      const membership = await getMembership(groupId);
+      if (!membership || membership.role === 'member') {
+        return res.status(403).json({ error: 'Nur Admins können Gruppenkategorien erstellen' });
+      }
+
+      const name = String(req.body?.name || '').trim();
+      const color = String(req.body?.color || '#8E8E93').trim() || '#8E8E93';
+      if (!name) return res.status(400).json({ error: 'Name erforderlich' });
+
+      const result = await pool.query(
+        `INSERT INTO group_categories (group_id, name, color, created_by)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (group_id, name) DO UPDATE SET color = EXCLUDED.color
+         RETURNING id, group_id, name, color, created_by, created_at`,
+        [groupId, name, color, user.id]
+      );
+
+      await pool.query('UPDATE groups SET updated_at = NOW() WHERE id = $1', [groupId]);
+      return res.status(201).json({ category: result.rows[0] });
+    } catch (err) {
+      console.error('Create group category error:', err);
+      return res.status(500).json({ error: 'Fehler beim Erstellen der Gruppenkategorie' });
+    }
+  }
+
+  // ============================================
+  // DELETE /api/groups/:id/categories/:categoryId — Delete shared category (admin/owner)
+  // ============================================
+  if (segments.length === 3 && segments[1] === 'categories' && req.method === 'DELETE') {
+    try {
+      const groupId = segments[0];
+      const categoryId = segments[2];
+      const membership = await getMembership(groupId);
+      if (!membership || membership.role === 'member') {
+        return res.status(403).json({ error: 'Nur Admins können Gruppenkategorien löschen' });
+      }
+
+      await pool.query(
+        'DELETE FROM group_categories WHERE id = $1 AND group_id = $2',
+        [categoryId, groupId]
+      );
+
+      await pool.query('UPDATE groups SET updated_at = NOW() WHERE id = $1', [groupId]);
+      return res.json({ success: true });
+    } catch (err) {
+      console.error('Delete group category error:', err);
+      return res.status(500).json({ error: 'Fehler beim Löschen der Gruppenkategorie' });
+    }
+  }
+
+  // ============================================
   // POST /api/groups/:id/tasks — Add task to group
   // ============================================
   if (segments.length === 2 && segments[1] === 'tasks' && req.method === 'POST') {
@@ -423,8 +508,23 @@ module.exports = async function handler(req, res) {
         // Members can only add tasks, not restricted further for now
       }
 
-      const { existing_task_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, type } = req.body;
+      const { existing_task_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, type, group_category_id } = req.body;
       const entryType = type === 'event' ? 'event' : 'task';
+
+      let selectedGroupCategory = null;
+      if (group_category_id !== undefined && group_category_id !== null && String(group_category_id) !== '') {
+        const gcResult = await pool.query(
+          `SELECT id, name, color
+           FROM group_categories
+           WHERE id = $1 AND group_id = $2
+           LIMIT 1`,
+          [group_category_id, groupId]
+        );
+        if (gcResult.rows.length === 0) {
+          return res.status(400).json({ error: 'Ungültige Gruppenkategorie' });
+        }
+        selectedGroupCategory = gcResult.rows[0];
+      }
 
       let task;
 
@@ -447,8 +547,11 @@ module.exports = async function handler(req, res) {
 
         for (const tid of allTaskIds) {
           await pool.query(
-            'INSERT INTO group_tasks (group_id, task_id, created_by) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
-            [groupId, tid, user.id]
+            `INSERT INTO group_tasks (group_id, task_id, created_by, group_category_id)
+             VALUES ($1, $2, $3, $4)
+             ON CONFLICT (group_id, task_id)
+             DO UPDATE SET group_category_id = EXCLUDED.group_category_id`,
+            [groupId, tid, user.id, selectedGroupCategory?.id || null]
           );
         }
       } else {
@@ -467,8 +570,8 @@ module.exports = async function handler(req, res) {
 
         // Link to group
         await pool.query(
-          'INSERT INTO group_tasks (group_id, task_id, created_by) VALUES ($1, $2, $3)',
-          [groupId, task.id, user.id]
+          'INSERT INTO group_tasks (group_id, task_id, created_by, group_category_id) VALUES ($1, $2, $3, $4)',
+          [groupId, task.id, user.id, selectedGroupCategory?.id || null]
         );
       }
 
@@ -478,8 +581,27 @@ module.exports = async function handler(req, res) {
       const creatorResult = await pool.query('SELECT name, avatar_color FROM users WHERE id = $1', [user.id]);
       const creator = creatorResult.rows[0];
 
+      let categoryMeta = null;
+      if (task?.category_id) {
+        const categoryResult = await pool.query(
+          'SELECT id, name, color FROM categories WHERE id = $1 LIMIT 1',
+          [task.category_id]
+        );
+        categoryMeta = categoryResult.rows[0] || null;
+      }
+
       return res.status(201).json({
-        task: { ...task, creator_name: creator.name, creator_color: creator.avatar_color, group_id: groupId }
+        task: {
+          ...task,
+          creator_name: creator.name,
+          creator_color: creator.avatar_color,
+          group_id: groupId,
+          group_category_id: selectedGroupCategory?.id || null,
+          group_category_name: selectedGroupCategory?.name || null,
+          group_category_color: selectedGroupCategory?.color || null,
+          category_name: categoryMeta?.name || null,
+          category_color: categoryMeta?.color || null,
+        }
       });
     } catch (err) {
       console.error('Add group task error:', err);

@@ -16866,6 +16866,23 @@ body.cal-is-dragging * {
   filter: grayscale(0.35);
 }
 
+.desktop-week-event.completed,
+.mobile-week-event.completed,
+.mobile-day-event.completed,
+.calendar-day-task.completed,
+.desktop-week-all-day-event.completed,
+.mobile-day-allday-chip.done,
+.mobile-week-allday-pill.done {
+  opacity: 0.72;
+  filter: grayscale(0.5);
+}
+
+.desktop-week-event.completed .desktop-week-event-title,
+.mobile-week-event.completed .mobile-week-event-title,
+.mobile-day-event.completed strong {
+  text-decoration: line-through;
+}
+
 .group-task-card.ended-event:not(.completed) {
   background: linear-gradient(180deg, rgba(142, 142, 147, 0.08), var(--surface));
   border-color: rgba(142, 142, 147, 0.28);
@@ -16883,6 +16900,25 @@ body.cal-is-dragging * {
   color: #5E5E66;
   text-transform: uppercase;
   letter-spacing: 0.02em;
+}
+
+.group-task-category {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #5E5E66;
+  background: rgba(142, 142, 147, 0.14);
+}
+
+.group-task-category-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  flex-shrink: 0;
 }
 
 .day-create-task-item.ended-event:not(.completed) {

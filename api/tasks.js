@@ -358,6 +358,24 @@ function buildDashboardOrderByClause() {
              t.created_at DESC`;
 }
 
+let collabEnabledCache = null;
+let collabEnabledCacheAt = 0;
+const COLLAB_CACHE_TTL_MS = 5 * 60 * 1000;
+
+async function getCollabEnabled(pool) {
+  const now = Date.now();
+  if (collabEnabledCache !== null && (now - collabEnabledCacheAt) < COLLAB_CACHE_TTL_MS) {
+    return collabEnabledCache;
+  }
+
+  const hasCollab = await pool.query(
+    `SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tasks' AND column_name = 'visibility') as has_visibility`
+  );
+  collabEnabledCache = hasCollab.rows[0]?.has_visibility === true;
+  collabEnabledCacheAt = now;
+  return collabEnabledCache;
+}
+
 module.exports = async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -377,10 +395,7 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ error: 'Start- und Enddatum erforderlich' });
       }
 
-      const hasCollab = await pool.query(
-        `SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tasks' AND column_name = 'visibility') as has_visibility`
-      );
-      const collabEnabled = hasCollab.rows[0]?.has_visibility === true;
+      const collabEnabled = await getCollabEnabled(pool);
 
       // 1. Fetch all concrete rows in [start, end] (includes templates + any materialized overrides)
       let concreteResult;
@@ -829,10 +844,7 @@ module.exports = async function handler(req, res) {
   // GET /api/tasks/summary
   if (segments[0] === 'summary' && req.method === 'GET') {
     try {
-      const hasCollab = await pool.query(
-        `SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tasks' AND column_name = 'visibility') as has_visibility`
-      );
-      const collabEnabled = hasCollab.rows[0]?.has_visibility === true;
+      const collabEnabled = await getCollabEnabled(pool);
 
       let result;
       if (collabEnabled) {
@@ -916,10 +928,7 @@ module.exports = async function handler(req, res) {
       }
 
       // Check if collaboration columns exist
-      const hasCollab = await pool.query(
-        `SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tasks' AND column_name = 'visibility') as has_visibility`
-      );
-      const collabEnabled = hasCollab.rows[0]?.has_visibility === true;
+      const collabEnabled = await getCollabEnabled(pool);
 
       let result;
       if (lite) {
@@ -1329,10 +1338,7 @@ module.exports = async function handler(req, res) {
 
       const taskType = type === 'event' ? 'event' : 'task';
 
-      const visibilityResult = await pool.query(
-        `SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tasks' AND column_name = 'visibility') as has_visibility`
-      );
-      const collabEnabled = visibilityResult.rows[0]?.has_visibility === true;
+      const collabEnabled = await getCollabEnabled(pool);
       const finalVisibility = collabEnabled ? (visibility || 'private') : 'private';
 
       let groupInfo = null;

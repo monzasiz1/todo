@@ -8,6 +8,13 @@ function parsePositiveInt(value, fallback) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function shouldRunSchemaInit() {
+  const explicit = String(process.env.DB_SCHEMA_INIT_ON_START || '').trim().toLowerCase();
+  if (explicit === '1' || explicit === 'true' || explicit === 'yes') return true;
+  if (explicit === '0' || explicit === 'false' || explicit === 'no') return false;
+  return process.env.NODE_ENV !== 'production';
+}
+
 async function runSchemaInit(rawQuery) {
   const statements = [
     // Notifications core
@@ -71,10 +78,22 @@ async function runSchemaInit(rawQuery) {
       created_at TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(group_id, task_id)
     )`,
+    `CREATE TABLE IF NOT EXISTS group_categories (
+      id SERIAL PRIMARY KEY,
+      group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+      name VARCHAR(80) NOT NULL,
+      color VARCHAR(7) NOT NULL DEFAULT '#8E8E93',
+      created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(group_id, name)
+    )`,
+    `ALTER TABLE group_tasks ADD COLUMN IF NOT EXISTS group_category_id INTEGER REFERENCES group_categories(id) ON DELETE SET NULL`,
     `CREATE INDEX IF NOT EXISTS idx_group_members_user ON group_members(user_id)`,
     `CREATE INDEX IF NOT EXISTS idx_group_members_group ON group_members(group_id)`,
     `CREATE INDEX IF NOT EXISTS idx_group_tasks_group ON group_tasks(group_id)`,
     `CREATE INDEX IF NOT EXISTS idx_group_tasks_task ON group_tasks(task_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_group_tasks_group_category ON group_tasks(group_category_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_group_categories_group ON group_categories(group_id)`,
     `CREATE INDEX IF NOT EXISTS idx_groups_invite_code ON groups(invite_code)`,
     `DO $$
      BEGIN
@@ -191,8 +210,8 @@ function getPool() {
 
     const originalQuery = pool.query.bind(pool);
 
-    // Initialize schema once per cold start and gate queries until complete.
-    if (!schemaInitPromise) {
+    // In production this is off by default to avoid extra DB load on cold starts.
+    if (shouldRunSchemaInit() && !schemaInitPromise) {
       schemaInitPromise = runSchemaInit(originalQuery).catch((err) => {
         console.warn('[db] schema initialization failed:', err.message);
       });
