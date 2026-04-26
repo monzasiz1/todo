@@ -267,9 +267,9 @@ function TaskCard({ task, index, disableLayout = false }) {
           <span
             className="task-group-combo-badge"
             style={{
-              background: `linear-gradient(135deg, ${(task.group_color || '#5856D6')}1f, ${(task.group_category_color || '#8E8E93')}1f)`,
-              borderColor: `${task.group_color || '#5856D6'}55`,
-              color: task.group_color || '#5856D6',
+              background: `linear-gradient(135deg, ${(task.group_color || '#5856D6')}5c 0%, ${(task.group_color || '#5856D6')}3a 44%, ${(task.group_category_color || '#8E8E93')}52 100%)`,
+              borderColor: `${task.group_color || '#5856D6'}88`,
+              boxShadow: `inset -26px 0 0 ${(task.group_category_color || '#8E8E93')}22`,
             }}
           >
             <AvatarBadge
@@ -278,9 +278,9 @@ function TaskCard({ task, index, disableLayout = false }) {
               avatarUrl={task.group_image_url}
               size={12}
             />
-            <span className="task-group-combo-name">{task.group_name}</span>
-            <span className="task-group-combo-sep">•</span>
-            <span className="task-group-combo-cat">
+            <span className="task-group-combo-name" style={{ color: task.group_color || '#5856D6' }}>{task.group_name}</span>
+            <span className="task-group-combo-sep" style={{ color: task.group_category_color || '#8E8E93' }}>•</span>
+            <span className="task-group-combo-cat" style={{ color: task.group_category_color || '#8E8E93' }}>
               <span
                 className="task-group-category-dot"
                 style={{ background: task.group_category_color || '#8E8E93' }}

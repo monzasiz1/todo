@@ -11236,135 +11236,460 @@ body.cal-is-dragging * {
   background: rgba(255,59,48,0.08);
 }
 
-/* --- Group Settings --- */
-.group-settings {
+/* --- Group Settings (redesigned) --- */
+
+/* Page header */
+.gs-page-header {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
 }
+.gs-page-header-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(0,122,255,0.1);
+  color: #007AFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.gs-page-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text, #1C1C1E);
+  letter-spacing: -0.3px;
+}
+.gs-page-sub {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--text-secondary, #8E8E93);
+}
+
+/* Layout grid */
 .group-settings-layout {
   display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
   align-items: start;
 }
-.group-settings-card {
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  background: var(--surface);
-  padding: 14px;
-}
-.group-settings-card-head h4 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-.group-settings-card-head p {
-  margin: 4px 0 10px;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-.group-settings-form-card .group-form {
-  max-width: none;
-}
-.group-settings-form-card .group-form-preview {
-  margin-bottom: 2px;
-}
-.group-cat-manager {
+
+/* Base card */
+.gs-card {
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.07);
+  border-radius: 20px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.04);
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 10px;
 }
-.group-cat-head {
+
+/* Card header strip */
+.gs-card-header {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 18px 14px;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
 }
-.group-cat-head h4 {
+.gs-card-header-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.gs-card-header-text {
+  flex: 1;
+  min-width: 0;
+}
+.gs-card-header-text h4 {
   margin: 0;
   font-size: 14px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--text, #1C1C1E);
+  letter-spacing: -0.2px;
 }
-.group-cat-head p {
-  margin: 4px 0 0;
+.gs-card-header-text p {
+  margin: 1px 0 0;
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #8E8E93);
 }
-.group-cat-head span {
-  font-size: 12px;
-  color: var(--text-secondary);
-  background: var(--hover);
-  border: 1px solid var(--border);
-  padding: 3px 8px;
+.gs-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 22px;
+  padding: 0 7px;
   border-radius: 999px;
+  background: rgba(88,86,214,0.1);
+  color: #5856D6;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
 }
-.group-cat-create-row {
+
+/* ---- Category card specifics ---- */
+.gs-cat-input-row {
   display: grid;
   grid-template-columns: 1fr auto auto;
   gap: 8px;
   align-items: center;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
 }
-.group-cat-color {
-  width: 44px;
-  height: 40px;
-  padding: 0;
-  border: 1px solid var(--border);
+
+/* Shared input */
+.gs-input {
+  width: 100%;
+  padding: 11px 14px;
   border-radius: 12px;
-  background: transparent;
+  border: 1px solid rgba(0,0,0,0.1);
+  background: #F7F7F8;
+  font-size: 14px;
+  color: var(--text, #1C1C1E);
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
-.group-cat-list {
+.gs-input:focus {
+  border-color: #007AFF;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(0,122,255,0.1);
+}
+.gs-textarea {
+  resize: vertical;
+  min-height: 78px;
+  line-height: 1.5;
+}
+
+/* Color swatch as clickable label */
+.gs-color-swatch {
+  display: block;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 2px solid rgba(255,255,255,0.6);
+  box-shadow: 0 0 0 1.5px rgba(0,0,0,0.12);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.15s, box-shadow 0.15s;
+  position: relative;
+}
+.gs-color-swatch:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.18);
+}
+.gs-color-input-hidden {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+/* Add button */
+.gs-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 14px;
+  height: 40px;
+  border-radius: 12px;
+  background: #007AFF;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.18s;
+  flex-shrink: 0;
+}
+.gs-add-btn:hover:not(:disabled) {
+  background: #0071E3;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,122,255,0.3);
+}
+.gs-add-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Category list */
+.gs-cat-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
 }
-.group-cat-item {
+.gs-cat-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.68), rgba(255,255,255,0.52));
+  padding: 13px 16px;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+  transition: background 0.15s;
+  min-height: 52px;
 }
-.group-cat-item:hover {
-  border-color: rgba(0,122,255,0.24);
+.gs-cat-row:last-child {
+  border-bottom: none;
 }
-.group-cat-item .group-task-category {
-  max-width: calc(100% - 120px);
+.gs-cat-row:hover {
+  background: rgba(0,0,0,0.02);
+}
+.gs-cat-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.gs-cat-name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text, #1C1C1E);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.group-cat-delete-btn {
+.gs-cat-del-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  border: 1px solid rgba(255,59,48,0.24);
-  background: rgba(255,59,48,0.08);
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: 9px;
+  border: 1px solid rgba(255,59,48,0.2);
+  background: rgba(255,59,48,0.06);
   color: #d3352d;
-  border-radius: 10px;
-  padding: 6px 9px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.18s;
+  flex-shrink: 0;
 }
-.group-cat-delete-btn:hover:not(:disabled) {
-  background: rgba(255,59,48,0.14);
-  border-color: rgba(255,59,48,0.35);
+.gs-cat-del-btn:hover:not(:disabled) {
+  background: rgba(255,59,48,0.12);
+  border-color: rgba(255,59,48,0.32);
 }
-.group-cat-delete-btn:disabled {
-  opacity: 0.55;
+.gs-cat-del-btn:disabled {
+  opacity: 0.45;
   cursor: not-allowed;
 }
-.group-cat-manage-hint {
-  margin: 6px 2px 0;
+
+/* Empty state */
+.gs-empty {
+  padding: 28px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-secondary, #8E8E93);
+}
+
+/* ---- Profile card specifics ---- */
+.gs-avatar-upload-area {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 18px 10px;
+  cursor: pointer;
+  width: fit-content;
+  margin: 0 auto;
+}
+.gs-avatar-camera-ring {
+  position: absolute;
+  bottom: 14px;
+  right: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #007AFF;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  pointer-events: none;
+}
+.gs-file-hidden {
+  display: none;
+}
+.gs-remove-photo-btn {
+  display: block;
+  margin: 0 auto 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: none;
+  background: none;
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--danger, #FF3B30);
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 500;
+  transition: opacity 0.15s;
+}
+.gs-remove-photo-btn:hover {
+  opacity: 0.75;
+}
+
+/* Profile form body */
+.gs-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 18px 18px;
+}
+.gs-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gs-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, #8E8E93);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Color row for profile */
+.gs-color-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.gs-color-swatch-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2.5px solid transparent;
+  cursor: pointer;
+  transition: all 0.18s;
+  outline: none;
+}
+.gs-color-swatch-btn:hover {
+  transform: scale(1.15);
+}
+.gs-color-swatch-btn.active {
+  border-color: rgba(0,0,0,0.25);
+  box-shadow: 0 0 0 2.5px #fff, 0 0 0 4.5px currentColor;
+}
+
+/* Save button */
+.gs-save-btn {
+  width: 100%;
+  padding: 13px;
+  border-radius: 14px;
+  border: none;
+  background: #007AFF;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: -0.2px;
+  font-family: inherit;
+  transition: all 0.18s;
+  margin-top: 4px;
+}
+.gs-save-btn:hover:not(:disabled) {
+  background: #0071E3;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0,122,255,0.35);
+}
+.gs-save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Danger zone */
+.gs-danger-zone {
+  margin: 0 18px 18px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255,59,48,0.18);
+  border-radius: 14px;
+  background: rgba(255,59,48,0.03);
+}
+.gs-danger-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--danger, #FF3B30);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+.gs-danger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(255,59,48,0.3);
+  background: rgba(255,59,48,0.06);
+  color: var(--danger, #FF3B30);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.18s;
+  width: 100%;
+  justify-content: center;
+}
+.gs-danger-btn:hover:not(:disabled) {
+  background: rgba(255,59,48,0.12);
+  border-color: rgba(255,59,48,0.4);
+}
+.gs-danger-btn.confirm {
+  background: var(--danger, #FF3B30);
+  color: #fff;
+  border-color: transparent;
+}
+.gs-danger-btn.confirm:hover {
+  filter: brightness(1.08);
+}
+.gs-confirm-delete p {
+  font-size: 13px;
+  color: var(--text-secondary, #8E8E93);
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+.gs-confirm-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gs-cancel-btn {
+  width: 100%;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(0,0,0,0.1);
+  background: transparent;
+  color: var(--text-secondary, #8E8E93);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  justify-content: center;
+  transition: all 0.18s;
+}
+.gs-cancel-btn:hover {
+  background: rgba(0,0,0,0.04);
+}
+
+/* Legacy aliases for group-settings used elsewhere */
+.group-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 .group-danger-zone {
   margin-top: 16px;
@@ -11373,23 +11698,11 @@ body.cal-is-dragging * {
   border-radius: 16px;
   background: rgba(255,59,48,0.04);
 }
-.group-danger-zone h4 {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--danger);
-  margin: 0 0 8px;
-}
-.group-danger-zone p {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin: 0 0 12px;
-  line-height: 1.5;
-}
 .group-delete-btn {
   padding: 10px 20px;
   border-radius: 12px;
   border: none;
-  background: var(--danger);
+  background: var(--danger, #FF3B30);
   color: #fff;
   font-size: 14px;
   font-weight: 700;
@@ -11398,6 +11711,63 @@ body.cal-is-dragging * {
 }
 .group-delete-btn:hover {
   filter: brightness(1.1);
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 900px) {
+  .group-settings-layout {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+@media (max-width: 600px) {
+  .gs-page-header {
+    margin-bottom: 14px;
+  }
+  .gs-card {
+    border-radius: 16px;
+  }
+  .gs-cat-input-row {
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+  }
+  .gs-add-btn {
+    grid-column: 1 / -1;
+    justify-content: center;
+    height: 44px;
+    font-size: 14px;
+    border-radius: 14px;
+  }
+  .gs-add-btn-label {
+    font-size: 14px;
+  }
+  .gs-cat-row {
+    min-height: 56px;
+    padding: 14px 14px;
+  }
+  .gs-cat-del-label {
+    display: none;
+  }
+  .gs-cat-del-btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 10px;
+  }
+  .gs-color-swatch-btn {
+    width: 34px;
+    height: 34px;
+  }
+  .gs-save-btn {
+    padding: 15px;
+    font-size: 16px;
+    border-radius: 16px;
+  }
+  .gs-input {
+    font-size: 16px;
+    padding: 13px 14px;
+  }
 }
 
 /* --- Add Task Overlay --- */
@@ -11544,6 +11914,7 @@ body.cal-is-dragging * {
   margin-top: 4px;
   border: 1px solid transparent;
   max-width: 100%;
+  backdrop-filter: saturate(1.08);
 }
 .task-group-combo-name,
 .task-group-combo-cat {
@@ -11555,8 +11926,11 @@ body.cal-is-dragging * {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.task-group-combo-cat {
+  font-weight: 700;
+}
 .task-group-combo-sep {
-  opacity: 0.65;
+  opacity: 0.9;
   flex-shrink: 0;
 }
 

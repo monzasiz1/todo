@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useGroupStore } from '../store/groupStore';
 import { useAuthStore } from '../store/authStore';
 import { useTaskStore } from '../store/taskStore';
@@ -7,7 +7,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Plus, Hash, Copy, Check, ChevronRight, ChevronDown, Crown,
   Shield, UserMinus, Settings, Trash2, LogOut, X,
-  Calendar, CalendarCheck, Clock, Flag, Search, ArrowLeft, ListTodo
+  Calendar, CalendarCheck, Clock, Flag, Search, ArrowLeft, ListTodo,
+  Camera, Tag, AlertTriangle
 } from 'lucide-react';
 import AvatarBadge from '../components/AvatarBadge';
 import TaskDetailModal from '../components/TaskDetailModal';
@@ -799,9 +800,14 @@ function GroupDetail({ groupId, onBack }) {
       {/* Settings Tab */}
       {tab === 'settings' && isAdmin && (
         <>
-          <div className="group-tab-heading-wrap" style={{ marginBottom: 12 }}>
-            <h3 className="group-tab-heading">Gruppeneinstellungen</h3>
-            <p>Branding, Beschreibung und sensible Aktionen zentral verwalten.</p>
+          <div className="gs-page-header">
+            <div className="gs-page-header-icon">
+              <Settings size={18} />
+            </div>
+            <div>
+              <h3 className="gs-page-title">Gruppeneinstellungen</h3>
+              <p className="gs-page-sub">Branding, Kategorien und sensible Aktionen</p>
+            </div>
           </div>
           <div className="group-settings-layout">
             <GroupCategoryManager groupId={groupId} />
@@ -1110,62 +1116,66 @@ function GroupCategoryManager({ groupId }) {
   };
 
   return (
-    <section className="group-settings-card group-cat-manager">
-      <div className="group-cat-head">
-        <div>
-          <h4>Gruppenkategorien</h4>
-          <p>Zentrale Kategorien fuer alle Gruppentermine und Aufgaben.</p>
+    <section className="gs-card gs-cat-card">
+      <div className="gs-card-header">
+        <div className="gs-card-header-icon" style={{ background: 'rgba(88,86,214,0.12)', color: '#5856D6' }}>
+          <Tag size={16} />
         </div>
-        <span>{categories.length} vorhanden</span>
+        <div className="gs-card-header-text">
+          <h4>Kategorien</h4>
+          <p>Für alle Termine und Aufgaben</p>
+        </div>
+        <span className="gs-badge">{categories.length}</span>
       </div>
 
-      <div className="group-cat-create-row">
+      <div className="gs-cat-input-row">
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="task-edit-input"
-          placeholder="Neue Gruppenkategorie"
+          className="gs-input"
+          placeholder="Neue Kategorie..."
           maxLength={80}
+          onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
         />
-        <input
-          type="color"
-          value={color}
-          onChange={(e) => setColor(e.target.value)}
-          title="Kategoriefarbe"
-          className="group-cat-color"
-        />
+        <label className="gs-color-swatch" style={{ background: color }} title="Farbe wählen">
+          <input
+            type="color"
+            value={color}
+            onChange={(e) => setColor(e.target.value)}
+            className="gs-color-input-hidden"
+          />
+        </label>
         <button
           type="button"
-          className="group-submit-btn"
+          className="gs-add-btn"
           onClick={handleCreate}
           disabled={!name.trim() || saving}
         >
-          {saving ? 'Anlegen...' : 'Kategorie anlegen'}
+          <Plus size={16} />
+          <span className="gs-add-btn-label">{saving ? '...' : 'Anlegen'}</span>
         </button>
       </div>
 
       {loading ? (
-        <div className="group-empty-tab">Kategorien laden...</div>
+        <div className="gs-empty">Lädt...</div>
       ) : categories.length === 0 ? (
-        <div className="group-empty-tab">Noch keine Gruppenkategorien vorhanden.</div>
+        <div className="gs-empty">Noch keine Kategorien vorhanden</div>
       ) : (
-        <div className="group-cat-list">
+        <div className="gs-cat-list">
           {categories.map((cat) => (
-            <div key={cat.id} className="group-cat-item">
-              <span className="group-task-category" style={{ background: `${cat.color || '#8E8E93'}22`, color: cat.color || '#5E5E66' }}>
-                <span className="group-task-category-dot" style={{ background: cat.color || '#8E8E93' }} />
-                {cat.name}
-              </span>
+            <div key={cat.id} className="gs-cat-row">
+              <span className="gs-cat-dot" style={{ background: cat.color || '#8E8E93' }} />
+              <span className="gs-cat-name">{cat.name}</span>
               <button
                 type="button"
-                className="group-cat-delete-btn"
+                className="gs-cat-del-btn"
                 onClick={() => handleDelete(cat.id)}
                 disabled={String(deletingId) === String(cat.id)}
-                title="Kategorie löschen"
+                title="Löschen"
               >
                 <Trash2 size={14} />
-                {String(deletingId) === String(cat.id) ? 'Loesche...' : 'Loeschen'}
+                <span className="gs-cat-del-label">Löschen</span>
               </button>
             </div>
           ))}
@@ -1185,6 +1195,7 @@ function GroupSettings({ group, onUpdate, onDelete, isOwner }) {
   const [imageUrl, setImageUrl] = useState(group.image_url || null);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const fileInputRef = useRef(null);
 
   const handleSave = async () => {
     setSaving(true);
@@ -1204,85 +1215,101 @@ function GroupSettings({ group, onUpdate, onDelete, isOwner }) {
   };
 
   return (
-    <section className="group-settings-card group-settings-form-card">
-      <div className="group-settings-card-head">
-        <h4>Gruppenprofil</h4>
-        <p>Name, Beschreibung, Farbe und Gruppenbild bearbeiten.</p>
+    <section className="gs-card gs-profile-card">
+      <div className="gs-card-header">
+        <div className="gs-card-header-icon" style={{ background: 'rgba(0,122,255,0.12)', color: '#007AFF' }}>
+          <Settings size={16} />
+        </div>
+        <div className="gs-card-header-text">
+          <h4>Gruppenprofil</h4>
+          <p>Name, Bild, Farbe & Beschreibung</p>
+        </div>
       </div>
-      <div className="group-form">
-        <div className="group-form-preview">
-          <AvatarBadge
-            className="group-big-avatar"
-            name={name || '?'}
-            color={color || '#007AFF'}
-            avatarUrl={imageUrl}
-            size={68}
-          />
-        </div>
 
-        <div className="task-edit-field">
-          <label>Gruppenbild</label>
-          <input type="file" accept="image/*" onChange={handleImageChange} className="task-edit-input" />
-          {imageUrl && (
-            <button type="button" className="group-cancel-btn" onClick={() => setImageUrl(null)} style={{ marginTop: 8 }}>
-              Bild entfernen
-            </button>
-          )}
+      <div className="gs-avatar-upload-area" onClick={() => fileInputRef.current?.click()}>
+        <AvatarBadge
+          name={name || '?'}
+          color={color || '#007AFF'}
+          avatarUrl={imageUrl}
+          size={76}
+        />
+        <div className="gs-avatar-camera-ring">
+          <Camera size={14} />
         </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleImageChange}
+          className="gs-file-hidden"
+        />
+      </div>
+      {imageUrl && (
+        <button type="button" className="gs-remove-photo-btn" onClick={() => setImageUrl(null)}>
+          Foto entfernen
+        </button>
+      )}
 
-        <div className="task-edit-field">
-          <label>Gruppenname</label>
+      <div className="gs-form">
+        <div className="gs-field">
+          <label className="gs-label">Gruppenname</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="task-edit-input"
+            className="gs-input"
+            placeholder="z.B. Familie, Team Alpha..."
           />
         </div>
 
-        <div className="task-edit-field">
-          <label>Beschreibung</label>
+        <div className="gs-field">
+          <label className="gs-label">Beschreibung</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="task-edit-input task-edit-textarea"
-            rows={2}
+            className="gs-input gs-textarea"
+            rows={3}
+            placeholder="Worum geht es in dieser Gruppe?"
           />
         </div>
 
-        <div className="task-edit-field">
-          <label>Farbe</label>
-          <div className="group-color-picker">
+        <div className="gs-field">
+          <label className="gs-label">Farbe</label>
+          <div className="gs-color-row">
             {GROUP_COLORS.map((c) => (
               <button
                 key={c}
                 type="button"
-                className={`group-color-dot ${color === c ? 'active' : ''}`}
+                className={`gs-color-swatch-btn${color === c ? ' active' : ''}`}
                 style={{ background: c }}
                 onClick={() => setColor(c)}
+                title={c}
               />
             ))}
           </div>
         </div>
 
-        <button className="group-submit-btn" onClick={handleSave} disabled={saving}>
-          {saving ? 'Speichern...' : 'Änderungen speichern'}
+        <button className="gs-save-btn" onClick={handleSave} disabled={saving}>
+          {saving ? 'Wird gespeichert…' : 'Änderungen speichern'}
         </button>
       </div>
 
       {isOwner && (
-        <div className="group-danger-zone">
-          <h4>Gefahrenzone</h4>
+        <div className="gs-danger-zone">
+          <div className="gs-danger-header">
+            <AlertTriangle size={15} />
+            <span>Gefahrenzone</span>
+          </div>
           {!confirmDelete ? (
-            <button className="group-delete-btn" onClick={() => setConfirmDelete(true)}>
-              <Trash2 size={16} /> Gruppe löschen
+            <button className="gs-danger-btn" onClick={() => setConfirmDelete(true)}>
+              <Trash2 size={15} /> Gruppe löschen
             </button>
           ) : (
-            <div className="group-confirm-delete">
-              <p>Wirklich löschen? Alle Verknüpfungen werden entfernt.</p>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="group-delete-btn confirm" onClick={onDelete}>Ja, löschen</button>
-                <button className="group-cancel-btn" onClick={() => setConfirmDelete(false)}>Abbrechen</button>
+            <div className="gs-confirm-delete">
+              <p>Alle Daten und Verknüpfungen werden entfernt. Dieser Schritt kann nicht rückgängig gemacht werden.</p>
+              <div className="gs-confirm-actions">
+                <button className="gs-danger-btn confirm" onClick={onDelete}>Ja, endgültig löschen</button>
+                <button className="gs-cancel-btn" onClick={() => setConfirmDelete(false)}>Abbrechen</button>
               </div>
             </div>
           )}
