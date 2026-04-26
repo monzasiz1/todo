@@ -136,8 +136,10 @@ input, textarea, select {
 
 @media (min-width: 1200px) {
   .app-content-shell.notes-full-width {
-    width: calc(100% - 24px);
-    margin: 0 24px 0 0;
+    width: 100%;
+    margin: 0;
+    padding-right: 24px;
+    box-sizing: border-box;
   }
 }
 
