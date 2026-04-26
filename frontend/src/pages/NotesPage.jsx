@@ -161,6 +161,105 @@ function writeNoteViewCache(data) {
   }
 }
 
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function renderInlineMarkdown(value) {
+  let text = escapeHtml(value || '');
+  text = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_m, alt, src) => {
+    const safeSrc = String(src || '').trim();
+    if (!/^data:image\//i.test(safeSrc) && !/^https?:\/\//i.test(safeSrc)) {
+      return '';
+    }
+    return `<img class="note-md-image" src="${safeSrc}" alt="${escapeHtml(alt || 'Bild')}" />`;
+  });
+  text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  text = text.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+  return text;
+}
+
+function markdownToHtml(content) {
+  const lines = String(content || '').split(/\r?\n/);
+  let html = '';
+  let inList = false;
+
+  const closeList = () => {
+    if (inList) {
+      html += '</ul>';
+      inList = false;
+    }
+  };
+
+  lines.forEach((rawLine) => {
+    const line = String(rawLine || '');
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      closeList();
+      return;
+    }
+
+    if (trimmed.startsWith('## ')) {
+      closeList();
+      html += `<h2>${renderInlineMarkdown(trimmed.slice(3))}</h2>`;
+      return;
+    }
+
+    if (trimmed.startsWith('# ')) {
+      closeList();
+      html += `<h1>${renderInlineMarkdown(trimmed.slice(2))}</h1>`;
+      return;
+    }
+
+    const checkbox = trimmed.match(/^[-*]\s\[(x|X|\s)\]\s(.+)$/);
+    if (checkbox) {
+      if (!inList) {
+        inList = true;
+        html += '<ul class="note-md-list">';
+      }
+      const checked = checkbox[1].toLowerCase() === 'x';
+      const symbol = checked ? '☑' : '☐';
+      html += `<li class="note-md-checkbox">${symbol} ${renderInlineMarkdown(checkbox[2])}</li>`;
+      return;
+    }
+
+    const bullet = trimmed.match(/^[-*]\s(.+)$/);
+    if (bullet) {
+      if (!inList) {
+        inList = true;
+        html += '<ul class="note-md-list">';
+      }
+      html += `<li>${renderInlineMarkdown(bullet[1])}</li>`;
+      return;
+    }
+
+    closeList();
+    html += `<p>${renderInlineMarkdown(trimmed)}</p>`;
+  });
+
+  closeList();
+  return html;
+}
+
+function markdownToPlainText(content) {
+  return String(content || '')
+    .replace(/!\[[^\]]*\]\(([^)]+)\)/g, '[Bild]')
+    .replace(/^##\s+/gm, '')
+    .replace(/^#\s+/gm, '')
+    .replace(/^[-*]\s\[(x|X|\s)\]\s+/gm, '')
+    .replace(/^[-*]\s+/gm, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*\n]+)\*/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export default function NotesPage() {
   const { notes, createNote, updateNote, deleteNote, linkNoteToTask, shareNoteWithFriend, unshareNoteForFriend, connectNotes, disconnectNotes, getNoteConnections } = useNotesStore();
   const { friends, fetchFriends } = useFriendsStore();
@@ -231,6 +330,10 @@ export default function NotesPage() {
   // Zoom ref — holds live zoom value during gestures (avoids React re-renders per frame)
   const zoomRef = useRef(zoom);
   const canvasContentRef = useRef(null);
+  const newNoteContentRef = useRef(null);
+  const editNoteContentRef = useRef(null);
+  const newNoteImageInputRef = useRef(null);
+  const editNoteImageInputRef = useRef(null);
   const commitZoomTimerRef = useRef(null);
   // isDragging ref mirrors state for use inside non-reactive callbacks
   const isDraggingRef = useRef(null);
@@ -1491,6 +1594,88 @@ export default function NotesPage() {
     setToolboxOpen(false);
   };
 
+  const applyContentCommand = (textareaRef, currentValue, setValue, command) => {
+    const value = String(currentValue || '');
+    const textarea = textareaRef?.current;
+    const start = textarea?.selectionStart ?? value.length;
+    const end = textarea?.selectionEnd ?? value.length;
+    const selected = value.slice(start, end);
+    let insertText = selected;
+    let selectionStart = start;
+    let selectionEnd = end;
+
+    if (command === 'h1' || command === 'h2' || command === 'list' || command === 'checkbox') {
+      const prefix = command === 'h1'
+        ? '# '
+        : command === 'h2'
+          ? '## '
+          : command === 'list'
+            ? '- '
+            : '- [ ] ';
+      const lines = (selected || '').split('\n');
+      insertText = (selected ? lines : ['']).map((line) => `${prefix}${line}`.trimEnd()).join('\n');
+      if (!selected) {
+        insertText = prefix;
+      }
+    } else if (command === 'bold') {
+      insertText = `**${selected || 'Text'}**`;
+      if (!selected) {
+        selectionStart = start + 2;
+        selectionEnd = start + 6;
+      }
+    } else if (command === 'italic') {
+      insertText = `*${selected || 'Text'}*`;
+      if (!selected) {
+        selectionStart = start + 1;
+        selectionEnd = start + 5;
+      }
+    }
+
+    const next = value.slice(0, start) + insertText + value.slice(end);
+    setValue(next);
+
+    requestAnimationFrame(() => {
+      const t = textareaRef?.current;
+      if (!t) return;
+      t.focus();
+      const finalStart = selected ? start : selectionStart;
+      const finalEnd = selected
+        ? start + insertText.length
+        : (selectionEnd > selectionStart ? selectionEnd : start + insertText.length);
+      t.setSelectionRange(finalStart, finalEnd);
+    });
+  };
+
+  const insertImageIntoContent = (event, textareaRef, currentValue, setValue) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result || '');
+      if (!dataUrl.startsWith('data:image/')) return;
+
+      const value = String(currentValue || '');
+      const textarea = textareaRef?.current;
+      const start = textarea?.selectionStart ?? value.length;
+      const end = textarea?.selectionEnd ?? value.length;
+      const snippet = `\n![Bild](${dataUrl})\n`;
+      const next = value.slice(0, start) + snippet + value.slice(end);
+      setValue(next);
+
+      requestAnimationFrame(() => {
+        const t = textareaRef?.current;
+        if (!t) return;
+        const pos = start + snippet.length;
+        t.focus();
+        t.setSelectionRange(pos, pos);
+      });
+    };
+    reader.readAsDataURL(file);
+
+    event.target.value = '';
+  };
+
   const handleQuickConnectToggle = () => {
     setQuickConnectMode((prev) => {
       if (prev) setSelectedNote(null);
@@ -2204,7 +2389,10 @@ export default function NotesPage() {
 
                         {/* Content preview */}
                         {note.content && (
-                          <p className="nmlv-card-content">{note.content}</p>
+                          <div
+                            className="nmlv-card-content note-content-renderer"
+                            dangerouslySetInnerHTML={{ __html: markdownToHtml(note.content) }}
+                          />
                         )}
 
                         {/* Footer row */}
@@ -2473,7 +2661,10 @@ export default function NotesPage() {
                     </div>
                   </div>
 
-                  <p className="note-content">{note.content}</p>
+                  <div
+                    className="note-content note-content-renderer"
+                    dangerouslySetInnerHTML={{ __html: markdownToHtml(note.content) }}
+                  />
 
                   {isResponsibleNote && (
                     <div className="note-responsible-badge">Du bist verantwortlich</div>
@@ -2846,7 +3037,14 @@ export default function NotesPage() {
                   >
                     {activeIsCompleted ? 'Erledigt' : 'Als erledigt markieren'}
                   </button>
-                  <p className="context-note-body">{activeNote.content || 'Kein Inhalt hinterlegt.'}</p>
+                  {activeNote.content ? (
+                    <div
+                      className="context-note-body note-content-renderer"
+                      dangerouslySetInnerHTML={{ __html: markdownToHtml(activeNote.content) }}
+                    />
+                  ) : (
+                    <p className="context-note-body">Kein Inhalt hinterlegt.</p>
+                  )}
                   <div className="context-meta-list">
                     <span>Status: {activeIsCompleted ? 'Erledigt' : 'Offen'}</span>
                     <span>Blocker offen: {activeDependencyState.unresolvedIds.length}</span>
@@ -3005,12 +3203,29 @@ export default function NotesPage() {
 
               <div className="form-group">
                 <label className="form-label">Inhalt</label>
+                <div className="note-rich-toolbar" role="toolbar" aria-label="Textformatierung">
+                  <button type="button" className="note-rich-btn" onClick={() => applyContentCommand(newNoteContentRef, newNote.content, (content) => setNewNote({ ...newNote, content }), 'h1')}>H1</button>
+                  <button type="button" className="note-rich-btn" onClick={() => applyContentCommand(newNoteContentRef, newNote.content, (content) => setNewNote({ ...newNote, content }), 'h2')}>H2</button>
+                  <button type="button" className="note-rich-btn" onClick={() => applyContentCommand(newNoteContentRef, newNote.content, (content) => setNewNote({ ...newNote, content }), 'list')}>Liste</button>
+                  <button type="button" className="note-rich-btn" onClick={() => applyContentCommand(newNoteContentRef, newNote.content, (content) => setNewNote({ ...newNote, content }), 'checkbox')}>Checkbox</button>
+                  <button type="button" className="note-rich-btn" onClick={() => applyContentCommand(newNoteContentRef, newNote.content, (content) => setNewNote({ ...newNote, content }), 'bold')}>Fett</button>
+                  <button type="button" className="note-rich-btn" onClick={() => applyContentCommand(newNoteContentRef, newNote.content, (content) => setNewNote({ ...newNote, content }), 'italic')}>Kursiv</button>
+                  <button type="button" className="note-rich-btn" onClick={() => newNoteImageInputRef.current?.click()}>Bild</button>
+                </div>
                 <textarea
+                  ref={newNoteContentRef}
                   className="form-textarea"
                   placeholder="Deine Gedanken..."
                   value={newNote.content}
                   onChange={(e) => setNewNote({ ...newNote, content: e.target.value })}
                   rows="4"
+                />
+                <input
+                  ref={newNoteImageInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="note-rich-image-input"
+                  onChange={(event) => insertImageIntoContent(event, newNoteContentRef, newNote.content, (content) => setNewNote({ ...newNote, content }))}
                 />
               </div>
 
@@ -3210,11 +3425,28 @@ export default function NotesPage() {
 
               <div className="form-group">
                 <label className="form-label">Inhalt</label>
+                <div className="note-rich-toolbar" role="toolbar" aria-label="Textformatierung">
+                  <button type="button" className="note-rich-btn" onClick={() => applyContentCommand(editNoteContentRef, editingNote.content, (content) => setEditingNote({ ...editingNote, content }), 'h1')}>H1</button>
+                  <button type="button" className="note-rich-btn" onClick={() => applyContentCommand(editNoteContentRef, editingNote.content, (content) => setEditingNote({ ...editingNote, content }), 'h2')}>H2</button>
+                  <button type="button" className="note-rich-btn" onClick={() => applyContentCommand(editNoteContentRef, editingNote.content, (content) => setEditingNote({ ...editingNote, content }), 'list')}>Liste</button>
+                  <button type="button" className="note-rich-btn" onClick={() => applyContentCommand(editNoteContentRef, editingNote.content, (content) => setEditingNote({ ...editingNote, content }), 'checkbox')}>Checkbox</button>
+                  <button type="button" className="note-rich-btn" onClick={() => applyContentCommand(editNoteContentRef, editingNote.content, (content) => setEditingNote({ ...editingNote, content }), 'bold')}>Fett</button>
+                  <button type="button" className="note-rich-btn" onClick={() => applyContentCommand(editNoteContentRef, editingNote.content, (content) => setEditingNote({ ...editingNote, content }), 'italic')}>Kursiv</button>
+                  <button type="button" className="note-rich-btn" onClick={() => editNoteImageInputRef.current?.click()}>Bild</button>
+                </div>
                 <textarea
+                  ref={editNoteContentRef}
                   className="form-textarea"
                   value={editingNote.content}
                   onChange={(e) => setEditingNote({ ...editingNote, content: e.target.value })}
                   rows="4"
+                />
+                <input
+                  ref={editNoteImageInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="note-rich-image-input"
+                  onChange={(event) => insertImageIntoContent(event, editNoteContentRef, editingNote.content, (content) => setEditingNote({ ...editingNote, content }))}
                 />
               </div>
 
@@ -3482,7 +3714,7 @@ export default function NotesPage() {
                           <div className={`connection-type-badge type-${entry.relationshipType}`}>
                             {CONNECTION_TYPE_LABELS[entry.relationshipType] || CONNECTION_TYPE_LABELS.related}
                           </div>
-                          <div className="note-item-preview">{entry.otherNote.content?.substring(0, 50)}...</div>
+                          <div className="note-item-preview">{markdownToPlainText(entry.otherNote.content).substring(0, 50)}...</div>
                         </div>
                         <button
                           type="button"
@@ -3505,7 +3737,7 @@ export default function NotesPage() {
                   >
                     <div>
                       <div className="note-item-title">{note.title}</div>
-                      <div className="note-item-preview">{note.content?.substring(0, 50)}...</div>
+                      <div className="note-item-preview">{markdownToPlainText(note.content).substring(0, 50)}...</div>
                     </div>
                     <button
                       type="button"
