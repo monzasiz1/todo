@@ -5,7 +5,7 @@ import { useTaskStore } from '../store/taskStore';
 import AIInput from '../components/AIInput';
 import ManualTaskForm from '../components/ManualTaskForm';
 import TaskCard from '../components/TaskCard';
-import { CheckCircle2, Circle, Clock, ChevronDown, CalendarDays, AlertTriangle, Target, Plus, X } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, ChevronDown, CalendarDays, AlertTriangle, Target, Plus, X, ChevronsDown } from 'lucide-react';
 import { isToday, isTomorrow, isThisWeek, isPast, parseISO, format, startOfDay, compareAsc } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { usePlan } from '../hooks/usePlan';
@@ -240,9 +240,19 @@ function buildSmartInsights({
 const VIRTUAL_THRESHOLD = 24;
 const VIRTUAL_ITEM_SIZE = 112;
 const VIRTUAL_MAX_HEIGHT = 560;
-const DASHBOARD_FETCH_LIMIT = '300';
-const DASHBOARD_HORIZON_DAYS = '42';
+const DASHBOARD_FETCH_LIMIT = '160';
+const DASHBOARD_HORIZON_DAYS = '28';
 const DASHBOARD_COMPLETED_LOOKBACK_DAYS = '30';
+const INITIAL_GROUP_VISIBLE = 18;
+const GROUP_VISIBLE_STEP = 18;
+
+function initialVisibleCountMap(groups) {
+  const map = {};
+  groups.forEach((group) => {
+    map[group.key] = INITIAL_GROUP_VISIBLE;
+  });
+  return map;
+}
 
 function TaskRow({ index, style, data }) {
   const task = data.tasks[index];
@@ -259,7 +269,8 @@ export default function Dashboard() {
   const { tasks, fetchTasks, filter, setFilter } = useTaskStore();
   const { limit, atLimit } = usePlan();
   const [showCompleted, setShowCompleted] = useState(false);
-  const [collapsedSections, setCollapsedSections] = useState({ past_events: true });
+  const [collapsedSections, setCollapsedSections] = useState({ week: true, later: true, past_events: true });
+  const [groupVisibleCounts, setGroupVisibleCounts] = useState({});
   const [showTaskLimitModal, setShowTaskLimitModal] = useState(false);
   const [showManualModal, setShowManualModal] = useState(false);
   const [nowTs, setNowTs] = useState(Date.now());
@@ -358,6 +369,17 @@ export default function Dashboard() {
 
   const groups = useMemo(() => groupTasksByDate(deduplicated), [deduplicated]);
 
+  useEffect(() => {
+    setGroupVisibleCounts((prev) => {
+      const next = { ...initialVisibleCountMap(groups), ...prev };
+      const validKeys = new Set(groups.map((g) => g.key));
+      Object.keys(next).forEach((key) => {
+        if (!validKeys.has(key)) delete next[key];
+      });
+      return next;
+    });
+  }, [groups]);
+
   const completedTasks = useMemo(
     () => filtered
       .filter((t) => t.completed)
@@ -443,6 +465,13 @@ export default function Dashboard() {
 
   const toggleSection = (key) => {
     setCollapsedSections((s) => ({ ...s, [key]: !s[key] }));
+  };
+
+  const showMoreInSection = (key) => {
+    setGroupVisibleCounts((s) => ({
+      ...s,
+      [key]: Math.max(INITIAL_GROUP_VISIBLE, (s[key] || INITIAL_GROUP_VISIBLE) + GROUP_VISIBLE_STEP),
+    }));
   };
 
   const priorities = [
@@ -601,6 +630,9 @@ export default function Dashboard() {
         groups.map((group) => {
           const Icon = group.icon;
           const collapsed = collapsedSections[group.key];
+          const visibleCount = groupVisibleCounts[group.key] || INITIAL_GROUP_VISIBLE;
+          const visibleTasks = group.tasks.slice(0, visibleCount);
+          const hasMore = visibleTasks.length < group.tasks.length;
           return (
             <div key={group.key} className="dash-section" data-section={group.key}>
               <button
@@ -628,20 +660,25 @@ export default function Dashboard() {
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                    {group.tasks.length > VIRTUAL_THRESHOLD ? (
+                    {visibleTasks.length > VIRTUAL_THRESHOLD ? (
                       <VirtualList
-                        height={Math.min(VIRTUAL_MAX_HEIGHT, group.tasks.length * VIRTUAL_ITEM_SIZE)}
-                        itemCount={group.tasks.length}
+                        height={Math.min(VIRTUAL_MAX_HEIGHT, visibleTasks.length * VIRTUAL_ITEM_SIZE)}
+                        itemCount={visibleTasks.length}
                         itemSize={VIRTUAL_ITEM_SIZE}
                         width="100%"
-                        itemData={{ tasks: group.tasks }}
+                        itemData={{ tasks: visibleTasks }}
                       >
                         {TaskRow}
                       </VirtualList>
                     ) : (
-                      group.tasks.map((task, i) => (
+                      visibleTasks.map((task, i) => (
                         <TaskCard key={task.id} task={task} index={i} />
                       ))
+                    )}
+                    {hasMore && (
+                      <button className="group-load-more-btn" onClick={() => showMoreInSection(group.key)}>
+                        <ChevronsDown size={14} /> Mehr anzeigen ({group.tasks.length - visibleTasks.length})
+                      </button>
                     )}
                   </motion.div>
                 )}
