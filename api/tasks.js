@@ -1035,6 +1035,9 @@ module.exports = async function handler(req, res) {
                     g.group_name,
                     g.group_color,
                     g.group_image_url,
+                    g.group_category_id,
+                    g.group_category_name,
+                    g.group_category_color,
                     0::int AS attachment_count,
                     COALESCE(sh.shared_with_users, '[]'::json) AS shared_with_users
              FROM ranked_tasks rt
@@ -1045,9 +1048,13 @@ module.exports = async function handler(req, res) {
                SELECT gt.group_id,
                       grp.name as group_name,
                       grp.color as group_color,
-                      grp.image_url as group_image_url
+                      grp.image_url as group_image_url,
+                      gt.group_category_id,
+                      gc.name as group_category_name,
+                      gc.color as group_category_color
                FROM group_tasks gt
                JOIN groups grp ON grp.id = gt.group_id
+               LEFT JOIN group_categories gc ON gc.id = gt.group_category_id
                WHERE gt.task_id = rt.id
                ORDER BY gt.group_id
                LIMIT 1
@@ -1105,6 +1112,9 @@ module.exports = async function handler(req, res) {
                     g.group_name,
                     g.group_color,
                     g.group_image_url,
+                    g.group_category_id,
+                    g.group_category_name,
+                    g.group_category_color,
                     0::int AS attachment_count,
                     '[]'::json AS shared_with_users,
                     true AS is_owner,
@@ -1121,9 +1131,13 @@ module.exports = async function handler(req, res) {
                SELECT gt.group_id,
                       grp.name as group_name,
                       grp.color as group_color,
-                      grp.image_url as group_image_url
+                      grp.image_url as group_image_url,
+                      gt.group_category_id,
+                      gc.name as group_category_name,
+                      gc.color as group_category_color
                FROM group_tasks gt
                JOIN groups grp ON grp.id = gt.group_id
+               LEFT JOIN group_categories gc ON gc.id = gt.group_category_id
                WHERE gt.task_id = rt.id
                ORDER BY gt.group_id
                LIMIT 1
@@ -1165,6 +1179,7 @@ module.exports = async function handler(req, res) {
                         )
                       END as can_edit,
                       g.group_id, g.group_name, g.group_color, g.group_image_url,
+                      g.group_category_id, g.group_category_name, g.group_category_color,
                       g.group_task_creator_name, g.group_task_creator_color, g.group_task_creator_avatar_url,
                       0::int as attachment_count,
                       COALESCE((
@@ -1185,11 +1200,15 @@ module.exports = async function handler(req, res) {
                         grp.name as group_name,
                         grp.color as group_color,
                         grp.image_url as group_image_url,
+                   gt.group_category_id,
+                   gc.name as group_category_name,
+                   gc.color as group_category_color,
                         gtc.name as group_task_creator_name,
                         gtc.avatar_color as group_task_creator_color,
                         gtc.avatar_url as group_task_creator_avatar_url
                  FROM group_tasks gt
                  JOIN groups grp ON grp.id = gt.group_id
+                 LEFT JOIN group_categories gc ON gc.id = gt.group_category_id
                  LEFT JOIN users gtc ON gtc.id = gt.created_by
                  WHERE gt.task_id = t.id
                  ORDER BY gt.group_id
@@ -1222,6 +1241,7 @@ module.exports = async function handler(req, res) {
                       true as is_owner,
                       true as can_edit,
                       g.group_id, g.group_name, g.group_color, g.group_image_url,
+                      g.group_category_id, g.group_category_name, g.group_category_color,
                       g.group_task_creator_name, g.group_task_creator_color, g.group_task_creator_avatar_url,
                       0::int as attachment_count,
                       '[]'::json as shared_with_users,
@@ -1234,11 +1254,15 @@ module.exports = async function handler(req, res) {
                         grp.name as group_name,
                         grp.color as group_color,
                         grp.image_url as group_image_url,
+                   gt.group_category_id,
+                   gc.name as group_category_name,
+                   gc.color as group_category_color,
                         gtc.name as group_task_creator_name,
                         gtc.avatar_color as group_task_creator_color,
                         gtc.avatar_url as group_task_creator_avatar_url
                  FROM group_tasks gt
                  JOIN groups grp ON grp.id = gt.group_id
+                 LEFT JOIN group_categories gc ON gc.id = gt.group_category_id
                  LEFT JOIN users gtc ON gtc.id = gt.created_by
                  WHERE gt.task_id = t.id
                  ORDER BY gt.group_id
@@ -1288,6 +1312,7 @@ module.exports = async function handler(req, res) {
              CASE WHEN t.user_id = $1 THEN true ELSE false END as is_owner,
              COALESCE(tp.can_edit, false) as can_edit,
              gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url,
+             gc.id as group_category_id, gc.name as group_category_name, gc.color as group_category_color,
              gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color, gtc.avatar_url as group_task_creator_avatar_url,
              (SELECT COUNT(*) FROM task_attachments ta WHERE ta.task_id = t.id)::int as attachment_count,
              (SELECT COALESCE(json_agg(json_build_object('name', su.name, 'color', su.avatar_color, 'avatar_url', su.avatar_url)), '[]'::json)
@@ -1300,6 +1325,7 @@ module.exports = async function handler(req, res) {
            LEFT JOIN task_permissions tp ON tp.task_id = t.id AND tp.user_id = $1
            LEFT JOIN group_tasks gt ON gt.task_id = t.id
            LEFT JOIN groups grp ON grp.id = gt.group_id
+           LEFT JOIN group_categories gc ON gc.id = gt.group_category_id
            LEFT JOIN users gtc ON gtc.id = gt.created_by
            WHERE t.user_id = $1
              OR (t.visibility = 'shared' AND EXISTS (
@@ -1316,11 +1342,13 @@ module.exports = async function handler(req, res) {
         result = await pool.query(
           `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
              gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url,
+             gc.id as group_category_id, gc.name as group_category_name, gc.color as group_category_color,
              gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color, gtc.avatar_url as group_task_creator_avatar_url,
              (SELECT COUNT(*) FROM task_attachments ta WHERE ta.task_id = t.id)::int as attachment_count
            FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
            LEFT JOIN group_tasks gt ON gt.task_id = t.id
            LEFT JOIN groups grp ON grp.id = gt.group_id
+           LEFT JOIN group_categories gc ON gc.id = gt.group_category_id
            LEFT JOIN users gtc ON gtc.id = gt.created_by
            WHERE t.user_id = $1
              OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)

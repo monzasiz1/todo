@@ -11437,6 +11437,31 @@ body.cal-is-dragging * {
   flex-shrink: 0;
 }
 
+@media (max-width: 768px) {
+  .cat-pill-picker {
+    gap: 4px;
+    padding: 2px 0;
+    max-height: 112px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .cat-pill {
+    padding: 4px 8px;
+    border-radius: 14px;
+    font-size: 11px;
+    line-height: 1.15;
+    max-width: 46vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cat-pill-dot {
+    width: 7px;
+    height: 7px;
+  }
+}
+
 /* --- Calendar Group Task Indicator --- */
 .calendar-day-task.group-task {
   position: relative;
