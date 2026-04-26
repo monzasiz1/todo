@@ -1184,19 +1184,17 @@ export default function NotesPage() {
       drag.lastClientY = clientY;
     }
   };
-  if (!drag?.isPan && !drag?.noteId && !drag?.textId) return;
-  if (!drag?.isPan && !drag?.noteId && !drag?.textId) return;
 
   const handlePointerMove = (event) => {
     const drag = isDraggingRef.current;
-    if (!drag?.isPan && !drag?.noteId) return;
+    if (!drag?.isPan && !drag?.noteId && !drag?.textId) return;
     if (drag?.pointerId != null && event.pointerId !== drag.pointerId) return;
     moveDragging(event.clientX, event.clientY);
   };
 
   const handlePointerUp = (event) => {
     const drag = isDraggingRef.current;
-    if (!drag?.isPan && !drag?.noteId) return;
+    if (!drag?.isPan && !drag?.noteId && !drag?.textId) return;
     if (drag?.pointerId != null && event.pointerId !== drag.pointerId) return;
 
     if (drag?.noteId) {
