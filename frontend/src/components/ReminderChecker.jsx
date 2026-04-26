@@ -81,6 +81,14 @@ export default function ReminderChecker() {
             task_id: task.id,
           });
 
+          // 2b. Persist reminder delivery to server log for cross-session dedupe
+          api.createNotificationLog?.({
+            type: 'reminder',
+            task_id: task.id,
+            title,
+            body,
+          }).catch(() => {});
+
           // 3. Browser Notification (works without Push subscription)
           if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
             try {
@@ -111,99 +119,6 @@ export default function ReminderChecker() {
       if (firedAny) {
         // Wait a moment then fetch server log to confirm entry is there
         setTimeout(() => fetchLog(), 1500);
-      }
-    };
-
-    // Run immediately and then every 30 seconds
-    check();
-    const interval = setInterval(check, 30000);
-    return () => clearInterval(interval);
-  }, [addLocalNotification, addToast, fetchLog]);
-
-  // Cleanup old fired IDs (prevent memory leak)
-  useEffect(() => {
-    const cleanup = setInterval(() => {
-      for (const key of firedRef.current) {
-        const reminderAt = key.split(':').slice(1).join(':');
-        if (!reminderAt) continue;
-        const ts = new Date(reminderAt).getTime();
-        if (!Number.isFinite(ts) || ts < Date.now() - 24 * 60 * 60 * 1000) {
-          firedRef.current.delete(key);
-        }
-      }
-    }, 60000);
-    return () => clearInterval(cleanup);
-  }, []);
-
-  return null; // Invisible component
-
-  useEffect(() => {
-    const check = async () => {
-      const now = Date.now();
-      let dueTasks = [];
-
-      try {
-        const response = await api.getDueReminders?.();
-        dueTasks = Array.isArray(response?.tasks) ? response.tasks : [];
-        if (dueTasks.length > 0) {
-          console.log(`[ReminderChecker] Found ${dueTasks.length} due reminders at ${new Date().toISOString()}`);
-        }
-      } catch (err) {
-        console.error('[ReminderChecker] API error:', err.message);
-        return;
-      }
-
-      for (const task of dueTasks) {
-        if (!task.reminder_at || task.completed) continue;
-        const reminderKey = buildReminderKey(task);
-        if (firedRef.current.has(reminderKey)) continue;
-
-        const reminderTime = new Date(task.reminder_at).getTime();
-        // Fire if reminder is due (within the last 12 hours)
-        if (reminderTime <= now && reminderTime > now - 12 * 60 * 60 * 1000) {
-          firedRef.current.add(reminderKey);
-
-          const title = '⏰ Erinnerung';
-          const body = `${task.title}${task.time ? ' um ' + task.time.slice(0, 5) : ''}`;
-
-          // 1. In-App Toast
-          addToast(body, 'info');
-
-          // 2. Add to notification bell immediately
-          addLocalNotification({
-            type: 'reminder',
-            title,
-            body,
-            task_id: task.id,
-          });
-
-          // 3. Browser Notification (works without Push subscription)
-          if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-            try {
-              new Notification(title, {
-                body,
-                icon: '/icons/icon-192.png',
-                tag: `reminder-${task.id}`,
-                vibrate: [200, 100, 200],
-              });
-            } catch {
-              // Mobile Safari may not support Notification constructor
-              if (navigator.serviceWorker?.controller) {
-                navigator.serviceWorker.ready.then(reg => {
-                  reg.showNotification(title, {
-                    body,
-                    icon: '/icons/icon-192.png',
-                    tag: `reminder-${task.id}`,
-                    vibrate: [200, 100, 200],
-                  });
-                });
-              }
-            }
-          }
-
-          // 4. Refresh notification log from server
-          fetchLog();
-        }
       }
     };
 

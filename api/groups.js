@@ -60,7 +60,14 @@ module.exports = async function handler(req, res) {
   async function isGroupNotificationEnabled(userId, type) {
     try {
       const { rows } = await pool.query('SELECT notification_prefs FROM users WHERE id = $1', [userId]);
-      const prefs = rows[0]?.notification_prefs || {};
+      let prefs = rows[0]?.notification_prefs || {};
+      if (typeof prefs === 'string') {
+        try {
+          prefs = JSON.parse(prefs);
+        } catch {
+          prefs = {};
+        }
+      }
       return prefs[type] !== false;
     } catch {
       return true;
@@ -234,13 +241,31 @@ module.exports = async function handler(req, res) {
   // ============================================
   if (segments.length === 0 && req.method === 'GET') {
     try {
+      const hasGroupTasks = await pool.query(
+        `SELECT EXISTS (
+           SELECT 1 FROM information_schema.tables
+           WHERE table_schema = 'public' AND table_name = 'group_tasks'
+         ) as ok`
+      );
+      const hasUpdatedAt = await pool.query(
+        `SELECT EXISTS (
+           SELECT 1 FROM information_schema.columns
+           WHERE table_schema = 'public' AND table_name = 'groups' AND column_name = 'updated_at'
+         ) as ok`
+      );
+
+      const taskCountExpr = hasGroupTasks.rows[0]?.ok
+        ? `(SELECT COUNT(*) FROM group_tasks WHERE group_id = g.id) as task_count`
+        : `0::bigint as task_count`;
+      const orderExpr = hasUpdatedAt.rows[0]?.ok ? 'g.updated_at DESC' : 'g.id DESC';
+
       const result = await pool.query(
         `SELECT g.*, gm.role,
           (SELECT COUNT(*) FROM group_members WHERE group_id = g.id) as member_count,
-          (SELECT COUNT(*) FROM group_tasks WHERE group_id = g.id) as task_count
+          ${taskCountExpr}
          FROM groups g
          JOIN group_members gm ON gm.group_id = g.id AND gm.user_id = $1
-         ORDER BY g.updated_at DESC`,
+         ORDER BY ${orderExpr}`,
         [user.id]
       );
       return res.json({ groups: result.rows });

@@ -335,6 +335,21 @@ async function checkAndShowDueReminders() {
           ],
         });
 
+        // Persist to server log so this reminder is not returned again
+        await fetch('/api/notifications/log', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            type: 'reminder',
+            task_id: task.id,
+            title,
+            body,
+          }),
+        }).catch(() => null);
+
         console.log('[SW] Background reminder shown:', tag);
       }
     }

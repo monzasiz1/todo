@@ -235,6 +235,8 @@ export const api = {
     request('/notifications/subscribe', { method: 'DELETE', body: JSON.stringify(data) }),
   getNotificationStatus: () => request('/notifications/status'),
   getNotificationLog: () => request('/notifications/log'),
+  createNotificationLog: (payload) =>
+    request('/notifications/log', { method: 'POST', body: JSON.stringify(payload) }),
   getNotificationLogFiltered: (params = {}) => {
     const query = new URLSearchParams(params).toString();
     return request(`/notifications/log${query ? `?${query}` : ''}`);

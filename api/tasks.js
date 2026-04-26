@@ -541,6 +541,13 @@ module.exports = async function handler(req, res) {
              AND t.reminder_at IS NOT NULL
              AND t.reminder_at <= NOW()
              AND t.reminder_at > NOW() - INTERVAL '24 hours'
+             AND NOT EXISTS (
+               SELECT 1
+               FROM notification_log nl
+               WHERE nl.user_id = $1
+                 AND nl.task_id = t.id
+                 AND nl.type = 'reminder'
+             )
              AND (
                t.user_id = $1
                OR (t.visibility = 'shared' AND EXISTS (
@@ -571,6 +578,13 @@ module.exports = async function handler(req, res) {
              AND t.reminder_at IS NOT NULL
              AND t.reminder_at <= NOW()
              AND t.reminder_at > NOW() - INTERVAL '24 hours'
+             AND NOT EXISTS (
+               SELECT 1
+               FROM notification_log nl
+               WHERE nl.user_id = $1
+                 AND nl.task_id = t.id
+                 AND nl.type = 'reminder'
+             )
            ORDER BY t.reminder_at ASC`,
           [user.id]
         );

@@ -131,6 +131,38 @@ module.exports = async function handler(req, res) {
     }
   }
 
+  // POST /api/notifications/log – create a log entry (client/SW dedupe helper)
+  if (segments[0] === 'log' && req.method === 'POST' && segments.length === 1) {
+    try {
+      const type = String(req.body?.type || '').trim();
+      const title = String(req.body?.title || '').trim();
+      const body = String(req.body?.body || '').trim();
+      const rawTaskId = req.body?.task_id;
+      const taskId = rawTaskId === undefined || rawTaskId === null || rawTaskId === ''
+        ? null
+        : Number.parseInt(String(rawTaskId), 10);
+
+      const allowedTypes = new Set(['reminder', 'group_message', 'team_task', 'team_task_created', 'test']);
+      if (!allowedTypes.has(type)) {
+        return res.status(400).json({ error: 'Ungueltiger Typ' });
+      }
+      if (!title || !body) {
+        return res.status(400).json({ error: 'Titel und Text erforderlich' });
+      }
+
+      await pool.query(
+        `INSERT INTO notification_log (user_id, type, task_id, title, body)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [user.id, type, Number.isFinite(taskId) ? taskId : null, title, body]
+      );
+
+      return res.status(201).json({ success: true });
+    } catch (err) {
+      console.error('Log create error:', err);
+      return res.status(500).json({ error: 'Fehler beim Schreiben des Logs' });
+    }
+  }
+
   // DELETE /api/notifications/log – clear current user's log (optional by type)
   if (segments[0] === 'log' && req.method === 'DELETE' && segments.length === 1) {
     try {
