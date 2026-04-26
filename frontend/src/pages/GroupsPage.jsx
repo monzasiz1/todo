@@ -507,6 +507,7 @@ function GroupDetail({ groupId, onBack }) {
   };
 
   const isAdmin = myRole === 'owner' || myRole === 'admin';
+  const isOwner = myRole === 'owner';
   const activeTasks = useMemo(() => groupTasks.filter((t) => !t.completed && !isEventEnded(t)), [groupTasks]);
   const pastTasks = useMemo(() => groupTasks.filter((t) => t.completed || isEventEnded(t)), [groupTasks]);
   const categoryOptions = useMemo(() => {
@@ -735,6 +736,11 @@ function GroupDetail({ groupId, onBack }) {
           </div>
           {sortedMembers.map((m) => {
             const RoleIcon = ROLE_CONFIG[m.role]?.icon || Users;
+            const canOwnerManageRole = isOwner && m.user_id !== user?.id && m.role !== 'owner';
+            const canRemoveMember = (
+              (isOwner && m.user_id !== user?.id && m.role !== 'owner') ||
+              (myRole === 'admin' && m.user_id !== user?.id && m.role === 'member')
+            );
             return (
               <div key={m.user_id} className="group-member-card">
                 <AvatarBadge
@@ -752,29 +758,44 @@ function GroupDetail({ groupId, onBack }) {
                     <RoleIcon size={11} /> {ROLE_CONFIG[m.role]?.label}
                   </span>
                 </div>
-                {isAdmin && m.user_id !== user?.id && m.role !== 'owner' && (
+                {(canOwnerManageRole || canRemoveMember) && (
                   <div className="group-member-actions">
-                    {myRole === 'owner' && (
+                    {canOwnerManageRole && (
+                      <>
+                        <button
+                          className={`group-member-action-btn role ${m.role === 'admin' ? 'active' : ''}`}
+                          onClick={() => {
+                            changeMemberRole(groupId, m.user_id, 'admin');
+                            addToast('Rolle auf Admin gesetzt');
+                          }}
+                          title="Als Admin setzen"
+                        >
+                          <Shield size={13} /> Admin
+                        </button>
+                        <button
+                          className={`group-member-action-btn role ${m.role === 'member' ? 'active' : ''}`}
+                          onClick={() => {
+                            changeMemberRole(groupId, m.user_id, 'member');
+                            addToast('Rolle auf Mitglied gesetzt');
+                          }}
+                          title="Als Mitglied setzen"
+                        >
+                          <Users size={13} /> Mitglied
+                        </button>
+                      </>
+                    )}
+                    {canRemoveMember && (
                       <button
-                        className="group-member-action-btn"
+                        className="group-member-action-btn remove"
                         onClick={() => {
-                          changeMemberRole(groupId, m.user_id, m.role === 'admin' ? 'member' : 'admin');
+                          removeMember(groupId, m.user_id);
+                          addToast('Mitglied entfernt');
                         }}
-                        title={m.role === 'admin' ? 'Zu Mitglied herabstufen' : 'Zum Admin befördern'}
+                        title="Entfernen"
                       >
-                        <Shield size={14} />
+                        <UserMinus size={14} />
                       </button>
                     )}
-                    <button
-                      className="group-member-action-btn remove"
-                      onClick={() => {
-                        removeMember(groupId, m.user_id);
-                        addToast('Mitglied entfernt');
-                      }}
-                      title="Entfernen"
-                    >
-                      <UserMinus size={14} />
-                    </button>
                   </div>
                 )}
               </div>

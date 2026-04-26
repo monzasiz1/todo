@@ -11309,6 +11309,23 @@ body.cal-is-dragging * {
   color: var(--danger);
 }
 
+.group-member-action-btn.role {
+  width: auto;
+  min-width: 88px;
+  padding: 0 10px;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+}
+
+.group-member-action-btn.role.active {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary-bg) 62%, var(--surface));
+}
+
 /* --- Leave Button --- */
 .group-leave-btn {
   width: 100%;

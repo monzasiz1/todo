@@ -361,7 +361,8 @@ export default function NotesPage() {
   };
 
   const startFsToolbarDrag = (event) => {
-    if (!isCanvasFullscreen) return;
+    const fullscreenActive = isCanvasFullscreen || isCanvasPseudoFullscreen;
+    if (!fullscreenActive) return;
     if (event.pointerType === 'mouse' && event.button !== 0) return;
 
     const toolbar = fsToolbarRef.current;
@@ -395,6 +396,48 @@ export default function NotesPage() {
     document.addEventListener('pointermove', move);
     document.addEventListener('pointerup', stop);
     document.addEventListener('pointercancel', stop);
+  };
+
+  const startFsToolbarTouchDrag = (event) => {
+    const fullscreenActive = isCanvasFullscreen || isCanvasPseudoFullscreen;
+    if (!fullscreenActive) return;
+    const touch = event.touches?.[0];
+    if (!touch) return;
+
+    const toolbar = fsToolbarRef.current;
+    if (!toolbar) return;
+
+    const rect = toolbar.getBoundingClientRect();
+    fsToolbarDragRef.current = {
+      offsetX: touch.clientX - rect.left,
+      offsetY: touch.clientY - rect.top,
+      width: rect.width,
+      height: rect.height,
+    };
+
+    const move = (moveEvent) => {
+      if (!fsToolbarDragRef.current) return;
+      const drag = fsToolbarDragRef.current;
+      const t = moveEvent.touches?.[0];
+      if (!t) return;
+      const maxX = Math.max(8, window.innerWidth - drag.width - 8);
+      const maxY = Math.max(8, window.innerHeight - drag.height - 8);
+      const nextX = Math.min(maxX, Math.max(8, t.clientX - drag.offsetX));
+      const nextY = Math.min(maxY, Math.max(8, t.clientY - drag.offsetY));
+      setFsToolbarPos({ x: nextX, y: nextY });
+      moveEvent.preventDefault();
+    };
+
+    const stop = () => {
+      fsToolbarDragRef.current = null;
+      document.removeEventListener('touchmove', move);
+      document.removeEventListener('touchend', stop);
+      document.removeEventListener('touchcancel', stop);
+    };
+
+    document.addEventListener('touchmove', move, { passive: false });
+    document.addEventListener('touchend', stop);
+    document.addEventListener('touchcancel', stop);
   };
 
   const persistNoteViewState = (overrides = {}) => {
@@ -2631,7 +2674,7 @@ export default function NotesPage() {
           className="notes-fs-toolbar"
           style={{ left: `${fsToolbarPos.x}px`, top: `${fsToolbarPos.y}px` }}
         >
-          <div className="notes-fs-toolbar-drag" onPointerDown={startFsToolbarDrag}>
+          <div className="notes-fs-toolbar-drag" onPointerDown={startFsToolbarDrag} onTouchStart={startFsToolbarTouchDrag}>
             <span className="notes-fs-toolbar-handle" />
             <span>Werkzeuge</span>
           </div>
