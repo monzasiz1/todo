@@ -387,16 +387,28 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
 
             <div className="task-edit-field" style={{ marginBottom: 0 }}>
               <label><Tag size={14} /> Persönliche Kategorie</label>
-              <select
-                value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className="task-edit-input task-edit-select"
-              >
-                <option value="">Keine Kategorie</option>
+              <div className="cat-pill-picker">
+                <button
+                  type="button"
+                  className={`cat-pill${!categoryId ? ' active' : ''}`}
+                  onClick={() => setCategoryId('')}
+                >
+                  <span className="cat-pill-dot" style={{ background: 'var(--text-tertiary)' }} />
+                  Keine
+                </button>
                 {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  <button
+                    key={cat.id}
+                    type="button"
+                    className={`cat-pill${String(categoryId) === String(cat.id) ? ' active' : ''}`}
+                    style={String(categoryId) === String(cat.id) ? { background: `${cat.color || '#007AFF'}22`, borderColor: cat.color || '#007AFF', color: cat.color || '#007AFF' } : {}}
+                    onClick={() => setCategoryId(String(cat.id))}
+                  >
+                    <span className="cat-pill-dot" style={{ background: cat.color || '#007AFF' }} />
+                    {cat.name}
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
 
             <div className="task-edit-field" style={{ marginBottom: 0 }}>
@@ -478,16 +490,28 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
             {groupId && (
               <div className="task-edit-field" style={{ marginBottom: 0 }}>
                 <label><Tag size={14} /> Gruppenkategorie</label>
-                <select
-                  value={groupCategoryId}
-                  onChange={(e) => setGroupCategoryId(e.target.value)}
-                  className="task-edit-input task-edit-select"
-                >
-                  <option value="">Keine Gruppenkategorie</option>
+                <div className="cat-pill-picker">
+                  <button
+                    type="button"
+                    className={`cat-pill${!groupCategoryId ? ' active' : ''}`}
+                    onClick={() => setGroupCategoryId('')}
+                  >
+                    <span className="cat-pill-dot" style={{ background: 'var(--text-tertiary)' }} />
+                    Keine
+                  </button>
                   {groupCategories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    <button
+                      key={cat.id}
+                      type="button"
+                      className={`cat-pill${String(groupCategoryId) === String(cat.id) ? ' active' : ''}`}
+                      style={String(groupCategoryId) === String(cat.id) ? { background: `${cat.color || '#8E8E93'}22`, borderColor: cat.color || '#8E8E93', color: cat.color || '#8E8E93' } : {}}
+                      onClick={() => setGroupCategoryId(String(cat.id))}
+                    >
+                      <span className="cat-pill-dot" style={{ background: cat.color || '#8E8E93' }} />
+                      {cat.name}
+                    </button>
                   ))}
-                </select>
+                </div>
               </div>
             )}
 

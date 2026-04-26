@@ -11401,6 +11401,42 @@ body.cal-is-dragging * {
   opacity: 0.92;
 }
 
+/* --- Category Pill Picker (task create/edit forms) --- */
+.cat-pill-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 0;
+}
+.cat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.cat-pill:hover {
+  border-color: var(--text-secondary);
+  color: var(--text-primary);
+}
+.cat-pill.active {
+  font-weight: 700;
+}
+.cat-pill-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 /* --- Calendar Group Task Indicator --- */
 .calendar-day-task.group-task {
   position: relative;
