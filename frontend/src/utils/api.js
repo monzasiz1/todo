@@ -421,6 +421,9 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  updateGroupCategory: (groupId, categoryId, data) =>
+    request(`/groups/${groupId}/categories/${categoryId}`, { method: 'PUT', body: JSON.stringify(data) }),
+
   deleteGroupCategory: (groupId, categoryId) =>
     request(`/groups/${groupId}/categories/${categoryId}`, { method: 'DELETE' }),
 

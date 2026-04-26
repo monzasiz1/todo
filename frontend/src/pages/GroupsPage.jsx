@@ -8,7 +8,7 @@ import {
   Users, Plus, Hash, Copy, Check, ChevronRight, ChevronDown, Crown,
   Shield, UserMinus, Settings, Trash2, LogOut, X,
   Calendar, CalendarCheck, Clock, Flag, Search, ArrowLeft, ListTodo,
-  Camera, Tag, AlertTriangle
+  Camera, Tag, AlertTriangle, Pencil
 } from 'lucide-react';
 import AvatarBadge from '../components/AvatarBadge';
 import TaskDetailModal from '../components/TaskDetailModal';
@@ -1064,6 +1064,10 @@ function GroupCategoryManager({ groupId }) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editColor, setEditColor] = useState('#8E8E93');
+  const [editSaving, setEditSaving] = useState(false);
 
   const loadCategories = async () => {
     setLoading(true);
@@ -1078,9 +1082,7 @@ function GroupCategoryManager({ groupId }) {
     }
   };
 
-  useEffect(() => {
-    loadCategories();
-  }, [groupId]);
+  useEffect(() => { loadCategories(); }, [groupId]);
 
   const handleCreate = async () => {
     const trimmed = String(name || '').trim();
@@ -1101,6 +1103,37 @@ function GroupCategoryManager({ groupId }) {
       setColor('#8E8E93');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const startEdit = (cat) => {
+    setEditingId(cat.id);
+    setEditName(cat.name);
+    setEditColor(cat.color || '#8E8E93');
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditName('');
+    setEditColor('#8E8E93');
+  };
+
+  const handleUpdate = async (categoryId) => {
+    const trimmed = String(editName || '').trim();
+    if (!trimmed || editSaving) return;
+    setEditSaving(true);
+    try {
+      const data = await api.updateGroupCategory(groupId, categoryId, { name: trimmed, color: editColor });
+      const updated = data?.category;
+      if (updated?.id) {
+        setCategories((prev) => {
+          const next = prev.map((c) => String(c.id) === String(updated.id) ? updated : c);
+          return next.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'de'));
+        });
+      }
+      cancelEdit();
+    } finally {
+      setEditSaving(false);
     }
   };
 
@@ -1139,19 +1172,9 @@ function GroupCategoryManager({ groupId }) {
           onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
         />
         <label className="gs-color-swatch" style={{ background: color }} title="Farbe wählen">
-          <input
-            type="color"
-            value={color}
-            onChange={(e) => setColor(e.target.value)}
-            className="gs-color-input-hidden"
-          />
+          <input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="gs-color-input-hidden" />
         </label>
-        <button
-          type="button"
-          className="gs-add-btn"
-          onClick={handleCreate}
-          disabled={!name.trim() || saving}
-        >
+        <button type="button" className="gs-add-btn" onClick={handleCreate} disabled={!name.trim() || saving}>
           <Plus size={16} />
           <span className="gs-add-btn-label">{saving ? '...' : 'Anlegen'}</span>
         </button>
@@ -1163,22 +1186,52 @@ function GroupCategoryManager({ groupId }) {
         <div className="gs-empty">Noch keine Kategorien vorhanden</div>
       ) : (
         <div className="gs-cat-list">
-          {categories.map((cat) => (
-            <div key={cat.id} className="gs-cat-row">
-              <span className="gs-cat-dot" style={{ background: cat.color || '#8E8E93' }} />
-              <span className="gs-cat-name">{cat.name}</span>
-              <button
-                type="button"
-                className="gs-cat-del-btn"
-                onClick={() => handleDelete(cat.id)}
-                disabled={String(deletingId) === String(cat.id)}
-                title="Löschen"
-              >
-                <Trash2 size={14} />
-                <span className="gs-cat-del-label">Löschen</span>
-              </button>
-            </div>
-          ))}
+          {categories.map((cat) => {
+            const isEditing = String(editingId) === String(cat.id);
+            if (isEditing) {
+              return (
+                <div key={cat.id} className="gs-cat-row gs-cat-row-editing">
+                  <label className="gs-color-swatch gs-color-swatch-sm" style={{ background: editColor }}>
+                    <input type="color" value={editColor} onChange={(e) => setEditColor(e.target.value)} className="gs-color-input-hidden" />
+                  </label>
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="gs-input gs-cat-edit-input"
+                    maxLength={80}
+                    autoFocus
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleUpdate(cat.id); if (e.key === 'Escape') cancelEdit(); }}
+                  />
+                  <button type="button" className="gs-cat-save-btn" onClick={() => handleUpdate(cat.id)} disabled={!editName.trim() || editSaving}>
+                    <Check size={14} />
+                  </button>
+                  <button type="button" className="gs-cat-cancel-edit-btn" onClick={cancelEdit}>
+                    <X size={14} />
+                  </button>
+                </div>
+              );
+            }
+            return (
+              <div key={cat.id} className="gs-cat-row">
+                <span className="gs-cat-dot" style={{ background: cat.color || '#8E8E93' }} />
+                <span className="gs-cat-name">{cat.name}</span>
+                <button type="button" className="gs-cat-edit-btn" onClick={() => startEdit(cat)} title="Bearbeiten">
+                  <Pencil size={13} />
+                </button>
+                <button
+                  type="button"
+                  className="gs-cat-del-btn"
+                  onClick={() => handleDelete(cat.id)}
+                  disabled={String(deletingId) === String(cat.id)}
+                  title="Löschen"
+                >
+                  <Trash2 size={14} />
+                  <span className="gs-cat-del-label">Löschen</span>
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
     </section>

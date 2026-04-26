@@ -11518,6 +11518,90 @@ body.cal-is-dragging * {
   opacity: 0.45;
   cursor: not-allowed;
 }
+.gs-cat-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: transparent;
+  color: var(--text-secondary, #8E8E93);
+  cursor: pointer;
+  transition: all 0.18s;
+  flex-shrink: 0;
+  opacity: 0;
+}
+.gs-cat-row:hover .gs-cat-edit-btn {
+  opacity: 1;
+}
+.gs-cat-edit-btn:hover {
+  background: rgba(0,122,255,0.08);
+  color: #007AFF;
+  border-color: rgba(0,122,255,0.2);
+}
+.gs-cat-row-editing {
+  background: rgba(0,122,255,0.03);
+  border-bottom-color: rgba(0,122,255,0.12) !important;
+  gap: 6px;
+  padding: 8px 12px;
+}
+.gs-cat-edit-input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px !important;
+  font-size: 13px !important;
+}
+.gs-color-swatch-sm {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 8px !important;
+  flex-shrink: 0;
+}
+.gs-cat-save-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  border: none;
+  background: #007AFF;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.18s;
+  flex-shrink: 0;
+}
+.gs-cat-save-btn:hover:not(:disabled) {
+  background: #0071E3;
+}
+.gs-cat-save-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.gs-cat-cancel-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  border: 1px solid rgba(0,0,0,0.1);
+  background: transparent;
+  color: var(--text-secondary, #8E8E93);
+  cursor: pointer;
+  transition: all 0.18s;
+  flex-shrink: 0;
+}
+.gs-cat-cancel-edit-btn:hover {
+  background: rgba(0,0,0,0.05);
+}
+@media (max-width: 600px) {
+  .gs-cat-edit-btn {
+    opacity: 1;
+  }
+}
 
 /* Empty state */
 .gs-empty {
