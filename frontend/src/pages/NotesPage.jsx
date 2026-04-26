@@ -187,6 +187,10 @@ export default function NotesPage() {
   const noteElRefs = useRef({});
   // Tracks the drag start state without triggering re-renders
   const activeDragRef = useRef(null);
+  // Zoom ref — holds live zoom value during gestures (avoids React re-renders per frame)
+  const zoomRef = useRef(zoom);
+  const canvasContentRef = useRef(null);
+  const commitZoomTimerRef = useRef(null);
   // isDragging ref mirrors state for use inside non-reactive callbacks
   const isDraggingRef = useRef(null);
 
@@ -261,16 +265,18 @@ export default function NotesPage() {
 
   const setZoomManual = (nextZoom) => {
     didManualZoomRef.current = true;
-    setZoom(Math.round(clampZoom(nextZoom)));
+    const clamped = Math.round(clampZoom(nextZoom));
+    applyZoom(clamped);
+    setZoom(clamped);
   };
 
   const resetZoomToViewport = () => {
     didManualZoomRef.current = false;
-    if (typeof window === 'undefined') {
-      setZoom(100);
-      return;
-    }
-    setZoom(window.innerWidth < 640 ? 100 : getAdaptiveZoom(window.innerWidth, window.innerHeight));
+    const next = typeof window !== 'undefined'
+      ? (window.innerWidth < 640 ? 100 : getAdaptiveZoom(window.innerWidth, window.innerHeight))
+      : 100;
+    applyZoom(next);
+    setZoom(next);
   };
 
   const refreshConnections = async (sourceNotes = notes) => {
@@ -401,7 +407,9 @@ export default function NotesPage() {
     const syncViewport = () => {
       setIsMobileView(window.innerWidth < 640);
       if (!didManualZoomRef.current) {
-        setZoom(window.innerWidth < 640 ? 100 : getAdaptiveZoom(window.innerWidth, window.innerHeight));
+        const next = window.innerWidth < 640 ? 100 : getAdaptiveZoom(window.innerWidth, window.innerHeight);
+        applyZoom(next);
+        setZoom(next);
       }
     };
 
@@ -515,49 +523,36 @@ export default function NotesPage() {
     if (!canvas) return;
 
     const wheelHandler = (e) => {
-      if (e.ctrlKey || e.metaKey) {
-        // Let browser handle pinch zoom on trackpad with Ctrl/Cmd
-        return;
-      }
-      
+      if (e.ctrlKey || e.metaKey) return;
+
       e.preventDefault();
       e.stopPropagation();
       didManualZoomRef.current = true;
 
-      const zoomStep = 5;
+      const zoomStep = e.deltaMode === 1 ? 8 : 5;
       const direction = e.deltaY > 0 ? -1 : 1;
-      const newZoom = clampZoom(zoom + direction * zoomStep);
-      
-      if (newZoom === zoom) return; // No zoom change
-      
-      // Get mouse position relative to canvas
+      const currentZoom = zoomRef.current;
+      const scaleBefore = currentZoom / 100;
+      const newZoom = applyZoom(currentZoom + direction * zoomStep);
+      const scaleAfter = newZoom / 100;
+
+      if (newZoom === currentZoom) return;
+
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
-      
-      // Get scroll position and calculate new position
-      const scrollLeftBefore = canvas.scrollLeft;
-      const scrollTopBefore = canvas.scrollTop;
-      const scaleBefore = zoom / 100;
-      const scaleAfter = newZoom / 100;
-      
-      // Calculate new scroll position to keep mouse point fixed
-      const scrollLeftAfter = (scrollLeftBefore + mouseX) * (scaleAfter / scaleBefore) - mouseX;
-      const scrollTopAfter = (scrollTopBefore + mouseY) * (scaleAfter / scaleBefore) - mouseY;
-      
-      setZoom(Math.round(newZoom));
-      
-      // Apply scroll immediately (no setTimeout needed)
-      requestAnimationFrame(() => {
-        canvas.scrollLeft = scrollLeftAfter;
-        canvas.scrollTop = scrollTopAfter;
-      });
+      const scrollLeftAfter = (canvas.scrollLeft + mouseX) * (scaleAfter / scaleBefore) - mouseX;
+      const scrollTopAfter  = (canvas.scrollTop  + mouseY) * (scaleAfter / scaleBefore) - mouseY;
+
+      canvas.scrollLeft = scrollLeftAfter;
+      canvas.scrollTop  = scrollTopAfter;
+
+      commitZoom();
     };
 
-    // Use capture phase and passive: false to intercept scroll early
     canvas.addEventListener('wheel', wheelHandler, { passive: false, capture: true });
     return () => canvas.removeEventListener('wheel', wheelHandler, { capture: true });
-  }, [zoom]);
+  }, []); // no deps — uses zoomRef, no re-registration needed
 
   // Save note position on change
   const updateNotePosition = (noteId, x, y, persist = false) => {
@@ -679,6 +674,24 @@ export default function NotesPage() {
 
   const clampZoom = (value) => Math.min(220, Math.max(25, value));
 
+  // Apply zoom directly to DOM — no React re-render during gestures
+  const applyZoom = (newZoom) => {
+    const clamped = clampZoom(newZoom);
+    zoomRef.current = clamped;
+    if (canvasContentRef.current) {
+      canvasContentRef.current.style.transform = `scale(${clamped / 100})`;
+    }
+    return clamped;
+  };
+
+  // Commit zoom to React state after gesture ends (debounced)
+  const commitZoom = () => {
+    if (commitZoomTimerRef.current) clearTimeout(commitZoomTimerRef.current);
+    commitZoomTimerRef.current = setTimeout(() => {
+      setZoom(Math.round(zoomRef.current));
+    }, 120);
+  };
+
   const updateCanvasViewport = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -707,7 +720,7 @@ export default function NotesPage() {
     if (drag.noteId) {
       const totalDX = clientX - drag.startClientX;
       const totalDY = clientY - drag.startClientY;
-      const scale = zoom / 100;
+      const scale = zoomRef.current / 100;
       const el = noteElRefs.current[drag.noteId];
       if (el) {
         noteDragOccurredRef.current = true;
@@ -735,7 +748,7 @@ export default function NotesPage() {
       const el = noteElRefs.current[drag.noteId];
       const totalDX = drag.lastClientX != null ? drag.lastClientX - drag.startClientX : 0;
       const totalDY = drag.lastClientY != null ? drag.lastClientY - drag.startClientY : 0;
-      const scale = zoom / 100;
+      const scale = zoomRef.current / 100;
       if (el) {
         el.style.transform = '';
         el.style.zIndex = '';
@@ -757,9 +770,7 @@ export default function NotesPage() {
 
     // Don't pan if clicking on a note card, button, or interactive element
     if (e.target.closest('.note-card, button, input, textarea, select, a')) return;
-    
-    // Don't pan if clicking on the task preview modal
-    if (e.target.closest('.task-preview-modal')) return;
+    if (e.target.closest('.task-preview-modal, .notes-context-panel')) return;
     
     // Pan on the canvas (including SVG connections)
     setActiveNoteId(null);
@@ -775,6 +786,7 @@ export default function NotesPage() {
     if (event.pointerType === 'touch') return;
     if (event.target.closest('.modal-overlay')) return;
     if (event.target.closest('.note-card, button, input, textarea, select, a')) return;
+    if (event.target.closest('.notes-context-panel, .task-preview-modal')) return;
 
     setActiveNoteId(null);
     setHoveredTaskPreview(null);
@@ -828,7 +840,7 @@ export default function NotesPage() {
     }
 
     if (event.touches.length === 1) {
-      if (event.target.closest('.note-card')) return;
+      if (event.target.closest('.note-card, .notes-context-panel')) return;
       const touch = event.touches[0];
       setActiveNoteId(null);
       const panState = { x: touch.clientX, y: touch.clientY, isPan: true, isTouch: true };
@@ -848,7 +860,7 @@ export default function NotesPage() {
       const centerY = (first.clientY + second.clientY) / 2;
 
       didManualZoomRef.current = true;
-      setZoom(Math.round(nextZoom));
+      applyZoom(nextZoom);
       canvasRef.current.scrollLeft -= centerX - pinchStateRef.current.lastCenterX;
       canvasRef.current.scrollTop -= centerY - pinchStateRef.current.lastCenterY;
 
@@ -876,7 +888,7 @@ export default function NotesPage() {
       const el = noteElRefs.current[drag.noteId];
       const totalDX = (drag.lastClientX ?? drag.startClientX) - drag.startClientX;
       const totalDY = (drag.lastClientY ?? drag.startClientY) - drag.startClientY;
-      const scale = zoom / 100;
+      const scale = zoomRef.current / 100;
       if (el) {
         el.style.transform = '';
         el.style.zIndex = '';
@@ -886,6 +898,7 @@ export default function NotesPage() {
       updateNotePosition(drag.noteId, finalX, finalY, true);
     }
 
+    if (pinchStateRef.current) commitZoom();
     pinchStateRef.current = null;
     isDraggingRef.current = null;
     setIsDragging(null);
@@ -1814,112 +1827,85 @@ export default function NotesPage() {
                   const mobileCanCompleteNow = mobileDependencyState.unresolvedIds.length === 0;
                   const mobileIsOwner = String(note.user_id || '') === String(currentUser?.id || '');
                   const mobileIsResponsible = isResponsibleForNote(note);
+                  const isConnected = connections.some((c) =>
+                    String(c.note_id_1 || c.noteId1) === String(note.id) ||
+                    String(c.note_id_2 || c.noteId2) === String(note.id)
+                  );
+                  const allParticipants = notePeople.participant_ids.slice(0, 3);
                   return (
                     <div
                       key={note.id}
-                      className={`nmlv-card nmlv-card-${note.importance} ${urgent ? 'nmlv-card-urgent' : ''}`}
+                      className={`nmlv-card nmlv-card-${note.importance} ${urgent ? 'nmlv-card-urgent' : ''} ${mobileIsCompleted ? 'nmlv-card-done' : ''}`}
                     >
-                      {/* Importance bar */}
-                      <div className={`nmlv-card-bar imp-${note.importance}`} />
-
+                      <div className={`nmlv-card-strip imp-${note.importance}`} />
                       <div className="nmlv-card-body">
+
+                        {/* Header row: title + icon actions */}
                         <div className="nmlv-card-header">
                           <h3 className="nmlv-card-title">{note.title}</h3>
-                          {mobileIsOwner && (
+                          <div className="nmlv-card-icon-actions">
                             <button
                               type="button"
-                              className="nmlv-card-delete"
-                              onClick={(e) => { e.stopPropagation(); deleteNote(note.id); }}
+                              className={`nmlv-icon-btn ${mobileIsCompleted ? 'check-done' : 'check'}`}
+                              disabled={!mobileCanManage || (!mobileIsCompleted && !mobileCanCompleteNow)}
+                              onClick={(e) => { e.stopPropagation(); toggleNoteCompletion(note.id, mobileCanCompleteNow); }}
+                              title={mobileIsCompleted ? 'Offen' : 'Abhaken'}
                             >
-                              <X size={14} />
+                              {mobileIsCompleted ? <CheckCircle2 size={17} /> : <Circle size={17} />}
                             </button>
-                          )}
+                            {mobileCanManage && (
+                              <button
+                                type="button"
+                                className="nmlv-icon-btn edit"
+                                onClick={(e) => { e.stopPropagation(); const p = getPeopleForNote(note.id); setEditingNote({ ...note, participant_ids: p.participant_ids, responsible_user_id: p.responsible_user_id }); }}
+                                title="Bearbeiten"
+                              >
+                                <Edit2 size={15} />
+                              </button>
+                            )}
+                            {mobileIsOwner && (
+                              <button
+                                type="button"
+                                className="nmlv-icon-btn del"
+                                onClick={(e) => { e.stopPropagation(); deleteNote(note.id); }}
+                                title="Löschen"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            )}
+                          </div>
                         </div>
 
-                        {mobileIsResponsible && (
-                          <div className="nmlv-responsible-badge">Du bist verantwortlich</div>
-                        )}
-
+                        {/* Content preview */}
                         {note.content && (
                           <p className="nmlv-card-content">{note.content}</p>
                         )}
 
-                        <div className="nmlv-card-meta">
+                        {/* Footer row */}
+                        <div className="nmlv-card-footer">
                           {note.date && (
-                            <span className={`nmlv-meta-chip ${urgent ? 'urgent' : ''}`}>
+                            <span className={`nmlv-foot-chip ${urgent ? 'urgent' : ''}`}>
                               📅 {new Date(note.date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}
                             </span>
                           )}
                           {linked && (
-                            <span className="nmlv-meta-chip link">
-                              📌 {linked.title?.slice(0, 20)}
-                            </span>
+                            <span className="nmlv-foot-chip">📌 {linked.title?.slice(0, 16)}</span>
                           )}
-                          {connections.some((c) =>
-                            String(c.note_id_1 || c.noteId1) === String(note.id) ||
-                            String(c.note_id_2 || c.noteId2) === String(note.id)
-                          ) && (
-                            <span className="nmlv-meta-chip connect">
-                              <Link2 size={10} /> Verbunden
-                            </span>
+                          {isConnected && (
+                            <span className="nmlv-foot-chip connect"><Link2 size={9} /> Verbunden</span>
                           )}
-                        </div>
-
-                        {(responsibleName || notePeople.participant_ids.length > 0) && (
-                          <div className="nmlv-card-people">
-                            {responsibleName && (
-                              <span className="nmlv-person-chip responsible">👑 {responsibleName}</span>
-                            )}
-                            {notePeople.participant_ids
-                              .filter((id) => id !== String(notePeople.responsible_user_id))
-                              .slice(0, 2)
-                              .map((id) => (
-                                <span key={id} className="nmlv-person-chip">{resolvePersonName(id)}</span>
+                          {allParticipants.length > 0 && (
+                            <div className="nmlv-foot-avatars">
+                              {allParticipants.map((id) => (
+                                <AvatarBadge
+                                  key={id}
+                                  name={resolvePersonName(id)}
+                                  color={id === String(notePeople.responsible_user_id) ? '#F59E0B' : '#8E8E93'}
+                                  size={20}
+                                />
                               ))}
-                            {notePeople.participant_ids.filter((id) => id !== String(notePeople.responsible_user_id)).length > 2 && (
-                              <span className="nmlv-person-chip more">
-                                +{notePeople.participant_ids.filter((id) => id !== String(notePeople.responsible_user_id)).length - 2}
-                              </span>
-                            )}
-                          </div>
-                        )}
-
-                        <div className="nmlv-card-actions">
-                          <button
-                            type="button"
-                            className={`nmlv-action-btn ${mobileIsCompleted ? 'done' : ''}`}
-                            disabled={!mobileCanManage || (!mobileIsCompleted && !mobileCanCompleteNow)}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              toggleNoteCompletion(note.id, mobileCanCompleteNow);
-                            }}
-                          >
-                            {mobileIsCompleted ? 'Offen' : 'Abhaken'}
-                          </button>
-                          <button
-                            type="button"
-                            className="nmlv-action-btn"
-                            disabled={!mobileCanManage}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setConnectSearch('');
-                              setShowConnectModal(note.id);
-                            }}
-                          >
-                            Verbinden
-                          </button>
-                          <button
-                            type="button"
-                            className="nmlv-action-btn"
-                            disabled={!mobileCanManage}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              const people = getPeopleForNote(note.id);
-                              setEditingNote({ ...note, participant_ids: people.participant_ids, responsible_user_id: people.responsible_user_id });
-                            }}
-                          >
-                            Bearbeiten
-                          </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -2074,7 +2060,7 @@ export default function NotesPage() {
         onDrop={handleCanvasDrop}
         style={{ cursor: isDragging?.isPan ? 'grabbing' : 'grab', touchAction: 'none' }}
       >
-        <div className="canvas-content" style={{ transform: `scale(${zoom / 100})`, transformOrigin: '0 0' }}>
+        <div ref={canvasContentRef} className="canvas-content" style={{ transform: `scale(${zoom / 100})`, transformOrigin: '0 0' }}>
           {/* SVG Connections */}
           <svg className="connections-svg" aria-hidden="true">
             <defs>
