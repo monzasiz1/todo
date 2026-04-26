@@ -519,7 +519,7 @@ function GroupDetail({ groupId, onBack }) {
   }, [members, user?.id]);
   const adminCount = useMemo(() => members.filter((m) => m.role === 'admin' || m.role === 'owner').length, [members]);
 
-  if (!currentGroup) return <div className="group-loading">Laden...</div>;
+  if (!currentGroup || String(currentGroup.id) !== String(groupId)) return <div className="group-loading">Laden...</div>;
 
   return (
     <motion.div className="group-detail-shell" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>

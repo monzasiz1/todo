@@ -14,6 +14,9 @@ function readGroupCache() {
       members: Array.isArray(parsed.members) ? parsed.members : [],
       groupTasks: Array.isArray(parsed.groupTasks) ? parsed.groupTasks : [],
       myRole: parsed.myRole || null,
+      groupDetailsById: parsed.groupDetailsById && typeof parsed.groupDetailsById === 'object'
+        ? parsed.groupDetailsById
+        : {},
     };
   } catch {
     return null;
@@ -28,6 +31,7 @@ function writeGroupCache(state) {
       members: state.members || [],
       groupTasks: state.groupTasks || [],
       myRole: state.myRole || null,
+      groupDetailsById: state.groupDetailsById || {},
     }));
   } catch {
     // ignore
@@ -42,10 +46,11 @@ export const useGroupStore = create((set, get) => ({
   members: cached?.members || [],
   groupTasks: cached?.groupTasks || [],
   myRole: cached?.myRole || null,
+  groupDetailsById: cached?.groupDetailsById || {},
   loading: false,
 
   fetchGroups: async () => {
-    set({ loading: true });
+    set({ loading: get().groups.length === 0 });
     try {
       const data = await api.getGroups();
       set({ groups: data.groups || [], loading: false });
@@ -71,7 +76,20 @@ export const useGroupStore = create((set, get) => ({
   },
 
   fetchGroup: async (id) => {
-    set({ loading: true });
+    const key = String(id);
+    const cachedDetail = get().groupDetailsById?.[key];
+    if (cachedDetail) {
+      set({
+        currentGroup: cachedDetail.group || null,
+        members: cachedDetail.members || [],
+        groupTasks: cachedDetail.tasks || [],
+        myRole: cachedDetail.myRole || null,
+        loading: false,
+      });
+    } else {
+      set({ loading: true });
+    }
+
     try {
       const data = await api.getGroup(id);
       set({
@@ -79,6 +97,15 @@ export const useGroupStore = create((set, get) => ({
         members: data.members || [],
         groupTasks: data.tasks || [],
         myRole: data.myRole,
+        groupDetailsById: {
+          ...(get().groupDetailsById || {}),
+          [key]: {
+            group: data.group || null,
+            members: data.members || [],
+            tasks: data.tasks || [],
+            myRole: data.myRole || null,
+          },
+        },
         loading: false,
       });
       return data;
@@ -92,6 +119,15 @@ export const useGroupStore = create((set, get) => ({
     set((s) => ({
       currentGroup: data.group,
       groups: s.groups.map(g => g.id === id ? { ...g, ...data.group } : g),
+      groupDetailsById: {
+        ...(s.groupDetailsById || {}),
+        [String(id)]: {
+          group: data.group,
+          members: s.members,
+          tasks: s.groupTasks,
+          myRole: s.myRole,
+        },
+      },
     }));
     return data.group;
   },
@@ -106,19 +142,62 @@ export const useGroupStore = create((set, get) => ({
 
   addGroupTask: async (groupId, task) => {
     const data = await api.addGroupTask(groupId, task);
-    set((s) => ({ groupTasks: [data.task, ...s.groupTasks] }));
+    set((s) => {
+      const nextTasks = [data.task, ...s.groupTasks];
+      return {
+        groupTasks: nextTasks,
+        groupDetailsById: {
+          ...(s.groupDetailsById || {}),
+          [String(groupId)]: {
+            group: s.currentGroup,
+            members: s.members,
+            tasks: nextTasks,
+            myRole: s.myRole,
+          },
+        },
+      };
+    });
     return data.task;
   },
 
   removeGroupTask: async (groupId, taskId) => {
     await api.removeGroupTask(groupId, taskId);
-    set((s) => ({ groupTasks: s.groupTasks.filter(t => t.id !== taskId) }));
+    set((s) => {
+      const nextTasks = s.groupTasks.filter((t) => t.id !== taskId);
+      return {
+        groupTasks: nextTasks,
+        groupDetailsById: {
+          ...(s.groupDetailsById || {}),
+          [String(groupId)]: {
+            group: s.currentGroup,
+            members: s.members,
+            tasks: nextTasks,
+            myRole: s.myRole,
+          },
+        },
+      };
+    });
   },
 
   updateGroupTask: (taskId, updates) => {
-    set((s) => ({
-      groupTasks: s.groupTasks.map((t) => t.id === taskId ? { ...t, ...updates } : t),
-    }));
+    set((s) => {
+      const nextTasks = s.groupTasks.map((t) => (t.id === taskId ? { ...t, ...updates } : t));
+      const currentId = s.currentGroup?.id;
+      return {
+        groupTasks: nextTasks,
+        groupDetailsById: currentId
+          ? {
+              ...(s.groupDetailsById || {}),
+              [String(currentId)]: {
+                group: s.currentGroup,
+                members: s.members,
+                tasks: nextTasks,
+                myRole: s.myRole,
+              },
+            }
+          : s.groupDetailsById,
+      };
+    });
   },
 
   changeMemberRole: async (groupId, userId, role) => {

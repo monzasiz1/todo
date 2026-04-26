@@ -11,6 +11,30 @@ import {
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 
+const PROFILE_CACHE_KEY = 'taski_profile_cache_v1';
+
+function readProfileCache() {
+  try {
+    const raw = localStorage.getItem(PROFILE_CACHE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (!parsed || typeof parsed !== 'object') return null;
+    return {
+      profile: parsed.profile || null,
+      stats: parsed.stats || null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeProfileCache(profile, stats) {
+  try {
+    localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({ profile: profile || null, stats: stats || null }));
+  } catch {
+    // ignore
+  }
+}
+
 const AVATAR_COLORS = [
   '#007AFF', '#5856D6', '#AF52DE', '#FF2D55', '#FF3B30',
   '#FF9500', '#FFCC00', '#34C759', '#00C7BE', '#30B0C7',
@@ -19,9 +43,10 @@ const AVATAR_COLORS = [
 
 export default function ProfilePage() {
   const { user, logout, setUser } = useAuthStore();
-  const [profile, setProfile] = useState(null);
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const initialCached = readProfileCache();
+  const [profile, setProfile] = useState(initialCached?.profile || user || null);
+  const [stats, setStats] = useState(initialCached?.stats || null);
+  const [loading, setLoading] = useState(!(initialCached?.profile || user));
 
   // Edit states
   const [editName, setEditName] = useState(false);
@@ -81,6 +106,7 @@ export default function ProfilePage() {
       const data = await api.getProfile();
       setProfile(data.user);
       setStats(data.stats);
+      writeProfileCache(data.user, data.stats);
       setNameValue(data.user.name || '');
       setBioValue(data.user.bio || '');
       setVisibility(data.user.profile_visibility || 'everyone');
@@ -115,6 +141,7 @@ export default function ProfilePage() {
         setProfile(prev => {
           const next = { ...prev, avatar_url: resized };
           setUser(next);
+          writeProfileCache(next, stats);
           return next;
         });
         showToast('Profilbild aktualisiert');
@@ -152,6 +179,7 @@ export default function ProfilePage() {
       setProfile(prev => {
         const next = { ...prev, avatar_url: null };
         setUser(next);
+        writeProfileCache(next, stats);
         return next;
       });
       showToast('Profilbild entfernt');
@@ -167,7 +195,11 @@ export default function ProfilePage() {
     try {
       setSaving(true);
       const data = await api.updateProfile({ name: nameValue.trim() });
-      setProfile(prev => ({ ...prev, name: data.user.name }));
+      setProfile(prev => {
+        const next = { ...prev, name: data.user.name };
+        writeProfileCache(next, stats);
+        return next;
+      });
       setUser(data.user);
       if (data.token) localStorage.setItem('token', data.token);
       setEditName(false);
@@ -183,7 +215,11 @@ export default function ProfilePage() {
     try {
       setSaving(true);
       const data = await api.updateProfile({ bio: bioValue });
-      setProfile(prev => ({ ...prev, bio: data.user.bio }));
+      setProfile(prev => {
+        const next = { ...prev, bio: data.user.bio };
+        writeProfileCache(next, stats);
+        return next;
+      });
       setEditBio(false);
       showToast('Bio aktualisiert');
     } catch (err) {
@@ -196,7 +232,11 @@ export default function ProfilePage() {
   const changeColor = async (color) => {
     try {
       const data = await api.updateProfile({ avatar_color: color });
-      setProfile(prev => ({ ...prev, avatar_color: color }));
+      setProfile(prev => {
+        const next = { ...prev, avatar_color: color };
+        writeProfileCache(next, stats);
+        return next;
+      });
       setUser(data.user);
       if (data.token) localStorage.setItem('token', data.token);
     } catch (err) {
@@ -246,6 +286,11 @@ export default function ProfilePage() {
     setSavingVisibility(true);
     try {
       await api.updateVisibility(val);
+      setProfile((prev) => {
+        const next = prev ? { ...prev, profile_visibility: val } : prev;
+        writeProfileCache(next, stats);
+        return next;
+      });
       showToast('Sichtbarkeit gespeichert');
     } catch (err) {
       showToast(err.message, 'error');

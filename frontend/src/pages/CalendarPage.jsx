@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Calendar from '../components/Calendar';
 import DayCreateModal from '../components/DayCreateModal';
@@ -25,24 +25,37 @@ export default function CalendarPage() {
   const [showDayModal, setShowDayModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [visibleRange, setVisibleRange] = useState({ start: null, end: null, key: '' });
+  const inflightRangeKeyRef = useRef('');
 
-  const loadRange = async (start, end, force = false) => {
+  const loadRange = useCallback(async (start, end, force = false) => {
     if (!start || !end) return;
-    const key = `${start}|${end}`;
-    if (!force && visibleRange.key === key) return;
+    const normStart = String(start).slice(0, 10);
+    const normEnd = String(end).slice(0, 10);
+    const key = `${normStart}|${normEnd}`;
+
+    if (!force && (visibleRange.key === key || inflightRangeKeyRef.current === key)) return;
+
+    inflightRangeKeyRef.current = key;
+    // Mark range immediately to avoid repeated same-range loads before await resolves.
+    setVisibleRange((prev) => (prev.key === key ? prev : { start: normStart, end: normEnd, key }));
 
     // Instant paint from local cache, then background refresh from API.
-    const localRangeTasks = filterTasksForRange(cachedTasks, start, end);
+    const localRangeTasks = filterTasksForRange(cachedTasks, normStart, normEnd);
     if (localRangeTasks.length > 0) {
       setCalendarTasks(localRangeTasks);
     }
 
-    const tasks = await fetchTasksRange(start, end);
-    if (Array.isArray(tasks)) {
-      setCalendarTasks(tasks);
+    try {
+      const tasks = await fetchTasksRange(normStart, normEnd);
+      if (Array.isArray(tasks)) {
+        setCalendarTasks(tasks);
+      }
+    } finally {
+      if (inflightRangeKeyRef.current === key) {
+        inflightRangeKeyRef.current = '';
+      }
     }
-    setVisibleRange({ start, end, key });
-  };
+  }, [cachedTasks, fetchTasksRange, visibleRange.key]);
 
   const handleTaskCreated = () => {
     if (visibleRange.start && visibleRange.end) {
@@ -51,9 +64,9 @@ export default function CalendarPage() {
     setRefreshKey((k) => k + 1);
   };
 
-  const handleVisibleRangeChange = (start, end) => {
+  const handleVisibleRangeChange = useCallback((start, end) => {
     loadRange(start, end);
-  };
+  }, [loadRange]);
 
   useEffect(() => {
     const onTasksChanged = () => {
@@ -64,7 +77,7 @@ export default function CalendarPage() {
 
     window.addEventListener('taski:tasks-changed', onTasksChanged);
     return () => window.removeEventListener('taski:tasks-changed', onTasksChanged);
-  }, [visibleRange.start, visibleRange.end, cachedTasks]);
+  }, [visibleRange.start, visibleRange.end, loadRange]);
 
   const handleTaskUpdated = (updatedTask) => {
     setCalendarTasks((prev) => prev.map((t) => (t.id === updatedTask.id ? { ...t, ...updatedTask } : t)));

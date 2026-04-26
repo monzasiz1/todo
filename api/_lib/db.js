@@ -3,6 +3,11 @@ const { Pool } = require('pg');
 let pool;
 let schemaInitPromise = null;
 
+function parsePositiveInt(value, fallback) {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 async function runSchemaInit(rawQuery) {
   const statements = [
     // Notifications core
@@ -162,10 +167,26 @@ function getPool() {
     if (!process.env.DATABASE_URL) {
       throw new Error('DATABASE_URL environment variable is not set');
     }
+
+    // In serverless, many function instances can run in parallel.
+    // Keep per-instance pool small to avoid hitting global DB connection limits.
+    const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+    const defaultMax = isServerless ? 1 : 5;
+    const poolMax = parsePositiveInt(process.env.DB_POOL_MAX, defaultMax);
+    const poolIdleTimeoutMs = parsePositiveInt(process.env.DB_POOL_IDLE_TIMEOUT_MS, 10000);
+    const poolConnTimeoutMs = parsePositiveInt(process.env.DB_POOL_CONN_TIMEOUT_MS, 10000);
+
     pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: { rejectUnauthorized: false },
-      max: 5,
+      max: poolMax,
+      idleTimeoutMillis: poolIdleTimeoutMs,
+      connectionTimeoutMillis: poolConnTimeoutMs,
+      allowExitOnIdle: true,
+    });
+
+    pool.on('error', (err) => {
+      console.warn('[db] pool error:', err.message);
     });
 
     const originalQuery = pool.query.bind(pool);
