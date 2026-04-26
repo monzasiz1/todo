@@ -407,8 +407,6 @@ export default function NotesPage() {
   });
   const [activeCanvasTextId, setActiveCanvasTextId] = useState(null);
   const [editingCanvasTextId, setEditingCanvasTextId] = useState(null);
-  const [selectedCanvasNoteIds, setSelectedCanvasNoteIds] = useState([]);
-  const [selectionBox, setSelectionBox] = useState(null);
   const canvasRef = useRef(null);
   const canvasShellRef = useRef(null);
   const containerRef = useRef(null);
@@ -1177,42 +1175,6 @@ export default function NotesPage() {
     const drag = isDraggingRef.current;
     if (!drag) return;
 
-    if (drag.isPan && drag.isSelect && canvasRef.current) {
-      // Marquee selection mode
-      const rect = canvasRef.current.getBoundingClientRect();
-      const currentCanvasX = (clientX - rect.left + canvasRef.current.scrollLeft) / (zoom / 100);
-      const currentCanvasY = (clientY - rect.top + canvasRef.current.scrollTop) / (zoom / 100);
-      
-      setSelectionBox({
-        startX: Math.min(drag.startCanvasX, currentCanvasX),
-        startY: Math.min(drag.startCanvasY, currentCanvasY),
-        currentX: Math.max(drag.startCanvasX, currentCanvasX),
-        currentY: Math.max(drag.startCanvasY, currentCanvasY),
-      });
-      
-      // Calculate AABB intersection with notes
-      const selectedIds = [];
-      for (const note of notes) {
-        const pos = notePositions[note.id] || { x: note.x ?? 100, y: note.y ?? 100 };
-        const noteX = Number(pos.x || 0);
-        const noteY = Number(pos.y || 0);
-        const noteWidth = 280;
-        const noteHeight = 180;
-        
-        // Check AABB intersection
-        if (
-          noteX < Math.max(drag.startCanvasX, currentCanvasX) &&
-          noteX + noteWidth > Math.min(drag.startCanvasX, currentCanvasX) &&
-          noteY < Math.max(drag.startCanvasY, currentCanvasY) &&
-          noteY + noteHeight > Math.min(drag.startCanvasY, currentCanvasY)
-        ) {
-          selectedIds.push(String(note.id));
-        }
-      }
-      setSelectedCanvasNoteIds(selectedIds);
-      return;
-    }
-
     if (drag.isPan && canvasRef.current) {
       const deltaX = clientX - drag.x;
       const deltaY = clientY - drag.y;
@@ -1227,18 +1189,11 @@ export default function NotesPage() {
       const totalDX = clientX - drag.startClientX;
       const totalDY = clientY - drag.startClientY;
       const scale = zoomRef.current / 100;
-      
-      // Drag all selected notes together
-      const noteIds = drag.noteIds || [drag.noteId];
-      for (const nid of noteIds) {
-        const el = noteElRefs.current[nid];
-        if (el) {
-          if (nid === drag.noteId) {
-            noteDragOccurredRef.current = true;
-          }
-          el.style.transform = `translate(${totalDX / scale}px, ${totalDY / scale}px)`;
-          el.style.zIndex = '999';
-        }
+      const el = noteElRefs.current[drag.noteId];
+      if (el) {
+        noteDragOccurredRef.current = true;
+        el.style.transform = `translate(${totalDX / scale}px, ${totalDY / scale}px)`;
+        el.style.zIndex = '999';
       }
       drag.lastClientX = clientX;
       drag.lastClientY = clientY;
@@ -1273,23 +1228,18 @@ export default function NotesPage() {
     if (drag?.pointerId != null && event.pointerId !== drag.pointerId) return;
 
     if (drag?.noteId) {
+      const el = noteElRefs.current[drag.noteId];
       const totalDX = drag.lastClientX != null ? drag.lastClientX - drag.startClientX : 0;
       const totalDY = drag.lastClientY != null ? drag.lastClientY - drag.startClientY : 0;
       const scale = zoomRef.current / 100;
-      
-      // Update all selected notes
-      const noteIds = drag.noteIds || [drag.noteId];
-      for (const nid of noteIds) {
-        const el = noteElRefs.current[nid];
-        if (el) {
-          el.style.transform = '';
-          el.style.zIndex = '';
-        }
-        const basePos = drag.basePositions?.[nid] || drag.basePos;
-        const finalX = Math.max(0, basePos.x + totalDX / scale);
-        const finalY = Math.max(0, basePos.y + totalDY / scale);
-        updateNotePosition(nid, finalX, finalY, true);
+      if (el) {
+        el.style.transform = '';
+        el.style.zIndex = '';
       }
+      const base = drag.basePos;
+      const finalX = Math.max(0, base.x + totalDX / scale);
+      const finalY = Math.max(0, base.y + totalDY / scale);
+      updateNotePosition(drag.noteId, finalX, finalY, true);
     }
 
     if (drag?.textId) {
@@ -1338,7 +1288,6 @@ export default function NotesPage() {
     }
     isDraggingRef.current = null;
     setIsDragging(null);
-    setSelectionBox(null);
   };
 
   // Handle canvas pan
@@ -1374,30 +1323,9 @@ export default function NotesPage() {
     setActionNoteId(null);
     setHoveredTaskPreview(null);
     setCanvasContextMenu(null);
-    
-    // Marquee selection: capture canvas-space start position
-    if (canvasRef.current) {
-      const rect = canvasRef.current.getBoundingClientRect();
-      const startCanvasX = (event.clientX - rect.left + canvasRef.current.scrollLeft) / (zoom / 100);
-      const startCanvasY = (event.clientY - rect.top + canvasRef.current.scrollTop) / (zoom / 100);
-      
-      const panState = { 
-        x: event.clientX, 
-        y: event.clientY, 
-        isPan: false, 
-        isSelect: true,
-        startCanvasX,
-        startCanvasY,
-        pointerId: event.pointerId, 
-        pointerType: event.pointerType 
-      };
-      isDraggingRef.current = panState;
-      setIsDragging(panState);
-    } else {
-      const panState = { x: event.clientX, y: event.clientY, isPan: true, pointerId: event.pointerId, pointerType: event.pointerType };
-      isDraggingRef.current = panState;
-      setIsDragging(panState);
-    }
+    const panState = { x: event.clientX, y: event.clientY, isPan: true, pointerId: event.pointerId, pointerType: event.pointerType };
+    isDraggingRef.current = panState;
+    setIsDragging(panState);
   };
 
   const handleCanvasContextMenu = (event) => {
@@ -1408,8 +1336,6 @@ export default function NotesPage() {
     event.preventDefault();
     setActiveCanvasTextId(null);
     setEditingCanvasTextId(null);
-    setSelectedCanvasNoteIds([]);
-    setSelectionBox(null);
     const rect = canvasRef.current.getBoundingClientRect();
     const clickX = event.clientX - rect.left;
     const clickY = event.clientY - rect.top;
@@ -1748,28 +1674,10 @@ export default function NotesPage() {
 
     event.stopPropagation();
     setActionNoteId(String(noteId));
-    
-    // Clear selection box on note drag
-    setSelectionBox(null);
-    
     const note = notes.find((n) => String(n.id) === String(noteId));
     const basePos = notePositions[noteId] || { x: note?.x ?? 100, y: note?.y ?? 100 };
-    
-    // If this note is part of selection, drag all selected notes
-    const noteIds = selectedCanvasNoteIds.includes(String(noteId)) 
-      ? selectedCanvasNoteIds 
-      : [String(noteId)];
-    
-    const basePositions = {};
-    for (const nid of noteIds) {
-      const n = notes.find((n) => String(n.id) === String(nid));
-      basePositions[nid] = notePositions[nid] || { x: n?.x ?? 100, y: n?.y ?? 100 };
-    }
-    
     const dragState = {
       noteId,
-      noteIds,
-      basePositions,
       startClientX: event.clientX,
       startClientY: event.clientY,
       lastClientX: event.clientX,
@@ -2278,13 +2186,11 @@ export default function NotesPage() {
       return;
     }
 
-    // Windows-style single-select: clear previous selection when clicking a note
-    if (!quickConnectMode) {
-      setSelectedCanvasNoteIds([String(noteId)]);
-      return;
-    }
-
     setActionNoteId(String(noteId));
+
+    if (!quickConnectMode) return;
+
+    event.stopPropagation();
 
     if (!selectedNote) {
       setSelectedNote(noteId);
@@ -3362,13 +3268,12 @@ export default function NotesPage() {
               const isOwnerNote = String(note.user_id || '') === String(currentUser?.id || '');
               const isResponsibleNote = isResponsibleForNote(note);
               const showActions = String(actionNoteId) === String(note.id) || String(isDragging?.noteId || '') === String(note.id);
-              const isNoteSelected = selectedCanvasNoteIds.includes(String(note.id));
 
               return (
                 <div
                   key={note.id}
                   ref={(el) => { noteElRefs.current[note.id] = el; }}
-                  className={`note-card note-${note.importance} ${isUrgent(note.date) ? 'note-urgent' : ''} ${isHovered ? 'note-focus' : ''} ${isConnected ? 'note-connected' : ''} ${isMuted ? 'note-muted' : ''} ${isBlockedByDependency ? 'note-dependency-blocked' : ''} ${isDependencyReady ? 'note-dependency-ready' : ''} ${isCompleted ? 'note-completed' : ''} ${isNoteSelected ? 'note-selected' : ''}`}
+                  className={`note-card note-${note.importance} ${isUrgent(note.date) ? 'note-urgent' : ''} ${isHovered ? 'note-focus' : ''} ${isConnected ? 'note-connected' : ''} ${isMuted ? 'note-muted' : ''} ${isBlockedByDependency ? 'note-dependency-blocked' : ''} ${isDependencyReady ? 'note-dependency-ready' : ''} ${isCompleted ? 'note-completed' : ''}`}
                   style={{
                     left: `${(notePositions[note.id]?.x ?? note.x ?? 100)}px`,
                     top: `${(notePositions[note.id]?.y ?? note.y ?? 100)}px`,
@@ -3566,19 +3471,6 @@ export default function NotesPage() {
                 </div>
               );
             })}
-        
-        {/* Marquee Selection Rectangle */}
-        {selectionBox && (
-          <div
-            className="canvas-selection-rect"
-            style={{
-              left: `${selectionBox.startX}px`,
-              top: `${selectionBox.startY}px`,
-              width: `${selectionBox.currentX - selectionBox.startX}px`,
-              height: `${selectionBox.currentY - selectionBox.startY}px`,
-            }}
-          />
-        )}
         </div>
 
         {notes.length === 0 && (
