@@ -436,6 +436,7 @@ export default function NotesPage() {
   const canvasTextLSSaveTimer = useRef(null);
   const canvasTextPendingUpsert = useRef({});
   const canvasTextUpsertTimer = useRef(null);
+  const noteViewPersistTimerRef = useRef(null);
   // isDragging ref mirrors state for use inside non-reactive callbacks
   const isDraggingRef = useRef(null);
 
@@ -673,6 +674,20 @@ export default function NotesPage() {
       ...overrides,
     });
   };
+
+  const schedulePersistNoteViewState = (overrides = {}) => {
+    if (noteViewPersistTimerRef.current) clearTimeout(noteViewPersistTimerRef.current);
+    noteViewPersistTimerRef.current = setTimeout(() => {
+      noteViewPersistTimerRef.current = null;
+      persistNoteViewState(overrides);
+    }, 140);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (noteViewPersistTimerRef.current) clearTimeout(noteViewPersistTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     mobileViewModeRef.current = mobileViewMode;
@@ -1199,6 +1214,7 @@ export default function NotesPage() {
   };
 
   const handlePointerMove = (event) => {
+    if (event.pointerType === 'touch') return;
     const drag = isDraggingRef.current;
     if (!drag?.isPan && !drag?.noteId && !drag?.textId) return;
     if (drag?.pointerId != null && event.pointerId !== drag.pointerId) return;
@@ -1206,6 +1222,7 @@ export default function NotesPage() {
   };
 
   const handlePointerUp = (event) => {
+    if (event.pointerType === 'touch') return;
     const drag = isDraggingRef.current;
     if (!drag?.isPan && !drag?.noteId && !drag?.textId) return;
     if (drag?.pointerId != null && event.pointerId !== drag.pointerId) return;
@@ -2539,16 +2556,13 @@ export default function NotesPage() {
     if (!canvas) return;
 
     const onScroll = () => {
-      persistNoteViewState();
+      schedulePersistNoteViewState();
     };
-    const onResize = () => {};
 
     canvas.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onResize);
 
     return () => {
       canvas.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onResize);
     };
   }, []);
 
