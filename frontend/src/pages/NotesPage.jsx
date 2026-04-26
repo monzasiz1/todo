@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Plus, ZoomIn, ZoomOut, Maximize2, Minimize2, Share2, Link2, Trash2, Edit2, X, CalendarDays, Sparkles, PanelsTopLeft, Workflow, LayoutGrid, ChevronLeft, Circle, CheckCircle2 } from 'lucide-react';
+import { Plus, ZoomIn, ZoomOut, Maximize2, Minimize2, Share2, Link2, Trash2, Edit2, X, CalendarDays, Sparkles, PanelsTopLeft, Workflow, LayoutGrid, ChevronLeft, Circle, CheckCircle2, Type } from 'lucide-react';
 import { useNotesStore } from '../store/notesStore';
 import { useFriendsStore } from '../store/friendsStore';
 import { useTaskStore } from '../store/taskStore';
@@ -106,10 +106,11 @@ const CONNECTION_TYPE_LABELS = {
 };
 
 const CANVAS_TEXT_FONT_OPTIONS = [
+  { value: '-apple-system, "SF Pro Display", "Helvetica Neue", Arial, sans-serif', label: 'System (Apple)' },
+  { value: '"SF Pro Rounded", -apple-system, "Helvetica Neue", sans-serif', label: 'Rounded' },
+  { value: '"Georgia", "Times New Roman", serif', label: 'Georgia' },
   { value: '"Poppins", "Segoe UI", sans-serif', label: 'Poppins' },
-  { value: '"Merriweather", Georgia, serif', label: 'Merriweather' },
-  { value: '"JetBrains Mono", "Consolas", monospace', label: 'JetBrains Mono' },
-  { value: '"Nunito", "Segoe UI", sans-serif', label: 'Nunito' },
+  { value: '"JetBrains Mono", "Consolas", monospace', label: 'Mono' },
 ];
 
 const NOTE_PEOPLE_CACHE_KEY = 'taski_note_people_v1';
@@ -433,6 +434,7 @@ export default function NotesPage() {
   const editNoteImageInputRef = useRef(null);
   const commitZoomTimerRef = useRef(null);
   const canvasTextElRefs = useRef({});
+  const canvasTextLSSaveTimer = useRef(null);
   // isDragging ref mirrors state for use inside non-reactive callbacks
   const isDraggingRef = useRef(null);
 
@@ -812,11 +814,14 @@ export default function NotesPage() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    try {
-      localStorage.setItem(getUserScopedKey(NOTE_CANVAS_TEXT_CACHE_KEY), JSON.stringify(Array.isArray(canvasTexts) ? canvasTexts : []));
-    } catch {
-      // ignore quota/security errors
-    }
+    if (canvasTextLSSaveTimer.current) clearTimeout(canvasTextLSSaveTimer.current);
+    canvasTextLSSaveTimer.current = setTimeout(() => {
+      try {
+        localStorage.setItem(getUserScopedKey(NOTE_CANVAS_TEXT_CACHE_KEY), JSON.stringify(Array.isArray(canvasTexts) ? canvasTexts : []));
+      } catch {
+        // ignore quota/security errors
+      }
+    }, 800);
   }, [canvasTexts]);
 
   useEffect(() => {
@@ -1813,6 +1818,14 @@ export default function NotesPage() {
     setToolboxOpen(false);
   };
 
+  const createCanvasTextAtViewport = () => {
+    const canvas = canvasRef.current;
+    const scale = (zoomRef.current || 100) / 100;
+    const centerX = canvas ? (canvas.scrollLeft + canvas.clientWidth / 2) / scale : 300;
+    const centerY = canvas ? (canvas.scrollTop + canvas.clientHeight / 2) / scale : 300;
+    createCanvasTextAt(centerX, centerY);
+  };
+
   const openBlankCreateModalAtViewport = () => {
     const canvas = canvasRef.current;
     if (!canvas) {
@@ -2003,8 +2016,9 @@ export default function NotesPage() {
       x: Math.round(x),
       y: Math.round(y),
       font_family: CANVAS_TEXT_FONT_OPTIONS[0].value,
-      font_size: 28,
-      font_weight: 500,
+      font_size: 32,
+      font_weight: 600,
+      font_color: '',
       attached_note_id: null,
       offset_x: 0,
       offset_y: 0,
@@ -2652,6 +2666,9 @@ export default function NotesPage() {
                   <button type="button" className="header-tool-btn" onClick={openBlankCreateModalAtViewport} title="Neue Note">
                     <Plus size={16} />
                   </button>
+                  <button type="button" className="header-tool-btn" onClick={createCanvasTextAtViewport} title="Text hinzufügen">
+                    <Type size={16} />
+                  </button>
                   <button type="button" className={`header-tool-btn header-tool-btn-fullscreen ${canvasFullscreenActive ? 'active' : ''}`} onClick={toggleCanvasFullscreen} title={canvasFullscreenActive ? 'Vollbild schließen' : 'Vollbild öffnen'}>
                     {canvasFullscreenActive ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
                     <span>{canvasFullscreenActive ? 'Schließen' : 'Vollbild'}</span>
@@ -3025,16 +3042,20 @@ export default function NotesPage() {
 
           {/* Freier Canvas-Text */}
           {canvasTexts.map((entry) => {
-            const position = getCanvasTextPosition(entry);
+            const attachedNote = entry.attached_note_id ? notesById.get(String(entry.attached_note_id)) : null;
+            const position = attachedNote
+              ? (() => { const pos = notePositions[attachedNote.id] || { x: attachedNote.x ?? 100, y: attachedNote.y ?? 100 }; return { x: Number(pos.x || 0) + Number(entry.offset_x || 0), y: Number(pos.y || 0) + Number(entry.offset_y || 0) }; })()
+              : { x: Number(entry.x || 0), y: Number(entry.y || 0) };
             const isActive = String(activeCanvasTextId || '') === String(entry.id);
             const isEditing = String(editingCanvasTextId || '') === String(entry.id);
-            const attachedNote = entry.attached_note_id
-              ? notes.find((note) => String(note.id) === String(entry.attached_note_id))
-              : null;
             const textStyle = {
               fontFamily: entry.font_family || CANVAS_TEXT_FONT_OPTIONS[0].value,
-              fontSize: `${Math.min(72, Math.max(12, Number(entry.font_size || 28)))}px`,
-              fontWeight: Number(entry.font_weight || 500) >= 700 ? 700 : 500,
+              fontSize: `${Math.min(72, Math.max(12, Number(entry.font_size || 32)))}px`,
+              fontWeight: Number(entry.font_weight || 600) >= 700 ? 700 : Number(entry.font_weight || 600),
+              color: entry.font_color || undefined,
+              letterSpacing: '-0.02em',
+              WebkitFontSmoothing: 'antialiased',
+              MozOsxFontSmoothing: 'grayscale',
             };
 
             return (
@@ -3094,6 +3115,15 @@ export default function NotesPage() {
                     >
                       Bold
                     </button>
+                    <label className="canvas-text-color-label" title="Textfarbe">
+                      <span className="canvas-text-color-swatch" style={{ background: entry.font_color || '#e2e8f0' }} />
+                      <input
+                        type="color"
+                        className="canvas-text-color-input"
+                        value={entry.font_color || '#e2e8f0'}
+                        onChange={(event) => updateCanvasTextStyle(entry.id, { font_color: event.target.value })}
+                      />
+                    </label>
                     <select
                       className="canvas-text-attach-select"
                       value={entry.attached_note_id || ''}
@@ -3410,6 +3440,9 @@ export default function NotesPage() {
             <span>Werkzeuge</span>
           </div>
           <div className="notes-fs-toolbar-actions">
+            <button type="button" className="notes-fs-tool-btn" title="Text hinzufügen" onClick={createCanvasTextAtViewport}>
+              <Type size={16} />
+            </button>
             <button type="button" className="notes-fs-tool-btn" title="Neue Note" onClick={openBlankCreateModalAtViewport}>
               <Plus size={16} />
             </button>
