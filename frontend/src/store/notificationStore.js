@@ -87,7 +87,7 @@ const useNotificationStore = create((set, get) => ({
     }));
   },
 
-  // Check current subscription status + load preferences
+  // Check current subscription status + load preferences + auto-resubscribe if needed
   checkStatus: async () => {
     try {
       const data = await api.getNotificationStatus();
@@ -95,6 +95,27 @@ const useNotificationStore = create((set, get) => ({
         subscribed: data?.subscribed || false,
         prefs: data?.prefs || { reminder: true, daily_tasks: true, engagement: true, team_task: true },
       });
+
+      // Auto-resubscribe: if browser already has permission + subscription exists in browser
+      // but not in DB (e.g. after server DB reset or subscription row deleted)
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+        try {
+          const reg = await navigator.serviceWorker.ready;
+          const existingSub = await reg.pushManager.getSubscription();
+
+          if (existingSub && !data?.subscribed) {
+            // Re-register with server
+            const subJSON = existingSub.toJSON();
+            if (subJSON?.endpoint && subJSON?.keys?.p256dh && subJSON?.keys?.auth) {
+              await api.subscribePush({ endpoint: subJSON.endpoint, keys: subJSON.keys });
+              set({ subscribed: true });
+              console.log('[NotificationStore] Auto-resubscribed push to server');
+            }
+          }
+        } catch {
+          // Ignore - subscribe button in UI handles this
+        }
+      }
     } catch {
       // ignore
     }
@@ -169,12 +190,14 @@ const useNotificationStore = create((set, get) => ({
   fetchLog: async () => {
     set({ loading: true });
     try {
-      const data = await api.getNotificationLog();
-      set({ notifications: data?.notifications || [] });
-    } catch {
-      // ignore
-    } finally {
+      const data = await api.getNotificationLog({ limit: 50 });
+      const newNotifications = data?.notifications || [];
+      set({ notifications: newNotifications, loading: false });
+      writeNotifCache({ ...notifCached, notifications: newNotifications });
+    } catch (err) {
+      console.warn('[NotificationStore] fetchLog failed:', err.message);
       set({ loading: false });
+      // Keep existing notifications from cache
     }
   },
 

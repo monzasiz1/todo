@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, BellRing, X, Clock, Users, CheckCircle2, Sparkles, Settings, ArrowLeft } from 'lucide-react';
+import { Bell, BellRing, X, Clock, Users, CheckCircle2, Sparkles, Settings, ArrowLeft, RefreshCw, AlertCircle, Wifi, WifiOff } from 'lucide-react';
 import { useNotificationStore } from '../store/notificationStore';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -12,23 +12,48 @@ const TYPE_CONFIG = {
   engagement: { icon: Sparkles, color: '#AF52DE', label: 'Motivations-Tipps', desc: 'Nach längerer Inaktivität' },
   team_task: { icon: Users, color: '#5856D6', label: 'Team-Aufgaben', desc: 'Neue Aufgaben in Gruppen' },
   team_task_created: { icon: Users, color: '#5856D6', label: 'Neue Gruppenaufgabe', desc: 'Sofort bei Erstellung in der Gruppe' },
+  test: { icon: Bell, color: '#34C759', label: 'Test', desc: 'Test-Benachrichtigung' },
 };
 
 export default function NotificationBell() {
-  const { permission, subscribed, notifications, prefs, subscribe, unsubscribe, fetchLog, checkStatus, updatePref, markAsSeen, getUnseenNotifications } = useNotificationStore();
+  const {
+    permission, subscribed, notifications, prefs, loading,
+    subscribe, unsubscribe, fetchLog, checkStatus, updatePref,
+    markAsSeen, getUnseenNotifications
+  } = useNotificationStore();
+
   const [open, setOpen] = useState(false);
   const [view, setView] = useState('list'); // 'list' | 'settings'
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState(null);
   const ref = useRef(null);
+  const pollRef = useRef(null);
+
+  // Aggressive polling: every 8 seconds when open, every 15 seconds when closed
+  const startPolling = useCallback((fast = false) => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = setInterval(() => {
+      fetchLog();
+    }, fast ? 8000 : 15000);
+  }, [fetchLog]);
 
   useEffect(() => {
+    // Initial load
     checkStatus();
-    // Auto-reload notification log every 10 seconds
-    const interval = setInterval(() => fetchLog(), 10000);
-    return () => clearInterval(interval);
+    fetchLog().then(() => setLastRefresh(Date.now()));
+    startPolling(false);
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
   }, []);
 
   useEffect(() => {
-    if (open) fetchLog();
+    if (open) {
+      fetchLog().then(() => setLastRefresh(Date.now()));
+      startPolling(true); // faster polling when open
+    } else {
+      startPolling(false);
+    }
   }, [open]);
 
   // Mark as seen when dropdown closes
@@ -60,8 +85,38 @@ export default function NotificationBell() {
     if (!open) setView('list');
   };
 
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchLog();
+    setLastRefresh(Date.now());
+    setTimeout(() => setIsRefreshing(false), 600);
+  };
+
+  const handleSubscribeClick = async () => {
+    const ok = await subscribe();
+    if (ok) {
+      // After subscribing, immediately send token to SW
+      const token = localStorage.getItem('token');
+      if (token && navigator.serviceWorker?.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'SET_AUTH_TOKEN', token });
+      }
+    }
+  };
+
   const unseenNotifications = getUnseenNotifications();
   const unseenCount = unseenNotifications.length;
+  const allNotifications = notifications || [];
+
+  // Sort: newest first
+  const sortedNotifications = [...allNotifications].sort(
+    (a, b) => new Date(b.sent_at) - new Date(a.sent_at)
+  );
+
+  const pushStatus = (() => {
+    if (permission === 'denied') return { ok: false, label: 'Blockiert', color: '#FF3B30' };
+    if (!subscribed) return { ok: false, label: 'Nicht aktiviert', color: '#FF9500' };
+    return { ok: true, label: 'Aktiv', color: '#34C759' };
+  })();
 
   return (
     <div className="notif-wrap" ref={ref}>
@@ -90,11 +145,22 @@ export default function NotificationBell() {
               <span className="notif-title">
                 {view === 'settings' ? 'Einstellungen' : 'Benachrichtigungen'}
               </span>
-              <div style={{ display: 'flex', gap: 4, marginLeft: 'auto' }}>
+              <div style={{ display: 'flex', gap: 4, marginLeft: 'auto', alignItems: 'center' }}>
                 {view === 'list' && (
-                  <button className="notif-settings-btn" onClick={() => setView('settings')} aria-label="Einstellungen">
-                    <Settings size={16} />
-                  </button>
+                  <>
+                    <button
+                      className="notif-settings-btn"
+                      onClick={handleManualRefresh}
+                      aria-label="Aktualisieren"
+                      title="Jetzt aktualisieren"
+                      style={{ opacity: isRefreshing ? 0.5 : 1 }}
+                    >
+                      <RefreshCw size={15} style={{ animation: isRefreshing ? 'spin 0.6s linear infinite' : 'none' }} />
+                    </button>
+                    <button className="notif-settings-btn" onClick={() => setView('settings')} aria-label="Einstellungen">
+                      <Settings size={16} />
+                    </button>
+                  </>
                 )}
                 <button className="notif-close" onClick={() => setOpen(false)}>
                   <X size={16} />
@@ -105,6 +171,36 @@ export default function NotificationBell() {
             {/* ─── Settings View ─── */}
             {view === 'settings' && (
               <div className="notif-settings">
+                {/* Push Status Banner */}
+                <div className="notif-status-banner" style={{
+                  background: pushStatus.ok ? '#34C75915' : '#FF950015',
+                  border: `1px solid ${pushStatus.ok ? '#34C75940' : '#FF950040'}`,
+                  borderRadius: 10,
+                  padding: '10px 12px',
+                  marginBottom: 12,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}>
+                  {pushStatus.ok
+                    ? <Wifi size={16} style={{ color: '#34C759', flexShrink: 0 }} />
+                    : <WifiOff size={16} style={{ color: '#FF9500', flexShrink: 0 }} />
+                  }
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: pushStatus.color }}>{pushStatus.label}</div>
+                    {!pushStatus.ok && permission !== 'denied' && (
+                      <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
+                        Aktiviere Push um Benachrichtigungen bei geschlossener App zu erhalten
+                      </div>
+                    )}
+                    {permission === 'denied' && (
+                      <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
+                        In Browser-Einstellungen für diese Seite erlauben
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {/* Master Toggle */}
                 <div className="notif-master">
                   <div className="notif-master-info">
@@ -116,7 +212,8 @@ export default function NotificationBell() {
                   </div>
                   <button
                     className={`notif-toggle-master ${subscribed ? 'active' : ''}`}
-                    onClick={() => subscribed ? unsubscribe() : subscribe()}
+                    onClick={() => subscribed ? unsubscribe() : handleSubscribeClick()}
+                    disabled={permission === 'denied'}
                   >
                     <span className="notif-toggle-knob" />
                   </button>
@@ -124,7 +221,7 @@ export default function NotificationBell() {
 
                 {/* Per-Type Toggles */}
                 <div className="notif-types-label">Benachrichtigungstypen</div>
-                {Object.entries(TYPE_CONFIG).map(([key, cfg]) => {
+                {Object.entries(TYPE_CONFIG).filter(([k]) => k !== 'test').map(([key, cfg]) => {
                   const Icon = cfg.icon;
                   const enabled = prefs[key] !== false;
                   return (
@@ -152,38 +249,81 @@ export default function NotificationBell() {
             {/* ─── List View ─── */}
             {view === 'list' && (
               <>
-                {/* Permission / Subscribe Prompt */}
+                {/* Subscribe Prompt – shown when not subscribed */}
                 {!subscribed && (
-                  <div className="notif-perm">
-                    <p>Erhalte Erinnerungen direkt auf dein Gerät</p>
-                    <button className="notif-perm-btn" onClick={subscribe}>
-                      Push aktivieren
-                    </button>
+                  <div className="notif-perm" style={{
+                    background: 'linear-gradient(135deg, #FF950010, #FF600010)',
+                    border: '1px solid #FF950030',
+                    borderRadius: 12,
+                    margin: '0 12px 8px',
+                    padding: '10px 12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                  }}>
+                    <AlertCircle size={18} style={{ color: '#FF9500', flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Push nicht aktiviert</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6 }}>
+                        Ohne Push bekommst du keine Benachrichtigungen bei geschlossener App
+                      </div>
+                      <button
+                        className="notif-perm-btn"
+                        onClick={handleSubscribeClick}
+                        style={{ fontSize: 12, padding: '5px 12px' }}
+                      >
+                        Push jetzt aktivieren
+                      </button>
+                    </div>
                   </div>
                 )}
 
                 {/* Notification List */}
                 <div className="notif-list">
-                  {unseenNotifications.length === 0 ? (
+                  {loading && sortedNotifications.length === 0 ? (
+                    <div className="notif-empty">
+                      <RefreshCw size={24} strokeWidth={1.5} style={{ animation: 'spin 1s linear infinite', opacity: 0.5 }} />
+                      <span>Laden…</span>
+                    </div>
+                  ) : sortedNotifications.length === 0 ? (
                     <div className="notif-empty">
                       <Bell size={28} strokeWidth={1.5} />
-                      <span>Keine neuen Benachrichtigungen</span>
+                      <span>Keine Benachrichtigungen</span>
+                      <button
+                        onClick={handleManualRefresh}
+                        style={{
+                          marginTop: 8,
+                          fontSize: 12,
+                          color: 'var(--primary)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          textDecoration: 'underline',
+                        }}
+                      >
+                        Aktualisieren
+                      </button>
                     </div>
                   ) : (
-                    unseenNotifications.map((n) => {
+                    sortedNotifications.map((n) => {
                       const config = TYPE_CONFIG[n.type] || TYPE_CONFIG.reminder;
                       const Icon = config.icon;
+                      const isUnseen = new Date(n.sent_at).getTime() > (useNotificationStore.getState().lastSeenAt || 0);
                       return (
-                        <div key={n.id} className="notif-item">
+                        <div key={n.id} className={`notif-item ${isUnseen ? 'notif-item-unseen' : ''}`}>
                           <div className="notif-item-icon" style={{ background: `${config.color}15`, color: config.color }}>
                             <Icon size={16} />
                           </div>
                           <div className="notif-item-body">
+                            <div className="notif-item-title" style={{ fontSize: 12, fontWeight: 600, marginBottom: 2 }}>
+                              {n.title}
+                            </div>
                             <div className="notif-item-text">{n.body}</div>
                             <div className="notif-item-time">
                               {formatDistanceToNow(parseISO(n.sent_at), { addSuffix: true, locale: de })}
                             </div>
                           </div>
+                          {isUnseen && <div className="notif-unseen-dot" />}
                         </div>
                       );
                     })

@@ -26,6 +26,8 @@ export const useAuthStore = create((set) => ({
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       set({ user: data.user, token: data.token, loading: false });
+      // Notify SW of new token
+      window.dispatchEvent(new Event('taski:token-updated'));
       return true;
     } catch (err) {
       set({ error: err.message, loading: false });
@@ -40,6 +42,8 @@ export const useAuthStore = create((set) => ({
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       set({ user: data.user, token: data.token, loading: false });
+      // Notify SW of new token
+      window.dispatchEvent(new Event('taski:token-updated'));
       return true;
     } catch (err) {
       set({ error: err.message, loading: false });

@@ -29,13 +29,35 @@ if (VAPID_PUBLIC && VAPID_PRIVATE) {
 async function sendPushToUser(userId, payload, type, taskId = null) {
   const pool = getPool();
 
-  // Get all subscriptions for this user
-  const { rows: subs } = await pool.query(
-    'SELECT * FROM push_subscriptions WHERE user_id = $1',
-    [userId]
-  );
+  // ─── STEP 1: ALWAYS log to notification_log FIRST ───────────────────────
+  // This guarantees the in-app notification bell always shows entries,
+  // even if the user has no push subscriptions or push delivery fails.
+  try {
+    await pool.query(
+      'INSERT INTO notification_log (user_id, type, task_id, title, body) VALUES ($1, $2, $3, $4, $5)',
+      [userId, type, taskId || null, payload.title, payload.body]
+    );
+  } catch (logErr) {
+    console.error('[pushService] notification_log insert failed:', logErr.message);
+  }
 
-  if (subs.length === 0) return 0;
+  // ─── STEP 2: Try push delivery ───────────────────────────────────────────
+  let subs = [];
+  try {
+    const result = await pool.query(
+      'SELECT * FROM push_subscriptions WHERE user_id = $1',
+      [userId]
+    );
+    subs = result.rows;
+  } catch (err) {
+    console.error('[pushService] Failed to fetch subscriptions:', err.message);
+    return 0;
+  }
+
+  if (subs.length === 0) {
+    console.log(`[pushService] No push subscriptions for user ${userId}, logged only`);
+    return 0;
+  }
 
   const notifPayload = JSON.stringify({
     title: payload.title,
@@ -54,20 +76,18 @@ async function sendPushToUser(userId, payload, type, taskId = null) {
     try {
       await webpush.sendNotification(pushSub, notifPayload);
       sent++;
+      console.log(`[pushService] Push sent to subscription ${sub.id} for user ${userId}`);
     } catch (err) {
+      console.error(`[pushService] Push failed for sub ${sub.id}:`, err.statusCode, err.message);
       if (err.statusCode === 404 || err.statusCode === 410) {
         // Subscription expired/invalid – remove it
-        await pool.query('DELETE FROM push_subscriptions WHERE id = $1', [sub.id]);
+        await pool.query('DELETE FROM push_subscriptions WHERE id = $1', [sub.id]).catch(() => {});
+        console.log(`[pushService] Removed expired subscription ${sub.id}`);
       }
     }
   }
 
-  // Always log for in-app notification center, even when push delivery is 0.
-  await pool.query(
-    'INSERT INTO notification_log (user_id, type, task_id, title, body) VALUES ($1, $2, $3, $4, $5)',
-    [userId, type, taskId, payload.title, payload.body]
-  );
-
+  console.log(`[pushService] Sent ${sent}/${subs.length} pushes for user ${userId}, type=${type}`);
   return sent;
 }
 

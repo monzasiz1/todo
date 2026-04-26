@@ -187,6 +187,52 @@ self.addEventListener('sync', (event) => {
   }
 });
 
+// ─── Auth Token Storage (IndexedDB) ───────────────────────────────────────
+// SW doesn't have localStorage, so we use IndexedDB to persist the auth token.
+// The app sends the token via postMessage whenever it changes.
+
+const IDB_NAME = 'taski-sw-store';
+const IDB_STORE = 'auth';
+
+function openAuthIDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = (e) => {
+      e.target.result.createObjectStore(IDB_STORE);
+    };
+    req.onsuccess = (e) => resolve(e.target.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function saveAuthToken(token) {
+  try {
+    const db = await openAuthIDB();
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(token, 'token');
+    return new Promise((res, rej) => {
+      tx.oncomplete = () => res();
+      tx.onerror = () => rej(tx.error);
+    });
+  } catch (e) {
+    console.error('[SW] saveAuthToken failed:', e);
+  }
+}
+
+async function getAuthToken() {
+  try {
+    const db = await openAuthIDB();
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).get('token');
+    return new Promise((res) => {
+      req.onsuccess = () => res(req.result || null);
+      req.onerror = () => res(null);
+    });
+  } catch {
+    return null;
+  }
+}
+
 // ─── Push Notifications ───
 self.addEventListener('push', (event) => {
   console.log('Push event received:', event.data ? 'with data' : 'no data');
@@ -219,42 +265,67 @@ self.addEventListener('push', (event) => {
   );
 });
 
-// ─── Background Reminder Check (Fallback) ───
-// Periodically check for due reminders even if app is closed.
+// ─── Message Handler ──────────────────────────────────────────────────────
 self.addEventListener('message', (event) => {
+  // App sends updated auth token whenever user logs in or token refreshes
+  if (event.data?.type === 'SET_AUTH_TOKEN') {
+    const token = event.data.token;
+    if (token) {
+      saveAuthToken(token).then(() => {
+        console.log('[SW] Auth token stored in IDB');
+      });
+    }
+    return;
+  }
+
   if (event.data?.type === 'CHECK_REMINDERS') {
-    console.log('SW received CHECK_REMINDERS request');
-    checkAndShowDueReminders().catch(err => console.error('Background reminder check error:', err));
+    console.log('[SW] Received CHECK_REMINDERS request');
+    event.waitUntil(checkAndShowDueReminders());
   }
 });
 
+// ─── Background Reminder Check ────────────────────────────────────────────
 async function checkAndShowDueReminders() {
   try {
-    // Fetch due reminders from server (same endpoint ReminderChecker uses)
-    const response = await fetch('/api/tasks/reminders/due?limit=100');
-    if (!response.ok) return;
-    
+    const token = await getAuthToken();
+    if (!token) {
+      console.log('[SW] No auth token in IDB, skipping reminder check');
+      return;
+    }
+
+    const response = await fetch('/api/tasks/reminders/due', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      console.log('[SW] Reminder check failed:', response.status);
+      return;
+    }
+
     const data = await response.json();
     const tasks = Array.isArray(data.tasks) ? data.tasks : [];
-    
+    console.log(`[SW] Background check found ${tasks.length} due reminders`);
+
     for (const task of tasks) {
       if (!task.reminder_at || task.completed) continue;
-      
+
       const reminderTime = new Date(task.reminder_at).getTime();
       const now = Date.now();
-      
-      // Show if within 15 min after due time (catches fresh and slightly missed reminders)
-      if (reminderTime <= now && reminderTime > now - 15 * 60 * 1000) {
+
+      // Show if within 20 min after due time
+      if (reminderTime <= now && reminderTime > now - 20 * 60 * 1000) {
         const title = '⏰ Erinnerung';
         const body = `${task.title}${task.time ? ' um ' + task.time.slice(0, 5) : ''}`;
-        
-        // Tag prevents duplicate notifications; browser handles deduplication
-        const tag = `reminder-${task.id}`;\n        
+        const tag = `reminder-${task.id}`;
+
         await self.registration.showNotification(title, {
           body,
           icon: '/icons/icon-192.png',
           badge: '/icons/icon-192.png',
-          tag: tag,
+          tag,
           renotify: false,
           vibrate: [200, 100, 200],
           data: { url: '/calendar', taskId: task.id },
@@ -263,12 +334,12 @@ async function checkAndShowDueReminders() {
             { action: 'dismiss', title: 'OK' },
           ],
         });
-        
-        console.log('SW background reminder shown:', tag);
+
+        console.log('[SW] Background reminder shown:', tag);
       }
     }
   } catch (err) {
-    console.log('Background reminder check failed (normal if offline):', err.message);
+    console.log('[SW] Background reminder check error:', err.message);
   }
 }
 
