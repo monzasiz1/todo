@@ -943,8 +943,70 @@
   transform: scale(0.95);
 }
 
-.notes-canvas-shell:fullscreen,
-.notes-canvas-shell:-webkit-full-screen {
+.notes-fs-toolbar {
+  position: fixed;
+  z-index: 1400;
+  min-width: 206px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--card-solid) 92%, var(--bg));
+  backdrop-filter: blur(10px);
+  box-shadow: 0 18px 32px rgba(4, 11, 24, 0.28);
+}
+
+.notes-fs-toolbar-drag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  touch-action: none;
+  cursor: grab;
+}
+
+.notes-fs-toolbar-handle {
+  width: 18px;
+  height: 4px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--text-secondary) 40%, transparent);
+}
+
+.notes-fs-toolbar-actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 9px;
+}
+
+.notes-fs-tool-btn {
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card-solid);
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notes-fs-tool-btn.active {
+  border-color: rgba(0, 224, 255, 0.65);
+  box-shadow: 0 0 0 1px rgba(0, 224, 255, 0.2);
+}
+
+.notes-fs-tool-btn.notes-fs-tool-close {
+  border-color: rgba(255, 69, 58, 0.42);
+  color: #ff453a;
+  background: color-mix(in srgb, #ff453a 12%, var(--card-solid));
+}
+
+.notes-container:fullscreen,
+.notes-container:-webkit-full-screen {
   width: 100vw;
   height: 100dvh;
   max-width: none;
@@ -958,10 +1020,42 @@
   background: var(--bg);
 }
 
-.notes-canvas-shell:fullscreen .notes-canvas,
-.notes-canvas-shell:-webkit-full-screen .notes-canvas {
+.notes-container:fullscreen .page-header,
+.notes-container:-webkit-full-screen .page-header {
+  display: none;
+}
+
+.notes-container:fullscreen .notes-workspace,
+.notes-container:-webkit-full-screen .notes-workspace {
+  padding: 0;
+  min-height: 100%;
+  gap: 0;
+}
+
+.notes-container:fullscreen .notes-toolbox,
+.notes-container:-webkit-full-screen .notes-toolbox {
+  display: none;
+}
+
+.notes-container:fullscreen .notes-canvas-shell,
+.notes-container:-webkit-full-screen .notes-canvas-shell {
+  width: 100%;
+  min-height: 100%;
+}
+
+.notes-container:fullscreen .notes-canvas,
+.notes-container:-webkit-full-screen .notes-canvas {
   height: 100%;
   min-height: 0;
+  border-radius: 0;
+  border: none;
+}
+
+.notes-container:fullscreen .canvas-quick-create-btn,
+.notes-container:fullscreen .canvas-fullscreen-btn,
+.notes-container:-webkit-full-screen .canvas-quick-create-btn,
+.notes-container:-webkit-full-screen .canvas-fullscreen-btn {
+  display: none;
 }
 
 .canvas-content {

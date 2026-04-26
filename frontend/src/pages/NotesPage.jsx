@@ -209,9 +209,12 @@ export default function NotesPage() {
   const [isMobileView, setIsMobileView] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 640 : false));
   const [canvasViewport, setCanvasViewport] = useState({ left: 0, top: 0, right: 0, bottom: 0 });
   const [isCanvasFullscreen, setIsCanvasFullscreen] = useState(false);
+  const [fsToolbarPos, setFsToolbarPos] = useState({ x: 14, y: 86 });
   const canvasRef = useRef(null);
   const canvasShellRef = useRef(null);
   const containerRef = useRef(null);
+  const fsToolbarRef = useRef(null);
+  const fsToolbarDragRef = useRef(null);
   const pinchStateRef = useRef(null);
   const handleTouchMoveRef = useRef(null);
   const handleCanvasTouchStartRef = useRef(null);
@@ -317,7 +320,7 @@ export default function NotesPage() {
   };
 
   const toggleCanvasFullscreen = async () => {
-    const element = canvasShellRef.current;
+    const element = containerRef.current;
     if (!element) return;
 
     const activeFullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
@@ -331,6 +334,10 @@ export default function NotesPage() {
         return;
       }
 
+      if (isMobileView) {
+        setMobileViewMode('canvas');
+      }
+
       if (element.requestFullscreen) {
         await element.requestFullscreen();
       } else if (element.webkitRequestFullscreen) {
@@ -339,6 +346,43 @@ export default function NotesPage() {
     } catch {
       // Ignore browser restrictions (e.g. denied fullscreen gesture)
     }
+  };
+
+  const startFsToolbarDrag = (event) => {
+    if (!isCanvasFullscreen) return;
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+
+    const toolbar = fsToolbarRef.current;
+    if (!toolbar) return;
+
+    const rect = toolbar.getBoundingClientRect();
+    fsToolbarDragRef.current = {
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+      width: rect.width,
+      height: rect.height,
+    };
+
+    const move = (moveEvent) => {
+      if (!fsToolbarDragRef.current) return;
+      const drag = fsToolbarDragRef.current;
+      const maxX = Math.max(8, window.innerWidth - drag.width - 8);
+      const maxY = Math.max(8, window.innerHeight - drag.height - 8);
+      const nextX = Math.min(maxX, Math.max(8, moveEvent.clientX - drag.offsetX));
+      const nextY = Math.min(maxY, Math.max(8, moveEvent.clientY - drag.offsetY));
+      setFsToolbarPos({ x: nextX, y: nextY });
+    };
+
+    const stop = () => {
+      fsToolbarDragRef.current = null;
+      document.removeEventListener('pointermove', move);
+      document.removeEventListener('pointerup', stop);
+      document.removeEventListener('pointercancel', stop);
+    };
+
+    document.addEventListener('pointermove', move);
+    document.addEventListener('pointerup', stop);
+    document.addEventListener('pointercancel', stop);
   };
 
   const persistNoteViewState = (overrides = {}) => {
@@ -1833,7 +1877,7 @@ export default function NotesPage() {
   useEffect(() => {
     const syncFullscreenState = () => {
       const active = document.fullscreenElement || document.webkitFullscreenElement;
-      setIsCanvasFullscreen(active === canvasShellRef.current);
+      setIsCanvasFullscreen(active === containerRef.current);
     };
 
     document.addEventListener('fullscreenchange', syncFullscreenState);
@@ -1919,6 +1963,12 @@ export default function NotesPage() {
               </div>
               {mobileViewMode === 'canvas' && (
                 <>
+                  <button type="button" className="header-tool-btn" onClick={openBlankCreateModalAtViewport} title="Neue Note">
+                    <Plus size={16} />
+                  </button>
+                  <button type="button" className={`header-tool-btn ${isCanvasFullscreen ? 'active' : ''}`} onClick={toggleCanvasFullscreen} title={isCanvasFullscreen ? 'Vollbild beenden' : 'Vollbild'}>
+                    {isCanvasFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                  </button>
                   <button type="button" className={`header-tool-btn ${quickConnectMode ? 'active' : ''}`} onClick={handleQuickConnectToggle}>
                     <Link2 size={16} />
                   </button>
@@ -2547,6 +2597,33 @@ export default function NotesPage() {
       >
         {isCanvasFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
       </motion.button>
+
+      {isCanvasFullscreen && (
+        <div
+          ref={fsToolbarRef}
+          className="notes-fs-toolbar"
+          style={{ left: `${fsToolbarPos.x}px`, top: `${fsToolbarPos.y}px` }}
+        >
+          <div className="notes-fs-toolbar-drag" onPointerDown={startFsToolbarDrag}>
+            <span className="notes-fs-toolbar-handle" />
+            <span>Werkzeuge</span>
+          </div>
+          <div className="notes-fs-toolbar-actions">
+            <button type="button" className="notes-fs-tool-btn" title="Neue Note" onClick={openBlankCreateModalAtViewport}>
+              <Plus size={16} />
+            </button>
+            <button type="button" className={`notes-fs-tool-btn ${quickConnectMode ? 'active' : ''}`} title="Quick Connect" onClick={handleQuickConnectToggle}>
+              <Link2 size={16} />
+            </button>
+            <button type="button" className="notes-fs-tool-btn" title="Auto-Layout" onClick={handleAutoLayout}>
+              <LayoutGrid size={16} />
+            </button>
+            <button type="button" className="notes-fs-tool-btn notes-fs-tool-close" title="Vollbild schließen" onClick={toggleCanvasFullscreen}>
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {hoveredTaskPreview && hoveredTaskPreview.task && (
         <div
