@@ -472,6 +472,38 @@ module.exports = async function handler(req, res) {
   }
 
   // ============================================
+  // PUT /api/groups/:id/categories/:categoryId — Update shared category (admin/owner)
+  // ============================================
+  if (segments.length === 3 && segments[1] === 'categories' && req.method === 'PUT') {
+    try {
+      const groupId = segments[0];
+      const categoryId = segments[2];
+      const membership = await getMembership(groupId);
+      if (!membership || membership.role === 'member') {
+        return res.status(403).json({ error: 'Nur Admins können Gruppenkategorien bearbeiten' });
+      }
+
+      const name = String(req.body?.name || '').trim();
+      const color = String(req.body?.color || '#8E8E93').trim() || '#8E8E93';
+      if (!name) return res.status(400).json({ error: 'Name erforderlich' });
+
+      const result = await pool.query(
+        `UPDATE group_categories SET name = $1, color = $2
+         WHERE id = $3 AND group_id = $4
+         RETURNING id, group_id, name, color, created_by, created_at`,
+        [name, color, categoryId, groupId]
+      );
+
+      if (result.rows.length === 0) return res.status(404).json({ error: 'Kategorie nicht gefunden' });
+      await pool.query('UPDATE groups SET updated_at = NOW() WHERE id = $1', [groupId]);
+      return res.json({ category: result.rows[0] });
+    } catch (err) {
+      console.error('Update group category error:', err);
+      return res.status(500).json({ error: 'Fehler beim Aktualisieren der Gruppenkategorie' });
+    }
+  }
+
+  // ============================================
   // DELETE /api/groups/:id/categories/:categoryId — Delete shared category (admin/owner)
   // ============================================
   if (segments.length === 3 && segments[1] === 'categories' && req.method === 'DELETE') {

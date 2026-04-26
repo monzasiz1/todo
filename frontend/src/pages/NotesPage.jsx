@@ -986,7 +986,6 @@ export default function NotesPage() {
     if (event.pointerType === 'touch' && event.isPrimary === false) return;
 
     event.stopPropagation();
-    setActiveNoteId(noteId);
     setIsDragging({ noteId, startX: event.clientX, startY: event.clientY, pointerId: event.pointerId, pointerType: event.pointerType });
   };
 
@@ -995,7 +994,6 @@ export default function NotesPage() {
     if (event.target.closest('button, input, textarea, select, a')) return;
 
     const touch = event.touches[0];
-    setActiveNoteId(noteId);
     setIsDragging({ noteId, startX: touch.clientX, startY: touch.clientY, isTouch: true });
     event.stopPropagation();
   };
@@ -1178,16 +1176,20 @@ export default function NotesPage() {
     });
   };
 
+  const handleNoteDoubleClick = (event, noteId) => {
+    if (event.target.closest('button, input, textarea, select, a')) return;
+    if (noteDragOccurredRef.current) return;
+    setActiveNoteId(noteId);
+  };
+
   const handleNoteCardClick = async (event, noteId) => {
     if (event.target.closest('button, input, textarea, select, a')) return;
-    
+
     // Ignore click if a note drag just occurred
     if (noteDragOccurredRef.current) {
       noteDragOccurredRef.current = false;
       return;
     }
-    
-    setActiveNoteId(noteId);
 
     if (!quickConnectMode) return;
 
@@ -2095,6 +2097,7 @@ export default function NotesPage() {
                   onMouseLeave={() => setHoveredNoteId(null)}
                   onPointerDown={(event) => handleNotePointerDown(event, note.id)}
                   onClick={(event) => handleNoteCardClick(event, note.id)}
+                  onDoubleClick={(event) => handleNoteDoubleClick(event, note.id)}
                 >
                   <div className="note-header">
                     <h3 className="note-title">{note.title}</h3>
