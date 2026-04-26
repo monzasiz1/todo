@@ -1167,10 +1167,10 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         {t.group_id && <AvatarBadge name={t.group_name} color={t.group_color || '#5856D6'} avatarUrl={t.group_image_url} size={11} />}
                         <span className="desktop-week-event-title">{t.title}</span>
                       </div>
-                      <span className="desktop-week-event-time">{t.time?.slice(0, 5)}{t.time_end ? ` - ${t.time_end.slice(0, 5)}` : ''}</span>
-                      {t.group_category_name && !doneOrEnded && height > 44 && (
-                        <span className="cal-event-cat-label">{t.group_category_name}</span>
-                      )}
+                      <span className="desktop-week-event-time">
+                        {t.time?.slice(0, 5)}{t.time_end ? ` - ${t.time_end.slice(0, 5)}` : ''}
+                        {t.group_category_name && !doneOrEnded && <span className="cal-event-cat-inline"> · {t.group_category_name}</span>}
+                      </span>
                       {t.completed && <span className="desktop-week-event-ended">Erledigt</span>}
                       {!t.completed && ended && <span className="desktop-week-event-ended">Beendet</span>}
                       {!ended && (
@@ -1533,10 +1533,10 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   {t.group_id && <AvatarBadge name={t.group_name} color={t.group_color || '#5856D6'} avatarUrl={t.group_image_url} size={11} />}
                   <strong className="cal-event-title-text">{t.title}</strong>
                 </div>
-                <span>{t.time?.slice(0, 5)}{t.time_end ? `-${t.time_end.slice(0, 5)}` : ''}</span>
-                {t.group_category_name && !doneOrEnded && height > 56 && (
-                  <span className="cal-event-cat-label">{t.group_category_name}</span>
-                )}
+                <span className="cal-event-time-row">
+                  {t.time?.slice(0, 5)}{t.time_end ? `-${t.time_end.slice(0, 5)}` : ''}
+                  {t.group_category_name && !doneOrEnded && <span className="cal-event-cat-inline"> · {t.group_category_name}</span>}
+                </span>
                 {t.completed && <span className="mobile-day-event-ended">Erledigt</span>}
                 {!t.completed && ended && <span className="mobile-day-event-ended">Beendet</span>}
                 {(t.date_end && t.date_end !== t.date) && (

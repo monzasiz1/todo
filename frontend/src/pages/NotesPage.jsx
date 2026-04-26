@@ -1769,11 +1769,6 @@ export default function NotesPage() {
                     <div
                       key={note.id}
                       className={`nmlv-card nmlv-card-${note.importance} ${urgent ? 'nmlv-card-urgent' : ''}`}
-                      onClick={() => {
-                        if (!mobileCanManage) return;
-                        const people = getPeopleForNote(note.id);
-                        setEditingNote({ ...note, participant_ids: people.participant_ids, responsible_user_id: people.responsible_user_id });
-                      }}
                     >
                       {/* Importance bar */}
                       <div className={`nmlv-card-bar imp-${note.importance}`} />
