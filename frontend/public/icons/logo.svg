@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Bee wings — white, works on dark AND light backgrounds via currentColor trick -->
+  <!-- Left wing top -->
+  <path d="M130 178 C95 138, 98 92, 148 76 C178 96, 185 142, 158 182"
+        stroke="white" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Left wing bottom -->
+  <path d="M172 148 C150 96, 172 46, 228 32 C255 68, 256 118, 212 154"
+        stroke="white" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Right wing top -->
+  <path d="M240 144 C230 90, 258 52, 316 50 C330 94, 318 136, 274 164"
+        stroke="white" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Right wing bottom -->
+  <path d="M292 170 C320 128, 365 110, 416 132 C412 180, 380 216, 330 222"
+        stroke="white" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Checkmark / hook (main body) -->
+  <path d="M140 310 L218 390 L368 228"
+        stroke="white" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Bee body — stinger curving up from hook -->
+  <path d="M218 390 C268 338, 284 248, 258 182"
+        stroke="white" stroke-width="28" stroke-linecap="round"/>
+
+  <!-- Bee head dot -->
+  <circle cx="234" cy="220" r="14" fill="white"/>
+</svg>
