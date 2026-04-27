@@ -2,7 +2,17 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { getPool } = require('./_lib/db');
 const { verifyToken, generateToken, cors } = require('./_lib/auth');
-const { sendActivationMail } = require('./_lib/mailer');
+
+// Mailer lazy laden — damit ein fehlgeschlagener nodemailer-Import
+// die gesamte Funktion nicht crasht
+function getSendActivationMail() {
+  try {
+    return require('./_lib/mailer').sendActivationMail;
+  } catch (e) {
+    console.error('Mailer konnte nicht geladen werden:', e.message);
+    return null;
+  }
+}
 
 module.exports = async function handler(req, res) {
   cors(res);
@@ -29,12 +39,30 @@ module.exports = async function handler(req, res) {
       const hashedPassword = await bcrypt.hash(password, 12);
       const activationToken = crypto.randomBytes(32).toString('hex');
 
-      const result = await pool.query(
-        `INSERT INTO users (name, email, password, email_verification_token, email_verified)
-         VALUES ($1, $2, $3, $4, FALSE)
-         RETURNING id, name, email, avatar_url, avatar_color, plan, created_at`,
-        [name, email, hashedPassword, activationToken]
-      );
+      // Spalten email_verified / email_verification_token absichern:
+      // Falls sie in der DB noch nicht existieren (ALTER TABLE noch nicht ausgeführt),
+      // fällt der Insert auf den einfachen Fallback zurück.
+      let result;
+      try {
+        result = await pool.query(
+          `INSERT INTO users (name, email, password, email_verification_token, email_verified)
+           VALUES ($1, $2, $3, $4, FALSE)
+           RETURNING id, name, email, avatar_url, avatar_color, plan, created_at`,
+          [name, email, hashedPassword, activationToken]
+        );
+      } catch (colErr) {
+        if (colErr.message && colErr.message.includes('column')) {
+          // Spalten fehlen – ohne Verifikation anlegen
+          result = await pool.query(
+            `INSERT INTO users (name, email, password)
+             VALUES ($1, $2, $3)
+             RETURNING id, name, email, avatar_url, avatar_color, plan, created_at`,
+            [name, email, hashedPassword]
+          );
+        } else {
+          throw colErr;
+        }
+      }
       const user = result.rows[0];
 
       // Default-Kategorien
@@ -59,7 +87,10 @@ module.exports = async function handler(req, res) {
       const baseUrl = process.env.APP_BASE_URL || 'https://beequ.de';
       const activationUrl = `${baseUrl}/api/auth/activate?token=${activationToken}`;
       try {
-        await sendActivationMail({ to: email, name, activationUrl });
+        const sendActivationMail = getSendActivationMail();
+        if (sendActivationMail) {
+          await sendActivationMail({ to: email, name, activationUrl });
+        }
       } catch (mailErr) {
         console.error('Aktivierungsmail Fehler:', mailErr.message);
       }
