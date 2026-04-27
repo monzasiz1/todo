@@ -36,10 +36,10 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
   }, []);
 
   const navItems = [
-    { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/calendar', icon: CalendarDays, label: 'Kalender' },
-    { to: '/notes', icon: Sparkles, label: 'Notes' },
-    { to: '/groups', icon: UsersRound, label: 'Gruppen' },
+    { to: '/app', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/app/calendar', icon: CalendarDays, label: 'Kalender' },
+    { to: '/app/notes', icon: Sparkles, label: 'Notes' },
+    { to: '/app/groups', icon: UsersRound, label: 'Gruppen' },
   ];
 
   const getTaskCount = (categoryId) => {
@@ -167,7 +167,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
 
       {/* User */}
       <div className="sidebar-bottom">
-        <NavLink to="/profile" className="sidebar-user" onClick={onClose} style={{ textDecoration: 'none' }}>
+        <NavLink to="/app/profile" className="sidebar-user" onClick={onClose} style={{ textDecoration: 'none' }}>
           <AvatarBadge
             className="sidebar-avatar"
             name={user?.name}
@@ -186,7 +186,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
           </div>
         </NavLink>
         <NavLink
-          to="/pricing"
+          to="/app/pricing"
           className="sidebar-pricing-link"
           onClick={onClose}
           title="Pläne & Preise"

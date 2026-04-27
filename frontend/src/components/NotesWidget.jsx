@@ -37,13 +37,13 @@ export default function NotesWidget() {
       >
         <div className="widget-header">
           <h3>Thoughts Board</h3>
-          <Link to="/notes" className="widget-link">
+          <Link to="/app/notes" className="widget-link">
             <ArrowRight size={16} />
           </Link>
         </div>
         <div className="widget-empty">
           <p className="empty-text">Keine Notes vorhanden</p>
-          <Link to="/notes" className="widget-create-btn">
+          <Link to="/app/notes" className="widget-create-btn">
             <Plus size={16} />
             Erste Note erstellen
           </Link>
@@ -64,7 +64,7 @@ export default function NotesWidget() {
           <h3>Thoughts Board</h3>
           <p className="widget-subtitle">{notes.length} Notes</p>
         </div>
-        <Link to="/notes" className="widget-link" title="Zur Notes-Seite">
+        <Link to="/app/notes" className="widget-link" title="Zur Notes-Seite">
           <ArrowRight size={16} />
         </Link>
       </div>
@@ -105,7 +105,7 @@ export default function NotesWidget() {
         </div>
       )}
 
-      <Link to="/notes" className="widget-footer-btn">
+      <Link to="/app/notes" className="widget-footer-btn">
         <Plus size={16} />
         Neue Note
       </Link>

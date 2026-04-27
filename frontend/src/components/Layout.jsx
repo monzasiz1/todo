@@ -13,7 +13,7 @@ import GroupChatPanel from './GroupChatPanel';
 
 export default function Layout() {
   const location = useLocation();
-  const isNotesRoute = location.pathname === '/notes';
+  const isNotesRoute = location.pathname === '/app/notes';
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);

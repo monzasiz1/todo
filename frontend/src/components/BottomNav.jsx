@@ -12,12 +12,12 @@ export default function BottomNav({ onAddClick }) {
   return (
     <>
       <nav className="bottom-nav">
-        <NavLink to="/" end className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
+        <NavLink to="/app" end className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
           <LayoutDashboard size={22} />
           <span>Home</span>
         </NavLink>
 
-        <NavLink to="/calendar" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
+        <NavLink to="/app/calendar" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
           <CalendarDays size={22} />
           <span>Kalender</span>
         </NavLink>
@@ -26,12 +26,12 @@ export default function BottomNav({ onAddClick }) {
           <Plus size={26} strokeWidth={2.5} />
         </button>
 
-        <NavLink to="/groups" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
+        <NavLink to="/app/groups" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
           <UsersRound size={22} />
           <span>Gruppen</span>
         </NavLink>
 
-        <NavLink to="/profile" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
+        <NavLink to="/app/profile" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
           <UserCircle size={22} />
           <span>Profil</span>
         </NavLink>
