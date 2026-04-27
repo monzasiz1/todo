@@ -565,81 +565,245 @@ export default function LandingPage() {
         </div>
       </footer>
 
-      {/* ══════════ LOGIN MODAL ══════════ */}
+      {/* ══════════ AUTH SCREENS ══════════ */}
       <AnimatePresence>
-        {showLogin && (
-          <motion.div className="landing-modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowLogin(false)}>
-            <motion.div className="landing-modal" initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} onClick={e => e.stopPropagation()}>
-              <button className="landing-modal-close" onClick={() => setShowLogin(false)}><X size={20} /></button>
-              <div className="landing-modal-header">
-                <img src="/icons/icon.svg" alt="" style={{ width: 32, height: 32, borderRadius: 8 }} />
-                <h2>Anmelden</h2>
+        {(showLogin || showRegister) && (
+          <motion.div
+            className="bq-auth-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.22 }}
+          >
+            {/* left — branded panel */}
+            <motion.div
+              className="bq-auth-brand"
+              initial={{ opacity: 0, x: -32 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -32 }}
+              transition={{ duration: 0.38, ease }}
+            >
+              <div className="bq-auth-brand-top">
+                <div className="bq-auth-logo">
+                  <img src="/icons/icon.svg" alt="BeeQu" />
+                  <span>BeeQu</span>
+                </div>
+                <h2 className="bq-auth-brand-headline">
+                  {showRegister ? 'Kostenlos starten.\nIn 30 Sekunden.' : 'Willkommen zurück.'}
+                </h2>
+                <p className="bq-auth-brand-sub">
+                  {showRegister
+                    ? 'Tasks, Kalender und KI-Assistent — alles in einer App von BeeTwice.'
+                    : 'BeeQu hält deine Aufgaben, deinen Kalender und dein Team in Sync.'}
+                </p>
               </div>
-              {loginError && <div className="landing-modal-error"><AlertCircle size={16} />{loginError}</div>}
-              <form onSubmit={handleLogin} className="landing-modal-form">
-                <div className="landing-form-field">
-                  <label>E-Mail</label>
-                  <div className="landing-form-input-wrapper">
-                    <Mail size={18} />
-                    <input type="email" placeholder="du@example.com" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} required />
+
+              <div className="bq-auth-features">
+                {[
+                  { icon: Sparkles,    color: '#007AFF', text: 'KI erkennt Datum, Zeit & Priorität automatisch' },
+                  { icon: CalendarDays,color: '#5856D6', text: 'Alles im Blick mit Monats- & Wochenkalender' },
+                  { icon: UsersRound,  color: '#34C759', text: 'Teams & Echtzeit-Chat ohne extra Tools' },
+                ].map(({ icon: Icon, color, text }) => (
+                  <div key={text} className="bq-auth-feature">
+                    <div className="bq-auth-feature-icon" style={{ background: `${color}18`, color }}>
+                      <Icon size={16} />
+                    </div>
+                    <span>{text}</span>
                   </div>
-                </div>
-                <div className="landing-form-field">
-                  <label>Passwort</label>
-                  <div className="landing-form-input-wrapper">
-                    <Key size={18} />
-                    <input type="password" placeholder="••••••••" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required />
-                  </div>
-                </div>
-                <button type="submit" disabled={loading} className="landing-btn landing-btn-solid full-width">
-                  {loading ? 'Wird angemeldet…' : 'Anmelden'}
-                </button>
-              </form>
-              <div className="landing-modal-footer">
-                <p>Noch kein Konto?<button onClick={() => { setShowLogin(false); setShowRegister(true); }} className="landing-link">Registrieren</button></p>
+                ))}
+              </div>
+
+              <div className="bq-auth-brand-footer">
+                <span>© 2026 BeeTwice GmbH</span>
+                <span>·</span>
+                <a href="#">Datenschutz</a>
+                <span>·</span>
+                <a href="#">AGB</a>
               </div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
-      {/* ══════════ REGISTER MODAL ══════════ */}
-      <AnimatePresence>
-        {showRegister && (
-          <motion.div className="landing-modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowRegister(false)}>
-            <motion.div className="landing-modal" initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} onClick={e => e.stopPropagation()}>
-              <button className="landing-modal-close" onClick={() => setShowRegister(false)}><X size={20} /></button>
-              <div className="landing-modal-header">
-                <img src="/icons/icon.svg" alt="" style={{ width: 32, height: 32, borderRadius: 8 }} />
-                <h2>Kostenlos registrieren</h2>
-              </div>
-              {registerError && <div className="landing-modal-error"><AlertCircle size={16} />{registerError}</div>}
-              <form onSubmit={handleRegister} className="landing-modal-form">
-                <div className="landing-form-field">
-                  <label>Name</label>
-                  <input type="text" placeholder="Max Mustermann" value={registerName} onChange={e => setRegisterName(e.target.value)} required />
-                </div>
-                <div className="landing-form-field">
-                  <label>E-Mail</label>
-                  <div className="landing-form-input-wrapper">
-                    <Mail size={18} />
-                    <input type="email" placeholder="du@example.com" value={registerEmail} onChange={e => setRegisterEmail(e.target.value)} required />
-                  </div>
-                </div>
-                <div className="landing-form-field">
-                  <label>Passwort</label>
-                  <div className="landing-form-input-wrapper">
-                    <Key size={18} />
-                    <input type="password" placeholder="••••••••" value={registerPassword} onChange={e => setRegisterPassword(e.target.value)} required />
-                  </div>
-                </div>
-                <button type="submit" disabled={loading} className="landing-btn landing-btn-solid full-width">
-                  {loading ? 'Wird registriert…' : 'Kostenlos registrieren'}
-                </button>
-              </form>
-              <div className="landing-modal-footer">
-                <p>Bereits registriert?<button onClick={() => { setShowRegister(false); setShowLogin(true); }} className="landing-link">Anmelden</button></p>
-              </div>
+            {/* right — form panel */}
+            <motion.div
+              className="bq-auth-form-panel"
+              initial={{ opacity: 0, x: 32 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 32 }}
+              transition={{ duration: 0.38, ease }}
+            >
+              <button
+                className="bq-auth-close"
+                onClick={() => { setShowLogin(false); setShowRegister(false); }}
+                aria-label="Schließen"
+              >
+                <X size={18} />
+              </button>
+
+              <AnimatePresence mode="wait">
+                {showLogin && (
+                  <motion.div
+                    key="login"
+                    className="bq-auth-form-inner"
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -16 }}
+                    transition={{ duration: 0.25 }}
+                  >
+                    <div className="bq-auth-form-head">
+                      <h1>Anmelden</h1>
+                      <p>Bei deinem BeeQu-Konto anmelden</p>
+                    </div>
+
+                    {loginError && (
+                      <div className="bq-auth-error">
+                        <AlertCircle size={15} />
+                        <span>{loginError}</span>
+                      </div>
+                    )}
+
+                    <form onSubmit={handleLogin} className="bq-auth-form">
+                      <div className="bq-field">
+                        <label htmlFor="login-email">E-Mail-Adresse</label>
+                        <div className="bq-input-wrap">
+                          <Mail size={16} className="bq-input-icon" />
+                          <input
+                            id="login-email"
+                            type="email"
+                            placeholder="du@example.com"
+                            value={loginEmail}
+                            onChange={e => setLoginEmail(e.target.value)}
+                            required
+                            autoComplete="email"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="bq-field">
+                        <label htmlFor="login-pw">Passwort</label>
+                        <div className="bq-input-wrap">
+                          <Key size={16} className="bq-input-icon" />
+                          <input
+                            id="login-pw"
+                            type="password"
+                            placeholder="Dein Passwort"
+                            value={loginPassword}
+                            onChange={e => setLoginPassword(e.target.value)}
+                            required
+                            autoComplete="current-password"
+                          />
+                        </div>
+                      </div>
+
+                      <button type="submit" disabled={loading} className="bq-auth-submit">
+                        {loading ? (
+                          <span className="bq-auth-spinner" />
+                        ) : (
+                          <>Anmelden <ArrowRight size={16} /></>
+                        )}
+                      </button>
+                    </form>
+
+                    <div className="bq-auth-switch">
+                      <span>Noch kein Konto?</span>
+                      <button onClick={() => { setShowLogin(false); setShowRegister(true); }}>
+                        Kostenlos registrieren
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+
+                {showRegister && (
+                  <motion.div
+                    key="register"
+                    className="bq-auth-form-inner"
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -16 }}
+                    transition={{ duration: 0.25 }}
+                  >
+                    <div className="bq-auth-form-head">
+                      <h1>Konto erstellen</h1>
+                      <p>Kostenlos starten — keine Kreditkarte nötig</p>
+                    </div>
+
+                    {registerError && (
+                      <div className="bq-auth-error">
+                        <AlertCircle size={15} />
+                        <span>{registerError}</span>
+                      </div>
+                    )}
+
+                    <form onSubmit={handleRegister} className="bq-auth-form">
+                      <div className="bq-field">
+                        <label htmlFor="reg-name">Vollständiger Name</label>
+                        <div className="bq-input-wrap">
+                          <User size={16} className="bq-input-icon" />
+                          <input
+                            id="reg-name"
+                            type="text"
+                            placeholder="Max Mustermann"
+                            value={registerName}
+                            onChange={e => setRegisterName(e.target.value)}
+                            required
+                            autoComplete="name"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="bq-field">
+                        <label htmlFor="reg-email">E-Mail-Adresse</label>
+                        <div className="bq-input-wrap">
+                          <Mail size={16} className="bq-input-icon" />
+                          <input
+                            id="reg-email"
+                            type="email"
+                            placeholder="du@example.com"
+                            value={registerEmail}
+                            onChange={e => setRegisterEmail(e.target.value)}
+                            required
+                            autoComplete="email"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="bq-field">
+                        <label htmlFor="reg-pw">Passwort</label>
+                        <div className="bq-input-wrap">
+                          <Key size={16} className="bq-input-icon" />
+                          <input
+                            id="reg-pw"
+                            type="password"
+                            placeholder="Mind. 8 Zeichen"
+                            value={registerPassword}
+                            onChange={e => setRegisterPassword(e.target.value)}
+                            required
+                            autoComplete="new-password"
+                            minLength={8}
+                          />
+                        </div>
+                      </div>
+
+                      <p className="bq-auth-consent">
+                        Mit der Registrierung stimmst du unseren <a href="#">AGB</a> und der <a href="#">Datenschutzerklärung</a> zu.
+                      </p>
+
+                      <button type="submit" disabled={loading} className="bq-auth-submit">
+                        {loading ? (
+                          <span className="bq-auth-spinner" />
+                        ) : (
+                          <>Konto erstellen <ArrowRight size={16} /></>
+                        )}
+                      </button>
+                    </form>
+
+                    <div className="bq-auth-switch">
+                      <span>Bereits registriert?</span>
+                      <button onClick={() => { setShowRegister(false); setShowLogin(true); }}>
+                        Anmelden
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           </motion.div>
         )}

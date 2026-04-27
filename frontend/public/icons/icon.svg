@@ -9,19 +9,20 @@
 
   <rect width="512" height="512" rx="96" fill="url(#bg)"/>
 
-  <!-- Bee wings -->
+  <!-- Bee (clearly recognizable) -->
   <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round" opacity="0.98">
-    <path d="M132 188 C98 152, 98 106, 146 90 C176 114, 182 156, 154 194" stroke-width="17"/>
-    <path d="M182 158 C158 112, 176 64, 230 50 C258 86, 262 132, 218 166" stroke-width="17"/>
-    <path d="M254 160 C246 108, 274 68, 330 66 C344 110, 330 152, 286 182" stroke-width="17"/>
+    <path d="M220 146 C204 122, 202 94, 224 78 C252 90, 262 118, 250 146" stroke-width="14"/>
+    <path d="M292 146 C306 122, 308 94, 286 78 C258 90, 248 118, 260 146" stroke-width="14"/>
+    <circle cx="256" cy="176" r="18" stroke-width="12"/>
+    <path d="M244 158 C236 146, 226 140, 214 140" stroke-width="8"/>
+    <path d="M268 158 C276 146, 286 140, 298 140" stroke-width="8"/>
+    <ellipse cx="256" cy="246" rx="38" ry="56" stroke-width="14"/>
+    <path d="M228 224 H284" stroke-width="9"/>
+    <path d="M224 246 H288" stroke-width="9"/>
+    <path d="M228 268 H284" stroke-width="9"/>
   </g>
 
-  <!-- Bee body integrated with arrow -->
-  <circle cx="242" cy="222" r="9" fill="#FFFFFF"/>
-  <path d="M256 196 C276 250, 270 322, 228 378" fill="none" stroke="#FFFFFF" stroke-width="22" stroke-linecap="round"/>
-  <path d="M148 304 L224 380 L356 234" fill="none" stroke="#FFFFFF" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
-
-  <!-- Subtle bee stripes -->
-  <path d="M248 258 C262 248, 282 246, 298 252" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round" opacity="0.94"/>
-  <path d="M242 286 C260 276, 284 274, 304 282" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round" opacity="0.94"/>
+  <!-- Arrow/check -->
+  <path d="M142 320 L228 400 L368 244" fill="none" stroke="#FFFFFF" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M228 400 C264 360, 278 314, 274 282" fill="none" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round"/>
 </svg>
