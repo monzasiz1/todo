@@ -1135,6 +1135,15 @@
   z-index: 1;
 }
 
+.canvas-selection-rect {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  border: 2px solid rgba(0, 122, 255, 0.9);
+  background: rgba(0, 122, 255, 0.12);
+  border-radius: 2px;
+}
+
 .connection-group {
   opacity: 0.92;
   animation: connection-pulse 4.6s ease-in-out infinite;
@@ -1424,6 +1433,11 @@
 .note-card.note-connected {
   border-color: rgba(122, 92, 255, 0.56);
   box-shadow: 0 16px 34px rgba(122, 92, 255, 0.18);
+}
+
+.note-card.note-selected {
+  border-color: rgba(0, 122, 255, 0.9);
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.3), 0 16px 34px rgba(0, 122, 255, 0.2);
 }
 
 .note-card.note-muted {
