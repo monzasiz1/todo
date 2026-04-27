@@ -39,6 +39,8 @@
     { "src": "/api/notifications", "dest": "/api/notifications.js?__path=" },
     { "src": "/api/notes/(.*)", "dest": "/api/notes.js?__path=$1" },
     { "src": "/api/notes", "dest": "/api/notes.js?__path=" },
+    { "src": "/api/canvas-texts/(.*)", "dest": "/api/canvas-texts.js?__path=$1" },
+    { "src": "/api/canvas-texts", "dest": "/api/canvas-texts.js?__path=" },
     { "src": "/api/help/(.*)", "dest": "/api/help.js?__path=$1" },
     { "src": "/api/attachments/(.*)", "dest": "/api/attachments.js?__path=$1" },
     { "src": "/api/plans/(.*)", "dest": "/api/plans.js?__path=$1" },
