@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = 'beequ-v4';
+﻿const CACHE_NAME = 'beequ-v5';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',

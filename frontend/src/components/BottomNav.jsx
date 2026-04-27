@@ -12,7 +12,7 @@ export default function BottomNav({ onAddClick }) {
   return (
     <>
       <nav className="bottom-nav">
-        <NavLink to="/app" end className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
+        <NavLink to="/app" end={true} className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
           <LayoutDashboard size={22} />
           <span>Home</span>
         </NavLink>

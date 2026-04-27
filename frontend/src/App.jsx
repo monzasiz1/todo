@@ -12,15 +12,9 @@ import PricingPage from './pages/PricingPage';
 import NotesPage from './pages/NotesPage';
 import InstallPrompt from './components/InstallPrompt';
 import OfflineBanner from './components/OfflineBanner';
-import { useEffect } from 'react';
 
 function ProtectedRoute({ children }) {
-  const { token, checkAuth } = useAuthStore();
-
-  useEffect(() => {
-    if (token) checkAuth();
-  }, []);
-
+  const { token } = useAuthStore();
   if (!token) return <Navigate to="/login" replace />;
   return children;
 }

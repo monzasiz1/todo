@@ -46,7 +46,10 @@ export const useAuthStore = create((set) => ({
         window.dispatchEvent(new Event('beequ:token-updated'));
         return { success: true };
       } else {
-        set({ loading: false });
+        // Token und User explizit entfernen, falls noch vorhanden
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        set({ user: null, token: null, loading: false });
         return { success: false, message: data.message || 'Bitte bestätige deine E-Mail-Adresse.' };
       }
     } catch (err) {
