@@ -10,15 +10,39 @@ export default function Register() {
   const [name, setName]         = useState('');
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
+
   const { register, loading, error, clearError } = useAuthStore();
   const navigate = useNavigate();
+  const [pendingEmail, setPendingEmail] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     clearError();
-    const success = await register(name, email, password);
-    if (success) navigate('/app');
+    const result = await register(name, email, password);
+    if (result.success) {
+      navigate('/app');
+    } else if (result.message) {
+      setPendingEmail(email);
+    }
   };
+
+  if (pendingEmail) {
+    return (
+      <div className="bq-auth-page">
+        <div className="bq-auth-form-panel" style={{ maxWidth: 420, margin: 'auto', padding: 32 }}>
+          <div style={{ textAlign: 'center', marginTop: 48 }}>
+            <img src="/icons/icon.png" alt="BeeQu" style={{ width: 64, marginBottom: 16 }} />
+            <h2>Bitte bestätige deine E-Mail-Adresse</h2>
+            <p style={{ margin: '16px 0 32px' }}>
+              Wir haben dir eine E-Mail an <b>{pendingEmail}</b> gesendet.<br />
+              Klicke auf den Link in der Mail, um dein Konto zu aktivieren.
+            </p>
+            <Link to="/login" className="bq-btn bq-btn-primary">Zum Login</Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bq-auth-page">

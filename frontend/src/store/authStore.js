@@ -39,15 +39,19 @@ export const useAuthStore = create((set) => ({
     set({ loading: true, error: null });
     try {
       const data = await api.register(name, email, password);
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      set({ user: data.user, token: data.token, loading: false });
-      // Notify SW of new token
-      window.dispatchEvent(new Event('beequ:token-updated'));
-      return true;
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        set({ user: data.user, token: data.token, loading: false });
+        window.dispatchEvent(new Event('beequ:token-updated'));
+        return { success: true };
+      } else {
+        set({ loading: false });
+        return { success: false, message: data.message || 'Bitte bestätige deine E-Mail-Adresse.' };
+      }
     } catch (err) {
       set({ error: err.message, loading: false });
-      return false;
+      return { success: false, error: err.message };
     }
   },
 
