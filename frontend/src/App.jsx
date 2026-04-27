@@ -37,11 +37,13 @@ export default function App() {
       <InstallPrompt />
       <OfflineBanner />
       <Routes>
+        {/* Root zeigt LandingPage */}
+        <Route path="/" element={<LandingPage />} />
         <Route path="/landing" element={<LandingPage />} />
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
         <Route
-          path="/"
+          path="/app"
           element={
             <ProtectedRoute>
               <Layout />
@@ -55,7 +57,7 @@ export default function App() {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="pricing" element={<PricingPage />} />
         </Route>
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

@@ -26,7 +26,7 @@ export default function Login() {
       <div className="bq-auth-brand">
         <div className="bq-auth-brand-top">
           <Link to="/landing" className="bq-auth-logo">
-            <img src="/icons/icon.svg" alt="BeeQu" />
+            <img src="/icons/icon.png" alt="BeeQu" />
             <span>BeeQu</span>
           </Link>
 
@@ -75,7 +75,7 @@ export default function Login() {
         >
           {/* Mobile-only logo */}
           <div className="bq-auth-mobile-logo">
-            <img src="/icons/icon.svg" alt="BeeQu" />
+            <img src="/icons/icon.png" alt="BeeQu" />
             <span>BeeQu</span>
           </div>
 

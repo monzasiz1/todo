@@ -61,7 +61,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
 
       {/* Logo — never changes */}
       <div className="sidebar-logo">
-        <img src="/icons/icon.svg" alt="BeeQu" className="sidebar-logo-icon" />
+        <img src="/icons/icon.png" alt="BeeQu" className="sidebar-logo-icon" />
         <div className="sidebar-logo-texts">
           <h1>BeeQu</h1>
           <span className="sidebar-logo-sub">BeeTwice Solution</span>

@@ -1,4 +1,4 @@
-const MISTRAL_API_URL = 'https://api.mistral.ai/v1/chat/completions';
+﻿const MISTRAL_API_URL = 'https://api.mistral.ai/v1/chat/completions';
 
 async function parseTaskWithAI(input, options = {}) {
   const key = process.env.MISTRAL_API_KEY;
@@ -431,7 +431,7 @@ async function answerCalendarQueryWithAI(question, calendarContext) {
   const key = process.env.MISTRAL_API_KEY;
   if (!key) throw new Error('MISTRAL_API_KEY nicht konfiguriert');
 
-  const systemPrompt = `Du bist ein hilfreicher Kalender-Assistent der Taski-App.
+  const systemPrompt = `Du bist ein hilfreicher Kalender-Assistent der BeeQu-App.
 Der Nutzer stellt eine Frage über seinen Kalender / seine freie Zeit.
 Antworte auf Deutsch, konkret, freundlich und kurz (max. 4 Sätze).
 Nenne spezifische Tage und Uhrzeiten. Wenn du Sport oder Aktivitäten empfiehlst, nenne den besten Tag dafür.
@@ -545,3 +545,4 @@ module.exports = {
   answerCalendarQueryWithAI,
   parseChecklistWithAI,
 };
+

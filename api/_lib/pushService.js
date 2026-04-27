@@ -1,10 +1,10 @@
-const webpush = require('web-push');
+﻿const webpush = require('web-push');
 const { getPool } = require('./db');
 
 // VAPID keys aus Environment Variables
 const VAPID_PUBLIC = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY;
-let VAPID_EMAIL = process.env.VAPID_EMAIL || 'mailto:admin@taski.app';
+let VAPID_EMAIL = process.env.VAPID_EMAIL || 'mailto:admin@beequ.app';
 
 // Sicherstellen dass mailto: Prefix vorhanden ist
 if (VAPID_EMAIL && !VAPID_EMAIL.startsWith('mailto:') && !VAPID_EMAIL.startsWith('https://')) {
@@ -132,3 +132,4 @@ async function wasTaskTypeSent(userId, taskId, type) {
 }
 
 module.exports = { sendPushToUser, wasSentToday, wasTaskReminderSent, wasTaskTypeSent };
+

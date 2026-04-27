@@ -81,7 +81,7 @@ export default function Layout() {
       {/* Mobile Header */}
       <div className="mobile-header">
         <div className="mobile-header-logo">
-          <img src="/icons/icon.svg" alt="BeeQu" className="mobile-brand-mark" />
+          <img src="/icons/icon.png" alt="BeeQu" className="mobile-brand-mark" />
           <div className="mobile-brand-texts">
             <span className="mobile-brand-title">BeeQu</span>
             <span className="mobile-brand-sub">BeeTwice Solution</span>

@@ -1,8 +1,8 @@
-const { verifyToken, cors } = require('./_lib/auth');
+﻿const { verifyToken, cors } = require('./_lib/auth');
 
 const MISTRAL_API_URL = 'https://api.mistral.ai/v1/chat/completions';
 
-const APP_KNOWLEDGE = `Du bist "Taski-Hilfe", der freundliche Hilfe-Assistent der Taski App - einer intelligenten Aufgaben- und Kalender-App.
+const APP_KNOWLEDGE = `Du bist "BeeQu-Hilfe", der freundliche Hilfe-Assistent der BeeQu App - einer intelligenten Aufgaben- und Kalender-App.
 
 WICHTIG: Du beantwortest NUR Fragen zur App-Nutzung. Du erstellst KEINE Aufgaben, Termine oder sonstige Daten. Du bist ein reiner Hilfe-Assistent.
 
@@ -157,3 +157,4 @@ module.exports = async (req, res) => {
     return res.status(500).json({ error: 'Hilfe-Service vorübergehend nicht verfügbar' });
   }
 };
+
