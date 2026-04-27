@@ -16268,24 +16268,27 @@ body.cal-is-dragging * {
 /* ========== BEEQU LANDING PAGE (bq-*) ========== */
 
 /* ── tokens ── */
-.bq {
-  --bq-blue:    #007AFF;
-  --bq-purple:  #5856D6;
-  --bq-green:   #34C759;
-  --bq-orange:  #FF9500;
-  --bq-red:     #FF3B30;
-  --bq-text:    #1C1C1E;
-  --bq-muted:   #8E8E93;
-  --bq-border:  rgba(0,0,0,0.07);
-  --bq-card:    #ffffff;
-  --bq-bg:      #F2F2F7;
-  --bq-ease:    cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  --bq-r-sm:    10px;
-  --bq-r-md:    14px;
-  --bq-r-lg:    20px;
-  --bq-r-xl:    28px;
-  --bq-shadow:  0 4px 16px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04);
+:root {
+  --bq-blue:      #007AFF;
+  --bq-purple:    #5856D6;
+  --bq-green:     #34C759;
+  --bq-orange:    #FF9500;
+  --bq-red:       #FF3B30;
+  --bq-text:      #1C1C1E;
+  --bq-muted:     #8E8E93;
+  --bq-border:    rgba(0,0,0,0.07);
+  --bq-card:      #ffffff;
+  --bq-bg:        #F2F2F7;
+  --bq-ease:      cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --bq-r-sm:      10px;
+  --bq-r-md:      14px;
+  --bq-r-lg:      20px;
+  --bq-r-xl:      28px;
+  --bq-shadow:    0 4px 16px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04);
   --bq-shadow-lg: 0 20px 60px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06);
+}
+
+.bq {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
   color: var(--bq-text);
   background: #ffffff;
