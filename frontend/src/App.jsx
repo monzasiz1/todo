@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { useAuthStore } from './store/authStore';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
@@ -30,6 +31,7 @@ export default function App() {
     <BrowserRouter>
       <InstallPrompt />
       <OfflineBanner />
+      <SpeedInsights />
       <Routes>
         {/* Root zeigt LandingPage */}
         <Route path="/" element={<LandingPage />} />
