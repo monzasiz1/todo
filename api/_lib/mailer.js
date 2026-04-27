@@ -30,7 +30,7 @@ async function sendActivationMail({ to, name, activationUrl }) {
     return;
   }
   await t.sendMail({
-    from:    `BeeQu <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+    from:    process.env.SMTP_FROM || process.env.SMTP_USER,
     to,
     subject: 'BeeQu – Account aktivieren',
     html: `
