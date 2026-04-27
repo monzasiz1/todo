@@ -685,6 +685,36 @@ export default function NotesPage() {
     }, 140);
   };
 
+  const centerCanvasOnContent = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    if (!notes.length) {
+      const scale = zoomRef.current / 100;
+      const contentWidth = canvasContentRef.current?.offsetWidth || 4400;
+      const contentHeight = canvasContentRef.current?.offsetHeight || 4200;
+      canvas.scrollLeft = Math.max(0, (contentWidth * scale - canvas.clientWidth) / 2);
+      canvas.scrollTop = Math.max(0, (contentHeight * scale - canvas.clientHeight) / 2);
+      return;
+    }
+
+    const dims = getNoteDimensions(window.innerWidth || 1280);
+    const bounds = notes.reduce((acc, note) => {
+      const pos = notePositions[note.id] || { x: note.x ?? 100, y: note.y ?? 100 };
+      acc.minX = Math.min(acc.minX, pos.x);
+      acc.minY = Math.min(acc.minY, pos.y);
+      acc.maxX = Math.max(acc.maxX, pos.x + (note.width || dims.width));
+      acc.maxY = Math.max(acc.maxY, pos.y + (note.height || dims.height));
+      return acc;
+    }, { minX: Infinity, minY: Infinity, maxX: 0, maxY: 0 });
+
+    const scale = zoomRef.current / 100;
+    const targetCenterX = ((bounds.minX + bounds.maxX) / 2) * scale;
+    const targetCenterY = ((bounds.minY + bounds.maxY) / 2) * scale;
+    canvas.scrollLeft = Math.max(0, targetCenterX - canvas.clientWidth / 2);
+    canvas.scrollTop = Math.max(0, targetCenterY - canvas.clientHeight / 2);
+  };
+
   useEffect(() => {
     return () => {
       if (noteViewPersistTimerRef.current) clearTimeout(noteViewPersistTimerRef.current);
@@ -861,6 +891,13 @@ export default function NotesPage() {
         const next = window.innerWidth < 640 ? 92 : getAdaptiveZoom(window.innerWidth, window.innerHeight);
         applyZoom(next);
         setZoom(next);
+      }
+
+      if (window.innerWidth >= 640) {
+        requestAnimationFrame(() => {
+          centerCanvasOnContent();
+          schedulePersistNoteViewState();
+        });
       }
     };
 
@@ -1177,6 +1214,41 @@ export default function NotesPage() {
     const drag = isDraggingRef.current;
     if (!drag) return;
 
+    if (drag.pendingCanvasAction && canvasRef.current) {
+      const movedX = clientX - drag.startClientX;
+      const movedY = clientY - drag.startClientY;
+      if ((movedX * movedX) + (movedY * movedY) < 16) return;
+
+      const rect = canvasRef.current.getBoundingClientRect();
+      const scale = zoomRef.current / 100;
+      const currentCanvasX = (clientX - rect.left + canvasRef.current.scrollLeft) / scale;
+      const currentCanvasY = (clientY - rect.top + canvasRef.current.scrollTop) / scale;
+      const minX = Math.min(drag.startCanvasX, currentCanvasX);
+      const minY = Math.min(drag.startCanvasY, currentCanvasY);
+      const maxX = Math.max(drag.startCanvasX, currentCanvasX);
+      const maxY = Math.max(drag.startCanvasY, currentCanvasY);
+
+      const intersectsAnyNote = notes.some((note) => {
+        const pos = notePositions[note.id] || { x: note.x ?? 100, y: note.y ?? 100 };
+        const noteX = Number(pos.x || 0);
+        const noteY = Number(pos.y || 0);
+        const noteW = Number(note.width || defaultNoteDims.width || 300);
+        const noteH = Number(note.height || defaultNoteDims.height || 150);
+        return noteX < maxX && noteX + noteW > minX && noteY < maxY && noteY + noteH > minY;
+      });
+
+      if (intersectsAnyNote) {
+        drag.pendingCanvasAction = false;
+        drag.isSelect = true;
+      } else {
+        drag.pendingCanvasAction = false;
+        drag.isPan = true;
+        drag.x = clientX;
+        drag.y = clientY;
+        return;
+      }
+    }
+
     if (drag.isSelect && canvasRef.current) {
       const rect = canvasRef.current.getBoundingClientRect();
       const scale = zoomRef.current / 100;
@@ -1254,7 +1326,7 @@ export default function NotesPage() {
   const handlePointerMove = (event) => {
     if (event.pointerType === 'touch') return;
     const drag = isDraggingRef.current;
-    if (!drag?.isPan && !drag?.isSelect && !drag?.noteId && !drag?.textId) return;
+    if (!drag?.isPan && !drag?.isSelect && !drag?.pendingCanvasAction && !drag?.noteId && !drag?.textId) return;
     if (drag?.pointerId != null && event.pointerId !== drag.pointerId) return;
     moveDragging(event.clientX, event.clientY);
   };
@@ -1262,7 +1334,7 @@ export default function NotesPage() {
   const handlePointerUp = (event) => {
     if (event.pointerType === 'touch') return;
     const drag = isDraggingRef.current;
-    if (!drag?.isPan && !drag?.isSelect && !drag?.noteId && !drag?.textId) return;
+    if (!drag?.isPan && !drag?.isSelect && !drag?.pendingCanvasAction && !drag?.noteId && !drag?.textId) return;
     if (drag?.pointerId != null && event.pointerId !== drag.pointerId) return;
 
     if (drag?.noteId) {
@@ -1373,14 +1445,18 @@ export default function NotesPage() {
     const startCanvasX = (event.clientX - rect.left + canvasRef.current.scrollLeft) / scale;
     const startCanvasY = (event.clientY - rect.top + canvasRef.current.scrollTop) / scale;
     const selectState = {
-      isSelect: true,
+      pendingCanvasAction: true,
+      isSelect: false,
+      isPan: false,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
       startCanvasX,
       startCanvasY,
       pointerId: event.pointerId,
       pointerType: event.pointerType,
     };
     setSelectedCanvasNoteIds([]);
-    setSelectionBox({ startX: startCanvasX, startY: startCanvasY, currentX: startCanvasX, currentY: startCanvasY });
+    setSelectionBox(null);
     isDraggingRef.current = selectState;
     setIsDragging(selectState);
   };
