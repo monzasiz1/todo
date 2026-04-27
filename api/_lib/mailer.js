@@ -1,28 +1,36 @@
+// nodemailer wird zur Laufzeit geladen damit ein fehlender
+// require() die Vercel-Function nicht mit exit 1 beendet
 let transporter = null;
 
-try {
-  const nodemailer = require('nodemailer');
-  transporter = nodemailer.createTransport({
-    host:   process.env.SMTP_HOST   || 'smtp.ionos.de',
-    port:   Number(process.env.SMTP_PORT) || 587,
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
-} catch (e) {
-  console.warn('nodemailer nicht verfügbar:', e.message);
+function getTransporter() {
+  if (transporter) return transporter;
+  try {
+    // eslint-disable-next-line import/no-extraneous-dependencies
+    const nm = require('nodemailer');
+    transporter = nm.createTransport({
+      host:   process.env.SMTP_HOST || 'smtp.ionos.de',
+      port:   Number(process.env.SMTP_PORT) || 587,
+      secure: false,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+    return transporter;
+  } catch {
+    return null;
+  }
 }
 
 async function sendActivationMail({ to, name, activationUrl }) {
-  if (!transporter) {
+  const t = getTransporter();
+  if (!t) {
     console.warn('Kein SMTP-Transporter – Aktivierungsmail übersprungen.');
-    console.log('Aktivierungslink:', activationUrl);
+    console.log('Aktivierungslink (manuell):', activationUrl);
     return;
   }
-  await transporter.sendMail({
-    from:    `BeeQu <${process.env.SMTP_USER}>`,
+  await t.sendMail({
+    from:    `BeeQu <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
     to,
     subject: 'BeeQu – Account aktivieren',
     html: `
