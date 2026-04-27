@@ -345,7 +345,8 @@ function checklistItemsToMarkdown(items = []) {
 }
 
 const PENDING_DRAG_MIN_PX = 4;
-const PENDING_PAN_COMMIT_PX = 120;
+const PENDING_PAN_COMMIT_PX = 48;
+const PENDING_PAN_AXIS_PX = 24;
 
 export default function NotesPage() {
   const { notes, createNote, updateNote, deleteNote, linkNoteToTask, shareNoteWithFriend, unshareNoteForFriend, connectNotes, disconnectNotes, getNoteConnections } = useNotesStore();
@@ -1232,6 +1233,9 @@ export default function NotesPage() {
       const maxX = Math.max(drag.startCanvasX, currentCanvasX);
       const maxY = Math.max(drag.startCanvasY, currentCanvasY);
 
+      // Show a live box while still deciding between pan vs select.
+      setSelectionBox({ startX: minX, startY: minY, currentX: maxX, currentY: maxY });
+
       const intersectsAnyNote = notes.some((note) => {
         const pos = notePositions[note.id] || { x: note.x ?? 100, y: note.y ?? 100 };
         const noteX = Number(pos.x || 0);
@@ -1244,9 +1248,15 @@ export default function NotesPage() {
       if (intersectsAnyNote) {
         drag.pendingCanvasAction = false;
         drag.isSelect = true;
-        setSelectionBox({ startX: minX, startY: minY, currentX: maxX, currentY: maxY });
       } else {
-        if (distanceSq < (PENDING_PAN_COMMIT_PX * PENDING_PAN_COMMIT_PX)) {
+        const absX = Math.abs(movedX);
+        const absY = Math.abs(movedY);
+        const shouldCommitPan =
+          distanceSq >= (PENDING_PAN_COMMIT_PX * PENDING_PAN_COMMIT_PX) ||
+          absX >= PENDING_PAN_AXIS_PX ||
+          absY >= PENDING_PAN_AXIS_PX;
+
+        if (!shouldCommitPan) {
           return;
         }
         drag.pendingCanvasAction = false;
