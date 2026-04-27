@@ -33,37 +33,138 @@ async function sendActivationMail({ to, name, activationUrl }) {
     from:    process.env.SMTP_FROM || process.env.SMTP_USER,
     to,
     subject: 'BeeQu – Account aktivieren',
-    html: `
-      <!DOCTYPE html>
-      <html lang="de">
-      <head><meta charset="UTF-8"></head>
-      <body style="margin:0;padding:0;background:#f4f7fb;font-family:Inter,-apple-system,sans-serif;">
-        <div style="max-width:480px;margin:40px auto;background:#fff;border-radius:20px;box-shadow:0 4px 32px rgba(0,122,255,0.10);overflow:hidden;">
-          <div style="background:linear-gradient(135deg,#007AFF,#5856D6);padding:32px 36px 28px;">
-            <span style="font-size:1.4rem;font-weight:800;color:#fff;letter-spacing:-0.03em;">🐝 BeeQu</span>
-            <h1 style="color:#fff;font-size:1.4rem;font-weight:800;margin:16px 0 4px;letter-spacing:-0.03em;">Hallo ${name}! 👋</h1>
-            <p style="color:rgba(255,255,255,0.8);margin:0;font-size:0.95rem;">Aktiviere jetzt deinen Account.</p>
-          </div>
-          <div style="padding:32px 36px;">
-            <p style="color:#1C1C1E;font-size:1rem;line-height:1.65;margin:0 0 24px;">
-              Willkommen bei BeeQu – deiner smarten Aufgaben-App.<br>
-              Klicke auf den Button um deinen Account zu aktivieren:
-            </p>
-            <a href="${activationUrl}"
-               style="display:inline-block;background:#007AFF;color:#fff;font-weight:700;font-size:1rem;padding:14px 32px;border-radius:12px;text-decoration:none;">
-              Account aktivieren →
-            </a>
-            <p style="color:#8E8E93;font-size:0.82rem;margin:24px 0 0;line-height:1.5;">
-              Der Link ist 24 Stunden gültig.
-            </p>
-          </div>
-          <div style="background:#f4f7fb;padding:14px 36px;border-top:1px solid rgba(0,0,0,0.06);">
-            <p style="color:#AEAEB2;font-size:0.78rem;margin:0;">© 2026 BeeTwice GmbH</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `,
+    html: `<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>BeeQu – Account aktivieren</title>
+</head>
+<body style="margin:0;padding:0;background:#06060A;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+
+  <!-- Outer wrapper -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#06060A;min-height:100vh;">
+    <tr>
+      <td align="center" style="padding:48px 16px;">
+
+        <!-- Card -->
+        <table width="520" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;width:100%;border-radius:24px;overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,0.08),0 32px 80px rgba(0,0,0,0.6);">
+
+          <!-- Hero header -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#007AFF 0%,#5856D6 100%);padding:40px 44px 36px;position:relative;">
+              <!-- Grid overlay effect via border -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td>
+                    <!-- Brand -->
+                    <p style="margin:0 0 28px 0;font-size:20px;font-weight:800;color:#fff;letter-spacing:-0.04em;">
+                      🐝 BeeQu
+                    </p>
+                    <!-- Headline -->
+                    <h1 style="margin:0 0 10px 0;font-size:32px;font-weight:900;color:#fff;letter-spacing:-0.05em;line-height:1.05;">
+                      Hallo ${name}! 👋
+                    </h1>
+                    <p style="margin:0;font-size:16px;color:rgba(255,255,255,0.65);font-weight:400;line-height:1.5;">
+                      Ein letzter Schritt – aktiviere jetzt deinen Account.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- White body -->
+          <tr>
+            <td style="background:#ffffff;padding:40px 44px 36px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+
+                <!-- Feature pills -->
+                <tr>
+                  <td style="padding-bottom:28px;">
+                    <table cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="background:rgba(0,122,255,0.08);border-radius:999px;padding:7px 14px;margin-right:8px;font-size:13px;font-weight:600;color:#007AFF;white-space:nowrap;">
+                          ✦ KI-Aufgaben
+                        </td>
+                        <td width="8"></td>
+                        <td style="background:rgba(88,86,214,0.08);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;color:#5856D6;white-space:nowrap;">
+                          📅 Kalender
+                        </td>
+                        <td width="8"></td>
+                        <td style="background:rgba(52,199,89,0.08);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;color:#34C759;white-space:nowrap;">
+                          👥 Teams
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Body text -->
+                <tr>
+                  <td style="padding-bottom:28px;">
+                    <p style="margin:0;font-size:16px;color:#3C3C43;line-height:1.7;">
+                      Willkommen bei <strong style="color:#1C1C1E;">BeeQu</strong> – deiner smarten Produktivitäts-App mit KI-Assistent, intelligentem Kalender und Team-Collaboration.
+                    </p>
+                    <p style="margin:16px 0 0;font-size:16px;color:#3C3C43;line-height:1.7;">
+                      Klicke auf den Button um deinen Account zu aktivieren und direkt loszulegen:
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- CTA Button -->
+                <tr>
+                  <td style="padding-bottom:32px;">
+                    <a href="${activationUrl}"
+                       style="display:inline-block;background:linear-gradient(135deg,#007AFF,#5856D6);color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;padding:16px 36px;border-radius:14px;letter-spacing:-0.01em;box-shadow:0 8px 28px rgba(0,122,255,0.35);">
+                      Account aktivieren &rarr;
+                    </a>
+                  </td>
+                </tr>
+
+                <!-- Divider -->
+                <tr>
+                  <td style="border-top:1px solid rgba(0,0,0,0.07);padding-top:24px;">
+                    <p style="margin:0;font-size:13px;color:#8E8E93;line-height:1.6;">
+                      Der Link ist <strong style="color:#3C3C43;">24 Stunden gültig</strong>. Falls du dich nicht bei BeeQu registriert hast, kannst du diese E-Mail einfach ignorieren.
+                    </p>
+                  </td>
+                </tr>
+
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#0D0D14;padding:20px 44px;border-top:1px solid rgba(255,255,255,0.06);">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td>
+                    <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.3);">
+                      © 2026 BeeTwice GmbH &nbsp;·&nbsp;
+                      <a href="https://beequ.de" style="color:rgba(255,255,255,0.4);text-decoration:none;">beequ.de</a>
+                    </p>
+                  </td>
+                  <td align="right">
+                    <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.2);">
+                      🐝 BeeQu
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+        </table>
+        <!-- /Card -->
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>`,
   });
 }
 
