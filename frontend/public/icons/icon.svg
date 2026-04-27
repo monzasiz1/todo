@@ -9,20 +9,21 @@
 
   <rect width="512" height="512" rx="96" fill="url(#bg)"/>
 
-  <!-- Bee (clearly recognizable) -->
-  <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round" opacity="0.98">
-    <path d="M220 146 C204 122, 202 94, 224 78 C252 90, 262 118, 250 146" stroke-width="14"/>
-    <path d="M292 146 C306 122, 308 94, 286 78 C258 90, 248 118, 260 146" stroke-width="14"/>
-    <circle cx="256" cy="176" r="18" stroke-width="12"/>
-    <path d="M244 158 C236 146, 226 140, 214 140" stroke-width="8"/>
-    <path d="M268 158 C276 146, 286 140, 298 140" stroke-width="8"/>
-    <ellipse cx="256" cy="246" rx="38" ry="56" stroke-width="14"/>
-    <path d="M228 224 H284" stroke-width="9"/>
-    <path d="M224 246 H288" stroke-width="9"/>
-    <path d="M228 268 H284" stroke-width="9"/>
-  </g>
-
-  <!-- Arrow/check -->
-  <path d="M142 320 L228 400 L368 244" fill="none" stroke="#FFFFFF" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M228 400 C264 360, 278 314, 274 282" fill="none" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round"/>
+  <!-- Bee: 1:1 nach Bildvorlage -->
+  <!-- Flügel -->
+  <ellipse cx="180" cy="150" rx="54" ry="22" fill="none" stroke="#fff" stroke-width="16"/>
+  <ellipse cx="220" cy="110" rx="38" ry="16" fill="none" stroke="#fff" stroke-width="13"/>
+  <ellipse cx="210" cy="180" rx="22" ry="10" fill="none" stroke="#fff" stroke-width="10"/>
+  <!-- Kopf -->
+  <circle cx="260" cy="210" r="18" fill="#fff"/>
+  <!-- Fühler -->
+  <path d="M254 196 Q246 180 238 170" stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <path d="M266 196 Q274 180 282 170" stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <!-- Körper (oval) -->
+  <ellipse cx="270" cy="270" rx="38" ry="56" fill="none" stroke="#fff" stroke-width="16"/>
+  <!-- Streifen -->
+  <path d="M250 250 Q270 260 290 250" stroke="#fff" stroke-width="10" fill="none"/>
+  <path d="M250 270 Q270 280 290 270" stroke="#fff" stroke-width="10" fill="none"/>
+  <!-- Check/Haken als Unterkörper -->
+  <path d="M210 340 L270 400 L380 230" fill="none" stroke="#fff" stroke-width="38" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

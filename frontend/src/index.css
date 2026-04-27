@@ -17769,9 +17769,73 @@ body.cal-is-dragging * {
   text-decoration: underline;
 }
 
+/* ── Dedicated page wrapper (Login.jsx / Register.jsx) ── */
+.bq-auth-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+/* back link — top-left of form panel */
+.bq-auth-back {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #8E8E93;
+  text-decoration: none;
+  transition: color 0.18s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bq-auth-back:hover {
+  color: #1C1C1E;
+}
+
+/* mobile-only logo shown on the form panel */
+.bq-auth-mobile-logo {
+  display: none;
+  align-items: center;
+  gap: 9px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: #1C1C1E;
+  margin-bottom: -8px;
+}
+
+.bq-auth-mobile-logo img {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+}
+
+/* switch link — also works as <Link> (anchor), not just <button> */
+.bq-auth-switch a {
+  color: #007AFF;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: opacity 0.18s;
+}
+
+.bq-auth-switch a:hover {
+  opacity: 0.75;
+  text-decoration: underline;
+}
+
 /* ── Responsive ── */
 @media (max-width: 900px) {
+  /* overlay (modal) */
   .bq-auth-overlay {
+    grid-template-columns: 1fr;
+  }
+
+  /* dedicated page */
+  .bq-auth-page {
     grid-template-columns: 1fr;
   }
 
@@ -17780,15 +17844,18 @@ body.cal-is-dragging * {
   }
 
   .bq-auth-form-panel {
-    padding: 40px 28px;
+    padding: 80px 28px 40px;
+  }
+
+  .bq-auth-mobile-logo {
+    display: flex;
   }
 }
 
 @media (max-width: 480px) {
   .bq-auth-form-panel {
-    padding: 32px 20px;
+    padding: 72px 20px 36px;
     align-items: flex-start;
-    padding-top: 72px;
   }
 
   .bq-auth-form-inner {
