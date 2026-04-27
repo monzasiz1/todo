@@ -60,14 +60,14 @@ async function sendActivationMail({ to, name, activationUrl }) {
          style="max-width:520px;width:100%;border-radius:20px;overflow:hidden;
                 border:1px solid #dde3ec;background:#ffffff;">
 
-    <!-- HERO: solid blue header (works everywhere) -->
+    <!-- HERO: dark background with blue glow (like landing page) -->
     <tr>
-      <td class="hero" bgcolor="#007AFF"
-          style="background:#007AFF;padding:40px 44px 36px;">
+      <td class="hero" bgcolor="#06060A"
+          style="background:#06060A;padding:40px 44px 36px;">
         <!--[if mso]>
         <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false"
                 style="width:520px;">
-          <v:fill type="gradient" color="#007AFF" color2="#5856D6" angle="135"/>
+          <v:fill type="gradient" color="#06060A" color2="#0A1628" angle="135"/>
           <v:textbox inset="0,0,0,0"><div><![endif]-->
         <table width="100%" cellpadding="0" cellspacing="0" border="0">
           <tr>
