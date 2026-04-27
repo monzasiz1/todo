@@ -50,12 +50,16 @@ router.post('/register', async (req, res) => {
     // Aktivierungslink bauen
     const baseUrl = process.env.APP_BASE_URL || 'https://beequ.de';
     const activationUrl = `${baseUrl}/api/auth/activate?token=${activationToken}`;
-    // Mail senden
-    await sendMail({
-      to: email,
-      subject: 'BeeQu Account aktivieren',
-      html: activationMail({ name, activationUrl }),
-    });
+    // Mail senden — Fehler dürfen die Registration nicht blockieren
+    try {
+      await sendMail({
+        to: email,
+        subject: 'BeeQu Account aktivieren',
+        html: activationMail({ name, activationUrl }),
+      });
+    } catch (mailErr) {
+      console.error('Aktivierungsmail konnte nicht gesendet werden:', mailErr.message);
+    }
     res.status(201).json({ user, message: 'Bitte bestätige deine E-Mail-Adresse. Wir haben dir einen Aktivierungslink gesendet.' });
   } catch (err) {
     console.error('Register error:', err);

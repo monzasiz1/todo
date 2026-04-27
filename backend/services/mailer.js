@@ -1,27 +1,21 @@
-// mailer.js – BeeQu E-Mail Versand (nodemailer)
-const nodemailer = require('nodemailer');
+import nodemailer from 'nodemailer';
 
-const FROM = 'BeeQu <no-reply@beequ.de>';
-
-// SMTP-Konfiguration (hier als Beispiel, anpassen!)
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.beequ.de',
-  port: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT) : 587,
-  secure: false, // true für 465, false für 587
+  host:   process.env.SMTP_HOST || 'smtp.gmail.com',
+  port:   Number(process.env.SMTP_PORT) || 587,
+  secure: false,
   auth: {
-    user: process.env.SMTP_USER || 'no-reply@beequ.de',
-    pass: process.env.SMTP_PASS || 'DEIN_PASSWORT',
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
   },
 });
 
-function sendMail({ to, subject, html, text }) {
-  return transporter.sendMail({
-    from: FROM,
+export async function sendMail({ to, subject, html, text }) {
+  await transporter.sendMail({
+    from: `BeeQu <${process.env.SMTP_USER}>`,
     to,
     subject,
     html,
     text,
   });
 }
-
-module.exports = { sendMail };
