@@ -51,59 +51,19 @@ export default function Register() {
   return (
     <div className="bq-auth-page">
 
-      {/* ── Left: dark branded panel ── */}
-      <div className="bq-auth-brand">
-        <div className="bq-auth-brand-top">
-          <Link to="/landing" className="bq-auth-logo">
-            <img src="/icons/icon.png" alt="BeeQu" />
-            <span>BeeQu</span>
-          </Link>
+      <Link to="/landing" className="bq-auth-back">
+        ← Zurück zur Startseite
+      </Link>
 
-          <h2 className="bq-auth-brand-headline">{'Kostenlos starten.\nIn 30 Sekunden.'}</h2>
-
-          <p className="bq-auth-brand-sub">
-            Tasks, Kalender und KI-Assistent — alles in einer App von BeeTwice. Keine Kreditkarte nötig.
-          </p>
-        </div>
-
-        <div className="bq-auth-features">
-          {[
-            { icon: Sparkles,     color: '#007AFF', text: 'KI erkennt Datum, Zeit & Priorität automatisch' },
-            { icon: CalendarDays, color: '#5856D6', text: 'Monats- & Wochenkalender mit allen Aufgaben' },
-            { icon: UsersRound,   color: '#34C759', text: 'Teams & Echtzeit-Chat ohne extra Tools' },
-          ].map(({ icon: Icon, color, text }) => (
-            <div key={text} className="bq-auth-feature">
-              <div className="bq-auth-feature-icon" style={{ background: `${color}18`, color }}>
-                <Icon size={16} />
-              </div>
-              <span>{text}</span>
-            </div>
-          ))}
-        </div>
-
-        <div className="bq-auth-brand-footer">
-          <span>© 2026 BeeTwice GmbH</span>
-          <span>·</span>
-          <a href="#">Datenschutz</a>
-          <span>·</span>
-          <a href="#">AGB</a>
-        </div>
-      </div>
-
-      {/* ── Right: form panel ── */}
       <div className="bq-auth-form-panel">
-        <Link to="/landing" className="bq-auth-back">
-          ← Zurück zur Startseite
-        </Link>
-
         <motion.div
           className="bq-auth-form-inner"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.42, ease }}
         >
-          {/* Mobile-only logo */}
-          <div className="bq-auth-mobile-logo">
+          {/* Logo */}
+          <div className="bq-auth-card-logo">
             <img src="/icons/icon.png" alt="BeeQu" />
             <span>BeeQu</span>
           </div>
@@ -194,6 +154,7 @@ export default function Register() {
           </div>
         </motion.div>
       </div>
+
 
     </div>
   );

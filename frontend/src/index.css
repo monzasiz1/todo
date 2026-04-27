@@ -17519,18 +17519,20 @@ body.cal-is-dragging * {
 
 /* ── Right: form panel ── */
 .bq-auth-form-panel {
-  background: rgba(255, 255, 255, 0.96);
+  background: rgba(255, 255, 255, 0.97);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 56px 64px;
+  padding: 52px 52px;
   position: relative;
-  overflow-y: auto;
   z-index: 1;
-  border-left: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: -40px 0 80px rgba(0, 0, 0, 0.4);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.06);
+  width: 100%;
+  max-width: 480px;
 }
 
 .bq-auth-close {
@@ -17864,10 +17866,12 @@ body.cal-is-dragging * {
 /* ── Dedicated page wrapper (Login.jsx / Register.jsx) ── */
 .bq-auth-page {
   min-height: 100vh;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: #06060A;
   position: relative;
+  padding: 24px;
 }
 
 /* Hero glow + grid — same as landing page hero */
@@ -17897,9 +17901,9 @@ body.cal-is-dragging * {
   -webkit-mask-image: radial-gradient(ellipse 100% 100% at 50% 0%, black 0%, transparent 85%);
 }
 
-/* back link — top-left of form panel */
+/* back link — top-left, fixed on the dark background */
 .bq-auth-back {
-  position: absolute;
+  position: fixed;
   top: 24px;
   left: 24px;
   font-size: 0.84rem;
@@ -17910,11 +17914,29 @@ body.cal-is-dragging * {
   display: flex;
   align-items: center;
   gap: 4px;
-  z-index: 2;
+  z-index: 10;
 }
 
 .bq-auth-back:hover {
   color: rgba(255, 255, 255, 0.85);
+}
+
+/* Logo inside the card */
+.bq-auth-card-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: #1C1C1E;
+  margin-bottom: 4px;
+}
+
+.bq-auth-card-logo img {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
 }
 
 /* mobile-only logo shown on the form panel */
@@ -17957,17 +17979,15 @@ body.cal-is-dragging * {
     grid-template-columns: 1fr;
   }
 
-  /* dedicated page */
-  .bq-auth-page {
-    grid-template-columns: 1fr;
-  }
-
-  .bq-auth-brand {
+  .bq-auth-overlay .bq-auth-brand {
     display: none;
   }
 
-  .bq-auth-form-panel {
+  .bq-auth-overlay .bq-auth-form-panel {
     padding: 80px 28px 40px;
+    border-radius: 0;
+    max-width: 100%;
+    box-shadow: none;
   }
 
   .bq-auth-mobile-logo {
