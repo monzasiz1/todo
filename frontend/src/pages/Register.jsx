@@ -28,17 +28,21 @@ export default function Register() {
 
   if (pendingEmail) {
     return (
-      <div className="bq-auth-page">
-        <div className="bq-auth-form-panel" style={{ maxWidth: 420, margin: 'auto', padding: 32 }}>
-          <div style={{ textAlign: 'center', marginTop: 48 }}>
-            <img src="/icons/icon.png" alt="BeeQu" style={{ width: 64, marginBottom: 16 }} />
-            <h2>Bitte bestätige deine E-Mail-Adresse</h2>
-            <p style={{ margin: '16px 0 32px' }}>
-              Wir haben dir eine E-Mail an <b>{pendingEmail}</b> gesendet.<br />
-              Klicke auf den Link in der Mail, um dein Konto zu aktivieren.
-            </p>
-            <Link to="/login" className="bq-btn bq-btn-primary">Zum Login</Link>
-          </div>
+      <div className="bq-verify-screen">
+        <div className="bq-verify-card">
+          <img src="/icons/icon.png" alt="BeeQu" className="bq-verify-logo" />
+          <div className="bq-verify-icon">✉️</div>
+          <h1>Bitte bestätige deine<br />E-Mail-Adresse</h1>
+          <p>
+            Wir haben dir eine E-Mail an<br />
+            <strong>{pendingEmail}</strong><br />
+            gesendet. Klicke auf den Link in der Mail,<br />
+            um dein Konto zu aktivieren.
+          </p>
+          <Link to="/login" className="bq-btn bq-primary bq-btn-lg">
+            Zum Login
+          </Link>
+          <span className="bq-verify-hint">Kein Mail? Prüfe deinen Spam-Ordner.</span>
         </div>
       </div>
     );

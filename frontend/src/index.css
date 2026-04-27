@@ -17769,7 +17769,74 @@ body.cal-is-dragging * {
   text-decoration: underline;
 }
 
-/* ── E-Mail verification pending screen ── */
+/* ── Full-page verify screen (Register.jsx standalone) ── */
+.bq-verify-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f0f6ff 0%, #f4f7fb 100%);
+  padding: 24px;
+}
+
+.bq-verify-card {
+  background: #fff;
+  border-radius: 28px;
+  box-shadow: 0 8px 48px rgba(0, 122, 255, 0.10), 0 2px 12px rgba(0,0,0,0.06);
+  padding: 48px 44px;
+  max-width: 440px;
+  width: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.bq-verify-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  margin-bottom: 4px;
+}
+
+.bq-verify-card > .bq-verify-icon {
+  font-size: 2.6rem;
+  line-height: 1;
+}
+
+.bq-verify-card h1 {
+  font-size: 1.55rem;
+  font-weight: 900;
+  letter-spacing: -0.045em;
+  color: #1C1C1E;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.bq-verify-card p {
+  font-size: 0.97rem;
+  color: #8E8E93;
+  line-height: 1.65;
+  margin: 0;
+}
+
+.bq-verify-card strong {
+  color: #1C1C1E;
+  font-weight: 700;
+}
+
+.bq-verify-card .bq-btn {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.bq-verify-hint {
+  font-size: 0.8rem;
+  color: #AEAEB2;
+}
+
+/* ── E-Mail verification pending screen (overlay variant) ── */
 .bq-auth-verify {
   display: grid;
   gap: 20px;
