@@ -920,7 +920,12 @@ export default function NotesPage() {
     };
 
     const closeOnEscape = (event) => {
-      if (event.key === 'Escape') setCanvasContextMenu(null);
+      if (event.key !== 'Escape') return;
+      setCanvasContextMenu(null);
+      setSelectionModeArmed(false);
+      setSelectionBox(null);
+      isDraggingRef.current = null;
+      setIsDragging(null);
     };
 
     document.addEventListener('mousedown', closeMenu);
@@ -1479,7 +1484,6 @@ export default function NotesPage() {
       };
       setSelectedCanvasNoteIds([]);
       setSelectionBox({ startX: startCanvasX, startY: startCanvasY, currentX: startCanvasX, currentY: startCanvasY });
-      setSelectionModeArmed(false);
       isDraggingRef.current = selectState;
       setIsDragging(selectState);
       return;
@@ -1496,7 +1500,6 @@ export default function NotesPage() {
       pointerId: event.pointerId,
       pointerType: event.pointerType,
     };
-    setSelectedCanvasNoteIds([]);
     setSelectionBox(null);
     isDraggingRef.current = selectState;
     setIsDragging(selectState);
