@@ -83,6 +83,7 @@ export default function LandingPage() {
   const [registerName,    setRegisterName]    = useState('');
   const [loginError,    setLoginError]    = useState('');
   const [registerError, setRegisterError] = useState('');
+  const [pendingEmail,  setPendingEmail]  = useState('');
   const [aiIdx, setAiIdx] = useState(0);
   const { login, register, loading } = useAuthStore();
   const navigate = useNavigate();
@@ -94,8 +95,18 @@ export default function LandingPage() {
   };
   const handleRegister = async (e) => {
     e.preventDefault(); setRegisterError('');
-    try { const ok = await register(registerName, registerEmail, registerPassword); if (ok) navigate('/app'); }
-    catch (err) { setRegisterError(err.message || 'Registrierung fehlgeschlagen'); }
+    try {
+      const result = await register(registerName, registerEmail, registerPassword);
+      if (result?.success) {
+        navigate('/app');
+      } else if (result?.message) {
+        setPendingEmail(registerEmail);
+      } else if (result?.error) {
+        setRegisterError(result.error);
+      }
+    } catch (err) {
+      setRegisterError(err.message || 'Registrierung fehlgeschlagen');
+    }
   };
 
   const ai = aiExamples[aiIdx];
@@ -720,87 +731,116 @@ export default function LandingPage() {
                     exit={{ opacity: 0, y: -16 }}
                     transition={{ duration: 0.25 }}
                   >
-                    <div className="bq-auth-form-head">
-                      <h1>Konto erstellen</h1>
-                      <p>Kostenlos starten — keine Kreditkarte nötig</p>
-                    </div>
-
-                    {registerError && (
-                      <div className="bq-auth-error">
-                        <AlertCircle size={15} />
-                        <span>{registerError}</span>
+                    {pendingEmail ? (
+                      /* ── E-Mail-Bestätigung ausstehend ── */
+                      <div className="bq-auth-verify">
+                        <div className="bq-auth-verify-icon">✉️</div>
+                        <h1>E-Mail bestätigen</h1>
+                        <p>
+                          Wir haben einen Aktivierungslink an<br />
+                          <strong>{pendingEmail}</strong><br />
+                          gesendet. Bitte prüfe dein Postfach und klicke auf den Link.
+                        </p>
+                        <button
+                          className="bq-auth-submit"
+                          onClick={() => {
+                            setPendingEmail('');
+                            setShowRegister(false);
+                            setShowLogin(true);
+                          }}
+                        >
+                          Zum Login <ArrowRight size={16} />
+                        </button>
+                        <p className="bq-auth-verify-hint">
+                          Kein Mail erhalten? Prüfe deinen Spam-Ordner.
+                        </p>
                       </div>
-                    )}
-
-                    <form onSubmit={handleRegister} className="bq-auth-form">
-                      <div className="bq-field">
-                        <label htmlFor="reg-name">Vollständiger Name</label>
-                        <div className="bq-input-wrap">
-                          <User size={16} className="bq-input-icon" />
-                          <input
-                            id="reg-name"
-                            type="text"
-                            placeholder="Max Mustermann"
-                            value={registerName}
-                            onChange={e => setRegisterName(e.target.value)}
-                            required
-                            autoComplete="name"
-                          />
+                    ) : (
+                      /* ── Registrierungsformular ── */
+                      <>
+                        <div className="bq-auth-form-head">
+                          <h1>Konto erstellen</h1>
+                          <p>Kostenlos starten — keine Kreditkarte nötig</p>
                         </div>
-                      </div>
 
-                      <div className="bq-field">
-                        <label htmlFor="reg-email">E-Mail-Adresse</label>
-                        <div className="bq-input-wrap">
-                          <Mail size={16} className="bq-input-icon" />
-                          <input
-                            id="reg-email"
-                            type="email"
-                            placeholder="du@example.com"
-                            value={registerEmail}
-                            onChange={e => setRegisterEmail(e.target.value)}
-                            required
-                            autoComplete="email"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="bq-field">
-                        <label htmlFor="reg-pw">Passwort</label>
-                        <div className="bq-input-wrap">
-                          <Key size={16} className="bq-input-icon" />
-                          <input
-                            id="reg-pw"
-                            type="password"
-                            placeholder="Mind. 8 Zeichen"
-                            value={registerPassword}
-                            onChange={e => setRegisterPassword(e.target.value)}
-                            required
-                            autoComplete="new-password"
-                            minLength={8}
-                          />
-                        </div>
-                      </div>
-
-                      <p className="bq-auth-consent">
-                        Mit der Registrierung stimmst du unseren <a href="#">AGB</a> und der <a href="#">Datenschutzerklärung</a> zu.
-                      </p>
-
-                      <button type="submit" disabled={loading} className="bq-auth-submit">
-                        {loading ? (
-                          <span className="bq-auth-spinner" />
-                        ) : (
-                          <>Konto erstellen <ArrowRight size={16} /></>
+                        {registerError && (
+                          <div className="bq-auth-error">
+                            <AlertCircle size={15} />
+                            <span>{registerError}</span>
+                          </div>
                         )}
-                      </button>
-                    </form>
 
-                    <div className="bq-auth-switch">
-                      <span>Bereits registriert?</span>
-                      <button onClick={() => { setShowRegister(false); setShowLogin(true); }}>
-                        Anmelden
-                      </button>
-                    </div>
+                        <form onSubmit={handleRegister} className="bq-auth-form">
+                          <div className="bq-field">
+                            <label htmlFor="reg-name">Vollständiger Name</label>
+                            <div className="bq-input-wrap">
+                              <User size={16} className="bq-input-icon" />
+                              <input
+                                id="reg-name"
+                                type="text"
+                                placeholder="Max Mustermann"
+                                value={registerName}
+                                onChange={e => setRegisterName(e.target.value)}
+                                required
+                                autoComplete="name"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="bq-field">
+                            <label htmlFor="reg-email">E-Mail-Adresse</label>
+                            <div className="bq-input-wrap">
+                              <Mail size={16} className="bq-input-icon" />
+                              <input
+                                id="reg-email"
+                                type="email"
+                                placeholder="du@example.com"
+                                value={registerEmail}
+                                onChange={e => setRegisterEmail(e.target.value)}
+                                required
+                                autoComplete="email"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="bq-field">
+                            <label htmlFor="reg-pw">Passwort</label>
+                            <div className="bq-input-wrap">
+                              <Key size={16} className="bq-input-icon" />
+                              <input
+                                id="reg-pw"
+                                type="password"
+                                placeholder="Mind. 6 Zeichen"
+                                value={registerPassword}
+                                onChange={e => setRegisterPassword(e.target.value)}
+                                required
+                                autoComplete="new-password"
+                                minLength={6}
+                              />
+                            </div>
+                          </div>
+
+                          <p className="bq-auth-consent">
+                            Mit der Registrierung stimmst du unseren <a href="#">AGB</a> und der <a href="#">Datenschutzerklärung</a> zu.
+                          </p>
+
+                          <button type="submit" disabled={loading} className="bq-auth-submit">
+                            {loading ? (
+                              <span className="bq-auth-spinner" />
+                            ) : (
+                              <>Konto erstellen <ArrowRight size={16} /></>
+                            )}
+                          </button>
+                        </form>
+
+                        <div className="bq-auth-switch">
+                          <span>Bereits registriert?</span>
+                          <button onClick={() => { setShowRegister(false); setShowLogin(true); }}>
+                            Anmelden
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>

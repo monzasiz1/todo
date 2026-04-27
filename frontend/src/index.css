@@ -17769,6 +17769,43 @@ body.cal-is-dragging * {
   text-decoration: underline;
 }
 
+/* ── E-Mail verification pending screen ── */
+.bq-auth-verify {
+  display: grid;
+  gap: 20px;
+  text-align: center;
+  padding: 16px 0;
+}
+
+.bq-auth-verify-icon {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.bq-auth-verify h1 {
+  font-size: 1.8rem;
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  color: #1C1C1E;
+}
+
+.bq-auth-verify p {
+  font-size: 0.96rem;
+  color: #8E8E93;
+  line-height: 1.65;
+}
+
+.bq-auth-verify strong {
+  color: #1C1C1E;
+  font-weight: 700;
+}
+
+.bq-auth-verify-hint {
+  font-size: 0.8rem;
+  color: #AEAEB2;
+  margin-top: -8px;
+}
+
 /* ── Dedicated page wrapper (Login.jsx / Register.jsx) ── */
 .bq-auth-page {
   min-height: 100vh;
