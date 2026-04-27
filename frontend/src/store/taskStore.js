@@ -1,8 +1,8 @@
-import { create } from 'zustand';
+﻿import { create } from 'zustand';
 import { api } from '../utils/api';
 import { getAllQueued, removeQueued, incrementRetry } from '../utils/offlineQueue';
 
-const TASK_CACHE_KEY = 'taski_tasks_cache_v1';
+const TASK_CACHE_KEY = 'beequ_tasks_cache_v1';
 
 function readCachedTasks() {
   try {
@@ -24,7 +24,7 @@ function writeCachedTasks(tasks) {
 
 function emitTasksChanged() {
   if (typeof window !== 'undefined') {
-    window.dispatchEvent(new Event('taski:tasks-changed'));
+    window.dispatchEvent(new Event('beequ:tasks-changed'));
   }
 }
 
@@ -448,3 +448,4 @@ export const useTaskStore = create((set, get) => ({
 useTaskStore.subscribe((state) => {
   writeCachedTasks(state.tasks);
 });
+

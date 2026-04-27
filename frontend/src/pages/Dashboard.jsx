@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FixedSizeList as VirtualList } from 'react-window';
 import { useTaskStore } from '../store/taskStore';
@@ -314,13 +314,13 @@ export default function Dashboard() {
     };
     window.addEventListener('focus', refreshOnFocus);
     document.addEventListener('visibilitychange', refreshOnFocus);
-    window.addEventListener('taski:tasks-changed', refreshOnTaskChanged);
+    window.addEventListener('beequ:tasks-changed', refreshOnTaskChanged);
 
     return () => {
       clearInterval(interval);
       window.removeEventListener('focus', refreshOnFocus);
       document.removeEventListener('visibilitychange', refreshOnFocus);
-      window.removeEventListener('taski:tasks-changed', refreshOnTaskChanged);
+      window.removeEventListener('beequ:tasks-changed', refreshOnTaskChanged);
     };
   }, []);
 
@@ -747,3 +747,4 @@ export default function Dashboard() {
     </div>
   );
 }
+

@@ -1,11 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import { MessageCircleQuestion, X, Send, Loader2 } from 'lucide-react';
 import { api } from '../utils/api';
 
 export default function HelpChat({ hideFab = false }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Hallo! 👋 Ich bin der Taski-Hilfe-Assistent. Frag mich alles zur App-Nutzung!' },
+    { role: 'assistant', content: 'Hallo! 👋 Ich bin der BeeQu-Hilfe-Assistent. Frag mich alles zur App-Nutzung!' },
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -85,7 +85,7 @@ export default function HelpChat({ hideFab = false }) {
                 <MessageCircleQuestion size={18} />
               </div>
               <div>
-                <div className="help-chat-title">Taski Hilfe</div>
+                <div className="help-chat-title">BeeQu Hilfe</div>
                 <div className="help-chat-subtitle">KI-Assistent</div>
               </div>
             </div>
@@ -165,3 +165,4 @@ export default function HelpChat({ hideFab = false }) {
     </>
   );
 }
+

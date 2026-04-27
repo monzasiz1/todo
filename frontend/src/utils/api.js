@@ -1,8 +1,8 @@
-const API_URL = '/api';
+﻿const API_URL = '/api';
 
 import { enqueueRequest } from './offlineQueue';
 
-const API_CACHE_PREFIX = 'taski_api_cache_v1:';
+const API_CACHE_PREFIX = 'beequ_api_cache_v1:';
 
 function getUserCacheScope() {
   const token = localStorage.getItem('token') || 'anon';
@@ -601,3 +601,4 @@ export const api = {
       body: JSON.stringify({ action: 'delete', id }),
     }),
 };
+

@@ -1,10 +1,10 @@
-import { useEffect, useRef } from 'react';
+﻿import { useEffect, useRef } from 'react';
 import { useTaskStore } from '../store/taskStore';
 import { useNotificationStore } from '../store/notificationStore';
 import { api } from '../utils/api';
 
 const REMINDER_GRACE_MS = 6 * 60 * 60 * 1000;
-const REMINDER_SEEN_KEY = 'taski_reminder_seen_v1';
+const REMINDER_SEEN_KEY = 'beequ_reminder_seen_v1';
 
 function readSeenReminderMap() {
   try {
@@ -179,3 +179,4 @@ export default function ReminderChecker() {
 
   return null; // Invisible component
 }
+

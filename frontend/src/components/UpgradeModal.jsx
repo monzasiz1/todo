@@ -1,4 +1,4 @@
-import { createPortal } from 'react-dom';
+﻿import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Sparkles, Users, Zap } from 'lucide-react';
 import { useState } from 'react';
@@ -80,7 +80,7 @@ export default function UpgradeModal({ onClose, feature, recommendPlan = 'pro' }
             <h2 className="upgrade-modal-title">
               {feature
                 ? `${featureLabels[feature] ?? feature} freischalten`
-                : 'Mehr aus Taski herausholen'}
+                : 'Mehr aus BeeQu herausholen'}
             </h2>
             <p className="upgrade-modal-sub">
               Wähle den passenden Plan und leg sofort los.
@@ -145,3 +145,4 @@ export default function UpgradeModal({ onClose, feature, recommendPlan = 'pro' }
     document.body
   );
 }
+

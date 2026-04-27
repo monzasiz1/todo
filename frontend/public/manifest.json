@@ -1,7 +1,7 @@
-{
-  "name": "Taski – KI To-Do & Kalender",
-  "short_name": "Taski",
-  "description": "KI-gestützte To-Do & Kalender App mit Spracherkennung",
+﻿{
+  "name": "BeeQu – KI To-Do & Kalender",
+  "short_name": "BeeQu",
+  "description": "BeeQu von BeeTwice Solution: KI-gestützte To-Do-, Kalender- und Team-App mit Spracherkennung",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F2F2F7",
@@ -58,3 +58,4 @@
     }
   ]
 }
+

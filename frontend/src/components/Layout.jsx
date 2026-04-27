@@ -5,7 +5,7 @@ import BottomNav from './BottomNav';
 import DayCreateModal from './DayCreateModal';
 import { AnimatePresence } from 'framer-motion';
 import { useState, useRef, useEffect } from 'react';
-import { Menu, X, CheckSquare, MessageCircle } from 'lucide-react';
+import { Menu, X, MessageCircle } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import ReminderChecker from './ReminderChecker';
 import HelpChat from './HelpChat';
@@ -25,7 +25,7 @@ export default function Layout() {
 
   useEffect(() => {
     try {
-      setSidebarCollapsed(localStorage.getItem('taski_sidebar_collapsed') === 'true');
+      setSidebarCollapsed(localStorage.getItem('beequ_sidebar_collapsed') === 'true');
     } catch {
       // ignore storage access issues
     }
@@ -33,7 +33,7 @@ export default function Layout() {
 
   useEffect(() => {
     try {
-      localStorage.setItem('taski_sidebar_collapsed', sidebarCollapsed ? 'true' : 'false');
+      localStorage.setItem('beequ_sidebar_collapsed', sidebarCollapsed ? 'true' : 'false');
     } catch {
       // ignore storage access issues
     }
@@ -81,10 +81,11 @@ export default function Layout() {
       {/* Mobile Header */}
       <div className="mobile-header">
         <div className="mobile-header-logo">
-          <div style={{ width: 32, height: 32, background: 'linear-gradient(135deg, #007AFF, #5856D6)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-            <CheckSquare size={18} />
+          <img src="/icons/icon.svg" alt="BeeQu" className="mobile-brand-mark" />
+          <div className="mobile-brand-texts">
+            <span className="mobile-brand-title">BeeQu</span>
+            <span className="mobile-brand-sub">BeeTwice Solution</span>
           </div>
-          Taski
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <NotificationBell />

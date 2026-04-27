@@ -1,7 +1,7 @@
-import { create } from 'zustand';
+﻿import { create } from 'zustand';
 import { api } from '../utils/api';
 
-const FRIENDS_CACHE_KEY = 'taski_friends_cache_v1';
+const FRIENDS_CACHE_KEY = 'beequ_friends_cache_v1';
 
 function getFriendsCacheKey() {
   try {
@@ -108,3 +108,4 @@ export const useFriendsStore = create((set, get) => ({
 useFriendsStore.subscribe((state) => {
   writeFriendsCache(state);
 });
+

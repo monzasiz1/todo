@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+﻿import { useState, useRef, useEffect, useMemo } from 'react';
 import { Plus, ZoomIn, ZoomOut, Maximize2, Minimize2, Share2, Link2, Trash2, Edit2, X, CalendarDays, Sparkles, PanelsTopLeft, Workflow, LayoutGrid, ChevronLeft, Circle, CheckCircle2, Type } from 'lucide-react';
 import { useNotesStore } from '../store/notesStore';
 import { useFriendsStore } from '../store/friendsStore';
@@ -113,9 +113,9 @@ const CANVAS_TEXT_FONT_OPTIONS = [
   { value: '"JetBrains Mono", "Consolas", monospace', label: 'Mono' },
 ];
 
-const NOTE_PEOPLE_CACHE_KEY = 'taski_note_people_v1';
-const NOTE_VIEW_CACHE_KEY = 'taski_note_view_v1';
-const NOTE_CANVAS_TEXT_CACHE_KEY = 'taski_note_canvas_text_v1';
+const NOTE_PEOPLE_CACHE_KEY = 'beequ_note_people_v1';
+const NOTE_VIEW_CACHE_KEY = 'beequ_note_view_v1';
+const NOTE_CANVAS_TEXT_CACHE_KEY = 'beequ_note_canvas_text_v1';
 
 function getUserScopedKey(baseKey) {
   if (typeof window === 'undefined') return `${baseKey}:anon`;
@@ -837,7 +837,7 @@ export default function NotesPage() {
   // One-time backfill: push localStorage participant data to DB for old notes
   useEffect(() => {
     if (!notes.length) return;
-    const BACKFILL_KEY = getUserScopedKey('taski_people_backfill_done_v1');
+    const BACKFILL_KEY = getUserScopedKey('beequ_people_backfill_done_v1');
     if (localStorage.getItem(BACKFILL_KEY)) return;
     const localCache = readNotePeopleCache();
     if (!localCache || !Object.keys(localCache).length) return;
@@ -4678,4 +4678,5 @@ export default function NotesPage() {
     </div>
   );
 }
+
 

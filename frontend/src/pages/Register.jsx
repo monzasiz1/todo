@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { motion } from 'framer-motion';
@@ -30,7 +30,7 @@ export default function Register() {
           <div className="auth-logo-icon">
             <CheckSquare size={26} />
           </div>
-          <h1>Taski</h1>
+          <h1>BeeQu</h1>
         </div>
 
         <h2 className="auth-title">Konto erstellen</h2>
@@ -103,3 +103,4 @@ export default function Register() {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { api } from '../utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,7 +11,7 @@ import {
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 
-const PROFILE_CACHE_KEY = 'taski_profile_cache_v1';
+const PROFILE_CACHE_KEY = 'beequ_profile_cache_v1';
 
 function readProfileCache() {
   try {
@@ -272,7 +272,7 @@ export default function ProfilePage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `taski-export-${format(new Date(), 'yyyy-MM-dd')}.json`;
+      a.download = `beequ-export-${format(new Date(), 'yyyy-MM-dd')}.json`;
       a.click();
       URL.revokeObjectURL(url);
       showToast('Daten exportiert');
@@ -698,12 +698,12 @@ export default function ProfilePage() {
           </div>
 
           <div className="profile-teams-copy">
-            Plane Termine weiter in Taski und hänge auf Wunsch automatisch ein Teams-Meeting an, ohne den Erstellungsfluss zu verlassen.
+            Plane Termine weiter in BeeQu und hänge auf Wunsch automatisch ein Teams-Meeting an, ohne den Erstellungsfluss zu verlassen.
           </div>
 
           <div className="profile-teams-pills">
             <span className="profile-teams-pill">Automatischer Join-Link</span>
-            <span className="profile-teams-pill">Event bleibt in Taski</span>
+            <span className="profile-teams-pill">Event bleibt in BeeQu</span>
             <span className="profile-teams-pill">Business-Konto erforderlich</span>
           </div>
         </div>
@@ -894,3 +894,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+

@@ -1,7 +1,7 @@
-import { create } from 'zustand';
+﻿import { create } from 'zustand';
 import { api } from '../utils/api';
 
-const NOTIF_CACHE_KEY = 'taski_notifications_cache_v1';
+const NOTIF_CACHE_KEY = 'beequ_notifications_cache_v1';
 
 function readNotifCache() {
   try {
@@ -262,3 +262,4 @@ export { useNotificationStore };
 useNotificationStore.subscribe((state) => {
   writeNotifCache(state);
 });
+

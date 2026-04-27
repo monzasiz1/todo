@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, X, Smartphone, Monitor, Share } from 'lucide-react';
 
@@ -85,7 +85,7 @@ export default function InstallPrompt() {
             <Share size={24} />
           </div>
           <div className="install-banner-text">
-            <strong>So installierst du Taski</strong>
+            <strong>So installierst du BeeQu</strong>
             <p>
               1. Tippe auf <Share size={14} style={{ verticalAlign: 'middle' }} /> (Teilen-Button)<br />
               2. Wähle <strong>„Zum Home-Bildschirm"</strong><br />
@@ -108,9 +108,9 @@ export default function InstallPrompt() {
             {isIOS ? <Smartphone size={24} /> : <Download size={24} />}
           </div>
           <div className="install-banner-text">
-            <strong>Taski installieren</strong>
+            <strong>BeeQu installieren</strong>
             <p>{isIOS
-              ? 'Füge Taski zum Home-Bildschirm hinzu'
+              ? 'Füge BeeQu zum Home-Bildschirm hinzu'
               : 'App installieren für schnellen Zugriff'
             }</p>
           </div>
@@ -122,3 +122,4 @@ export default function InstallPrompt() {
     </AnimatePresence>
   );
 }
+

@@ -1,7 +1,7 @@
-import { create } from 'zustand';
+﻿import { create } from 'zustand';
 import { api } from '../utils/api';
 
-const NOTES_CACHE_KEY = 'taski_notes_cache_v1';
+const NOTES_CACHE_KEY = 'beequ_notes_cache_v1';
 
 function getNotesCacheKey() {
   try {
@@ -242,3 +242,4 @@ export const useNotesStore = create((set, get) => ({
     set({ notes: [], lastFetchAt: 0 });
   },
 }));
+

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'taski-v4';
+﻿const CACHE_NAME = 'beequ-v4';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -176,7 +176,7 @@ self.addEventListener('fetch', (event) => {
 // Wenn der Browser Background Sync unterstützt, wird beim Wiederherstellen
 // der Verbindung ein 'sync' Event ausgelöst, das den App-Client benachrichtigt.
 self.addEventListener('sync', (event) => {
-  if (event.tag === 'taski-offline-sync') {
+  if (event.tag === 'beequ-offline-sync') {
     event.waitUntil(
       self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
         for (const client of clientList) {
@@ -191,7 +191,7 @@ self.addEventListener('sync', (event) => {
 // SW doesn't have localStorage, so we use IndexedDB to persist the auth token.
 // The app sends the token via postMessage whenever it changes.
 
-const IDB_NAME = 'taski-sw-store';
+const IDB_NAME = 'beequ-sw-store';
 const IDB_STORE = 'auth';
 
 function openAuthIDB() {
@@ -242,7 +242,7 @@ self.addEventListener('push', (event) => {
   try {
     data = event.data.json();
   } catch {
-    data = { title: 'Taski', body: event.data.text() };
+    data = { title: 'BeeQu', body: event.data.text() };
   }
 
   console.log('Showing push notification:', data.title, data.body);
@@ -261,7 +261,7 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title || 'Taski', options)
+    self.registration.showNotification(data.title || 'BeeQu', options)
   );
 });
 
@@ -380,3 +380,4 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
+

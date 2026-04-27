@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+﻿import { useCallback, useEffect, useRef, useState } from 'react';
 import Calendar from '../components/Calendar';
 import { useTaskStore } from '../store/taskStore';
 
@@ -68,8 +68,8 @@ export default function CalendarPage() {
       }
     };
 
-    window.addEventListener('taski:tasks-changed', onTasksChanged);
-    return () => window.removeEventListener('taski:tasks-changed', onTasksChanged);
+    window.addEventListener('beequ:tasks-changed', onTasksChanged);
+    return () => window.removeEventListener('beequ:tasks-changed', onTasksChanged);
   }, [visibleRange.start, visibleRange.end, loadRange]);
 
   const handleTaskUpdated = (updatedTask) => {
@@ -92,3 +92,4 @@ export default function CalendarPage() {
     </div>
   );
 }
+

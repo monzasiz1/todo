@@ -1,11 +1,11 @@
-/**
+﻿/**
  * Offline Queue – speichert fehlgeschlagene API-Mutationen in IndexedDB
  * und replayed sie sobald die App wieder online ist.
  *
  * Unterstützte Operationen: createTask, updateTask, deleteTask, toggleTask
  */
 
-const DB_NAME = 'taski-offline';
+const DB_NAME = 'beequ-offline';
 const DB_VERSION = 1;
 const STORE_NAME = 'queue';
 
@@ -108,3 +108,4 @@ export async function getQueueCount() {
   const entries = await getAllQueued();
   return entries.filter((e) => !String(e.endpoint || '').startsWith('/auth/')).length;
 }
+

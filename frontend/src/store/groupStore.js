@@ -1,7 +1,7 @@
-import { create } from 'zustand';
+﻿import { create } from 'zustand';
 import { api } from '../utils/api';
 
-const GROUP_CACHE_KEY = 'taski_groups_cache_v1';
+const GROUP_CACHE_KEY = 'beequ_groups_cache_v1';
 
 function readGroupCache() {
   try {
@@ -226,3 +226,4 @@ export const useGroupStore = create((set, get) => ({
 useGroupStore.subscribe((state) => {
   writeGroupCache(state);
 });
+

@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
@@ -44,7 +44,7 @@ if ('serviceWorker' in navigator) {
 
       // Background Sync registrieren wenn unterstützt
       if ('SyncManager' in window) {
-        reg.sync.register('taski-offline-sync').catch(() => {});
+        reg.sync.register('beequ-offline-sync').catch(() => {});
       }
     }).catch((err) => {
       console.log('SW registration failed:', err);
@@ -61,7 +61,7 @@ if ('serviceWorker' in navigator) {
   });
 
   // After login, send token to SW
-  window.addEventListener('taski:token-updated', () => {
+  window.addEventListener('beequ:token-updated', () => {
     const token = localStorage.getItem('token');
     if (token && navigator.serviceWorker.controller) {
       navigator.serviceWorker.controller.postMessage({ type: 'SET_AUTH_TOKEN', token });
@@ -75,3 +75,4 @@ if ('serviceWorker' in navigator) {
     });
   });
 }
+

@@ -1,15 +1,32 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="BeeQu Icon">
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#007AFF"/>
-      <stop offset="100%" style="stop-color:#5856D6"/>
+    <linearGradient id="bg" x1="8%" y1="6%" x2="92%" y2="94%">
+      <stop offset="0%" stop-color="#8ED0FF"/>
+      <stop offset="52%" stop-color="#4FAFFF"/>
+      <stop offset="100%" stop-color="#0A84FF"/>
     </linearGradient>
   </defs>
-  <rect width="512" height="512" rx="108" fill="url(#bg)"/>
-  <!-- Checkmark -->
-  <path d="M148 268 L218 338 L364 192" fill="none" stroke="white" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- Sparkle -->
-  <circle cx="380" cy="148" r="8" fill="rgba(255,255,255,0.9)"/>
-  <circle cx="400" cy="128" r="5" fill="rgba(255,255,255,0.6)"/>
-  <circle cx="360" cy="122" r="4" fill="rgba(255,255,255,0.5)"/>
+
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+
+  <!-- Stylized bee wings (line art) -->
+  <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round" opacity="0.98">
+    <path d="M120 162 C95 130, 100 95, 138 82 C164 106, 168 140, 144 173" stroke-width="17"/>
+    <path d="M164 128 C146 90, 164 54, 205 44 C226 74, 228 112, 196 142" stroke-width="16"/>
+    <path d="M214 108 C212 66, 241 38, 285 40 C294 73, 281 108, 246 126" stroke-width="15"/>
+    <path d="M257 126 C276 90, 314 75, 353 92 C350 126, 326 154, 292 159" stroke-width="14"/>
+  </g>
+
+  <!-- Bee body + checkmark tail -->
+  <circle cx="232" cy="212" r="9" fill="#FFFFFF"/>
+  <path d="M146 300 L220 372 L352 228" fill="none" stroke="#FFFFFF" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M220 374 C261 330, 272 248, 252 176" fill="none" stroke="#FFFFFF" stroke-width="23" stroke-linecap="round"/>
+
+  <!-- Right-side B hint from the reference mark -->
+  <path d="M426 132
+           C470 132, 490 150, 490 181
+           C490 203, 476 219, 454 227
+           C478 234, 496 252, 496 279
+           C496 318, 468 342, 420 342"
+        fill="none" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
 </svg>

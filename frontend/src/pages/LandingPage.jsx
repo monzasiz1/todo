@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -62,7 +62,7 @@ const features = [
     bg: 'rgba(0,122,255,0.1)',
     label: 'KI-Eingabe',
     title: 'Natürlichsprachige Aufgaben',
-    desc: 'Schreib einfach was du vorhast — Taski erkennt Datum, Zeit, Kategorie und Priorität automatisch.',
+    desc: 'Schreib einfach was du vorhast — BeeQu erkennt Datum, Zeit, Kategorie und Priorität automatisch.',
     plan: 'Pro & Team',
   },
   {
@@ -89,7 +89,7 @@ const features = [
     bg: 'rgba(255,149,0,0.1)',
     label: 'Wiederholungen',
     title: 'Wiederkehrende Aufgaben',
-    desc: 'Täglich, wöchentlich, monatlich — Taski legt Aufgaben automatisch wiederholt an.',
+    desc: 'Täglich, wöchentlich, monatlich — BeeQu legt Aufgaben automatisch wiederholt an.',
     plan: 'Pro & Team',
   },
   {
@@ -107,7 +107,7 @@ const features = [
     bg: 'rgba(88,86,214,0.1)',
     label: 'Erinnerungen',
     title: 'Desktop-Benachrichtigungen',
-    desc: 'Verpasse keine Fälligkeit mehr — Taski erinnert dich per Push genau rechtzeitig.',
+    desc: 'Verpasse keine Fälligkeit mehr — BeeQu erinnert dich per Push genau rechtzeitig.',
     plan: 'Alle Pläne',
   },
   {
@@ -186,8 +186,8 @@ export default function LandingPage() {
       <nav className="lp-nav">
         <div className="lp-nav-inner">
           <Link to="/landing" className="lp-brand">
-            <CheckSquare size={22} strokeWidth={2.5} />
-            <span>Taski</span>
+            <img src="/icons/icon.svg" alt="BeeQu" className="lp-brand-mark" />
+            <span>BeeQu</span>
           </Link>
 
           <div className="lp-nav-links">
@@ -230,7 +230,7 @@ export default function LandingPage() {
                 </motion.h1>
 
                 <motion.p className="lp-hero-desc" variants={fadeUp}>
-                  Taski vereint Aufgabenverwaltung, Kalender und Teamarbeit in einer schlanken App — mit KI die deinen Text versteht und Aufgaben automatisch anlegt.
+                  BeeQu vereint Aufgabenverwaltung, Kalender und Teamarbeit in einer schlanken App — mit KI die deinen Text versteht und Aufgaben automatisch anlegt.
                 </motion.p>
 
                 <motion.div className="lp-hero-actions" variants={fadeUp}>
@@ -288,7 +288,7 @@ export default function LandingPage() {
                     <span className="lp-chrome-dot lp-dot-r" />
                     <span className="lp-chrome-dot lp-dot-y" />
                     <span className="lp-chrome-dot lp-dot-g" />
-                    <span className="lp-chrome-url">taski.app — Dashboard</span>
+                    <span className="lp-chrome-url">beequ.app — Dashboard</span>
                   </div>
 
                   {/* App layout */}
@@ -297,7 +297,7 @@ export default function LandingPage() {
                     <aside className="lp-app-sidebar">
                       <div className="lp-app-brand">
                         <CheckSquare size={18} color="#007AFF" strokeWidth={2.5} />
-                        <span>Taski</span>
+                        <span>BeeQu</span>
                       </div>
                       <nav className="lp-app-nav">
                         {[
@@ -476,7 +476,7 @@ export default function LandingPage() {
             >
               <span className="lp-label">Funktionen</span>
               <h2>Alles was du brauchst,<br />in einem Ort.</h2>
-              <p>Keine drei verschiedenen Apps mehr. Taski vereint Aufgabenverwaltung, Kalender und Teamkommunikation nahtlos.</p>
+              <p>Keine drei verschiedenen Apps mehr. BeeQu vereint Aufgabenverwaltung, Kalender und Teamkommunikation nahtlos.</p>
             </motion.div>
 
             <div className="lp-feat-grid">
@@ -591,7 +591,7 @@ export default function LandingPage() {
                   <span className="lp-gradient">so einfach wie tippen.</span>
                 </motion.h2>
                 <motion.p className="lp-ai-desc" variants={fadeUp}>
-                  Vergiss komplizierte Formulare. Schreib was du vorhast — Taski's KI erkennt automatisch Datum, Uhrzeit, Kategorie und Priorität und erstellt die fertige Aufgabe.
+                  Vergiss komplizierte Formulare. Schreib was du vorhast — BeeQu's KI erkennt automatisch Datum, Uhrzeit, Kategorie und Priorität und erstellt die fertige Aufgabe.
                 </motion.p>
 
                 <motion.div className="lp-ai-points" variants={fadeUp}>
@@ -906,10 +906,10 @@ export default function LandingPage() {
       <footer className="lp-footer">
         <div className="lp-wide lp-footer-inner">
           <div className="lp-brand">
-            <CheckSquare size={18} strokeWidth={2.5} />
-            <span>Taski</span>
+            <img src="/icons/icon.svg" alt="BeeQu" className="lp-brand-mark" />
+            <span>BeeQu</span>
           </div>
-          <p>Task-Management, Kalender und Zusammenarbeit in einer App.</p>
+          <p>Task-Management, Kalender und Zusammenarbeit in einer App. BeeQu gehört zu BeeTwice Solution.</p>
           <div className="lp-footer-links">
             <a href="#features">Features</a>
             <a href="#pricing">Preise</a>
@@ -994,3 +994,4 @@ export default function LandingPage() {
     </div>
   );
 }
+

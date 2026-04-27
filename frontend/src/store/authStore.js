@@ -1,10 +1,10 @@
-import { create } from 'zustand';
+﻿import { create } from 'zustand';
 import { api, clearApiCacheForCurrentUser } from '../utils/api';
 
-const TASK_CACHE_KEY = 'taski_tasks_cache_v1';
-const GROUP_CACHE_KEY = 'taski_groups_cache_v1';
-const FRIENDS_CACHE_KEY = 'taski_friends_cache_v1';
-const NOTIF_CACHE_KEY = 'taski_notifications_cache_v1';
+const TASK_CACHE_KEY = 'beequ_tasks_cache_v1';
+const GROUP_CACHE_KEY = 'beequ_groups_cache_v1';
+const FRIENDS_CACHE_KEY = 'beequ_friends_cache_v1';
+const NOTIF_CACHE_KEY = 'beequ_notifications_cache_v1';
 
 function clearLocalAppCaches() {
   localStorage.removeItem(TASK_CACHE_KEY);
@@ -27,7 +27,7 @@ export const useAuthStore = create((set) => ({
       localStorage.setItem('user', JSON.stringify(data.user));
       set({ user: data.user, token: data.token, loading: false });
       // Notify SW of new token
-      window.dispatchEvent(new Event('taski:token-updated'));
+      window.dispatchEvent(new Event('beequ:token-updated'));
       return true;
     } catch (err) {
       set({ error: err.message, loading: false });
@@ -43,7 +43,7 @@ export const useAuthStore = create((set) => ({
       localStorage.setItem('user', JSON.stringify(data.user));
       set({ user: data.user, token: data.token, loading: false });
       // Notify SW of new token
-      window.dispatchEvent(new Event('taski:token-updated'));
+      window.dispatchEvent(new Event('beequ:token-updated'));
       return true;
     } catch (err) {
       set({ error: err.message, loading: false });
@@ -86,3 +86,4 @@ export const useAuthStore = create((set) => ({
 
   clearError: () => set({ error: null }),
 }));
+
