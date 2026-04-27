@@ -912,6 +912,11 @@
   box-shadow: var(--shadow-lg);
 }
 
+.notes-canvas.selection-armed {
+  outline: 2px dashed rgba(0, 122, 255, 0.45);
+  outline-offset: -6px;
+}
+
 .canvas-quick-create-btn {
   position: absolute;
   right: 14px;

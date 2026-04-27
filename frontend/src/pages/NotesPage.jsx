@@ -384,6 +384,7 @@ export default function NotesPage() {
   const [toolboxOpen, setToolboxOpen] = useState(false);
   const [quickCreatePosition, setQuickCreatePosition] = useState(null);
   const [canvasContextMenu, setCanvasContextMenu] = useState(null);
+  const [selectionModeArmed, setSelectionModeArmed] = useState(false);
   const [quickConnectMode, setQuickConnectMode] = useState(false);
   const [connectionType, setConnectionType] = useState('related');
   const [actionNoteId, setActionNoteId] = useState(null);
@@ -1463,6 +1464,27 @@ export default function NotesPage() {
     const scale = zoomRef.current / 100;
     const startCanvasX = (event.clientX - rect.left + canvasRef.current.scrollLeft) / scale;
     const startCanvasY = (event.clientY - rect.top + canvasRef.current.scrollTop) / scale;
+
+    if (selectionModeArmed) {
+      const selectState = {
+        pendingCanvasAction: false,
+        isSelect: true,
+        isPan: false,
+        startClientX: event.clientX,
+        startClientY: event.clientY,
+        startCanvasX,
+        startCanvasY,
+        pointerId: event.pointerId,
+        pointerType: event.pointerType,
+      };
+      setSelectedCanvasNoteIds([]);
+      setSelectionBox({ startX: startCanvasX, startY: startCanvasY, currentX: startCanvasX, currentY: startCanvasY });
+      setSelectionModeArmed(false);
+      isDraggingRef.current = selectState;
+      setIsDragging(selectState);
+      return;
+    }
+
     const selectState = {
       pendingCanvasAction: true,
       isSelect: false,
@@ -3222,7 +3244,7 @@ export default function NotesPage() {
 
       {/* Canvas */}
       <div
-        className="notes-canvas"
+        className={`notes-canvas ${selectionModeArmed ? 'selection-armed' : ''}`}
         ref={canvasRef}
         onPointerDown={handleCanvasPointerDown}
         onContextMenu={handleCanvasContextMenu}
@@ -3233,7 +3255,7 @@ export default function NotesPage() {
         onTouchCancel={handleTouchEnd}
         onDragOver={(event) => event.preventDefault()}
         onDrop={handleCanvasDrop}
-        style={{ cursor: isDragging?.isPan ? 'grabbing' : 'grab', touchAction: 'none' }}
+        style={{ cursor: selectionModeArmed ? 'crosshair' : (isDragging?.isPan ? 'grabbing' : 'grab'), touchAction: 'none' }}
       >
         <div ref={canvasContentRef} className="canvas-content" style={{ transform: `scale(${zoom / 100})`, transformOrigin: '0 0', willChange: 'transform' }}>
           {/* SVG Connections */}
@@ -3797,6 +3819,16 @@ export default function NotesPage() {
             }}
           >
             Text hinzufügen
+          </button>
+          <button
+            type="button"
+            className="notes-canvas-menu-item"
+            onClick={() => {
+              setSelectionModeArmed((prev) => !prev);
+              setCanvasContextMenu(null);
+            }}
+          >
+            {selectionModeArmed ? 'Auswählen beenden' : 'Auswählen (Mehrfachauswahl)'}
           </button>
           <button
             type="button"
