@@ -27,7 +27,7 @@ function ProtectedRoute({ children }) {
 
 function PublicRoute({ children }) {
   const { token } = useAuthStore();
-  if (token) return <Navigate to="/" replace />;
+  if (token) return <Navigate to="/app" replace />;
   return children;
 }
 

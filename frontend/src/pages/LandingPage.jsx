@@ -89,12 +89,12 @@ export default function LandingPage() {
 
   const handleLogin = async (e) => {
     e.preventDefault(); setLoginError('');
-    try { const ok = await login(loginEmail, loginPassword); if (ok) navigate('/'); }
+    try { const ok = await login(loginEmail, loginPassword); if (ok) navigate('/app'); }
     catch (err) { setLoginError(err.message || 'Login fehlgeschlagen'); }
   };
   const handleRegister = async (e) => {
     e.preventDefault(); setRegisterError('');
-    try { const ok = await register(registerEmail, registerPassword, registerName); if (ok) navigate('/'); }
+    try { const ok = await register(registerName, registerEmail, registerPassword); if (ok) navigate('/app'); }
     catch (err) { setRegisterError(err.message || 'Registrierung fehlgeschlagen'); }
   };
 

@@ -17,7 +17,7 @@ export default function Register() {
     e.preventDefault();
     clearError();
     const success = await register(name, email, password);
-    if (success) navigate('/');
+    if (success) navigate('/app');
   };
 
   return (
