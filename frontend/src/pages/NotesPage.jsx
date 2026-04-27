@@ -344,6 +344,9 @@ function checklistItemsToMarkdown(items = []) {
     .join('\n');
 }
 
+const PENDING_DRAG_MIN_PX = 4;
+const PENDING_PAN_COMMIT_PX = 120;
+
 export default function NotesPage() {
   const { notes, createNote, updateNote, deleteNote, linkNoteToTask, shareNoteWithFriend, unshareNoteForFriend, connectNotes, disconnectNotes, getNoteConnections } = useNotesStore();
   const { friends, fetchFriends } = useFriendsStore();
@@ -904,7 +907,7 @@ export default function NotesPage() {
     syncViewport();
     window.addEventListener('resize', syncViewport);
     return () => window.removeEventListener('resize', syncViewport);
-  }, [notes.length]);
+  }, [notes, notePositions]);
 
   useEffect(() => {
     if (!canvasContextMenu) return;
@@ -1217,7 +1220,8 @@ export default function NotesPage() {
     if (drag.pendingCanvasAction && canvasRef.current) {
       const movedX = clientX - drag.startClientX;
       const movedY = clientY - drag.startClientY;
-      if ((movedX * movedX) + (movedY * movedY) < 16) return;
+      const distanceSq = (movedX * movedX) + (movedY * movedY);
+      if (distanceSq < (PENDING_DRAG_MIN_PX * PENDING_DRAG_MIN_PX)) return;
 
       const rect = canvasRef.current.getBoundingClientRect();
       const scale = zoomRef.current / 100;
@@ -1240,11 +1244,16 @@ export default function NotesPage() {
       if (intersectsAnyNote) {
         drag.pendingCanvasAction = false;
         drag.isSelect = true;
+        setSelectionBox({ startX: minX, startY: minY, currentX: maxX, currentY: maxY });
       } else {
+        if (distanceSq < (PENDING_PAN_COMMIT_PX * PENDING_PAN_COMMIT_PX)) {
+          return;
+        }
         drag.pendingCanvasAction = false;
         drag.isPan = true;
         drag.x = clientX;
         drag.y = clientY;
+        setSelectionBox(null);
         return;
       }
     }
@@ -1302,7 +1311,7 @@ export default function NotesPage() {
         const el = noteElRefs.current[id];
         if (!el) continue;
         noteDragOccurredRef.current = true;
-        el.style.transform = `translate(${totalDX / scale}px, ${totalDY / scale}px)`;
+        el.style.transform = `translate3d(${totalDX / scale}px, ${totalDY / scale}px, 0)`;
         el.style.zIndex = '999';
       }
       drag.lastClientX = clientX;
@@ -1315,7 +1324,7 @@ export default function NotesPage() {
       const scale = zoomRef.current / 100;
       const el = canvasTextElRefs.current[drag.textId];
       if (el) {
-        el.style.transform = `translate(${totalDX / scale}px, ${totalDY / scale}px)`;
+        el.style.transform = `translate3d(${totalDX / scale}px, ${totalDY / scale}px, 0)`;
         el.style.zIndex = '995';
       }
       drag.lastClientX = clientX;
