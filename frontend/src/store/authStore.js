@@ -83,7 +83,9 @@ export const useAuthStore = create((set) => ({
     localStorage.removeItem('user');
     clearLocalAppCaches();
     set({ user: null, token: null });
-    window.location.href = '/login';
+    const isPwa = window.matchMedia('(display-mode: standalone)').matches
+      || window.navigator.standalone === true;
+    window.location.href = isPwa ? '/login' : '/';
   },
 
   setUser: (user) => {
