@@ -137,7 +137,11 @@ export const api = {
   login: (email, password, twofa_code) =>
     request('/auth/login', {
       method: 'POST',
-      body: JSON.stringify(twofa_code ? { email, password, twofa_code } : { email, password }),
+      body: JSON.stringify(
+        typeof twofa_code !== 'undefined'
+          ? { email, password, twofa_code }
+          : { email, password }
+      ),
     }),
 
   register: (name, email, password) =>
