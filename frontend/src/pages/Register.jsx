@@ -30,7 +30,7 @@ export default function Register() {
     return (
       <div className="bq-verify-screen">
         <div className="bq-verify-card">
-          <img src="/icons/icon.svg" alt="BeeQu" className="bq-verify-logo" />
+          <img src="/icons/icon.png" alt="BeeQu" className="bq-verify-logo" />
           <div className="bq-verify-icon">✉️</div>
           <h1>Bitte bestätige deine<br />E-Mail-Adresse</h1>
           <p>
@@ -64,7 +64,7 @@ export default function Register() {
         >
           {/* Logo */}
           <div className="bq-auth-card-logo">
-            <img src="/icons/icon.svg" alt="BeeQu" />
+            <img src="/icons/icon.png" alt="BeeQu" />
             <span>BeeQu</span>
           </div>
 

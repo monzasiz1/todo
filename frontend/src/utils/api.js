@@ -134,10 +134,10 @@ async function request(endpoint, options = {}) {
 
 export const api = {
   // Auth
-  login: (email, password) =>
+  login: (email, password, twofa_code) =>
     request('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify(twofa_code ? { email, password, twofa_code } : { email, password }),
     }),
 
   register: (name, email, password) =>
@@ -147,6 +147,11 @@ export const api = {
     }),
 
   getMe: () => request('/auth/me'),
+
+  // 2FA
+  setup2FA:   ()       => request('/auth/2fa/setup',   { method: 'POST', body: '{}' }),
+  confirm2FA: (code)   => request('/auth/2fa/confirm', { method: 'POST', body: JSON.stringify({ code }) }),
+  disable2FA: (code)   => request('/auth/2fa/disable', { method: 'POST', body: JSON.stringify({ code }) }),
 
   // Profile
   getProfile: () => request('/profile'),

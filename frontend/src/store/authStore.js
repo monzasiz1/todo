@@ -24,7 +24,7 @@ export const useAuthStore = create((set) => ({
     try {
       const body = { email, password };
       if (twofa_code) body.twofa_code = twofa_code;
-      const data = await api.loginWith(email, password, twofa_code);
+      const data = await api.login(email, password, twofa_code);
       if (data.requires2FA) {
         set({ loading: false });
         return { requires2FA: true };

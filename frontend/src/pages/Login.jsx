@@ -43,7 +43,7 @@ export default function Login() {
         >
           {/* Logo */}
           <div className="bq-auth-card-logo">
-            <img src="/icons/icon.svg" alt="BeeQu" />
+            <img src="/icons/icon.png" alt="BeeQu" />
             <span>BeeQu</span>
           </div>
 

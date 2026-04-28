@@ -118,7 +118,7 @@ export default function LandingPage() {
       <nav className="bq-nav">
         <div className="bq-nav-inner">
           <Link to="/landing" className="bq-brand">
-            <img src="/icons/icon.svg" alt="" className="bq-brand-icon" />
+            <img src="/icons/icon.png" alt="" className="bq-brand-icon" />
             <span>BeeQu</span>
           </Link>
           <div className="bq-nav-links">
@@ -197,7 +197,7 @@ export default function LandingPage() {
               {/* sidebar */}
               <aside className="bq-mock-sidebar">
                 <div className="bq-mock-logo">
-                  <img src="/icons/icon.svg" alt="" className="bq-mock-logo-img" />
+                  <img src="/icons/icon.png" alt="" className="bq-mock-logo-img" />
                   <span>BeeQu</span>
                 </div>
                 <nav className="bq-mock-nav">
@@ -561,7 +561,7 @@ export default function LandingPage() {
       <footer className="bq-footer">
         <div className="bq-container bq-footer-inner">
           <div className="bq-footer-brand">
-            <img src="/icons/icon.svg" alt="" className="bq-footer-icon" />
+            <img src="/icons/icon.png" alt="" className="bq-footer-icon" />
             <div>
               <strong>BeeQu</strong>
               <span>von BeeTwice</span>
@@ -596,7 +596,7 @@ export default function LandingPage() {
             >
               <div className="bq-auth-brand-top">
                 <div className="bq-auth-logo">
-                  <img src="/icons/icon.svg" alt="BeeQu" />
+                  <img src="/icons/icon.png" alt="BeeQu" />
                   <span>BeeQu</span>
                 </div>
                 <h2 className="bq-auth-brand-headline">
