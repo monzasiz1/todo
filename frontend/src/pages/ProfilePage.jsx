@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useRef } from 'react';
+import Confetti from '../components/Confetti';
 import { useAuthStore } from '../store/authStore';
 import { api } from '../utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -47,6 +48,11 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState(initialCached?.profile || user || null);
   const [stats, setStats] = useState(initialCached?.stats || null);
   const [loading, setLoading] = useState(!(initialCached?.profile || user));
+
+  // Level-Up Animation State
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [glowLevel, setGlowLevel] = useState(false);
+  const prevLevelRef = useRef(null);
 
   // Edit states
   const [editName, setEditName] = useState(false);
@@ -378,6 +384,398 @@ export default function ProfilePage() {
   const level = stats ? Math.floor(stats.completed_tasks / 10) + 1 : 1;
   const xpProgress = stats ? (stats.completed_tasks % 10) * 10 : 0;
 
+  // Level-Up Effekt: Konfetti, Sound, Glow
+  useEffect(() => {
+    if (prevLevelRef.current === null) {
+      prevLevelRef.current = level;
+      return;
+    }
+    if (level > prevLevelRef.current) {
+      setShowConfetti(true);
+      setGlowLevel(true);
+      // Sound abspielen
+      try {
+        const audio = new Audio('/levelup.mp3');
+        audio.volume = 0.5;
+        audio.play();
+      } catch {}
+      setTimeout(() => setGlowLevel(false), 1800);
+    }
+    prevLevelRef.current = level;
+  }, [level]);
+
+  /* ─── NEW RETURN ─── */
+  return (
+    <div className="pv2">
+
+      {/* ═══ LEFT PANEL ═══ */}
+      <aside className="pv2-left">
+
+        {/* Hero card — avatar + name + bio */}
+        <div className="pv2-card pv2-hero">
+          <motion.div className="pv2-avatar-wrap" whileTap={{ scale: 0.95 }}
+            onClick={() => fileInputRef.current?.click()}>
+            {profile?.avatar_url
+              ? <img src={profile.avatar_url} alt="Avatar" className="pv2-avatar-img" />
+              : <div className="pv2-avatar-placeholder" style={{ background: profile?.avatar_color || '#007AFF' }}>
+                  {profile?.name?.[0]?.toUpperCase() || '?'}
+                </div>
+            }
+            <div className="pv2-avatar-overlay"><Camera size={18} /></div>
+            <input ref={fileInputRef} type="file" accept="image/*"
+              onChange={handleAvatarUpload} style={{ display: 'none' }} />
+          </motion.div>
+          {profile?.avatar_url && (
+            <button className="pv2-remove-avatar" onClick={removeAvatar}>Entfernen</button>
+          )}
+
+          {editName ? (
+            <div className="pv2-inline-edit">
+              <input value={nameValue} onChange={e => setNameValue(e.target.value)}
+                className="pv2-inline-input" maxLength={50} autoFocus
+                onKeyDown={e => e.key === 'Enter' && saveName()} />
+              <button className="pv2-inline-btn save" onClick={saveName} disabled={saving}><Check size={15} /></button>
+              <button className="pv2-inline-btn cancel" onClick={() => { setEditName(false); setNameValue(profile.name); }}><X size={15} /></button>
+            </div>
+          ) : (
+            <div className="pv2-name-row">
+              <h2 className="pv2-name">{profile?.name}</h2>
+              <button className="pv2-edit-btn" onClick={() => setEditName(true)}><Edit3 size={13} /></button>
+            </div>
+          )}
+
+          <div className="pv2-email"><Mail size={13} />{profile?.email}</div>
+
+          {editBio ? (
+            <div className="pv2-inline-edit">
+              <textarea value={bioValue} onChange={e => setBioValue(e.target.value)}
+                className="pv2-inline-input bio" maxLength={200} rows={2}
+                placeholder="Kurze Bio..." autoFocus />
+              <button className="pv2-inline-btn save" onClick={saveBio} disabled={saving}><Check size={15} /></button>
+              <button className="pv2-inline-btn cancel" onClick={() => { setEditBio(false); setBioValue(profile?.bio || ''); }}><X size={15} /></button>
+            </div>
+          ) : (
+            <div className="pv2-bio-row" onClick={() => setEditBio(true)}>
+              <p className="pv2-bio">{profile?.bio || 'Bio hinzufügen…'}</p>
+              <Edit3 size={12} className="pv2-bio-icon" />
+            </div>
+          )}
+
+          <div className="pv2-meta-row">
+            <span className="pv2-meta-pill"><Calendar size={12} />Seit {memberSince}</span>
+            <span className="pv2-meta-pill"><Star size={12} />Level {level}</span>
+          </div>
+          <div className="pv2-xp-bar-wrap">
+            <div className="pv2-xp-bar">
+              <motion.div className="pv2-xp-fill"
+                initial={{ width: 0 }} animate={{ width: `${xpProgress}%` }}
+                transition={{ duration: 0.8 }} />
+            </div>
+            <span className="pv2-xp-label">{xpProgress}% zu Level {level + 1}</span>
+          </div>
+        </div>
+
+        {/* Stats */}
+        {stats && (
+          <div className="pv2-card">
+            <div className="pv2-section-head"><Target size={15} /><span>Statistiken</span></div>
+            <div className="pv2-stats-grid">
+              {[
+                { icon: Target,       color: '#007AFF', bg: 'rgba(0,122,255,0.1)',  val: stats.total_tasks,        label: 'Gesamt'   },
+                { icon: CheckCircle2, color: '#34C759', bg: 'rgba(52,199,89,0.1)',  val: stats.completed_tasks,    label: 'Erledigt' },
+                { icon: Flame,        color: '#FF9500', bg: 'rgba(255,149,0,0.1)',  val: stats.streak,             label: 'Streak'   },
+                { icon: TrendingUp,   color: '#5856D6', bg: 'rgba(88,86,214,0.1)', val: `${stats.completion_rate}%`, label: 'Quote'  },
+              ].map(({ icon: Icon, color, bg, val, label }) => (
+                <div key={label} className="pv2-stat">
+                  <div className="pv2-stat-icon" style={{ background: bg, color }}><Icon size={16} /></div>
+                  <div className="pv2-stat-val">{val}</div>
+                  <div className="pv2-stat-label">{label}</div>
+                </div>
+              ))}
+            </div>
+            <div className="pv2-ring-wrap">
+              <div className="pv2-ring-container">
+                <svg viewBox="0 0 120 120" className="pv2-ring">
+                  <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(0,0,0,0.06)" strokeWidth="10"/>
+                  <motion.circle cx="60" cy="60" r="52" fill="none" stroke="var(--primary)" strokeWidth="10"
+                    strokeLinecap="round" strokeDasharray={`${2*Math.PI*52}`}
+                    initial={{ strokeDashoffset: 2*Math.PI*52 }}
+                    animate={{ strokeDashoffset: 2*Math.PI*52*(1-stats.completion_rate/100) }}
+                    transition={{ duration: 1.2, ease: 'easeOut' }} transform="rotate(-90 60 60)" />
+                </svg>
+                <div className="pv2-ring-center">
+                  <span className="pv2-ring-val">{stats.completion_rate}%</span>
+                  <span className="pv2-ring-label">Produktivität</span>
+                </div>
+              </div>
+              <div className="pv2-ring-details">
+                <div className="pv2-ring-item"><Clock size={13} />{stats.week_completed} diese Woche</div>
+                <div className="pv2-ring-item"><Calendar size={13} />{stats.active_days} aktive Tage</div>
+                <div className="pv2-ring-item"><Award size={13} />Mitglied seit {memberSince}</div>
+              </div>
+            </div>
+            {stats.category_breakdown?.length > 0 && (
+              <div className="pv2-cats">
+                <div className="pv2-cats-label">Top Kategorien</div>
+                {stats.category_breakdown.map((cat, i) => (
+                  <div key={i} className="pv2-cat-row">
+                    <div className="pv2-cat-info">
+                      <span className="pv2-cat-dot" style={{ background: cat.color }} />
+                      <span className="pv2-cat-name">{cat.name}</span>
+                      <span className="pv2-cat-count">{cat.done}/{cat.count}</span>
+                    </div>
+                    <div className="pv2-cat-track">
+                      <motion.div className="pv2-cat-fill" style={{ background: cat.color }}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${cat.count > 0 ? (cat.done/cat.count)*100 : 0}%` }}
+                        transition={{ duration: 0.8, delay: i*0.1 }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Avatar color */}
+        <div className="pv2-card">
+          <div className="pv2-section-head"><Palette size={15} /><span>Avatar-Farbe</span></div>
+          <div className="pv2-color-grid">
+            {AVATAR_COLORS.map(color => (
+              <motion.button key={color} className={`pv2-color-btn ${profile?.avatar_color === color ? 'active' : ''}`}
+                style={{ background: color }} onClick={() => changeColor(color)} whileTap={{ scale: 0.85 }}>
+                {profile?.avatar_color === color && <Check size={12} color="#fff" />}
+              </motion.button>
+            ))}
+          </div>
+        </div>
+
+      </aside>
+
+      {/* ═══ RIGHT PANEL ═══ */}
+      <main className="pv2-right">
+
+        {/* Security */}
+        <div className="pv2-card">
+          <div className="pv2-section-head"><Lock size={15} /><span>Sicherheit</span></div>
+
+          {/* Password */}
+          <button className="pv2-row" onClick={() => setShowPasswordForm(!showPasswordForm)}>
+            <div className="pv2-row-icon" style={{ background: 'rgba(88,86,214,0.1)', color: '#5856D6' }}><Lock size={16} /></div>
+            <div className="pv2-row-body"><span className="pv2-row-title">Passwort ändern</span><span className="pv2-row-sub">Sicherheit deines Kontos</span></div>
+            <ChevronRight size={16} className={`pv2-chevron ${showPasswordForm ? 'open' : ''}`} />
+          </button>
+          <AnimatePresence>
+            {showPasswordForm && (
+              <motion.form className="pv2-expand" onSubmit={changePassword}
+                initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22 }}>
+                <div className="pv2-form-inner">
+                  {[
+                    { label: 'Aktuelles Passwort', val: currentPw, set: setCurrentPw, show: showCurrentPw, toggle: () => setShowCurrentPw(!showCurrentPw) },
+                    { label: 'Neues Passwort',     val: newPw,     set: setNewPw,     show: showNewPw,     toggle: () => setShowNewPw(!showNewPw) },
+                  ].map(({ label, val, set, show, toggle }) => (
+                    <div key={label} className="pv2-field">
+                      <label>{label}</label>
+                      <div className="pv2-pw-wrap">
+                        <input type={show ? 'text' : 'password'} value={val}
+                          onChange={e => set(e.target.value)} required minLength={6} />
+                        <button type="button" className="pv2-pw-eye" onClick={toggle}>
+                          {show ? <EyeOff size={15} /> : <Eye size={15} />}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="pv2-field">
+                    <label>Passwort bestätigen</label>
+                    <input type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} required minLength={6} />
+                  </div>
+                  <button type="submit" className="pv2-btn primary" disabled={saving}>
+                    {saving ? 'Speichern…' : 'Passwort ändern'}
+                  </button>
+                </div>
+              </motion.form>
+            )}
+          </AnimatePresence>
+
+          {/* 2FA */}
+          <button className="pv2-row" onClick={() => {
+            if (twofa.enabled) { setShow2FADisable(!show2FADisable); setShow2FASetup(false); setTfaCode(''); setTfaError(''); }
+            else start2FASetup();
+          }}>
+            <div className="pv2-row-icon" style={{ background: twofa.enabled ? 'rgba(52,199,89,0.12)' : 'rgba(255,149,0,0.1)', color: twofa.enabled ? '#34C759' : '#FF9500' }}>
+              {twofa.enabled ? <ShieldCheck size={16} /> : <ShieldOff size={16} />}
+            </div>
+            <div className="pv2-row-body">
+              <span className="pv2-row-title">
+                Zwei-Faktor-Authentifizierung
+                {twofa.enabled && <span className="pv2-badge green">Aktiv</span>}
+              </span>
+              <span className="pv2-row-sub">{twofa.enabled ? 'Authenticator-App aktiv' : 'Zusätzlicher Schutz via Authenticator'}</span>
+            </div>
+            {tfaLoading
+              ? <span className="bq-auth-spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
+              : <ChevronRight size={16} className={`pv2-chevron ${(show2FASetup || show2FADisable) ? 'open' : ''}`} />}
+          </button>
+          <AnimatePresence>
+            {show2FASetup && tfaSetupData && (
+              <motion.div className="pv2-expand" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22 }}>
+                <div className="pv2-form-inner pv2-2fa">
+                  <p className="pv2-2fa-step"><strong>Schritt 1:</strong> QR-Code mit Authenticator-App scannen</p>
+                  <div className="pv2-qr-wrap">
+                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(tfaSetupData.otpauth)}`} alt="QR" width={180} height={180} />
+                  </div>
+                  <p className="pv2-2fa-step">Oder manuell eingeben:</p>
+                  <code className="pv2-secret">{tfaSetupData.secret}</code>
+                  <p className="pv2-2fa-step"><strong>Schritt 2:</strong> 6-stelligen Code eingeben:</p>
+                  <div className="pv2-code-input-wrap">
+                    <input type="text" inputMode="numeric" maxLength={6} placeholder="000000"
+                      value={tfaCode} onChange={e => { setTfaCode(e.target.value.replace(/\D/g,'')); setTfaError(''); }}
+                      className="pv2-code-input" autoFocus />
+                  </div>
+                  {tfaError && <p className="pv2-error">{tfaError}</p>}
+                  <div className="pv2-row-actions">
+                    <button className="pv2-btn primary" onClick={confirm2FA} disabled={tfaLoading}>
+                      {tfaLoading ? <span className="bq-auth-spinner" /> : <><ShieldCheck size={14} />2FA aktivieren</>}
+                    </button>
+                    <button className="pv2-btn ghost" onClick={() => { setShow2FASetup(false); setTfaSetupData(null); setTfaCode(''); setTfaError(''); }}>Abbrechen</button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+            {show2FADisable && (
+              <motion.div className="pv2-expand" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22 }}>
+                <div className="pv2-form-inner pv2-2fa">
+                  <p className="pv2-2fa-step">Aktuellen Code aus der Authenticator-App eingeben:</p>
+                  <div className="pv2-code-input-wrap">
+                    <input type="text" inputMode="numeric" maxLength={6} placeholder="000000"
+                      value={tfaCode} onChange={e => { setTfaCode(e.target.value.replace(/\D/g,'')); setTfaError(''); }}
+                      className="pv2-code-input" autoFocus />
+                  </div>
+                  {tfaError && <p className="pv2-error">{tfaError}</p>}
+                  <div className="pv2-row-actions">
+                    <button className="pv2-btn danger" onClick={disable2FA} disabled={tfaLoading}>
+                      {tfaLoading ? <span className="bq-auth-spinner" style={{ borderTopColor: '#fff' }} /> : '2FA deaktivieren'}
+                    </button>
+                    <button className="pv2-btn ghost" onClick={() => { setShow2FADisable(false); setTfaCode(''); setTfaError(''); }}>Abbrechen</button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Privacy */}
+        <div className="pv2-card">
+          <div className="pv2-section-head"><Shield size={15} /><span>Privatsphäre</span></div>
+          <div className="pv2-row" style={{ cursor: 'default' }}>
+            <div className="pv2-row-icon" style={{ background: 'rgba(0,122,255,0.1)', color: '#007AFF' }}><Shield size={16} /></div>
+            <div className="pv2-row-body"><span className="pv2-row-title">Profil-Sichtbarkeit</span><span className="pv2-row-sub">Wer darf dein Profil sehen?</span></div>
+          </div>
+          <div className="pv2-visibility">
+            {[
+              { value: 'everyone', label: 'Alle Freunde', desc: 'Freunde sehen dein Profil & Statistiken' },
+              { value: 'nobody',   label: 'Niemand',      desc: 'Profil für andere verborgen' },
+            ].map(opt => (
+              <button key={opt.value} className={`pv2-vis-opt ${visibility === opt.value ? 'active' : ''}`}
+                onClick={() => saveVisibility(opt.value)} disabled={savingVisibility}>
+                <div className="pv2-vis-radio">{visibility === opt.value && <div className="pv2-vis-dot" />}</div>
+                <div><div className="pv2-vis-label">{opt.label}</div><div className="pv2-vis-desc">{opt.desc}</div></div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Teams */}
+        <div className="pv2-card">
+          <div className="pv2-section-head"><Video size={15} /><span>Integrationen</span></div>
+          <div className="pv2-teams-row">
+            <div className="pv2-row" style={{ cursor: 'default' }}>
+              <div className="pv2-row-icon" style={{ background: 'rgba(98,100,167,0.12)', color: '#6264a7' }}><Video size={16} /></div>
+              <div className="pv2-row-body"><span className="pv2-row-title">Microsoft Teams</span><span className="pv2-row-sub">Automatische Meeting-Links bei Terminen</span></div>
+              <span className={`pv2-badge ${teamsConnected ? 'green' : 'gray'}`}>
+                {teamsConnected === null ? '…' : teamsConnected ? 'Verbunden' : 'Inaktiv'}
+              </span>
+            </div>
+            {teamsConnected !== null && (
+              <div style={{ paddingLeft: 20, paddingBottom: 12 }}>
+                {teamsConnected ? (
+                  <button className="pv2-btn danger-outline" onClick={async () => {
+                    try { await api.disconnectTeams(); setTeamsConnected(false); showToast('Getrennt'); }
+                    catch { showToast('Fehler', 'error'); }
+                  }}><X size={13} />Konto trennen</button>
+                ) : (
+                  <button className="pv2-btn primary" disabled={teamsConnecting} onClick={async () => {
+                    setTeamsConnecting(true);
+                    try { const { url } = await api.getTeamsConnectUrl(); if (url) window.location.assign(url); else showToast('Nicht konfiguriert', 'error'); }
+                    catch (err) { showToast(err.message, 'error'); }
+                    finally { setTeamsConnecting(false); }
+                  }}><Video size={13} />{teamsConnecting ? 'Weiterleitung…' : 'Verbinden'}</button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Account */}
+        <div className="pv2-card">
+          <div className="pv2-section-head"><Download size={15} /><span>Konto</span></div>
+          <button className="pv2-row" onClick={exportData}>
+            <div className="pv2-row-icon" style={{ background: 'rgba(0,199,190,0.1)', color: '#00C7BE' }}><Download size={16} /></div>
+            <div className="pv2-row-body"><span className="pv2-row-title">Daten exportieren</span><span className="pv2-row-sub">Alle Aufgaben als JSON</span></div>
+            <ChevronRight size={16} />
+          </button>
+          <button className="pv2-row" onClick={() => window.dispatchEvent(new Event('open-help-chat'))}>
+            <div className="pv2-row-icon" style={{ background: 'rgba(88,86,214,0.1)', color: '#5856D6' }}><MessageCircleQuestion size={16} /></div>
+            <div className="pv2-row-body"><span className="pv2-row-title">KI-Hilfe</span><span className="pv2-row-sub">Fragen zur App-Nutzung</span></div>
+            <ChevronRight size={16} />
+          </button>
+        </div>
+
+        {/* Danger */}
+        <div className="pv2-card pv2-danger-card">
+          <div className="pv2-section-head" style={{ color: '#FF3B30' }}><Trash2 size={15} /><span>Gefahrenzone</span></div>
+          <button className="pv2-row" onClick={() => setShowDeleteConfirm(!showDeleteConfirm)}>
+            <div className="pv2-row-icon" style={{ background: 'rgba(255,59,48,0.1)', color: '#FF3B30' }}><Trash2 size={16} /></div>
+            <div className="pv2-row-body">
+              <span className="pv2-row-title" style={{ color: '#FF3B30' }}>Account löschen</span>
+              <span className="pv2-row-sub">Alle Daten werden unwiderruflich gelöscht</span>
+            </div>
+            <ChevronRight size={16} className={`pv2-chevron ${showDeleteConfirm ? 'open' : ''}`} />
+          </button>
+          <AnimatePresence>
+            {showDeleteConfirm && (
+              <motion.div className="pv2-expand" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22 }}>
+                <div className="pv2-form-inner">
+                  <div className="pv2-danger-warning"><AlertTriangle size={16} /><p>Dies kann nicht rückgängig gemacht werden.</p></div>
+                  <div className="pv2-field"><label>Passwort zur Bestätigung</label>
+                    <input type="password" value={deletePw} onChange={e => setDeletePw(e.target.value)} placeholder="Dein Passwort" />
+                  </div>
+                  <button className="pv2-btn danger" onClick={deleteAccount} disabled={saving || !deletePw}>
+                    {saving ? 'Löschen…' : 'Account endgültig löschen'}
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+      </main>
+
+      {/* Toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div className={`profile-toast ${toast.type}`}
+            initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 50 }}>
+            {toast.type === 'success' ? <Check size={16} /> : <AlertTriangle size={16} />}
+            {toast.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+
+  /* ─── OLD LAYOUT (removed) ─── */
   return (
     <div className="profile-page">
       {/* Header */}
@@ -477,7 +875,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Level Badge */}
-        <div className="profile-level-badge">
+        <div className={`profile-level-badge${glowLevel ? ' levelup-glow' : ''}`} style={glowLevel ? { boxShadow: '0 0 24px 8px #ffe066, 0 0 60px 16px #ffd70055' } : {}}>
           <div className="profile-level-icon">
             {/* Zeige SVG-Icon je nach Level (max. 5) */}
             <img
@@ -497,7 +895,10 @@ export default function ProfilePage() {
               />
             </div>
           </div>
+          {/* Konfetti-Animation */}
+          <Confetti trigger={showConfetti} />
         </div>
+        <style>{`.levelup-glow { transition: box-shadow 0.5s; }`}</style>
       </div>
 
       {/* Stats Grid */}

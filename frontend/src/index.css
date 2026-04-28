@@ -17471,6 +17471,573 @@ body.cal-is-dragging * {
 }
 .profile-action-btn-cancel:hover { color: #1C1C1E; border-color: rgba(0,0,0,0.2); }
 
+/* ========== PROFILE PAGE V2 (pv2-*) ========== */
+
+.pv2 {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  gap: 24px;
+  padding: 28px 32px;
+  max-width: 1300px;
+  margin: 0 auto;
+  align-items: start;
+  min-height: 100%;
+}
+
+/* ── Card ── */
+.pv2-card {
+  background: var(--card-solid, #fff);
+  border-radius: var(--radius-lg, 20px);
+  border: 1px solid var(--border, rgba(0,0,0,0.06));
+  box-shadow: var(--shadow-md, 0 4px 14px rgba(0,0,0,0.06));
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.pv2-card:last-child { margin-bottom: 0; }
+
+.pv2-left  { display: flex; flex-direction: column; }
+.pv2-right { display: flex; flex-direction: column; }
+
+/* ── Section head ── */
+.pv2-section-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 20px 12px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--text-secondary, #8E8E93);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--border, rgba(0,0,0,0.06));
+}
+
+/* ── Hero card ── */
+.pv2-hero {
+  padding: 28px 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+}
+
+.pv2-avatar-wrap {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  cursor: pointer;
+  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+
+.pv2-avatar-img,
+.pv2-avatar-placeholder {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 800;
+  color: #fff;
+  border: 3px solid rgba(255,255,255,0.9);
+  box-shadow: var(--shadow-md);
+}
+
+.pv2-avatar-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.18s;
+}
+.pv2-avatar-wrap:hover .pv2-avatar-overlay { opacity: 1; }
+
+.pv2-remove-avatar {
+  font-size: 0.76rem;
+  color: var(--danger, #FF3B30);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  margin-top: -4px;
+}
+
+.pv2-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+.pv2-name {
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--text, #1C1C1E);
+  margin: 0;
+}
+.pv2-edit-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--bg, #F2F2F7);
+  border: none;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: background 0.15s;
+}
+.pv2-edit-btn:hover { background: var(--primary-bg); color: var(--primary); }
+
+.pv2-email {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+}
+
+.pv2-bio-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  cursor: pointer;
+  width: 100%;
+  justify-content: center;
+}
+.pv2-bio {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+  font-style: italic;
+}
+.pv2-bio-icon { color: var(--text-tertiary); margin-top: 2px; flex-shrink: 0; }
+
+.pv2-inline-edit {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  width: 100%;
+}
+.pv2-inline-input {
+  flex: 1;
+  border: 1.5px solid var(--primary);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 0.96rem;
+  font-family: inherit;
+  background: var(--card-solid);
+  color: var(--text);
+  resize: none;
+  outline: none;
+}
+.pv2-inline-input.bio { font-size: 0.88rem; }
+.pv2-inline-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  border: none;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.pv2-inline-btn.save { background: var(--primary); color: #fff; }
+.pv2-inline-btn.cancel { background: var(--bg); color: var(--text-secondary); }
+
+.pv2-meta-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.pv2-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--bg);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.pv2-xp-bar-wrap {
+  width: 100%;
+  display: grid;
+  gap: 5px;
+}
+.pv2-xp-bar {
+  height: 5px;
+  background: var(--bg);
+  border-radius: 999px;
+  overflow: hidden;
+  width: 100%;
+}
+.pv2-xp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--purple, #5856D6));
+  border-radius: 999px;
+}
+.pv2-xp-label { font-size: 0.75rem; color: var(--text-tertiary); text-align: center; }
+
+/* ── Stats grid ── */
+.pv2-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  padding: 16px 16px 12px;
+}
+.pv2-stat {
+  background: var(--bg);
+  border-radius: var(--radius-sm, 10px);
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.pv2-stat-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+}
+.pv2-stat-val {
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+.pv2-stat-label {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-align: center;
+}
+
+/* ── Progress ring ── */
+.pv2-ring-wrap {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 8px 16px 16px;
+}
+.pv2-ring-container {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  flex-shrink: 0;
+}
+.pv2-ring { width: 100px; height: 100px; }
+.pv2-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.pv2-ring-val { font-size: 1rem; font-weight: 800; letter-spacing: -0.04em; }
+.pv2-ring-label { font-size: 0.65rem; color: var(--text-secondary); font-weight: 600; }
+.pv2-ring-details { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.pv2-ring-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+.pv2-ring-item svg { color: var(--primary); flex-shrink: 0; }
+
+/* ── Categories ── */
+.pv2-cats { padding: 0 16px 16px; display: grid; gap: 8px; }
+.pv2-cats-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+.pv2-cat-row { display: grid; gap: 5px; }
+.pv2-cat-info { display: flex; align-items: center; gap: 8px; }
+.pv2-cat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.pv2-cat-name { font-size: 0.84rem; font-weight: 600; flex: 1; }
+.pv2-cat-count { font-size: 0.76rem; color: var(--text-tertiary); }
+.pv2-cat-track { height: 4px; background: var(--bg); border-radius: 999px; overflow: hidden; }
+.pv2-cat-fill { height: 100%; border-radius: 999px; }
+
+/* ── Color grid ── */
+.pv2-color-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px 20px 18px;
+}
+.pv2-color-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: transform 0.15s;
+}
+.pv2-color-btn:hover { transform: scale(1.12); }
+.pv2-color-btn.active { outline: 3px solid var(--primary); outline-offset: 2px; }
+
+/* ── Rows ── */
+.pv2-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 20px;
+  background: none;
+  border: none;
+  width: 100%;
+  cursor: pointer;
+  transition: background 0.15s;
+  text-align: left;
+  border-top: 1px solid var(--border, rgba(0,0,0,0.05));
+}
+.pv2-row:first-of-type { border-top: none; }
+.pv2-row:hover { background: var(--hover, rgba(0,0,0,0.02)); }
+.pv2-row-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.pv2-row-body { flex: 1; display: grid; gap: 2px; min-width: 0; }
+.pv2-row-title { font-size: 0.92rem; font-weight: 600; color: var(--text); }
+.pv2-row-sub   { font-size: 0.78rem; color: var(--text-secondary); }
+.pv2-chevron { color: var(--text-tertiary); transition: transform 0.2s; flex-shrink: 0; }
+.pv2-chevron.open { transform: rotate(90deg); }
+
+/* ── Expand panels ── */
+.pv2-expand { overflow: hidden; }
+.pv2-form-inner {
+  padding: 16px 20px 20px;
+  display: grid;
+  gap: 14px;
+  background: var(--bg, #F2F2F7);
+  border-top: 1px solid var(--border);
+}
+.pv2-2fa { gap: 12px; }
+
+/* ── Fields ── */
+.pv2-field { display: grid; gap: 6px; }
+.pv2-field label { font-size: 0.82rem; font-weight: 700; color: var(--text-secondary); }
+.pv2-field input {
+  height: 44px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(0,0,0,0.1);
+  background: #fff;
+  padding: 0 14px;
+  font-size: 0.92rem;
+  font-family: inherit;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+.pv2-field input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(0,122,255,0.1);
+}
+.pv2-pw-wrap { position: relative; }
+.pv2-pw-wrap input { width: 100%; padding-right: 44px; }
+.pv2-pw-eye {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  display: grid;
+  place-items: center;
+  padding: 4px;
+}
+
+/* ── Buttons ── */
+.pv2-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 42px;
+  padding: 0 18px;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.18s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.pv2-btn.primary { background: var(--primary); color: #fff; box-shadow: 0 4px 14px rgba(0,122,255,0.25); }
+.pv2-btn.primary:hover { box-shadow: 0 6px 20px rgba(0,122,255,0.35); transform: translateY(-1px); }
+.pv2-btn.ghost { background: rgba(0,0,0,0.05); color: var(--text-secondary); }
+.pv2-btn.ghost:hover { background: rgba(0,0,0,0.08); color: var(--text); }
+.pv2-btn.danger { background: var(--danger, #FF3B30); color: #fff; }
+.pv2-btn.danger:hover { opacity: 0.88; }
+.pv2-btn.danger-outline { background: rgba(255,59,48,0.08); color: var(--danger, #FF3B30); border: 1px solid rgba(255,59,48,0.2); }
+.pv2-btn.danger-outline:hover { background: rgba(255,59,48,0.14); }
+.pv2-btn:disabled { opacity: 0.55; pointer-events: none; }
+
+.pv2-row-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ── 2FA ── */
+.pv2-2fa-step { font-size: 0.86rem; color: var(--text); line-height: 1.55; margin: 0; }
+.pv2-qr-wrap {
+  display: flex;
+  justify-content: center;
+  background: #fff;
+  border-radius: 14px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  width: fit-content;
+}
+.pv2-qr-wrap img { display: block; border-radius: 6px; }
+.pv2-secret {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.8rem;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  word-break: break-all;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  font-weight: 600;
+  user-select: all;
+}
+.pv2-code-input-wrap { display: flex; }
+.pv2-code-input {
+  height: 52px;
+  width: 200px;
+  border-radius: 14px;
+  border: 1.5px solid var(--border-strong, rgba(0,0,0,0.12));
+  background: #fff;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.3em;
+  font-family: inherit;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+.pv2-code-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,122,255,0.1); }
+.pv2-error { font-size: 0.82rem; color: var(--danger, #FF3B30); margin: 0; font-weight: 600; }
+
+/* ── Badge ── */
+.pv2-badge {
+  display: inline-flex;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-left: 8px;
+}
+.pv2-badge.green { background: rgba(52,199,89,0.12); color: #34C759; }
+.pv2-badge.gray  { background: rgba(0,0,0,0.06);    color: var(--text-secondary); }
+
+/* ── Visibility ── */
+.pv2-visibility { display: grid; gap: 8px; padding: 12px 16px 16px; }
+.pv2-vis-opt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1.5px solid var(--border);
+  background: var(--card-solid);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.18s;
+}
+.pv2-vis-opt:hover { border-color: var(--primary); background: var(--primary-bg); }
+.pv2-vis-opt.active { border-color: var(--primary); background: var(--primary-bg); }
+.pv2-vis-radio {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  transition: border-color 0.18s;
+}
+.pv2-vis-opt.active .pv2-vis-radio { border-color: var(--primary); }
+.pv2-vis-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); }
+.pv2-vis-label { font-size: 0.88rem; font-weight: 700; color: var(--text); }
+.pv2-vis-desc  { font-size: 0.78rem; color: var(--text-secondary); margin-top: 2px; }
+
+/* ── Teams ── */
+.pv2-teams-row { display: grid; gap: 0; }
+
+/* ── Danger card ── */
+.pv2-danger-card { border-color: rgba(255,59,48,0.15); }
+.pv2-danger-card .pv2-section-head { color: var(--danger, #FF3B30); }
+.pv2-danger-warning {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  background: rgba(255,59,48,0.06);
+  border-radius: 12px;
+  border: 1px solid rgba(255,59,48,0.15);
+  color: #c0392b;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+.pv2-danger-warning p { margin: 0; }
+.pv2-danger-warning svg { flex-shrink: 0; margin-top: 1px; }
+
+/* ── Responsive ── */
+@media (max-width: 1100px) {
+  .pv2 {
+    grid-template-columns: 320px minmax(0, 1fr);
+    padding: 24px 24px;
+  }
+}
+
+@media (max-width: 880px) {
+  .pv2 {
+    grid-template-columns: 1fr;
+    padding: 16px;
+    gap: 0;
+  }
+  .pv2-stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .pv2-ring-wrap { flex-direction: column; align-items: flex-start; }
+  .pv2-card { margin-bottom: 12px; }
+}
+
+@media (max-width: 480px) {
+  .pv2 { padding: 12px; }
+  .pv2-stats-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .pv2-hero { padding: 20px 16px 16px; }
+  .pv2-code-input { width: 100%; }
+}
+
 /* lp-* classes still used by modal components — see landing-modal-* rules above */
 
 /* ========== BEEQU AUTH SCREENS (bq-auth-*) ========== */
