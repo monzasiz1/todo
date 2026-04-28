@@ -24,8 +24,13 @@ function TaskCard({ task, index, disableLayout = false }) {
   const formatDate = (dateStr) => {
     if (!dateStr) return null;
     const date = parseISO(dateStr);
+    const now = new Date();
     if (isToday(date)) return 'Heute';
     if (isTomorrow(date)) return 'Morgen';
+    // Wenn Jahr unterschiedlich, Jahr anzeigen
+    if (date.getFullYear() !== now.getFullYear()) {
+      return format(date, 'd. MMM yyyy', { locale: de });
+    }
     return format(date, 'd. MMM', { locale: de });
   };
 
