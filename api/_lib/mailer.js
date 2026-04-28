@@ -479,4 +479,59 @@ async function sendPasswordChangeConfirmMail({ to, name, confirmUrl }) {
   });
 }
 
-module.exports = { sendActivationMail, sendPasswordChangedMail, sendPasswordChangeConfirmMail };
+async function sendPasswordResetMail({ to, name, resetUrl }) {
+  const t = getTransporter();
+  const firstName = name ? name.split(' ')[0] : 'Nutzer';
+  if (!t) { console.warn('Kein SMTP – Reset-Mail übersprungen.'); console.log('Reset-URL:', resetUrl); return; }
+  await t.sendMail({
+    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    to,
+    subject: `${firstName}, setze dein BeeQu-Passwort zurück`,
+    html: `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#F0F4F8;font-family:Inter,-apple-system,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F0F4F8;">
+<tr><td align="center" style="padding:48px 16px;">
+<table width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;">
+  <tr><td bgcolor="#007AFF" style="background:#007AFF;border-radius:16px 16px 0 0;padding:28px 48px;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+      <td><table cellpadding="0" cellspacing="0" border="0"><tr>
+        <td style="padding-right:12px;vertical-align:middle;">
+          <img src="https://beequ.de/icons/icon.png" alt="BeeQu" width="40" height="40" style="display:block;border-radius:50%;border:2px solid rgba(255,255,255,0.3);">
+        </td>
+        <td style="vertical-align:middle;font-size:22px;font-weight:900;color:#fff;letter-spacing:-0.04em;">BeeQu</td>
+      </tr></table></td>
+      <td align="right" style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.05em;">von BeeTwice</td>
+    </tr></table>
+  </td></tr>
+  <tr><td bgcolor="#ffffff" style="background:#fff;padding:48px 48px 40px;">
+    <p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#007AFF;text-transform:uppercase;letter-spacing:0.06em;">Passwort zurücksetzen</p>
+    <h1 style="margin:0 0 24px;font-size:30px;font-weight:900;color:#111827;letter-spacing:-0.04em;">Hallo ${firstName},<br>neues Passwort festlegen</h1>
+    <table width="40" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;"><tr><td style="height:3px;background:#007AFF;border-radius:2px;"></td></tr></table>
+    <p style="margin:0 0 28px;font-size:16px;color:#374151;line-height:1.75;">
+      Du hast eine Passwort-Zurücksetzen-Anfrage gestellt. Klicke auf den Button um ein neues Passwort zu setzen. Der Link ist <strong>1 Stunde gültig</strong>.
+    </p>
+    <table cellpadding="0" cellspacing="0" border="0" style="margin-bottom:40px;">
+      <tr><td bgcolor="#007AFF" style="border-radius:12px;">
+        <a href="${resetUrl}" style="display:inline-block;background:#007AFF;color:#fff;font-size:16px;font-weight:700;text-decoration:none;padding:16px 36px;border-radius:12px;">Passwort zurücksetzen &rarr;</a>
+      </td></tr>
+    </table>
+    <div style="background:#F9FAFB;border-radius:10px;padding:16px 20px;">
+      <p style="margin:0;font-size:13px;color:#9CA3AF;line-height:1.6;">
+        🔒 Falls du keine Passwort-Zurücksetzen-Anfrage gestellt hast, kannst du diese E-Mail ignorieren. Dein Passwort bleibt unverändert.
+      </p>
+    </div>
+  </td></tr>
+  <tr><td bgcolor="#F9FAFB" style="background:#F9FAFB;border-radius:0 0 16px 16px;padding:20px 48px;border-top:1px solid #E5E7EB;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+      <td><p style="margin:0;font-size:12px;color:#9CA3AF;">© 2026 BeeTwice GmbH · <a href="https://beequ.de" style="color:#007AFF;text-decoration:none;">beequ.de</a></p></td>
+      <td align="right"><img src="https://beequ.de/icons/icon.png" alt="BeeQu" width="28" height="28" style="display:block;border-radius:50%;opacity:0.35;"></td>
+    </tr></table>
+  </td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>`,
+  });
+}
+
+module.exports = { sendActivationMail, sendPasswordChangedMail, sendPasswordChangeConfirmMail, sendPasswordResetMail };

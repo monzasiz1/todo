@@ -140,14 +140,31 @@ module.exports = async function handler(req, res) {
       if (!validPassword)
         return res.status(401).json({ error: 'Ungültige Anmeldedaten' });
 
-      // 2FA check
+
+      // 2FA check mit Logging
       if (user.twofa_enabled) {
         const { twofa_code } = req.body;
+        console.log('[2FA-Login]', {
+          email,
+          twofa_enabled: user.twofa_enabled,
+          twofa_secret: user.twofa_secret,
+          code: twofa_code
+        });
         if (!twofa_code) {
+          console.log('[2FA-Login] Kein Code übergeben, requires2FA');
           return res.status(200).json({ requires2FA: true });
         }
         const otp = getOtp();
-        if (!otp || !otp.verify({ token: String(twofa_code), secret: user.twofa_secret })) {
+        let valid2fa = false;
+        if (otp && user.twofa_secret) {
+          try {
+            valid2fa = otp.verify({ token: String(twofa_code), secret: user.twofa_secret });
+          } catch (e) {
+            console.error('[2FA-Login] Fehler bei OTP-Verify:', e);
+          }
+        }
+        console.log('[2FA-Login] Ergebnis:', valid2fa);
+        if (!otp || !valid2fa) {
           return res.status(401).json({ error: 'Ungültiger 2FA-Code. Bitte erneut versuchen.' });
         }
       }
@@ -304,6 +321,111 @@ module.exports = async function handler(req, res) {
     } catch (err) {
       console.error('2FA disable error:', err);
       return res.status(500).json({ error: '2FA deaktivieren fehlgeschlagen' });
+    }
+  }
+
+  /* ── GET /api/auth/confirm-password-change?token=... (public) ── */
+  if (action === 'confirm-password-change' && req.method === 'GET') {
+    const { token } = req.query;
+    if (!token) return res.status(400).send('Token fehlt.');
+    try {
+      const pool = getPool();
+      const row = await pool.query(
+        `SELECT id, password_change_hash, email, name
+         FROM users
+         WHERE password_change_token = $1
+           AND password_change_hash IS NOT NULL
+           AND password_change_requested_at > NOW() - INTERVAL '24 hours'`,
+        [token]
+      );
+      if (row.rows.length === 0) {
+        return res.status(400).send('Link ungültig oder abgelaufen (24h).');
+      }
+      const { id, password_change_hash, email, name } = row.rows[0];
+      await pool.query(
+        `UPDATE users
+         SET password = $2,
+             password_change_token = NULL,
+             password_change_hash = NULL,
+             password_change_requested_at = NULL
+         WHERE id = $1`,
+        [id, password_change_hash]
+      );
+      // Bestätigungs-Mail
+      try {
+        const { sendPasswordChangedMail } = require('./_lib/mailer');
+        if (sendPasswordChangedMail) await sendPasswordChangedMail({ to: email, name });
+      } catch { /* ignore mail errors */ }
+
+      const base = process.env.APP_BASE_URL || 'https://beequ.de';
+      return res.redirect(303, `${base}/login?pwreset=1`);
+    } catch (err) {
+      console.error('confirm-password-change error:', err);
+      return res.status(500).send('Fehler beim Bestätigen.');
+    }
+  }
+
+  /* ── POST /api/auth/forgot-password (public) ── */
+  if (action === 'forgot-password' && req.method === 'POST') {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'E-Mail erforderlich' });
+    try {
+      const pool = getPool();
+      const row = await pool.query('SELECT id, name FROM users WHERE email = $1', [email]);
+      // Immer 200 zurückgeben — verhindert User-Enumeration
+      if (row.rows.length === 0) return res.json({ success: true });
+
+      const { id, name } = row.rows[0];
+      const token = crypto.randomBytes(32).toString('hex');
+      await pool.query(
+        `UPDATE users SET password_reset_token = $2, password_reset_requested_at = NOW() WHERE id = $1`,
+        [id, token]
+      );
+      const base = process.env.APP_BASE_URL || 'https://beequ.de';
+      const resetUrl = `${base}/reset-password?token=${token}`;
+      try {
+        const { sendPasswordResetMail } = require('./_lib/mailer');
+        if (sendPasswordResetMail) await sendPasswordResetMail({ to: email, name, resetUrl });
+      } catch (mailErr) {
+        console.error('Passwort-Reset-Mail Fehler:', mailErr.message);
+      }
+      return res.json({ success: true });
+    } catch (err) {
+      console.error('forgot-password error:', err);
+      return res.status(500).json({ error: 'Fehler beim Senden der E-Mail' });
+    }
+  }
+
+  /* ── POST /api/auth/reset-password (public) ── */
+  if (action === 'reset-password' && req.method === 'POST') {
+    const { token, password } = req.body;
+    if (!token || !password) return res.status(400).json({ error: 'Token und Passwort erforderlich' });
+    if (password.length < 6) return res.status(400).json({ error: 'Passwort muss mindestens 6 Zeichen haben' });
+    try {
+      const pool = getPool();
+      const row = await pool.query(
+        `SELECT id, email, name FROM users
+         WHERE password_reset_token = $1
+           AND password_reset_requested_at > NOW() - INTERVAL '1 hour'`,
+        [token]
+      );
+      if (row.rows.length === 0)
+        return res.status(400).json({ error: 'Link ungültig oder abgelaufen (1h).' });
+
+      const { id, email, name } = row.rows[0];
+      const hash = await bcrypt.hash(password, 12);
+      await pool.query(
+        `UPDATE users SET password = $2, password_reset_token = NULL, password_reset_requested_at = NULL WHERE id = $1`,
+        [id, hash]
+      );
+      try {
+        const { sendPasswordChangedMail } = require('./_lib/mailer');
+        if (sendPasswordChangedMail) await sendPasswordChangedMail({ to: email, name });
+      } catch { /* ignore */ }
+      return res.json({ success: true });
+    } catch (err) {
+      console.error('reset-password error:', err);
+      return res.status(500).json({ error: 'Passwort konnte nicht gesetzt werden' });
     }
   }
 
