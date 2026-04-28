@@ -15069,6 +15069,12 @@ body.cal-is-dragging * {
   width: 100%;
 }
 
+.sidebar-notif-row .notif-dropdown {
+  left: calc(100% + 8px);
+  right: auto;
+  top: 0;
+}
+
 .sidebar-notif-row .notif-bell {
   width: 100%;
   border-radius: 10px;
