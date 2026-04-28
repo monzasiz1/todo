@@ -874,7 +874,7 @@ export default function LandingPage() {
                 <X size={18} />
               </button>
 
-              <AnimatePresence mode="wait">
+              <AnimatePresence>
                 {showLogin && (
                   <motion.div
                     key="login"
