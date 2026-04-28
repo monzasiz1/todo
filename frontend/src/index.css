@@ -8576,7 +8576,7 @@ body.cal-is-dragging * {
   transform: scale(1.08);
 }
 
-@media (max-width: 600px) {
+@media (max-width: 1024px) {
   .help-fab {
     display: none;
   }
@@ -20607,7 +20607,7 @@ body.cal-is-dragging * {
   transform: scale(1.08);
   box-shadow: 0 6px 28px rgba(0, 122, 255, 0.45);
 }
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .gchat-fab { display: none; }
 }
 
@@ -20627,7 +20627,7 @@ body.cal-is-dragging * {
   background: var(--bg);
   color: var(--primary);
 }
-@media (min-width: 769px) {
+@media (min-width: 1025px) {
   .gchat-mobile-trigger { display: none; }
 }
 
