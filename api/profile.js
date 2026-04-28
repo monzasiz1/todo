@@ -19,7 +19,7 @@ module.exports = async function handler(req, res) {
   if (!action && req.method === 'GET') {
     try {
       const userResult = await pool.query(
-        `SELECT id, name, email, avatar_url, avatar_color, bio, theme, created_at
+        `SELECT id, name, email, avatar_url, avatar_color, bio, theme, created_at, twofa_enabled
          FROM users WHERE id = $1`,
         [user.id]
       );
@@ -88,6 +88,7 @@ module.exports = async function handler(req, res) {
 
       return res.json({
         user: userResult.rows[0],
+        twofa_enabled: userResult.rows[0].twofa_enabled,
         stats: {
           total_tasks: parseInt(s.total_tasks),
           completed_tasks: parseInt(s.completed_tasks),
@@ -137,13 +138,13 @@ module.exports = async function handler(req, res) {
            avatar_color = COALESCE($4, avatar_color),
            theme = COALESCE($5, theme)
          WHERE id = $1
-         RETURNING id, name, email, avatar_url, avatar_color, bio, theme, created_at`,
+         RETURNING id, name, email, avatar_url, avatar_color, bio, theme, created_at, twofa_enabled`,
         [user.id, name || null, bio !== undefined ? bio : null, avatar_color || null, theme || null]
       );
 
       const updatedUser = result.rows[0];
       const token = generateToken(updatedUser);
-      return res.json({ user: updatedUser, token });
+      return res.json({ user: updatedUser, twofa_enabled: updatedUser.twofa_enabled, token });
     } catch (err) {
       console.error('Profile update error:', err);
       return res.status(500).json({ error: 'Profil konnte nicht aktualisiert werden' });
@@ -251,6 +252,11 @@ module.exports = async function handler(req, res) {
         await sendPasswordChangedMail({ to: email, name });
       } catch (mailErr) {
         console.error('Passwort-Änderungs-Mail Fehler:', mailErr.message);
+      }
+      // Wenn der Request aus dem Browser kommt (kein fetch/XHR), redirect auf Bestätigungsseite
+      const accept = req.headers['accept'] || '';
+      if (accept.includes('text/html')) {
+        return res.redirect(303, '/confirm-password-change');
       }
       return res.json({ success: true, message: 'Passwort erfolgreich geändert.' });
     } catch (err) {

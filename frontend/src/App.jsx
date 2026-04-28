@@ -5,6 +5,7 @@ import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import CalendarPage from './pages/CalendarPage';
 import Login from './pages/Login';
+import PasswordChangeConfirmed from './pages/PasswordChangeConfirmed';
 import Register from './pages/Register';
 import LandingPage from './pages/LandingPage';
 import ProfilePage from './pages/ProfilePage';
@@ -50,6 +51,7 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/landing" element={<LandingPage />} />
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/confirm-password-change" element={<PasswordChangeConfirmed />} />
         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
         <Route
           path="/app"

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -7,6 +8,7 @@ import { AlertCircle, ArrowRight, Key, Mail, ShieldCheck } from 'lucide-react';
 const ease = [0.25, 0.46, 0.45, 0.94];
 
 export default function Login() {
+  const location = useLocation();
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [step, setStep]         = useState('credentials'); // 'credentials' | '2fa'
@@ -27,6 +29,9 @@ export default function Login() {
     }
   };
 
+  // Hinweis nach Passwort-Reset anzeigen
+  const showPwReset = location.search.includes('pwreset=1');
+
   return (
     <div className="bq-auth-page">
 
@@ -35,6 +40,17 @@ export default function Login() {
       </Link>
 
       <div className="bq-auth-form-panel">
+        {showPwReset && (
+          <motion.div
+            className="bq-auth-success"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{ marginBottom: 16 }}
+          >
+            <ShieldCheck size={16} style={{ color: '#34C759', marginRight: 6 }} />
+            <span>Passwort erfolgreich geändert. Bitte melde dich mit dem neuen Passwort an.</span>
+          </motion.div>
+        )}
         <motion.div
           className="bq-auth-form-inner"
           initial={{ opacity: 0, y: 20 }}

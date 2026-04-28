@@ -324,6 +324,10 @@ export default function ProfilePage() {
       setConfirmPw('');
       if (res && res.success) {
         showToast('Bitte bestätige die Änderung per Link in deiner E-Mail.');
+        setTimeout(() => {
+          logout();
+          window.location.href = '/login?pwreset=1';
+        }, 1800);
       } else {
         showToast(res?.message || 'Bitte bestätige die Änderung per E-Mail.', 'info');
       }
