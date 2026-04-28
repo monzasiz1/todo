@@ -84,30 +84,40 @@ export default function GroupsPage() {
   const { can, limit } = usePlan();
   const [searchParams, setSearchParams] = useSearchParams();
   const { tasks: cachedTasks } = useTaskStore();
+  const pendingGroupRef = useRef(null);
+  const pendingTaskRef = useRef(null);
 
-  useEffect(() => { fetchGroups(); }, []);
-
-  // Auto-open group or task from URL param (e.g. from notification click)
+  // Parse URL params immediately, store pending values
   useEffect(() => {
     const groupParam = searchParams.get('group');
     const taskParam = searchParams.get('task');
     if (groupParam || taskParam) {
+      if (groupParam) pendingGroupRef.current = Number(groupParam);
+      if (taskParam) pendingTaskRef.current = Number(taskParam);
       setSearchParams({}, { replace: true });
     }
-    if (groupParam) {
-      setSelectedGroupId(Number(groupParam));
-      setView('detail');
-    }
-    if (taskParam) {
-      const taskId = Number(taskParam);
-      const cached = cachedTasks.find((t) => t.id === taskId);
-      if (cached) {
-        setHighlightTask(cached);
-      } else {
-        api.getTask(taskId).then((t) => { if (t) setHighlightTask(t); }).catch(() => null);
-      }
-    }
   }, [searchParams]);
+
+  useEffect(() => {
+    fetchGroups().then(() => {
+      // After groups loaded, apply pending navigation
+      if (pendingGroupRef.current) {
+        setSelectedGroupId(pendingGroupRef.current);
+        setView('detail');
+        pendingGroupRef.current = null;
+      }
+      if (pendingTaskRef.current) {
+        const taskId = pendingTaskRef.current;
+        pendingTaskRef.current = null;
+        const cached = cachedTasks.find((t) => t.id === taskId);
+        if (cached) {
+          setHighlightTask(cached);
+        } else {
+          api.getTask(taskId).then((t) => { if (t) setHighlightTask(t); }).catch(() => null);
+        }
+      }
+    });
+  }, []);
 
   const openGroup = (id) => {
     setSelectedGroupId(id);
