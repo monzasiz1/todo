@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import '../styles/auth.css';
 import { useLocation } from 'react-router-dom';
+
+import { useState } from 'react';
+import '../styles/auth.css';
+import { useLocation } from 'react-router-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,26 +23,38 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    return (
-      <div className="bq-auth-page">
+    clearError();
+    if (step === 'credentials') {
+      const result = await login(email, password);
+      if (result === true)          navigate('/app');
+      else if (result?.requires2FA) setStep('2fa');
+    } else {
+      const result = await login(email, password, tfaCode);
+      if (result === true) navigate('/app');
+    }
+  };
 
+  // Hinweis nach Passwort-Reset anzeigen
+  const showPwReset = location.search.includes('pwreset=1');
+
+  return (
+    <div className="bq-auth-page">
+      <Link to="/landing" className="bq-auth-back">
+        ← Zurück zur Startseite
+      </Link>
+      <div className="bq-auth-form-panel">
         {showPwReset && (
           <motion.div
-            className="bq-auth-success bq-auth-success-outer"
+            className="bq-auth-success"
             initial={{ opacity: 0, y: -18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.38 }}
+            style={{ margin: '0 auto 18px auto', maxWidth: 340 }}
           >
             <ShieldCheck size={18} style={{ color: '#34C759', marginRight: 8, minWidth: 18 }} />
             <span>Passwort erfolgreich geändert.<br />Bitte melde dich mit dem neuen Passwort an.</span>
           </motion.div>
         )}
-
-        <Link to="/landing" className="bq-auth-back">
-          ← Zurück zur Startseite
-        </Link>
-
-        <div className="bq-auth-form-panel">
         <motion.div
           className="bq-auth-form-inner"
           initial={{ opacity: 0, y: 20 }}
@@ -50,7 +66,6 @@ export default function Login() {
             <img src="/icons/icon.png" alt="BeeQu" />
             <span>BeeQu</span>
           </div>
-
           <div className="bq-auth-form-head">
             <h1>{step === '2fa' ? '2FA-Code eingeben' : 'Willkommen zurück'}</h1>
             <p>{step === '2fa'
@@ -58,7 +73,6 @@ export default function Login() {
               : 'Bei deinem BeeQu-Konto anmelden'}
             </p>
           </div>
-
           {error && (
             <motion.div
               className="bq-auth-error"
@@ -69,7 +83,6 @@ export default function Login() {
               <span>{error}</span>
             </motion.div>
           )}
-
           <form className="bq-auth-form" onSubmit={handleSubmit}>
             <AnimatePresence mode="wait">
               {step === 'credentials' ? (
@@ -118,7 +131,6 @@ export default function Login() {
                 </motion.div>
               )}
             </AnimatePresence>
-
             <button type="submit" className="bq-auth-submit" disabled={loading}>
               {loading
                 ? <span className="bq-auth-spinner" />
@@ -128,14 +140,12 @@ export default function Login() {
               }
             </button>
           </form>
-
           <div className="bq-auth-switch">
             <span>Noch kein Konto?</span>
             <Link to="/register">Kostenlos registrieren</Link>
           </div>
         </motion.div>
       </div>
-
     </div>
   );
 }
