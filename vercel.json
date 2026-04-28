@@ -4,7 +4,7 @@
   "installCommand": "npm install",
   "functions": {
     "api/auth.js": {
-      "includeFiles": "node_modules/nodemailer/**"
+      "includeFiles": "node_modules/{nodemailer,otplib}/**"
     }
   },
   "crons": [
