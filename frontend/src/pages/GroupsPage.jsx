@@ -4,6 +4,7 @@ import { useAuthStore } from '../store/authStore';
 import { useTaskStore } from '../store/taskStore';
 import { api } from '../utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSearchParams } from 'react-router-dom';
 import {
   Users, Plus, Hash, Copy, Check, ChevronRight, ChevronDown, Crown,
   Shield, UserMinus, Settings, Trash2, LogOut, X,
@@ -80,8 +81,19 @@ export default function GroupsPage() {
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const { can, limit } = usePlan();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => { fetchGroups(); }, []);
+
+  // Auto-open group from URL param (e.g. from notification click)
+  useEffect(() => {
+    const groupParam = searchParams.get('group');
+    if (groupParam) {
+      setSelectedGroupId(Number(groupParam));
+      setView('detail');
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams]);
 
   const openGroup = (id) => {
     setSelectedGroupId(id);

@@ -1,6 +1,9 @@
 ﻿import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Calendar from '../components/Calendar';
+import TaskDetailModal from '../components/TaskDetailModal';
 import { useTaskStore } from '../store/taskStore';
+import { api } from '../utils/api';
 
 function filterTasksForRange(tasks, start, end) {
   if (!Array.isArray(tasks) || !start || !end) return [];
@@ -21,6 +24,8 @@ export default function CalendarPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [visibleRange, setVisibleRange] = useState({ start: null, end: null, key: '' });
   const inflightRangeKeyRef = useRef('');
+  const [highlightTask, setHighlightTask] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const loadRange = useCallback(async (start, end, force = false) => {
     if (!start || !end) return;
@@ -76,8 +81,28 @@ export default function CalendarPage() {
     setCalendarTasks((prev) => prev.map((t) => (t.id === updatedTask.id ? { ...t, ...updatedTask } : t)));
   };
 
+  // Open task detail from URL param (e.g. from notification click)
+  useEffect(() => {
+    const taskParam = searchParams.get('task');
+    if (!taskParam) return;
+    setSearchParams({}, { replace: true });
+    const taskId = Number(taskParam);
+    // Try from cache first
+    const cached = cachedTasks.find((t) => t.id === taskId);
+    if (cached) { setHighlightTask(cached); return; }
+    // Fetch from API
+    api.getTask(taskId).then((t) => { if (t) setHighlightTask(t); }).catch(() => null);
+  }, [searchParams]);
+
   return (
     <div className="calendar-page-wrap">
+      {highlightTask && (
+        <TaskDetailModal
+          task={highlightTask}
+          onClose={() => setHighlightTask(null)}
+          onUpdated={(updated) => { setHighlightTask(null); handleTaskUpdated(updated); }}
+        />
+      )}
       <div className="page-header">
         <h2>Kalender</h2>
         <p>Klicke auf einen Tag, um Aufgaben zu sehen oder zu erstellen</p>

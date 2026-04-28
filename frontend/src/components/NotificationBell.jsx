@@ -24,10 +24,15 @@ const SETTINGS_CONFIG = [
   { key: 'engagement', icon: Sparkles, color: '#AF52DE', label: 'Motivations-Tipps', desc: 'Nach längerer Inaktivität', prefKeys: ['engagement'] },
 ];
 
-function getTarget(type) {
-  if (type === 'group_message' || type === 'team_task' || type === 'team_task_created') return '/app/groups';
+function getTarget(notification) {
+  const { type, task_id, group_id } = notification;
+  if (type === 'group_message' || type === 'team_task' || type === 'team_task_created') {
+    return group_id ? `/app/groups?group=${group_id}` : '/app/groups';
+  }
+  if (task_id) return `/app/calendar?task=${task_id}`;
   if (type === 'reminder' || type === 'reminder_created') return '/app/calendar';
-  return '/app';
+  if (type === 'daily_tasks') return '/app/calendar';
+  return '/app/calendar';
 }
 
 export default function NotificationBell() {
@@ -84,9 +89,9 @@ export default function NotificationBell() {
     if (!open) setView('list');
   };
 
-  const handleNotifClick = (type) => {
+  const handleNotifClick = (notification) => {
     setOpen(false);
-    navigate(getTarget(type));
+    navigate(getTarget(notification));
   };
 
   const handleDeleteNotification = (id) => deleteNotification(id);
@@ -228,7 +233,7 @@ export default function NotificationBell() {
                         key={n.id}
                         className={`notif-item ${isUnseen ? 'notif-item-unseen' : ''}`}
                         style={{ cursor: 'pointer' }}
-                        onMouseDown={() => handleNotifClick(n.type)}
+                        onMouseDown={() => handleNotifClick(n)}
                       >
                         <div className="notif-item-icon" style={{ background: `${config.color}15`, color: config.color }}><Icon size={16} /></div>
                         <div className="notif-item-body">

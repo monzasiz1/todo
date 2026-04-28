@@ -207,6 +207,8 @@ export const api = {
 
   getTasksSummary: () => request('/tasks/summary'),
 
+  getTask: (id) => request(`/tasks/${id}`),
+
   getTasksRange: (start, end) =>
     request(`/tasks/range?start=${start}&end=${end}`),
 
