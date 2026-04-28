@@ -162,10 +162,10 @@ input, textarea, select {
   }
 }
 
-/* Desktop: Bottom-Nav startet nach der Sidebar */
+/* Desktop: Bottom-Nav verstecken — Sidebar übernimmt Navigation */
 @media (min-width: 1025px) {
   .bottom-nav {
-    left: 280px;
+    display: none !important;
   }
 }
 
