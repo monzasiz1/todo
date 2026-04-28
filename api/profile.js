@@ -235,7 +235,7 @@ module.exports = async function handler(req, res) {
 
   // DEPRECATED: GET /api/profile/password/confirm — altes 2-Schritt-Flow, leitet auf Login weiter
   if (action === 'password' && segments[1] === 'confirm' && req.method === 'GET') {
-    return res.redirect(303, `${process.env.FRONTEND_URL || 'https://beequ.de'}/login?pwreset=1`;
+    return res.redirect(303, `${process.env.FRONTEND_URL || 'https://beequ.de'}/login?pwreset=1`);
   }
 
   // GET /api/profile/export — Export all user data
