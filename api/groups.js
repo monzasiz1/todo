@@ -890,6 +890,7 @@ module.exports = async function handler(req, res) {
         body: content.slice(0, 120),
         tag: `group-msg-${groupId}-${message.id}`,
         url: '/groups',
+        taskId: task.id,
       }));
 
       return res.status(201).json({ message });
@@ -1115,6 +1116,7 @@ module.exports = async function handler(req, res) {
         tag: `group-msg-${groupId}-${msg.id}`,
         url: '/groups',
       }));
+      // Note: no taskId for plain text messages - only group_id is passed via notifyGroupMembers
 
       return res.status(201).json({
         message: {

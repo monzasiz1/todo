@@ -1501,7 +1501,8 @@ module.exports = async function handler(req, res) {
               url: '/groups',
             },
             'team_task_created',
-            firstTask.id
+            firstTask.id,
+            groupInfo.id
           ).catch(() => null);
         }
       }

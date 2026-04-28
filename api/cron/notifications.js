@@ -220,7 +220,8 @@ module.exports = async function handler(req, res) {
               url: '/groups',
             },
             'team_task',
-            task.id
+            task.id,
+            task.group_id
           );
           results.team++;
         }
