@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import '../notif-clickable.css';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, BellRing, X, Clock, Users, CheckCircle2, Sparkles, Settings, ArrowLeft, RefreshCw, AlertCircle, Wifi, WifiOff } from 'lucide-react';
@@ -54,7 +53,7 @@ const SETTINGS_CONFIG = [
 ];
 
 export default function NotificationBell() {
-  const navigate = useNavigate();
+    const navigate = useNavigate();
   const {
     permission, subscribed, notifications, prefs, loading,
     subscribe, unsubscribe, fetchLog, checkStatus, updatePref, updatePrefsBatch, deleteNotification, clearAllNotifications,
@@ -179,27 +178,6 @@ export default function NotificationBell() {
     if (!subscribed) return { ok: false, label: 'Nicht aktiviert', color: '#FF9500' };
     return { ok: true, label: 'Aktiv', color: '#34C759' };
   })();
-
-  // Handler für Klick auf Notification
-  const handleNotificationClick = (n) => {
-    // Routing je nach Typ und ID
-    if (n.task_id) {
-      navigate(`/app/tasks/${n.task_id}`);
-      setOpen(false);
-      return;
-    }
-    if (n.event_id) {
-      navigate(`/app/calendar/${n.event_id}`);
-      setOpen(false);
-      return;
-    }
-    if (n.chat_id) {
-      navigate(`/app/chat/${n.chat_id}`);
-      setOpen(false);
-      return;
-    }
-    // Fallback: keine ID, kein Routing
-  };
 
   return (
     <div className="notif-wrap" ref={ref}>
@@ -402,12 +380,45 @@ export default function NotificationBell() {
                       const config = TYPE_CONFIG[n.type] || TYPE_CONFIG.reminder;
                       const Icon = config.icon;
                       const isUnseen = new Date(n.sent_at).getTime() > (useNotificationStore.getState().lastSeenAt || 0);
+                      // Fallback: Immer klickbar, wenn Typ bekannt
+                      const isClickable = n.task_id || n.event_id || n.chat_id || [
+                        'group_message', 'team_task', 'team_task_created', 'daily_tasks', 'reminder', 'reminder_created'
+                      ].includes(n.type);
+                      const handleClick = () => {
+                        if (n.task_id) {
+                          navigate(`/app/tasks/${n.task_id}`);
+                          setOpen(false);
+                          return;
+                        }
+                        if (n.event_id) {
+                          navigate(`/app/calendar/${n.event_id}`);
+                          setOpen(false);
+                          return;
+                        }
+                        if (n.chat_id) {
+                          navigate(`/app/chat/${n.chat_id}`);
+                          setOpen(false);
+                          return;
+                        }
+                        // Fallbacks für bekannte Typen
+                        if (n.type === 'group_message' || n.type === 'team_task' || n.type === 'team_task_created') {
+                          navigate('/app/chat'); // Gruppen/Teamnachrichten: Chat-Übersicht
+                          setOpen(false);
+                          return;
+                        }
+                        if (n.type === 'daily_tasks' || n.type === 'reminder' || n.type === 'reminder_created') {
+                          navigate('/app/tasks'); // Aufgaben/Erinnerungen: Aufgabenliste
+                          setOpen(false);
+                          return;
+                        }
+                        // Sonst keine Aktion
+                      };
                       return (
                         <div
                           key={n.id}
-                          className={`notif-item ${isUnseen ? 'notif-item-unseen' : ''} ${n.task_id || n.event_id || n.chat_id ? 'notif-item-clickable' : ''}`}
-                          style={n.task_id || n.event_id || n.chat_id ? { cursor: 'pointer' } : {}}
-                          onClick={() => (n.task_id || n.event_id || n.chat_id) && handleNotificationClick(n)}
+                          className={`notif-item ${isUnseen ? 'notif-item-unseen' : ''} ${isClickable ? 'notif-item-clickable' : ''}`}
+                          style={isClickable ? { cursor: 'pointer' } : {}}
+                          onClick={isClickable ? handleClick : undefined}
                         >
                           <div className="notif-item-icon" style={{ background: `${config.color}15`, color: config.color }}>
                             <Icon size={16} />
