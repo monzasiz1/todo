@@ -5387,44 +5387,80 @@ body.cal-is-dragging * {
   }
 }
 
-/* --- Tablet (portrait, 768px-1024px) --- */
+/* --- Tablet (769px–1024px) = Mobile Layout, keine Sidebar --- */
 @media (min-width: 769px) and (max-width: 1024px) {
-  .app-sidebar {
-    width: 240px;
+  /* Mobile Header einblenden */
+  .mobile-header {
+    display: flex;
+    height: 56px;
+    padding: 0 20px;
+    padding-top: env(safe-area-inset-top, 0px);
   }
 
+  /* Sidebar off-screen, öffnet sich per Hamburger */
+  .app-sidebar {
+    transform: translateX(-100%);
+    width: 300px;
+    z-index: 200;
+    padding-top: calc(16px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .app-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-desktop-toggle {
+    display: none;
+  }
+
+  .sidebar-overlay.open {
+    display: block;
+  }
+
+  .sidebar-notif-row {
+    display: none;
+  }
+
+  /* Hauptinhalt ohne Sidebar-Margin */
   .app-main {
-    margin-left: 240px;
-    padding: 28px 24px;
+    margin-left: 0 !important;
+    padding: 72px 24px 90px;
+    padding-top: calc(72px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+    max-width: 100%;
   }
 
   .app-content-shell {
-    max-width: 1280px;
+    max-width: 100%;
   }
 
-  .stats-row {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
+  /* Bottom Nav einblenden */
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    height: calc(64px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    z-index: 98;
+    align-items: center;
+    justify-content: space-around;
+    padding-left: 8px;
+    padding-right: 8px;
   }
 
-  .stat-card {
-    padding: 16px;
-  }
-
-  .stat-card-value {
-    font-size: 24px;
-  }
-
-  .page-header h2 {
-    font-size: 26px;
-  }
-
-  .calendar-day {
-    min-height: 64px !important;
-  }
-
-  .task-detail-modal {
-    max-width: 460px;
+  /* Desktop-FABs ausblenden */
+  .gchat-fab {
+    display: none;
   }
 }
 
