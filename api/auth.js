@@ -3,8 +3,13 @@ const crypto = require('crypto');
 const { getPool } = require('./_lib/db');
 const { verifyToken, generateToken, cors } = require('./_lib/auth');
 
-function getAuthenticator() {
-  try { return require('otplib').authenticator; } catch { return null; }
+function getOtp() {
+  try {
+    const { authenticator } = require('otplib');
+    return authenticator;
+  } catch {
+    return null;
+  }
 }
 
 // Mailer lazy laden — damit ein fehlgeschlagener nodemailer-Import
@@ -141,10 +146,9 @@ module.exports = async function handler(req, res) {
         if (!twofa_code) {
           return res.status(200).json({ requires2FA: true });
         }
-        const auth = getAuthenticator();
-        if (auth) {
-          const valid = auth.verify({ token: String(twofa_code), secret: user.twofa_secret });
-          if (!valid) return res.status(401).json({ error: 'Ungültiger 2FA-Code. Bitte erneut versuchen.' });
+        const otp = getOtp();
+        if (!otp || !otp.verify({ token: String(twofa_code), secret: user.twofa_secret })) {
+          return res.status(401).json({ error: 'Ungültiger 2FA-Code. Bitte erneut versuchen.' });
         }
       }
 
@@ -232,13 +236,13 @@ module.exports = async function handler(req, res) {
     const me = verifyToken(req);
     if (!me) return res.status(401).json({ error: 'Nicht autorisiert' });
     try {
-      const auth = getAuthenticator();
-      if (!auth) return res.status(500).json({ error: 'otplib nicht verfügbar' });
+      const otp = getOtp();
+      if (!otp) return res.status(500).json({ error: 'otplib nicht verfügbar – bitte Deployment prüfen' });
       const pool = getPool();
       const userRow = await pool.query('SELECT email FROM users WHERE id = $1', [me.id]);
       const email = userRow.rows[0]?.email;
-      const secret = auth.generateSecret(20);
-      const otpauth = auth.keyuri(email, 'BeeQu', secret);
+      const secret = otp.generateSecret(20);
+      const otpauth = otp.keyuri(email, 'BeeQu', secret);
       await pool.query('UPDATE users SET twofa_secret = $1 WHERE id = $2', [secret, me.id]);
       return res.json({ secret, otpauth });
     } catch (err) {
@@ -260,8 +264,9 @@ module.exports = async function handler(req, res) {
       const row = await pool.query('SELECT twofa_secret FROM users WHERE id = $1', [me.id]);
       const secret = row.rows[0]?.twofa_secret;
       if (!secret) return res.status(400).json({ error: 'Kein Secret gefunden. Bitte Setup erneut starten.' });
-      const valid = auth.verify({ token: String(code), secret });
-      if (!valid) return res.status(400).json({ error: 'Ungültiger Code. Bitte erneut versuchen.' });
+      const otp = getOtp();
+      if (!otp || !otp.verify({ token: String(code), secret }))
+        return res.status(400).json({ error: 'Ungültiger Code. Bitte erneut versuchen.' });
       await pool.query('UPDATE users SET twofa_enabled = TRUE WHERE id = $1', [me.id]);
       return res.json({ success: true });
     } catch (err) {
@@ -283,8 +288,9 @@ module.exports = async function handler(req, res) {
       const row = await pool.query('SELECT twofa_secret FROM users WHERE id = $1', [me.id]);
       const secret = row.rows[0]?.twofa_secret;
       if (!secret) return res.status(400).json({ error: '2FA ist nicht aktiv' });
-      const valid = auth.verify({ token: String(code), secret });
-      if (!valid) return res.status(400).json({ error: 'Ungültiger Code.' });
+      const otp = getOtp();
+      if (!otp || !otp.verify({ token: String(code), secret }))
+        return res.status(400).json({ error: 'Ungültiger Code.' });
       await pool.query('UPDATE users SET twofa_enabled = FALSE, twofa_secret = NULL WHERE id = $1', [me.id]);
       return res.json({ success: true });
     } catch (err) {

@@ -80,7 +80,7 @@ img{-ms-interpolation-mode:bicubic;border:0;outline:none;text-decoration:none}
                   <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                     <tr>
                       <td style="padding-right:12px;vertical-align:middle;">
-                        <img src="https://beequ.de/icons/icon.svg"
+                        <img src="https://beequ.de/icons/icon.png"
                              alt="BeeQu" width="40" height="40"
                              style="display:block;border-radius:50%;border:2px solid rgba(255,255,255,0.3);">
                       </td>
@@ -299,7 +299,7 @@ img{-ms-interpolation-mode:bicubic;border:0;outline:none;text-decoration:none}
                   </p>
                 </td>
                 <td align="right" style="vertical-align:middle;">
-                  <img src="https://beequ.de/icons/icon.svg"
+                  <img src="https://beequ.de/icons/icon.png"
                        alt="BeeQu" width="28" height="28"
                        style="display:block;border-radius:50%;border:0;opacity:0.35;">
                 </td>
