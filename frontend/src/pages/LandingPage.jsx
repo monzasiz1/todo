@@ -866,6 +866,30 @@ export default function LandingPage() {
       setLoginError(err.message || 'Login fehlgeschlagen');
     }
   };
+
+
+
+  const handleRegister = async (e) => {
+    e.preventDefault(); setRegisterError('');
+    try {
+      const res = await register(registerName, registerEmail, registerPassword);
+      if (res && res.success) {
+        setPendingEmail(registerEmail);
+      } else {
+        setRegisterError('Registrierung fehlgeschlagen');
+      }
+    } catch (err) {
+      setRegisterError(err.message || 'Registrierung fehlgeschlagen');
+  
+
+    }  };
+
+  return (
+    <div>
+      {/* ══════════ HERO & MOCKUP ══════════ */}
+      <section className="bq-hero">
+        <div className="bq-hero-inner">
+          
               <button
                 className="bq-auth-close"
                 onClick={() => { setShowLogin(false); setShowRegister(false); }}
@@ -1071,9 +1095,110 @@ export default function LandingPage() {
               </AnimatePresence>
             </motion.div>
           </motion.div>
-        )}
+      
       </AnimatePresence>
+  )};
 
-    </div>
-  );
-}
+  if (loading) {
+    return (
+      <div className="bq-loading-screen">
+        <div className="bq-loading-spinner" />
+        <span>Überprüfe deine Anmeldedaten...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bq-error-screen">
+        <AlertCircle size={24} />
+        <h1>Fehler</h1>
+        <p>{error}</p>
+        <button onClick={() => { setError(''); setShowLogin(true); }} className="bq-btn bq-primary">
+          Erneut versuchen
+        </button>
+      </div>
+    );
+  }
+
+  if (user) {
+    navigate('/app');
+    return null;
+  }
+
+  // ══════════ LANDING PAGE ══════════
+  return (
+    <div>
+      {/* ══════════ HERO & MOCKUP ══════════ */}
+      <section className="bq-hero">
+        <div className="bq-hero-inner">
+          <div className="bq-hero-grid">
+
+            {/* Left — mockup */}
+            <motion.div
+              className="bq-hero-mockup"
+              initial="hidden" whileInView="visible"
+              viewport={{ once: true, margin: '-60px' }}
+              variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
+            >
+              <div className="bq-mockup-screen">
+                <div className="bq-ai-input">
+                  <Sparkles size={14} color="#007AFF" />
+                  <span>Erstelle eine Aufgabe: "Treffen mit Anna morgen um 14 Uhr, Kategorie Arbeit, hohe Priorität"</span>
+                </div>
+
+                <motion.div
+                   className="bq-ai-result"
+                   initial={{ opacity: 0, y: 12 }}
+                   animate={{ opacity: 1, y: 0 }}
+                   transition={{ duration: 0.25, delay: 0.4 }}
+                >
+                  <div className="bq-ai-result-head">
+                    <CheckCircle2 size={16} color="#34C759" />
+                    <span>Aufgabe erstellt!</span>
+                  </div>
+                  <div className="bq-ai-result-fields">
+                    {[
+                      { k: 'Titel', v: 'Treffen mit Anna' },
+                      { k: 'Datum', v: 'Morgen, 14:00 Uhr' },
+                      { k: 'Kategorie', v: 'Arbeit' },
+                      { k: 'Priorität', v: 'Hoch' },
+                    ].map(({ k, v }) => (
+                      <div key={k} className="bq-ai-result-field">
+                        <span className="bq-ai-result-key">{k}:</span>
+                        <span className="bq-ai-result-value">{v}</span>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              </div>
+            </motion.div>
+
+            {/* Right — copy */}
+            <motion.div
+              className="bq-ai-copy"
+              initial="hidden" whileInView="visible"
+              viewport={{ once: true, margin: '-60px' }}
+              variants={{ visible: { transition: { staggerChildren: 0.09 } } }}
+            >
+              <motion.span className="bq-label" variants={fadeUp}>KI-Assistent</motion.span>
+              <motion.h2 variants={fadeUp}>
+                Aufgaben anlegen<br />so natürlich wie<br /><span className="bq-hero-accent">tippen.</span>
+              </motion.h2>
+              <motion.p className="bq-hero-sub" variants={fadeUp}>
+                Gib deine Aufgaben einfach in einem Satz ein — unsere KI erkennt automatisch alle Details.
+              </motion.p>
+              <motion.div className="bq-ai-points" variants={fadeUp}>
+                {[
+                  { icon: CalendarDays, text: 'Datum & Uhrzeit automatisch erkannt' },
+                  { icon: Tag,          text: 'Kategorien & Tags auf einen Blick' },
+                  { icon: Star,         text: 'Priorität sofort sichtbar in der Übersicht' },
+                ].map(({ icon: Icon, text }) => (
+                  <div key={text} className="bq-ai-point">
+                    <div className="bq-ai-point-icon">
+                      <Icon size={14} color="#007AFF" />
+                    </div>
+                    <span>{text}</span>
+                  </div>
+                ))}
+              </motion.div>
