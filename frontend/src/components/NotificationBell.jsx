@@ -383,6 +383,7 @@ export default function NotificationBell() {
                         'group_message', 'team_task', 'team_task_created', 'daily_tasks', 'reminder', 'reminder_created'
                       ].includes(n.type);
                       const handleNotificationClick = () => {
+                        console.log('Notification-Klick:', n);
                         if (n.task_id) {
                           navigate(`/app/tasks/${n.task_id}`);
                           setOpen(false);
