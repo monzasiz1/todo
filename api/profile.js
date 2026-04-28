@@ -183,48 +183,79 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // PUT /api/profile/password — Change password
+
+  // PUT /api/profile/password — Request password change (send confirmation mail)
   if (action === 'password' && req.method === 'PUT') {
     try {
       const { current_password, new_password } = req.body;
-
       if (!current_password || !new_password) {
         return res.status(400).json({ error: 'Aktuelles und neues Passwort erforderlich' });
       }
       if (new_password.length < 6) {
         return res.status(400).json({ error: 'Neues Passwort muss mindestens 6 Zeichen haben' });
       }
-
       // Prüfe, ob E-Mail verifiziert ist
-      const userResult = await pool.query('SELECT password, email_verified FROM users WHERE id = $1', [user.id]);
+      const userResult = await pool.query('SELECT password, email_verified, email, name FROM users WHERE id = $1', [user.id]);
       if (userResult.rows.length === 0) {
         return res.status(404).json({ error: 'Benutzer nicht gefunden' });
       }
       if (!userResult.rows[0].email_verified) {
         return res.status(403).json({ error: 'Passwort-Änderung nur nach E-Mail-Bestätigung möglich.' });
       }
-
       const valid = await bcrypt.compare(current_password, userResult.rows[0].password);
       if (!valid) {
         return res.status(401).json({ error: 'Aktuelles Passwort ist falsch' });
       }
+      // Token und Hash generieren
+      const crypto = require('crypto');
+      const token = crypto.randomBytes(32).toString('hex');
+      const hash = await bcrypt.hash(new_password, 12);
+      await pool.query(
+        'UPDATE users SET password_change_token = $2, password_change_hash = $3, password_change_requested_at = NOW() WHERE id = $1',
+        [user.id, token, hash]
+      );
+      // Bestätigungslink senden
+      const { email, name } = userResult.rows[0];
+      const confirmUrl = `${process.env.FRONTEND_URL || 'https://beequ.de'}/confirm-password-change?token=${token}`;
+      const { sendPasswordChangeConfirmMail } = require('./_lib/mailer');
+      await sendPasswordChangeConfirmMail({ to: email, name, confirmUrl });
+      return res.json({ success: true, message: 'Bitte bestätige die Änderung per Link in deiner E-Mail.' });
+    } catch (err) {
+      console.error('Password change request error:', err);
+      return res.status(500).json({ error: 'Passwort-Änderung konnte nicht gestartet werden' });
+    }
+  }
 
-      const hashed = await bcrypt.hash(new_password, 12);
-      await pool.query('UPDATE users SET password = $2 WHERE id = $1', [user.id, hashed]);
-
-      // Sende Benachrichtigungs-E-Mail
+  // GET /api/profile/password/confirm?token=... — Confirm password change
+  if (action === 'password' && segments[1] === 'confirm' && req.method === 'GET') {
+    try {
+      const { token } = req.query;
+      if (!token) return res.status(400).json({ error: 'Token fehlt' });
+      // Finde User mit passendem Token
+      const userResult = await pool.query(
+        'SELECT id, password_change_hash, email, name FROM users WHERE password_change_token = $1 AND password_change_hash IS NOT NULL',
+        [token]
+      );
+      if (userResult.rows.length === 0) {
+        return res.status(400).json({ error: 'Ungültiger oder abgelaufener Token' });
+      }
+      const { id, password_change_hash, email, name } = userResult.rows[0];
+      // Setze neues Passwort und lösche Token/Hash
+      await pool.query(
+        'UPDATE users SET password = $2, password_change_token = NULL, password_change_hash = NULL, password_change_requested_at = NULL WHERE id = $1',
+        [id, password_change_hash]
+      );
+      // Benachrichtigungs-E-Mail
       try {
-        const emailRes = await pool.query('SELECT email, name FROM users WHERE id = $1', [user.id]);
-        const { email, name } = emailRes.rows[0];
+        const { sendPasswordChangedMail } = require('./_lib/mailer');
         await sendPasswordChangedMail({ to: email, name });
       } catch (mailErr) {
         console.error('Passwort-Änderungs-Mail Fehler:', mailErr.message);
       }
-
-      return res.json({ success: true, message: 'Passwort erfolgreich geändert' });
+      return res.json({ success: true, message: 'Passwort erfolgreich geändert.' });
     } catch (err) {
-      console.error('Password change error:', err);
-      return res.status(500).json({ error: 'Passwort konnte nicht geändert werden' });
+      console.error('Password change confirm error:', err);
+      return res.status(500).json({ error: 'Passwort konnte nicht bestätigt werden' });
     }
   }
 

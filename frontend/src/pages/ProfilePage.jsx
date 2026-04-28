@@ -317,12 +317,16 @@ export default function ProfilePage() {
     }
     try {
       setSaving(true);
-      await api.changePassword(currentPw, newPw);
+      const res = await api.changePassword(currentPw, newPw);
       setShowPasswordForm(false);
       setCurrentPw('');
       setNewPw('');
       setConfirmPw('');
-      showToast('Passwort geändert');
+      if (res && res.success) {
+        showToast('Bitte bestätige die Änderung per Link in deiner E-Mail.');
+      } else {
+        showToast(res?.message || 'Bitte bestätige die Änderung per E-Mail.', 'info');
+      }
     } catch (err) {
       showToast(err.message, 'error');
     } finally {
