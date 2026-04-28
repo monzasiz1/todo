@@ -90,8 +90,8 @@ export default function NotificationBell() {
   };
 
   const handleNotifClick = (notification) => {
-    setOpen(false);
     navigate(getTarget(notification));
+    setOpen(false);
   };
 
   const handleDeleteNotification = (id) => deleteNotification(id);
@@ -233,7 +233,7 @@ export default function NotificationBell() {
                         key={n.id}
                         className={`notif-item ${isUnseen ? 'notif-item-unseen' : ''}`}
                         style={{ cursor: 'pointer' }}
-                        onMouseDown={() => handleNotifClick(n)}
+                        onClick={(e) => { e.stopPropagation(); handleNotifClick(n); }}
                       >
                         <div className="notif-item-icon" style={{ background: `${config.color}15`, color: config.color }}><Icon size={16} /></div>
                         <div className="notif-item-body">
