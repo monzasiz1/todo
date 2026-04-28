@@ -19,31 +19,26 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    clearError();
-    if (step === 'credentials') {
-      const result = await login(email, password);
-      if (result === true)          navigate('/app');
-      else if (result?.requires2FA) setStep('2fa');
-    } else {
-      const result = await login(email, password, tfaCode);
-      if (result === true) navigate('/app');
-    }
-  };
+    return (
+      <div className="bq-auth-page">
 
-  // Hinweis nach Passwort-Reset anzeigen
-  const showPwReset = location.search.includes('pwreset=1');
-
-  return (
-    <div className="bq-auth-page">
-
-      <Link to="/landing" className="bq-auth-back">
-        ← Zurück zur Startseite
-      </Link>
-
-      <div className="bq-auth-form-panel">
         {showPwReset && (
           <motion.div
-            className="bq-auth-success"
+            className="bq-auth-success bq-auth-success-outer"
+            initial={{ opacity: 0, y: -18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.38 }}
+          >
+            <ShieldCheck size={18} style={{ color: '#34C759', marginRight: 8, minWidth: 18 }} />
+            <span>Passwort erfolgreich geändert.<br />Bitte melde dich mit dem neuen Passwort an.</span>
+          </motion.div>
+        )}
+
+        <Link to="/landing" className="bq-auth-back">
+          ← Zurück zur Startseite
+        </Link>
+
+        <div className="bq-auth-form-panel">
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             style={{ marginBottom: 16 }}
