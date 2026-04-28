@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, BellRing, X, Clock, Users, CheckCircle2, Sparkles, Settings, ArrowLeft, RefreshCw, AlertCircle, Wifi, WifiOff } from 'lucide-react';
 import { useNotificationStore } from '../store/notificationStore';
@@ -53,7 +52,6 @@ const SETTINGS_CONFIG = [
 ];
 
 export default function NotificationBell() {
-    const navigate = useNavigate();
   const {
     permission, subscribed, notifications, prefs, loading,
     subscribe, unsubscribe, fetchLog, checkStatus, updatePref, updatePrefsBatch, deleteNotification, clearAllNotifications,
@@ -380,11 +378,11 @@ export default function NotificationBell() {
                       const config = TYPE_CONFIG[n.type] || TYPE_CONFIG.reminder;
                       const Icon = config.icon;
                       const isUnseen = new Date(n.sent_at).getTime() > (useNotificationStore.getState().lastSeenAt || 0);
-                      // Fallback: Immer klickbar, wenn Typ bekannt
+                      // Klicklogik: Nur klickbar, wenn ID oder bekannter Typ
                       const isClickable = n.task_id || n.event_id || n.chat_id || [
                         'group_message', 'team_task', 'team_task_created', 'daily_tasks', 'reminder', 'reminder_created'
                       ].includes(n.type);
-                      const handleClick = () => {
+                      const handleNotificationClick = () => {
                         if (n.task_id) {
                           navigate(`/app/tasks/${n.task_id}`);
                           setOpen(false);
@@ -400,25 +398,23 @@ export default function NotificationBell() {
                           setOpen(false);
                           return;
                         }
-                        // Fallbacks für bekannte Typen
                         if (n.type === 'group_message' || n.type === 'team_task' || n.type === 'team_task_created') {
-                          navigate('/app/chat'); // Gruppen/Teamnachrichten: Chat-Übersicht
+                          navigate('/app/chat');
                           setOpen(false);
                           return;
                         }
                         if (n.type === 'daily_tasks' || n.type === 'reminder' || n.type === 'reminder_created') {
-                          navigate('/app/tasks'); // Aufgaben/Erinnerungen: Aufgabenliste
+                          navigate('/app/tasks');
                           setOpen(false);
                           return;
                         }
-                        // Sonst keine Aktion
                       };
                       return (
                         <div
                           key={n.id}
                           className={`notif-item ${isUnseen ? 'notif-item-unseen' : ''} ${isClickable ? 'notif-item-clickable' : ''}`}
                           style={isClickable ? { cursor: 'pointer' } : {}}
-                          onClick={isClickable ? handleClick : undefined}
+                          onClick={isClickable ? handleNotificationClick : undefined}
                         >
                           <div className="notif-item-icon" style={{ background: `${config.color}15`, color: config.color }}>
                             <Icon size={16} />
