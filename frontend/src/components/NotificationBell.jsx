@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, BellRing, X, Clock, Users, CheckCircle2, Sparkles, Settings, ArrowLeft, RefreshCw, AlertCircle, Wifi, WifiOff } from 'lucide-react';
 import { useNotificationStore } from '../store/notificationStore';
@@ -52,6 +53,7 @@ const SETTINGS_CONFIG = [
 ];
 
 export default function NotificationBell() {
+  const navigate = useNavigate();
   const {
     permission, subscribed, notifications, prefs, loading,
     subscribe, unsubscribe, fetchLog, checkStatus, updatePref, updatePrefsBatch, deleteNotification, clearAllNotifications,
@@ -176,6 +178,27 @@ export default function NotificationBell() {
     if (!subscribed) return { ok: false, label: 'Nicht aktiviert', color: '#FF9500' };
     return { ok: true, label: 'Aktiv', color: '#34C759' };
   })();
+
+  // Handler für Klick auf Notification
+  const handleNotificationClick = (n) => {
+    // Routing je nach Typ und ID
+    if (n.task_id) {
+      navigate(`/app/tasks/${n.task_id}`);
+      setOpen(false);
+      return;
+    }
+    if (n.event_id) {
+      navigate(`/app/calendar/${n.event_id}`);
+      setOpen(false);
+      return;
+    }
+    if (n.chat_id) {
+      navigate(`/app/chat/${n.chat_id}`);
+      setOpen(false);
+      return;
+    }
+    // Fallback: keine ID, kein Routing
+  };
 
   return (
     <div className="notif-wrap" ref={ref}>
@@ -379,7 +402,12 @@ export default function NotificationBell() {
                       const Icon = config.icon;
                       const isUnseen = new Date(n.sent_at).getTime() > (useNotificationStore.getState().lastSeenAt || 0);
                       return (
-                        <div key={n.id} className={`notif-item ${isUnseen ? 'notif-item-unseen' : ''}`}>
+                        <div
+                          key={n.id}
+                          className={`notif-item ${isUnseen ? 'notif-item-unseen' : ''} ${n.task_id || n.event_id || n.chat_id ? 'notif-item-clickable' : ''}`}
+                          style={n.task_id || n.event_id || n.chat_id ? { cursor: 'pointer' } : {}}
+                          onClick={() => (n.task_id || n.event_id || n.chat_id) && handleNotificationClick(n)}
+                        >
                           <div className="notif-item-icon" style={{ background: `${config.color}15`, color: config.color }}>
                             <Icon size={16} />
                           </div>
@@ -396,7 +424,7 @@ export default function NotificationBell() {
                             className="notif-item-delete"
                             aria-label="Benachrichtigung löschen"
                             title="Löschen"
-                            onClick={() => handleDeleteNotification(n.id)}
+                            onClick={e => { e.stopPropagation(); handleDeleteNotification(n.id); }}
                           >
                             <X size={12} />
                           </button>
