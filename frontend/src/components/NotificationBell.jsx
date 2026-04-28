@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, BellRing, X, Clock, Users, CheckCircle2, Sparkles, Settings, ArrowLeft, RefreshCw, AlertCircle, Wifi, WifiOff } from 'lucide-react';
 import { useNotificationStore } from '../store/notificationStore';
@@ -16,6 +16,12 @@ const TYPE_CONFIG = {
   team_task_created: { icon: Users, color: '#5856D6', label: 'Neue Gruppenaufgabe', desc: 'Sofort bei Erstellung in der Gruppe' },
   group_message: { icon: Users, color: '#2F80ED', label: 'Gruppennachrichten', desc: 'Neue Nachrichten im Gruppenchat' },
   test: { icon: Bell, color: '#34C759', label: 'Test', desc: 'Test-Benachrichtigung' },
+};
+
+const getNotifTarget = (n) => {
+  if (n.type === 'group_message' || n.type === 'team_task' || n.type === 'team_task_created') return '/app/groups';
+  if (n.type === 'reminder' || n.type === 'reminder_created') return '/app/calendar';
+  return '/app';
 };
 
 const SETTINGS_CONFIG = [
@@ -388,24 +394,13 @@ export default function NotificationBell() {
                     const config = TYPE_CONFIG[n.type] || TYPE_CONFIG.reminder;
                     const Icon = config.icon;
                     const isUnseen = new Date(n.sent_at).getTime() > (useNotificationStore.getState().lastSeenAt || 0);
-                    const handleNotificationClick = () => {
-                      setOpen(false);
-                      if (n.type === 'group_message' || n.type === 'team_task' || n.type === 'team_task_created') {
-                        navigate('/app/groups');
-                        return;
-                      }
-                      if (n.type === 'reminder' || n.type === 'reminder_created') {
-                        navigate('/app/calendar');
-                        return;
-                      }
-                      navigate('/app');
-                    };
                     return (
-                      <div
+                      <Link
                         key={n.id}
+                        to={getNotifTarget(n)}
                         className={`notif-item ${isUnseen ? 'notif-item-unseen' : ''}`}
-                        style={{ cursor: 'pointer' }}
-                        onClick={handleNotificationClick}
+                        style={{ cursor: 'pointer', textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'flex-start', gap: 10, padding: 10, borderRadius: 10, transition: 'background 0.15s', position: 'relative' }}
+                        onClick={() => setOpen(false)}
                       >
                         <div className="notif-item-icon" style={{ background: `${config.color}15`, color: config.color }}>
                           <Icon size={16} />
@@ -423,12 +418,12 @@ export default function NotificationBell() {
                           className="notif-item-delete"
                           aria-label="Benachrichtigung löschen"
                           title="Löschen"
-                          onClick={e => { e.stopPropagation(); handleDeleteNotification(n.id); }}
+                          onClick={e => { e.preventDefault(); e.stopPropagation(); handleDeleteNotification(n.id); }}
                         >
                           <X size={12} />
                         </button>
                         {isUnseen && <div className="notif-unseen-dot" />}
-                      </div>
+                      </Link>
                     );
                   })
                 )}
