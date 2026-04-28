@@ -619,8 +619,15 @@ export default function ProfilePage() {
 
           {/* 2FA */}
           <button className="pv2-row" onClick={() => {
-            if (twofa.enabled) { setShow2FADisable(!show2FADisable); setShow2FASetup(false); setTfaCode(''); setTfaError(''); }
-            else start2FASetup();
+            if (twofa.enabled) {
+              setShow2FADisable(!show2FADisable);
+              setShow2FASetup(false);
+              setTfaCode('');
+              setTfaError('');
+            } else {
+              // Nur Setup starten, wenn wirklich nicht aktiv
+              if (!show2FASetup) start2FASetup();
+            }
           }}>
             <div className="pv2-row-icon" style={{ background: twofa.enabled ? 'rgba(52,199,89,0.12)' : 'rgba(255,149,0,0.1)', color: twofa.enabled ? '#34C759' : '#FF9500' }}>
               {twofa.enabled ? <ShieldCheck size={16} /> : <ShieldOff size={16} />}
@@ -637,7 +644,8 @@ export default function ProfilePage() {
               : <ChevronRight size={16} className={`pv2-chevron ${(show2FASetup || show2FADisable) ? 'open' : ''}`} />}
           </button>
           <AnimatePresence>
-            {show2FASetup && tfaSetupData && (
+            {/* 2FA-Setup-Formular und QR-Code nur anzeigen, wenn NICHT aktiviert */}
+            {(!twofa.enabled && show2FASetup && tfaSetupData) && (
               <motion.div className="pv2-expand" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22 }}>
                 <div className="pv2-form-inner pv2-2fa">
                   <p className="pv2-2fa-step"><strong>Schritt 1:</strong> QR-Code mit Authenticator-App scannen</p>
