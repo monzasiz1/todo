@@ -19,14 +19,19 @@ export const useAuthStore = create((set) => ({
   loading: false,
   error: null,
 
-  login: async (email, password) => {
+  login: async (email, password, twofa_code) => {
     set({ loading: true, error: null });
     try {
-      const data = await api.login(email, password);
+      const body = { email, password };
+      if (twofa_code) body.twofa_code = twofa_code;
+      const data = await api.loginWith(email, password, twofa_code);
+      if (data.requires2FA) {
+        set({ loading: false });
+        return { requires2FA: true };
+      }
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       set({ user: data.user, token: data.token, loading: false });
-      // Notify SW of new token
       window.dispatchEvent(new Event('beequ:token-updated'));
       return true;
     } catch (err) {

@@ -3,10 +3,10 @@ import { useAuthStore } from '../store/authStore';
 import { api } from '../utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Camera, User, Mail, Lock, Shield, Palette, Download,
+  Camera, User, Mail, Lock, Shield, ShieldCheck, ShieldOff, Palette, Download,
   Trash2, Check, X, ChevronRight, AlertTriangle, Flame,
   Target, Calendar, CheckCircle2, Clock, TrendingUp,
-  Award, Star, Edit3, Eye, EyeOff, ArrowLeft, MessageCircleQuestion, Video
+  Award, Star, Edit3, Eye, EyeOff, ArrowLeft, MessageCircleQuestion, Video, QrCode
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -62,6 +62,15 @@ export default function ProfilePage() {
   const [showCurrentPw, setShowCurrentPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
 
+  // 2FA
+  const [twofa, setTwofa]               = useState({ enabled: false });
+  const [show2FASetup, setShow2FASetup] = useState(false);
+  const [show2FADisable, setShow2FADisable] = useState(false);
+  const [tfaSetupData, setTfaSetupData] = useState(null); // { secret, otpauth }
+  const [tfaCode, setTfaCode]           = useState('');
+  const [tfaLoading, setTfaLoading]     = useState(false);
+  const [tfaError, setTfaError]         = useState('');
+
   // Delete
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletePw, setDeletePw] = useState('');
@@ -101,6 +110,44 @@ export default function ProfilePage() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  const start2FASetup = async () => {
+    setTfaLoading(true); setTfaError('');
+    try {
+      const data = await api.setup2FA();
+      setTfaSetupData(data);
+      setShow2FASetup(true);
+      setTfaCode('');
+    } catch (e) { setTfaError(e.message); }
+    finally { setTfaLoading(false); }
+  };
+
+  const confirm2FA = async () => {
+    if (tfaCode.length !== 6) { setTfaError('Bitte 6-stelligen Code eingeben'); return; }
+    setTfaLoading(true); setTfaError('');
+    try {
+      await api.confirm2FA(tfaCode);
+      setTwofa({ enabled: true });
+      setShow2FASetup(false);
+      setTfaSetupData(null);
+      setTfaCode('');
+      showToast('✅ 2FA erfolgreich aktiviert');
+    } catch (e) { setTfaError(e.message); }
+    finally { setTfaLoading(false); }
+  };
+
+  const disable2FA = async () => {
+    if (tfaCode.length !== 6) { setTfaError('Bitte 6-stelligen Code eingeben'); return; }
+    setTfaLoading(true); setTfaError('');
+    try {
+      await api.disable2FA(tfaCode);
+      setTwofa({ enabled: false });
+      setShow2FADisable(false);
+      setTfaCode('');
+      showToast('2FA deaktiviert');
+    } catch (e) { setTfaError(e.message); }
+    finally { setTfaLoading(false); }
+  };
+
   const loadProfile = async () => {
     try {
       const data = await api.getProfile();
@@ -110,6 +157,7 @@ export default function ProfilePage() {
       setNameValue(data.user.name || '');
       setBioValue(data.user.bio || '');
       setVisibility(data.user.profile_visibility || 'everyone');
+      setTwofa({ enabled: !!data.user.twofa_enabled });
     } catch (err) {
       showToast('Profil konnte nicht geladen werden', 'error');
     } finally {
@@ -645,6 +693,99 @@ export default function ProfilePage() {
 
       {/* Visibility */}
       <div className="profile-section-card">
+        {/* ── 2FA ── */}
+        <button
+          className="profile-action-row"
+          onClick={() => {
+            if (twofa.enabled) { setShow2FADisable(!show2FADisable); setShow2FASetup(false); setTfaCode(''); setTfaError(''); }
+            else { start2FASetup(); }
+          }}
+        >
+          <div className="profile-action-left">
+            <div className="profile-action-icon" style={{ background: twofa.enabled ? 'rgba(52,199,89,0.12)' : 'rgba(255,149,0,0.1)', color: twofa.enabled ? '#34C759' : '#FF9500' }}>
+              {twofa.enabled ? <ShieldCheck size={18} /> : <ShieldOff size={18} />}
+            </div>
+            <div>
+              <div className="profile-action-title">
+                Zwei-Faktor-Authentifizierung
+                {twofa.enabled && <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: '#34C759', background: 'rgba(52,199,89,0.12)', padding: '2px 8px', borderRadius: 20 }}>Aktiv</span>}
+              </div>
+              <div className="profile-action-subtitle">
+                {twofa.enabled ? 'Per Authenticator-App geschützt — klicken zum Deaktivieren' : 'Zusätzlicher Schutz via Authenticator-App'}
+              </div>
+            </div>
+          </div>
+          {tfaLoading ? <span className="bq-auth-spinner" style={{ width: 18, height: 18, borderWidth: 2 }} /> : <ChevronRight size={18} className={`profile-chevron ${(show2FASetup || show2FADisable) ? 'open' : ''}`} />}
+        </button>
+
+        <AnimatePresence>
+          {/* Setup flow */}
+          {show2FASetup && tfaSetupData && (
+            <motion.div className="profile-2fa-panel"
+              initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }}>
+              <div className="profile-2fa-inner">
+                <p className="profile-2fa-step"><strong>Schritt 1:</strong> Öffne deine Authenticator-App (Google Authenticator, Authy etc.) und scanne diesen QR-Code:</p>
+                <div className="profile-2fa-qr">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(tfaSetupData.otpauth)}`}
+                    alt="2FA QR Code" width={180} height={180}
+                  />
+                </div>
+                <p className="profile-2fa-step"><strong>Manuell:</strong> Falls der QR-Code nicht funktioniert, gib diesen Code in der App ein:</p>
+                <div className="profile-2fa-secret">{tfaSetupData.secret}</div>
+                <p className="profile-2fa-step"><strong>Schritt 2:</strong> Gib den 6-stelligen Code aus der App ein:</p>
+                <div className="bq-field" style={{ maxWidth: 240 }}>
+                  <div className="bq-input-wrap">
+                    <ShieldCheck size={15} className="bq-input-icon" />
+                    <input type="text" inputMode="numeric" maxLength={6} placeholder="000000"
+                      value={tfaCode} onChange={e => { setTfaCode(e.target.value.replace(/\D/g,'')); setTfaError(''); }}
+                      style={{ letterSpacing: '0.3em', fontSize: '1.2rem', fontWeight: 700 }} />
+                  </div>
+                </div>
+                {tfaError && <p style={{ color: '#FF3B30', fontSize: 13, marginTop: 6 }}>{tfaError}</p>}
+                <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+                  <button className="bq-auth-submit" style={{ flex: 1, minHeight: 44 }} onClick={confirm2FA} disabled={tfaLoading}>
+                    {tfaLoading ? <span className="bq-auth-spinner" /> : <>2FA aktivieren <ShieldCheck size={15} /></>}
+                  </button>
+                  <button className="profile-action-btn-cancel" onClick={() => { setShow2FASetup(false); setTfaSetupData(null); setTfaCode(''); setTfaError(''); }}>
+                    Abbrechen
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Disable flow */}
+          {show2FADisable && (
+            <motion.div className="profile-2fa-panel"
+              initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }}>
+              <div className="profile-2fa-inner">
+                <p className="profile-2fa-step">Gib den aktuellen Code aus deiner Authenticator-App ein um 2FA zu deaktivieren:</p>
+                <div className="bq-field" style={{ maxWidth: 240 }}>
+                  <div className="bq-input-wrap">
+                    <ShieldOff size={15} className="bq-input-icon" />
+                    <input type="text" inputMode="numeric" maxLength={6} placeholder="000000"
+                      value={tfaCode} onChange={e => { setTfaCode(e.target.value.replace(/\D/g,'')); setTfaError(''); }}
+                      style={{ letterSpacing: '0.3em', fontSize: '1.2rem', fontWeight: 700 }} />
+                  </div>
+                </div>
+                {tfaError && <p style={{ color: '#FF3B30', fontSize: 13, marginTop: 6 }}>{tfaError}</p>}
+                <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+                  <button style={{ flex: 1, minHeight: 44, background: '#FF3B30', color: '#fff', borderRadius: 12, fontWeight: 700, fontSize: 14, border: 'none', cursor: 'pointer' }}
+                    onClick={disable2FA} disabled={tfaLoading}>
+                    {tfaLoading ? <span className="bq-auth-spinner" style={{ borderTopColor: '#fff' }} /> : '2FA deaktivieren'}
+                  </button>
+                  <button className="profile-action-btn-cancel" onClick={() => { setShow2FADisable(false); setTfaCode(''); setTfaError(''); }}>
+                    Abbrechen
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="profile-action-row" style={{ cursor: 'default' }}>
           <div className="profile-action-left">
             <div className="profile-action-icon" style={{ background: 'rgba(0,122,255,0.1)', color: '#007AFF' }}>

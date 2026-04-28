@@ -3,6 +3,10 @@ const crypto = require('crypto');
 const { getPool } = require('./_lib/db');
 const { verifyToken, generateToken, cors } = require('./_lib/auth');
 
+function getAuthenticator() {
+  try { return require('otplib').authenticator; } catch { return null; }
+}
+
 // Mailer lazy laden — damit ein fehlgeschlagener nodemailer-Import
 // die gesamte Funktion nicht crasht
 function getSendActivationMail() {
@@ -131,9 +135,22 @@ module.exports = async function handler(req, res) {
       if (!validPassword)
         return res.status(401).json({ error: 'Ungültige Anmeldedaten' });
 
-      const { password: _, ...userWithoutPassword } = user;
-      const token = generateToken(userWithoutPassword);
-      return res.json({ user: userWithoutPassword, token });
+      // 2FA check
+      if (user.twofa_enabled) {
+        const { twofa_code } = req.body;
+        if (!twofa_code) {
+          return res.status(200).json({ requires2FA: true });
+        }
+        const auth = getAuthenticator();
+        if (auth) {
+          const valid = auth.verify({ token: String(twofa_code), secret: user.twofa_secret });
+          if (!valid) return res.status(401).json({ error: 'Ungültiger 2FA-Code. Bitte erneut versuchen.' });
+        }
+      }
+
+      const { password: _, twofa_secret: __, ...userWithoutSensitive } = user;
+      const token = generateToken(userWithoutSensitive);
+      return res.json({ user: userWithoutSensitive, token });
     } catch (err) {
       console.error('Login error:', err);
       return res.status(500).json({ error: 'Anmeldung fehlgeschlagen' });
@@ -207,6 +224,72 @@ module.exports = async function handler(req, res) {
     } catch (err) {
       console.error('Activation error:', err);
       return res.status(500).send('Aktivierung fehlgeschlagen.');
+    }
+  }
+
+  /* ── POST /api/auth/2fa/setup — generate secret + QR URL ── */
+  if (action === '2fa' && segments[1] === 'setup' && req.method === 'POST') {
+    const me = verifyToken(req);
+    if (!me) return res.status(401).json({ error: 'Nicht autorisiert' });
+    try {
+      const auth = getAuthenticator();
+      if (!auth) return res.status(500).json({ error: 'otplib nicht verfügbar' });
+      const pool = getPool();
+      const userRow = await pool.query('SELECT email FROM users WHERE id = $1', [me.id]);
+      const email = userRow.rows[0]?.email;
+      const secret = auth.generateSecret(20);
+      const otpauth = auth.keyuri(email, 'BeeQu', secret);
+      await pool.query('UPDATE users SET twofa_secret = $1 WHERE id = $2', [secret, me.id]);
+      return res.json({ secret, otpauth });
+    } catch (err) {
+      console.error('2FA setup error:', err);
+      return res.status(500).json({ error: '2FA-Setup fehlgeschlagen' });
+    }
+  }
+
+  /* ── POST /api/auth/2fa/confirm — verify code + enable 2FA ── */
+  if (action === '2fa' && segments[1] === 'confirm' && req.method === 'POST') {
+    const me = verifyToken(req);
+    if (!me) return res.status(401).json({ error: 'Nicht autorisiert' });
+    try {
+      const { code } = req.body;
+      if (!code) return res.status(400).json({ error: 'Code fehlt' });
+      const auth = getAuthenticator();
+      if (!auth) return res.status(500).json({ error: 'otplib nicht verfügbar' });
+      const pool = getPool();
+      const row = await pool.query('SELECT twofa_secret FROM users WHERE id = $1', [me.id]);
+      const secret = row.rows[0]?.twofa_secret;
+      if (!secret) return res.status(400).json({ error: 'Kein Secret gefunden. Bitte Setup erneut starten.' });
+      const valid = auth.verify({ token: String(code), secret });
+      if (!valid) return res.status(400).json({ error: 'Ungültiger Code. Bitte erneut versuchen.' });
+      await pool.query('UPDATE users SET twofa_enabled = TRUE WHERE id = $1', [me.id]);
+      return res.json({ success: true });
+    } catch (err) {
+      console.error('2FA confirm error:', err);
+      return res.status(500).json({ error: '2FA-Bestätigung fehlgeschlagen' });
+    }
+  }
+
+  /* ── POST /api/auth/2fa/disable — verify code + disable 2FA ── */
+  if (action === '2fa' && segments[1] === 'disable' && req.method === 'POST') {
+    const me = verifyToken(req);
+    if (!me) return res.status(401).json({ error: 'Nicht autorisiert' });
+    try {
+      const { code } = req.body;
+      if (!code) return res.status(400).json({ error: 'Code fehlt' });
+      const auth = getAuthenticator();
+      if (!auth) return res.status(500).json({ error: 'otplib nicht verfügbar' });
+      const pool = getPool();
+      const row = await pool.query('SELECT twofa_secret FROM users WHERE id = $1', [me.id]);
+      const secret = row.rows[0]?.twofa_secret;
+      if (!secret) return res.status(400).json({ error: '2FA ist nicht aktiv' });
+      const valid = auth.verify({ token: String(code), secret });
+      if (!valid) return res.status(400).json({ error: 'Ungültiger Code.' });
+      await pool.query('UPDATE users SET twofa_enabled = FALSE, twofa_secret = NULL WHERE id = $1', [me.id]);
+      return res.json({ success: true });
+    } catch (err) {
+      console.error('2FA disable error:', err);
+      return res.status(500).json({ error: '2FA deaktivieren fehlgeschlagen' });
     }
   }
 
