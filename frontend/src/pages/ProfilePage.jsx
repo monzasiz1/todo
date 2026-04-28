@@ -95,8 +95,13 @@ export default function ProfilePage() {
 
   const fileInputRef = useRef(null);
 
+  const { refreshUser } = useAuthStore.getState();
   useEffect(() => {
-    loadProfile();
+    // Nach jedem Mount: User-Status frisch laden
+    (async () => {
+      await refreshUser();
+      await loadProfile();
+    })();
     api.getTeamsStatus().then((d) => setTeamsConnected(d.connected)).catch(() => setTeamsConnected(false));
 
     // Handle OAuth callback result
@@ -123,6 +128,8 @@ export default function ProfilePage() {
       setTfaSetupData(data);
       setShow2FASetup(true);
       setTfaCode('');
+      // Nach Setup: User-Status frisch laden
+      await refreshUser();
     } catch (e) { setTfaError(e.message); }
     finally { setTfaLoading(false); }
   };
@@ -137,6 +144,8 @@ export default function ProfilePage() {
       setTfaSetupData(null);
       setTfaCode('');
       showToast('✅ 2FA erfolgreich aktiviert');
+      // Nach Bestätigung: User-Status frisch laden
+      await refreshUser();
     } catch (e) { setTfaError(e.message); }
     finally { setTfaLoading(false); }
   };
@@ -150,6 +159,8 @@ export default function ProfilePage() {
       setShow2FADisable(false);
       setTfaCode('');
       showToast('2FA deaktiviert');
+      // Nach Deaktivierung: User-Status frisch laden
+      await refreshUser();
     } catch (e) { setTfaError(e.message); }
     finally { setTfaLoading(false); }
   };
