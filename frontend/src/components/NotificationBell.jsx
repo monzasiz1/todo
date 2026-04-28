@@ -400,7 +400,7 @@ export default function NotificationBell() {
                         to={getNotifTarget(n)}
                         className={`notif-item ${isUnseen ? 'notif-item-unseen' : ''}`}
                         style={{ cursor: 'pointer', textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'flex-start', gap: 10, padding: 10, borderRadius: 10, transition: 'background 0.15s', position: 'relative' }}
-                        onClick={() => setOpen(false)}
+                        onClick={() => { console.log('[NotifBell] Klick auf:', n.type, '→', getNotifTarget(n)); setOpen(false); }}
                       >
                         <div className="notif-item-icon" style={{ background: `${config.color}15`, color: config.color }}>
                           <Icon size={16} />
