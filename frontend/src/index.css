@@ -5424,12 +5424,11 @@ body.cal-is-dragging * {
     display: none;
   }
 
-  /* Hauptinhalt ohne Sidebar-Margin */
+  /* Hauptinhalt ohne Sidebar-Margin, kein Bottom-Nav-Abstand */
   .app-main {
     margin-left: 0 !important;
-    padding: 72px 24px 90px;
+    padding: 72px 24px 32px;
     padding-top: calc(72px + env(safe-area-inset-top, 0px));
-    padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px));
     max-width: 100%;
   }
 
@@ -5437,30 +5436,14 @@ body.cal-is-dragging * {
     max-width: 100%;
   }
 
-  /* Bottom Nav einblenden */
+  /* Bottom Nav auf Tablet verstecken — Navigation läuft über Hamburger-Menü */
   .bottom-nav {
-    display: flex;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 64px;
-    height: calc(64px + env(safe-area-inset-bottom, 0px));
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    background: rgba(255, 255, 255, 0.88);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-top: 1px solid var(--border);
-    z-index: 98;
-    align-items: center;
-    justify-content: space-around;
-    padding-left: 8px;
-    padding-right: 8px;
+    display: none !important;
   }
 
-  /* Desktop-FABs ausblenden */
+  /* Alle schwebenden Desktop-Buttons ausblenden */
   .gchat-fab {
-    display: none;
+    display: none !important;
   }
 }
 

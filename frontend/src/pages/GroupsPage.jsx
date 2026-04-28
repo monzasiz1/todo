@@ -80,18 +80,32 @@ export default function GroupsPage() {
   const [view, setView] = useState('list');
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [highlightTask, setHighlightTask] = useState(null);
   const { can, limit } = usePlan();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { tasks: cachedTasks } = useTaskStore();
 
   useEffect(() => { fetchGroups(); }, []);
 
-  // Auto-open group from URL param (e.g. from notification click)
+  // Auto-open group or task from URL param (e.g. from notification click)
   useEffect(() => {
     const groupParam = searchParams.get('group');
+    const taskParam = searchParams.get('task');
+    if (groupParam || taskParam) {
+      setSearchParams({}, { replace: true });
+    }
     if (groupParam) {
       setSelectedGroupId(Number(groupParam));
       setView('detail');
-      setSearchParams({}, { replace: true });
+    }
+    if (taskParam) {
+      const taskId = Number(taskParam);
+      const cached = cachedTasks.find((t) => t.id === taskId);
+      if (cached) {
+        setHighlightTask(cached);
+      } else {
+        api.getTask(taskId).then((t) => { if (t) setHighlightTask(t); }).catch(() => null);
+      }
     }
   }, [searchParams]);
 
@@ -129,6 +143,13 @@ export default function GroupsPage() {
 
   return (
     <div>
+      {highlightTask && (
+        <TaskDetailModal
+          task={highlightTask}
+          onClose={() => setHighlightTask(null)}
+          onUpdated={() => setHighlightTask(null)}
+        />
+      )}
       <AnimatePresence mode="wait">
         {view === 'list' && (
           <GroupList
