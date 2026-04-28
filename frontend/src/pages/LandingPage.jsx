@@ -866,38 +866,7 @@ export default function LandingPage() {
       setLoginError(err.message || 'Login fehlgeschlagen');
     }
   };
-            <button
-              className="bq-auth-close"
-              onClick={() => { setShowLogin(false); setShowRegister(false); }}
-              aria-label="Schließen"
-            >
-              <X size={18} />
-            </button>
-
-            <AnimatePresence>
-              {showLogin && (
-                <motion.div
-                  key="login"
-                  className="bq-auth-form-inner"
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -16 }}
-                  transition={{ duration: 0.25 }}
-                >
-                  <div className="bq-auth-form-head">
-                    <h1>Anmelden</h1>
-                    <p>Bei deinem BeeQu-Konto anmelden</p>
-                  </div>
-
-                  {loginError && (
-                    <div className="bq-auth-error">
-                      <AlertCircle size={15} />
-                      <span>{loginError}</span>
-                    </div>
-                  )}
-
-                  <form onSubmit={handleLogin} className="bq-auth-form">
-                    <div className="bq-field">
+// ...existing code...
                         <label htmlFor="login-email">E-Mail-Adresse</label>
                         <div className="bq-input-wrap">
                           <Mail size={16} className="bq-input-icon" />
