@@ -39,14 +39,6 @@ export default function Login() {
         </Link>
 
         <div className="bq-auth-form-panel">
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            style={{ marginBottom: 16 }}
-          >
-            <ShieldCheck size={16} style={{ color: '#34C759', marginRight: 6 }} />
-            <span>Passwort erfolgreich geändert. Bitte melde dich mit dem neuen Passwort an.</span>
-          </motion.div>
-        )}
         <motion.div
           className="bq-auth-form-inner"
           initial={{ opacity: 0, y: 20 }}

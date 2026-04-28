@@ -1,13 +1,16 @@
 .bq-auth-overlay-full {
   position: fixed;
-  top: 0; left: 0; width: 100vw; height: 100vh;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
   z-index: 1000;
-  background: rgba(18,22,28,0.82);
+  background: linear-gradient(90deg, rgba(18,22,28,0.97) 0%, rgba(18,22,28,0.93) 100%);
   display: flex;
-  align-items: stretch;
+  align-items: center;
   justify-content: center;
   overflow: auto;
-  backdrop-filter: blur(2.5px);
+  backdrop-filter: blur(3.5px);
+  box-shadow: 0 0 0 9999px rgba(18,22,28,0.97);
 }
 
 .bq-auth-brand {
