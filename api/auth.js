@@ -258,7 +258,7 @@ module.exports = async function handler(req, res) {
     try {
       const { code } = req.body;
       if (!code) return res.status(400).json({ error: 'Code fehlt' });
-      const auth = getAuthenticator();
+      const auth = getOtp();
       if (!auth) return res.status(500).json({ error: 'otplib nicht verfügbar' });
       const pool = getPool();
       const row = await pool.query('SELECT twofa_secret FROM users WHERE id = $1', [me.id]);
@@ -282,7 +282,7 @@ module.exports = async function handler(req, res) {
     try {
       const { code } = req.body;
       if (!code) return res.status(400).json({ error: 'Code fehlt' });
-      const auth = getAuthenticator();
+      const auth = getOtp();
       if (!auth) return res.status(500).json({ error: 'otplib nicht verfügbar' });
       const pool = getPool();
       const row = await pool.query('SELECT twofa_secret FROM users WHERE id = $1', [me.id]);

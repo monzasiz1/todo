@@ -479,7 +479,12 @@ export default function ProfilePage() {
         {/* Level Badge */}
         <div className="profile-level-badge">
           <div className="profile-level-icon">
-            <Star size={16} />
+            {/* Zeige SVG-Icon je nach Level (max. 5) */}
+            <img
+              src={`/level-icons/level-${level > 5 ? 5 : level}.svg`}
+              alt={`Level ${level} Icon`}
+              style={{ width: 32, height: 32, display: 'block' }}
+            />
           </div>
           <div>
             <div className="profile-level-label">Level {level}</div>
