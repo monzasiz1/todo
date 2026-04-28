@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
@@ -25,9 +25,23 @@ function PublicRoute({ children }) {
   return children;
 }
 
+function StandaloneRedirector() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  // Prüfe nur auf Root-Route und Standalone-Modus
+  React.useEffect(() => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    if (isStandalone && location.pathname === '/') {
+      navigate('/login', { replace: true });
+    }
+  }, [location, navigate]);
+  return null;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
+      <StandaloneRedirector />
       <InstallPrompt />
       <OfflineBanner />
       <Routes>
