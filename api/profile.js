@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const { getPool } = require('./_lib/db');
 const { verifyToken, generateToken, cors } = require('./_lib/auth');
+const { sendPasswordChangedMail } = require('./_lib/mailer');
 
 module.exports = async function handler(req, res) {
   cors(res);
@@ -194,10 +195,13 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ error: 'Neues Passwort muss mindestens 6 Zeichen haben' });
       }
 
-      // Verify current password
-      const userResult = await pool.query('SELECT password FROM users WHERE id = $1', [user.id]);
+      // Prüfe, ob E-Mail verifiziert ist
+      const userResult = await pool.query('SELECT password, email_verified FROM users WHERE id = $1', [user.id]);
       if (userResult.rows.length === 0) {
         return res.status(404).json({ error: 'Benutzer nicht gefunden' });
+      }
+      if (!userResult.rows[0].email_verified) {
+        return res.status(403).json({ error: 'Passwort-Änderung nur nach E-Mail-Bestätigung möglich.' });
       }
 
       const valid = await bcrypt.compare(current_password, userResult.rows[0].password);
@@ -207,6 +211,15 @@ module.exports = async function handler(req, res) {
 
       const hashed = await bcrypt.hash(new_password, 12);
       await pool.query('UPDATE users SET password = $2 WHERE id = $1', [user.id, hashed]);
+
+      // Sende Benachrichtigungs-E-Mail
+      try {
+        const emailRes = await pool.query('SELECT email, name FROM users WHERE id = $1', [user.id]);
+        const { email, name } = emailRes.rows[0];
+        await sendPasswordChangedMail({ to: email, name });
+      } catch (mailErr) {
+        console.error('Passwort-Änderungs-Mail Fehler:', mailErr.message);
+      }
 
       return res.json({ success: true, message: 'Passwort erfolgreich geändert' });
     } catch (err) {
