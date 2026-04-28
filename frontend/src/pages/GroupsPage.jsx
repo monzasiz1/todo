@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useGroupStore } from '../store/groupStore';
 import { useAuthStore } from '../store/authStore';
 import { useTaskStore } from '../store/taskStore';
@@ -159,12 +160,13 @@ export default function GroupsPage() {
 
   return (
     <div>
-      {highlightTask && (
+      {highlightTask && createPortal(
         <TaskDetailModal
           task={highlightTask}
           onClose={() => setHighlightTask(null)}
           onUpdated={() => setHighlightTask(null)}
-        />
+        />,
+        document.body
       )}
       <AnimatePresence mode="wait">
         {view === 'list' && (
