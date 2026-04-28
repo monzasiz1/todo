@@ -97,7 +97,8 @@ module.exports = async function handler(req, res) {
           url: payload.url || '/groups',
         },
         payload.type,
-        payload.taskId || null
+        payload.taskId || null,
+        groupId
       ).catch(() => null);
     }
   }

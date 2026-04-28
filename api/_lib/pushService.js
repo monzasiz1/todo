@@ -25,8 +25,9 @@ if (VAPID_PUBLIC && VAPID_PRIVATE) {
  * @param {object} payload - { title, body, icon?, url?, tag? }
  * @param {string} type - notification type for logging
  * @param {string|null} taskId - optional related task
+ * @param {string|null} groupId - optional related group
  */
-async function sendPushToUser(userId, payload, type, taskId = null) {
+async function sendPushToUser(userId, payload, type, taskId = null, groupId = null) {
   const pool = getPool();
 
   // ─── STEP 1: ALWAYS log to notification_log FIRST ───────────────────────
@@ -34,8 +35,8 @@ async function sendPushToUser(userId, payload, type, taskId = null) {
   // even if the user has no push subscriptions or push delivery fails.
   try {
     await pool.query(
-      'INSERT INTO notification_log (user_id, type, task_id, title, body) VALUES ($1, $2, $3, $4, $5)',
-      [userId, type, taskId || null, payload.title, payload.body]
+      'INSERT INTO notification_log (user_id, type, task_id, group_id, title, body) VALUES ($1, $2, $3, $4, $5, $6)',
+      [userId, type, taskId || null, groupId || null, payload.title, payload.body]
     );
   } catch (logErr) {
     console.error('[pushService] notification_log insert failed:', logErr.message);

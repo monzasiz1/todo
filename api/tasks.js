@@ -739,6 +739,27 @@ module.exports = async function handler(req, res) {
     }
   }
 
+  // GET /api/tasks/:id
+  if (segments.length === 1 && segments[0] !== 'range' && segments[0] !== 'reorder' && segments[0] !== 'summary' && segments[0] !== 'dashboard' && req.method === 'GET') {
+    try {
+      const taskId = Number(segments[0]);
+      if (!Number.isFinite(taskId)) return res.status(400).json({ error: 'Ungültige ID' });
+      const { rows } = await pool.query(
+        `SELECT t.*, c.name AS category_name, c.color AS category_color
+         FROM tasks t
+         LEFT JOIN categories c ON c.id = t.category_id
+         WHERE t.id = $1 AND t.user_id = $2
+         LIMIT 1`,
+        [taskId, user.id]
+      );
+      if (rows.length === 0) return res.status(404).json({ error: 'Nicht gefunden' });
+      return res.json(rows[0]);
+    } catch (err) {
+      console.error('Get task error:', err);
+      return res.status(500).json({ error: 'Fehler' });
+    }
+  }
+
   // PUT /api/tasks/:id
   if (segments.length === 1 && segments[0] !== 'range' && segments[0] !== 'reorder' && req.method === 'PUT') {
     try {

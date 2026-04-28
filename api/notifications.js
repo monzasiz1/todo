@@ -101,7 +101,7 @@ module.exports = async function handler(req, res) {
       const offsetParam = `$${params.length}`;
 
       const { rows } = await pool.query(
-        `SELECT id, type, task_id, title, body, sent_at
+        `SELECT id, type, task_id, group_id, title, body, sent_at
          FROM notification_log
          WHERE ${where.join(' AND ')}
          ORDER BY sent_at DESC
