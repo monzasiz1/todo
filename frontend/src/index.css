@@ -15054,12 +15054,7 @@ body.cal-is-dragging * {
   color: var(--text);
 }
 
-.sidebar-notif-row .notif-dropdown {
-  left: 100%;
-  right: auto;
-  top: 0;
-  margin-left: 8px;
-}
+/* Portal-rendered dropdown needs no sidebar-specific overrides */
 
 @media (max-width: 768px) {
   .sidebar-notif-row { display: none; }
