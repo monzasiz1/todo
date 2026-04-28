@@ -866,7 +866,36 @@ export default function LandingPage() {
       setLoginError(err.message || 'Login fehlgeschlagen');
     }
   };
-// ...existing code...
+                    <label htmlFor="login-email">E-Mail-Adresse</label>
+                    <div className="bq-input-wrap">
+                      <Mail size={16} className="bq-input-icon" />
+                      <input
+                        id="login-email"
+                        type="email"
+                        placeholder="du@example.com"
+                        value={loginEmail}
+                        onChange={e => setLoginEmail(e.target.value)}
+                        required
+                        autoComplete="email"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="bq-field">
+                    <label htmlFor="login-pw">Passwort</label>
+                    <div className="bq-input-wrap">
+                      <Key size={16} className="bq-input-icon" />
+                      <input
+                        id="login-pw"
+                        type="password"
+                        placeholder="Dein Passwort"
+                        value={loginPassword}
+                        onChange={e => setLoginPassword(e.target.value)}
+                        required
+                        autoComplete="current-password"
+                      />
+                    </div>
+                  </div>
                         <label htmlFor="login-email">E-Mail-Adresse</label>
                         <div className="bq-input-wrap">
                           <Mail size={16} className="bq-input-icon" />
