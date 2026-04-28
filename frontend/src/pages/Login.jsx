@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import '../styles/auth.css';
 import { useLocation } from 'react-router-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';

@@ -30,10 +30,8 @@ export const useAuthStore = create((set) => ({
         return { requires2FA: true };
       }
       localStorage.setItem('token', data.token);
-      // Nach Login: User-Status frisch vom Backend holen
-      const fresh = await api.getMe();
-      localStorage.setItem('user', JSON.stringify(fresh.user));
-      set({ user: fresh.user, token: data.token, loading: false });
+      localStorage.setItem('user', JSON.stringify(data.user));
+      set({ user: data.user, token: data.token, loading: false });
       window.dispatchEvent(new Event('beequ:token-updated'));
       return true;
     } catch (err) {
@@ -44,17 +42,12 @@ export const useAuthStore = create((set) => ({
   refreshUser: async () => {
     try {
       const data = await api.getMe();
-      localStorage.setItem('user', JSON.stringify(data.user));
-      set({ user: data.user });
-    } catch (err) {
-      // Bei 401: Session löschen
-      if (err?.status === 401 || err?.message === 'Nicht autorisiert') {
-        clearApiCacheForCurrentUser();
-        set({ user: null, token: null });
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        clearLocalAppCaches();
+      if (data?.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+        set({ user: data.user });
       }
+    } catch {
+      // Stille Aktualisierung — kein Logout bei Fehlern
     }
   },
 

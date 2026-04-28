@@ -18,11 +18,22 @@ module.exports = async function handler(req, res) {
   // GET /api/profile — Full profile with stats
   if (!action && req.method === 'GET') {
     try {
-      const userResult = await pool.query(
-        `SELECT id, name, email, avatar_url, avatar_color, bio, theme, created_at, twofa_enabled
-         FROM users WHERE id = $1`,
-        [user.id]
-      );
+      let userResult;
+      try {
+        userResult = await pool.query(
+          `SELECT id, name, email, avatar_url, avatar_color, bio, theme, created_at,
+                  profile_visibility, twofa_enabled
+           FROM users WHERE id = $1`,
+          [user.id]
+        );
+      } catch {
+        // Fallback ohne optionale Spalten
+        userResult = await pool.query(
+          `SELECT id, name, email, avatar_url, avatar_color, bio, theme, created_at
+           FROM users WHERE id = $1`,
+          [user.id]
+        );
+      }
       if (userResult.rows.length === 0) {
         return res.status(404).json({ error: 'Benutzer nicht gefunden' });
       }
