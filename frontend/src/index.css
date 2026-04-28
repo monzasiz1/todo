@@ -115,7 +115,7 @@ input, textarea, select {
   flex: 1;
   margin-left: 280px;
   min-height: 100vh;
-  padding: 32px 24px;
+  padding: 32px 24px 90px;
   max-width: none;
   transition: margin-left 0.24s ease, padding 0.24s ease;
   background:
@@ -162,7 +162,18 @@ input, textarea, select {
   }
 }
 
+/* Desktop: Bottom-Nav startet nach der Sidebar */
+@media (min-width: 1025px) {
+  .bottom-nav {
+    left: 280px;
+  }
+}
+
 @media (min-width: 769px) and (max-width: 1180px) {
+  .bottom-nav {
+    left: 212px;
+  }
+
   .app-sidebar {
     width: 212px;
     padding: 18px 10px;
@@ -176,7 +187,7 @@ input, textarea, select {
 
   .app-main {
     margin-left: 212px;
-    padding: 20px 14px;
+    padding: 20px 14px 90px;
   }
 
   .app-main.desktop-sidebar-collapsed {
@@ -4316,97 +4327,94 @@ body.cal-is-dragging * {
 /* ========== RESPONSIVE ========== */
 
 /* --- BOTTOM NAVIGATION (Mobile) --- */
+/* Bottom Nav — immer sichtbar auf allen Geräten */
 .bottom-nav {
-  display: none;
+  display: flex;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  height: calc(64px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border);
+  z-index: 98;
+  align-items: center;
+  justify-content: space-around;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+/* Bottom Nav Items — global (da Nav immer sichtbar) */
+.bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  color: var(--text-tertiary);
+  font-size: 10px;
+  font-weight: 500;
+  transition: color 0.2s;
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bottom-nav-item.active {
+  color: var(--primary);
+}
+
+.bottom-nav-icon-wrap {
+  position: relative;
+}
+
+.bottom-nav-badge {
+  position: absolute;
+  top: -5px;
+  right: -8px;
+  background: var(--danger);
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+.bottom-nav-fab {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--purple));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.35);
+  margin-top: -20px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bottom-nav-fab:active {
+  transform: scale(0.92);
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
 }
 
 @media (max-width: 768px) {
-  /* Bottom Nav visible on mobile */
-  .bottom-nav {
-    display: flex;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 64px;
-    height: calc(64px + env(safe-area-inset-bottom, 0px));
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    background: rgba(255, 255, 255, 0.88);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-top: 1px solid var(--border);
-    z-index: 98;
-    align-items: center;
-    justify-content: space-around;
-    padding-left: 8px;
-    padding-right: 8px;
-  }
-
-  .bottom-nav-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    padding: 6px 12px;
-    border-radius: 12px;
-    color: var(--text-tertiary);
-    font-size: 10px;
-    font-weight: 500;
-    transition: color 0.2s;
-    text-decoration: none;
-    background: none;
-    border: none;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  .bottom-nav-item.active {
-    color: var(--primary);
-  }
-
-  .bottom-nav-icon-wrap {
-    position: relative;
-  }
-
-  .bottom-nav-badge {
-    position: absolute;
-    top: -5px;
-    right: -8px;
-    background: var(--danger);
-    color: white;
-    font-size: 9px;
-    font-weight: 700;
-    min-width: 16px;
-    height: 16px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 4px;
-  }
-
-  .bottom-nav-fab {
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary), var(--purple));
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    cursor: pointer;
-    box-shadow: 0 4px 16px rgba(0, 122, 255, 0.35);
-    margin-top: -20px;
-    transition: transform 0.2s, box-shadow 0.2s;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  .bottom-nav-fab:active {
-    transform: scale(0.92);
-    box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
-  }
-
   /* Mobile Header */
   .mobile-header {
     display: flex;
@@ -5436,12 +5444,7 @@ body.cal-is-dragging * {
     max-width: 100%;
   }
 
-  /* Bottom Nav auf Tablet verstecken — Navigation läuft über Hamburger-Menü */
-  .bottom-nav {
-    display: none !important;
-  }
-
-  /* Alle schwebenden Desktop-Buttons ausblenden */
+  /* Desktop-FABs ausblenden — Navigation via Mobile-Header + Bottom-Nav */
   .gchat-fab {
     display: none !important;
   }

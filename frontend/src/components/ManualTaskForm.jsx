@@ -43,6 +43,38 @@ function localToISO(dtLocal) {
   return d.toISOString();
 }
 
+const CAT_COLORS = ['#007AFF','#34C759','#FF9500','#FF3B30','#AF52DE','#FF2D55','#5AC8FA','#FFCC00','#00C7BE','#8E8E93'];
+
+function InlineCatCreate({ onSave, onCancel }) {
+  const [name, setName] = useState('');
+  const [color, setColor] = useState('#007AFF');
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '10px 12px', background: 'var(--bg-secondary)', borderRadius: 10, marginTop: 6 }}>
+      <input
+        autoFocus
+        type="text"
+        placeholder="Kategoriename"
+        value={name}
+        onChange={e => setName(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (name.trim()) onSave(name.trim(), color); } if (e.key === 'Escape') onCancel(); }}
+        style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', color: 'var(--text-primary)', fontSize: 13, outline: 'none' }}
+      />
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+        {CAT_COLORS.map(c => (
+          <button key={c} type="button" onClick={() => setColor(c)}
+            style={{ width: 20, height: 20, borderRadius: '50%', background: c, border: color === c ? '2px solid white' : '2px solid transparent', outline: color === c ? `2px solid ${c}` : 'none', cursor: 'pointer', padding: 0, flexShrink: 0 }}
+          />
+        ))}
+        <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
+          <button type="button" onClick={onCancel} style={{ fontSize: 12, color: 'var(--text-tertiary)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>Abbrechen</button>
+          <button type="button" onClick={() => { if (name.trim()) onSave(name.trim(), color); }}
+            style={{ fontSize: 12, background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', padding: '4px 10px' }}>Erstellen</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embedded = false, onCancel }) {
   const { createTask, categories, fetchCategories } = useTaskStore();
   const { friends, fetchFriends } = useFriendsStore();
@@ -68,6 +100,8 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
   const [permissions, setPermissions] = useState([]);
   const [showSharing, setShowSharing] = useState(false);
   const [addTeamsMeeting, setAddTeamsMeeting] = useState(false);
+  const [showNewCat, setShowNewCat] = useState(false);
+  const [showNewGroupCat, setShowNewGroupCat] = useState(false);
   const [teamsConnected, setTeamsConnected] = useState(null); // null=unknown, true/false
   const [saving, setSaving] = useState(false);
 
@@ -386,7 +420,26 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
             </div>
 
             <div className="task-edit-field" style={{ marginBottom: 0 }}>
-              <label><Tag size={14} /> Persönliche Kategorie</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Tag size={14} /> Persönliche Kategorie
+                <button type="button" onClick={() => setShowNewCat(v => !v)}
+                  style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: showNewCat ? 'var(--primary)' : 'var(--text-tertiary)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px' }}>
+                  <Plus size={13} />{showNewCat ? 'Abbrechen' : 'Neu'}
+                </button>
+              </label>
+              {showNewCat && (
+                <InlineCatCreate
+                  onCancel={() => setShowNewCat(false)}
+                  onSave={async (name, color) => {
+                    try {
+                      const resp = await api.createCategory({ name, color });
+                      const created = resp?.category || resp;
+                      if (created?.id) { setCategoryId(String(created.id)); fetchCategories(); }
+                    } catch {}
+                    setShowNewCat(false);
+                  }}
+                />
+              )}
               <div className="cat-pill-picker">
                 <button
                   type="button"
@@ -489,7 +542,30 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
 
             {groupId && (
               <div className="task-edit-field" style={{ marginBottom: 0 }}>
-                <label><Tag size={14} /> Gruppenkategorie</label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Tag size={14} /> Gruppenkategorie
+                  <button type="button" onClick={() => setShowNewGroupCat(v => !v)}
+                    style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: showNewGroupCat ? 'var(--primary)' : 'var(--text-tertiary)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px' }}>
+                    <Plus size={13} />{showNewGroupCat ? 'Abbrechen' : 'Neu'}
+                  </button>
+                </label>
+                {showNewGroupCat && (
+                  <InlineCatCreate
+                    onCancel={() => setShowNewGroupCat(false)}
+                    onSave={async (name, color) => {
+                      try {
+                        const resp = await api.createGroupCategory(groupId, { name, color });
+                        const created = resp?.category || resp;
+                        if (created?.id) {
+                          setGroupCategoryId(String(created.id));
+                          const data = await api.getGroupCategories(groupId);
+                          setGroupCategories(Array.isArray(data?.categories) ? data.categories : []);
+                        }
+                      } catch {}
+                      setShowNewGroupCat(false);
+                    }}
+                  />
+                )}
                 <div className="cat-pill-picker">
                   <button
                     type="button"
