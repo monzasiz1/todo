@@ -84,31 +84,22 @@ export default function GroupsPage() {
   const { can, limit } = usePlan();
   const [searchParams, setSearchParams] = useSearchParams();
   const { tasks: cachedTasks } = useTaskStore();
-  const pendingGroupRef = useRef(null);
-  const pendingTaskRef = useRef(null);
+  const pendingGroupRef = useRef(null); // kept for compat
+  const pendingTaskRef = useRef(null);  // kept for compat
 
-  // Parse URL params immediately, store pending values
+  // Parse URL params and navigate — works both on fresh mount and when already on page
   useEffect(() => {
     const groupParam = searchParams.get('group');
     const taskParam = searchParams.get('task');
-    if (groupParam || taskParam) {
-      if (groupParam) pendingGroupRef.current = Number(groupParam);
-      if (taskParam) pendingTaskRef.current = Number(taskParam);
-      setSearchParams({}, { replace: true });
-    }
-  }, [searchParams]);
+    if (!groupParam && !taskParam) return;
+    setSearchParams({}, { replace: true });
 
-  useEffect(() => {
-    fetchGroups().then(() => {
-      // After groups loaded, apply pending navigation
-      if (pendingGroupRef.current) {
-        setSelectedGroupId(pendingGroupRef.current);
+    const applyNav = (groupId, taskId) => {
+      if (groupId) {
+        setSelectedGroupId(groupId);
         setView('detail');
-        pendingGroupRef.current = null;
       }
-      if (pendingTaskRef.current) {
-        const taskId = pendingTaskRef.current;
-        pendingTaskRef.current = null;
+      if (taskId) {
         const cached = cachedTasks.find((t) => t.id === taskId);
         if (cached) {
           setHighlightTask(cached);
@@ -116,7 +107,22 @@ export default function GroupsPage() {
           api.getTask(taskId).then((t) => { if (t) setHighlightTask(t); }).catch(() => null);
         }
       }
-    });
+    };
+
+    const gId = groupParam ? Number(groupParam) : null;
+    const tId = taskParam ? Number(taskParam) : null;
+
+    if (groups.length > 0) {
+      // Groups already in store — navigate immediately
+      applyNav(gId, tId);
+    } else {
+      // Groups not yet loaded — fetch first, then navigate
+      fetchGroups().then(() => applyNav(gId, tId));
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    fetchGroups();
   }, []);
 
   const openGroup = (id) => {
