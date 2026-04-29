@@ -1190,6 +1190,15 @@ input, textarea, select {
   border-color: rgba(0, 122, 255, 0.12);
 }
 
+/* Datumlose Aufgaben-Badge — nur Abhak-Kreis, kein Datum */
+.dash-section-list .task-dashboard-date.no-date {
+  width: 44px;
+  min-width: 44px;
+  padding: 0;
+  gap: 0;
+  justify-content: center;
+}
+
 .dash-section-list .task-dashboard-date-icon {
   display: inline-flex;
   align-items: center;

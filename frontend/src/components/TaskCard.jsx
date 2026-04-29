@@ -292,15 +292,29 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
           <CalendarCheck size={18} />
         </div>
       ) : (
-        !useDashboardDateRail && (
-          <motion.div
-            className={`task-checkbox ${task.completed ? 'checked' : ''} ${!canEdit ? 'disabled' : ''}`}
-            onClick={(e) => { e.stopPropagation(); if (canEdit) toggleTask(task.id); }}
-            whileTap={canEdit ? { scale: 0.85 } : {}}
-          >
-            {task.completed && <Check size={14} strokeWidth={3} />}
-          </motion.div>
+        !useDashboardDateRail && !isEvent && showDashboardDateTile && (
+          /* Datumlose Aufgabe im Dashboard: Badge-Pill mit Abhakenknopf, ohne Datum */
+          <div className="task-dashboard-date todo no-date" aria-hidden="true">
+            <button
+              type="button"
+              className={`task-dashboard-date-toggle ${task.completed ? 'checked' : ''} ${!canEdit ? 'disabled' : ''}`}
+              onClick={(e) => { e.stopPropagation(); if (canEdit) toggleTask(task.id); }}
+              aria-label={task.completed ? 'Aufgabe wieder öffnen' : 'Aufgabe erledigen'}
+            >
+              {task.completed ? <Check size={14} strokeWidth={3} /> : <Circle size={14} strokeWidth={2.5} />}
+            </button>
+          </div>
         )
+      )}
+      {/* Fallback-Checkbox außerhalb des Dashboards */}
+      {!useDashboardDateRail && !isEvent && !showDashboardDateTile && (
+        <motion.div
+          className={`task-checkbox ${task.completed ? 'checked' : ''} ${!canEdit ? 'disabled' : ''}`}
+          onClick={(e) => { e.stopPropagation(); if (canEdit) toggleTask(task.id); }}
+          whileTap={canEdit ? { scale: 0.85 } : {}}
+        >
+          {task.completed && <Check size={14} strokeWidth={3} />}
+        </motion.div>
       )}
 
       {/* Content */}
