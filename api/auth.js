@@ -150,22 +150,30 @@ module.exports = async function handler(req, res) {
           twofa_secret: user.twofa_secret,
           code: twofa_code
         });
-        if (!twofa_code) {
-          console.log('[2FA-Login] Kein Code übergeben, requires2FA');
-          return res.status(200).json({ requires2FA: true });
-        }
-        const otp = getOtp();
-        let valid2fa = false;
-        if (otp && user.twofa_secret) {
-          try {
-            valid2fa = otp.verify({ token: String(twofa_code), secret: user.twofa_secret });
-          } catch (e) {
-            console.error('[2FA-Login] Fehler bei OTP-Verify:', e);
+        
+        // Korrupter State: twofa_enabled aber kein secret — auto-disable 2FA
+        if (!user.twofa_secret) {
+          console.log('[2FA-Login] Korrupter State detected — auto-disabling 2FA');
+          await pool.query('UPDATE users SET twofa_enabled = FALSE, twofa_secret = NULL WHERE id = $1', [user.id]);
+          // Continue with normal login (no 2FA required)
+        } else {
+          if (!twofa_code) {
+            console.log('[2FA-Login] Kein Code übergeben, requires2FA');
+            return res.status(200).json({ requires2FA: true });
           }
-        }
-        console.log('[2FA-Login] Ergebnis:', valid2fa);
-        if (!otp || !valid2fa) {
-          return res.status(401).json({ error: 'Ungültiger 2FA-Code. Bitte erneut versuchen.' });
+          const otp = getOtp();
+          let valid2fa = false;
+          if (otp) {
+            try {
+              valid2fa = otp.verify({ token: String(twofa_code), secret: user.twofa_secret });
+            } catch (e) {
+              console.error('[2FA-Login] Fehler bei OTP-Verify:', e);
+            }
+          }
+          console.log('[2FA-Login] Ergebnis:', valid2fa);
+          if (!otp || !valid2fa) {
+            return res.status(401).json({ error: 'Ungültiger 2FA-Code. Bitte erneut versuchen.' });
+          }
         }
       }
 
