@@ -1014,6 +1014,17 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       else if (effectiveEnd) multiClass = 'multi-day-end';
                       else multiClass = 'multi-day-middle';
                     }
+                    const isHiddenSegment = isMultiDay && ['multi-day-middle', 'multi-day-end'].includes(multiClass);
+                    const daysUntilWeekEnd = isWeekRowEnd ? 1 : (8 - weekDay);
+                    const daysUntilTaskEnd = taskEndStr
+                      ? Math.max(1, differenceInCalendarDays(new Date(`${taskEndStr}T00:00:00`), d) + 1)
+                      : 1;
+                    const spanDaysInRow = ['multi-day-start', 'multi-day-single'].includes(multiClass)
+                      ? Math.max(1, Math.min(daysUntilTaskEnd, daysUntilWeekEnd))
+                      : 1;
+                    const spanWidth = spanDaysInRow > 1
+                      ? `calc(${spanDaysInRow * 100}% + ${(spanDaysInRow - 1) * 8}px)`
+                      : undefined;
                     const showBorderLeft = !isMobile && !['multi-day-middle', 'multi-day-end'].includes(multiClass);
                     const showTaskLabel = !isMultiDay || ['multi-day-start', 'multi-day-single'].includes(multiClass);
                     return (
@@ -1021,17 +1032,27 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         key={t.id}
                         className={`calendar-day-task ${multiClass} ${t.completed ? 'completed' : ''} ${t.group_id ? 'group-task' : ''} ${ended ? 'ended-event' : ''} ${dragInfo?.task.id === t.id ? 'cal-dragging' : ''}`}
                         style={isMobile ? {
+                          visibility: isHiddenSegment ? 'hidden' : 'visible',
+                          pointerEvents: isHiddenSegment ? 'none' : 'auto',
+                          width: spanWidth,
+                          maxWidth: spanWidth ? 'none' : '100%',
                           background: accentColor,
                           color: ended ? '#999' : '#fff',
                           borderLeft: 'none',
                           cursor: 'pointer',
                           userSelect: 'none',
+                          zIndex: spanWidth ? 4 : undefined,
                         } : {
+                          visibility: isHiddenSegment ? 'hidden' : 'visible',
+                          pointerEvents: isHiddenSegment ? 'none' : 'auto',
+                          width: spanWidth,
+                          maxWidth: spanWidth ? 'none' : '100%',
                           background: ended ? 'rgba(142,142,147,0.12)' : categoryAccent ? `${categoryAccent}20` : t.group_id ? `${t.group_color || '#5856D6'}15` : 'var(--primary-bg)',
                           color: ended ? '#59606B' : categoryAccent || (t.group_id ? (t.group_color || '#5856D6') : 'var(--primary)'),
                           borderLeft: showBorderLeft ? `2px solid ${ended ? 'rgba(142,142,147,0.55)' : accentColor}` : 'none',
                           cursor: viewportState.isDesktop && !ended ? 'grab' : 'pointer',
                           userSelect: 'none',
+                          zIndex: spanWidth ? 4 : undefined,
                         }}
                         onPointerDown={viewportState.isDesktop && !ended ? (e) => handlePointerDown(e, t) : undefined}
                         onClick={(e) => { e.stopPropagation(); if (!wasDragging.current) setDetailTask(t); }}
