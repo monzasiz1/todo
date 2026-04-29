@@ -4964,6 +4964,7 @@ body.cal-is-dragging * {
     background: #fff;
     cursor: pointer;
     transition: background 0.1s;
+    overflow: visible;
   }
 
   .calendar-day:active {
@@ -5008,7 +5009,7 @@ body.cal-is-dragging * {
     flex-direction: column;
     gap: 2px;
     margin-top: 3px;
-    overflow: hidden;
+    overflow: visible;
     max-height: none;
   }
 
@@ -5029,6 +5030,26 @@ body.cal-is-dragging * {
     align-items: center;
     gap: 2px;
     flex-shrink: 0;
+  }
+
+  .calendar-day-task.multi-day-start,
+  .calendar-day-task.multi-day-middle,
+  .calendar-day-task.multi-day-end,
+  .calendar-day-task.multi-day-single {
+    max-width: none !important;
+  }
+
+  .calendar-day-task.multi-day-start {
+    margin-right: -8px;
+  }
+
+  .calendar-day-task.multi-day-middle {
+    margin-left: -8px;
+    margin-right: -8px;
+  }
+
+  .calendar-day-task.multi-day-end {
+    margin-left: -8px;
   }
 
   .calendar-day-task.completed .calendar-day-task-title {
