@@ -264,6 +264,9 @@ export default function TaskDetailModal({ task, onClose, onUpdated, portalTarget
               <h2 className={`task-detail-title ${task.completed && !isEvent ? 'completed' : ''}`}>
                 {task.title}
               </h2>
+              {!isEvent && (
+                <span className="task-detail-status task">Aufgabe</span>
+              )}
               {isEvent && (
                 <span className="task-detail-status event">Termin</span>
               )}

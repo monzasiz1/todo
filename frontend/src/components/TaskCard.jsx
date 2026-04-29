@@ -210,7 +210,7 @@ function TaskCard({ task, index, disableLayout = false }) {
   return (
     <>
     <motion.div
-      className={`task-card ${task.completed ? 'completed' : ''} ${canShareToChat ? 'can-share-chat' : ''} ${isEventEnded ? 'ended-event' : ''}`}
+      className={`task-card ${isEvent ? 'event' : 'todo'} ${task.completed ? 'completed' : ''} ${canShareToChat ? 'can-share-chat' : ''} ${isEventEnded ? 'ended-event' : ''}`}
       draggable={canShareToChat}
       onDragStart={handleDragStart}
       onDrag={handleDrag}
