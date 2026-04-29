@@ -274,15 +274,15 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
         </div>
       )}
 
-      {/* Drag Handle — only for group events/tasks that support chat-sharing */}
+      {/* Drag Handle — absolute corner tab, only for sharable group items */}
       {canShareToChat && (
         <div
-          className="task-drag-handle"
+          className="task-drag-handle task-drag-handle--corner"
           onClick={(e) => e.stopPropagation()}
           title="Verschieben"
           aria-hidden="true"
         >
-          <GripVertical size={16} />
+          <GripVertical size={14} />
         </div>
       )}
 
@@ -307,7 +307,7 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
       <div className="task-content">
         <div className="task-title-row">
           <div className="task-title">{task.title}</div>
-          {!isEvent && !dashboardDateParts && <span className="task-type-badge task">Aufgabe</span>}
+          {!isEvent && <span className="task-type-badge task">Aufgabe</span>}
           {isEvent && <span className="task-type-badge event">Termin</span>}
           {task.teams_join_url && <span className="task-type-badge teams"><Video size={10} /> Teams</span>}
           {isEventEnded && <span className="task-type-badge ended">Beendet</span>}

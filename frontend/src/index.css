@@ -1116,21 +1116,27 @@ input, textarea, select {
   box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
 }
 
-.dash-section-list .task-drag-handle {
-  width: 22px;
-  min-width: 22px;
-  height: 38px;
-  margin-left: 0;
-  margin-top: 0;
-  border-radius: 8px;
-  color: #9ca4b0;
-  background: rgba(255, 255, 255, 0.7);
-  box-shadow: inset 0 0 0 1px rgba(28, 28, 30, 0.08);
+.dash-section-list .task-drag-handle--corner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 20px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0 0 8px 0;
+  color: rgba(120, 130, 148, 0.55);
+  background: rgba(248, 249, 251, 0.82);
+  box-shadow: 1px 1px 4px rgba(15, 23, 42, 0.06);
+  z-index: 2;
+  cursor: grab;
+  transition: color 0.15s ease, background 0.15s ease;
 }
 
-.dash-section-list .task-card:hover .task-drag-handle {
-  color: #667182;
-  background: rgba(255, 255, 255, 0.92);
+.dash-section-list .task-card:hover .task-drag-handle--corner {
+  color: #5a6478;
+  background: rgba(255, 255, 255, 0.96);
 }
 
 .dash-section-list .task-card.todo {
