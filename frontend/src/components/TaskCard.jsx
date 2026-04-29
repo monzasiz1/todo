@@ -292,7 +292,7 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
               }}
               aria-label={task.completed ? 'Aufgabe wieder öffnen' : 'Aufgabe erledigen'}
             >
-              {task.completed ? <Check size={11} strokeWidth={3} /> : <Circle size={11} strokeWidth={2.4} />}
+              {task.completed ? <Check size={14} strokeWidth={3} /> : <Circle size={14} strokeWidth={2.5} />}
             </button>
           )}
           <span className="task-dashboard-date-month">{dashboardDateParts.month}</span>

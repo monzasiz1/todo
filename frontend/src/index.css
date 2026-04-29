@@ -1163,18 +1163,19 @@ input, textarea, select {
   flex-shrink: 0;
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
   position: relative;
+  overflow: hidden;
 }
 
 .dash-section-list .task-dashboard-date::before {
   content: '';
   position: absolute;
-  left: -1px;
-  top: -1px;
-  bottom: -1px;
+  left: 0;
+  top: 0;
+  bottom: 0;
   width: 3px;
-  border-radius: 16px 0 0 16px;
+  border-radius: 999px 0 0 999px;
   background: var(--task-priority-color, rgba(0, 122, 255, 0.5));
-  opacity: 0.42;
+  opacity: 0.44;
 }
 
 .dash-section-list .task-dashboard-date.event {
@@ -1195,23 +1196,27 @@ input, textarea, select {
 }
 
 .dash-section-list .task-dashboard-date-toggle {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border-radius: 999px;
   border: none;
-  background: rgba(255, 255, 255, 0.9);
-  color: #7b8190;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 246, 250, 0.96));
+  color: #5e6673;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: inset 0 0 0 1px rgba(28, 28, 30, 0.1);
-  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+  box-shadow: inset 0 0 0 1.5px rgba(28, 28, 30, 0.18), 0 3px 8px rgba(15, 23, 42, 0.12);
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
 }
 
 .dash-section-list .task-dashboard-date-toggle.checked {
-  background: #1f7aec;
+  background: linear-gradient(180deg, #2b86f2, #1f7aec);
   color: #fff;
-  box-shadow: inset 0 0 0 1px rgba(0, 122, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(0, 122, 255, 0.16), 0 4px 10px rgba(31, 122, 236, 0.32);
+}
+
+.dash-section-list .task-dashboard-date-toggle:hover {
+  transform: scale(1.04);
 }
 
 .dash-section-list .task-dashboard-date-toggle.disabled {
@@ -1321,8 +1326,8 @@ input, textarea, select {
   }
 
   .dash-section-list .task-dashboard-date-toggle {
-    width: 18px;
-    height: 18px;
+    width: 21px;
+    height: 21px;
   }
 }
 
@@ -1359,8 +1364,8 @@ input, textarea, select {
   }
 
   .dash-section-list .task-dashboard-date-toggle {
-    width: 16px;
-    height: 16px;
+    width: 19px;
+    height: 19px;
   }
 }
 
