@@ -9,7 +9,7 @@ import TaskDetailModal from './TaskDetailModal';
 import SharedTaskBadge from './SharedTaskBadge';
 import AvatarBadge from './AvatarBadge';
 
-function TaskCard({ task, index, disableLayout = false }) {
+function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = false }) {
   const { toggleTask, deleteTask } = useTaskStore();
   const [showDetail, setShowDetail] = useState(false);
   const [nowTs, setNowTs] = useState(Date.now());
@@ -40,6 +40,16 @@ function TaskCard({ task, index, disableLayout = false }) {
     return `${h}:${m} Uhr`;
   };
 
+  const getDashboardDateParts = (dateStr) => {
+    if (!dateStr) return null;
+    const date = parseISO(String(dateStr));
+    if (Number.isNaN(date.getTime())) return null;
+    return {
+      month: format(date, 'MMM', { locale: de }).replace('.', '').toUpperCase(),
+      day: format(date, 'd', { locale: de }),
+    };
+  };
+
   const getEventEndDate = (t) => {
     if (!t?.date) return null;
     const datePart = String(t.date).slice(0, 10);
@@ -68,6 +78,7 @@ function TaskCard({ task, index, disableLayout = false }) {
   const shortTitle = String(task.title || 'Termin').slice(0, 32);
   const timeLabel = task.time ? `${String(task.time).slice(0, 5)} Uhr` : '';
   const hasGroupCategoryCombo = !!task.group_name && !!task.group_category_name;
+  const dashboardDateParts = showDashboardDateTile ? getDashboardDateParts(task.date) : null;
 
   useEffect(() => {
     return () => {
@@ -252,6 +263,13 @@ function TaskCard({ task, index, disableLayout = false }) {
         >
           {task.completed && <Check size={14} strokeWidth={3} />}
         </motion.div>
+      )}
+
+      {dashboardDateParts && (
+        <div className="task-dashboard-date" aria-hidden="true">
+          <span className="task-dashboard-date-month">{dashboardDateParts.month}</span>
+          <span className="task-dashboard-date-day">{dashboardDateParts.day}</span>
+        </div>
       )}
 
       {/* Content */}

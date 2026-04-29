@@ -259,7 +259,7 @@ function TaskRow({ index, style, data }) {
   return (
     <div style={style}>
       <div style={{ paddingBottom: 10 }}>
-        <TaskCard task={task} index={index} disableLayout />
+        <TaskCard task={task} index={index} disableLayout showDashboardDateTile />
       </div>
     </div>
   );
@@ -672,7 +672,7 @@ export default function Dashboard() {
                       </VirtualList>
                     ) : (
                       visibleTasks.map((task, i) => (
-                        <TaskCard key={task.id} task={task} index={i} />
+                        <TaskCard key={task.id} task={task} index={i} showDashboardDateTile />
                       ))
                     )}
                     {hasMore && (
@@ -736,7 +736,7 @@ export default function Dashboard() {
                   </VirtualList>
                 ) : (
                   completedTasks.map((task, i) => (
-                    <TaskCard key={task.id} task={task} index={i} />
+                    <TaskCard key={task.id} task={task} index={i} showDashboardDateTile />
                   ))
                 )}
               </motion.div>

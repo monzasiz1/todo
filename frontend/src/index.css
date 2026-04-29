@@ -1102,12 +1102,75 @@ input, textarea, select {
   border: 1px solid var(--border);
 }
 
+.dash-section-list .task-dashboard-date {
+  width: 46px;
+  min-width: 46px;
+  height: 52px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(0, 122, 255, 0.1), rgba(0, 122, 255, 0.05));
+  border: 1px solid rgba(0, 122, 255, 0.22);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+
+.dash-section-list .task-dashboard-date-month {
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.dash-section-list .task-dashboard-date-day {
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 800;
+  color: var(--text);
+}
+
 .dash-section-completed {
   opacity: 0.75;
 }
 
 .dash-section-completed .task-card {
   opacity: 0.7;
+}
+
+.dash-section-completed .task-dashboard-date {
+  opacity: 0.75;
+}
+
+@media (max-width: 1024px) {
+  .dash-section-list .task-dashboard-date {
+    width: 42px;
+    min-width: 42px;
+    height: 48px;
+  }
+
+  .dash-section-list .task-dashboard-date-day {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .dash-section-list .task-dashboard-date {
+    width: 40px;
+    min-width: 40px;
+    height: 46px;
+  }
+
+  .dash-section-list .task-dashboard-date-month {
+    font-size: 9px;
+  }
+
+  .dash-section-list .task-dashboard-date-day {
+    font-size: 15px;
+  }
 }
 
 .filter-bar {
@@ -19781,7 +19844,7 @@ body.cal-is-dragging * {
 .lp-upcoming-time { font-size: 0.76rem; color: var(--lp-muted); }
 
 /* Chat screen */
-.lp-screen-wide { }
+
 .lp-chat-preview {
   display: grid;
   grid-template-columns: 160px minmax(0, 1fr) 130px;
