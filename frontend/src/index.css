@@ -1130,7 +1130,8 @@ input, textarea, select {
   align-items: center;
   justify-content: center;
   gap: 1px;
-  margin-top: 1px;
+  align-self: center;
+  margin-top: 0;
   flex-shrink: 0;
 }
 
