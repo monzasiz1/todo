@@ -4769,12 +4769,12 @@ body.cal-is-dragging * {
 .bottom-nav {
   display: flex;
   position: fixed;
-  bottom: max(8px, calc(env(safe-area-inset-bottom, 0px) - 4px));
+  /* sitzt direkt über dem Home-Indicator / Bildschirmrand */
+  bottom: max(6px, env(safe-area-inset-bottom, 6px));
   left: 50%;
   right: auto;
   transform: translateX(-50%);
   width: min(780px, calc(100% - 20px));
-  padding-bottom: clamp(0px, calc(env(safe-area-inset-bottom, 0px) - 6px), 40px);
   background: transparent;
   border: none;
   box-shadow: none;
@@ -4782,10 +4782,9 @@ body.cal-is-dragging * {
   z-index: 10100;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 6px;
   overflow: visible;
-  padding-left: 0;
-  padding-right: 0;
+  padding: 0;
 }
 
 /* Glas-Pillen links und rechts des FAB */
@@ -4796,6 +4795,7 @@ body.cal-is-dragging * {
   flex: 1;
   height: 60px;
   padding: 4px 8px;
+  /* Außenecken rund, Innenecken passend zum FAB-Kreis (r=28px) */
   border-radius: 22px;
   background: linear-gradient(140deg, rgba(44, 132, 255, 0.24), rgba(18, 92, 215, 0.16));
   backdrop-filter: blur(32px) saturate(1.7) brightness(1.08);
@@ -4806,6 +4806,16 @@ body.cal-is-dragging * {
     0 2px 8px rgba(0, 0, 0, 0.08),
     inset 0 1.5px 0 rgba(255, 255, 255, 0.60),
     inset 0 0 0 0.5px rgba(255, 255, 255, 0.18);
+}
+
+/* linke Pille: rechte Kante nimmt FAB-Rundung an */
+.bottom-nav-group:first-child {
+  border-radius: 22px 28px 28px 22px;
+}
+
+/* rechte Pille: linke Kante nimmt FAB-Rundung an */
+.bottom-nav-group:last-child {
+  border-radius: 28px 22px 22px 28px;
 }
 
 /* Bottom Nav Items */
@@ -4884,14 +4894,13 @@ body.cal-is-dragging * {
 @media (max-width: 768px) {
   .bottom-nav {
     width: calc(100% - 14px);
-    bottom: max(4px, calc(env(safe-area-inset-bottom, 0px) - 12px));
-    gap: 8px;
+    bottom: max(6px, env(safe-area-inset-bottom, 6px));
+    gap: 5px;
   }
 
   .bottom-nav-group {
     height: 58px;
     padding: 4px 6px;
-    border-radius: 20px;
     background: rgba(255, 255, 255, 0.30);
     backdrop-filter: blur(36px) saturate(2.0) brightness(1.10);
     -webkit-backdrop-filter: blur(36px) saturate(2.0) brightness(1.10);
@@ -4901,6 +4910,14 @@ body.cal-is-dragging * {
       0 2px 8px rgba(0, 0, 0, 0.06),
       inset 0 1.5px 0 rgba(255, 255, 255, 0.85),
       inset 0 0 0 0.5px rgba(255, 255, 255, 0.32);
+  }
+
+  /* Innenecken (mobile): passen zur FAB-Rundung */
+  .bottom-nav-group:first-child {
+    border-radius: 20px 28px 28px 20px;
+  }
+  .bottom-nav-group:last-child {
+    border-radius: 28px 20px 20px 28px;
   }
 
   .bottom-nav-item {
@@ -4916,9 +4933,12 @@ body.cal-is-dragging * {
 
 @media (min-width: 769px) and (max-width: 1024px) {
   .bottom-nav {
+    /* reset left:212px aus der äußeren 769-1180px Regel */
+    left: 50%;
+    transform: translateX(-50%);
     width: min(780px, calc(100% - 30px));
-    bottom: max(10px, calc(env(safe-area-inset-bottom, 0px) - 2px));
-    gap: 12px;
+    bottom: max(6px, env(safe-area-inset-bottom, 6px));
+    gap: 6px;
   }
 }
 
