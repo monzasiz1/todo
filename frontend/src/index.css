@@ -4774,37 +4774,45 @@ body.cal-is-dragging * {
   right: auto;
   transform: translateX(-50%);
   width: min(780px, calc(100% - 20px));
-  height: 62px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  z-index: 10100;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  overflow: visible;
+  padding: 0;
+}
 
-  /* Starkes Glas — brightness < 1 verdunkelt Inhalt beim Durchscrollen */
+/* Glas-Pillen links und rechts des FAB */
+.bottom-nav-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  flex: 1;
+  height: 62px;
+  padding: 4px 8px;
   background: linear-gradient(160deg, rgba(255, 255, 255, 0.32), rgba(238, 248, 255, 0.26));
   backdrop-filter: blur(34px) saturate(1.9) brightness(0.88);
   -webkit-backdrop-filter: blur(34px) saturate(1.9) brightness(0.88);
   border: 1px solid rgba(255, 255, 255, 0.64);
-  border-radius: 22px;
   box-shadow:
     0 10px 32px rgba(0, 0, 0, 0.10),
     0 2px 8px rgba(0, 0, 0, 0.06),
     inset 0 1.5px 0 rgba(255, 255, 255, 0.88),
     inset 0 0 0 0.5px rgba(255, 255, 255, 0.24);
+}
 
-  /* Kreisförmige Aussparung oben mittig — FAB schmiegt sich hinein */
-  -webkit-mask-image: radial-gradient(
-    circle at 50% 0,
-    transparent 28px,
-    black 30px
-  );
-  mask-image: radial-gradient(
-    circle at 50% 0,
-    transparent 28px,
-    black 30px
-  );
+/* Linke Pille: Außenecken klein, Innenecken (zum FAB hin) groß */
+.bottom-nav-group:first-child {
+  border-radius: 20px 32px 32px 20px;
+}
 
-  z-index: 10100;
-  align-items: center;
-  justify-content: space-around;
-  padding: 0 8px;
-  overflow: visible;
+/* Rechte Pille: Innenecken (zum FAB hin) groß, Außenecken klein */
+.bottom-nav-group:last-child {
+  border-radius: 32px 20px 20px 32px;
 }
 
 /* Bottom Nav Items */
@@ -4872,7 +4880,7 @@ body.cal-is-dragging * {
   }
 }
 
-/* FAB sitzt im Notch — obere Hälfte ragt heraus, untere Hälfte schmiegt sich in die Kurve */
+/* FAB schwebt zwischen den Glas-Pillen, leicht angehoben */
 .bottom-nav-fab {
   width: 56px;
   height: 56px;
@@ -4888,9 +4896,7 @@ body.cal-is-dragging * {
     0 14px 32px rgba(15, 91, 196, 0.46),
     0 4px 14px rgba(0, 122, 255, 0.32),
     inset 0 1.5px 0 rgba(255, 255, 255, 0.50);
-  /* FAB-Mittelpunkt liegt auf der Oberkante des Balkens (= Notch-Mittelpunkt) */
-  align-self: flex-start;
-  margin-top: -28px;
+  margin-top: -12px;
   flex-shrink: 0;
   position: relative;
   z-index: 1;
@@ -4907,7 +4913,11 @@ body.cal-is-dragging * {
   .bottom-nav {
     width: calc(100% - 14px);
     bottom: max(6px, env(safe-area-inset-bottom, 6px));
-    height: 60px;
+    gap: 5px;
+  }
+
+  .bottom-nav-group {
+    height: 58px;
   }
 
   .bottom-nav-item {
@@ -5935,7 +5945,12 @@ body.cal-is-dragging * {
 
   .bottom-nav-group {
     height: 54px;
-    border-radius: 18px;
+  }
+  .bottom-nav-group:first-child {
+    border-radius: 18px 28px 28px 18px;
+  }
+  .bottom-nav-group:last-child {
+    border-radius: 28px 18px 18px 28px;
   }
 }
 
@@ -14944,7 +14959,7 @@ body.cal-is-dragging * {
 
   .day-create-header {
     padding: 20px 18px 14px;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0; /* sticky top, rounding nur oben */
   }
 
   .day-create-tasks {
