@@ -282,13 +282,20 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     });
   }, [calendarSources]);
 
-  // â”€â”€ Optimized filteredTasks for all devices â”€â”€
+  // -- Stale-tasks ref: keep last non-empty tasks so calendar never goes blank during navigation --
+  const staleTasksRef = useRef([]);
+
+  // -- Optimized filteredTasks for all devices --
   const filteredTasks = useMemo(() => {
-    if (!tasks.length) return [];
-    return tasks.filter((t) => {
-      const source = getTaskSource(t);
-      return visibleSources[source.key] !== false;
+    // Use stale tasks if current tasks is temporarily empty (e.g. during fetch after navigation)
+    const source = tasks.length > 0 ? tasks : staleTasksRef.current;
+    const result = source.filter((t) => {
+      const s = getTaskSource(t);
+      return visibleSources[s.key] !== false;
     });
+    // Update stale cache whenever we have real data
+    if (tasks.length > 0) staleTasksRef.current = tasks;
+    return result;
   }, [tasks, visibleSources]);
 
   // â”€â”€ Memoized visible range calculation â”€â”€
@@ -307,14 +314,22 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     };
   }, [currentDate, view]);
 
-  // â”€â”€ Optimized visible range notification â”€â”€
+  // -- Debounced visible range notification --
+  // Debounce prevents rapid-fire fetches when tapping through days/weeks fast on tablet
+  const debouncedRangeNotify = useCallback(
+    debounce((start, end) => {
+      onVisibleRangeChange?.(start, end);
+    }, 200),
+    [onVisibleRangeChange]
+  );
+
   useEffect(() => {
     if (!onVisibleRangeChange) return;
-    onVisibleRangeChange(
+    debouncedRangeNotify(
       format(visibleRange.start, 'yyyy-MM-dd'),
       format(visibleRange.end, 'yyyy-MM-dd')
     );
-  }, [visibleRange, onVisibleRangeChange]);
+  }, [visibleRange, debouncedRangeNotify, onVisibleRangeChange]);
 
   // â”€â”€ Universal debounced resize handler for all devices â”€â”€
   const debouncedResizeHandler = useCallback(
@@ -472,25 +487,28 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     setTimeout(() => setDropFeedback(null), 1400);
   };
 
-  const navigate = (direction) => {
-    if (view === 'month') {
-      const nextDate = direction === 'next' ? addMonths(currentDate, 1) : subMonths(currentDate, 1);
+  // â"€â"€ Throttled navigate: prevents too-rapid state updates on tablet when tapping fast â"€â"€
+  const navigateRef = useRef(null);
+  if (!navigateRef.current) {
+    navigateRef.current = throttle((direction, curView, curDate, curSelected) => {
+      if (curView === 'month') {
+        const nextDate = direction === 'next' ? addMonths(curDate, 1) : subMonths(curDate, 1);
+        setCurrentDate(nextDate);
+        return;
+      }
+      if (curView === 'day') {
+        const base = curSelected || curDate;
+        const nextDate = direction === 'next' ? addDay(base, 1) : subDays(base, 1);
+        setSelectedDate(nextDate);
+        setCurrentDate(nextDate);
+        return;
+      }
+      const nextDate = direction === 'next' ? addWeeks(curDate, 1) : subWeeks(curDate, 1);
       setCurrentDate(nextDate);
-      return;
-    }
-
-    if (view === 'day') {
-      const base = selectedDate || currentDate;
-      const nextDate = direction === 'next' ? addDay(base, 1) : subDays(base, 1);
       setSelectedDate(nextDate);
-      setCurrentDate(nextDate);
-      return;
-    }
-
-    const nextDate = direction === 'next' ? addWeeks(currentDate, 1) : subWeeks(currentDate, 1);
-    setCurrentDate(nextDate);
-    setSelectedDate(nextDate);
-  };
+    }, 120);
+  }
+  const navigate = (direction) => navigateRef.current(direction, view, currentDate, selectedDate);
 
   const handleDayClick = (date) => {
     setSelectedDate(date);
