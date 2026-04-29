@@ -1639,8 +1639,9 @@ input, textarea, select {
   align-items: center;
   font-size: 10px;
   font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 6px;
+  padding: 1px 7px;
+  border-radius: 7px;
+  min-height: 18px;
   flex-shrink: 0;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -1659,7 +1660,7 @@ input, textarea, select {
 }
 
 .task-type-badge.teams {
-  gap: 4px;
+  gap: 3px;
   background: rgba(98, 100, 167, 0.14);
   color: #6264a7;
 }
@@ -1811,10 +1812,11 @@ input, textarea, select {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 10px;
-  border-radius: 10px;
-  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 7px;
+  font-size: 10px;
   font-weight: 600;
+  min-height: 18px;
 }
 
 .task-actions {
@@ -12726,10 +12728,11 @@ body.cal-is-dragging * {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  padding: 1px 6px 1px 4px;
-  border-radius: 6px;
+  padding: 1px 7px 1px 5px;
+  border-radius: 7px;
   font-size: 10px;
   font-weight: 600;
+  min-height: 18px;
   margin-top: 2px;
   border: 1px solid transparent;
   max-width: 100%;
@@ -12753,10 +12756,11 @@ body.cal-is-dragging * {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 1px 6px;
-  border-radius: 6px;
+  padding: 1px 7px;
+  border-radius: 7px;
   font-size: 10px;
   font-weight: 500;
+  min-height: 18px;
   margin-top: 3px;
   border: 1px solid transparent;
   letter-spacing: 0.01em;
