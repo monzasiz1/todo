@@ -188,10 +188,12 @@ export default function TaskDetailModal({ task, onClose, onUpdated, portalTarget
       >
         <motion.div
           className={`task-detail-modal${isMobile ? ' is-mobile-fullscreen' : ''}`}
-          initial={isMobile ? { x: '100%' } : { opacity: 0, y: 60, scale: 0.95 }}
-          animate={isMobile ? { x: 0 } : { opacity: 1, y: 0, scale: 1 }}
-          exit={isMobile ? { x: '100%' } : { opacity: 0, y: 40, scale: 0.95 }}
-          transition={{ type: 'spring', damping: 28, stiffness: 350 }}
+          initial={isMobile ? { x: '100%' } : { opacity: 0, y: 24 }}
+          animate={isMobile ? { x: 0 } : { opacity: 1, y: 0 }}
+          exit={isMobile ? { x: '100%' } : { opacity: 0, y: 16 }}
+          transition={isMobile
+            ? { type: 'tween', duration: 0.24, ease: 'easeOut' }
+            : { type: 'tween', duration: 0.2, ease: 'easeOut' }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* ── Linke Spalte (Desktop: details) ── */}
