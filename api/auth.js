@@ -167,11 +167,6 @@ module.exports = async function handler(req, res) {
               console.log('[2FA-Login] Kein Code übergeben, requires2FA');
               return res.status(200).json({ requires2FA: true });
             }
-          } else {
-            if (!twofa_code) {
-              console.log('[2FA-Login] Kein Code übergeben, requires2FA');
-              return res.status(200).json({ requires2FA: true });
-            }
             const otp = getOtp();
             let valid2fa = false;
             if (!otp) {
