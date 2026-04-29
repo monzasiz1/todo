@@ -56,10 +56,10 @@ const normalizeCategoryKey = (value) => {
   return String(value || '')
     .toLowerCase()
     .trim()
-    .replace(/Ã¤/g, 'ae')
-    .replace(/Ã¶/g, 'oe')
-    .replace(/Ã¼/g, 'ue')
-    .replace(/ÃŸ/g, 'ss');
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss');
 };
 
 const getEventGlowClass = (task) => {
@@ -1687,7 +1687,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     ? format(currentDate, 'MMMM yyyy', { locale: de })
     : view === 'day'
       ? format(selectedDate || currentDate, 'EEEE, d. MMMM yyyy', { locale: de })
-      : `KW ${format(currentDate, 'w')} Â· ${format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'd. MMM', { locale: de })} â€“ ${format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'd. MMM yyyy', { locale: de })}`;
+      : `KW ${format(currentDate, 'w')} · ${format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'd. MMM', { locale: de })} – ${format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'd. MMM yyyy', { locale: de })}`;
 
   // â”€â”€ Universal fullscreen toggle optimized for all devices â”€â”€
   const toggleCalendarFullscreen = useCallback(async () => {
