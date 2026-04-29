@@ -187,7 +187,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, portalTarget
         onClick={onClose}
       >
         <motion.div
-          className={`task-detail-modal${isMobile ? ' is-mobile-fullscreen' : ''}`}
+          className={`task-detail-modal${isMobile ? ' is-mobile-fullscreen' : ''}${!isEvent ? ' is-task-detail' : ''}`}
           initial={isMobile ? { x: '100%' } : { opacity: 0, y: 24 }}
           animate={isMobile ? { x: 0 } : { opacity: 1, y: 0 }}
           exit={isMobile ? { x: '100%' } : { opacity: 0, y: 16 }}

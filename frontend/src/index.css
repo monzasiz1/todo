@@ -1250,8 +1250,8 @@ input, textarea, select {
 }
 
 .task-card.event {
-  border-color: rgba(175, 82, 222, 0.26);
-  background: linear-gradient(135deg, rgba(175, 82, 222, 0.09), rgba(255, 255, 255, 0.98) 52%);
+  border-color: rgba(0, 122, 255, 0.24);
+  background: linear-gradient(135deg, rgba(0, 122, 255, 0.09), rgba(255, 255, 255, 0.98) 52%);
 }
 
 .task-card:hover {
@@ -1260,7 +1260,7 @@ input, textarea, select {
 }
 
 .task-card.event:hover {
-  box-shadow: 0 10px 24px rgba(175, 82, 222, 0.16);
+  box-shadow: 0 10px 24px rgba(0, 122, 255, 0.16);
 }
 
 .task-card.completed {
@@ -1329,9 +1329,9 @@ input, textarea, select {
   justify-content: center;
   flex-shrink: 0;
   margin-top: 1px;
-  color: #AF52DE;
-  background: linear-gradient(180deg, rgba(175, 82, 222, 0.2), rgba(175, 82, 222, 0.1));
-  box-shadow: inset 0 0 0 1px rgba(175, 82, 222, 0.32);
+  color: var(--primary);
+  background: linear-gradient(180deg, rgba(0, 122, 255, 0.2), rgba(0, 122, 255, 0.1));
+  box-shadow: inset 0 0 0 1px rgba(0, 122, 255, 0.28);
 }
 
 /* Type Badge on TaskCard */
@@ -1359,9 +1359,9 @@ input, textarea, select {
 }
 
 .task-type-badge.event {
-  background: rgba(175, 82, 222, 0.18);
-  color: #8C2AD2;
-  box-shadow: inset 0 0 0 1px rgba(175, 82, 222, 0.28);
+  background: rgba(0, 122, 255, 0.14);
+  color: var(--primary);
+  box-shadow: inset 0 0 0 1px rgba(0, 122, 255, 0.24);
 }
 
 .task-type-badge.teams {
@@ -1440,8 +1440,22 @@ input, textarea, select {
 
 @media (max-width: 1024px) {
   .task-card.event {
-    background: linear-gradient(135deg, rgba(175, 82, 222, 0.08), rgba(255, 255, 255, 0.98) 62%);
+    background: linear-gradient(135deg, rgba(0, 122, 255, 0.08), rgba(255, 255, 255, 0.98) 62%);
   }
+}
+
+/* Task-only style in TaskDetailModal (not for events) */
+.task-detail-modal.is-task-detail .task-detail-main {
+  background: linear-gradient(180deg, rgba(0, 122, 255, 0.04) 0%, var(--card-solid) 230px);
+}
+
+.task-detail-modal.is-task-detail .task-detail-description {
+  background: rgba(0, 122, 255, 0.06);
+  border: 1px solid rgba(0, 122, 255, 0.12);
+}
+
+.task-detail-modal.is-task-detail .task-detail-grid {
+  background: rgba(0, 122, 255, 0.15);
 }
 
 @media (max-width: 768px) {
