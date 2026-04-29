@@ -1938,4 +1938,3 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     </motion.div>
   );
 }
-}
