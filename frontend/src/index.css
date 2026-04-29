@@ -1139,6 +1139,24 @@ input, textarea, select {
   border-color: rgba(0, 122, 255, 0.14);
 }
 
+.dash-section-list .task-dashboard-date.has-icon {
+  gap: 2px;
+  padding-top: 4px;
+}
+
+.dash-section-list .task-dashboard-date-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  color: #3c78c7;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: inset 0 0 0 1px rgba(0, 122, 255, 0.1);
+  margin-bottom: 1px;
+}
+
 .dash-section-list .task-dashboard-date.todo {
   background: linear-gradient(180deg, #f7f7f9, #eef0f3);
 }
@@ -1230,6 +1248,11 @@ input, textarea, select {
   .dash-section-list .task-title {
     font-size: 14px;
   }
+
+  .dash-section-list .task-dashboard-date-icon {
+    width: 17px;
+    height: 17px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1254,6 +1277,15 @@ input, textarea, select {
 
   .dash-section-list .task-title-row {
     gap: 5px;
+  }
+
+  .dash-section-list .task-dashboard-date.has-icon {
+    padding-top: 3px;
+  }
+
+  .dash-section-list .task-dashboard-date-icon {
+    width: 16px;
+    height: 16px;
   }
 }
 

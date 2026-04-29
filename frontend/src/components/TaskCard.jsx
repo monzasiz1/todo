@@ -79,6 +79,7 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
   const timeLabel = task.time ? `${String(task.time).slice(0, 5)} Uhr` : '';
   const hasGroupCategoryCombo = !!task.group_name && !!task.group_category_name;
   const dashboardDateParts = showDashboardDateTile ? getDashboardDateParts(task.date) : null;
+  const useCombinedEventDateTile = Boolean(showDashboardDateTile && dashboardDateParts && isEvent);
 
   useEffect(() => {
     return () => {
@@ -251,22 +252,29 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
       </div>
 
       {/* Checkbox / Event Icon */}
-      {isEvent ? (
+      {!useCombinedEventDateTile && isEvent ? (
         <div className="task-event-icon" title="Termin">
           <CalendarCheck size={18} />
         </div>
       ) : (
-        <motion.div
-          className={`task-checkbox ${task.completed ? 'checked' : ''} ${!canEdit ? 'disabled' : ''}`}
-          onClick={(e) => { e.stopPropagation(); if (canEdit) toggleTask(task.id); }}
-          whileTap={canEdit ? { scale: 0.85 } : {}}
-        >
-          {task.completed && <Check size={14} strokeWidth={3} />}
-        </motion.div>
+        !useCombinedEventDateTile && (
+          <motion.div
+            className={`task-checkbox ${task.completed ? 'checked' : ''} ${!canEdit ? 'disabled' : ''}`}
+            onClick={(e) => { e.stopPropagation(); if (canEdit) toggleTask(task.id); }}
+            whileTap={canEdit ? { scale: 0.85 } : {}}
+          >
+            {task.completed && <Check size={14} strokeWidth={3} />}
+          </motion.div>
+        )
       )}
 
       {dashboardDateParts && (
-        <div className={`task-dashboard-date ${isEvent ? 'event' : 'todo'}`} aria-hidden="true">
+        <div className={`task-dashboard-date ${isEvent ? 'event' : 'todo'}${useCombinedEventDateTile ? ' has-icon' : ''}`} aria-hidden="true">
+          {useCombinedEventDateTile && (
+            <span className="task-dashboard-date-icon">
+              <CalendarCheck size={12} />
+            </span>
+          )}
           <span className="task-dashboard-date-month">{dashboardDateParts.month}</span>
           <span className="task-dashboard-date-day">{dashboardDateParts.day}</span>
         </div>
