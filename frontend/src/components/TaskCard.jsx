@@ -266,7 +266,7 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
       )}
 
       {dashboardDateParts && (
-        <div className="task-dashboard-date" aria-hidden="true">
+        <div className={`task-dashboard-date ${isEvent ? 'event' : 'todo'}`} aria-hidden="true">
           <span className="task-dashboard-date-month">{dashboardDateParts.month}</span>
           <span className="task-dashboard-date-day">{dashboardDateParts.day}</span>
         </div>
