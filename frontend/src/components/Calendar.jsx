@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../store/taskStore';
@@ -152,7 +152,7 @@ const buildOverlapLaneMap = (tasks, getRange) => {
   return laneMap;
 };
 
-// ── Throttle helper for smooth drag ──
+// ── Performance helpers for smooth rendering ──
 const throttle = (fn, delay) => {
   let lastRun = 0;
   return (...args) => {
@@ -164,7 +164,72 @@ const throttle = (fn, delay) => {
   };
 };
 
+const debounce = (fn, delay) => {
+  let timeoutId;
+  return (...args) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), delay);
+  };
+};
+
+// ── Animation preferences for tablets ──
+const getAnimationProps = (isMobile = false) => {
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isLowPower = isMobile || prefersReducedMotion;
+  
+  return {
+    duration: isLowPower ? 0.15 : 0.3,
+    enabled: !prefersReducedMotion,
+    easingMobile: [0.25, 0.46, 0.45, 0.94], // Optimized for touch
+    easingDesktop: [0.4, 0, 0.2, 1]
+  };
+};
+
+// ── Animation preferences for tablets ──
+const getAnimationProps = (isMobile = false) => {
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isLowPower = isMobile || prefersReducedMotion;
+  
+  return {
+    duration: isLowPower ? 0.15 : 0.3,
+    enabled: !prefersReducedMotion,
+    easingMobile: [0.25, 0.46, 0.45, 0.94], // Optimized for touch
+    easingDesktop: [0.4, 0, 0.2, 1]
+  };
+};
+
+// ── Memoized calendar sources calculation ──
+const calculateCalendarSources = (tasks) => {
+  const map = new Map();
+  tasks.forEach((t) => {
+    const source = getTaskSource(t);
+    if (!map.has(source.key)) {
+      map.set(source.key, source);
+    }
+  });
+  return Array.from(map.values());
+};
+
+const getTaskSource = (t) => {
+  if (t.group_id || t.group_name) {
+    return {
+      key: `group:${t.group_id || t.group_name}`,
+      name: t.group_name || 'Gruppe', 
+      color: t.group_color || '#5856D6',
+    };
+  }
+  if (t.category_id || t.category_name) {
+    return {
+      key: `cat:${t.category_id || t.category_name}`,
+      name: t.category_name || 'Kategorie',
+      color: t.category_color || '#4C7BD9',
+    };
+  }
+  return { key: 'default:persoenlich', name: 'Persoenlich', color: '#4C7BD9' };
+};
+
 export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeChange, onTaskUpdated, onTaskCreated }) {
+  // ── Optimized state management for tablets ──
   const [currentDate, setCurrentDate] = useState(new Date());
   const [nowTs, setNowTs] = useState(Date.now());
   const [view, setView] = useState(window.innerWidth >= CALENDAR_WEEK_DEFAULT_BREAKPOINT ? 'week' : 'month');
@@ -175,8 +240,12 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const [showSidebarCategories, setShowSidebarCategories] = useState(true);
   const [isCalendarFullscreen, setIsCalendarFullscreen] = useState(false);
   const [pickerYear, setPickerYear] = useState(getYear(new Date()));
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= MOBILE_BREAKPOINT);
-  const [isWideDesktopCalendar, setIsWideDesktopCalendar] = useState(window.innerWidth >= CALENDAR_DESKTOP_BREAKPOINT);
+  
+  // ── Debounced viewport state for tablet stability ──
+  const [viewportState, setViewportState] = useState({
+    isDesktop: window.innerWidth >= MOBILE_BREAKPOINT,
+    isWideDesktopCalendar: window.innerWidth >= CALENDAR_DESKTOP_BREAKPOINT
+  });
   // Drag / Resize state
   const [dragInfo, setDragInfo] = useState(null);
   const [resizeInfo, setResizeInfo] = useState(null); // { task, edge, previewTime }
@@ -199,34 +268,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const { tasks: storeTasks, updateTask } = useTaskStore();
   const tasks = Array.isArray(tasksProp) ? tasksProp : storeTasks;
 
-  const getTaskSource = (t) => {
-    if (t.group_id || t.group_name) {
-      return {
-        key: `group:${t.group_id || t.group_name}`,
-        name: t.group_name || 'Gruppe',
-        color: t.group_color || '#5856D6',
-      };
-    }
-    if (t.category_id || t.category_name) {
-      return {
-        key: `cat:${t.category_id || t.category_name}`,
-        name: t.category_name || 'Kategorie',
-        color: t.category_color || '#4C7BD9',
-      };
-    }
-    return { key: 'default:persoenlich', name: 'Persoenlich', color: '#4C7BD9' };
-  };
-
-  const calendarSources = useMemo(() => {
-    const map = new Map();
-    tasks.forEach((t) => {
-      const source = getTaskSource(t);
-      if (!map.has(source.key)) {
-        map.set(source.key, source);
-      }
-    });
-    return Array.from(map.values());
-  }, [tasks]);
+  // ── Memoized calendar sources with performance optimization ──
+  const calendarSources = useMemo(() => calculateCalendarSources(tasks), [tasks]);
 
   const [visibleSources, setVisibleSources] = useState({});
 
@@ -248,38 +291,55 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     });
   }, [calendarSources]);
 
-  const filteredTasks = useMemo(
-    () => tasks.filter((t) => visibleSources[getTaskSource(t).key] !== false),
-    [tasks, visibleSources]
-  );
+  // ── Optimized filteredTasks with better memoization ──
+  const filteredTasks = useMemo(() => {
+    if (!tasks.length) return [];
+    return tasks.filter((t) => {
+      const source = getTaskSource(t);
+      return visibleSources[source.key] !== false;
+    });
+  }, [tasks, visibleSources]);
 
-  useEffect(() => {
-    if (!onVisibleRangeChange) return;
-
-    let start;
-    let end;
-
+  // ── Memoized visible range calculation ──
+  const visibleRange = useMemo(() => {
     if (view === 'month') {
       const monthStart = startOfMonth(currentDate);
       const monthEnd = endOfMonth(currentDate);
-      start = startOfWeek(monthStart, { weekStartsOn: 1 });
-      end = endOfWeek(monthEnd, { weekStartsOn: 1 });
-    } else {
-      start = startOfWeek(currentDate, { weekStartsOn: 1 });
-      end = endOfWeek(currentDate, { weekStartsOn: 1 });
+      return {
+        start: startOfWeek(monthStart, { weekStartsOn: 1 }),
+        end: endOfWeek(monthEnd, { weekStartsOn: 1 })
+      };
     }
+    return {
+      start: startOfWeek(currentDate, { weekStartsOn: 1 }),
+      end: endOfWeek(currentDate, { weekStartsOn: 1 })
+    };
+  }, [currentDate, view]);
 
-    onVisibleRangeChange(format(start, 'yyyy-MM-dd'), format(end, 'yyyy-MM-dd'));
-  }, [currentDate, view, onVisibleRangeChange]);
+  // ── Optimized visible range notification ──
+  useEffect(() => {
+    if (!onVisibleRangeChange) return;
+    onVisibleRangeChange(
+      format(visibleRange.start, 'yyyy-MM-dd'),
+      format(visibleRange.end, 'yyyy-MM-dd')
+    );
+  }, [visibleRange, onVisibleRangeChange]);
+
+  // ── Debounced resize handler for tablet stability ──
+  const debouncedResizeHandler = useCallback(
+    debounce(() => {
+      setViewportState({
+        isDesktop: window.innerWidth >= MOBILE_BREAKPOINT,
+        isWideDesktopCalendar: window.innerWidth >= CALENDAR_DESKTOP_BREAKPOINT
+      });
+    }, 150), // 150ms debounce for smoother tablet experience
+    []
+  );
 
   useEffect(() => {
-    const handler = () => {
-      setIsDesktop(window.innerWidth >= MOBILE_BREAKPOINT);
-      setIsWideDesktopCalendar(window.innerWidth >= CALENDAR_DESKTOP_BREAKPOINT);
-    };
-    window.addEventListener('resize', handler);
-    return () => window.removeEventListener('resize', handler);
-  }, []);
+    window.addEventListener('resize', debouncedResizeHandler);
+    return () => window.removeEventListener('resize', debouncedResizeHandler);
+  }, [debouncedResizeHandler]);
 
   useEffect(() => {
     const syncFullscreenState = () => {
@@ -326,26 +386,39 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     };
   }, []);
 
-  // ── ResizeObserver: berechnet wkH dynamisch aus verfügbarer Containerhöhe ──
+  // ── Optimized ResizeObserver with proper cleanup ──
   useEffect(() => {
-    if (!isWideDesktopCalendar) return;
+    if (!viewportState.isWideDesktopCalendar) {
+      // Reset to default when not wide desktop
+      wkHRef.current = WK_H;
+      setWkHState(WK_H);
+      return;
+    }
+
     const wrap = desktopWeekWrapRef.current;
     if (!wrap) return;
-    const recalc = () => {
+
+    const recalc = throttle(() => {
       const h = wrap.clientHeight;
       if (h > 0) {
         const newH = Math.max(28, Math.floor((h - 28) / (WK_END - WK_START)));
-        wkHRef.current = newH;
-        setWkHState(newH);
+        if (Math.abs(wkHRef.current - newH) > 1) { // Only update if significant change
+          wkHRef.current = newH;
+          setWkHState(newH);
+        }
       }
-    };
+    }, 100); // Throttled to avoid excessive recalculations
+
     const observer = new ResizeObserver(recalc);
     observer.observe(wrap);
     recalc();
-    return () => observer.disconnect();
-  }, [isWideDesktopCalendar]);
 
-  const isMobile = !isDesktop;
+    return () => {
+      observer.disconnect();
+    };
+  }, [viewportState.isWideDesktopCalendar]);
+
+  const isMobile = !viewportState.isDesktop;
 
   useEffect(() => {
     if (isMobile) {
@@ -358,22 +431,32 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMobile]);
 
+  // ── Optimized month picker event handler ──
+  const monthPickerHandler = useCallback((e) => {
+    if (
+      (triggerRef.current && triggerRef.current.contains(e.target)) ||
+      (dropdownRef.current && dropdownRef.current.contains(e.target))
+    ) return;
+    setShowMonthPicker(false);
+  }, []);
+
   useEffect(() => {
     if (!showMonthPicker) return;
-    const handler = (e) => {
-      if (
-        (triggerRef.current && triggerRef.current.contains(e.target)) ||
-        (dropdownRef.current && dropdownRef.current.contains(e.target))
-      ) return;
-      setShowMonthPicker(false);
+    
+    document.addEventListener('mousedown', monthPickerHandler);
+    document.addEventListener('touchstart', monthPickerHandler, { passive: true });
+    
+    return () => {
+      document.removeEventListener('mousedown', monthPickerHandler);
+      document.removeEventListener('touchstart', monthPickerHandler);
     };
-    document.addEventListener('mousedown', handler);
-    document.addEventListener('touchstart', handler);
-    return () => { document.removeEventListener('mousedown', handler); document.removeEventListener('touchstart', handler); };
-  }, [showMonthPicker]);
+  }, [showMonthPicker, monthPickerHandler]);
 
-  const getTasksForDate = (date) => {
+  // ── Optimized getTasksForDate with memoization ──
+  const getTasksForDate = useCallback((date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
+    return filteredTasks.filter((task) => task.date === dateStr);
+  }, [filteredTasks]);
     return filteredTasks.filter((t) => {
       if (!t.date) return false;
       const taskStart = t.date.substring(0, 10);
@@ -1618,13 +1701,19 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     }
   };
 
+  // ── Animation settings based on device capability ──
+  const animProps = useMemo(() => getAnimationProps(isMobile), [isMobile]);
+
   return (
     <motion.div
       ref={calendarWrapperRef}
       className={`calendar-wrapper calendar-view-${view} ${isCalendarFullscreen ? 'calendar-is-fullscreen' : ''}`}
-      initial={{ opacity: 0, y: 20 }}
+      initial={animProps.enabled ? { opacity: 0, y: 10 } : { opacity: 1, y: 0 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
+      transition={{ 
+        duration: animProps.duration, 
+        ease: isMobile ? animProps.easingMobile : animProps.easingDesktop
+      }}
       onTouchStart={handleSwipeTouchStart}
       onTouchEnd={handleSwipeTouchEnd}
     >
