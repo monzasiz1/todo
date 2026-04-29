@@ -276,6 +276,7 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
       <div className="task-content">
         <div className="task-title-row">
           <div className="task-title">{task.title}</div>
+          {!isEvent && <span className="task-type-badge task">Aufgabe</span>}
           {isEvent && <span className="task-type-badge event">Termin</span>}
           {task.teams_join_url && <span className="task-type-badge teams"><Video size={10} /> Teams</span>}
           {isEventEnded && <span className="task-type-badge ended">Beendet</span>}
