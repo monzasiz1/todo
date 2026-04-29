@@ -4772,8 +4772,8 @@ body.cal-is-dragging * {
   left: 0;
   right: 0;
   height: 64px;
-  height: calc(64px + env(safe-area-inset-bottom, 0px));
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  height: calc(64px + clamp(0px, calc(env(safe-area-inset-bottom, 0px) - 6px), 40px));
+  padding-bottom: clamp(0px, calc(env(safe-area-inset-bottom, 0px) - 6px), 40px);
   background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -5673,14 +5673,14 @@ body.cal-is-dragging * {
     align-items: stretch;
     justify-content: flex-end;
     /* Overlay endet oberhalb der Bottom-Nav */
-    bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(64px + clamp(0px, calc(env(safe-area-inset-bottom, 0px) - 6px), 40px));
   }
 
   .task-detail-overlay .task-detail-modal {
     width: 100%;
     max-width: none;
     height: 100%;
-    max-height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px));
+    max-height: calc(100dvh - 64px - clamp(0px, calc(env(safe-area-inset-bottom, 0px) - 6px), 40px));
     border-radius: 18px 18px 0 0;
     display: flex;
     flex-direction: column;
@@ -6083,7 +6083,7 @@ body.cal-is-dragging * {
   left: 0;
   right: 0;
   /* Endet oberhalb der Bottom-Nav auf Mobile/Tablet */
-  bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(64px + clamp(0px, calc(env(safe-area-inset-bottom, 0px) - 6px), 40px));
   background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
