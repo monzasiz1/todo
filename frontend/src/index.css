@@ -1098,11 +1098,12 @@ input, textarea, select {
 }
 
 .dash-section-list .task-card {
-  padding: 14px 16px;
+  padding: 14px 16px 14px 10px;
   gap: 12px;
   border: 1px solid rgba(28, 28, 30, 0.08);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 249, 251, 0.96));
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  overflow: visible;
 }
 
 .dash-section-list .task-card:hover {
@@ -1119,43 +1120,62 @@ input, textarea, select {
 }
 
 .dash-section-list .task-dashboard-date {
-  width: 46px;
-  min-width: 46px;
-  height: 52px;
-  border-radius: 10px;
-  background: linear-gradient(180deg, #f7f7f9, #eef0f3);
-  border: 1px solid rgba(28, 28, 30, 0.08);
+  width: 54px;
+  min-width: 54px;
+  align-self: stretch;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #f5f6f8, #eceff3);
+  border: 1px solid rgba(28, 28, 30, 0.06);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1px;
-  align-self: center;
-  margin-top: 0;
+  gap: 3px;
+  margin: -7px 0 -7px -22px;
+  padding: 10px 0;
   flex-shrink: 0;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
 }
 
 .dash-section-list .task-dashboard-date.event {
-  background: linear-gradient(180deg, rgba(242, 247, 255, 0.95), rgba(233, 241, 252, 0.92));
-  border-color: rgba(0, 122, 255, 0.14);
-}
-
-.dash-section-list .task-dashboard-date.has-icon {
-  gap: 2px;
-  padding-top: 4px;
+  background: linear-gradient(180deg, rgba(241, 246, 255, 0.98), rgba(231, 239, 251, 0.96));
+  border-color: rgba(0, 122, 255, 0.12);
 }
 
 .dash-section-list .task-dashboard-date-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 999px;
   color: #3c78c7;
-  background: rgba(255, 255, 255, 0.85);
-  box-shadow: inset 0 0 0 1px rgba(0, 122, 255, 0.1);
-  margin-bottom: 1px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: inset 0 0 0 1px rgba(0, 122, 255, 0.08);
+}
+
+.dash-section-list .task-dashboard-date-toggle {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(255, 255, 255, 0.9);
+  color: #7b8190;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 0 1px rgba(28, 28, 30, 0.1);
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.dash-section-list .task-dashboard-date-toggle.checked {
+  background: #1f7aec;
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(0, 122, 255, 0.12);
+}
+
+.dash-section-list .task-dashboard-date-toggle.disabled {
+  opacity: 0.6;
 }
 
 .dash-section-list .task-dashboard-date.todo {
@@ -1168,6 +1188,7 @@ input, textarea, select {
   letter-spacing: 0.05em;
   font-weight: 700;
   color: #7b8190;
+  margin-top: 2px;
 }
 
 .dash-section-list .task-dashboard-date-day {
@@ -1232,14 +1253,14 @@ input, textarea, select {
 
 @media (max-width: 1024px) {
   .dash-section-list .task-card {
-    padding: 13px 14px;
+    padding: 13px 14px 13px 10px;
     gap: 11px;
   }
 
   .dash-section-list .task-dashboard-date {
-    width: 42px;
-    min-width: 42px;
-    height: 48px;
+    width: 50px;
+    min-width: 50px;
+    margin-left: -18px;
   }
 
   .dash-section-list .task-dashboard-date-day {
@@ -1254,18 +1275,26 @@ input, textarea, select {
     width: 17px;
     height: 17px;
   }
+
+  .dash-section-list .task-dashboard-date-toggle {
+    width: 18px;
+    height: 18px;
+  }
 }
 
 @media (max-width: 768px) {
   .dash-section-list .task-card {
-    padding: 12px 13px;
+    padding: 12px 13px 12px 10px;
     gap: 10px;
   }
 
   .dash-section-list .task-dashboard-date {
-    width: 40px;
-    min-width: 40px;
-    height: 46px;
+    width: 46px;
+    min-width: 46px;
+    margin-left: -14px;
+    margin-top: -5px;
+    margin-bottom: -5px;
+    border-radius: 14px;
   }
 
   .dash-section-list .task-dashboard-date-month {
@@ -1280,11 +1309,12 @@ input, textarea, select {
     gap: 5px;
   }
 
-  .dash-section-list .task-dashboard-date.has-icon {
-    padding-top: 3px;
+  .dash-section-list .task-dashboard-date-icon {
+    width: 16px;
+    height: 16px;
   }
 
-  .dash-section-list .task-dashboard-date-icon {
+  .dash-section-list .task-dashboard-date-toggle {
     width: 16px;
     height: 16px;
   }

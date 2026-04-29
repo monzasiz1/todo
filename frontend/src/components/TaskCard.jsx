@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { memo, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTaskStore } from '../store/taskStore';
-import { Check, Trash2, Clock, Calendar, CalendarCheck, GripVertical, Lock, Users, UserCheck, Repeat, Paperclip, Video } from 'lucide-react';
+import { Check, Trash2, Clock, Calendar, CalendarCheck, GripVertical, Lock, Users, UserCheck, Repeat, Paperclip, Video, Circle } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
 import TaskDetailModal from './TaskDetailModal';
@@ -79,7 +79,7 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
   const timeLabel = task.time ? `${String(task.time).slice(0, 5)} Uhr` : '';
   const hasGroupCategoryCombo = !!task.group_name && !!task.group_category_name;
   const dashboardDateParts = showDashboardDateTile ? getDashboardDateParts(task.date) : null;
-  const useCombinedEventDateTile = Boolean(showDashboardDateTile && dashboardDateParts && isEvent);
+  const useDashboardDateRail = Boolean(showDashboardDateTile && dashboardDateParts);
 
   useEffect(() => {
     return () => {
@@ -252,12 +252,12 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
       </div>
 
       {/* Checkbox / Event Icon */}
-      {!useCombinedEventDateTile && isEvent ? (
+      {!useDashboardDateRail && isEvent ? (
         <div className="task-event-icon" title="Termin">
           <CalendarCheck size={18} />
         </div>
       ) : (
-        !useCombinedEventDateTile && (
+        !useDashboardDateRail && (
           <motion.div
             className={`task-checkbox ${task.completed ? 'checked' : ''} ${!canEdit ? 'disabled' : ''}`}
             onClick={(e) => { e.stopPropagation(); if (canEdit) toggleTask(task.id); }}
@@ -269,11 +269,23 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
       )}
 
       {dashboardDateParts && (
-        <div className={`task-dashboard-date ${isEvent ? 'event' : 'todo'}${useCombinedEventDateTile ? ' has-icon' : ''}`} aria-hidden="true">
-          {useCombinedEventDateTile && (
+        <div className={`task-dashboard-date ${isEvent ? 'event' : 'todo'}${useDashboardDateRail ? ' has-marker' : ''}`} aria-hidden="true">
+          {isEvent ? (
             <span className="task-dashboard-date-icon">
               <CalendarCheck size={12} />
             </span>
+          ) : (
+            <button
+              type="button"
+              className={`task-dashboard-date-toggle ${task.completed ? 'checked' : ''} ${!canEdit ? 'disabled' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (canEdit) toggleTask(task.id);
+              }}
+              aria-label={task.completed ? 'Aufgabe wieder öffnen' : 'Aufgabe erledigen'}
+            >
+              {task.completed ? <Check size={11} strokeWidth={3} /> : <Circle size={11} strokeWidth={2.4} />}
+            </button>
           )}
           <span className="task-dashboard-date-month">{dashboardDateParts.month}</span>
           <span className="task-dashboard-date-day">{dashboardDateParts.day}</span>
