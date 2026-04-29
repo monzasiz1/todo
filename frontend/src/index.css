@@ -7260,6 +7260,9 @@ body.cal-is-dragging * {
     min-height: 20px;
     display: flex;
     align-items: center;
+    width: 100%;
+    box-sizing: border-box;
+    flex-shrink: 0;
     font-size: 11px;
     font-weight: 600;
     padding: 4px 6px;
@@ -7271,6 +7274,7 @@ body.cal-is-dragging * {
 
   .desktop-week-all-day-event.allday-span-start {
     border-radius: 4px 0 0 4px;
+    width: calc(100% + 5px);
     margin-right: -5px;
     position: relative;
     z-index: 2;
@@ -7278,6 +7282,7 @@ body.cal-is-dragging * {
 
   .desktop-week-all-day-event.allday-span-middle {
     border-radius: 0;
+    width: calc(100% + 10px);
     margin-left: -5px;
     margin-right: -5px;
     position: relative;
@@ -7286,6 +7291,7 @@ body.cal-is-dragging * {
 
   .desktop-week-all-day-event.allday-span-end {
     border-radius: 0 4px 4px 0;
+    width: calc(100% + 5px);
     margin-left: -5px;
     position: relative;
     z-index: 2;
@@ -7293,6 +7299,7 @@ body.cal-is-dragging * {
 
   .desktop-week-all-day-event.allday-span-single {
     border-radius: 4px;
+    width: 100%;
   }
 
   .desktop-week-time-wrap {
