@@ -123,6 +123,9 @@ export default function Layout() {
         </div>
       </main>
 
+      {/* Scroll-Fade: verdunkelt Inhalte die unter die Nav laufen */}
+      <div className="bottom-nav-scrim" />
+
       {/* Bottom Navigation (mobile) */}
       <BottomNav onAddClick={handleFabClick} />
 
