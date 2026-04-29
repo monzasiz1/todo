@@ -163,15 +163,46 @@ module.exports = async function handler(req, res) {
           }
           const otp = getOtp();
           let valid2fa = false;
-          if (otp) {
+          if (!otp) {
+            console.error('[2FA-Login] getOtp() returned null — otplib nicht verfügbar');
+            return res.status(500).json({ error: '2FA-Service temporär nicht verfügbar' });
+          }
+          
+          console.log('[2FA-Login] Validiere Code...', {
+            codeLength: String(twofa_code).length,
+            secretLength: user.twofa_secret ? user.twofa_secret.length : 0,
+            timestamp: Date.now(),
+            serverTime: new Date().toISOString()
+          });
+          
+          // Test verschiedene Zeit-Windows
+          const testResults = [];
+          for (let window = 0; window <= 5; window++) {
             try {
-              valid2fa = otp.verify({ token: String(twofa_code), secret: user.twofa_secret });
+              const result = otp.verify({ 
+                token: String(twofa_code), 
+                secret: user.twofa_secret,
+                window: window
+              });
+              testResults.push({ window, result });
+              if (result) valid2fa = true;
             } catch (e) {
-              console.error('[2FA-Login] Fehler bei OTP-Verify:', e);
+              testResults.push({ window, error: e.message });
             }
           }
+          
+          console.log('[2FA-Login] Test-Results:', testResults);
+          
+          // Zusätzlich: aktueller Server-Code für dieses Secret
+          try {
+            const serverCode = otp.generate(user.twofa_secret);
+            console.log('[2FA-Login] Server generiert Code:', serverCode, 'für Zeit:', Math.floor(Date.now() / 1000));
+          } catch (e) {
+            console.log('[2FA-Login] Server-Code Generation fehler:', e.message);
+          }
+          
           console.log('[2FA-Login] Ergebnis:', valid2fa);
-          if (!otp || !valid2fa) {
+          if (!valid2fa) {
             return res.status(401).json({ error: 'Ungültiger 2FA-Code. Bitte erneut versuchen.' });
           }
         }
@@ -333,6 +364,29 @@ module.exports = async function handler(req, res) {
     } catch (err) {
       console.error('2FA disable error:', err);
       return res.status(500).json({ error: '2FA deaktivieren fehlgeschlagen' });
+    }
+  }
+
+  /* ── GET /api/auth/debug-2fa — temporary 2FA debug ── */
+  if (action === 'debug-2fa' && req.method === 'GET') {
+    try {
+      const otp = getOtp();
+      if (!otp) return res.json({ error: 'otplib nicht verfügbar' });
+      
+      // Test-Secret generieren und validieren
+      const testSecret = otp.generateSecret();
+      const testCode = otp.generate(testSecret);
+      const isValid = otp.verify({ token: testCode, secret: testSecret });
+      
+      return res.json({
+        otplib_available: !!otp,
+        test_secret_length: testSecret.length,
+        test_code: testCode,
+        test_validation: isValid,
+        current_time: new Date().toISOString()
+      });
+    } catch (err) {
+      return res.json({ error: err.message });
     }
   }
 
