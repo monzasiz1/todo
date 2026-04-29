@@ -5758,9 +5758,11 @@ body.cal-is-dragging * {
 
   /* Task Detail Modal — Sheet über der Nav */
   .task-detail-overlay {
-    padding: 0 0 calc(72px + env(safe-area-inset-bottom, 0px)) 0;
-    align-items: stretch;
-    justify-content: flex-end;
+    /* !important verhindert Überschreibung durch die @media(max-width:1024px) .modal-overlay Regel */
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-end !important;
+    padding: 0 0 calc(72px + env(safe-area-inset-bottom, 0px)) 0 !important;
     bottom: 0;
   }
 
@@ -5768,12 +5770,12 @@ body.cal-is-dragging * {
     width: 100%;
     max-width: none;
     height: auto;
-    max-height: calc(100dvh - 56px - env(safe-area-inset-top, 0px) - 72px - env(safe-area-inset-bottom, 0px));
+    max-height: calc(100dvh - env(safe-area-inset-top, 0px) - 72px - env(safe-area-inset-bottom, 0px));
     border-radius: 18px 18px 14px 14px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    padding-bottom: 16px;
+    padding-bottom: 0;
   }
 
   .task-detail-main,
@@ -5787,8 +5789,8 @@ body.cal-is-dragging * {
     top: 0;
     z-index: 6;
     background: var(--card-solid);
-    padding-top: calc(env(safe-area-inset-top, 0px) + 8px);
-    min-height: calc(env(safe-area-inset-top, 0px) + 56px);
+    padding-top: 14px;
+    min-height: 56px;
   }
 
   .task-detail-priority-bar {
@@ -5796,7 +5798,7 @@ body.cal-is-dragging * {
   }
 
   .task-detail-header-actions {
-    top: calc(env(safe-area-inset-top, 0px) + 14px);
+    top: 14px;
     right: 16px;
   }
 
