@@ -1947,13 +1947,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       <AnimatePresence>
         {showDayModal && selectedDate && (() => {
           const modalTarget = isCalendarFullscreen && calendarWrapperRef.current ? calendarWrapperRef.current : document.body;
-          const dateStr = format(selectedDate, 'yyyy-MM-dd');
-          const dayTasks = tasks.filter((t) => {
-            if (!t.date) return false;
-            const start = t.date.substring(0, 10);
-            const end = t.date_end ? t.date_end.substring(0, 10) : start;
-            return dateStr >= start && dateStr <= end;
-          });
+          // Keep modal task source aligned with month/day rendering (stale-aware)
+          const dayTasks = getTasksForSelectedDay();
           return (
             <DayCreateModal
               date={selectedDate}
