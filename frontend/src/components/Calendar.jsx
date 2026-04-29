@@ -1156,22 +1156,41 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
           <div className="desktop-week-all-day-row">
             <div className="desktop-week-left-label">all-day</div>
             {days.map((d) => {
+              const dayStr = format(d, 'yyyy-MM-dd');
+              const weekDay = d.getDay(); // 0=Sun, 1=Mon..6=Sat
+              const isWeekRowStart = weekDay === 1;
+              const isWeekRowEnd = weekDay === 0;
               const dayTasks = getTasksForDate(d).filter((t) => !t.time);
               return (
                 <div key={`allday-${d.toISOString()}`} className="desktop-week-all-day-cell" data-caldate={format(d, 'yyyy-MM-dd')}>
                   {dayTasks.slice(0, 3).map((t) => {
                     const ended     = isEventEnded(t, nowTs);
                     const doneOrOld = t.completed || ended;
+                    const taskStartStr = String(t.date || '').slice(0, 10);
+                    const taskEndStr = String(t.date_end || t.date || '').slice(0, 10);
+                    const isMultiDay = taskStartStr && taskEndStr && taskEndStr > taskStartStr;
+                    const isActualStart = dayStr === taskStartStr;
+                    const isActualEnd = dayStr === taskEndStr;
+                    let spanClass = '';
+                    if (isMultiDay) {
+                      const effectiveStart = isActualStart || isWeekRowStart;
+                      const effectiveEnd = isActualEnd || isWeekRowEnd;
+                      if (effectiveStart && effectiveEnd) spanClass = 'allday-span-single';
+                      else if (effectiveStart) spanClass = 'allday-span-start';
+                      else if (effectiveEnd) spanClass = 'allday-span-end';
+                      else spanClass = 'allday-span-middle';
+                    }
+                    const showLabel = !isMultiDay || spanClass === 'allday-span-start' || spanClass === 'allday-span-single';
                     return (
                       <button
                         key={t.id}
-                        className={`desktop-week-all-day-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${t.completed ? ' completed' : ''}`}
+                        className={`desktop-week-all-day-event ${spanClass}${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${t.completed ? ' completed' : ''}`}
                         style={{ background: doneOrOld ? 'rgba(142,142,147,0.4)' : (t.category_color || t.group_category_color || t.group_color || '#4C7BD9') }}
                         onClick={(e) => { e.stopPropagation(); setDetailTask(t); }}
                       >
-                        {t.teams_join_url && <Video size={11} className="calendar-inline-teams-icon" />}
-                        <span className={doneOrOld ? 'cal-allday-strike' : ''}>{t.title}</span>
-                        {ended && !t.completed && <span style={{ opacity: 0.75, marginLeft: 3 }}>Â· beendet</span>}
+                        {showLabel && t.teams_join_url && <Video size={11} className="calendar-inline-teams-icon" />}
+                        {showLabel && <span className={doneOrOld ? 'cal-allday-strike' : ''}>{t.title}</span>}
+                        {showLabel && ended && !t.completed && <span style={{ opacity: 0.75, marginLeft: 3 }}>Â· beendet</span>}
                       </button>
                     );
                   })}
@@ -1392,20 +1411,39 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
             <div className="mobile-week-allday-strip">
               <div className="mobile-week-allday-corner">Ganztg.</div>
               {days.map((d) => {
+                const dayStr = format(d, 'yyyy-MM-dd');
+                const weekDay = d.getDay(); // 0=Sun, 1=Mon..6=Sat
+                const isWeekRowStart = weekDay === 1;
+                const isWeekRowEnd = weekDay === 0;
                 const adTasks = getTasksForDate(d).filter((t) => isAllDayTask(t));
                 return (
                   <div key={`mwad-${d.toISOString()}`} className="mobile-week-allday-col">
                     {adTasks.slice(0, 2).map((t) => {
                       const ended     = isEventEnded(t, nowTs);
                       const doneOrOld = t.completed || ended;
+                      const taskStartStr = String(t.date || '').slice(0, 10);
+                      const taskEndStr = String(t.date_end || t.date || '').slice(0, 10);
+                      const isMultiDay = taskStartStr && taskEndStr && taskEndStr > taskStartStr;
+                      const isActualStart = dayStr === taskStartStr;
+                      const isActualEnd = dayStr === taskEndStr;
+                      let spanClass = '';
+                      if (isMultiDay) {
+                        const effectiveStart = isActualStart || isWeekRowStart;
+                        const effectiveEnd = isActualEnd || isWeekRowEnd;
+                        if (effectiveStart && effectiveEnd) spanClass = 'mw-span-single';
+                        else if (effectiveStart) spanClass = 'mw-span-start';
+                        else if (effectiveEnd) spanClass = 'mw-span-end';
+                        else spanClass = 'mw-span-middle';
+                      }
+                      const showLabel = !isMultiDay || spanClass === 'mw-span-start' || spanClass === 'mw-span-single';
                       return (
                         <div
                           key={`mwadt-${t.id}`}
-                          className={`mobile-week-allday-pill${doneOrOld ? ' done' : ''}`}
+                          className={`mobile-week-allday-pill ${spanClass}${doneOrOld ? ' done' : ''}`}
                           style={{ background: doneOrOld ? 'rgba(142,142,147,0.35)' : (t.category_color || t.group_category_color || t.group_color || '#4C7BD9') }}
                           onClick={(e) => { e.stopPropagation(); setDetailTask(t); }}
                         >
-                          <span>{t.title}</span>
+                          {showLabel && <span>{t.title}</span>}
                         </div>
                       );
                     })}
