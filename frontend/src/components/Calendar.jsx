@@ -765,7 +765,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       document.querySelectorAll('.mobile-week-grid-col').forEach(el => el.classList.remove('cal-drag-over'));
       const hEl = mobileWeekColRefs.current[targetIdx];
       if (hEl) hEl.classList.add('cal-drag-over');
-    };
+    }, 16);
 
     const onUp = async (ev) => {
       document.removeEventListener('pointermove', onMove, { passive: false });
@@ -1939,3 +1939,4 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       </AnimatePresence>
     </motion.div>
   );
+}
