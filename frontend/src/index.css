@@ -63,6 +63,7 @@ body {
 }
 
 /* ── Scroll-Lock: verhindert Background-Scrolling bei offenem Modal / Panel ── */
+/* KEIN position:fixed/transform auf html oder body — das würde die Bottom-Nav verschieben */
 html:has(.modal-overlay),
 html:has(.friends-overlay),
 html:has(.gchat-panel),
@@ -85,18 +86,16 @@ body:has(.sidebar-overlay.open),
 body:has(.help-chat) {
   overflow: hidden;
   overscroll-behavior: none;
-  /* iOS Safari: verhindert Momentum-Scrolling des Hintergrunds */
-  touch-action: none;
 }
 
-/* Scrollbare Inhalte innerhalb von Overlays freigeben */
-.modal-overlay *,
-.friends-overlay *,
-.gchat-panel *,
-.upgrade-modal-overlay *,
-.friend-profile-overlay *,
-.group-add-overlay * {
-  touch-action: pan-y;
+/* Overlays selbst: iOS Momentum-Scrolling des Hintergrunds sperren */
+.modal-overlay,
+.friends-overlay,
+.upgrade-modal-overlay,
+.friend-profile-overlay,
+.group-add-overlay {
+  overscroll-behavior: contain;
+  touch-action: pan-y; /* Scrollen innerhalb des Overlays erlauben */
 }
 
 #root {
@@ -5787,26 +5786,32 @@ body.cal-is-dragging * {
     box-shadow: 0 2px 8px rgba(0, 122, 255, 0.25);
   }
 
-  /* Task Detail Modal — Sheet über der Nav */
+  /* Task Detail Modal — direkt zwischen Status-Bar und Bottom-Nav fixiert */
   .task-detail-overlay {
-    /* !important verhindert Überschreibung durch die @media(max-width:1024px) .modal-overlay Regel */
-    flex-direction: column !important;
-    align-items: stretch !important;
-    justify-content: flex-end !important;
-    padding: 0 0 calc(72px + env(safe-area-inset-bottom, 0px)) 0 !important;
-    bottom: 0;
+    padding: 0 !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    /* backdrop-filter entfernen — würde auf iOS das position:fixed des Modals brechen */
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(0, 0, 0, 0.55) !important;
   }
 
   .task-detail-overlay .task-detail-modal {
-    width: 100%;
-    max-width: none;
-    height: auto;
-    max-height: calc(100dvh - env(safe-area-inset-top, 0px) - 72px - env(safe-area-inset-bottom, 0px));
-    border-radius: 18px 18px 14px 14px;
+    /* position:fixed relativ zum Viewport — unabhängig vom Overlay-Layout */
+    position: fixed !important;
+    top: env(safe-area-inset-top, 0px) !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    max-height: none !important;
+    border-radius: 0 !important;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    padding-bottom: 0;
   }
 
   .task-detail-main,
@@ -5820,6 +5825,7 @@ body.cal-is-dragging * {
     top: 0;
     z-index: 6;
     background: var(--card-solid);
+    /* top=0 weil das Modal selbst bereits ab safe-area-top beginnt */
     padding-top: 14px;
     min-height: 56px;
   }
