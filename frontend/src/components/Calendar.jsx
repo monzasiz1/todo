@@ -968,16 +968,78 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     }
 
     const dayHeaders = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+    const weekCount = Math.ceil(days.length / 7);
+    const weekLayouts = Array.from({ length: weekCount }, (_, weekIndex) => {
+      const weekDays = days.slice(weekIndex * 7, weekIndex * 7 + 7);
+      const weekStartStr = format(weekDays[0], 'yyyy-MM-dd');
+      const weekEndStr = format(weekDays[6], 'yyyy-MM-dd');
+
+      const segments = filteredTasks
+        .filter((t) => {
+          if (!t?.date) return false;
+          const startStr = String(t.date).slice(0, 10);
+          const endStr = String(t.date_end || t.date).slice(0, 10);
+          if (!startStr || !endStr || endStr <= startStr) return false;
+          return startStr <= weekEndStr && endStr >= weekStartStr;
+        })
+        .map((t) => {
+          const startStr = String(t.date).slice(0, 10);
+          const endStr = String(t.date_end || t.date).slice(0, 10);
+          const segStartStr = startStr > weekStartStr ? startStr : weekStartStr;
+          const segEndStr = endStr < weekEndStr ? endStr : weekEndStr;
+          const startIdx = Math.max(0, Math.min(6, differenceInCalendarDays(new Date(`${segStartStr}T00:00:00`), weekDays[0])));
+          const endIdx = Math.max(startIdx, Math.min(6, differenceInCalendarDays(new Date(`${segEndStr}T00:00:00`), weekDays[0])));
+          return { taskId: String(t.id), startIdx, endIdx, span: endIdx - startIdx + 1 };
+        })
+        .sort((a, b) => {
+          if (a.startIdx !== b.startIdx) return a.startIdx - b.startIdx;
+          return b.span - a.span;
+        });
+
+      const laneEnds = [];
+      const segmentByTaskId = new Map();
+      segments.forEach((seg) => {
+        let lane = laneEnds.findIndex((endIdx) => endIdx < seg.startIdx);
+        if (lane === -1) {
+          lane = laneEnds.length;
+          laneEnds.push(seg.endIdx);
+        } else {
+          laneEnds[lane] = seg.endIdx;
+        }
+        segmentByTaskId.set(seg.taskId, { ...seg, lane });
+      });
+
+      return {
+        segmentByTaskId,
+        maxLanes: laneEnds.length,
+      };
+    });
 
     return (
       <>
         {dayHeaders.map((d) => (
           <div key={d} className="calendar-day-header">{d}</div>
         ))}
-        {days.map((d) => {
+        {days.map((d, dayGlobalIdx) => {
           const dayTasks = getTasksForDate(d);
+          const weekIndex = Math.floor(dayGlobalIdx / 7);
+          const dayIndexInWeek = dayGlobalIdx % 7;
+          const weekLayout = weekLayouts[weekIndex];
+          const decoratedDayTasks = dayTasks
+            .map((t, originalIdx) => ({
+              t,
+              originalIdx,
+              seg: weekLayout.segmentByTaskId.get(String(t.id)) || null,
+            }))
+            .sort((a, b) => {
+              if (a.seg && b.seg) return a.seg.lane - b.seg.lane;
+              if (a.seg) return -1;
+              if (b.seg) return 1;
+              return a.originalIdx - b.originalIdx;
+            });
           const isCurrentMonth = isSameMonth(d, currentDate);
           const isSelected = selectedDate && isSameDay(d, selectedDate);
+          const maxVisiblePerCell = viewportState.isDesktop ? 4 : 2;
 
           return (
             <div
@@ -987,46 +1049,30 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
               onClick={() => handleDayClick(d)}
             >
               <span className="calendar-day-number">{format(d, 'd')}</span>
-              {dayTasks.length > 0 && (
+              {decoratedDayTasks.length > 0 && (
                 <div className="calendar-day-tasks">
-                  {dayTasks.slice(0, viewportState.isDesktop ? 4 : 2).map((t) => {
+                  {decoratedDayTasks.slice(0, maxVisiblePerCell).map(({ t, seg }, renderIdx) => {
                     const ended = isEventEnded(t, nowTs);
                     const categoryAccent = t.category_color || t.group_category_color;
                     const accentColor = ended
                       ? 'rgba(142,142,147,0.6)'
                       : (categoryAccent || t.group_color || '#4C7BD9');
-                    // Multi-day spanning: detect start/middle/end within week rows
-                    const taskStartStr = t.date ? String(t.date).substring(0, 10) : null;
-                    const taskEndStr = t.date_end ? String(t.date_end).substring(0, 10) : taskStartStr;
-                    const dayStr = format(d, 'yyyy-MM-dd');
-                    const isMultiDay = taskStartStr && taskEndStr && taskEndStr > taskStartStr;
-                    const weekDay = d.getDay(); // 0=Sun, 1=Mon..6=Sat (Mo=1 is week start in DE)
-                    const isWeekRowStart = weekDay === 1; // Monday
-                    const isWeekRowEnd = weekDay === 0;   // Sunday
-                    const isActualStart = dayStr === taskStartStr;
-                    const isActualEnd = dayStr === taskEndStr;
+                    const isMultiDay = !!seg;
                     let multiClass = '';
-                    if (isMultiDay) {
-                      const effectiveStart = isActualStart || isWeekRowStart;
-                      const effectiveEnd = isActualEnd || isWeekRowEnd;
-                      if (effectiveStart && effectiveEnd) multiClass = 'multi-day-single';
-                      else if (effectiveStart) multiClass = 'multi-day-start';
-                      else if (effectiveEnd) multiClass = 'multi-day-end';
+                    if (seg) {
+                      if (seg.startIdx === seg.endIdx) multiClass = 'multi-day-single';
+                      else if (dayIndexInWeek === seg.startIdx) multiClass = 'multi-day-start';
+                      else if (dayIndexInWeek === seg.endIdx) multiClass = 'multi-day-end';
                       else multiClass = 'multi-day-middle';
                     }
-                    const isHiddenSegment = isMultiDay && ['multi-day-middle', 'multi-day-end'].includes(multiClass);
-                    const daysUntilWeekEnd = isWeekRowEnd ? 1 : (8 - weekDay);
-                    const daysUntilTaskEnd = taskEndStr
-                      ? Math.max(1, differenceInCalendarDays(new Date(`${taskEndStr}T00:00:00`), d) + 1)
-                      : 1;
-                    const spanDaysInRow = ['multi-day-start', 'multi-day-single'].includes(multiClass)
-                      ? Math.max(1, Math.min(daysUntilTaskEnd, daysUntilWeekEnd))
-                      : 1;
+                    const isHiddenSegment = !!seg && dayIndexInWeek !== seg.startIdx;
+                    const spanDaysInRow = seg && dayIndexInWeek === seg.startIdx ? seg.span : 1;
                     const spanWidth = spanDaysInRow > 1
                       ? `calc(${spanDaysInRow * 100}% + ${(spanDaysInRow - 1) * 8}px)`
                       : undefined;
                     const showBorderLeft = !isMobile && !['multi-day-middle', 'multi-day-end'].includes(multiClass);
-                    const showTaskLabel = !isMultiDay || ['multi-day-start', 'multi-day-single'].includes(multiClass);
+                    const showTaskLabel = !seg || dayIndexInWeek === seg.startIdx;
+                    const slotOrder = seg ? seg.lane : (weekLayout.maxLanes + renderIdx);
                     return (
                       <div
                         key={t.id}
@@ -1034,6 +1080,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         style={isMobile ? {
                           visibility: isHiddenSegment ? 'hidden' : 'visible',
                           pointerEvents: isHiddenSegment ? 'none' : 'auto',
+                          order: slotOrder,
                           width: spanWidth,
                           maxWidth: spanWidth ? 'none' : '100%',
                           background: accentColor,
@@ -1045,6 +1092,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         } : {
                           visibility: isHiddenSegment ? 'hidden' : 'visible',
                           pointerEvents: isHiddenSegment ? 'none' : 'auto',
+                          order: slotOrder,
                           width: spanWidth,
                           maxWidth: spanWidth ? 'none' : '100%',
                           background: ended ? 'rgba(142,142,147,0.12)' : categoryAccent ? `${categoryAccent}20` : t.group_id ? `${t.group_color || '#5856D6'}15` : 'var(--primary-bg)',
@@ -1067,8 +1115,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       </div>
                     );
                   })}
-                  {dayTasks.length > (viewportState.isDesktop ? 4 : 2) && (
-                    <div className="calendar-day-more">+{dayTasks.length - (viewportState.isDesktop ? 4 : 2)}</div>
+                  {decoratedDayTasks.length > maxVisiblePerCell && (
+                    <div className="calendar-day-more">+{decoratedDayTasks.length - maxVisiblePerCell}</div>
                   )}
                 </div>
               )}
