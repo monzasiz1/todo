@@ -468,16 +468,14 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   // â”€â”€ Optimized getTasksForDate with memoization â”€â”€
   const getTasksForDate = useCallback((date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    return filteredTasks.filter((task) => task.date === dateStr);
-  }, [filteredTasks]);
     return filteredTasks.filter((t) => {
       if (!t.date) return false;
       const taskStart = t.date.substring(0, 10);
       const taskEnd = t.date_end ? t.date_end.substring(0, 10) : taskStart;
       return dateStr >= taskStart && dateStr <= taskEnd;
     });
-  };
-
+  }, [filteredTasks]);
+    return filteredTasks.filter((t) => {
   const triggerDropFeedback = (taskId, msg = 'Termin verschoben') => {
     setDropFeedback({ id: taskId, msg });
     setTimeout(() => setDropFeedback(null), 1400);
@@ -821,10 +819,10 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       if (updated) triggerDropFeedback(liveTask.id);
     };
 
+
     document.addEventListener('pointermove', onMove, { passive: false });
     document.addEventListener('pointerup', onUp);
-  }, [updateTask, onTaskUpdated, triggerDropFeedback, mobileWeekColRefs, dragTaskRef, wasDragging, tasksRef, setDragInfo]);
-
+  }, [updateTask, onTaskUpdated, triggerDropFeedback, mobileWeekColRefs, dragTaskRef, wasDragging, tasksRef, setDragInfo]);)
   // â”€â”€ Date extend handle â€” drag left/right edge to change date_start / date_end â”€â”€
   const handleDateExtendPointerDown = (e, task, edge) => {
     e.stopPropagation();
@@ -1939,3 +1937,4 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       </AnimatePresence>
     </motion.div>
   );
+}
