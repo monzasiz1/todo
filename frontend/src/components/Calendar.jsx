@@ -314,6 +314,126 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     };
   }, [currentDate, view]);
 
+  const tasksByVisibleDate = useMemo(() => {
+    const map = new Map();
+    const rangeStartStr = format(visibleRange.start, 'yyyy-MM-dd');
+    const rangeEndStr = format(visibleRange.end, 'yyyy-MM-dd');
+
+    filteredTasks.forEach((t) => {
+      if (!t?.date) return;
+      const taskStart = String(t.date).slice(0, 10);
+      const taskEnd = String(t.date_end || t.date).slice(0, 10);
+      if (!taskStart || !taskEnd || taskStart > rangeEndStr || taskEnd < rangeStartStr) return;
+
+      let cursor = taskStart < rangeStartStr ? rangeStartStr : taskStart;
+      const limit = taskEnd > rangeEndStr ? rangeEndStr : taskEnd;
+      while (cursor <= limit) {
+        if (!map.has(cursor)) map.set(cursor, []);
+        map.get(cursor).push(t);
+        cursor = format(addDays(new Date(`${cursor}T00:00:00`), 1), 'yyyy-MM-dd');
+      }
+    });
+
+    map.forEach((dayTasks, key) => {
+      dayTasks.sort((a, b) => {
+        const aAllDay = isAllDayTask(a) || !a.time;
+        const bAllDay = isAllDayTask(b) || !b.time;
+        if (aAllDay !== bAllDay) return aAllDay ? -1 : 1;
+        if (a.time && b.time) return a.time.localeCompare(b.time);
+        if (a.time) return -1;
+        if (b.time) return 1;
+        return (a.sort_order || 0) - (b.sort_order || 0);
+      });
+      map.set(key, dayTasks);
+    });
+
+    return map;
+  }, [filteredTasks, visibleRange]);
+
+  const monthViewData = useMemo(() => {
+    if (view !== 'month') return null;
+
+    const monthStart = startOfMonth(currentDate);
+    const monthEnd = endOfMonth(currentDate);
+    const calStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+    const calEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+    const days = [];
+    let day = calStart;
+    while (day <= calEnd) {
+      days.push(day);
+      day = addDays(day, 1);
+    }
+
+    const weekCount = Math.ceil(days.length / 7);
+    const weekLayouts = Array.from({ length: weekCount }, (_, weekIndex) => {
+      const weekDays = days.slice(weekIndex * 7, weekIndex * 7 + 7);
+      const weekStartStr = format(weekDays[0], 'yyyy-MM-dd');
+      const weekEndStr = format(weekDays[6], 'yyyy-MM-dd');
+
+      const segments = filteredTasks
+        .filter((t) => {
+          if (!t?.date) return false;
+          const startStr = String(t.date).slice(0, 10);
+          const endStr = String(t.date_end || t.date).slice(0, 10);
+          if (!startStr || !endStr || endStr <= startStr) return false;
+          return startStr <= weekEndStr && endStr >= weekStartStr;
+        })
+        .map((t) => {
+          const startStr = String(t.date).slice(0, 10);
+          const endStr = String(t.date_end || t.date).slice(0, 10);
+          const segStartStr = startStr > weekStartStr ? startStr : weekStartStr;
+          const segEndStr = endStr < weekEndStr ? endStr : weekEndStr;
+          const startIdx = Math.max(0, Math.min(6, differenceInCalendarDays(new Date(`${segStartStr}T00:00:00`), weekDays[0])));
+          const endIdx = Math.max(startIdx, Math.min(6, differenceInCalendarDays(new Date(`${segEndStr}T00:00:00`), weekDays[0])));
+          return { taskId: String(t.id), startIdx, endIdx, span: endIdx - startIdx + 1 };
+        })
+        .sort((a, b) => {
+          if (a.startIdx !== b.startIdx) return a.startIdx - b.startIdx;
+          return b.span - a.span;
+        });
+
+      const laneEnds = [];
+      const segmentByTaskId = new Map();
+      segments.forEach((seg) => {
+        let lane = laneEnds.findIndex((endIdx) => endIdx < seg.startIdx);
+        if (lane === -1) {
+          lane = laneEnds.length;
+          laneEnds.push(seg.endIdx);
+        } else {
+          laneEnds[lane] = seg.endIdx;
+        }
+        segmentByTaskId.set(seg.taskId, { ...seg, lane });
+      });
+
+      return {
+        segmentByTaskId,
+        maxLanes: laneEnds.length,
+      };
+    });
+
+    const decoratedTasksByDay = new Map();
+    days.forEach((d, dayGlobalIdx) => {
+      const dayKey = format(d, 'yyyy-MM-dd');
+      const weekIndex = Math.floor(dayGlobalIdx / 7);
+      const weekLayout = weekLayouts[weekIndex];
+      const decoratedDayTasks = (tasksByVisibleDate.get(dayKey) || [])
+        .map((t, originalIdx) => ({
+          t,
+          originalIdx,
+          seg: weekLayout.segmentByTaskId.get(String(t.id)) || null,
+        }))
+        .sort((a, b) => {
+          if (a.seg && b.seg) return a.seg.lane - b.seg.lane;
+          if (a.seg) return -1;
+          if (b.seg) return 1;
+          return a.originalIdx - b.originalIdx;
+        });
+      decoratedTasksByDay.set(dayKey, decoratedDayTasks);
+    });
+
+    return { days, weekLayouts, decoratedTasksByDay };
+  }, [view, currentDate, filteredTasks, tasksByVisibleDate]);
+
   // -- Debounced visible range notification --
   // Debounce prevents rapid-fire fetches when tapping through days/weeks fast on tablet
   const debouncedRangeNotify = useCallback(
@@ -474,13 +594,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   // â”€â”€ Optimized getTasksForDate with memoization â”€â”€
   const getTasksForDate = useCallback((date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    return filteredTasks.filter((t) => {
-      if (!t.date) return false;
-      const taskStart = t.date.substring(0, 10);
-      const taskEnd = t.date_end ? t.date_end.substring(0, 10) : taskStart;
-      return dateStr >= taskStart && dateStr <= taskEnd;
-    });
-  }, [filteredTasks]);
+    return tasksByVisibleDate.get(dateStr) || [];
+  }, [tasksByVisibleDate]);
 
   const triggerDropFeedback = (taskId, msg = 'Termin verschoben') => {
     setDropFeedback({ id: taskId, msg });
@@ -955,65 +1070,9 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
 
   // â”€â”€ Month view â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const renderMonthView = () => {
-    const monthStart = startOfMonth(currentDate);
-    const monthEnd = endOfMonth(currentDate);
-    const calStart = startOfWeek(monthStart, { weekStartsOn: 1 });
-    const calEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
-
-    const days = [];
-    let day = calStart;
-    while (day <= calEnd) {
-      days.push(day);
-      day = addDays(day, 1);
-    }
-
+    if (!monthViewData) return null;
+    const { days, weekLayouts, decoratedTasksByDay } = monthViewData;
     const dayHeaders = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
-    const weekCount = Math.ceil(days.length / 7);
-    const weekLayouts = Array.from({ length: weekCount }, (_, weekIndex) => {
-      const weekDays = days.slice(weekIndex * 7, weekIndex * 7 + 7);
-      const weekStartStr = format(weekDays[0], 'yyyy-MM-dd');
-      const weekEndStr = format(weekDays[6], 'yyyy-MM-dd');
-
-      const segments = filteredTasks
-        .filter((t) => {
-          if (!t?.date) return false;
-          const startStr = String(t.date).slice(0, 10);
-          const endStr = String(t.date_end || t.date).slice(0, 10);
-          if (!startStr || !endStr || endStr <= startStr) return false;
-          return startStr <= weekEndStr && endStr >= weekStartStr;
-        })
-        .map((t) => {
-          const startStr = String(t.date).slice(0, 10);
-          const endStr = String(t.date_end || t.date).slice(0, 10);
-          const segStartStr = startStr > weekStartStr ? startStr : weekStartStr;
-          const segEndStr = endStr < weekEndStr ? endStr : weekEndStr;
-          const startIdx = Math.max(0, Math.min(6, differenceInCalendarDays(new Date(`${segStartStr}T00:00:00`), weekDays[0])));
-          const endIdx = Math.max(startIdx, Math.min(6, differenceInCalendarDays(new Date(`${segEndStr}T00:00:00`), weekDays[0])));
-          return { taskId: String(t.id), startIdx, endIdx, span: endIdx - startIdx + 1 };
-        })
-        .sort((a, b) => {
-          if (a.startIdx !== b.startIdx) return a.startIdx - b.startIdx;
-          return b.span - a.span;
-        });
-
-      const laneEnds = [];
-      const segmentByTaskId = new Map();
-      segments.forEach((seg) => {
-        let lane = laneEnds.findIndex((endIdx) => endIdx < seg.startIdx);
-        if (lane === -1) {
-          lane = laneEnds.length;
-          laneEnds.push(seg.endIdx);
-        } else {
-          laneEnds[lane] = seg.endIdx;
-        }
-        segmentByTaskId.set(seg.taskId, { ...seg, lane });
-      });
-
-      return {
-        segmentByTaskId,
-        maxLanes: laneEnds.length,
-      };
-    });
 
     return (
       <>
@@ -1021,22 +1080,11 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
           <div key={d} className="calendar-day-header">{d}</div>
         ))}
         {days.map((d, dayGlobalIdx) => {
-          const dayTasks = getTasksForDate(d);
+          const dayKey = format(d, 'yyyy-MM-dd');
           const weekIndex = Math.floor(dayGlobalIdx / 7);
           const dayIndexInWeek = dayGlobalIdx % 7;
           const weekLayout = weekLayouts[weekIndex];
-          const decoratedDayTasks = dayTasks
-            .map((t, originalIdx) => ({
-              t,
-              originalIdx,
-              seg: weekLayout.segmentByTaskId.get(String(t.id)) || null,
-            }))
-            .sort((a, b) => {
-              if (a.seg && b.seg) return a.seg.lane - b.seg.lane;
-              if (a.seg) return -1;
-              if (b.seg) return 1;
-              return a.originalIdx - b.originalIdx;
-            });
+          const decoratedDayTasks = decoratedTasksByDay.get(dayKey) || [];
           const isCurrentMonth = isSameMonth(d, currentDate);
           const isSelected = selectedDate && isSameDay(d, selectedDate);
           const maxVisiblePerCell = viewportState.isDesktop ? 4 : 2;
@@ -1080,7 +1128,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         style={isMobile ? {
                           visibility: isHiddenSegment ? 'hidden' : 'visible',
                           pointerEvents: isHiddenSegment ? 'none' : 'auto',
-                          order: slotOrder,
+                          gridRow: slotOrder + 1,
                           width: spanWidth,
                           maxWidth: spanWidth ? 'none' : '100%',
                           background: accentColor,
@@ -1092,7 +1140,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         } : {
                           visibility: isHiddenSegment ? 'hidden' : 'visible',
                           pointerEvents: isHiddenSegment ? 'none' : 'auto',
-                          order: slotOrder,
+                          gridRow: slotOrder + 1,
                           width: spanWidth,
                           maxWidth: spanWidth ? 'none' : '100%',
                           background: ended ? 'rgba(142,142,147,0.12)' : categoryAccent ? `${categoryAccent}20` : t.group_id ? `${t.group_color || '#5856D6'}15` : 'var(--primary-bg)',
@@ -1116,7 +1164,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                     );
                   })}
                   {decoratedDayTasks.length > maxVisiblePerCell && (
-                    <div className="calendar-day-more">+{decoratedDayTasks.length - maxVisiblePerCell}</div>
+                    <div className="calendar-day-more" style={{ gridRow: maxVisiblePerCell + 1 }}>+{decoratedDayTasks.length - maxVisiblePerCell}</div>
                   )}
                 </div>
               )}
