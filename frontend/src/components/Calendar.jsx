@@ -527,7 +527,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
 
   // â”€â”€ Drag & Drop via Pointer Events â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handlePointerDown = (e, task) => {
-    if (!isDesktop || e.button !== 0) return;
+    if (!viewportState.isDesktop || e.button !== 0) return;
     e.preventDefault();
     dragTaskRef.current = task;
     let moved = false;
@@ -971,7 +971,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
               <span className="calendar-day-number">{format(d, 'd')}</span>
               {dayTasks.length > 0 && (
                 <div className="calendar-day-tasks">
-                  {dayTasks.slice(0, isDesktop ? 4 : 2).map((t) => {
+                  {dayTasks.slice(0, viewportState.isDesktop ? 4 : 2).map((t) => {
                     const ended = isEventEnded(t, nowTs);
                     const categoryAccent = t.category_color || t.group_category_color;
                     const accentColor = ended
@@ -991,10 +991,10 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                           background: ended ? 'rgba(142,142,147,0.12)' : categoryAccent ? `${categoryAccent}20` : t.group_id ? `${t.group_color || '#5856D6'}15` : 'var(--primary-bg)',
                           color: ended ? '#59606B' : categoryAccent || (t.group_id ? (t.group_color || '#5856D6') : 'var(--primary)'),
                           borderLeft: `2px solid ${ended ? 'rgba(142,142,147,0.55)' : accentColor}`,
-                          cursor: isDesktop && !ended ? 'grab' : 'pointer',
+                          cursor: viewportState.isDesktop && !ended ? 'grab' : 'pointer',
                           userSelect: 'none',
                         }}
-                        onPointerDown={isDesktop && !ended ? (e) => handlePointerDown(e, t) : undefined}
+                        onPointerDown={viewportState.isDesktop && !ended ? (e) => handlePointerDown(e, t) : undefined}
                         onClick={(e) => { e.stopPropagation(); if (!wasDragging.current) setDetailTask(t); }}
                       >
                         {!isMobile && t.group_id && (
@@ -1007,8 +1007,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       </div>
                     );
                   })}
-                  {dayTasks.length > (isDesktop ? 4 : 2) && (
-                    <div className="calendar-day-more">+{dayTasks.length - (isDesktop ? 4 : 2)}</div>
+                  {dayTasks.length > (viewportState.isDesktop ? 4 : 2) && (
+                    <div className="calendar-day-more">+{dayTasks.length - (viewportState.isDesktop ? 4 : 2)}</div>
                   )}
                 </div>
               )}
