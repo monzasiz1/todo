@@ -312,7 +312,11 @@ module.exports = async function handler(req, res) {
       const pool = getPool();
       const row = await pool.query('SELECT twofa_secret FROM users WHERE id = $1', [me.id]);
       const secret = row.rows[0]?.twofa_secret;
-      if (!secret) return res.status(400).json({ error: '2FA ist nicht aktiv' });
+      if (!secret) {
+        // Secret fehlt aber twofa_enabled könnte true sein — force-disable ohne Codeprüfung
+        await pool.query('UPDATE users SET twofa_enabled = FALSE, twofa_secret = NULL WHERE id = $1', [me.id]);
+        return res.json({ success: true });
+      }
       const otp = getOtp();
       if (!otp || !otp.verify({ token: String(code), secret }))
         return res.status(400).json({ error: 'Ungültiger Code.' });
