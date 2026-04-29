@@ -6189,6 +6189,14 @@ body.cal-is-dragging * {
   cursor: pointer;
 }
 
+/* Desktop only: keep comment input clear from modal edges */
+@media (min-width: 1024px) {
+  .task-detail-comments-section .task-detail-comment-input-wrap {
+    margin-top: 12px;
+    padding-bottom: 14px;
+  }
+}
+
 .task-detail-actions {
   display: flex;
   gap: 10px;
