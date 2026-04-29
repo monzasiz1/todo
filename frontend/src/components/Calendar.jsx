@@ -1492,7 +1492,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   };
 
   const renderWeekView = () => {
-    if (isWideDesktopCalendar) return renderDesktopWeekView();
+    if (viewportState.isWideDesktopCalendar) return renderDesktopWeekView();
     return renderMobileWeekView();
   };
 
