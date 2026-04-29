@@ -33,6 +33,11 @@ module.exports = async function handler(req, res) {
            FROM users WHERE id = $1`,
           [user.id]
         );
+        // Manually add twofa_enabled if column doesn't exist yet
+        if (userResult.rows[0]) {
+          const secretResult = await pool.query('SELECT twofa_secret FROM users WHERE id = $1', [user.id]);
+          userResult.rows[0].twofa_enabled = !!secretResult.rows[0]?.twofa_secret;
+        }
       }
       if (userResult.rows.length === 0) {
         return res.status(404).json({ error: 'Benutzer nicht gefunden' });
