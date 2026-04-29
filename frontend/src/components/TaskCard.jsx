@@ -247,7 +247,12 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
       />
 
       {/* Drag Handle */}
-      <div style={{ color: 'var(--text-tertiary)', cursor: 'grab', marginTop: 2, marginLeft: 4 }} onClick={(e) => e.stopPropagation()}>
+      <div
+        className="task-drag-handle"
+        onClick={(e) => e.stopPropagation()}
+        title="Verschieben"
+        aria-hidden="true"
+      >
         <GripVertical size={16} />
       </div>
 
