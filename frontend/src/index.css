@@ -4766,7 +4766,6 @@ body.cal-is-dragging * {
 /* ========== RESPONSIVE ========== */
 
 /* --- BOTTOM NAVIGATION (Mobile) --- */
-/* Bottom Nav — immer sichtbar auf allen Geräten */
 .bottom-nav {
   display: flex;
   position: fixed;
@@ -4775,36 +4774,52 @@ body.cal-is-dragging * {
   right: auto;
   transform: translateX(-50%);
   width: min(780px, calc(100% - 20px));
-  height: 64px;
-  height: calc(64px + clamp(0px, calc(env(safe-area-inset-bottom, 0px) - 6px), 40px));
   padding-bottom: clamp(0px, calc(env(safe-area-inset-bottom, 0px) - 6px), 40px);
-  background: linear-gradient(140deg, rgba(44, 132, 255, 0.28), rgba(18, 92, 215, 0.2));
-  backdrop-filter: blur(22px) saturate(1.18);
-  -webkit-backdrop-filter: blur(22px) saturate(1.18);
-  border: 1px solid rgba(146, 191, 255, 0.55);
-  border-radius: 22px;
-  box-shadow: 0 14px 34px rgba(16, 72, 156, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.42);
-  /* Immer über allen Modals damit Navigation immer klickbar bleibt */
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
   z-index: 10100;
   align-items: center;
-  justify-content: space-around;
-  padding-left: 8px;
-  padding-right: 8px;
-  overflow: hidden;
+  justify-content: center;
+  gap: 10px;
+  overflow: visible;
+  padding-left: 0;
+  padding-right: 0;
 }
 
-/* Bottom Nav Items — global (da Nav immer sichtbar) */
+/* Glas-Pillen links und rechts des FAB */
+.bottom-nav-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  flex: 1;
+  height: 60px;
+  padding: 4px 8px;
+  border-radius: 22px;
+  background: linear-gradient(140deg, rgba(44, 132, 255, 0.24), rgba(18, 92, 215, 0.16));
+  backdrop-filter: blur(32px) saturate(1.7) brightness(1.08);
+  -webkit-backdrop-filter: blur(32px) saturate(1.7) brightness(1.08);
+  border: 1px solid rgba(146, 191, 255, 0.52);
+  box-shadow:
+    0 10px 28px rgba(16, 72, 156, 0.20),
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.60),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.18);
+}
+
+/* Bottom Nav Items */
 .bottom-nav-item {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: 6px 12px;
-  border-radius: 12px;
+  padding: 6px 14px;
+  border-radius: 14px;
   color: #0f4f9a;
   font-size: 10px;
   font-weight: 500;
-  transition: color 0.2s;
+  transition: color 0.2s, background 0.2s, box-shadow 0.2s;
   text-decoration: none;
   background: none;
   border: none;
@@ -4814,8 +4829,8 @@ body.cal-is-dragging * {
 
 .bottom-nav-item.active {
   color: #0a478b;
-  background: rgba(255, 255, 255, 0.4);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.62);
 }
 
 .bottom-nav-icon-wrap {
@@ -4839,40 +4854,53 @@ body.cal-is-dragging * {
   padding: 0 4px;
 }
 
+/* FAB schwebt zwischen den Glas-Pillen */
 .bottom-nav-fab {
-  width: 52px;
-  height: 52px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  background: linear-gradient(145deg, rgba(17, 114, 245, 0.95), rgba(34, 136, 255, 0.82));
+  background: linear-gradient(145deg, rgba(17, 114, 245, 0.96), rgba(34, 136, 255, 0.86));
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(207, 230, 255, 0.6);
+  border: 1.5px solid rgba(207, 230, 255, 0.70);
   cursor: pointer;
-  box-shadow: 0 10px 22px rgba(15, 91, 196, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.35);
-  margin-top: -18px;
+  box-shadow:
+    0 14px 32px rgba(15, 91, 196, 0.44),
+    0 4px 14px rgba(0, 122, 255, 0.30),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.48);
+  margin-top: -10px;
+  flex-shrink: 0;
   transition: transform 0.2s, box-shadow 0.2s;
   -webkit-tap-highlight-color: transparent;
 }
 
 .bottom-nav-fab:active {
   transform: scale(0.92);
-  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.30);
 }
 
 @media (max-width: 768px) {
   .bottom-nav {
     width: calc(100% - 14px);
     bottom: max(4px, calc(env(safe-area-inset-bottom, 0px) - 12px));
-    height: 64px;
-    padding: 8px 8px;
-    background: linear-gradient(160deg, rgba(255, 255, 255, 0.74), rgba(246, 250, 255, 0.64));
-    backdrop-filter: blur(24px) saturate(1.12);
-    -webkit-backdrop-filter: blur(24px) saturate(1.12);
-    border: 1px solid rgba(255, 255, 255, 0.66);
-    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.62);
-    border-radius: 18px;
+    gap: 8px;
+  }
+
+  .bottom-nav-group {
+    height: 58px;
+    padding: 4px 6px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.30);
+    backdrop-filter: blur(36px) saturate(2.0) brightness(1.10);
+    -webkit-backdrop-filter: blur(36px) saturate(2.0) brightness(1.10);
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.10),
+      0 2px 8px rgba(0, 0, 0, 0.06),
+      inset 0 1.5px 0 rgba(255, 255, 255, 0.85),
+      inset 0 0 0 0.5px rgba(255, 255, 255, 0.32);
   }
 
   .bottom-nav-item {
@@ -4881,8 +4909,8 @@ body.cal-is-dragging * {
 
   .bottom-nav-item.active {
     color: #0a4f9f;
-    background: rgba(255, 255, 255, 0.56);
-    box-shadow: inset 0 0 0 1px rgba(186, 216, 255, 0.52);
+    background: rgba(255, 255, 255, 0.58);
+    box-shadow: inset 0 0 0 1px rgba(186, 216, 255, 0.55);
   }
 }
 
@@ -4890,7 +4918,7 @@ body.cal-is-dragging * {
   .bottom-nav {
     width: min(780px, calc(100% - 30px));
     bottom: max(10px, calc(env(safe-area-inset-bottom, 0px) - 2px));
-    border-radius: 20px;
+    gap: 12px;
   }
 }
 
@@ -5893,8 +5921,13 @@ body.cal-is-dragging * {
   }
 
   .bottom-nav-fab {
-    width: 48px;
-    height: 48px;
+    width: 50px;
+    height: 50px;
+  }
+
+  .bottom-nav-group {
+    height: 54px;
+    border-radius: 18px;
   }
 }
 
