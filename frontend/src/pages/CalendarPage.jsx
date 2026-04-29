@@ -1,5 +1,6 @@
 ﻿import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { addDays, format as formatDate } from 'date-fns';
 import Calendar from '../components/Calendar';
 import TaskDetailModal from '../components/TaskDetailModal';
 import { useTaskStore } from '../store/taskStore';
@@ -18,6 +19,17 @@ function filterTasksForRange(tasks, start, end) {
   });
 }
 
+function shiftRangeWindow(start, end, direction) {
+  const startDate = new Date(`${String(start).slice(0, 10)}T00:00:00`);
+  const endDate = new Date(`${String(end).slice(0, 10)}T00:00:00`);
+  const daySpan = Math.max(1, Math.round((endDate - startDate) / 86400000) + 1);
+  const shiftDays = direction === 'next' ? daySpan : -daySpan;
+  return {
+    start: formatDate(addDays(startDate, shiftDays), 'yyyy-MM-dd'),
+    end: formatDate(addDays(endDate, shiftDays), 'yyyy-MM-dd'),
+  };
+}
+
 export default function CalendarPage() {
   const { fetchTasksRange, getCachedTasksRange, primeTasksRangeCache, tasks: cachedTasks } = useTaskStore();
   const [calendarTasks, setCalendarTasks] = useState(() => Array.isArray(cachedTasks) ? cachedTasks : []);
@@ -25,6 +37,7 @@ export default function CalendarPage() {
   const [visibleRange, setVisibleRange] = useState({ start: null, end: null, key: '' });
   const inflightRangeKeyRef = useRef('');
   const visibleRangeKeyRef = useRef('');
+  const prefetchedRangeKeysRef = useRef(new Set());
   const [highlightTask, setHighlightTask] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -78,6 +91,28 @@ export default function CalendarPage() {
       setCalendarTasks(localRangeTasks);
     }
   }, [cachedTasks, getCachedTasksRange, visibleRange.start, visibleRange.end]);
+
+  useEffect(() => {
+    if (!visibleRange.start || !visibleRange.end) return;
+
+    const neighborRanges = [
+      shiftRangeWindow(visibleRange.start, visibleRange.end, 'prev'),
+      shiftRangeWindow(visibleRange.start, visibleRange.end, 'next'),
+    ];
+
+    neighborRanges.forEach(({ start, end }) => {
+      const key = `${start}|${end}`;
+      if (prefetchedRangeKeysRef.current.has(key)) return;
+      if (getCachedTasksRange(start, end, 45000)) {
+        prefetchedRangeKeysRef.current.add(key);
+        return;
+      }
+
+      prefetchedRangeKeysRef.current.add(key);
+      fetchTasksRange(start, end, { force: false, maxAgeMs: 45000 })
+        .catch(() => null);
+    });
+  }, [fetchTasksRange, getCachedTasksRange, visibleRange.end, visibleRange.start]);
 
   useEffect(() => {
     const onTasksChanged = () => {

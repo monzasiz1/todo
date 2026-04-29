@@ -3,6 +3,9 @@ import { api } from '../utils/api';
 import { getAllQueued, removeQueued, incrementRetry } from '../utils/offlineQueue';
 
 const TASK_CACHE_KEY = 'beequ_tasks_cache_v1';
+const TASK_RANGE_CACHE_KEY = 'beequ_tasks_range_cache_v1';
+const TASK_RANGE_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
+const TASK_RANGE_CACHE_MAX_ENTRIES = 12;
 
 function readCachedTasks() {
   try {
@@ -22,6 +25,55 @@ function writeCachedTasks(tasks) {
   }
 }
 
+function readCachedTaskRanges() {
+  try {
+    if (typeof window === 'undefined' || !window.sessionStorage) return {};
+    const raw = sessionStorage.getItem(TASK_RANGE_CACHE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+
+    const now = Date.now();
+    return Object.fromEntries(
+      Object.entries(parsed).filter(([, entry]) => {
+        if (!entry || typeof entry !== 'object') return false;
+        if (!Array.isArray(entry.tasks)) return false;
+        if (typeof entry.fetchedAt !== 'number') return false;
+        return now - entry.fetchedAt <= TASK_RANGE_CACHE_MAX_AGE_MS;
+      })
+    );
+  } catch {
+    return {};
+  }
+}
+
+function writeCachedTaskRanges(rangeCache) {
+  try {
+    if (typeof window === 'undefined' || !window.sessionStorage) return;
+    const normalized = Object.entries(rangeCache || {})
+      .filter(([, entry]) => entry && Array.isArray(entry.tasks) && typeof entry.fetchedAt === 'number')
+      .sort((a, b) => b[1].fetchedAt - a[1].fetchedAt)
+      .slice(0, TASK_RANGE_CACHE_MAX_ENTRIES);
+    sessionStorage.setItem(TASK_RANGE_CACHE_KEY, JSON.stringify(Object.fromEntries(normalized)));
+  } catch {
+    // ignore quota/security errors
+  }
+}
+
+function buildNextRangeCache(prevCache, key, tasks) {
+  const now = Date.now();
+  const next = {
+    ...(prevCache || {}),
+    [key]: { tasks: Array.isArray(tasks) ? tasks : [], fetchedAt: now },
+  };
+
+  return Object.fromEntries(
+    Object.entries(next)
+      .filter(([, entry]) => now - (entry.fetchedAt || 0) <= TASK_RANGE_CACHE_MAX_AGE_MS)
+      .sort((a, b) => b[1].fetchedAt - a[1].fetchedAt)
+      .slice(0, TASK_RANGE_CACHE_MAX_ENTRIES)
+  );
+}
+
 function emitTasksChanged() {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('beequ:tasks-changed'));
@@ -30,7 +82,7 @@ function emitTasksChanged() {
 
 export const useTaskStore = create((set, get) => ({
   tasks: readCachedTasks(),
-  rangeCache: {},
+  rangeCache: readCachedTaskRanges(),
   taskSummary: { open: 0, completed: 0, today: 0, urgent: 0 },
   categories: [],
   loading: false,
@@ -78,6 +130,7 @@ export const useTaskStore = create((set, get) => ({
         lastTasksFetchKey: fetchKey,
       });
       writeCachedTasks(data.tasks);
+      writeCachedTaskRanges({});
     } catch (err) {
       set({ error: err.message, loading: false });
     }
@@ -93,12 +146,11 @@ export const useTaskStore = create((set, get) => ({
 
   primeTasksRangeCache: (start, end, tasks) => {
     const key = `${String(start).slice(0, 10)}|${String(end).slice(0, 10)}`;
-    set((s) => ({
-      rangeCache: {
-        ...s.rangeCache,
-        [key]: { tasks: Array.isArray(tasks) ? tasks : [], fetchedAt: Date.now() },
-      },
-    }));
+    set((s) => {
+      const rangeCache = buildNextRangeCache(s.rangeCache, key, tasks);
+      writeCachedTaskRanges(rangeCache);
+      return { rangeCache };
+    });
   },
 
   fetchTasksRange: async (start, end, options = {}) => {
@@ -111,12 +163,11 @@ export const useTaskStore = create((set, get) => ({
 
     try {
       const data = await api.getTasksRange(start, end);
-      set((s) => ({
-        rangeCache: {
-          ...s.rangeCache,
-          [key]: { tasks: Array.isArray(data.tasks) ? data.tasks : [], fetchedAt: Date.now() },
-        },
-      }));
+      set((s) => {
+        const rangeCache = buildNextRangeCache(s.rangeCache, key, data.tasks);
+        writeCachedTaskRanges(rangeCache);
+        return { rangeCache };
+      });
       return data.tasks;
     } catch (err) {
       set({ error: err.message });
@@ -155,6 +206,7 @@ export const useTaskStore = create((set, get) => ({
           __offline: true,
         };
         set((s) => ({ tasks: [tempTask, ...s.tasks], rangeCache: {} }));
+        writeCachedTaskRanges({});
         get().addToast('📵 Offline gespeichert – wird synchronisiert sobald du online bist', 'info');
         return { task: tempTask };
       }
@@ -163,6 +215,7 @@ export const useTaskStore = create((set, get) => ({
         ? data.created_tasks
         : [data.task];
       set((s) => ({ tasks: [...created, ...s.tasks], rangeCache: {} }));
+      writeCachedTaskRanges({});
       emitTasksChanged();
       const groupMsg = data.group?.name ? ` · Gruppe: ${data.group.name}` : '';
       const recurrenceMsg = (data.created_count || 0) > 1
@@ -233,6 +286,7 @@ export const useTaskStore = create((set, get) => ({
       if (smart.intent === 'delete') {
         if (smart.success && smart.deleted_task) {
           set((s) => ({ tasks: s.tasks.filter((t) => t.id !== smart.deleted_task.id && t.recurrence_parent_id !== smart.deleted_task.id), rangeCache: {} }));
+          writeCachedTaskRanges({});
           get().addToast(`🗑️ ${smart.message}`);
         } else {
           get().addToast(`⚠️ ${smart.message}`, 'error');
@@ -247,6 +301,7 @@ export const useTaskStore = create((set, get) => ({
             tasks: s.tasks.map((t) => t.id === smart.task.id ? { ...t, ...smart.task } : t),
             rangeCache: {},
           }));
+          writeCachedTaskRanges({});
           get().addToast(`📅 ${smart.message}`);
         } else {
           get().addToast(`⚠️ ${smart.message}`, 'error');
@@ -261,6 +316,7 @@ export const useTaskStore = create((set, get) => ({
             tasks: s.tasks.map((t) => t.id === smart.task.id ? { ...t, ...smart.task } : t),
             rangeCache: {},
           }));
+          writeCachedTaskRanges({});
           get().addToast(`✏️ ${smart.message}`);
         } else {
           get().addToast(`⚠️ ${smart.message}`, 'error');
@@ -289,6 +345,7 @@ export const useTaskStore = create((set, get) => ({
         ? data.created_tasks
         : [data.task];
       set((s) => ({ tasks: [...created, ...s.tasks], rangeCache: {} }));
+      writeCachedTaskRanges({});
       emitTasksChanged();
       const cat = data.parsed.category ? ` → ${data.parsed.category}` : '';
       const range = data.parsed.date_end ? ` (${data.parsed.date} bis ${data.parsed.date_end})` : '';
@@ -332,6 +389,7 @@ export const useTaskStore = create((set, get) => ({
         tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...data.task } : t)),
         rangeCache: {},
       }));
+      writeCachedTaskRanges({});
       
       // Reset fetch cache to force next load from server (ensures consistency)
       set({ lastTasksFetchKey: '', lastTasksFetchAt: 0 });
@@ -357,6 +415,7 @@ export const useTaskStore = create((set, get) => ({
       ),
       rangeCache: {},
     }));
+    writeCachedTaskRanges({});
     try {
       const data = await api.toggleTask(id);
       let tasks = get().tasks.map((t) => (t.id === id ? data.task : t));
@@ -365,6 +424,7 @@ export const useTaskStore = create((set, get) => ({
         tasks = [data.nextTask, ...tasks];
       }
       set({ tasks, rangeCache: {} });
+      writeCachedTaskRanges({});
       emitTasksChanged();
       const task = data.task;
       if (task.completed && data.nextTask) {
@@ -398,6 +458,7 @@ export const useTaskStore = create((set, get) => ({
     // Optimistic removal
     const prev = get().tasks;
     set((s) => ({ tasks: s.tasks.filter((t) => t.id !== id), rangeCache: {} }));
+    writeCachedTaskRanges({});
     try {
       await api.deleteTask(id);
       get().addToast('🗑️ Gelöscht');
