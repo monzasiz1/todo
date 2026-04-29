@@ -4778,7 +4778,8 @@ body.cal-is-dragging * {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid var(--border);
-  z-index: 98;
+  /* Immer über allen Modals damit Navigation immer klickbar bleibt */
+  z-index: 10100;
   align-items: center;
   justify-content: space-around;
   padding-left: 8px;
@@ -5671,18 +5672,20 @@ body.cal-is-dragging * {
     padding: 0;
     align-items: stretch;
     justify-content: flex-end;
+    /* Overlay endet oberhalb der Bottom-Nav */
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   }
 
   .task-detail-overlay .task-detail-modal {
     width: 100%;
     max-width: none;
     height: 100%;
-    max-height: 100dvh;
-    border-radius: 0;
+    max-height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px));
+    border-radius: 18px 18px 0 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    padding-bottom: env(safe-area-inset-bottom, 16px);
+    padding-bottom: 16px;
   }
 
   .task-detail-main,
@@ -5750,7 +5753,7 @@ body.cal-is-dragging * {
   }
 
   /* Drag handle hidden on mobile */
-  .task-card > div:nth-child(2) {
+  .task-card .task-drag-handle--corner {
     display: none;
   }
 
@@ -6079,7 +6082,8 @@ body.cal-is-dragging * {
   top: 0;
   left: 0;
   right: 0;
-  bottom: 0;
+  /* Endet oberhalb der Bottom-Nav auf Mobile/Tablet */
+  bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -6088,6 +6092,13 @@ body.cal-is-dragging * {
   justify-content: center;
   z-index: 1000;
   padding: 40px;
+}
+
+/* Desktop: kein Bottom-Nav → Overlay geht bis ganz unten */
+@media (min-width: 1025px) {
+  .modal-overlay {
+    bottom: 0;
+  }
 }
 
 .task-detail-modal {
