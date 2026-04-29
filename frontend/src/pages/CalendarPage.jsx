@@ -19,11 +19,12 @@ function filterTasksForRange(tasks, start, end) {
 }
 
 export default function CalendarPage() {
-  const { fetchTasksRange, tasks: cachedTasks } = useTaskStore();
-  const [calendarTasks, setCalendarTasks] = useState([]);
+  const { fetchTasksRange, getCachedTasksRange, primeTasksRangeCache, tasks: cachedTasks } = useTaskStore();
+  const [calendarTasks, setCalendarTasks] = useState(() => Array.isArray(cachedTasks) ? cachedTasks : []);
   const [refreshKey, setRefreshKey] = useState(0);
   const [visibleRange, setVisibleRange] = useState({ start: null, end: null, key: '' });
   const inflightRangeKeyRef = useRef('');
+  const visibleRangeKeyRef = useRef('');
   const [highlightTask, setHighlightTask] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -33,19 +34,22 @@ export default function CalendarPage() {
     const normEnd = String(end).slice(0, 10);
     const key = `${normStart}|${normEnd}`;
 
-    if (!force && (visibleRange.key === key || inflightRangeKeyRef.current === key)) return;
+    if (!force && inflightRangeKeyRef.current === key) return;
 
     inflightRangeKeyRef.current = key;
+    visibleRangeKeyRef.current = key;
     setVisibleRange((prev) => (prev.key === key ? prev : { start: normStart, end: normEnd, key }));
 
-    const localRangeTasks = filterTasksForRange(cachedTasks, normStart, normEnd);
+    const cachedRangeTasks = getCachedTasksRange(normStart, normEnd, 45000);
+    const localRangeTasks = cachedRangeTasks || filterTasksForRange(cachedTasks, normStart, normEnd);
     if (localRangeTasks.length > 0) {
       setCalendarTasks(localRangeTasks);
+      primeTasksRangeCache(normStart, normEnd, localRangeTasks);
     }
 
     try {
-      const tasks = await fetchTasksRange(normStart, normEnd);
-      if (Array.isArray(tasks)) {
+      const tasks = await fetchTasksRange(normStart, normEnd, { force, maxAgeMs: 45000 });
+      if (Array.isArray(tasks) && visibleRangeKeyRef.current === key) {
         setCalendarTasks(tasks);
       }
     } finally {
@@ -53,7 +57,7 @@ export default function CalendarPage() {
         inflightRangeKeyRef.current = '';
       }
     }
-  }, [cachedTasks, fetchTasksRange, visibleRange.key]);
+  }, [cachedTasks, fetchTasksRange, getCachedTasksRange, primeTasksRangeCache]);
 
   const handleTaskCreated = () => {
     if (visibleRange.start && visibleRange.end) {
@@ -65,6 +69,15 @@ export default function CalendarPage() {
   const handleVisibleRangeChange = useCallback((start, end) => {
     loadRange(start, end);
   }, [loadRange]);
+
+  useEffect(() => {
+    if (!visibleRange.start || !visibleRange.end) return;
+    const localRangeTasks = getCachedTasksRange(visibleRange.start, visibleRange.end, 45000)
+      || filterTasksForRange(cachedTasks, visibleRange.start, visibleRange.end);
+    if (localRangeTasks.length > 0) {
+      setCalendarTasks(localRangeTasks);
+    }
+  }, [cachedTasks, getCachedTasksRange, visibleRange.start, visibleRange.end]);
 
   useEffect(() => {
     const onTasksChanged = () => {
@@ -92,7 +105,7 @@ export default function CalendarPage() {
     if (cached) { setHighlightTask(cached); return; }
     // Fetch from API
     api.getTask(taskId).then((t) => { if (t) setHighlightTask(t); }).catch(() => null);
-  }, [searchParams]);
+  }, [searchParams, cachedTasks, setSearchParams]);
 
   return (
     <div className="calendar-page-wrap">

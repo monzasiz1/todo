@@ -30,6 +30,7 @@ function emitTasksChanged() {
 
 export const useTaskStore = create((set, get) => ({
   tasks: readCachedTasks(),
+  rangeCache: {},
   taskSummary: { open: 0, completed: 0, today: 0, urgent: 0 },
   categories: [],
   loading: false,
@@ -71,6 +72,7 @@ export const useTaskStore = create((set, get) => ({
       const data = useDashboardEndpoint ? await api.getDashboardTasks(requestParams) : await api.getTasks(requestParams);
       set({
         tasks: data.tasks,
+        rangeCache: {},
         loading: false,
         lastTasksFetchAt: Date.now(),
         lastTasksFetchKey: fetchKey,
@@ -81,9 +83,40 @@ export const useTaskStore = create((set, get) => ({
     }
   },
 
-  fetchTasksRange: async (start, end) => {
+  getCachedTasksRange: (start, end, maxAgeMs = 30000) => {
+    const key = `${String(start).slice(0, 10)}|${String(end).slice(0, 10)}`;
+    const entry = get().rangeCache[key];
+    if (!entry) return null;
+    if (Date.now() - (entry.fetchedAt || 0) > maxAgeMs) return null;
+    return Array.isArray(entry.tasks) ? entry.tasks : null;
+  },
+
+  primeTasksRangeCache: (start, end, tasks) => {
+    const key = `${String(start).slice(0, 10)}|${String(end).slice(0, 10)}`;
+    set((s) => ({
+      rangeCache: {
+        ...s.rangeCache,
+        [key]: { tasks: Array.isArray(tasks) ? tasks : [], fetchedAt: Date.now() },
+      },
+    }));
+  },
+
+  fetchTasksRange: async (start, end, options = {}) => {
+    const key = `${String(start).slice(0, 10)}|${String(end).slice(0, 10)}`;
+    const force = options?.force === true;
+    const cached = get().getCachedTasksRange(start, end, options?.maxAgeMs ?? 30000);
+    if (!force && cached) {
+      return cached;
+    }
+
     try {
       const data = await api.getTasksRange(start, end);
+      set((s) => ({
+        rangeCache: {
+          ...s.rangeCache,
+          [key]: { tasks: Array.isArray(data.tasks) ? data.tasks : [], fetchedAt: Date.now() },
+        },
+      }));
       return data.tasks;
     } catch (err) {
       set({ error: err.message });
@@ -121,7 +154,7 @@ export const useTaskStore = create((set, get) => ({
           completed: false,
           __offline: true,
         };
-        set((s) => ({ tasks: [tempTask, ...s.tasks] }));
+        set((s) => ({ tasks: [tempTask, ...s.tasks], rangeCache: {} }));
         get().addToast('📵 Offline gespeichert – wird synchronisiert sobald du online bist', 'info');
         return { task: tempTask };
       }
@@ -129,7 +162,7 @@ export const useTaskStore = create((set, get) => ({
       const created = Array.isArray(data.created_tasks) && data.created_tasks.length > 0
         ? data.created_tasks
         : [data.task];
-      set((s) => ({ tasks: [...created, ...s.tasks] }));
+      set((s) => ({ tasks: [...created, ...s.tasks], rangeCache: {} }));
       emitTasksChanged();
       const groupMsg = data.group?.name ? ` · Gruppe: ${data.group.name}` : '';
       const recurrenceMsg = (data.created_count || 0) > 1
@@ -199,7 +232,7 @@ export const useTaskStore = create((set, get) => ({
       // Delete
       if (smart.intent === 'delete') {
         if (smart.success && smart.deleted_task) {
-          set((s) => ({ tasks: s.tasks.filter((t) => t.id !== smart.deleted_task.id && t.recurrence_parent_id !== smart.deleted_task.id) }));
+          set((s) => ({ tasks: s.tasks.filter((t) => t.id !== smart.deleted_task.id && t.recurrence_parent_id !== smart.deleted_task.id), rangeCache: {} }));
           get().addToast(`🗑️ ${smart.message}`);
         } else {
           get().addToast(`⚠️ ${smart.message}`, 'error');
@@ -212,6 +245,7 @@ export const useTaskStore = create((set, get) => ({
         if (smart.success && smart.task) {
           set((s) => ({
             tasks: s.tasks.map((t) => t.id === smart.task.id ? { ...t, ...smart.task } : t),
+            rangeCache: {},
           }));
           get().addToast(`📅 ${smart.message}`);
         } else {
@@ -225,6 +259,7 @@ export const useTaskStore = create((set, get) => ({
         if (smart.success && smart.task) {
           set((s) => ({
             tasks: s.tasks.map((t) => t.id === smart.task.id ? { ...t, ...smart.task } : t),
+            rangeCache: {},
           }));
           get().addToast(`✏️ ${smart.message}`);
         } else {
@@ -253,7 +288,7 @@ export const useTaskStore = create((set, get) => ({
       const created = Array.isArray(data.created_tasks) && data.created_tasks.length > 0
         ? data.created_tasks
         : [data.task];
-      set((s) => ({ tasks: [...created, ...s.tasks] }));
+      set((s) => ({ tasks: [...created, ...s.tasks], rangeCache: {} }));
       emitTasksChanged();
       const cat = data.parsed.category ? ` → ${data.parsed.category}` : '';
       const range = data.parsed.date_end ? ` (${data.parsed.date} bis ${data.parsed.date_end})` : '';
@@ -295,6 +330,7 @@ export const useTaskStore = create((set, get) => ({
       // Update store immediately (optimistic update)
       set((s) => ({
         tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...data.task } : t)),
+        rangeCache: {},
       }));
       
       // Reset fetch cache to force next load from server (ensures consistency)
@@ -319,6 +355,7 @@ export const useTaskStore = create((set, get) => ({
       tasks: s.tasks.map((t) =>
         t.id === id ? { ...t, completed: !t.completed } : t
       ),
+      rangeCache: {},
     }));
     try {
       const data = await api.toggleTask(id);
@@ -327,7 +364,7 @@ export const useTaskStore = create((set, get) => ({
       if (data.nextTask) {
         tasks = [data.nextTask, ...tasks];
       }
-      set({ tasks });
+      set({ tasks, rangeCache: {} });
       emitTasksChanged();
       const task = data.task;
       if (task.completed && data.nextTask) {
@@ -360,7 +397,7 @@ export const useTaskStore = create((set, get) => ({
   deleteTask: async (id) => {
     // Optimistic removal
     const prev = get().tasks;
-    set((s) => ({ tasks: s.tasks.filter((t) => t.id !== id) }));
+    set((s) => ({ tasks: s.tasks.filter((t) => t.id !== id), rangeCache: {} }));
     try {
       await api.deleteTask(id);
       get().addToast('🗑️ Gelöscht');
