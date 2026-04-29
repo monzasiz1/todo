@@ -823,7 +823,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
 
     document.addEventListener('pointermove', onMove, { passive: false });
     document.addEventListener('pointerup', onUp);
-  };
+  }, [updateTask, onTaskUpdated, triggerDropFeedback, mobileWeekColRefs, dragTaskRef, wasDragging, tasksRef, setDragInfo]);
 
   // â”€â”€ Date extend handle â€” drag left/right edge to change date_start / date_end â”€â”€
   const handleDateExtendPointerDown = (e, task, edge) => {
