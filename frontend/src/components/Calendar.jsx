@@ -821,7 +821,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       if (updated) triggerDropFeedback(liveTask.id);
     };
 
-    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointermove', onMove, { passive: false });
     document.addEventListener('pointerup', onUp);
   };
 
