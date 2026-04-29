@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+﻿import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../store/taskStore';
@@ -31,7 +31,7 @@ import {
 } from 'date-fns';
 import { de } from 'date-fns/locale';
 
-// ── Desktop week-view grid constants (shared by renderer + drag handler) ──
+// â”€â”€ Desktop week-view grid constants (shared by renderer + drag handler) â”€â”€
 const WK_START = 6;    // first visible hour
 const WK_END   = 24;   // last visible hour (midnight)
 const WK_H     = 64;   // px per hour
@@ -56,10 +56,10 @@ const normalizeCategoryKey = (value) => {
   return String(value || '')
     .toLowerCase()
     .trim()
-    .replace(/ä/g, 'ae')
-    .replace(/ö/g, 'oe')
-    .replace(/ü/g, 'ue')
-    .replace(/ß/g, 'ss');
+    .replace(/Ã¤/g, 'ae')
+    .replace(/Ã¶/g, 'oe')
+    .replace(/Ã¼/g, 'ue')
+    .replace(/ÃŸ/g, 'ss');
 };
 
 const getEventGlowClass = (task) => {
@@ -152,7 +152,7 @@ const buildOverlapLaneMap = (tasks, getRange) => {
   return laneMap;
 };
 
-// ── Performance helpers for smooth rendering ──
+// â”€â”€ Performance helpers for smooth rendering â”€â”€
 const throttle = (fn, delay) => {
   let lastRun = 0;
   return (...args) => {
@@ -172,33 +172,24 @@ const debounce = (fn, delay) => {
   };
 };
 
-// ── Animation preferences for tablets ──
-const getAnimationProps = (isMobile = false) => {
+// â”€â”€ Universal animation preferences for all devices â”€â”€
+const getAnimationProps = (deviceType = 'desktop') => {
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const isLowPower = isMobile || prefersReducedMotion;
+  const isSlowDevice = window.navigator.hardwareConcurrency <= 2; // Low-core devices
+  const isMobile = deviceType === 'mobile';
+  const isTablet = deviceType === 'tablet';
+  const isLowPower = isMobile || isTablet || isSlowDevice || prefersReducedMotion;
   
   return {
-    duration: isLowPower ? 0.15 : 0.3,
+    duration: isLowPower ? 0.15 : 0.25, // Faster for all devices
     enabled: !prefersReducedMotion,
-    easingMobile: [0.25, 0.46, 0.45, 0.94], // Optimized for touch
-    easingDesktop: [0.4, 0, 0.2, 1]
+    easingTouch: [0.25, 0.46, 0.45, 0.94], // Touch-optimized
+    easingDesktop: [0.4, 0, 0.2, 1], // Desktop-optimized
+    easingTablet: [0.33, 0.1, 0.15, 1] // Tablet-optimized
   };
 };
 
-// ── Animation preferences for tablets ──
-const getAnimationProps = (isMobile = false) => {
-  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const isLowPower = isMobile || prefersReducedMotion;
-  
-  return {
-    duration: isLowPower ? 0.15 : 0.3,
-    enabled: !prefersReducedMotion,
-    easingMobile: [0.25, 0.46, 0.45, 0.94], // Optimized for touch
-    easingDesktop: [0.4, 0, 0.2, 1]
-  };
-};
-
-// ── Memoized calendar sources calculation ──
+// â”€â”€ Memoized calendar sources calculation â”€â”€
 const calculateCalendarSources = (tasks) => {
   const map = new Map();
   tasks.forEach((t) => {
@@ -229,7 +220,7 @@ const getTaskSource = (t) => {
 };
 
 export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeChange, onTaskUpdated, onTaskCreated }) {
-  // ── Optimized state management for tablets ──
+  // â”€â”€ Optimized state management for tablets â”€â”€
   const [currentDate, setCurrentDate] = useState(new Date());
   const [nowTs, setNowTs] = useState(Date.now());
   const [view, setView] = useState(window.innerWidth >= CALENDAR_WEEK_DEFAULT_BREAKPOINT ? 'week' : 'month');
@@ -241,7 +232,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const [isCalendarFullscreen, setIsCalendarFullscreen] = useState(false);
   const [pickerYear, setPickerYear] = useState(getYear(new Date()));
   
-  // ── Debounced viewport state for tablet stability ──
+  // â”€â”€ Debounced viewport state for tablet stability â”€â”€
   const [viewportState, setViewportState] = useState({
     isDesktop: window.innerWidth >= MOBILE_BREAKPOINT,
     isWideDesktopCalendar: window.innerWidth >= CALENDAR_DESKTOP_BREAKPOINT
@@ -268,7 +259,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const { tasks: storeTasks, updateTask } = useTaskStore();
   const tasks = Array.isArray(tasksProp) ? tasksProp : storeTasks;
 
-  // ── Memoized calendar sources with performance optimization ──
+  // â”€â”€ Memoized calendar sources with performance optimization â”€â”€
   const calendarSources = useMemo(() => calculateCalendarSources(tasks), [tasks]);
 
   const [visibleSources, setVisibleSources] = useState({});
@@ -291,7 +282,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     });
   }, [calendarSources]);
 
-  // ── Optimized filteredTasks with better memoization ──
+  // â”€â”€ Optimized filteredTasks for all devices â”€â”€
   const filteredTasks = useMemo(() => {
     if (!tasks.length) return [];
     return tasks.filter((t) => {
@@ -300,7 +291,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     });
   }, [tasks, visibleSources]);
 
-  // ── Memoized visible range calculation ──
+  // â”€â”€ Memoized visible range calculation â”€â”€
   const visibleRange = useMemo(() => {
     if (view === 'month') {
       const monthStart = startOfMonth(currentDate);
@@ -316,7 +307,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     };
   }, [currentDate, view]);
 
-  // ── Optimized visible range notification ──
+  // â”€â”€ Optimized visible range notification â”€â”€
   useEffect(() => {
     if (!onVisibleRangeChange) return;
     onVisibleRangeChange(
@@ -325,14 +316,14 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     );
   }, [visibleRange, onVisibleRangeChange]);
 
-  // ── Debounced resize handler for tablet stability ──
+  // â”€â”€ Universal debounced resize handler for all devices â”€â”€
   const debouncedResizeHandler = useCallback(
     debounce(() => {
       setViewportState({
         isDesktop: window.innerWidth >= MOBILE_BREAKPOINT,
         isWideDesktopCalendar: window.innerWidth >= CALENDAR_DESKTOP_BREAKPOINT
       });
-    }, 150), // 150ms debounce for smoother tablet experience
+    }, 100), // Faster debounce (100ms) for all devices
     []
   );
 
@@ -386,7 +377,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     };
   }, []);
 
-  // ── Optimized ResizeObserver with proper cleanup ──
+  // â”€â”€ Universal ResizeObserver with optimized cleanup â”€â”€
   useEffect(() => {
     if (!viewportState.isWideDesktopCalendar) {
       // Reset to default when not wide desktop
@@ -407,7 +398,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
           setWkHState(newH);
         }
       }
-    }, 100); // Throttled to avoid excessive recalculations
+    }, 60); // Faster throttling (60ms) for all devices
 
     const observer = new ResizeObserver(recalc);
     observer.observe(wrap);
@@ -420,6 +411,25 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
 
   const isMobile = !viewportState.isDesktop;
 
+  // â”€â”€ Universal device type detection for optimized animations â”€â”€
+  const deviceType = useMemo(() => {
+    if (isMobile) return 'mobile';
+    if (viewportState.isDesktop && !viewportState.isWideDesktopCalendar) return 'tablet';
+    return 'desktop';
+  }, [isMobile, viewportState]);
+  
+  // â”€â”€ Animation settings optimized for detected device type â”€â”€
+  const animProps = useMemo(() => getAnimationProps(deviceType), [deviceType]);
+
+  // â”€â”€ Get device-specific easing â”€â”€ 
+  const getEasing = useCallback(() => {
+    switch (deviceType) {
+      case 'mobile': return animProps.easingTouch;
+      case 'tablet': return animProps.easingTablet;
+      default: return animProps.easingDesktop;
+    }
+  }, [deviceType, animProps]);
+
   useEffect(() => {
     if (isMobile) {
       setView('month');
@@ -431,7 +441,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMobile]);
 
-  // ── Optimized month picker event handler ──
+  // â”€â”€ Universal month picker event handler with performance optimization â”€â”€
   const monthPickerHandler = useCallback((e) => {
     if (
       (triggerRef.current && triggerRef.current.contains(e.target)) ||
@@ -443,16 +453,19 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   useEffect(() => {
     if (!showMonthPicker) return;
     
-    document.addEventListener('mousedown', monthPickerHandler);
-    document.addEventListener('touchstart', monthPickerHandler, { passive: true });
+    // Use passive listeners for better performance on all devices
+    const options = { passive: true, capture: true };
+    
+    document.addEventListener('mousedown', monthPickerHandler, options);
+    document.addEventListener('touchstart', monthPickerHandler, options);
     
     return () => {
-      document.removeEventListener('mousedown', monthPickerHandler);
-      document.removeEventListener('touchstart', monthPickerHandler);
+      document.removeEventListener('mousedown', monthPickerHandler, options);
+      document.removeEventListener('touchstart', monthPickerHandler, options);
     };
   }, [showMonthPicker, monthPickerHandler]);
 
-  // ── Optimized getTasksForDate with memoization ──
+  // â”€â”€ Optimized getTasksForDate with memoization â”€â”€
   const getTasksForDate = useCallback((date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
     return filteredTasks.filter((task) => task.date === dateStr);
@@ -497,7 +510,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     onDayClick?.(date);
   };
 
-  // ── Mobile Swipe-Navigation ──────────────────────────────────────
+  // â”€â”€ Mobile Swipe-Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleSwipeTouchStart = (e) => {
     if (!isMobile) return;
     swipeRef.current = { startX: e.touches[0].clientX, startY: e.touches[0].clientY };
@@ -507,7 +520,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     if (!isMobile) return;
     const dx = e.changedTouches[0].clientX - swipeRef.current.startX;
     const dy = e.changedTouches[0].clientY - swipeRef.current.startY;
-    // Nur als horizontaler Swipe werten wenn dx dominant und groß genug
+    // Nur als horizontaler Swipe werten wenn dx dominant und groÃŸ genug
     if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.8) {
       navigate(dx < 0 ? 'next' : 'prev');
     }
@@ -523,7 +536,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     });
   };
 
-  // ── Drag & Drop via Pointer Events ──────────────────────────────
+  // â”€â”€ Drag & Drop via Pointer Events â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handlePointerDown = (e, task) => {
     if (!isDesktop || e.button !== 0) return;
     e.preventDefault();
@@ -582,7 +595,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
 
       const updates = {};
 
-      // ── Date shift ─────────────────────────────────────────────
+      // â”€â”€ Date shift â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       if (targetDateStr !== oldDateStr) {
         updates.date = targetDateStr;
         if (liveTask.date_end && oldDateStr) {
@@ -592,7 +605,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
         }
       }
 
-      // ── Time shift (only in the timed grid, not the all-day strip) ─
+      // â”€â”€ Time shift (only in the timed grid, not the all-day strip) â”€
       const isTimeCol = col.classList.contains('desktop-week-day-col');
       if (isTimeCol && liveTask.time) {
         const colRect = col.getBoundingClientRect();
@@ -625,7 +638,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     document.addEventListener('pointerup', onUp);
   };
 
-  // ── Mobile Day view — drag to move (Y = time, X = swipe = change day) ─────
+  // â”€â”€ Mobile Day view â€” drag to move (Y = time, X = swipe = change day) â”€â”€â”€â”€â”€
   const handleMobileEventPointerDown = (e, task, gridEl, hourH, startH) => {
     e.stopPropagation();
     e.preventDefault();
@@ -651,7 +664,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       // Horizontal swipe detection
       if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
         swipeDay = dx > 0 ? -1 : 1;
-        setDragInfo({ task, x: ev.clientX, y: ev.clientY, previewTime: swipeDay < 0 ? '← Vorheriger Tag' : 'Nächster Tag →' });
+        setDragInfo({ task, x: ev.clientX, y: ev.clientY, previewTime: swipeDay < 0 ? 'â† Vorheriger Tag' : 'NÃ¤chster Tag â†’' });
         return;
       }
       swipeDay = 0;
@@ -674,7 +687,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       setTimeout(() => { wasDragging.current = false; }, 350);
       const liveTask = tasksRef.current.find((t) => String(t.id) === String(dropped.id)) || dropped;
 
-      // Horizontal swipe → move to prev/next day
+      // Horizontal swipe â†’ move to prev/next day
       if (swipeDay !== 0) {
         const oldDate = liveTask.date?.substring(0, 10);
         if (!oldDate) return;
@@ -685,7 +698,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
         }
         const updated = await updateTask(liveTask.id, updates);
         if (updated && onTaskUpdated) onTaskUpdated(updated);
-        if (updated) triggerDropFeedback(liveTask.id, swipeDay < 0 ? 'Auf Vortag verschoben' : 'Auf nächsten Tag verschoben');
+        if (updated) triggerDropFeedback(liveTask.id, swipeDay < 0 ? 'Auf Vortag verschoben' : 'Auf nÃ¤chsten Tag verschoben');
         const nd = parseISO(newDate);
         setSelectedDate(nd);
         setCurrentDate(nd);
@@ -713,15 +726,17 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     document.addEventListener('pointerup', onUp);
   };
 
-  // ── Mobile Week view — drag to move (Y = time, X = day column) ────
-  const handleMobileWeekEventPointerDown = (e, task, colIdx, days) => {
+  // â”€â”€ Universal drag & drop optimized for all devices â”€â”€
+  const handleMobileWeekEventPointerDown = useCallback((e, task, colIdx, days) => {
     e.stopPropagation();
     e.preventDefault();
+    
     dragTaskRef.current = task;
     let moved = false;
     const hourH = 40; const startH = 7; const endH = 23;
     const colEl = mobileWeekColRefs.current[colIdx];
     if (!colEl) return;
+    
     const cardRect = e.currentTarget.getBoundingClientRect();
     const clickOffsetY = e.clientY - cardRect.top;
 
@@ -735,7 +750,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       return idx;
     };
 
-    const onMove = (ev) => {
+    // Throttled move handler for better performance
+    const onMove = throttle((ev) => {
       moved = true;
       wasDragging.current = true;
       const targetIdx = getTargetCol(ev);
@@ -752,15 +768,24 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     };
 
     const onUp = async (ev) => {
-      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointermove', onMove, { passive: false });
       document.removeEventListener('pointerup', onUp);
+      
       document.body.classList.remove('cal-is-dragging');
       document.querySelectorAll('.mobile-week-grid-col').forEach(el => el.classList.remove('cal-drag-over'));
+      
       const dropped = dragTaskRef.current;
       dragTaskRef.current = null;
       setDragInfo(null);
-      if (!moved || !dropped) { wasDragging.current = false; return; }
-      setTimeout(() => { wasDragging.current = false; }, 350);
+      
+      if (!moved || !dropped) { 
+        wasDragging.current = false; 
+        return; 
+      }
+      
+      // Debounced reset to prevent interference with other interactions
+      setTimeout(() => { wasDragging.current = false; }, 200);
+      
       const liveTask = tasksRef.current.find((t) => String(t.id) === String(dropped.id)) || dropped;
 
       const targetIdx = getTargetCol(ev);
@@ -800,7 +825,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     document.addEventListener('pointerup', onUp);
   };
 
-  // ── Date extend handle — drag left/right edge to change date_start / date_end ──
+  // â”€â”€ Date extend handle â€” drag left/right edge to change date_start / date_end â”€â”€
   const handleDateExtendPointerDown = (e, task, edge) => {
     e.stopPropagation();
     e.preventDefault();
@@ -816,7 +841,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     const onMove = (ev) => {
       const dx = ev.clientX - startX;
       previewDelta = Math.round(dx / PX_PER_DAY) * (edge === 'end' ? 1 : -1);
-      setDragInfo({ task, x: ev.clientX, y: ev.clientY, previewTime: `${edge === 'end' ? '⇥' : '⇤'} ${previewLabel}` });
+      setDragInfo({ task, x: ev.clientX, y: ev.clientY, previewTime: `${edge === 'end' ? 'â‡¥' : 'â‡¤'} ${previewLabel}` });
       if (previewDelta === lastDelta) return;
       lastDelta = previewDelta;
 
@@ -847,7 +872,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
         if (startD && newEnd < startD) return; // can't end before start
         const updated = await updateTask(task.id, { date_end: newEnd });
         if (updated && onTaskUpdated) onTaskUpdated(updated);
-        if (updated) triggerDropFeedback(task.id, 'Enddatum geändert');
+        if (updated) triggerDropFeedback(task.id, 'Enddatum geÃ¤ndert');
       } else {
         const base = task.date?.substring(0, 10);
         if (!base) return;
@@ -856,7 +881,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
         if (endD && newStart > endD) return; // can't start after end
         const updated = await updateTask(task.id, { date: newStart });
         if (updated && onTaskUpdated) onTaskUpdated(updated);
-        if (updated) triggerDropFeedback(task.id, 'Startdatum geändert');
+        if (updated) triggerDropFeedback(task.id, 'Startdatum geÃ¤ndert');
       }
     };
 
@@ -864,7 +889,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     document.addEventListener('pointerup', onUp);
   };
 
-  // ── Resize handle — drag edge to change start/end time ────────────
+  // â”€â”€ Resize handle â€” drag edge to change start/end time â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleResizePointerDown = (e, task, edge, gridEl, hourH, startH) => {
     e.stopPropagation();
     e.preventDefault();
@@ -921,7 +946,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     document.addEventListener('pointerup', onUp);
   };
 
-  // ── Month view ────────────────────────────────────────────────────
+  // â”€â”€ Month view â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const renderMonthView = () => {
     const monthStart = startOfMonth(currentDate);
     const monthEnd = endOfMonth(currentDate);
@@ -1005,7 +1030,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     );
   };
 
-  // ── Week view ─────────────────────────────────────────────────────
+  // â”€â”€ Week view â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const renderDesktopWeekView = () => {
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
     const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -1118,7 +1143,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       >
                         {t.teams_join_url && <Video size={11} className="calendar-inline-teams-icon" />}
                         <span className={doneOrOld ? 'cal-allday-strike' : ''}>{t.title}</span>
-                        {ended && !t.completed && <span style={{ opacity: 0.75, marginLeft: 3 }}>· beendet</span>}
+                        {ended && !t.completed && <span style={{ opacity: 0.75, marginLeft: 3 }}>Â· beendet</span>}
                       </button>
                     );
                   })}
@@ -1279,7 +1304,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       </div>
                       <span className="desktop-week-event-time">
                         {t.time?.slice(0, 5)}{t.time_end ? ` - ${t.time_end.slice(0, 5)}` : ''}
-                        {t.group_category_name && !doneOrEnded && <span className="cal-event-cat-inline"> · {t.group_category_name}</span>}
+                        {t.group_category_name && !doneOrEnded && <span className="cal-event-cat-inline"> Â· {t.group_category_name}</span>}
                       </span>
                       {t.completed && <span className="desktop-week-event-ended">Erledigt</span>}
                       {!t.completed && ended && <span className="desktop-week-event-ended">Beendet</span>}
@@ -1306,7 +1331,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     );
   };
 
-  // ── Mobile Week compact time grid ────────────────────────────────
+  // â”€â”€ Mobile Week compact time grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const renderMobileWeekView = () => {
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
     const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -1331,7 +1356,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
           ))}
         </div>
 
-        {/* ── All-Day Strip ──────────────────────────────────── */}
+        {/* â”€â”€ All-Day Strip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {(() => {
           const hasAny = days.some((d) => getTasksForDate(d).some((t) => isAllDayTask(t)));
           if (!hasAny) return null;
@@ -1531,10 +1556,10 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     return (
       <div className="mobile-day-view">
 
-        {/* ── All-Day Section — TOP ──────────────────────────────── */}
+        {/* â”€â”€ All-Day Section â€” TOP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {allDayTasks.length > 0 && (
           <div className="mobile-day-allday-top">
-            <span className="mobile-day-allday-label">Ganztägig</span>
+            <span className="mobile-day-allday-label">GanztÃ¤gig</span>
             {allDayTasks.map((t) => {
               const ended    = isEventEnded(t, nowTs);
               const doneOrOld = t.completed || ended;
@@ -1645,13 +1670,13 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                 </div>
                 <span className="cal-event-time-row">
                   {t.time?.slice(0, 5)}{t.time_end ? `-${t.time_end.slice(0, 5)}` : ''}
-                  {t.group_category_name && !doneOrEnded && <span className="cal-event-cat-inline"> · {t.group_category_name}</span>}
+                  {t.group_category_name && !doneOrEnded && <span className="cal-event-cat-inline"> Â· {t.group_category_name}</span>}
                 </span>
                 {t.completed && <span className="mobile-day-event-ended">Erledigt</span>}
                 {!t.completed && ended && <span className="mobile-day-event-ended">Beendet</span>}
                 {(t.date_end && t.date_end !== t.date) && (
                   <span style={{ fontSize: 10, opacity: 0.8 }}>
-                    {format(parseISO(t.date?.substring(0,10)), 'd.M.')} – {format(parseISO(t.date_end.substring(0,10)), 'd.M.')}
+                    {format(parseISO(t.date?.substring(0,10)), 'd.M.')} â€“ {format(parseISO(t.date_end.substring(0,10)), 'd.M.')}
                   </span>
                 )}
                 {!ended && (
@@ -1673,14 +1698,17 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     ? format(currentDate, 'MMMM yyyy', { locale: de })
     : view === 'day'
       ? format(selectedDate || currentDate, 'EEEE, d. MMMM yyyy', { locale: de })
-      : `KW ${format(currentDate, 'w')} · ${format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'd. MMM', { locale: de })} – ${format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'd. MMM yyyy', { locale: de })}`;
+      : `KW ${format(currentDate, 'w')} Â· ${format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'd. MMM', { locale: de })} â€“ ${format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'd. MMM yyyy', { locale: de })}`;
 
-  const toggleCalendarFullscreen = async () => {
-    if (isMobile) return;
+  // â”€â”€ Universal fullscreen toggle optimized for all devices â”€â”€
+  const toggleCalendarFullscreen = useCallback(async () => {
+    if (isMobile) return; // Fullscreen not useful on mobile
+    
     const element = calendarWrapperRef.current;
     if (!element) return;
 
     const activeFullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+    
     try {
       if (activeFullscreenElement === element) {
         if (document.exitFullscreen) {
@@ -1699,20 +1727,26 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     } catch {
       // Ignore fullscreen rejections from browser policies.
     }
-  };
+  }, [isMobile]);
 
-  // ── Animation settings based on device capability ──
-  const animProps = useMemo(() => getAnimationProps(isMobile), [isMobile]);
+  // â”€â”€ Get device-specific easing â”€â”€ 
+  const getEasing = useCallback(() => {
+    switch (deviceType) {
+      case 'mobile': return animProps.easingTouch;
+      case 'tablet': return animProps.easingTablet;
+      default: return animProps.easingDesktop;
+    }
+  }, [deviceType, animProps]);
 
   return (
     <motion.div
       ref={calendarWrapperRef}
       className={`calendar-wrapper calendar-view-${view} ${isCalendarFullscreen ? 'calendar-is-fullscreen' : ''}`}
-      initial={animProps.enabled ? { opacity: 0, y: 10 } : { opacity: 1, y: 0 }}
+      initial={animProps.enabled ? { opacity: 0, y: 6 } : { opacity: 1, y: 0 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ 
         duration: animProps.duration, 
-        ease: isMobile ? animProps.easingMobile : animProps.easingDesktop
+        ease: getEasing()
       }}
       onTouchStart={handleSwipeTouchStart}
       onTouchEnd={handleSwipeTouchEnd}
@@ -1865,7 +1899,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       {/* Resize time preview badge */}
       {resizeInfo && createPortal(
         <div className="cal-resize-preview">
-          {resizeInfo.edge === 'date-end' ? '⇥' : resizeInfo.edge === 'date-start' ? '⇤' : resizeInfo.edge === 'start' ? '▲' : '▼'} {resizeInfo.previewTime}
+          {resizeInfo.edge === 'date-end' ? 'â‡¥' : resizeInfo.edge === 'date-start' ? 'â‡¤' : resizeInfo.edge === 'start' ? 'â–²' : 'â–¼'} {resizeInfo.previewTime}
         </div>,
         document.body
       )}
@@ -1873,12 +1907,12 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       {/* Drop feedback toast */}
       {dropFeedback && createPortal(
         <div key={dropFeedback.id + dropFeedback.msg} className="cal-drop-toast">
-          ✓ {dropFeedback.msg}
+          âœ“ {dropFeedback.msg}
         </div>,
         document.body
       )}
 
-      {/* DayCreateModal — portals into fullscreen container when fullscreen */}
+      {/* DayCreateModal â€” portals into fullscreen container when fullscreen */}
       <AnimatePresence>
         {showDayModal && selectedDate && (() => {
           const modalTarget = isCalendarFullscreen && calendarWrapperRef.current ? calendarWrapperRef.current : document.body;
@@ -1905,4 +1939,3 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       </AnimatePresence>
     </motion.div>
   );
-}
