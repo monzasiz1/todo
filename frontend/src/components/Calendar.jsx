@@ -995,10 +995,30 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                     const accentColor = ended
                       ? 'rgba(142,142,147,0.6)'
                       : (categoryAccent || t.group_color || '#4C7BD9');
+                    // Multi-day spanning: detect start/middle/end within week rows
+                    const taskStartStr = t.date ? String(t.date).substring(0, 10) : null;
+                    const taskEndStr = t.date_end ? String(t.date_end).substring(0, 10) : taskStartStr;
+                    const dayStr = format(d, 'yyyy-MM-dd');
+                    const isMultiDay = taskStartStr && taskEndStr && taskEndStr > taskStartStr;
+                    const weekDay = d.getDay(); // 0=Sun, 1=Mon..6=Sat (Mo=1 is week start in DE)
+                    const isWeekRowStart = weekDay === 1; // Monday
+                    const isWeekRowEnd = weekDay === 0;   // Sunday
+                    const isActualStart = dayStr === taskStartStr;
+                    const isActualEnd = dayStr === taskEndStr;
+                    let multiClass = '';
+                    if (isMultiDay) {
+                      const effectiveStart = isActualStart || isWeekRowStart;
+                      const effectiveEnd = isActualEnd || isWeekRowEnd;
+                      if (effectiveStart && effectiveEnd) multiClass = 'multi-day-single';
+                      else if (effectiveStart) multiClass = 'multi-day-start';
+                      else if (effectiveEnd) multiClass = 'multi-day-end';
+                      else multiClass = 'multi-day-middle';
+                    }
+                    const showBorderLeft = !isMobile && !['multi-day-middle', 'multi-day-end'].includes(multiClass);
                     return (
                       <div
                         key={t.id}
-                        className={`calendar-day-task ${t.completed ? 'completed' : ''} ${t.group_id ? 'group-task' : ''} ${ended ? 'ended-event' : ''} ${dragInfo?.task.id === t.id ? 'cal-dragging' : ''}`}
+                        className={`calendar-day-task ${multiClass} ${t.completed ? 'completed' : ''} ${t.group_id ? 'group-task' : ''} ${ended ? 'ended-event' : ''} ${dragInfo?.task.id === t.id ? 'cal-dragging' : ''}`}
                         style={isMobile ? {
                           background: accentColor,
                           color: ended ? '#999' : '#fff',
@@ -1006,9 +1026,13 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                           cursor: 'pointer',
                           userSelect: 'none',
                         } : {
-                          background: ended ? 'rgba(142,142,147,0.12)' : categoryAccent ? `${categoryAccent}20` : t.group_id ? `${t.group_color || '#5856D6'}15` : 'var(--primary-bg)',
-                          color: ended ? '#59606B' : categoryAccent || (t.group_id ? (t.group_color || '#5856D6') : 'var(--primary)'),
-                          borderLeft: `2px solid ${ended ? 'rgba(142,142,147,0.55)' : accentColor}`,
+                          background: isMultiDay
+                            ? (ended ? 'rgba(142,142,147,0.5)' : accentColor)
+                            : (ended ? 'rgba(142,142,147,0.12)' : categoryAccent ? `${categoryAccent}20` : t.group_id ? `${t.group_color || '#5856D6'}15` : 'var(--primary-bg)'),
+                          color: isMultiDay
+                            ? (ended ? '#888' : '#fff')
+                            : (ended ? '#59606B' : categoryAccent || (t.group_id ? (t.group_color || '#5856D6') : 'var(--primary)')),
+                          borderLeft: showBorderLeft ? `2px solid ${ended ? 'rgba(142,142,147,0.55)' : accentColor}` : 'none',
                           cursor: viewportState.isDesktop && !ended ? 'grab' : 'pointer',
                           userSelect: 'none',
                         }}

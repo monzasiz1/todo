@@ -2138,7 +2138,7 @@ input, textarea, select {
   transition: background var(--transition);
   min-height: 90px;
   min-width: 0;
-  overflow: clip;
+  overflow: visible;
   position: relative;
 }
 
@@ -2217,7 +2217,7 @@ input, textarea, select {
   width: 100%;
   min-width: 0;
   margin-top: 2px;
-  overflow: clip;
+  overflow: visible;
 }
 
 .calendar-day-task {
@@ -2244,6 +2244,52 @@ input, textarea, select {
 .calendar-day-task.completed {
   opacity: 0.4;
   text-decoration: line-through;
+}
+
+/* ── Multi-day spanning events in month view ── */
+.calendar-day-task.multi-day-start {
+  border-radius: 3px 0 0 3px;
+  margin-right: -5px;
+  padding-right: 2px;
+  position: relative;
+  z-index: 2;
+}
+
+.calendar-day-task.multi-day-middle {
+  border-radius: 0;
+  margin-left: -5px;
+  margin-right: -5px;
+  padding-left: 4px;
+  padding-right: 2px;
+  position: relative;
+  z-index: 2;
+}
+
+.calendar-day-task.multi-day-end {
+  border-radius: 0 3px 3px 0;
+  margin-left: -5px;
+  padding-left: 4px;
+  position: relative;
+  z-index: 2;
+}
+
+/* Single-row: task starts and ends within the same week row — normal pill */
+.calendar-day-task.multi-day-single {
+  border-radius: 3px;
+}
+
+/* Allow multi-day bars to bleed past cell padding into adjacent cell */
+.calendar-day {
+  overflow: visible;
+}
+.calendar-day-tasks {
+  overflow: visible;
+}
+
+/* Re-clip day-number so overflowing tasks don't sit under it */
+.calendar-day-number {
+  position: relative;
+  z-index: 3;
 }
 
 .calendar-day-task-time {

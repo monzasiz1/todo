@@ -26,24 +26,12 @@ const SETTINGS_CONFIG = [
 
 function getTarget(notification) {
   const { type, task_id, group_id } = notification;
-
-  // Gruppenchat → Gruppe direkt öffnen
-  if (type === 'group_message') {
-    if (group_id) return `/app/groups?group=${group_id}`;
-    return '/app/groups';
+  if (type === 'group_message' || type === 'team_task' || type === 'team_task_created') {
+    return group_id ? `/app/groups?group=${group_id}` : '/app/groups';
   }
-
-  // Neue Gruppenaufgabe / Termin → Gruppe öffnen + Task-Detail
-  if (type === 'team_task' || type === 'team_task_created') {
-    const params = new URLSearchParams();
-    if (group_id) params.set('group', group_id);
-    if (task_id) params.set('task', task_id);
-    return `/app/groups?${params.toString()}`;
-  }
-
-  // Erinnerung → Kalender und Task-Detail öffnen
   if (task_id) return `/app/calendar?task=${task_id}`;
-  if (type === 'reminder' || type === 'reminder_created' || type === 'daily_tasks') return '/app/calendar';
+  if (type === 'reminder' || type === 'reminder_created') return '/app/calendar';
+  if (type === 'daily_tasks') return '/app/calendar';
   return '/app/calendar';
 }
 
