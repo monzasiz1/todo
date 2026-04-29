@@ -62,10 +62,41 @@ body {
   overscroll-behavior-y: contain;
 }
 
-/* Lock page scroll while any modal overlay is open. */
+/* ── Scroll-Lock: verhindert Background-Scrolling bei offenem Modal / Panel ── */
 html:has(.modal-overlay),
-body:has(.modal-overlay) {
+html:has(.friends-overlay),
+html:has(.gchat-panel),
+html:has(.upgrade-modal-overlay),
+html:has(.friend-profile-overlay),
+html:has(.group-add-overlay),
+html:has(.sidebar-overlay.open),
+html:has(.help-chat) {
   overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body:has(.modal-overlay),
+body:has(.friends-overlay),
+body:has(.gchat-panel),
+body:has(.upgrade-modal-overlay),
+body:has(.friend-profile-overlay),
+body:has(.group-add-overlay),
+body:has(.sidebar-overlay.open),
+body:has(.help-chat) {
+  overflow: hidden;
+  overscroll-behavior: none;
+  /* iOS Safari: verhindert Momentum-Scrolling des Hintergrunds */
+  touch-action: none;
+}
+
+/* Scrollbare Inhalte innerhalb von Overlays freigeben */
+.modal-overlay *,
+.friends-overlay *,
+.gchat-panel *,
+.upgrade-modal-overlay *,
+.friend-profile-overlay *,
+.group-add-overlay * {
+  touch-action: pan-y;
 }
 
 #root {
@@ -4794,15 +4825,15 @@ body.cal-is-dragging * {
   flex: 1;
   height: 62px;
   padding: 4px 14px;
-  background: linear-gradient(160deg, rgba(210, 220, 235, 0.38), rgba(200, 215, 235, 0.30));
+  background: linear-gradient(160deg, rgba(210, 220, 235, 0.42), rgba(195, 210, 232, 0.34));
   backdrop-filter: blur(34px) saturate(1.6) brightness(0.88);
   -webkit-backdrop-filter: blur(34px) saturate(1.6) brightness(0.88);
-  border: 1.5px solid rgba(160, 180, 210, 0.55);
+  border: 1.5px solid rgba(110, 140, 185, 0.70);
   box-shadow:
-    0 10px 32px rgba(0, 0, 0, 0.12),
-    0 2px 8px rgba(0, 0, 0, 0.07),
-    inset 0 1.5px 0 rgba(255, 255, 255, 0.70),
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.20);
+    0 10px 32px rgba(0, 0, 0, 0.14),
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.65),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.18);
 }
 
 /* Linke Pille: Außenecken klein, Innenecken (zum FAB hin) groß */

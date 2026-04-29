@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { lockScroll, unlockScroll } from '../utils/scrollLock';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../store/taskStore';
 import { useFriendsStore } from '../store/friendsStore';
@@ -52,6 +53,8 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
   );
   const virtualTask = parseVirtualTaskId(task.id);
+
+  useEffect(() => { lockScroll(); return () => unlockScroll(); }, []);
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 768px)');

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { lockScroll, unlockScroll } from '../utils/scrollLock';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserPlus, UserCheck, UserX, Copy, Check, X, Mail, Hash, Users, Clock, Trash2, Eye, ChevronLeft, CheckCircle2, BarChart2, Lock, Target, Flame, TrendingUp, Calendar, Award, Star } from 'lucide-react';
@@ -26,6 +27,7 @@ export default function FriendsList({ onClose }) {
   };
 
   useEffect(() => { fetchFriends(); }, []);
+  useEffect(() => { lockScroll(); return () => unlockScroll(); }, []);
 
   const handleInvite = async (e) => {
     e.preventDefault();

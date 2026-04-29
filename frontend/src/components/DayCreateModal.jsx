@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { lockScroll, unlockScroll } from '../utils/scrollLock';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, ArrowUp, Calendar, CalendarCheck, Clock, Tag, Flag, Loader2, Pencil, ChevronLeft, ListTodo, Video } from 'lucide-react';
 import { format } from 'date-fns';
@@ -105,6 +106,8 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
     onTaskCreated?.();
     onClose();
   };
+
+  useEffect(() => { lockScroll(); return () => unlockScroll(); }, []);
 
   // Close on Escape
   useEffect(() => {

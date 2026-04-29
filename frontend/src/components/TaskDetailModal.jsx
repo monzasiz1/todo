@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTaskStore } from '../store/taskStore';
+import { lockScroll, unlockScroll } from '../utils/scrollLock';
 import { api } from '../utils/api';
 import {
   X, Calendar, CalendarCheck, Clock, Tag, Flag, CheckCircle2, Circle,
@@ -83,6 +84,11 @@ export default function TaskDetailModal({ task, onClose, onUpdated, portalTarget
   const isEvent = task?.type === 'event';
   const eventEndAt = isEvent ? getEventEndDate(task) : null;
   const isEventEnded = isEvent && !!eventEndAt && eventEndAt.getTime() < Date.now();
+
+  useEffect(() => {
+    lockScroll();
+    return () => unlockScroll();
+  }, []);
 
   useEffect(() => {
     if (!task?.id) {

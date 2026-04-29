@@ -10,6 +10,7 @@ import NotificationBell from './NotificationBell';
 import ReminderChecker from './ReminderChecker';
 import HelpChat from './HelpChat';
 import GroupChatPanel from './GroupChatPanel';
+import { lockScroll, unlockScroll } from '../utils/scrollLock';
 
 export default function Layout() {
   const location = useLocation();
@@ -38,6 +39,14 @@ export default function Layout() {
       // ignore storage access issues
     }
   }, [sidebarCollapsed]);
+
+  // Scroll-Lock: verhindert Background-Scrolling auf iOS wenn ein Panel offen ist
+  useEffect(() => {
+    const anyOpen = sidebarOpen || chatOpen || showQuickAdd;
+    if (anyOpen) lockScroll();
+    else unlockScroll();
+    return () => unlockScroll();
+  }, [sidebarOpen, chatOpen, showQuickAdd]);
 
   useEffect(() => {
     const onDragStart = (e) => {
