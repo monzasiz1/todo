@@ -5760,15 +5760,14 @@ body.cal-is-dragging * {
     padding: 0;
     align-items: stretch;
     justify-content: flex-end;
-    /* Overlay endet oberhalb der Bottom-Nav */
-    bottom: calc(72px + clamp(0px, calc(env(safe-area-inset-bottom, 0px) - 6px), 40px));
+    bottom: 0; /* volles Display — Bottom-Nav liegt mit z-index 10100 darüber */
   }
 
   .task-detail-overlay .task-detail-modal {
     width: 100%;
     max-width: none;
     height: 100%;
-    max-height: calc(100dvh - 72px - clamp(0px, calc(env(safe-area-inset-bottom, 0px) - 6px), 40px));
+    max-height: calc(100dvh - 56px - env(safe-area-inset-top, 0px));
     border-radius: 18px 18px 0 0;
     display: flex;
     flex-direction: column;
@@ -6180,8 +6179,7 @@ body.cal-is-dragging * {
   top: 0;
   left: 0;
   right: 0;
-  /* Endet oberhalb der Bottom-Nav auf Mobile/Tablet */
-  bottom: calc(72px + clamp(0px, calc(env(safe-area-inset-bottom, 0px) - 6px), 40px));
+  bottom: 0; /* volles Display — Bottom-Nav liegt mit z-index 10100 darüber */
   background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -6190,13 +6188,6 @@ body.cal-is-dragging * {
   justify-content: center;
   z-index: 1000;
   padding: 40px;
-}
-
-/* Desktop: kein Bottom-Nav → Overlay geht bis ganz unten */
-@media (min-width: 1025px) {
-  .modal-overlay {
-    bottom: 0;
-  }
 }
 
 .task-detail-modal {
