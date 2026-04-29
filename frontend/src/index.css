@@ -1424,13 +1424,13 @@ input, textarea, select {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: #AF52DE;
-  background: rgba(175, 82, 222, 0.1);
+  color: var(--primary);
+  background: rgba(0, 122, 255, 0.12);
 }
 
 .task-detail-status.event {
-  background: rgba(175, 82, 222, 0.12);
-  color: #AF52DE;
+  background: rgba(0, 122, 255, 0.12);
+  color: var(--primary);
 }
 
 .task-detail-status.task {
