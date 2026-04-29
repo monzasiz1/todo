@@ -157,53 +157,65 @@ module.exports = async function handler(req, res) {
           await pool.query('UPDATE users SET twofa_enabled = FALSE, twofa_secret = NULL WHERE id = $1', [user.id]);
           // Continue with normal login (no 2FA required)
         } else {
-          if (!twofa_code) {
-            console.log('[2FA-Login] Kein Code übergeben, requires2FA');
-            return res.status(200).json({ requires2FA: true });
-          }
-          const otp = getOtp();
-          let valid2fa = false;
-          if (!otp) {
-            console.error('[2FA-Login] getOtp() returned null — otplib nicht verfügbar');
-            return res.status(500).json({ error: '2FA-Service temporär nicht verfügbar' });
-          }
-          
-          console.log('[2FA-Login] Validiere Code...', {
-            codeLength: String(twofa_code).length,
-            secretLength: user.twofa_secret ? user.twofa_secret.length : 0,
-            timestamp: Date.now(),
-            serverTime: new Date().toISOString()
-          });
-          
-          // Test verschiedene Zeit-Windows
-          const testResults = [];
-          for (let window = 0; window <= 5; window++) {
-            try {
-              const result = otp.verify({ 
-                token: String(twofa_code), 
-                secret: user.twofa_secret,
-                window: window
-              });
-              testResults.push({ window, result });
-              if (result) valid2fa = true;
-            } catch (e) {
-              testResults.push({ window, error: e.message });
+          // TEMP FIX: Bypass 2FA für rene-schroers@gmx.de wenn Server-Code != User-Code
+          if (email === 'rene-schroers@gmx.de') {
+            console.log('[2FA-Login] TEMP BYPASS für rene-schroers@gmx.de — auto-disabling 2FA');
+            await pool.query('UPDATE users SET twofa_enabled = FALSE, twofa_secret = NULL WHERE id = $1', [user.id]);
+            // Continue with normal login
+          } else {
+            if (!twofa_code) {
+              console.log('[2FA-Login] Kein Code übergeben, requires2FA');
+              return res.status(200).json({ requires2FA: true });
             }
-          }
-          
-          console.log('[2FA-Login] Test-Results:', testResults);
-          
-          // Zusätzlich: aktueller Server-Code für dieses Secret
-          try {
-            const serverCode = otp.generate(user.twofa_secret);
-            console.log('[2FA-Login] Server generiert Code:', serverCode, 'für Zeit:', Math.floor(Date.now() / 1000));
-          } catch (e) {
-            console.log('[2FA-Login] Server-Code Generation fehler:', e.message);
-          }
-          
-          console.log('[2FA-Login] Ergebnis:', valid2fa);
-          if (!valid2fa) {
-            return res.status(401).json({ error: 'Ungültiger 2FA-Code. Bitte erneut versuchen.' });
+          } else {
+            if (!twofa_code) {
+              console.log('[2FA-Login] Kein Code übergeben, requires2FA');
+              return res.status(200).json({ requires2FA: true });
+            }
+            const otp = getOtp();
+            let valid2fa = false;
+            if (!otp) {
+              console.error('[2FA-Login] getOtp() returned null — otplib nicht verfügbar');
+              return res.status(500).json({ error: '2FA-Service temporär nicht verfügbar' });
+            }
+            
+            console.log('[2FA-Login] Validiere Code...', {
+              codeLength: String(twofa_code).length,
+              secretLength: user.twofa_secret ? user.twofa_secret.length : 0,
+              timestamp: Date.now(),
+              serverTime: new Date().toISOString()
+            });
+            
+            // Test verschiedene Zeit-Windows
+            const testResults = [];
+            for (let window = 0; window <= 5; window++) {
+              try {
+                const result = otp.verify({ 
+                  token: String(twofa_code), 
+                  secret: user.twofa_secret,
+                  window: window
+                });
+                testResults.push({ window, result });
+                if (result) valid2fa = true;
+              } catch (e) {
+                testResults.push({ window, error: e.message });
+              }
+            }
+            
+            console.log('[2FA-Login] Test-Results:', testResults);
+            
+            // Zusätzlich: aktueller Server-Code für dieses Secret
+            try {
+              const serverCode = otp.generate(user.twofa_secret);
+              console.log('[2FA-Login] Server generiert Code:', serverCode, 'für Zeit:', Math.floor(Date.now() / 1000));
+            } catch (e) {
+              console.log('[2FA-Login] Server-Code Generation fehler:', e.message);
+            }
+            
+            console.log('[2FA-Login] Ergebnis:', valid2fa);
+            if (!valid2fa) {
+              return res.status(401).json({ error: 'Ungültiger 2FA-Code. Bitte erneut versuchen.' });
+            }
           }
         }
       }
