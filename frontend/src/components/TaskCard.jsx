@@ -249,33 +249,7 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
         style={{ background: priorityColors[task.priority] }}
       />
 
-      {/* Drag Handle */}
-      <div
-        className="task-drag-handle"
-        onClick={(e) => e.stopPropagation()}
-        title="Verschieben"
-        aria-hidden="true"
-      >
-        <GripVertical size={16} />
-      </div>
-
-      {/* Checkbox / Event Icon */}
-      {!useDashboardDateRail && isEvent ? (
-        <div className="task-event-icon" title="Termin">
-          <CalendarCheck size={18} />
-        </div>
-      ) : (
-        !useDashboardDateRail && (
-          <motion.div
-            className={`task-checkbox ${task.completed ? 'checked' : ''} ${!canEdit ? 'disabled' : ''}`}
-            onClick={(e) => { e.stopPropagation(); if (canEdit) toggleTask(task.id); }}
-            whileTap={canEdit ? { scale: 0.85 } : {}}
-          >
-            {task.completed && <Check size={14} strokeWidth={3} />}
-          </motion.div>
-        )
-      )}
-
+      {/* Dashboard Date Tile — first flex item so it can be flush to card edge */}
       {dashboardDateParts && (
         <div className={`task-dashboard-date ${isEvent ? 'event' : 'todo'}${useDashboardDateRail ? ' has-marker' : ''}`} aria-hidden="true">
           {isEvent ? (
@@ -298,6 +272,35 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
           <span className="task-dashboard-date-month">{dashboardDateParts.month}</span>
           <span className="task-dashboard-date-day">{dashboardDateParts.day}</span>
         </div>
+      )}
+
+      {/* Drag Handle — only for group events/tasks that support chat-sharing */}
+      {canShareToChat && (
+        <div
+          className="task-drag-handle"
+          onClick={(e) => e.stopPropagation()}
+          title="Verschieben"
+          aria-hidden="true"
+        >
+          <GripVertical size={16} />
+        </div>
+      )}
+
+      {/* Checkbox / Event Icon — only when no date tile */}
+      {!useDashboardDateRail && isEvent ? (
+        <div className="task-event-icon" title="Termin">
+          <CalendarCheck size={18} />
+        </div>
+      ) : (
+        !useDashboardDateRail && (
+          <motion.div
+            className={`task-checkbox ${task.completed ? 'checked' : ''} ${!canEdit ? 'disabled' : ''}`}
+            onClick={(e) => { e.stopPropagation(); if (canEdit) toggleTask(task.id); }}
+            whileTap={canEdit ? { scale: 0.85 } : {}}
+          >
+            {task.completed && <Check size={14} strokeWidth={3} />}
+          </motion.div>
+        )
       )}
 
       {/* Content */}
