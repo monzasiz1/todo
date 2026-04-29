@@ -421,15 +421,6 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   // â”€â”€ Animation settings optimized for detected device type â”€â”€
   const animProps = useMemo(() => getAnimationProps(deviceType), [deviceType]);
 
-  // â”€â”€ Get device-specific easing â”€â”€ 
-  const getEasing = useCallback(() => {
-    switch (deviceType) {
-      case 'mobile': return animProps.easingTouch;
-      case 'tablet': return animProps.easingTablet;
-      default: return animProps.easingDesktop;
-    }
-  }, [deviceType, animProps]);
-
   useEffect(() => {
     if (isMobile) {
       setView('month');
@@ -475,7 +466,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       return dateStr >= taskStart && dateStr <= taskEnd;
     });
   }, [filteredTasks]);
-    return filteredTasks.filter((t) => {
+
   const triggerDropFeedback = (taskId, msg = 'Termin verschoben') => {
     setDropFeedback({ id: taskId, msg });
     setTimeout(() => setDropFeedback(null), 1400);
