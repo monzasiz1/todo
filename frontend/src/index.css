@@ -4781,7 +4781,7 @@ body.cal-is-dragging * {
   z-index: 10100;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 10px;
   overflow: visible;
   padding: 0;
 }
@@ -4793,16 +4793,16 @@ body.cal-is-dragging * {
   justify-content: space-around;
   flex: 1;
   height: 62px;
-  padding: 4px 8px;
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.32), rgba(238, 248, 255, 0.26));
-  backdrop-filter: blur(34px) saturate(1.9) brightness(0.88);
-  -webkit-backdrop-filter: blur(34px) saturate(1.9) brightness(0.88);
-  border: 1px solid rgba(255, 255, 255, 0.64);
+  padding: 4px 14px;
+  background: linear-gradient(160deg, rgba(210, 220, 235, 0.38), rgba(200, 215, 235, 0.30));
+  backdrop-filter: blur(34px) saturate(1.6) brightness(0.88);
+  -webkit-backdrop-filter: blur(34px) saturate(1.6) brightness(0.88);
+  border: 1.5px solid rgba(160, 180, 210, 0.55);
   box-shadow:
-    0 10px 32px rgba(0, 0, 0, 0.10),
-    0 2px 8px rgba(0, 0, 0, 0.06),
-    inset 0 1.5px 0 rgba(255, 255, 255, 0.88),
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.24);
+    0 10px 32px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.07),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.70),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.20);
 }
 
 /* Linke Pille: Außenecken klein, Innenecken (zum FAB hin) groß */
@@ -4913,11 +4913,12 @@ body.cal-is-dragging * {
   .bottom-nav {
     width: calc(100% - 14px);
     bottom: max(6px, env(safe-area-inset-bottom, 6px));
-    gap: 5px;
+    gap: 9px;
   }
 
   .bottom-nav-group {
     height: 58px;
+    padding: 4px 12px;
   }
 
   .bottom-nav-item {
@@ -5755,20 +5756,20 @@ body.cal-is-dragging * {
     box-shadow: 0 2px 8px rgba(0, 122, 255, 0.25);
   }
 
-  /* Task Detail Modal — fullscreen on mobile */
+  /* Task Detail Modal — Sheet über der Nav */
   .task-detail-overlay {
-    padding: 0;
+    padding: 0 0 calc(72px + env(safe-area-inset-bottom, 0px)) 0;
     align-items: stretch;
     justify-content: flex-end;
-    bottom: 0; /* volles Display — Bottom-Nav liegt mit z-index 10100 darüber */
+    bottom: 0;
   }
 
   .task-detail-overlay .task-detail-modal {
     width: 100%;
     max-width: none;
-    height: 100%;
-    max-height: calc(100dvh - 56px - env(safe-area-inset-top, 0px));
-    border-radius: 18px 18px 0 0;
+    height: auto;
+    max-height: calc(100dvh - 56px - env(safe-area-inset-top, 0px) - 72px - env(safe-area-inset-bottom, 0px));
+    border-radius: 18px 18px 14px 14px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -6187,7 +6188,15 @@ body.cal-is-dragging * {
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  /* Desktop-Padding */
   padding: 40px;
+}
+
+/* Mobile: padding-bottom schiebt zentrierten Inhalt über Bottom-Nav */
+@media (max-width: 1024px) {
+  .modal-overlay {
+    padding: 16px 16px calc(76px + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 .task-detail-modal {
@@ -9397,7 +9406,7 @@ body.cal-is-dragging * {
 /* Edit modal mobile */
 @media (max-width: 768px) {
   .task-edit-overlay {
-    padding: 0 !important;
+    padding: 0 0 calc(72px + env(safe-area-inset-bottom, 0px)) 0 !important;
     align-items: stretch !important;
     justify-content: flex-end !important;
   }
@@ -9405,9 +9414,9 @@ body.cal-is-dragging * {
   .task-edit-modal {
     width: 100%;
     max-width: none;
-    height: 100%;
-    max-height: 100dvh;
-    border-radius: 0;
+    height: auto;
+    max-height: calc(100dvh - 56px - env(safe-area-inset-top, 0px) - 72px - env(safe-area-inset-bottom, 0px));
+    border-radius: 18px 18px 14px 14px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -20507,13 +20516,13 @@ body.cal-is-dragging * {
 @media (max-width: 768px) {
   .gchat-panel {
     width: 100vw;
-    /* Slide from bottom on very small screens */
     border-left: none;
     border-top: 1px solid var(--border);
-    border-radius: 20px 20px 0 0;
+    border-radius: 20px 20px 14px 14px;
     top: auto;
-    bottom: 0;
-    height: 93dvh;
+    /* startet direkt über der Bottom-Nav inkl. iPhone Safe Area */
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    height: calc(93dvh - 72px - env(safe-area-inset-bottom, 0px));
     box-shadow: 0 -8px 40px rgba(0,0,0,0.22);
   }
 }
