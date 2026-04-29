@@ -100,11 +100,13 @@ export default function TaskAttachments({ taskId, canEdit = true, compact = fals
     );
   }
 
-  const shouldRenderSection = canEdit || attachments.length > 0 || loading;
+  // In read-only mode, don't render a temporary loading placeholder.
+  // Otherwise the section appears briefly and then vanishes (layout jump).
+  const shouldRenderSection = canEdit || attachments.length > 0;
   if (!shouldRenderSection) return null;
 
   return (
-    <div className="task-attachments" style={loading ? { minHeight: 88 } : undefined}>
+    <div className="task-attachments" style={loading && canEdit ? { minHeight: 88 } : undefined}>
       <div className="task-attachments-header">
         <Paperclip size={14} />
         <span>Dateien</span>
