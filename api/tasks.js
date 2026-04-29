@@ -128,9 +128,17 @@ function expandRecurringTemplate(template, rangeStart, rangeEnd) {
     }
 
     // Calculate multi-day span offset
-    const spanDays = (template.date_end && templateDate)
+    // Safely convert date_end to string (may be Date object, string, or null from DB)
+    const dateEndSafe = template.date_end
+      ? (typeof template.date_end === 'string'
+          ? template.date_end.substring(0, 10)
+          : template.date_end instanceof Date
+            ? template.date_end.toISOString().split('T')[0]
+            : String(template.date_end).split('T')[0])
+      : null;
+    const spanDays = (dateEndSafe && templateDate)
       ? Math.max(0, Math.round(
-          (new Date(template.date_end.substring(0, 10) + 'T00:00:00') -
+          (new Date(dateEndSafe + 'T00:00:00') -
            new Date(templateDate + 'T00:00:00')) / 86400000
         ))
       : 0;
