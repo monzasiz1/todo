@@ -61,6 +61,12 @@ body {
   overscroll-behavior-y: contain;
 }
 
+/* Lock page scroll while any modal overlay is open. */
+html:has(.modal-overlay),
+body:has(.modal-overlay) {
+  overflow: hidden;
+}
+
 #root {
   min-height: 100dvh;
   min-height: 100vh;
