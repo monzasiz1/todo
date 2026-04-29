@@ -1015,6 +1015,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       else multiClass = 'multi-day-middle';
                     }
                     const showBorderLeft = !isMobile && !['multi-day-middle', 'multi-day-end'].includes(multiClass);
+                    const showTaskLabel = !isMultiDay || ['multi-day-start', 'multi-day-single'].includes(multiClass);
                     return (
                       <div
                         key={t.id}
@@ -1026,12 +1027,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                           cursor: 'pointer',
                           userSelect: 'none',
                         } : {
-                          background: isMultiDay
-                            ? (ended ? 'rgba(142,142,147,0.5)' : accentColor)
-                            : (ended ? 'rgba(142,142,147,0.12)' : categoryAccent ? `${categoryAccent}20` : t.group_id ? `${t.group_color || '#5856D6'}15` : 'var(--primary-bg)'),
-                          color: isMultiDay
-                            ? (ended ? '#888' : '#fff')
-                            : (ended ? '#59606B' : categoryAccent || (t.group_id ? (t.group_color || '#5856D6') : 'var(--primary)')),
+                          background: ended ? 'rgba(142,142,147,0.12)' : categoryAccent ? `${categoryAccent}20` : t.group_id ? `${t.group_color || '#5856D6'}15` : 'var(--primary-bg)',
+                          color: ended ? '#59606B' : categoryAccent || (t.group_id ? (t.group_color || '#5856D6') : 'var(--primary)'),
                           borderLeft: showBorderLeft ? `2px solid ${ended ? 'rgba(142,142,147,0.55)' : accentColor}` : 'none',
                           cursor: viewportState.isDesktop && !ended ? 'grab' : 'pointer',
                           userSelect: 'none',
@@ -1042,9 +1039,9 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         {!isMobile && t.group_id && (
                           <AvatarBadge name={t.group_name} color={t.group_color || '#5856D6'} avatarUrl={t.group_image_url} size={10} />
                         )}
-                        {t.teams_join_url && <Video size={10} className="calendar-day-task-teams-icon" />}
-                        {t.time && <span className="calendar-day-task-time">{t.time.slice(0, 5)}</span>}
-                        <span className="calendar-day-task-title">{t.title}</span>
+                        {showTaskLabel && t.teams_join_url && <Video size={10} className="calendar-day-task-teams-icon" />}
+                        {showTaskLabel && t.time && <span className="calendar-day-task-time">{t.time.slice(0, 5)}</span>}
+                        {showTaskLabel && <span className="calendar-day-task-title">{t.title}</span>}
                         {!isMobile && ended && <span className="calendar-day-task-ended">Beendet</span>}
                       </div>
                     );

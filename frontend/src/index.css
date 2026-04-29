@@ -2249,7 +2249,7 @@ input, textarea, select {
 /* ── Multi-day spanning events in month view ── */
 .calendar-day-task.multi-day-start {
   border-radius: 3px 0 0 3px;
-  margin-right: -5px;
+  margin-right: -6px;
   padding-right: 2px;
   position: relative;
   z-index: 2;
@@ -2257,8 +2257,8 @@ input, textarea, select {
 
 .calendar-day-task.multi-day-middle {
   border-radius: 0;
-  margin-left: -5px;
-  margin-right: -5px;
+  margin-left: -6px;
+  margin-right: -6px;
   padding-left: 4px;
   padding-right: 2px;
   position: relative;
@@ -2267,7 +2267,7 @@ input, textarea, select {
 
 .calendar-day-task.multi-day-end {
   border-radius: 0 3px 3px 0;
-  margin-left: -5px;
+  margin-left: -6px;
   padding-left: 4px;
   position: relative;
   z-index: 2;
@@ -2276,6 +2276,15 @@ input, textarea, select {
 /* Single-row: task starts and ends within the same week row — normal pill */
 .calendar-day-task.multi-day-single {
   border-radius: 3px;
+}
+
+.calendar-day-task.multi-day-middle .calendar-day-task-title,
+.calendar-day-task.multi-day-end .calendar-day-task-title,
+.calendar-day-task.multi-day-middle .calendar-day-task-time,
+.calendar-day-task.multi-day-end .calendar-day-task-time,
+.calendar-day-task.multi-day-middle .calendar-day-task-teams-icon,
+.calendar-day-task.multi-day-end .calendar-day-task-teams-icon {
+  display: none;
 }
 
 /* Allow multi-day bars to bleed past cell padding into adjacent cell */
