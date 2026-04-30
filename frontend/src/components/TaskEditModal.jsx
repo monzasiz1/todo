@@ -367,6 +367,7 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
         transition={{ type: 'spring', damping: 28, stiffness: 350 }}
         onClick={(e) => e.stopPropagation()}
       >
+        {isMobile && <div className="modal-pull-handle" />}
         {/* Header */}
         <div className="task-edit-header">
           <h2>Aufgabe bearbeiten</h2>

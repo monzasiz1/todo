@@ -15615,8 +15615,12 @@ body.cal-is-dragging * {
   display: none;
 }
 
+.modal-pull-handle {
+  display: none;
+}
+
 /* ── Bottom-Sheet on mobile/tablet ── */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   /*
    * BottomNav has z-index: 10100. Raise overlay above it so the nav
    * is covered by the backdrop — no content can slip behind the nav.
@@ -15626,6 +15630,8 @@ body.cal-is-dragging * {
     padding: 0 !important;
     background: rgba(0, 0, 0, 0.5) !important;
     z-index: 10200 !important;
+    touch-action: none !important;
+    overscroll-behavior: none !important;
   }
 
   .day-create-modal {
@@ -15640,9 +15646,11 @@ body.cal-is-dragging * {
     box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.14);
     /* Only home-indicator padding needed — nav is behind the overlay */
     padding-bottom: env(safe-area-inset-bottom, 16px);
+    touch-action: pan-y;
   }
 
-  /* Drag handle: notch / Dynamic Island spacing */
+  /* Unified pull handle for pull-down closable sheets */
+  .modal-pull-handle,
   .day-create-drag-handle {
     display: block;
     width: 40px;

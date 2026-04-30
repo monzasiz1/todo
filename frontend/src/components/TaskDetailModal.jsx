@@ -79,7 +79,8 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
 
     // Prevent iOS rubber-band/background scroll and move modal itself instead.
     if (e.cancelable) e.preventDefault();
-    const resisted = Math.min(dy * 0.88, 320);
+    const maxPull = Math.max(420, (typeof window !== 'undefined' ? window.innerHeight : 800) - 28);
+    const resisted = Math.min(dy * 0.95, maxPull);
     pullOffsetRef.current = resisted;
     queuePullOffset(resisted);
   };
@@ -239,6 +240,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
+      {isMobile && <div className="modal-pull-handle" />}
       <div className="task-detail-main">
         <div className="task-detail-header">
           {pageMode && (

@@ -53,9 +53,14 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
   const [localTasks, setLocalTasks] = useState(tasks || []);
   const inputRef = useRef(null);
   const debounceRef = useRef(null);
+  const swipeRef = useRef({ startY: 0, active: false });
+  const pullRafRef = useRef(null);
+  const pullNextRef = useRef(0);
+  const pullOffsetRef = useRef(0);
+  const [pullOffset, setPullOffset] = useState(0);
   const { aiCreateTask, aiParseOnly } = useTaskStore();
   // detected once — used for animation variant
-  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
 
   const dateStr = format(date, 'EEEE, d. MMMM yyyy', { locale: de });
 
@@ -129,6 +134,62 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
 
   useEffect(() => { lockScroll(); return () => unlockScroll(); }, []);
 
+  const queuePullOffset = (next) => {
+    pullNextRef.current = next;
+    if (pullRafRef.current !== null) return;
+    pullRafRef.current = window.requestAnimationFrame(() => {
+      pullRafRef.current = null;
+      setPullOffset((prev) => (prev === pullNextRef.current ? prev : pullNextRef.current));
+    });
+  };
+
+  const handleTouchStart = (e) => {
+    if (!isMobile) return;
+    swipeRef.current = { startY: e.touches[0].clientY, active: true };
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isMobile || !swipeRef.current.active) return;
+    const dy = e.touches[0].clientY - swipeRef.current.startY;
+    if (dy <= 0 || e.currentTarget.scrollTop > 0) {
+      if (pullOffsetRef.current !== 0) {
+        pullOffsetRef.current = 0;
+        queuePullOffset(0);
+      }
+      return;
+    }
+    if (e.cancelable) e.preventDefault();
+    const maxPull = Math.max(420, (typeof window !== 'undefined' ? window.innerHeight : 800) - 28);
+    const resisted = Math.min(dy * 0.95, maxPull);
+    pullOffsetRef.current = resisted;
+    queuePullOffset(resisted);
+  };
+
+  const handleTouchEnd = (e) => {
+    if (!isMobile || !swipeRef.current.active) return;
+    const dy = e.changedTouches[0].clientY - swipeRef.current.startY;
+    swipeRef.current.active = false;
+    const shouldClose = dy > 120 && e.currentTarget.scrollTop <= 0;
+    pullOffsetRef.current = 0;
+    queuePullOffset(0);
+    if (shouldClose) onClose();
+  };
+
+  useEffect(() => {
+    if (!isMobile) return;
+    const stopBackgroundTouchWhilePulling = (e) => {
+      if (pullOffsetRef.current > 0 && e.cancelable) e.preventDefault();
+    };
+    document.addEventListener('touchmove', stopBackgroundTouchWhilePulling, { passive: false });
+    return () => document.removeEventListener('touchmove', stopBackgroundTouchWhilePulling);
+  }, [isMobile]);
+
+  useEffect(() => {
+    return () => {
+      if (pullRafRef.current !== null) window.cancelAnimationFrame(pullRafRef.current);
+    };
+  }, []);
+
   // Close on Escape
   useEffect(() => {
     const handleKey = (e) => {
@@ -150,14 +211,17 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
         className="day-create-modal"
         onClick={(e) => e.stopPropagation()}
         initial={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.96, y: 16 }}
-        animate={isMobile ? { y: 0 } : { opacity: 1, scale: 1, y: 0 }}
+        animate={isMobile ? { y: pullOffset } : { opacity: 1, scale: 1, y: 0 }}
         exit={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.96, y: 16 }}
         transition={isMobile
-          ? { type: 'spring', damping: 32, stiffness: 320 }
+          ? { type: 'tween', duration: pullOffset > 0 ? 0 : 0.16, ease: 'easeOut' }
           : { type: 'spring', damping: 28, stiffness: 350 }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         {/* Drag handle — mobile only */}
-        <div className="day-create-drag-handle" />
+        <div className="modal-pull-handle day-create-drag-handle" />
 
         {/* Header */}
         <div className="day-create-header">
