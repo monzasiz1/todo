@@ -366,17 +366,14 @@ input, textarea, select {
 
 .sidebar-logo h1 {
   font-size: 22px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-  background: linear-gradient(135deg, #0d3fa5 0%, #1a4db8 25%, #0f58bc 50%, #1a4db8 75%, #0d3fa5 100%);
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #00c6ff 0%, #0072ff 50%, #a855f7 100%);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  text-shadow: 0 0 32px rgba(54, 132, 245, 0.3),
-               0 0 16px rgba(26, 77, 184, 0.2);
-  filter: drop-shadow(0 0 20px rgba(54, 132, 245, 0.3))
-          drop-shadow(0 4px 8px rgba(15, 50, 100, 0.12))
-          drop-shadow(0 -2px 4px rgba(255, 255, 255, 0.05));
+  filter: drop-shadow(0 2px 12px rgba(0, 114, 255, 0.35));
 }
 
 .sidebar-logo-sub {
@@ -3566,16 +3563,14 @@ body.cal-is-dragging * {
 
 .auth-logo h1 {
   font-size: 28px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #0d3fa5 0%, #1a4db8 25%, #0f58bc 50%, #1a4db8 75%, #0d3fa5 100%);
+  font-weight: 900;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #00c6ff 0%, #0072ff 50%, #a855f7 100%);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  text-shadow: 0 0 40px rgba(54, 132, 245, 0.4),
-               0 0 20px rgba(26, 77, 184, 0.25);
-  filter: drop-shadow(0 0 28px rgba(54, 132, 245, 0.35))
-          drop-shadow(0 6px 16px rgba(15, 50, 100, 0.15))
-          drop-shadow(0 -2px 6px rgba(255, 255, 255, 0.08));
+  filter: drop-shadow(0 2px 14px rgba(0, 114, 255, 0.4));
 }
 
 .auth-title {
@@ -4929,20 +4924,16 @@ body.cal-is-dragging * {
 }
 
 .mobile-brand-title {
-  font-weight: 800;
-  font-size: 20px;
-  letter-spacing: -0.05em;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-  background: linear-gradient(180deg, #0d3fa5 0%, #1a4db8 33%, #0f58bc 66%, #1a4db8 100%);
+  font-weight: 900;
+  font-size: 19px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #00c6ff 0%, #0072ff 50%, #a855f7 100%);
   -webkit-background-clip: text;
   background-clip: text;
-  text-shadow: 0 0 28px rgba(54, 132, 245, 0.35),
-               0 0 12px rgba(26, 77, 184, 0.18);
-  filter: drop-shadow(inset 0 1.5px 2px rgba(255, 255, 255, 0.6))
-          drop-shadow(inset 0 -1.5px 1.5px rgba(15, 50, 100, 0.3))
-          drop-shadow(0 0 20px rgba(54, 132, 245, 0.25))
-          drop-shadow(0 4px 12px rgba(15, 88, 188, 0.12));
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  filter: drop-shadow(0 2px 10px rgba(0, 114, 255, 0.3));
 }
 
 .mobile-brand-sub {
