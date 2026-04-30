@@ -2088,6 +2088,13 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
             <button onClick={() => setPickerYear(y => y - 1)}><ChevronLeft size={16} /></button>
             <span>{pickerYear}</span>
             <button onClick={() => setPickerYear(y => y + 1)}><ChevronRight size={16} /></button>
+            <button
+              className={`calendar-fs-btn cal-settings-trigger cal-settings-trigger-in-dropdown ${showHolidaySettings ? 'active' : ''}`}
+              onClick={() => { setShowHolidaySettings(v => !v); setShowMonthPicker(false); }}
+              title="Kalendereinstellungen"
+            >
+              <Settings size={16} />
+            </button>
           </div>
           <div className="cal-mp-months">
             {Array.from({ length: 12 }, (_, i) => (

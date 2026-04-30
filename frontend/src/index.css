@@ -243,36 +243,12 @@ input, textarea, select {
     min-width: 0;
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 6px 8px;
-  }
-
-  .cal-settings-trigger {
-    order: 2;
-    flex-basis: 100%;
-    width: 100%;
-    height: 32px;
-    border-radius: 8px;
-    justify-content: flex-start;
-    padding: 0 10px;
     gap: 6px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    background: var(--bg);
-    border: 1px solid var(--border) !important;
   }
 
-  .cal-settings-trigger::after {
-    content: 'Kalendereinstellungen';
-    font-size: 12px;
-    font-weight: 600;
-  }
-
-  .cal-settings-trigger.active {
-    color: var(--primary);
-    border-color: var(--primary) !important;
-    background: var(--primary-bg);
+  /* Gear in cal-mp-wrap auf Mobile verstecken — sitzt im Dropdown */
+  .cal-settings-trigger:not(.cal-settings-trigger-in-dropdown) {
+    display: none;
   }
 
   .cal-mp-trigger {
@@ -2223,6 +2199,11 @@ input, textarea, select {
 .calendar-header h3 {
   font-size: 20px;
   font-weight: 700;
+}
+
+/* Dropdown-Gear nur auf Mobile sichtbar, in cal-mp-wrap überall sichtbar */
+.cal-settings-trigger-in-dropdown {
+  display: none;
 }
 
 /* Month/Year Picker */
@@ -5473,8 +5454,18 @@ body.cal-is-dragging * {
     width: 100%;
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 6px 8px;
+    gap: 6px;
+  }
+
+  /* Gear in cal-mp-wrap auf Mobile verstecken — sitzt im Dropdown */
+  .cal-settings-trigger:not(.cal-settings-trigger-in-dropdown) {
+    display: none;
+  }
+
+  /* Gear im Dropdown auf Mobile anzeigen */
+  .cal-settings-trigger-in-dropdown {
+    display: inline-flex;
+    margin-left: auto;
   }
 
   .cal-mp-trigger {
@@ -5488,35 +5479,6 @@ body.cal-is-dragging * {
     padding: 2px 0;
     flex: 1;
     min-width: 0;
-    order: 1;
-  }
-
-  .cal-settings-trigger {
-    order: 2;
-    flex-basis: 100%;
-    width: 100%;
-    height: 32px;
-    border-radius: 8px;
-    justify-content: flex-start;
-    padding: 0 10px;
-    gap: 6px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    background: var(--bg);
-    border: 1px solid var(--border) !important;
-  }
-
-  .cal-settings-trigger::after {
-    content: 'Kalendereinstellungen';
-    font-size: 12px;
-    font-weight: 600;
-  }
-
-  .cal-settings-trigger.active {
-    color: var(--primary);
-    border-color: var(--primary) !important;
-    background: var(--primary-bg);
   }
 
   .cal-mp-trigger span {
