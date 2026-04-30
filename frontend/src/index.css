@@ -66,6 +66,7 @@ body {
 /* KEIN position:fixed/transform auf html oder body — das würde die Bottom-Nav verschieben */
 html:has(.modal-overlay),
 html:has(.friends-overlay),
+html:has(.gchat-panel:not(.gchat-page-mode)),
 html:has(.upgrade-modal-overlay),
 html:has(.friend-profile-overlay),
 html:has(.group-add-overlay),
@@ -77,6 +78,7 @@ html:has(.help-chat) {
 
 body:has(.modal-overlay),
 body:has(.friends-overlay),
+body:has(.gchat-panel:not(.gchat-page-mode)),
 body:has(.upgrade-modal-overlay),
 body:has(.friend-profile-overlay),
 body:has(.group-add-overlay),
@@ -20568,11 +20570,48 @@ body.cal-is-dragging * {
 
 /* ========== GROUP CHAT PANEL ========== */
 
-/* Panel (page mode only) */
+/* Backdrop — only shown in panel mode on mobile */
+.gchat-backdrop {
+  display: none;
+}
+@media (max-width: 768px) {
+  .gchat-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 299;
+  }
+}
+
+/* Desktop fixed panel */
 .gchat-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 360px;
+  height: 100dvh;
+  background: var(--glass);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--shadow-xl);
   display: flex;
   flex-direction: column;
+  z-index: 300;
   overflow: hidden;
+}
+@media (max-width: 768px) {
+  .gchat-panel {
+    width: 100vw;
+    border-left: none;
+    border-top: none;
+    border-radius: 0;
+    top: env(safe-area-inset-top, 0px);
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    height: auto;
+    box-shadow: none;
+  }
 }
 
 /* Header */

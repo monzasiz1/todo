@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowLeft, Send, Pin, ChevronDown, ChevronUp,
+  X, ArrowLeft, Send, Pin, ChevronDown, ChevronUp,
   MessageCircle, Users, Sparkles, Check,
   Pencil, Trash2, Undo2, BarChart2, AlertTriangle,
   CalendarCheck, UserCheck, ThumbsUp, MessageSquare
@@ -120,7 +120,9 @@ function formatReminderLabel(localDateTime) {
   return `Erinnerung am ${dt.toLocaleDateString('de-DE')} um ${dt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} erstellt`;
 }
 
-export default function GroupChatPanel() {
+// pageMode=false (default): fixed panel, controlled via open/onClose (desktop)
+// pageMode=true: renders as a page (mobile/tablet, used by ChatPage)
+export default function GroupChatPanel({ open, onClose, pageMode = false }) {
   const navigate = useNavigate();
   const { groups, fetchGroups } = useGroupStore();
   const { user } = useAuthStore();
@@ -688,12 +690,15 @@ export default function GroupChatPanel() {
   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
 
   // ── Render ─────────────────────────────────────────────────────────────────
-  return (
+  const panelContent = (
         <motion.div
-          className="gchat-panel gchat-page-mode"
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ type: 'tween', duration: 0.22, ease: 'easeOut' }}
+          className={`gchat-panel${pageMode ? ' gchat-page-mode' : ''}`}
+          initial={pageMode ? { opacity: 0, x: 20 } : { x: '100%' }}
+          animate={pageMode ? { opacity: 1, x: 0 } : { x: 0 }}
+          exit={pageMode ? {} : { x: '100%' }}
+          transition={pageMode
+            ? { type: 'tween', duration: 0.22, ease: 'easeOut' }
+            : { type: 'spring', stiffness: 340, damping: 32 }}
         >
             {/* ── Header ── */}
             <div className="gchat-header">
@@ -704,9 +709,15 @@ export default function GroupChatPanel() {
                   </div>
                   <span className="gchat-title">Gruppen-Chat</span>
                 </div>
-                <button className="gchat-close" onClick={() => navigate(-1)} title="Zurück">
-                  <ArrowLeft size={18} />
-                </button>
+                {pageMode ? (
+                  <button className="gchat-close" onClick={() => navigate(-1)} title="Zurück">
+                    <ArrowLeft size={18} />
+                  </button>
+                ) : (
+                  <button className="gchat-close" onClick={onClose}>
+                    <X size={18} />
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1407,5 +1418,24 @@ export default function GroupChatPanel() {
               )}
             </AnimatePresence>
           </motion.div>
+  );
+
+  if (pageMode) return panelContent;
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            className="gchat-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+          />
+          {panelContent}
+        </>
+      )}
+    </AnimatePresence>
   );
 }

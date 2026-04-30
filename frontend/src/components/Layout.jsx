@@ -3,6 +3,7 @@ import Sidebar from './Sidebar';
 import FeedbackToast from './FeedbackToast';
 import BottomNav from './BottomNav';
 import DayCreateModal from './DayCreateModal';
+import GroupChatPanel from './GroupChatPanel';
 import { AnimatePresence } from 'framer-motion';
 import { useState, useRef, useEffect } from 'react';
 import { Menu, X, MessageCircle } from 'lucide-react';
@@ -17,6 +18,7 @@ export default function Layout() {
   const isNotesRoute = location.pathname === '/app/notes';
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [dragGhost, setDragGhost] = useState(null);
   const aiInputRef = useRef(null);
@@ -41,15 +43,19 @@ export default function Layout() {
 
   // Scroll-Lock: verhindert Background-Scrolling auf iOS wenn ein Panel offen ist
   useEffect(() => {
-    const anyOpen = sidebarOpen || showQuickAdd;
+    const anyOpen = sidebarOpen || chatOpen || showQuickAdd;
     if (anyOpen) lockScroll();
     else unlockScroll();
     return () => unlockScroll();
-  }, [sidebarOpen, showQuickAdd]);
+  }, [sidebarOpen, chatOpen, showQuickAdd]);
 
   useEffect(() => {
     const onDragStart = (e) => {
-      navigate('/app/chat');
+      if (window.matchMedia('(min-width: 1025px)').matches) {
+        setChatOpen(true);
+      } else {
+        navigate('/app/chat');
+      }
       const d = e?.detail || {};
       if (d.source !== 'touch') {
         setDragGhost(null);
@@ -99,7 +105,7 @@ export default function Layout() {
           <NotificationBell />
           <button
             className="gchat-mobile-trigger"
-            onClick={() => navigate('/app/chat')}
+            onClick={() => window.matchMedia('(min-width: 1025px)').matches ? setChatOpen(true) : navigate('/app/chat')}
             title="Gruppen-Chat"
           >
             <MessageCircle size={20} />
@@ -156,13 +162,16 @@ export default function Layout() {
       <ReminderChecker />
 
       {/* Help Chat */}
-      <HelpChat />
+      <HelpChat hideFab={chatOpen} />
 
-      {/* Group Chat FAB (desktop) */}
-      {location.pathname !== '/app/chat' && (
+      {/* Group Chat Panel (desktop) */}
+      <GroupChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />
+
+      {/* Group Chat FAB — desktop: toggles panel; mobile/tablet: navigates to /app/chat */}
+      {!chatOpen && location.pathname !== '/app/chat' && (
         <button
           className="gchat-fab"
-          onClick={() => navigate('/app/chat')}
+          onClick={() => window.matchMedia('(min-width: 1025px)').matches ? setChatOpen(true) : navigate('/app/chat')}
           title="Gruppen-Chat öffnen"
         >
           <MessageCircle size={22} />

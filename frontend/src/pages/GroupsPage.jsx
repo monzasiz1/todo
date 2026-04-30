@@ -5,6 +5,8 @@ import { useTaskStore } from '../store/taskStore';
 import { api } from '../utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useOpenTask } from '../hooks/useOpenTask';
+import TaskDetailModal from '../components/TaskDetailModal';
 import {
   Users, Plus, Hash, Copy, Check, ChevronRight, ChevronDown, Crown,
   Shield, UserMinus, Settings, Trash2, LogOut, X,
@@ -515,7 +517,7 @@ const DASHBOARD_REFRESH_PARAMS = [
 ];
 
 function GroupDetail({ groupId, onBack }) {
-  const navigate = useNavigate();
+  const { detailTask, openTask, closeTask } = useOpenTask();
   const {
     currentGroup, members, groupTasks, myRole,
     fetchGroup, addGroupTask, removeGroupTask, changeMemberRole, removeMember, deleteGroup, updateGroup,
@@ -698,7 +700,7 @@ function GroupDetail({ groupId, onBack }) {
                     await removeGroupTask(gId, tId);
                     fetchTasks(...DASHBOARD_REFRESH_PARAMS);
                   }}
-                  onOpenTask={(task) => navigate(`/app/tasks/${task.id}`)}
+                  onOpenTask={openTask}
                 />
               ))}
               {visibleCount < filteredActiveTasks.length && (
@@ -728,7 +730,7 @@ function GroupDetail({ groupId, onBack }) {
                         await removeGroupTask(gId, tId);
                         fetchTasks(...DASHBOARD_REFRESH_PARAMS);
                       }}
-                      onOpenTask={(task) => navigate(`/app/tasks/${task.id}`)}
+                      onOpenTask={openTask}
                     />
                   ))}
                 </div>
@@ -749,6 +751,13 @@ function GroupDetail({ groupId, onBack }) {
             />
           )}
 
+          {detailTask && (
+            <TaskDetailModal
+              task={detailTask}
+              onClose={closeTask}
+              onUpdated={(updated) => { updateGroupTask(updated.id, updated); fetchTasks(...DASHBOARD_REFRESH_PARAMS); closeTask(); }}
+            />
+          )}
         </div>
       )}
 
