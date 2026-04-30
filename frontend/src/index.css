@@ -5143,6 +5143,8 @@ body.cal-is-dragging * {
   .app-sidebar {
     transform: translateX(-100%);
     width: 300px;
+    height: 100dvh;
+    max-height: 100dvh;
     padding-top: calc(16px + env(safe-area-inset-top, 0px));
     padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     padding-left: calc(16px + env(safe-area-inset-left, 0px));
@@ -6181,6 +6183,8 @@ body.cal-is-dragging * {
     transform: translateX(-100%);
     width: 300px;
     z-index: 200;
+    height: 100dvh;
+    max-height: 100dvh;
     padding-top: calc(16px + env(safe-area-inset-top, 0px));
     padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     overflow-y: auto;
@@ -6218,6 +6222,15 @@ body.cal-is-dragging * {
   /* Desktop-FABs ausblenden — Navigation via Mobile-Header + Bottom-Nav */
   .gchat-fab {
     display: none !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  .app-layout.sidebar-active .bottom-nav,
+  .app-layout.sidebar-active .bottom-nav-scrim {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
   }
 }
 

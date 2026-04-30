@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, CalendarDays, MessageCircle, Plus, UsersRound } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, User, Plus, UsersRound } from 'lucide-react';
 
 export default function BottomNav({ onAddClick }) {
   return (
@@ -21,9 +21,9 @@ export default function BottomNav({ onAddClick }) {
         <UsersRound size={22} />
         <span>Gruppen</span>
       </NavLink>
-      <NavLink to="/app/chat" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
-        <MessageCircle size={22} />
-        <span>Chat</span>
+      <NavLink to="/app/profile" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
+        <User size={22} />
+        <span>Profil</span>
       </NavLink>
     </nav>
   );

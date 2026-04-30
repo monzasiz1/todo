@@ -91,7 +91,7 @@ export default function Layout() {
   }, []);
 
   return (
-    <div className="app-layout">
+    <div className={`app-layout ${sidebarOpen ? 'sidebar-active' : ''}`}>
       {/* Mobile Header */}
       <div className="mobile-header">
         <div className="mobile-header-logo">
