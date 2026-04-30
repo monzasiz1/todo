@@ -5,7 +5,7 @@ import { useTaskStore } from '../store/taskStore';
 import AIInput from '../components/AIInput';
 import ManualTaskForm from '../components/ManualTaskForm';
 import TaskCard from '../components/TaskCard';
-import { CheckCircle2, Circle, Clock, ChevronDown, CalendarDays, AlertTriangle, Target, Plus, X, ChevronsDown } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, ChevronDown, CalendarDays, AlertTriangle, Target, Plus, X, ChevronsDown, Flame, Zap, TrendingUp, CheckCheck, Coffee, Sunset, Moon } from 'lucide-react';
 import { isToday, isTomorrow, isThisWeek, isPast, parseISO, format, startOfDay, compareAsc } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { usePlan } from '../hooks/usePlan';
@@ -195,46 +195,137 @@ function buildSmartInsights({
   freeHours,
   upcomingEventsCount,
   remainingHoursToday,
+  weekCompletionRate,
+  completedTodayCount,
+  totalTodayCount,
 }) {
-  const freeHoursLabel = `${Math.max(0, freeHours).toFixed(1).replace('.', ',')}`;
-  const capacity = Math.max(1, Math.min(7, Math.round(Math.max(0, freeHours) / 1.5)));
-  const hasOpenToday = todayCount > 0 || overdueCount > 0 || upcomingEventsCount > 0;
+  const hour = new Date().getHours();
+  const isMorning = hour >= 5 && hour < 12;
+  const isAfternoon = hour >= 12 && hour < 18;
+  const isEvening = hour >= 18 || hour < 5;
 
-  const primaryText = overdueCount > 0
-    ? `${overdueCount} Aufgaben sind überfällig, beginne dort und entlaste den Tag.`
-    : urgentTodayCount > 0
-      ? `${urgentTodayCount} Aufgaben sind heute wichtig, starte mit der kritischsten zuerst.`
-      : todayCount > 0
-        ? `Heute zählen ${todayCount} Aufgaben, fokussiere nur die wichtigsten zuerst.`
-        : 'Für heute sind keine offenen Aufgaben mehr da.';
+  const freeHoursLabel = `${Math.max(0, freeHours).toFixed(1).replace('.', ',')}h`;
+  const capacity = Math.max(1, Math.min(6, Math.round(Math.max(0, freeHours) / 1.5)));
+  const todayProgress = totalTodayCount > 0 ? Math.round((completedTodayCount / totalTodayCount) * 100) : 0;
 
-  let secondaryText = '';
-  if (remainingHoursToday <= 0.4) {
-    secondaryText = hasOpenToday
-      ? `Der Tag ist fast vorbei. Schließe nur noch das Wichtigste ab.`
-      : 'Der Tag ist fast vorbei. Perfekt für einen klaren Start morgen.';
-  } else if (upcomingEventsCount > 0) {
-    secondaryText = `Heute sind noch ${freeHoursLabel} freie Stunden, ${upcomingEventsCount} Termine stehen bald an.`;
-  } else if (todayCount === 0 && overdueCount === 0) {
-    secondaryText = `Heute sind noch ${freeHoursLabel} freie Stunden. Nutze sie für Planung, Puffer oder Erholung.`;
+  const items = [];
+
+  // 1. Tageszeit-Kontext (Motivation / Empfehlung)
+  if (isMorning) {
+    items.push({
+      key: 'timeofday',
+      icon: Coffee,
+      color: '#FF9500',
+      label: 'Morgen-Fokus',
+      text: overdueCount > 0
+        ? `Start mit den ${overdueCount} überfälligen Aufgaben – dann den Tag frei gestalten.`
+        : urgentTodayCount > 0
+          ? `${urgentTodayCount} dringende Aufgaben heute. Starte mit der wichtigsten, solange Energie hoch.`
+          : totalTodayCount > 0
+            ? `Guter Morgen! ${totalTodayCount} Aufgaben warten. Plane die 3 wichtigsten für heute.`
+            : `Guter Morgen! Kein Druck heute – nutze die Zeit für Planung oder neue Ziele.`,
+    });
+  } else if (isAfternoon) {
+    items.push({
+      key: 'timeofday',
+      icon: Zap,
+      color: '#007AFF',
+      label: 'Nachmittag',
+      text: totalTodayCount > 0 && completedTodayCount === 0
+        ? `Nachmittag läuft – ${totalTodayCount} Aufgaben noch offen. Konzentriere dich auf eine Aufgabe auf einmal.`
+        : completedTodayCount > 0
+          ? `Gut gemacht! ${completedTodayCount} erledigt. Noch ${totalTodayCount - completedTodayCount} übrig, du schaffst das.`
+          : `Nachmittag – ${freeHoursLabel} frei. Perfekte Zeit für tiefes Arbeiten.`,
+    });
   } else {
-    secondaryText = `Heute sind noch ${freeHoursLabel} freie Stunden, plane ${capacity} klare Aufgaben.`;
+    items.push({
+      key: 'timeofday',
+      icon: Moon,
+      color: '#5856D6',
+      label: 'Abend',
+      text: completedTodayCount > 0
+        ? `${completedTodayCount} Aufgaben heute erledigt – starker Tag! Bereite morgen kurz vor.`
+        : overdueCount > 0
+          ? `${overdueCount} Aufgaben noch offen. Schließe das Wichtigste ab, der Rest wartet auf morgen.`
+          : `Ruhiger Abend. Kein offener Druck – gut für Regeneration und Planung von morgen.`,
+    });
   }
 
-  return [
-    {
-      key: 'priority',
-      icon: overdueCount > 0 ? AlertTriangle : Target,
-      color: overdueCount > 0 ? '#FF3B30' : '#007AFF',
-      text: primaryText,
-    },
-    {
+  // 2. Überfällig / Dringend – Alarm wenn nötig
+  if (overdueCount > 0) {
+    items.push({
+      key: 'overdue',
+      icon: AlertTriangle,
+      color: '#FF3B30',
+      label: 'Überfällig',
+      text: overdueCount === 1
+        ? `1 Aufgabe ist überfällig – erledige sie zuerst, bevor Neues dazukommt.`
+        : `${overdueCount} Aufgaben sind überfällig. Priorisiere oder verschiebe sie bewusst.`,
+      badge: overdueCount,
+      badgeColor: '#FF3B30',
+    });
+  } else if (urgentTodayCount > 0) {
+    items.push({
+      key: 'urgent',
+      icon: Flame,
+      color: '#FF6B00',
+      label: 'Dringend heute',
+      text: `${urgentTodayCount} dringende Aufgabe${urgentTodayCount > 1 ? 'n' : ''} für heute. Konzentriere dich auf die eine wichtigste zuerst.`,
+      badge: urgentTodayCount,
+      badgeColor: '#FF6B00',
+    });
+  }
+
+  // 3. Tagesfortschritt
+  if (totalTodayCount > 0) {
+    items.push({
+      key: 'progress',
+      icon: CheckCheck,
+      color: '#34C759',
+      label: 'Heute Fortschritt',
+      text: todayProgress === 100
+        ? `Alle Aufgaben für heute erledigt! Ausgezeichnete Leistung.`
+        : todayProgress >= 50
+          ? `${completedTodayCount} von ${totalTodayCount} erledigt (${todayProgress}%). Gutes Tempo – weiter so!`
+          : completedTodayCount > 0
+            ? `${completedTodayCount} von ${totalTodayCount} erledigt. Fokussiere die nächste Aufgabe.`
+            : `${totalTodayCount} Aufgaben heute geplant. Starte mit der ersten – Momentum entsteht durch Action.`,
+      progress: todayProgress,
+    });
+  }
+
+  // 4. Wochenperformance / Kapazität
+  if (weekCompletionRate >= 80) {
+    items.push({
+      key: 'week',
+      icon: TrendingUp,
+      color: '#30D158',
+      label: 'Woche',
+      text: `${weekCompletionRate}% der Wochenaufgaben erledigt – du bist im Flow!`,
+    });
+  } else if (upcomingEventsCount > 0) {
+    items.push({
       key: 'capacity',
       icon: CalendarDays,
       color: '#5856D6',
-      text: secondaryText,
-    },
-  ];
+      label: 'Termine',
+      text: remainingHoursToday <= 1
+        ? `Heute kaum Zeit verbleibend – nur das Wichtigste.`
+        : `${freeHoursLabel} frei, ${upcomingEventsCount} Termin${upcomingEventsCount > 1 ? 'e' : ''} bald. Plane Puffer davor und danach.`,
+    });
+  } else if (freeHours > 0) {
+    items.push({
+      key: 'capacity',
+      icon: CalendarDays,
+      color: '#5856D6',
+      label: 'Kapazität',
+      text: freeHours >= 4
+        ? `${freeHoursLabel} freie Zeit – genug für ${capacity} fokussierte Aufgaben.`
+        : `${freeHoursLabel} verbleibend – realistisch 1–2 Aufgaben einplanen.`,
+    });
+  }
+
+  return items;
 }
 
 const VIRTUAL_THRESHOLD = 24;
@@ -469,7 +560,10 @@ export default function Dashboard() {
     freeHours,
     upcomingEventsCount,
     remainingHoursToday,
-  }), [overdueCount, todayTasks.length, urgentTodayCount, freeHours, upcomingEventsCount, remainingHoursToday]);
+    weekCompletionRate,
+    completedTodayCount: todayTasks.filter(t => t.completed).length,
+    totalTodayCount: todayTasks.length,
+  }), [overdueCount, todayTasks, urgentTodayCount, freeHours, upcomingEventsCount, remainingHoursToday, weekCompletionRate]);
 
   const greetingHour = new Date().getHours();
   const greeting = greetingHour < 12 ? 'Guten Morgen' : greetingHour < 18 ? 'Guten Tag' : 'Guten Abend';
@@ -570,11 +664,24 @@ export default function Dashboard() {
           {insights.map((item) => {
             const Icon = item.icon;
             return (
-              <article key={item.key} className="smart-insight-item">
+              <article key={item.key} className={`smart-insight-item${item.badge ? ' smart-insight-item--alert' : ''}`}>
                 <div className="smart-insight-icon" style={{ background: `${item.color}18`, color: item.color }}>
                   <Icon size={14} />
                 </div>
-                <p>{item.text}</p>
+                <div className="smart-insight-body">
+                  {item.label && <span className="smart-insight-label" style={{ color: item.color }}>{item.label}</span>}
+                  <p>{item.text}</p>
+                  {item.progress !== undefined && (
+                    <div className="smart-insight-progress">
+                      <div className="smart-insight-progress-bar" style={{ width: `${item.progress}%`, background: item.color }} />
+                    </div>
+                  )}
+                </div>
+                {item.badge && (
+                  <span className="smart-insight-badge" style={{ background: `${item.badgeColor}18`, color: item.badgeColor }}>
+                    {item.badge}
+                  </span>
+                )}
               </article>
             );
           })}

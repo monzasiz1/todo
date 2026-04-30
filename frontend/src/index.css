@@ -4765,13 +4765,57 @@ body.cal-is-dragging * {
   color: #1f2937;
   background: #f7faff;
   border-radius: 12px;
-  padding: 10px;
+  padding: 10px 12px;
   border: 1px solid #e6edf8;
+  transition: border-color 0.15s;
+}
+
+.smart-insight-item--alert {
+  border-color: rgba(255, 59, 48, 0.2);
+  background: #fff8f8;
+}
+
+.smart-insight-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.smart-insight-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  opacity: 0.8;
+  display: block;
+  margin-bottom: 2px;
 }
 
 .smart-insight-item p {
   margin: 0;
   line-height: 1.42;
+}
+
+.smart-insight-progress {
+  height: 3px;
+  background: rgba(0,0,0,0.07);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+.smart-insight-progress-bar {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+
+.smart-insight-badge {
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 99px;
+  padding: 2px 8px;
+  flex-shrink: 0;
+  align-self: center;
 }
 
 .smart-insight-icon {
