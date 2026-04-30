@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import TaskDetailModal from './TaskDetailModal';
 import { useOpenTask } from '../hooks/useOpenTask';
 import { useTaskStore } from '../store/taskStore';
-import { ChevronLeft, ChevronRight, ChevronDown, Maximize2, Minimize2, Video } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, Maximize2, Minimize2, Video, Settings } from 'lucide-react';
 import DayCreateModal from './DayCreateModal';
 import AvatarBadge from './AvatarBadge';
 import { FEDERAL_STATES, getGermanHolidaysInRange } from '../utils/holidays';
@@ -234,6 +234,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const { detailTask, openTask, closeTask } = useOpenTask();
   const [showDayModal, setShowDayModal] = useState(false);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [showHolidaySettings, setShowHolidaySettings] = useState(false);
   const [showSidebarCategories, setShowSidebarCategories] = useState(true);
   const [isCalendarFullscreen, setIsCalendarFullscreen] = useState(false);
   const [pickerYear, setPickerYear] = useState(getYear(new Date()));
@@ -2011,6 +2012,13 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
           </button>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <button
+              className={`calendar-fs-btn ${showHolidaySettings ? 'active' : ''}`}
+              onClick={() => setShowHolidaySettings(v => !v)}
+              title="Feiertage & Kalendereinstellungen"
+            >
+              <Settings size={17} />
+            </button>
           {!isMobile && (
             <button
               className={`calendar-fs-btn ${isCalendarFullscreen ? 'active' : ''}`}
@@ -2082,29 +2090,32 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
               </button>
             ))}
           </div>
-          <div className="cal-settings-block">
-            <div className="cal-settings-head">
-              <strong>Kalendereinstellungen</strong>
-              <span>Feiertage nach Bundesland anzeigen</span>
-            </div>
-            <label className="cal-settings-field">
-              <span>Bundesland</span>
-              <select
-                value={holidayStateCode}
-                onChange={(e) => setHolidayStateCode(e.target.value)}
-                aria-label="Bundesland fuer Feiertage"
-              >
-                {FEDERAL_STATES.map((state) => (
-                  <option key={state.code || 'national'} value={state.code}>{state.label}</option>
-                ))}
-              </select>
-            </label>
-            <p className="cal-settings-hint">
-              Aktiv: {selectedHolidayStateLabel}. Bundesweite Feiertage bleiben immer sichtbar.
-            </p>
-          </div>
         </div>
       </div>
+
+      {showHolidaySettings && (
+        <div className="cal-holiday-settings-panel">
+          <div className="cal-settings-head">
+            <strong>Kalendereinstellungen</strong>
+            <span>Feiertage nach Bundesland anzeigen</span>
+          </div>
+          <label className="cal-settings-field">
+            <span>Bundesland</span>
+            <select
+              value={holidayStateCode}
+              onChange={(e) => setHolidayStateCode(e.target.value)}
+              aria-label="Bundesland fuer Feiertage"
+            >
+              {FEDERAL_STATES.map((state) => (
+                <option key={state.code || 'national'} value={state.code}>{state.label}</option>
+              ))}
+            </select>
+          </label>
+          <p className="cal-settings-hint">
+            Aktiv: {selectedHolidayStateLabel}. Bundesweite Feiertage bleiben immer sichtbar.
+          </p>
+        </div>
+      )}
 
       {view === 'month' ? (
         <div className="calendar-grid">{renderMonthView()}</div>

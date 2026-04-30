@@ -126,8 +126,8 @@ export function getGermanHolidays(year, stateCode = '') {
 export function getGermanHolidaysInRange(start, end, stateCode = '') {
   if (!start || !end) return [];
 
-  const startDate = new Date(`${String(start).slice(0, 10)}T00:00:00`);
-  const endDate = new Date(`${String(end).slice(0, 10)}T00:00:00`);
+  const startDate = start instanceof Date ? start : new Date(`${String(start).slice(0, 10)}T00:00:00`);
+  const endDate = end instanceof Date ? end : new Date(`${String(end).slice(0, 10)}T00:00:00`);
 
   if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()) || endDate < startDate) {
     return [];

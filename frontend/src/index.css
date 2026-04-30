@@ -2295,6 +2295,16 @@ input, textarea, select {
   border-top: 1px solid var(--border);
 }
 
+.cal-holiday-settings-panel {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 12px 0;
+  padding: 14px 16px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
 .cal-settings-head {
   display: grid;
   gap: 2px;
@@ -15150,16 +15160,20 @@ body.cal-is-dragging * {
 
 /* ── Bottom-Sheet on mobile/tablet ── */
 @media (max-width: 768px) {
+  /*
+   * BottomNav has z-index: 10100. Raise overlay above it so the nav
+   * is covered by the backdrop — no content can slip behind the nav.
+   */
   .day-create-overlay {
     align-items: flex-end !important;
     padding: 0 !important;
     background: rgba(0, 0, 0, 0.5) !important;
+    z-index: 10200 !important;
   }
 
   .day-create-modal {
     width: 100%;
     max-width: 100%;
-    /* Fill full viewport height — content sits at top, empty space below */
     height: 100dvh;
     max-height: 100dvh;
     border-radius: 20px 20px 0 0;
@@ -15167,11 +15181,11 @@ body.cal-is-dragging * {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.14);
-    /* Clears bottom-nav (72px) + iPhone home indicator */
-    padding-bottom: calc(72px + env(safe-area-inset-bottom, 16px));
+    /* Only home-indicator padding needed — nav is behind the overlay */
+    padding-bottom: env(safe-area-inset-bottom, 16px);
   }
 
-  /* Drag handle: pushes below notch / Dynamic Island at full height */
+  /* Drag handle: notch / Dynamic Island spacing */
   .day-create-drag-handle {
     display: block;
     width: 40px;
