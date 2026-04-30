@@ -365,15 +365,11 @@ input, textarea, select {
 }
 
 .sidebar-logo h1 {
-  font-size: 22px;
-  font-weight: 900;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  background: linear-gradient(90deg, #00c6ff 0%, #0072ff 50%, #a855f7 100%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 2px 12px rgba(0, 114, 255, 0.35));
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--text);
+  opacity: 0.92;
 }
 
 .sidebar-logo-sub {
@@ -3562,15 +3558,11 @@ body.cal-is-dragging * {
 }
 
 .auth-logo h1 {
-  font-size: 28px;
-  font-weight: 900;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  background: linear-gradient(90deg, #00c6ff 0%, #0072ff 50%, #a855f7 100%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 2px 14px rgba(0, 114, 255, 0.4));
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--text);
+  opacity: 0.92;
 }
 
 .auth-title {
@@ -4924,16 +4916,13 @@ body.cal-is-dragging * {
 }
 
 .mobile-brand-title {
-  font-weight: 900;
-  font-size: 19px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  background: linear-gradient(90deg, #00c6ff 0%, #0072ff 50%, #a855f7 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  filter: drop-shadow(0 2px 10px rgba(0, 114, 255, 0.3));
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.04em;
+  color: var(--text);
+  opacity: 0.92;
+  -webkit-text-fill-color: unset;
+  background: none;
 }
 
 .mobile-brand-sub {
