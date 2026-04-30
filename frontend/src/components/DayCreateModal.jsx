@@ -1,15 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { lockScroll, unlockScroll } from '../utils/scrollLock';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, ArrowUp, Calendar, CalendarCheck, Clock, Tag, Flag, Loader2, Pencil, ChevronLeft, ListTodo, Video } from 'lucide-react';
+import { X, Sparkles, ArrowUp, Calendar, CalendarCheck, Clock, Tag, Flag, Loader2, Pencil, ChevronLeft, ChevronRight, ListTodo, Video } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { useTaskStore } from '../store/taskStore';
 import ManualTaskForm from './ManualTaskForm';
-import TaskCard from './TaskCard';
 import TaskDetailModal from './TaskDetailModal';
 import AvatarBadge from './AvatarBadge';
+
+const isDesktopBP = () =>
+  typeof window !== 'undefined' && window.matchMedia('(min-width: 1025px)').matches;
 
 const priorityLabels = {
   low: 'Niedrig',
@@ -36,6 +39,7 @@ function isEventEnded(task) {
 }
 
 export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, portalTarget }) {
+  const navigate = useNavigate();
   const [mode, setMode] = useState(null); // null | 'ai' | 'manual'
   const [aiInput, setAiInput] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
@@ -46,6 +50,8 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
   const inputRef = useRef(null);
   const debounceRef = useRef(null);
   const { aiCreateTask, aiParseOnly } = useTaskStore();
+  // detected once — used for animation variant
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
 
   const dateStr = format(date, 'EEEE, d. MMMM yyyy', { locale: de });
 
@@ -107,6 +113,15 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
     onClose();
   };
 
+  const handleTaskClick = (task) => {
+    if (isDesktopBP()) {
+      setDetailTask(task);
+    } else {
+      onClose();
+      navigate(`/app/tasks/${task.id}`);
+    }
+  };
+
   useEffect(() => { lockScroll(); return () => unlockScroll(); }, []);
 
   // Close on Escape
@@ -120,7 +135,7 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
 
   return createPortal(
     <motion.div
-      className="modal-overlay"
+      className="modal-overlay day-create-overlay"
       onClick={onClose}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -129,18 +144,25 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
       <motion.div
         className="day-create-modal"
         onClick={(e) => e.stopPropagation()}
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        transition={{ type: 'spring', damping: 28, stiffness: 350 }}
+        initial={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.96, y: 16 }}
+        animate={isMobile ? { y: 0 } : { opacity: 1, scale: 1, y: 0 }}
+        exit={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.96, y: 16 }}
+        transition={isMobile
+          ? { type: 'spring', damping: 32, stiffness: 320 }
+          : { type: 'spring', damping: 28, stiffness: 350 }}
       >
+        {/* Drag handle — mobile only */}
+        <div className="day-create-drag-handle" />
+
         {/* Header */}
         <div className="day-create-header">
           <div>
             <div className="day-create-date">{dateStr}</div>
-            <div className="day-create-count">
-              {tasks.length} Aufgabe{tasks.length !== 1 ? 'n' : ''}
-            </div>
+            {localTasks.length > 0 && (
+              <div className="day-create-count">
+                {localTasks.length} {localTasks.length === 1 ? 'Eintrag' : 'Einträge'}
+              </div>
+            )}
           </div>
           <button className="day-create-close" onClick={onClose}>
             <X size={20} />
@@ -167,7 +189,7 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
                     : accentColor ? `${accentColor}12` : 'var(--hover)',
                   cursor: 'pointer',
                 }}
-                onClick={() => setDetailTask(task)}
+                onClick={() => handleTaskClick(task)}
               >
                 <div className="day-create-task-info">
                   <div className="day-create-task-main">
@@ -226,8 +248,7 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
               <motion.button
                 className="day-create-action-btn ai"
                 onClick={() => setMode('ai')}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
+                whileTap={{ scale: 0.97 }}
               >
                 <div className="day-create-action-icon ai">
                   <Sparkles size={20} />
@@ -236,12 +257,12 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
                   <strong>Mit KI erstellen</strong>
                   <span>Beschreib deine Aufgabe natürlich</span>
                 </div>
+                <ChevronRight size={16} className="day-create-action-arrow" />
               </motion.button>
               <motion.button
                 className="day-create-action-btn manual"
                 onClick={() => setMode('manual')}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
+                whileTap={{ scale: 0.97 }}
               >
                 <div className="day-create-action-icon manual">
                   <Pencil size={20} />
@@ -250,6 +271,7 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
                   <strong>Manuell erstellen</strong>
                   <span>Alle Felder selbst ausfüllen</span>
                 </div>
+                <ChevronRight size={16} className="day-create-action-arrow" />
               </motion.button>
             </motion.div>
           )}
@@ -375,7 +397,6 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
       {detailTask && (
         <TaskDetailModal
           task={detailTask}
-          portalTarget={portalTarget || document.body}
           onClose={() => setDetailTask(null)}
           onUpdated={(updatedTask) => {
             if (!updatedTask?.id) return;
