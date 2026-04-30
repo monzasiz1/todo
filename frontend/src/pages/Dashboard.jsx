@@ -274,21 +274,15 @@ export default function Dashboard() {
   const [showTaskLimitModal, setShowTaskLimitModal] = useState(false);
   const [showManualModal, setShowManualModal] = useState(false);
   const [nowTs, setNowTs] = useState(Date.now());
-  const [aiCollapsed, setAiCollapsed] = useState(() => {
-    try { return localStorage.getItem('dash_ai_collapsed') === 'true'; } catch { return false; }
-  });
-  const [focusCollapsed, setFocusCollapsed] = useState(() => {
-    try { return localStorage.getItem('dash_focus_collapsed') === 'true'; } catch { return false; }
+  const [aiCollapsed, setAiCollapsed] = useState(false);
+  const [focusCollapsed, setFocusCollapsed] = useState(false);
+  const [topCollapsed, setTopCollapsed] = useState(() => {
+    try { return localStorage.getItem('dash_top_collapsed') === 'true'; } catch { return false; }
   });
 
-  const toggleAi = () => setAiCollapsed(v => {
+  const toggleTop = () => setTopCollapsed(v => {
     const next = !v;
-    try { localStorage.setItem('dash_ai_collapsed', next); } catch {}
-    return next;
-  });
-  const toggleFocus = () => setFocusCollapsed(v => {
-    const next = !v;
-    try { localStorage.setItem('dash_focus_collapsed', next); } catch {}
+    try { localStorage.setItem('dash_top_collapsed', next); } catch {}
     return next;
   });
 
@@ -508,8 +502,13 @@ export default function Dashboard() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <h2>{greeting} 👋</h2>
-        <p>Was steht heute an?</p>
+        <div className="page-header-left">
+          <h2>{greeting} 👋</h2>
+          <p>Was steht heute an?</p>
+        </div>
+        <button className="dash-top-toggle" onClick={toggleTop} aria-label="Eingabe ein-/ausblenden">
+          <ChevronDown size={18} className={`dash-top-toggle-chevron${topCollapsed ? ' rotated' : ''}`} />
+        </button>
       </motion.div>
 
       {/* Task-Limit Warning / Upgrade Modal */}
@@ -517,6 +516,17 @@ export default function Dashboard() {
         <UpgradeModal feature="tasks" onClose={() => setShowTaskLimitModal(false)} />
       )}
 
+      {/* Task Creation + Focus – collapsible on mobile */}
+      <AnimatePresence initial={false}>
+        {!topCollapsed && (
+          <motion.div
+            key="top-panel"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25, ease: 'easeInOut' }}
+            style={{ overflow: 'hidden' }}
+          >
       {/* Task Creation */}
       <div className="task-creation-stack">
         {atLimit('tasks', tasks.filter(t => !t.completed).length) && (
@@ -528,23 +538,6 @@ export default function Dashboard() {
             <span className="task-limit-upgrade">Upgrade für unbegrenzte Aufgaben →</span>
           </div>
         )}
-
-        {/* Mobile Toggle-Header für KI */}
-        <button className="dash-mobile-toggle" onClick={toggleAi}>
-          <span className="dash-mobile-toggle-label">KI-Eingabe</span>
-          <ChevronDown size={16} className={`dash-mobile-toggle-chevron${aiCollapsed ? ' rotated' : ''}`} />
-        </button>
-
-        <AnimatePresence initial={false}>
-          {!aiCollapsed && (
-            <motion.div
-              key="ai-section"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.22, ease: 'easeInOut' }}
-              style={{ overflow: 'hidden' }}
-            >
               <AIInput />
               <button
                 className="manual-task-launcher dashboard-manual-launcher"
@@ -559,10 +552,37 @@ export default function Dashboard() {
                 </span>
                 <ChevronDown size={18} className="manual-task-launcher-chevron" />
               </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
+
+      <section className="smart-insights" aria-label="Smart Insights">
+        <div className="smart-insights-head">
+          <div className="smart-insights-title">
+            <Target size={14} />
+            Fokus heute
+          </div>
+          <div className="smart-insights-meta-wrap">
+            <span className="smart-insights-meta">Heute: {todayTasks.length}</span>
+            <span className="smart-insights-meta">Überfällig: {overdueCount}</span>
+            <span className="smart-insights-meta">Woche: {weekCompletionRate}%</span>
+          </div>
+        </div>
+        <div className="smart-insights-list">
+          {insights.map((item) => {
+            const Icon = item.icon;
+            return (
+              <article key={item.key} className="smart-insight-item">
+                <div className="smart-insight-icon" style={{ background: `${item.color}18`, color: item.color }}>
+                  <Icon size={14} />
+                </div>
+                <p>{item.text}</p>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Manuell-Erstellungs-Modal (Desktop) */}
       <AnimatePresence>
@@ -610,49 +630,6 @@ export default function Dashboard() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      <section className="smart-insights" aria-label="Smart Insights">
-        <div className="smart-insights-head">
-          <button className="dash-mobile-toggle dash-mobile-toggle--inline" onClick={toggleFocus}>
-            <div className="smart-insights-title">
-              <Target size={14} />
-              Fokus heute
-            </div>
-            <ChevronDown size={16} className={`dash-mobile-toggle-chevron${focusCollapsed ? ' rotated' : ''}`} />
-          </button>
-          <div className="smart-insights-meta-wrap">
-            <span className="smart-insights-meta">Heute: {todayTasks.length}</span>
-            <span className="smart-insights-meta">Überfällig: {overdueCount}</span>
-            <span className="smart-insights-meta">Woche: {weekCompletionRate}%</span>
-          </div>
-        </div>
-        <AnimatePresence initial={false}>
-          {!focusCollapsed && (
-            <motion.div
-              key="focus-section"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.22, ease: 'easeInOut' }}
-              style={{ overflow: 'hidden' }}
-            >
-              <div className="smart-insights-list">
-                {insights.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <article key={item.key} className="smart-insight-item">
-                      <div className="smart-insight-icon" style={{ background: `${item.color}18`, color: item.color }}>
-                        <Icon size={14} />
-                      </div>
-                      <p>{item.text}</p>
-                    </article>
-                  );
-                })}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </section>
 
       {/* Filter Bar */}
       <div className="filter-bar">

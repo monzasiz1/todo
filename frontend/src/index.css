@@ -700,6 +700,15 @@ input, textarea, select {
 /* ========== PAGE HEADER ========== */
 .page-header {
   margin-bottom: 32px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.page-header-left {
+  flex: 1;
+  min-width: 0;
 }
 
 .page-header h2 {
@@ -713,6 +722,42 @@ input, textarea, select {
   font-size: 16px;
   color: var(--text-secondary);
   margin-top: 4px;
+}
+
+/* Dashboard top-panel collapse toggle — mobile only */
+.dash-top-toggle {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .dash-top-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--glass);
+    color: var(--text-secondary);
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-top: 6px;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .dash-top-toggle:hover {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+
+  .dash-top-toggle-chevron {
+    transition: transform 0.22s ease;
+  }
+
+  .dash-top-toggle-chevron.rotated {
+    transform: rotate(-90deg);
+  }
 }
 
 /* ========== AI INPUT ========== */
@@ -4670,47 +4715,7 @@ body.cal-is-dragging * {
   padding: 14px;
 }
 
-/* Mobile collapse toggle — hidden on desktop */
-.dash-mobile-toggle {
-  display: none;
-}
-
-@media (max-width: 768px) {
-  .dash-mobile-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    background: none;
-    border: none;
-    padding: 4px 0 8px;
-    cursor: pointer;
-    color: var(--text);
-    font-size: 13px;
-    font-weight: 600;
-  }
-
-  .dash-mobile-toggle--inline {
-    padding: 0;
-    margin-bottom: 0;
-  }
-
-  .dash-mobile-toggle-label {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text);
-  }
-
-  .dash-mobile-toggle-chevron {
-    transition: transform 0.22s ease;
-    color: var(--text-secondary);
-    flex-shrink: 0;
-  }
-
-  .dash-mobile-toggle-chevron.rotated {
-    transform: rotate(-90deg);
-  }
-}
+/* Mobile collapse toggle — removed (replaced by dash-top-toggle) */
 
 .smart-insights-head {
   display: flex;
