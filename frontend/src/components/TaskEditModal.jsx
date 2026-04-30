@@ -50,14 +50,14 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
   const { updateTask, fetchTasks, categories, fetchCategories, addToast } = useTaskStore();
   const { friends, fetchFriends } = useFriendsStore();
   const [isMobile, setIsMobile] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1024px)').matches
   );
   const virtualTask = parseVirtualTaskId(task.id);
 
   useEffect(() => { lockScroll(); return () => unlockScroll(); }, []);
 
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 768px)');
+    const mq = window.matchMedia('(max-width: 1024px)');
     const handler = (e) => setIsMobile(e.matches);
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);

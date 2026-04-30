@@ -486,11 +486,6 @@ export default function Dashboard() {
         ? y > expandY
         : y > collapseY;
 
-      // Avoid visual ping-pong: expand only after scrolling settles.
-      if (!shouldCollapseToday && autoCollapsedTodayRef.current && isUserScrollingRef.current && !isTablet) {
-        return;
-      }
-
       if (autoCollapsedTodayRef.current !== shouldCollapseToday) {
         autoCollapsedTodayRef.current = shouldCollapseToday;
         setCollapsedSections((s) => (s.today === shouldCollapseToday ? s : { ...s, today: shouldCollapseToday }));
@@ -499,7 +494,7 @@ export default function Dashboard() {
 
     const onScroll = () => {
       if (scrollRafRef.current !== null) return;
-      const idleMs = window.innerWidth > 768 && window.innerWidth <= 1024 ? 70 : 130;
+      const idleMs = window.innerWidth > 768 && window.innerWidth <= 1024 ? 45 : 70;
       isUserScrollingRef.current = true;
       if (scrollIdleTimerRef.current) clearTimeout(scrollIdleTimerRef.current);
       scrollIdleTimerRef.current = setTimeout(() => {
