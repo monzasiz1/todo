@@ -362,9 +362,7 @@ export default function Dashboard() {
   const scrollRafRef = useRef(null);
   const autoCollapsedTodayRef = useRef(false);
   const todayManualOverrideRef = useRef(false);
-  const autoTransitionTimerRef = useRef(null);
   const [showCompleted, setShowCompleted] = useState(false);
-  const [todayAutoTransition, setTodayAutoTransition] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState({ today: false, week: true, later: true, past_events: true });
   const [groupVisibleCounts, setGroupVisibleCounts] = useState({});
   const [showTaskLimitModal, setShowTaskLimitModal] = useState(false);
@@ -381,21 +379,6 @@ export default function Dashboard() {
     try { localStorage.setItem('dash_top_collapsed', next); } catch {}
     return next;
   });
-
-  useEffect(() => {
-    if (!todayAutoTransition) return;
-    if (autoTransitionTimerRef.current) clearTimeout(autoTransitionTimerRef.current);
-    autoTransitionTimerRef.current = setTimeout(() => {
-      setTodayAutoTransition(false);
-      autoTransitionTimerRef.current = null;
-    }, 220);
-    return () => {
-      if (autoTransitionTimerRef.current) {
-        clearTimeout(autoTransitionTimerRef.current);
-        autoTransitionTimerRef.current = null;
-      }
-    };
-  }, [todayAutoTransition]);
 
   useEffect(() => {
     // Load all tasks (open AND closed), let frontend filter do the rest
@@ -502,7 +485,6 @@ export default function Dashboard() {
 
       if (autoCollapsedTodayRef.current !== shouldCollapseToday) {
         autoCollapsedTodayRef.current = shouldCollapseToday;
-        setTodayAutoTransition(true);
         setCollapsedSections((s) => (s.today === shouldCollapseToday ? s : { ...s, today: shouldCollapseToday }));
       }
     };
@@ -651,7 +633,6 @@ export default function Dashboard() {
 
   const toggleSection = (key) => {
     if (key === 'today') {
-      setTodayAutoTransition(false);
       todayManualOverrideRef.current = window.innerWidth <= 1024 && window.scrollY > getTodayCollapseThreshold();
     }
     setCollapsedSections((s) => ({ ...s, [key]: !s[key] }));
@@ -849,7 +830,6 @@ export default function Dashboard() {
       {groups.length > 0 ? (
         groups.map((group) => {
           const Icon = group.icon;
-          const isTodayAutoTransition = group.key === 'today' && todayAutoTransition;
           const collapsed = collapsedSections[group.key];
           const visibleCount = groupVisibleCounts[group.key] || INITIAL_GROUP_VISIBLE;
           const visibleTasks = group.tasks.slice(0, visibleCount);
@@ -879,7 +859,7 @@ export default function Dashboard() {
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={isTodayAutoTransition ? { duration: 0.01 } : { duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                    transition={{ duration: 0.24, ease: 'easeInOut' }}
                   >
                     {visibleTasks.length > VIRTUAL_THRESHOLD ? (
                       <VirtualList
