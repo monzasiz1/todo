@@ -8694,7 +8694,7 @@ body.cal-is-dragging * {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 7px 3px 6px;
+  padding: 3px 4px 3px 6px;
   border-radius: 999px;
   background: rgba(52, 199, 89, 0.1);
   border: 1px solid rgba(52, 199, 89, 0.22);
@@ -8736,18 +8736,23 @@ body.cal-is-dragging * {
   position: relative;
 }
 
+.creator-pocket {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 2px;
+  padding: 2px;
+  border-radius: 999px;
+  background: rgba(52, 199, 89, 0.18);
+  border: 1px solid rgba(52, 199, 89, 0.34);
+}
+
 .creator-dot {
   width: 18px;
   height: 18px;
   border-radius: 50%;
   flex-shrink: 0;
   box-shadow: 0 0 0 1.5px var(--card-solid);
-}
-
-.cluster-separator {
-  width: 1px;
-  height: 16px;
-  background: rgba(52, 199, 89, 0.45);
 }
 
 .creator-tag {

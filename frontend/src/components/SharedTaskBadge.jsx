@@ -57,9 +57,8 @@ export default function SharedTaskBadge({ task }) {
             )}
           </div>
           {!is_owner && creator_name && (
-            <>
-              <span className="cluster-separator" />
-              <span className="creator-badge in-cluster" title={`Ersteller: ${creator_name}`}>
+            <span className="creator-pocket" title={`Ersteller: ${creator_name}`}>
+              <span className="creator-badge in-cluster">
                 <AvatarBadge
                   className="creator-dot"
                   name={creator_name}
@@ -69,7 +68,7 @@ export default function SharedTaskBadge({ task }) {
                 />
                 <span className="creator-tag">E</span>
               </span>
-            </>
+            </span>
           )}
         </div>
       ) : (
