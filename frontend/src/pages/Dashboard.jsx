@@ -461,6 +461,7 @@ export default function Dashboard() {
   useEffect(() => {
     const syncTodayCollapseWithScroll = () => {
       const isSmallScreen = window.innerWidth <= 1024;
+      const isTablet = window.innerWidth > 768 && window.innerWidth <= 1024;
       if (!isSmallScreen) {
         autoCollapsedTodayRef.current = false;
         todayManualOverrideRef.current = false;
@@ -469,7 +470,7 @@ export default function Dashboard() {
       }
 
       const collapseY = getTodayCollapseThreshold();
-      const expandY = Math.max(12, collapseY - 18);
+      const expandY = isTablet ? Math.max(18, collapseY - 8) : Math.max(12, collapseY - 18);
       const y = window.scrollY;
 
       // User interaction has priority while scrolled.
@@ -486,7 +487,7 @@ export default function Dashboard() {
         : y > collapseY;
 
       // Avoid visual ping-pong: expand only after scrolling settles.
-      if (!shouldCollapseToday && autoCollapsedTodayRef.current && isUserScrollingRef.current) {
+      if (!shouldCollapseToday && autoCollapsedTodayRef.current && isUserScrollingRef.current && !isTablet) {
         return;
       }
 
@@ -498,12 +499,13 @@ export default function Dashboard() {
 
     const onScroll = () => {
       if (scrollRafRef.current !== null) return;
+      const idleMs = window.innerWidth > 768 && window.innerWidth <= 1024 ? 70 : 130;
       isUserScrollingRef.current = true;
       if (scrollIdleTimerRef.current) clearTimeout(scrollIdleTimerRef.current);
       scrollIdleTimerRef.current = setTimeout(() => {
         isUserScrollingRef.current = false;
         syncTodayCollapseWithScroll();
-      }, 130);
+      }, idleMs);
       scrollRafRef.current = window.requestAnimationFrame(() => {
         scrollRafRef.current = null;
         syncTodayCollapseWithScroll();

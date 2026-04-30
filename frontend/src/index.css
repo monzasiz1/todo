@@ -1124,14 +1124,14 @@ input, textarea, select {
 
 /* ── Heute-Block: visuell dominant ── */
 .dash-section[data-section="today"] {
-  border-color: rgba(255, 149, 0, 0.22);
+  border-color: rgba(18, 28, 45, 0.14);
   background: var(--card-solid);
-  box-shadow: 0 6px 20px rgba(255, 149, 0, 0.1), inset 0 0 0 1px rgba(255, 149, 0, 0.1);
+  box-shadow: 0 6px 20px rgba(12, 23, 42, 0.08), inset 0 0 0 1px rgba(18, 28, 45, 0.06);
 }
 
 .dash-section[data-section="today"] .dash-section-header {
   padding: 16px 16px 15px;
-  background: #fff7ec;
+  background: #f6f8fc;
 }
 
 .dash-section[data-section="today"] .dash-section-icon {
@@ -1149,9 +1149,9 @@ input, textarea, select {
 .dash-section[data-section="today"] .dash-section-count {
   font-size: 12px;
   font-weight: 700;
-  background: rgba(255, 149, 0, 0.12);
-  color: #c97200;
-  border: 1px solid rgba(255, 149, 0, 0.2);
+  background: #edf2fb;
+  color: #2b3a55;
+  border: 1px solid #dbe5f4;
 }
 
 /* Sticky auf Mobile/Tablet */
@@ -1161,11 +1161,11 @@ input, textarea, select {
     top: calc(56px + env(safe-area-inset-top, 0px));
     z-index: 18;
     background: var(--card-solid);
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08), inset 0 0 0 1px rgba(255, 149, 0, 0.14);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08), inset 0 0 0 1px rgba(18, 28, 45, 0.08);
   }
 
   .dash-section[data-section="today"] .dash-section-header {
-    background: #fff3e3;
+    background: #f3f6fb;
   }
 }
 
