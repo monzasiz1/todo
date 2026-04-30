@@ -243,7 +243,36 @@ input, textarea, select {
     min-width: 0;
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 8px;
+  }
+
+  .cal-settings-trigger {
+    order: 2;
+    flex-basis: 100%;
+    width: 100%;
+    height: 32px;
+    border-radius: 8px;
+    justify-content: flex-start;
+    padding: 0 10px;
     gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--bg);
+    border: 1px solid var(--border) !important;
+  }
+
+  .cal-settings-trigger::after {
+    content: 'Kalendereinstellungen';
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .cal-settings-trigger.active {
+    color: var(--primary);
+    border-color: var(--primary) !important;
+    background: var(--primary-bg);
   }
 
   .cal-mp-trigger {
@@ -5444,7 +5473,8 @@ body.cal-is-dragging * {
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 6px;
+    flex-wrap: wrap;
+    gap: 6px 8px;
   }
 
   .cal-mp-trigger {
@@ -5458,6 +5488,35 @@ body.cal-is-dragging * {
     padding: 2px 0;
     flex: 1;
     min-width: 0;
+    order: 1;
+  }
+
+  .cal-settings-trigger {
+    order: 2;
+    flex-basis: 100%;
+    width: 100%;
+    height: 32px;
+    border-radius: 8px;
+    justify-content: flex-start;
+    padding: 0 10px;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--bg);
+    border: 1px solid var(--border) !important;
+  }
+
+  .cal-settings-trigger::after {
+    content: 'Kalendereinstellungen';
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .cal-settings-trigger.active {
+    color: var(--primary);
+    border-color: var(--primary) !important;
+    background: var(--primary-bg);
   }
 
   .cal-mp-trigger span {
