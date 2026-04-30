@@ -1,17 +1,16 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { memo, useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTaskStore } from '../store/taskStore';
 import { Check, Trash2, Clock, Calendar, CalendarCheck, GripVertical, Lock, Users, UserCheck, Repeat, Paperclip, Video, Circle } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
-import TaskDetailModal from './TaskDetailModal';
 import SharedTaskBadge from './SharedTaskBadge';
 import AvatarBadge from './AvatarBadge';
 
 function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = false }) {
+  const navigate = useNavigate();
   const { toggleTask, deleteTask } = useTaskStore();
-  const [showDetail, setShowDetail] = useState(false);
   const [nowTs, setNowTs] = useState(Date.now());
   const shouldAnimate = index < 10 && !disableLayout;
   const touchDragRef = useRef({
@@ -236,7 +235,7 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
       animate={shouldAnimate ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -100, height: 0, marginBottom: 0, padding: 0 }}
       transition={shouldAnimate ? { duration: 0.18, delay: index * 0.01 } : { duration: 0.01 }}
-      onClick={() => setShowDetail(true)}
+      onClick={() => navigate(`/app/tasks/${task.id}`)}
       style={{
         cursor: 'pointer',
         '--task-priority-color': priorityColors[task.priority] || priorityColors.medium,
@@ -449,11 +448,6 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
       )}
     </motion.div>
 
-    {/* Detail Modal — rendered via portal outside the card */}
-    {showDetail && createPortal(
-      <TaskDetailModal task={task} onClose={() => setShowDetail(false)} />,
-      document.body
-    )}
     </>
   );
 }

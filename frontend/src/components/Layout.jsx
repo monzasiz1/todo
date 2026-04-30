@@ -1,4 +1,4 @@
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import FeedbackToast from './FeedbackToast';
 import BottomNav from './BottomNav';
@@ -14,6 +14,7 @@ import { lockScroll, unlockScroll } from '../utils/scrollLock';
 
 export default function Layout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const isNotesRoute = location.pathname === '/app/notes';
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -100,7 +101,7 @@ export default function Layout() {
           <NotificationBell />
           <button
             className="gchat-mobile-trigger"
-            onClick={() => setChatOpen(true)}
+            onClick={() => navigate('/app/chat')}
             title="Gruppen-Chat"
           >
             <MessageCircle size={20} />
@@ -163,10 +164,10 @@ export default function Layout() {
       <GroupChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />
 
       {/* Group Chat FAB (desktop) */}
-      {!chatOpen && (
+      {location.pathname !== '/app/chat' && (
         <button
           className="gchat-fab"
-          onClick={() => setChatOpen(true)}
+          onClick={() => navigate('/app/chat')}
           title="Gruppen-Chat öffnen"
         >
           <MessageCircle size={22} />

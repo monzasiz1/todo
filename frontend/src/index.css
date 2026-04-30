@@ -22275,3 +22275,32 @@ body.cal-is-dragging * {
   color: var(--text);
   font-size: 14px;
 }
+
+/* ===== CHAT PAGE MODE ===== */
+
+/* Panel rendered as a full page — overrides fixed positioning */
+.gchat-panel.gchat-page-mode {
+  position: static;
+  width: 100%;
+  height: auto;
+  min-height: calc(100vh - 220px);
+  border-left: none;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  z-index: 1;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: var(--card-solid);
+}
+
+/* On mobile, page fills the content area */
+@media (max-width: 768px) {
+  .gchat-panel.gchat-page-mode {
+    border-radius: var(--radius-lg);
+    min-height: calc(100vh - 200px);
+  }
+  /* Remove the drag-handle pseudo-element in page mode */
+  .gchat-panel.gchat-page-mode .gchat-header::before {
+    display: none;
+  }
+}
