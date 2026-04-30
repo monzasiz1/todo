@@ -702,23 +702,29 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
         >
             {/* ── Header ── */}
             <div className="gchat-header">
-              <div className="gchat-header-row">
-                <div className="gchat-header-left">
-                  <div className="gchat-icon">
-                    <MessageCircle size={16} />
-                  </div>
-                  <span className="gchat-title">Gruppen-Chat</span>
-                </div>
-                {pageMode ? (
-                  <button className="gchat-close" onClick={() => navigate(-1)} title="Zurück">
-                    <ArrowLeft size={18} />
+              {pageMode ? (
+                <div className="gchat-header-row gchat-header-row--page">
+                  <button className="gchat-back-btn" onClick={() => navigate(-1)}>
+                    <ArrowLeft size={20} />
+                    <span>Zurück</span>
                   </button>
-                ) : (
+                  <div className="gchat-header-left">
+                    <div className="gchat-icon"><MessageCircle size={16} /></div>
+                    <span className="gchat-title">Gruppen-Chat</span>
+                  </div>
+                  <div className="gchat-header-spacer" />
+                </div>
+              ) : (
+                <div className="gchat-header-row">
+                  <div className="gchat-header-left">
+                    <div className="gchat-icon"><MessageCircle size={16} /></div>
+                    <span className="gchat-title">Gruppen-Chat</span>
+                  </div>
                   <button className="gchat-close" onClick={onClose}>
                     <X size={18} />
                   </button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
             {/* ── Group Selector ── */}

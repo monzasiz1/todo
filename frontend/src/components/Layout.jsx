@@ -140,8 +140,8 @@ export default function Layout() {
       {/* Scroll-Fade: verdunkelt Inhalte die unter die Nav laufen */}
       <div className="bottom-nav-scrim" />
 
-      {/* Bottom Navigation (mobile) */}
-      <BottomNav onAddClick={handleFabClick} />
+      {/* Bottom Navigation (mobile) — hidden on chat page */}
+      {location.pathname !== '/app/chat' && <BottomNav onAddClick={handleFabClick} />}
 
       {/* Universal Quick-Add — DayCreateModal für heute */}
       <AnimatePresence>

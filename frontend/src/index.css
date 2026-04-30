@@ -20624,6 +20624,7 @@ body.cal-is-dragging * {
   border-bottom: 1px solid var(--border);
   background: var(--card-solid);
   flex-shrink: 0;
+  position: relative;
 }
 /* Mobile: sheet drag handle + safe area */
 @media (max-width: 768px) {
@@ -22276,9 +22277,9 @@ body.cal-is-dragging * {
   font-size: 14px;
 }
 
-/* ===== CHAT PAGE MODE ===== */
+/* ===== CHAT PAGE MODE (Mobile/Tablet ≤ 1024px) ===== */
 
-/* Panel rendered as a full page — overrides fixed positioning */
+/* Desktop: rendered as a card in the content area */
 .gchat-panel.gchat-page-mode {
   position: static;
   width: 100%;
@@ -22293,14 +22294,76 @@ body.cal-is-dragging * {
   background: var(--card-solid);
 }
 
-/* On mobile, page fills the content area */
-@media (max-width: 768px) {
+/* Mobile/Tablet: fixed fullscreen layout, input pinned at bottom */
+@media (max-width: 1024px) {
   .gchat-panel.gchat-page-mode {
-    border-radius: var(--radius-lg);
-    min-height: calc(100vh - 200px);
+    position: fixed;
+    top: calc(56px + env(safe-area-inset-top, 0px));
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    border-radius: 0;
+    box-shadow: none;
+    z-index: 50;
+    overflow: hidden;
   }
-  /* Remove the drag-handle pseudo-element in page mode */
+  /* Remove drag-handle pseudo on page mode */
   .gchat-panel.gchat-page-mode .gchat-header::before {
     display: none;
+  }
+  /* Messages fill remaining height */
+  .gchat-panel.gchat-page-mode .gchat-messages {
+    flex: 1;
+    overflow-y: auto;
+  }
+  /* Input stays at bottom, no extra bottom padding for nav (nav is hidden) */
+  .gchat-panel.gchat-page-mode .gchat-input-row {
+    flex-shrink: 0;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+}
+
+/* Back button (page mode header) */
+.gchat-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px 6px 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--primary);
+  font-size: 15px;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.gchat-back-btn:hover { background: var(--hover-bg, rgba(0,122,255,0.08)); }
+
+/* Page mode header row: back left, title centered, spacer right */
+.gchat-header-row--page {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.gchat-header-row--page .gchat-header-left {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.gchat-header-spacer {
+  width: 80px; /* matches back-btn width to keep title centered */
+  flex-shrink: 0;
+}
+
+/* Hide bottom-nav scrim when chat page is open */
+@media (max-width: 1024px) {
+  html:has(.gchat-page-mode) .bottom-nav-scrim {
+    display: none !important;
   }
 }
