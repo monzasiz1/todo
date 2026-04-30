@@ -6487,11 +6487,11 @@ body.cal-is-dragging * {
 /* Applied via JS className on ≤1024px — portalled directly to document.body, no overlay parent */
 .is-mobile-fullscreen {
   position: fixed !important;
-  /* Respect notch at top, bottom nav at bottom */
+  /* Respect notch at top; cover the full app including bottom nav */
   top: env(safe-area-inset-top, 0px) !important;
   left: 0 !important;
   right: 0 !important;
-  bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important;
+  bottom: 0 !important;
   width: 100% !important;
   max-width: none !important;
   height: auto !important;
@@ -6505,6 +6505,7 @@ body.cal-is-dragging * {
   overflow-x: hidden !important;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* Sticky header inside the scroll container */
@@ -6513,7 +6514,7 @@ body.cal-is-dragging * {
   position: sticky;
   top: 0;
   z-index: 6;
-  padding-top: 14px;
+  padding-top: 0;
   background: var(--bg, #f2f2f7);
 }
 
