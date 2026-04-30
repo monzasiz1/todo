@@ -173,6 +173,31 @@ export default function LandingPage() {
               <span key={t}><Check size={13} strokeWidth={3} />{t}</span>
             ))}
           </motion.div>
+
+          <motion.div
+            className="bq-hero-video-wrap"
+            initial={{ opacity: 0, y: 26 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.62, delay: 0.48, ease }}
+          >
+            <div className="bq-hero-video-shine" aria-hidden />
+            <div className="bq-hero-video-card">
+              <div className="bq-hero-video-head">
+                <span className="bq-hero-video-badge">Produkt-Preview</span>
+                <span className="bq-hero-video-note">Live aus BeeQu</span>
+              </div>
+              <video
+                className="bq-hero-video"
+                src="/f_b_d_df_dmp_.mp4"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                controls
+              />
+            </div>
+          </motion.div>
         </motion.div>
 
         {/* ── floating app mock ── */}
