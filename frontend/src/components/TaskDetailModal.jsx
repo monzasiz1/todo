@@ -103,6 +103,17 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   }, []);
 
   useEffect(() => {
+    if (!isMobile || pageMode) return;
+    const stopBackgroundTouchWhilePulling = (e) => {
+      if (pullOffsetRef.current > 0 && e.cancelable) {
+        e.preventDefault();
+      }
+    };
+    document.addEventListener('touchmove', stopBackgroundTouchWhilePulling, { passive: false });
+    return () => document.removeEventListener('touchmove', stopBackgroundTouchWhilePulling);
+  }, [isMobile, pageMode]);
+
+  useEffect(() => {
     // Lock background scroll while modal is open (desktop + mobile overlay mode)
     // pageMode stays unlocked because it is rendered as normal page content.
     if (pageMode) return;
@@ -532,10 +543,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     return (
       <>
         {createPortal(
-          <>
-            <div className="task-detail-mobile-touch-blocker" aria-hidden="true" />
-            <AnimatePresence>{content}</AnimatePresence>
-          </>,
+          <AnimatePresence>{content}</AnimatePresence>,
           document.body
         )}
         {editPortal}

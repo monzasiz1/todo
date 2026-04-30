@@ -6506,16 +6506,26 @@ body.cal-is-dragging * {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 /* Sticky header inside the scroll container */
-.is-mobile-fullscreen .task-detail-header,
-.is-mobile-fullscreen .task-edit-header {
+.is-mobile-fullscreen .task-detail-header {
   position: sticky;
   top: 0;
   z-index: 6;
   padding-top: 0;
   background: var(--bg, #f2f2f7);
+}
+
+.is-mobile-fullscreen.task-edit-modal .task-edit-header {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  padding-top: max(20px, calc(env(safe-area-inset-top, 0px) + 10px)) !important;
+  background: var(--card-solid) !important;
 }
 
 .is-mobile-fullscreen .task-detail-priority-bar {
@@ -6534,16 +6544,6 @@ body.cal-is-dragging * {
   flex: none !important;
   min-height: unset !important;
   height: auto !important;
-}
-
-.task-detail-mobile-touch-blocker {
-  position: fixed;
-  inset: 0;
-  z-index: 10199;
-  background: transparent;
-  pointer-events: auto;
-  touch-action: none;
-  overscroll-behavior: none;
 }
 
 /* ===== MODALS / OVERLAYS ===== */
