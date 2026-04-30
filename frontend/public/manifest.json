@@ -1,7 +1,7 @@
 ﻿{
-  "name": "BeeQu – KI To-Do & Kalender",
+  "name": "BeeQu",
   "short_name": "BeeQu",
-  "description": "BeeQu: KI-gestützte To-Do-, Kalender- und Team-App mit Spracherkennung",
+  "description": "BeeQu",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F2F2F7",
