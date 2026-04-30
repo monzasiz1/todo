@@ -6533,7 +6533,7 @@ body.cal-is-dragging * {
 }
 
 .is-mobile-fullscreen .task-detail-header-actions {
-  top: 10px;
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
 }
 
 /* Kill nested scroll — the container above handles all scrolling */
@@ -15672,7 +15672,13 @@ body.cal-is-dragging * {
   }
 
   .is-mobile-fullscreen .task-detail-header .modal-pull-handle {
-    margin: 6px auto 2px;
+    margin: calc(env(safe-area-inset-top, 0px) + 8px) auto 6px;
+  }
+
+  /* DayCreateModal fullscreen on mobile */
+  .day-create-modal.day-create-fullscreen {
+    border-radius: 0 !important;
+    background: var(--card-solid) !important;
   }
 
   .day-create-header {

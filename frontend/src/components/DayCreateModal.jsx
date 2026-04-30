@@ -199,16 +199,9 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
     return () => window.removeEventListener('keydown', handleKey);
   }, [onClose]);
 
-  return createPortal(
-    <motion.div
-      className="modal-overlay day-create-overlay"
-      onClick={onClose}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-    >
+  const modalInner = (
       <motion.div
-        className="day-create-modal"
+        className={`day-create-modal${isMobile ? ' is-mobile-fullscreen day-create-fullscreen' : ''}`}
         onClick={(e) => e.stopPropagation()}
         initial={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.96, y: 16 }}
         animate={isMobile ? { y: pullOffset } : { opacity: 1, scale: 1, y: 0 }}
@@ -478,6 +471,22 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
           }}
         />
       )}
+    </motion.div>
+  );
+
+  if (isMobile) {
+    return createPortal(modalInner, portalTarget || document.body);
+  }
+
+  return createPortal(
+    <motion.div
+      className="modal-overlay day-create-overlay"
+      onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      {modalInner}
     </motion.div>,
     portalTarget || document.body
   );
