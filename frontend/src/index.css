@@ -1125,13 +1125,13 @@ input, textarea, select {
 /* ── Heute-Block: visuell dominant ── */
 .dash-section[data-section="today"] {
   border-color: rgba(255, 149, 0, 0.22);
-  background: linear-gradient(180deg, rgba(255, 149, 0, 0.07) 0%, rgba(255, 149, 0, 0.02) 40%, var(--card-solid) 100%);
+  background: var(--card-solid);
   box-shadow: 0 6px 20px rgba(255, 149, 0, 0.1), inset 0 0 0 1px rgba(255, 149, 0, 0.1);
 }
 
 .dash-section[data-section="today"] .dash-section-header {
   padding: 16px 16px 15px;
-  background: rgba(255, 255, 255, 0.3);
+  background: #fff7ec;
 }
 
 .dash-section[data-section="today"] .dash-section-icon {
@@ -1160,6 +1160,12 @@ input, textarea, select {
     position: sticky;
     top: calc(56px + env(safe-area-inset-top, 0px));
     z-index: 18;
+    background: var(--card-solid);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08), inset 0 0 0 1px rgba(255, 149, 0, 0.14);
+  }
+
+  .dash-section[data-section="today"] .dash-section-header {
+    background: #fff3e3;
   }
 }
 

@@ -360,6 +360,8 @@ export default function Dashboard() {
   const { tasks, fetchTasks, filter, setFilter } = useTaskStore();
   const { limit, atLimit } = usePlan();
   const scrollRafRef = useRef(null);
+  const scrollIdleTimerRef = useRef(null);
+  const isUserScrollingRef = useRef(false);
   const autoCollapsedTodayRef = useRef(false);
   const todayManualOverrideRef = useRef(false);
   const [showCompleted, setShowCompleted] = useState(false);
@@ -483,6 +485,11 @@ export default function Dashboard() {
         ? y > expandY
         : y > collapseY;
 
+      // Avoid visual ping-pong: expand only after scrolling settles.
+      if (!shouldCollapseToday && autoCollapsedTodayRef.current && isUserScrollingRef.current) {
+        return;
+      }
+
       if (autoCollapsedTodayRef.current !== shouldCollapseToday) {
         autoCollapsedTodayRef.current = shouldCollapseToday;
         setCollapsedSections((s) => (s.today === shouldCollapseToday ? s : { ...s, today: shouldCollapseToday }));
@@ -491,6 +498,12 @@ export default function Dashboard() {
 
     const onScroll = () => {
       if (scrollRafRef.current !== null) return;
+      isUserScrollingRef.current = true;
+      if (scrollIdleTimerRef.current) clearTimeout(scrollIdleTimerRef.current);
+      scrollIdleTimerRef.current = setTimeout(() => {
+        isUserScrollingRef.current = false;
+        syncTodayCollapseWithScroll();
+      }, 130);
       scrollRafRef.current = window.requestAnimationFrame(() => {
         scrollRafRef.current = null;
         syncTodayCollapseWithScroll();
@@ -506,6 +519,9 @@ export default function Dashboard() {
       window.removeEventListener('resize', syncTodayCollapseWithScroll);
       if (scrollRafRef.current !== null) {
         window.cancelAnimationFrame(scrollRafRef.current);
+      }
+      if (scrollIdleTimerRef.current) {
+        clearTimeout(scrollIdleTimerRef.current);
       }
     };
   }, []);
