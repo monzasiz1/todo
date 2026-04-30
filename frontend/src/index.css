@@ -6128,7 +6128,6 @@ body.cal-is-dragging * {
   }
 
   .task-detail-overlay .task-detail-modal {
-    /* position:fixed relativ zum Viewport — unabhängig vom Overlay-Layout */
     position: fixed !important;
     top: env(safe-area-inset-top, 0px) !important;
     left: 0 !important;
@@ -6143,7 +6142,9 @@ body.cal-is-dragging * {
     background: var(--bg, #f2f2f7) !important;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
 
   .task-detail-main,
@@ -6156,8 +6157,7 @@ body.cal-is-dragging * {
     position: sticky;
     top: 0;
     z-index: 6;
-    background: var(--card-solid);
-    /* top=0 weil das Modal selbst bereits ab safe-area-top beginnt */
+    background: var(--bg, #f2f2f7);
     padding-top: 14px;
     min-height: 56px;
   }
@@ -6520,19 +6520,21 @@ body.cal-is-dragging * {
   background: var(--bg, #f2f2f7) !important;
   /* Above BottomNav (z-index: 10100) */
   z-index: 10200 !important;
-  overflow: hidden;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   display: flex !important;
   flex-direction: column;
-  /* Container carries safe-area so footer never clips behind home indicator */
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
 }
 
 .is-mobile-fullscreen .task-detail-header,
 .is-mobile-fullscreen .task-edit-header {
   /* Only the header gets the notch offset — not the container too */
-  padding-top: env(safe-area-inset-top, 0px);
+  padding-top: 14px;
   flex-shrink: 0;
-  background: var(--card-solid);
+  background: var(--bg, #f2f2f7);
   position: sticky;
   top: 0;
   z-index: 6;

@@ -34,6 +34,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const [comments, setComments] = useState([]);
   const menuRef = useRef(null);
   const emojiPickerRef = useRef(null);
+  const swipeRef = useRef({ startX: 0, startY: 0, active: false });
   const [isMobile, setIsMobile] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1024px)').matches
   );
@@ -44,6 +45,20 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
   }, []);
+
+  // Swipe right or down to close on mobile
+  const handleTouchStart = (e) => {
+    if (!isMobile) return;
+    swipeRef.current = { startX: e.touches[0].clientX, startY: e.touches[0].clientY, active: true };
+  };
+  const handleTouchEnd = (e) => {
+    if (!isMobile || !swipeRef.current.active) return;
+    const dx = e.changedTouches[0].clientX - swipeRef.current.startX;
+    const dy = e.changedTouches[0].clientY - swipeRef.current.startY;
+    swipeRef.current.active = false;
+    if (dx > 80 && Math.abs(dy) < 60) { onClose(); return; }
+    if (dy > 100 && Math.abs(dx) < 80) { onClose(); return; }
+  };
 
   useEffect(() => {
     if (pageMode) return;
@@ -155,12 +170,14 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
 
   const content = (
     <motion.div
-      className={`task-detail-modal${pageMode ? ' task-detail-page-mode' : ''}${!pageMode && isMobile ? ' is-mobile-fullscreen' : ''}${!isEvent ? ' is-task-detail' : ''}`}
+      className={`task-detail-modal${pageMode ? ' task-detail-page-mode' : ''}${isMobile ? ' is-mobile-fullscreen' : ''}${!isEvent ? ' is-task-detail' : ''}`}
       initial={pageMode ? { opacity: 0, x: 30 } : (isMobile ? { x: '100%' } : { opacity: 0, y: 24 })}
       animate={pageMode ? { opacity: 1, x: 0 } : (isMobile ? { x: 0 } : { opacity: 1, y: 0 })}
       exit={pageMode ? {} : (isMobile ? { x: '100%' } : { opacity: 0, y: 16 })}
       transition={{ type: 'tween', duration: pageMode ? 0.22 : (isMobile ? 0.24 : 0.2), ease: 'easeOut' }}
       onClick={pageMode ? undefined : (e) => e.stopPropagation()}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
       <div className="task-detail-main">
         <div className="task-detail-header">
