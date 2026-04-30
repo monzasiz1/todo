@@ -7,7 +7,7 @@ import { useTaskStore } from '../store/taskStore';
 import { ChevronLeft, ChevronRight, ChevronDown, Maximize2, Minimize2, Video } from 'lucide-react';
 import DayCreateModal from './DayCreateModal';
 import AvatarBadge from './AvatarBadge';
-import { getGermanNationalHolidaysInRange } from '../utils/holidays';
+import { FEDERAL_STATES, getGermanHolidaysInRange } from '../utils/holidays';
 import {
   format,
   startOfMonth,
@@ -41,6 +41,7 @@ const MOBILE_BREAKPOINT = 768;
 const CALENDAR_DESKTOP_BREAKPOINT = 1180;
 const CALENDAR_WEEK_DEFAULT_BREAKPOINT = 1024;
 const HOLIDAY_COLOR = '#D92C2C';
+const CALENDAR_HOLIDAY_STATE_KEY = 'beequ_calendar_holiday_state';
 
 const minsToTime = (mins) => {
   const h = Math.floor(Math.max(0, mins) / 60);
@@ -236,6 +237,13 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const [showSidebarCategories, setShowSidebarCategories] = useState(true);
   const [isCalendarFullscreen, setIsCalendarFullscreen] = useState(false);
   const [pickerYear, setPickerYear] = useState(getYear(new Date()));
+  const [holidayStateCode, setHolidayStateCode] = useState(() => {
+    try {
+      return localStorage.getItem(CALENDAR_HOLIDAY_STATE_KEY) || '';
+    } catch {
+      return '';
+    }
+  });
   
   // â”€â”€ Debounced viewport state for tablet stability â”€â”€
   const [viewportState, setViewportState] = useState({
@@ -272,6 +280,14 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   useEffect(() => {
     tasksRef.current = tasks;
   }, [tasks]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CALENDAR_HOLIDAY_STATE_KEY, holidayStateCode);
+    } catch {
+      // Ignore storage write failures.
+    }
+  }, [holidayStateCode]);
 
   useEffect(() => {
     setVisibleSources((prev) => {
@@ -358,7 +374,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const holidaysByVisibleDate = useMemo(() => {
     const map = new Map();
 
-    getGermanNationalHolidaysInRange(visibleRange.start, visibleRange.end).forEach((holiday) => {
+    getGermanHolidaysInRange(visibleRange.start, visibleRange.end, holidayStateCode).forEach((holiday) => {
       const entry = {
         id: `holiday:${holiday.date}`,
         title: holiday.name,
@@ -375,7 +391,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     });
 
     return map;
-  }, [visibleRange.end, visibleRange.start]);
+  }, [holidayStateCode, visibleRange.end, visibleRange.start]);
 
   const calendarEntriesByVisibleDate = useMemo(() => {
     const map = new Map(tasksByVisibleDate);
@@ -639,6 +655,10 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     if (isHolidayEntry(task)) return;
     openTask(task);
   }, [openTask]);
+
+  const selectedHolidayStateLabel = useMemo(() => {
+    return FEDERAL_STATES.find((state) => state.code === holidayStateCode)?.label || 'Nur bundesweit';
+  }, [holidayStateCode]);
 
   const triggerDropFeedback = (taskId, msg = 'Termin verschoben') => {
     setDropFeedback({ id: taskId, msg });
@@ -2061,6 +2081,27 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                 {format(new Date(2024, i, 1), 'MMM', { locale: de })}
               </button>
             ))}
+          </div>
+          <div className="cal-settings-block">
+            <div className="cal-settings-head">
+              <strong>Kalendereinstellungen</strong>
+              <span>Feiertage nach Bundesland anzeigen</span>
+            </div>
+            <label className="cal-settings-field">
+              <span>Bundesland</span>
+              <select
+                value={holidayStateCode}
+                onChange={(e) => setHolidayStateCode(e.target.value)}
+                aria-label="Bundesland fuer Feiertage"
+              >
+                {FEDERAL_STATES.map((state) => (
+                  <option key={state.code || 'national'} value={state.code}>{state.label}</option>
+                ))}
+              </select>
+            </label>
+            <p className="cal-settings-hint">
+              Aktiv: {selectedHolidayStateLabel}. Bundesweite Feiertage bleiben immer sichtbar.
+            </p>
           </div>
         </div>
       </div>
