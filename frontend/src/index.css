@@ -15057,41 +15057,68 @@ body.cal-is-dragging * {
   padding: 12px 16px 16px;
 }
 
-/* ── Drag handle (mobile only) ── */
+/* ── Drag handle — desktop hidden, mobile shown ── */
 .day-create-drag-handle {
   display: none;
 }
 
-/* ── Bottom-Sheet on mobile ── */
+/* ── Bottom-Sheet on mobile/tablet ── */
 @media (max-width: 768px) {
-  /* Overlay aligns to bottom for sheet effect */
+  /* Overlay: sheet sticks to bottom, backdrop above bottom-nav */
   .day-create-overlay {
     align-items: flex-end !important;
     padding: 0 !important;
+    /* Backdrop fades out below the sheet area */
+    background: rgba(0, 0, 0, 0.45) !important;
   }
 
   .day-create-modal {
     width: 100%;
     max-width: 100%;
-    max-height: 92dvh;
+    /* Full height from just below notch to bottom of viewport */
+    max-height: calc(100dvh - env(safe-area-inset-top, 44px) - 8px);
     border-radius: 20px 20px 0 0;
     overflow-y: auto;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.18), 0 -1px 0 rgba(0, 0, 0, 0.06);
+    /* Bottom padding: bottom-nav height + safe area so content isn't hidden */
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 16px));
   }
 
+  /* Fade the last visible content into the bottom nav area */
+  .day-create-modal::after {
+    content: '';
+    position: sticky;
+    bottom: 0;
+    display: block;
+    height: 48px;
+    margin-top: -48px;
+    background: linear-gradient(to top, var(--card-solid) 20%, transparent);
+    pointer-events: none;
+    flex-shrink: 0;
+  }
+
+  /* Drag handle with notch-aware top margin */
   .day-create-drag-handle {
     display: block;
-    width: 36px;
-    height: 4px;
+    width: 40px;
+    height: 5px;
     background: var(--border-strong);
-    border-radius: 2px;
-    margin: 10px auto 0;
+    border-radius: 3px;
+    /* Push below notch when sheet is full-height */
+    margin: max(12px, calc(env(safe-area-inset-top, 0px) + 8px)) auto 0;
     flex-shrink: 0;
   }
 
   .day-create-header {
-    padding: 14px 18px 12px;
+    padding: 12px 18px 14px;
     border-radius: 0;
+    /* Header stays visible at top when scrolling */
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--card-solid);
   }
 
   .day-create-tasks {
@@ -15099,15 +15126,15 @@ body.cal-is-dragging * {
   }
 
   .day-create-actions {
-    padding: 14px 16px 20px;
+    padding: 14px 16px 8px;
   }
 
   .day-create-form-section {
-    padding: 12px 16px 24px;
+    padding: 12px 16px 16px;
   }
 
   .day-create-action-btn {
-    padding: 14px 16px;
+    padding: 15px 16px;
     gap: 14px;
   }
 }

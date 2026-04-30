@@ -102,7 +102,7 @@ export const useAuthStore = create((set) => ({
     set({ user: null, token: null });
     const isPwa = window.matchMedia('(display-mode: standalone)').matches
       || window.navigator.standalone === true;
-    window.location.href = isPwa ? '/login' : '/';
+    window.location.href = isPwa ? '/app/login' : '/';
   },
 
   setUser: (user) => {

@@ -39,7 +39,7 @@ export default function Register() {
             gesendet. Klicke auf den Link in der Mail,<br />
             um dein Konto zu aktivieren.
           </p>
-          <Link to="/login" className="bq-btn bq-primary bq-btn-lg">
+          <Link to="/app/login" className="bq-btn bq-primary bq-btn-lg">
             Zum Login
           </Link>
           <span className="bq-verify-hint">Kein Mail? Prüfe deinen Spam-Ordner.</span>
@@ -150,7 +150,7 @@ export default function Register() {
 
           <div className="bq-auth-switch">
             <span>Bereits ein Konto?</span>
-            <Link to="/login">Anmelden</Link>
+            <Link to="/app/login">Anmelden</Link>
           </div>
         </motion.div>
       </div>

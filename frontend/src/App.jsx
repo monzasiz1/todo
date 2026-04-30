@@ -19,7 +19,7 @@ import OfflineBanner from './components/OfflineBanner';
 
 function ProtectedRoute({ children }) {
   const { token } = useAuthStore();
-  if (!token) return <Navigate to="/login" replace />;
+  if (!token) return <Navigate to="/app/login" replace />;
   return children;
 }
 
@@ -36,7 +36,7 @@ function StandaloneRedirector() {
   React.useEffect(() => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
     if (isStandalone && location.pathname === '/') {
-      navigate('/login', { replace: true });
+      navigate('/app/login', { replace: true });
     }
   }, [location, navigate]);
   return null;
@@ -52,7 +52,8 @@ export default function App() {
         {/* Root zeigt LandingPage */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/landing" element={<LandingPage />} />
-        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/app/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/login" element={<Navigate to="/app/login" replace />} />
         <Route path="/confirm-password-change" element={<PasswordChangeConfirmed />} />
         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
         <Route
