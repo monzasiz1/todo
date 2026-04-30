@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import TaskDetailModal from './TaskDetailModal';
 import { useOpenTask } from '../hooks/useOpenTask';
 import { useTaskStore } from '../store/taskStore';
+import { api } from '../utils/api';
 import { ChevronLeft, ChevronRight, ChevronDown, Maximize2, Minimize2, Video, Settings } from 'lucide-react';
 import DayCreateModal from './DayCreateModal';
 import AvatarBadge from './AvatarBadge';
@@ -253,6 +254,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       return DEFAULT_HOLIDAY_COLOR;
     }
   });
+  const [holidayColorProfileLoaded, setHolidayColorProfileLoaded] = useState(false);
+  const lastSyncedHolidayColorRef = useRef(null);
   const setHolidayColor = useCallback((color) => {
     setHolidayColorState(color);
     try { localStorage.setItem(CALENDAR_HOLIDAY_COLOR_KEY, color); } catch { /* ignore */ }
@@ -301,6 +304,72 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       // Ignore storage write failures.
     }
   }, [holidayStateCode]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    api.getProfile()
+      .then((res) => {
+        if (cancelled) return;
+        const remoteColor = res?.user?.calendar_holiday_color;
+        if (/^#[0-9A-Fa-f]{6}$/.test(remoteColor)) {
+          setHolidayColorState(remoteColor);
+          lastSyncedHolidayColorRef.current = remoteColor;
+          try {
+            localStorage.setItem(CALENDAR_HOLIDAY_COLOR_KEY, remoteColor);
+          } catch {
+            // Ignore storage write failures.
+          }
+          return;
+        }
+        lastSyncedHolidayColorRef.current = holidayColor;
+      })
+      .catch(() => {
+        if (cancelled) return;
+        lastSyncedHolidayColorRef.current = holidayColor;
+      })
+      .finally(() => {
+        if (!cancelled) setHolidayColorProfileLoaded(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!holidayColorProfileLoaded) return;
+    if (!/^#[0-9A-Fa-f]{6}$/.test(holidayColor)) return;
+    if (holidayColor === lastSyncedHolidayColorRef.current) return;
+
+    const timeoutId = window.setTimeout(() => {
+      api.updateProfile({ calendar_holiday_color: holidayColor })
+        .then((res) => {
+          lastSyncedHolidayColorRef.current = holidayColor;
+
+          if (res?.user) {
+            try {
+              localStorage.setItem('user', JSON.stringify(res.user));
+            } catch {
+              // Ignore storage write failures.
+            }
+          }
+          if (res?.token) {
+            try {
+              localStorage.setItem('token', res.token);
+              window.dispatchEvent(new Event('beequ:token-updated'));
+            } catch {
+              // Ignore storage write failures.
+            }
+          }
+        })
+        .catch(() => {
+          // Keep local fallback even if the server sync fails.
+        });
+    }, 250);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [holidayColor, holidayColorProfileLoaded]);
 
   useEffect(() => {
     setVisibleSources((prev) => {
