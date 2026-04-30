@@ -472,7 +472,8 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
           }}
         />
       )}
-
+    </>
+  );
 
   if (isMobile) {
     return createPortal(modalInner, portalTarget || document.body);
