@@ -6191,6 +6191,12 @@ body.cal-is-dragging * {
     height: 36px;
   }
 
+  .task-edit-close,
+  .day-create-close {
+    width: 36px;
+    height: 36px;
+  }
+
   /* Drag handle hidden on mobile */
   .task-card .task-drag-handle--corner {
     display: none;
@@ -8977,14 +8983,20 @@ body.cal-is-dragging * {
 .task-edit-close {
   width: 32px;
   height: 32px;
-  border-radius: 10px;
+  border-radius: 50%;
   border: none;
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--bg);
   color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: var(--transition);
+}
+
+.task-edit-close:hover {
+  background: var(--border-strong);
+  color: var(--text);
 }
 
 .task-edit-body {
@@ -9071,9 +9083,17 @@ body.cal-is-dragging * {
   width: 32px;
   height: 32px;
   border-radius: 8px;
+.task-edit-close,
+  .day-create-close {
+    width: 36px;
+    height: 36px;
+  }
   border: none;
   background: rgba(255, 59, 48, 0.1);
   color: var(--danger);
+.is-mobile-fullscreen.task-edit-modal > .modal-pull-handle {
+    margin: calc(env(safe-area-inset-top, 0px) + 8px) auto 6px;
+  }
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -15112,11 +15132,11 @@ body.cal-is-dragging * {
 }
 
 .day-create-close {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   border: none;
-  background: var(--hover);
+  background: var(--bg);
   color: var(--text-secondary);
   display: flex;
   align-items: center;
@@ -15672,6 +15692,10 @@ body.cal-is-dragging * {
   }
 
   .is-mobile-fullscreen .task-detail-header .modal-pull-handle {
+    margin: calc(env(safe-area-inset-top, 0px) + 8px) auto 6px;
+  }
+
+  .is-mobile-fullscreen.task-edit-modal > .modal-pull-handle {
     margin: calc(env(safe-area-inset-top, 0px) + 8px) auto 6px;
   }
 

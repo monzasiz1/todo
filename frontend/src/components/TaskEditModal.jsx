@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { lockScroll, unlockScroll } from '../utils/scrollLock';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../store/taskStore';
@@ -49,6 +49,11 @@ function parseVirtualTaskId(taskId) {
 export default function TaskEditModal({ task, onClose, onSaved }) {
   const { updateTask, fetchTasks, categories, fetchCategories, addToast } = useTaskStore();
   const { friends, fetchFriends } = useFriendsStore();
+  const swipeRef = useRef({ startY: 0, active: false });
+  const pullRafRef = useRef(null);
+  const pullNextRef = useRef(0);
+  const pullOffsetRef = useRef(0);
+  const [pullOffset, setPullOffset] = useState(0);
   const [isMobile, setIsMobile] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1024px)').matches
   );
@@ -61,6 +66,62 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
     const handler = (e) => setIsMobile(e.matches);
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  const queuePullOffset = (next) => {
+    pullNextRef.current = next;
+    if (pullRafRef.current !== null) return;
+    pullRafRef.current = window.requestAnimationFrame(() => {
+      pullRafRef.current = null;
+      setPullOffset((prev) => (prev === pullNextRef.current ? prev : pullNextRef.current));
+    });
+  };
+
+  const handleTouchStart = (e) => {
+    if (!isMobile) return;
+    swipeRef.current = { startY: e.touches[0].clientY, active: true };
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isMobile || !swipeRef.current.active) return;
+    const dy = e.touches[0].clientY - swipeRef.current.startY;
+    if (dy <= 0 || e.currentTarget.scrollTop > 0) {
+      if (pullOffsetRef.current !== 0) {
+        pullOffsetRef.current = 0;
+        queuePullOffset(0);
+      }
+      return;
+    }
+    if (e.cancelable) e.preventDefault();
+    const maxPull = Math.max(420, (typeof window !== 'undefined' ? window.innerHeight : 800) - 28);
+    const resisted = Math.min(dy * 0.95, maxPull);
+    pullOffsetRef.current = resisted;
+    queuePullOffset(resisted);
+  };
+
+  const handleTouchEnd = (e) => {
+    if (!isMobile || !swipeRef.current.active) return;
+    const dy = e.changedTouches[0].clientY - swipeRef.current.startY;
+    swipeRef.current.active = false;
+    const shouldClose = dy > 120 && e.currentTarget.scrollTop <= 0;
+    pullOffsetRef.current = 0;
+    queuePullOffset(0);
+    if (shouldClose) onClose();
+  };
+
+  useEffect(() => {
+    if (!isMobile) return;
+    const stopBackgroundTouchWhilePulling = (e) => {
+      if (pullOffsetRef.current > 0 && e.cancelable) e.preventDefault();
+    };
+    document.addEventListener('touchmove', stopBackgroundTouchWhilePulling, { passive: false });
+    return () => document.removeEventListener('touchmove', stopBackgroundTouchWhilePulling);
+  }, [isMobile]);
+
+  useEffect(() => {
+    return () => {
+      if (pullRafRef.current !== null) window.cancelAnimationFrame(pullRafRef.current);
+    };
   }, []);
   const seriesTaskId = virtualTask ? virtualTask.parentId : (task.recurrence_parent_id || task.id);
 
@@ -362,10 +423,15 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
       <motion.div
         className={`task-edit-modal${isMobile ? ' is-mobile-fullscreen' : ''}`}
         initial={isMobile ? { y: '100%' } : { opacity: 0, y: 60, scale: 0.95 }}
-        animate={isMobile ? { y: 0 } : { opacity: 1, y: 0, scale: 1 }}
+        animate={isMobile ? { y: pullOffset } : { opacity: 1, y: 0, scale: 1 }}
         exit={isMobile ? { y: '100%' } : { opacity: 0, y: 40, scale: 0.95 }}
-        transition={{ type: 'spring', damping: 28, stiffness: 350 }}
+        transition={isMobile
+          ? { type: 'tween', duration: pullOffset > 0 ? 0 : 0.16, ease: 'easeOut' }
+          : { type: 'spring', damping: 28, stiffness: 350 }}
         onClick={(e) => e.stopPropagation()}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         {isMobile && <div className="modal-pull-handle" />}
         {/* Header */}
