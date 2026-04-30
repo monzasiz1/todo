@@ -166,7 +166,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
         <div className="task-detail-header">
           {pageMode && (
             <button className="task-detail-back-btn" onClick={onClose}>
-              <ArrowLeft size={16} /> Zurück
+              <ArrowLeft size={18} />
             </button>
           )}
           <div className="task-detail-priority-bar" style={{ background: priority.color }} />

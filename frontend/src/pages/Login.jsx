@@ -3,7 +3,7 @@ import '../styles/auth.css';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertCircle, ArrowRight, Key, Mail, ShieldCheck } from 'lucide-react';
+import { AlertCircle, ArrowLeft, ArrowRight, Key, Mail, ShieldCheck } from 'lucide-react';
 
 const ease = [0.25, 0.46, 0.45, 0.94];
 
@@ -121,7 +121,7 @@ export default function Login() {
                   </div>
                   <button type="button" className="bq-auth-back-btn"
                     onClick={() => { setStep('credentials'); setTfaCode(''); clearError(); }}>
-                    ← Zurück
+                    <ArrowLeft size={18} />
                   </button>
                 </motion.div>
               )}

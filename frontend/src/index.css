@@ -4504,19 +4504,20 @@ body.cal-is-dragging * {
 .pricing-back-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: 999px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 600;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(0, 122, 255, 0.08);
+  border: none;
+  color: var(--primary, #007AFF);
   cursor: pointer;
   margin-bottom: 12px;
   transition: background 0.15s;
+  padding: 0;
+  flex-shrink: 0;
 }
-.pricing-back-btn:hover { background: var(--border); color: var(--text); }
+.pricing-back-btn:hover { background: rgba(0, 122, 255, 0.15); }
 
 .pricing-annual-toggle {
   display: flex;
@@ -11991,20 +11992,22 @@ body.cal-is-dragging * {
   margin-bottom: 20px;
 }
 .group-back-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
   border: none;
-  background: var(--surface);
+  background: rgba(0, 122, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: var(--text-primary);
-  transition: background 0.2s;
+  color: var(--primary, #007AFF);
+  transition: background 0.15s;
+  padding: 0;
+  flex-shrink: 0;
 }
 .group-back-btn:hover {
-  background: var(--hover);
+  background: rgba(0, 122, 255, 0.15);
 }
 .group-sub-header h2,
 .group-sub-header h3 {
@@ -18734,18 +18737,21 @@ body.cal-is-dragging * {
 
 /* ── Login 2FA back button ── */
 .bq-auth-back-btn {
-  background: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(0, 122, 255, 0.08);
   border: none;
-  color: var(--bq-muted, #8E8E93);
-  font-size: 0.88rem;
-  font-weight: 600;
+  color: var(--primary, #007AFF);
   cursor: pointer;
+  transition: background 0.15s;
   padding: 0;
-  text-align: left;
-  transition: color 0.18s;
-  font-family: inherit;
+  flex-shrink: 0;
 }
-.bq-auth-back-btn:hover { color: var(--bq-text, #1C1C1E); }
+.bq-auth-back-btn:hover { background: rgba(0, 122, 255, 0.15); }
 
 /* ── Profile 2FA panel ── */
 .profile-2fa-panel {
@@ -22952,20 +22958,21 @@ body.cal-is-dragging * {
   top: 12px;
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 6px 10px 6px 6px;
-  background: none;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(0, 122, 255, 0.08);
   border: none;
   cursor: pointer;
-  color: var(--primary);
-  font-size: 15px;
-  font-weight: 500;
-  border-radius: var(--radius-md);
+  color: var(--primary, #007AFF);
   transition: background 0.15s;
+  padding: 0;
+  flex-shrink: 0;
   z-index: 3;
 }
 .task-detail-back-btn:hover {
-  background: var(--hover-bg, rgba(0,122,255,0.08));
+  background: rgba(0, 122, 255, 0.15);
 }
 
 /* Page mode: remove size/overflow constraints */
@@ -23093,19 +23100,19 @@ body.cal-is-dragging * {
 .gchat-back-btn {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 6px 10px 6px 6px;
-  background: none;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(0, 122, 255, 0.08);
   border: none;
   cursor: pointer;
-  color: var(--primary);
-  font-size: 15px;
-  font-weight: 500;
-  border-radius: var(--radius-md);
-  flex-shrink: 0;
+  color: var(--primary, #007AFF);
   transition: background 0.15s;
+  padding: 0;
+  flex-shrink: 0;
 }
-.gchat-back-btn:hover { background: var(--hover-bg, rgba(0,122,255,0.08)); }
+.gchat-back-btn:hover { background: rgba(0, 122, 255, 0.15); }
 
 /* Page mode header row: back left, title centered, spacer right */
 .gchat-header-row--page {

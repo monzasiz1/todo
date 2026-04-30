@@ -2426,17 +2426,21 @@
 }
 
 .note-editor-back-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 122, 255, 0.08);
+  color: var(--primary, #007AFF);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
+  cursor: pointer;
+  transition: background 0.15s;
+  padding: 0;
 }
+.note-editor-back-btn:hover { background: rgba(0, 122, 255, 0.15); }
 
 .note-editor-title {
   margin: 0;

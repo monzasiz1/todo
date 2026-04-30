@@ -707,8 +707,7 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
               {pageMode ? (
                 <div className="gchat-header-row gchat-header-row--page">
                   <button className="gchat-back-btn" onClick={() => navigate(-1)}>
-                    <ArrowLeft size={20} />
-                    <span>Zurück</span>
+                    <ArrowLeft size={18} />
                   </button>
                   <div className="gchat-header-left">
                     <div className="gchat-icon"><MessageCircle size={16} /></div>

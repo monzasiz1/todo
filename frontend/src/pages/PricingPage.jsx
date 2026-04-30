@@ -175,8 +175,7 @@ export default function PricingPage() {
         transition={{ duration: 0.35 }}
       >
         <button className="pricing-back-btn" onClick={() => navigate(-1)}>
-          <ArrowLeft size={16} />
-          Zurück
+          <ArrowLeft size={18} />
         </button>
         <h2>Pläne &amp; Preise</h2>
         <p>Wähle den passenden Plan für deine Anforderungen.</p>
