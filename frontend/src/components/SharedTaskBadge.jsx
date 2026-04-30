@@ -33,7 +33,7 @@ export default function SharedTaskBadge({ task }) {
   return (
     <div className="shared-task-badge">
       {showSelectionCluster ? (
-        <div className="shared-selection-cluster" title="Ausgewählte Personen und Ersteller">
+        <div className={`shared-selection-cluster ${!is_owner && creator_name ? 'with-creator' : ''}`} title="Ausgewählte Personen und Ersteller">
           <span className={`visibility-badge ${visibility} in-cluster`}>
             {getVisibilityIcon()}
             {getVisibilityLabel()}
