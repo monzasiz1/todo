@@ -34,7 +34,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const [comments, setComments] = useState([]);
   const menuRef = useRef(null);
   const emojiPickerRef = useRef(null);
-  const swipeRef = useRef({ startX: 0, startY: 0, active: false });
+  const swipeRef = useRef({ startY: 0, active: false });
   const [isMobile, setIsMobile] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1024px)').matches
   );
@@ -46,20 +46,17 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     return () => mq.removeEventListener('change', handler);
   }, []);
 
-  // Swipe right or down to close on mobile
+  // Swipe down to close on mobile
   const handleTouchStart = (e) => {
     if (!isMobile) return;
-    swipeRef.current = { startX: e.touches[0].clientX, startY: e.touches[0].clientY, active: true };
+    swipeRef.current = { startY: e.touches[0].clientY, active: true };
   };
   const handleTouchEnd = (e) => {
     if (!isMobile || !swipeRef.current.active) return;
-    const dx = e.changedTouches[0].clientX - swipeRef.current.startX;
     const dy = e.changedTouches[0].clientY - swipeRef.current.startY;
     swipeRef.current.active = false;
-    // Right swipe: always close (doesn't conflict with scroll)
-    if (dx > 80 && Math.abs(dy) < 60) { onClose(); return; }
     // Down swipe: only close when already scrolled to top
-    if (dy > 100 && Math.abs(dx) < 80 && e.currentTarget.scrollTop <= 0) { onClose(); return; }
+    if (dy > 100 && e.currentTarget.scrollTop <= 0) { onClose(); return; }
   };
 
   useEffect(() => {
@@ -174,9 +171,9 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const content = (
     <motion.div
       className={`task-detail-modal${pageMode ? ' task-detail-page-mode' : ''}${isMobile ? ' is-mobile-fullscreen' : ''}${!isEvent ? ' is-task-detail' : ''}`}
-      initial={isMobile ? { x: '100%' } : (pageMode ? { opacity: 0, x: 30 } : { opacity: 0, y: 24 })}
-      animate={isMobile ? { x: 0 } : (pageMode ? { opacity: 1, x: 0 } : { opacity: 1, y: 0 })}
-      exit={isMobile ? { x: '100%' } : (pageMode ? {} : { opacity: 0, y: 16 })}
+      initial={isMobile ? { y: '100%' } : (pageMode ? { opacity: 0, x: 30 } : { opacity: 0, y: 24 })}
+      animate={isMobile ? { y: 0 } : (pageMode ? { opacity: 1, x: 0 } : { opacity: 1, y: 0 })}
+      exit={isMobile ? { y: '100%' } : (pageMode ? {} : { opacity: 0, y: 16 })}
       transition={{ type: 'tween', duration: isMobile ? 0.26 : (pageMode ? 0.22 : 0.2), ease: 'easeOut' }}
       onClick={(!pageMode && !isMobile) ? (e) => e.stopPropagation() : undefined}
       onTouchStart={handleTouchStart}
