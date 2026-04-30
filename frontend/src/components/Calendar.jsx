@@ -7,6 +7,7 @@ import { useTaskStore } from '../store/taskStore';
 import { ChevronLeft, ChevronRight, ChevronDown, Maximize2, Minimize2, Video } from 'lucide-react';
 import DayCreateModal from './DayCreateModal';
 import AvatarBadge from './AvatarBadge';
+import { getGermanNationalHolidaysInRange } from '../utils/holidays';
 import {
   format,
   startOfMonth,
@@ -39,6 +40,7 @@ const WK_H     = 64;   // px per hour
 const MOBILE_BREAKPOINT = 768;
 const CALENDAR_DESKTOP_BREAKPOINT = 1180;
 const CALENDAR_WEEK_DEFAULT_BREAKPOINT = 1024;
+const HOLIDAY_COLOR = '#D92C2C';
 
 const minsToTime = (mins) => {
   const h = Math.floor(Math.max(0, mins) / 60);
@@ -94,6 +96,8 @@ const isAllDayTask = (task) => {
   if (task.all_day === true) return true;
   return !String(task.time || '').trim();
 };
+
+const isHolidayEntry = (task) => task?.isHoliday === true;
 
 const buildOverlapLaneMap = (tasks, getRange) => {
   const normalized = (Array.isArray(tasks) ? tasks : [])
@@ -351,6 +355,39 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     return map;
   }, [filteredTasks, visibleRange]);
 
+  const holidaysByVisibleDate = useMemo(() => {
+    const map = new Map();
+
+    getGermanNationalHolidaysInRange(visibleRange.start, visibleRange.end).forEach((holiday) => {
+      const entry = {
+        id: `holiday:${holiday.date}`,
+        title: holiday.name,
+        date: holiday.date,
+        isHoliday: true,
+        all_day: true,
+        completed: false,
+        category_color: HOLIDAY_COLOR,
+        category_name: 'Feiertag',
+      };
+
+      if (!map.has(holiday.date)) map.set(holiday.date, []);
+      map.get(holiday.date).push(entry);
+    });
+
+    return map;
+  }, [visibleRange.end, visibleRange.start]);
+
+  const calendarEntriesByVisibleDate = useMemo(() => {
+    const map = new Map(tasksByVisibleDate);
+
+    holidaysByVisibleDate.forEach((holidayEntries, dayKey) => {
+      const existingEntries = map.get(dayKey) || [];
+      map.set(dayKey, [...holidayEntries, ...existingEntries]);
+    });
+
+    return map;
+  }, [holidaysByVisibleDate, tasksByVisibleDate]);
+
   const monthViewData = useMemo(() => {
     if (view !== 'month') return null;
 
@@ -417,7 +454,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       const dayKey = format(d, 'yyyy-MM-dd');
       const weekIndex = Math.floor(dayGlobalIdx / 7);
       const weekLayout = weekLayouts[weekIndex];
-      const decoratedDayTasks = (tasksByVisibleDate.get(dayKey) || [])
+      const decoratedDayTasks = (calendarEntriesByVisibleDate.get(dayKey) || [])
         .map((t, originalIdx) => ({
           t,
           originalIdx,
@@ -433,7 +470,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     });
 
     return { days, weekLayouts, decoratedTasksByDay };
-  }, [view, currentDate, filteredTasks, tasksByVisibleDate]);
+  }, [view, currentDate, filteredTasks, calendarEntriesByVisibleDate]);
 
   // -- Debounced visible range notification --
   // Debounce prevents rapid-fire fetches when tapping through days/weeks fast on tablet
@@ -595,8 +632,13 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   // â”€â”€ Optimized getTasksForDate with memoization â”€â”€
   const getTasksForDate = useCallback((date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    return tasksByVisibleDate.get(dateStr) || [];
-  }, [tasksByVisibleDate]);
+    return calendarEntriesByVisibleDate.get(dateStr) || [];
+  }, [calendarEntriesByVisibleDate]);
+
+  const openCalendarEntry = useCallback((task) => {
+    if (isHolidayEntry(task)) return;
+    openTask(task);
+  }, [openTask]);
 
   const triggerDropFeedback = (taskId, msg = 'Termin verschoben') => {
     setDropFeedback({ id: taskId, msg });
@@ -1088,13 +1130,14 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
           const decoratedDayTasks = decoratedTasksByDay.get(dayKey) || [];
           const isCurrentMonth = isSameMonth(d, currentDate);
           const isSelected = selectedDate && isSameDay(d, selectedDate);
+          const isHoliday = holidaysByVisibleDate.has(dayKey);
           const maxVisiblePerCell = viewportState.isDesktop ? 4 : 2;
 
           return (
             <div
               key={d.toISOString()}
               data-caldate={format(d, 'yyyy-MM-dd')}
-              className={`calendar-day ${!isCurrentMonth ? 'other-month' : ''} ${isToday(d) ? 'today' : ''} ${isSelected ? 'selected' : ''}`}
+              className={`calendar-day ${!isCurrentMonth ? 'other-month' : ''} ${isToday(d) ? 'today' : ''} ${isSelected ? 'selected' : ''} ${isHoliday ? 'holiday' : ''}`}
               onClick={() => handleDayClick(d)}
             >
               <span className="calendar-day-number">{format(d, 'd')}</span>
@@ -1102,6 +1145,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                 <div className="calendar-day-tasks">
                   {decoratedDayTasks.slice(0, maxVisiblePerCell).map(({ t, seg }, renderIdx) => {
                     const ended = isEventEnded(t, nowTs);
+                    const isHolidayTask = isHolidayEntry(t);
                     const categoryAccent = t.category_color || t.group_category_color;
                     const accentColor = ended
                       ? 'rgba(142,142,147,0.6)'
@@ -1125,17 +1169,17 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                     return (
                       <div
                         key={t.id}
-                        className={`calendar-day-task ${multiClass} ${t.completed ? 'completed' : ''} ${t.group_id ? 'group-task' : ''} ${ended ? 'ended-event' : ''} ${dragInfo?.task.id === t.id ? 'cal-dragging' : ''}`}
+                        className={`calendar-day-task ${multiClass} ${t.completed ? 'completed' : ''} ${t.group_id ? 'group-task' : ''} ${ended ? 'ended-event' : ''} ${isHolidayTask ? 'holiday-entry' : ''} ${dragInfo?.task.id === t.id ? 'cal-dragging' : ''}`}
                         style={isMobile ? {
                           visibility: isHiddenSegment ? 'hidden' : 'visible',
                           pointerEvents: isHiddenSegment ? 'none' : 'auto',
                           gridRow: slotOrder + 1,
                           width: spanWidth,
                           maxWidth: spanWidth ? 'none' : '100%',
-                          background: accentColor,
+                          background: isHolidayTask ? HOLIDAY_COLOR : accentColor,
                           color: ended ? '#999' : '#fff',
                           borderLeft: 'none',
-                          cursor: 'pointer',
+                          cursor: isHolidayTask ? 'default' : 'pointer',
                           userSelect: 'none',
                           zIndex: spanWidth ? 4 : undefined,
                         } : {
@@ -1144,15 +1188,15 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                           gridRow: slotOrder + 1,
                           width: spanWidth,
                           maxWidth: spanWidth ? 'none' : '100%',
-                          background: ended ? 'rgba(142,142,147,0.12)' : categoryAccent ? `${categoryAccent}20` : t.group_id ? `${t.group_color || '#5856D6'}15` : 'var(--primary-bg)',
-                          color: ended ? '#59606B' : categoryAccent || (t.group_id ? (t.group_color || '#5856D6') : 'var(--primary)'),
-                          borderLeft: showBorderLeft ? `2px solid ${ended ? 'rgba(142,142,147,0.55)' : accentColor}` : 'none',
-                          cursor: viewportState.isDesktop && !ended ? 'grab' : 'pointer',
+                          background: isHolidayTask ? 'rgba(217,44,44,0.12)' : ended ? 'rgba(142,142,147,0.12)' : categoryAccent ? `${categoryAccent}20` : t.group_id ? `${t.group_color || '#5856D6'}15` : 'var(--primary-bg)',
+                          color: isHolidayTask ? HOLIDAY_COLOR : ended ? '#59606B' : categoryAccent || (t.group_id ? (t.group_color || '#5856D6') : 'var(--primary)'),
+                          borderLeft: showBorderLeft ? `2px solid ${isHolidayTask ? HOLIDAY_COLOR : (ended ? 'rgba(142,142,147,0.55)' : accentColor)}` : 'none',
+                          cursor: isHolidayTask ? 'default' : (viewportState.isDesktop && !ended ? 'grab' : 'pointer'),
                           userSelect: 'none',
                           zIndex: spanWidth ? 4 : undefined,
                         }}
-                        onPointerDown={viewportState.isDesktop && !ended ? (e) => handlePointerDown(e, t) : undefined}
-                        onClick={(e) => { e.stopPropagation(); if (!wasDragging.current) openTask(t); }}
+                        onPointerDown={viewportState.isDesktop && !ended && !isHolidayTask ? (e) => handlePointerDown(e, t) : undefined}
+                        onClick={(e) => { e.stopPropagation(); if (!wasDragging.current) openCalendarEntry(t); }}
                       >
                         {!isMobile && t.group_id && (
                           <AvatarBadge name={t.group_name} color={t.group_color || '#5856D6'} avatarUrl={t.group_image_url} size={10} />
@@ -1304,7 +1348,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         key={t.id}
                         className={`desktop-week-all-day-event ${spanClass}${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${t.completed ? ' completed' : ''}`}
                         style={{ background: doneOrOld ? 'rgba(142,142,147,0.4)' : (t.category_color || t.group_category_color || t.group_color || '#4C7BD9') }}
-                        onClick={(e) => { e.stopPropagation(); openTask(t); }}
+                        onClick={(e) => { e.stopPropagation(); openCalendarEntry(t); }}
                       >
                         {showLabel && t.teams_join_url && <Video size={11} className="calendar-inline-teams-icon" />}
                         {showLabel && <span className={doneOrOld ? 'cal-allday-strike' : ''}>{t.title}</span>}
@@ -1441,13 +1485,13 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         touchAction: 'none',
                       }}
                       onPointerDown={(e) => {
-                        if (doneOrEnded) return;
+                        if (doneOrEnded || isHolidayEntry(t)) return;
                         if (e.target.closest('.cal-resize-handle') || e.target.closest('.cal-date-extend-handle')) return;
                         handlePointerDown(e, t);
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (!wasDragging.current) openTask(t);
+                        if (!wasDragging.current) openCalendarEntry(t);
                       }}
                     >
                       {t.teams_join_url && <Video size={12} className="calendar-event-teams-icon" />}
@@ -1559,7 +1603,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                           key={`mwadt-${t.id}`}
                           className={`mobile-week-allday-pill ${spanClass}${doneOrOld ? ' done' : ''}`}
                           style={{ background: doneOrOld ? 'rgba(142,142,147,0.35)' : (t.category_color || t.group_category_color || t.group_color || '#4C7BD9') }}
-                          onClick={(e) => { e.stopPropagation(); openTask(t); }}
+                          onClick={(e) => { e.stopPropagation(); openCalendarEntry(t); }}
                         >
                           {showLabel && <span>{t.title}</span>}
                         </div>
@@ -1651,11 +1695,11 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                           touchAction: 'none',
                         }}
                         onPointerDown={(e) => {
-                          if (doneOrEnded) return;
+                          if (doneOrEnded || isHolidayEntry(t)) return;
                           if (e.target.closest('.cal-resize-handle')) return;
                           handleMobileWeekEventPointerDown(e, t, di, days);
                         }}
-                        onClick={(e) => { e.stopPropagation(); if (!wasDragging.current) openTask(t); }}
+                        onClick={(e) => { e.stopPropagation(); if (!wasDragging.current) openCalendarEntry(t); }}
                       >
                           {t.teams_join_url && <Video size={11} className="calendar-event-teams-icon mobile" />}
                         {!ended && (
@@ -1755,7 +1799,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   key={`adtop-${t.id}`}
                   className={`mobile-day-allday-chip${doneOrOld ? ' done' : ''}`}
                   style={{ background: color }}
-                  onClick={(e) => { e.stopPropagation(); openTask(t); }}
+                  onClick={(e) => { e.stopPropagation(); openCalendarEntry(t); }}
                 >
                   {t.group_id && (
                     <AvatarBadge name={t.group_name} color={t.group_color || '#5856D6'} avatarUrl={t.group_image_url} size={12} />
@@ -1829,16 +1873,16 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   height: `${height}px`,
                   background: mobileEventBg,
                   touchAction: 'none',
-                  cursor: doneOrEnded ? 'pointer' : 'grab',
+                  cursor: isHolidayEntry(t) ? 'default' : (doneOrEnded ? 'pointer' : 'grab'),
                 }}
                 onPointerDown={(e) => {
-                  if (doneOrEnded) return;
+                  if (doneOrEnded || isHolidayEntry(t)) return;
                   if (e.target.closest('.cal-resize-handle')) return;
                   handleMobileEventPointerDown(e, t, mobileDayRef.current, hourHeight, startHour);
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (!wasDragging.current) openTask(t);
+                  if (!wasDragging.current) openCalendarEntry(t);
                 }}
               >
                 {t.teams_join_url && <Video size={11} className="calendar-event-teams-icon mobile" />}

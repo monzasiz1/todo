@@ -38,6 +38,10 @@ function isEventEnded(task) {
   return !!end && end.getTime() < Date.now();
 }
 
+function isHolidayEntry(task) {
+  return task?.isHoliday === true;
+}
+
 export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, portalTarget }) {
   const navigate = useNavigate();
   const [mode, setMode] = useState(null); // null | 'ai' | 'manual'
@@ -114,6 +118,7 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
   };
 
   const handleTaskClick = (task) => {
+    if (isHolidayEntry(task)) return;
     if (isDesktopBP()) {
       setDetailTask(task);
     } else {
@@ -175,19 +180,22 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
             {localTasks.map((task) => (
               (() => {
                 const endedEvent = isEventEnded(task);
+                const holidayEntry = isHolidayEntry(task);
                 const catColor = task.group_category_color || task.category_color;
                 const accentColor = catColor || (task.group_id ? (task.group_color || '#5856D6') : null);
                 const catName = task.group_category_name || task.category;
                 return (
               <div
                 key={task.id}
-                className={`day-create-task-item ${task.completed ? 'completed' : ''} ${endedEvent ? 'ended-event' : ''}`}
+                className={`day-create-task-item ${task.completed ? 'completed' : ''} ${endedEvent ? 'ended-event' : ''} ${holidayEntry ? 'holiday-entry' : ''}`}
                 style={{
-                  borderLeft: `3px solid ${endedEvent ? 'rgba(142,142,147,0.28)' : (accentColor || 'var(--primary)')}`,
-                  background: endedEvent
+                  borderLeft: `3px solid ${holidayEntry ? '#D92C2C' : (endedEvent ? 'rgba(142,142,147,0.28)' : (accentColor || 'var(--primary)'))}`,
+                  background: holidayEntry
+                    ? 'rgba(217,44,44,0.08)'
+                    : endedEvent
                     ? 'rgba(142, 142, 147, 0.10)'
                     : accentColor ? `${accentColor}12` : 'var(--hover)',
-                  cursor: 'pointer',
+                  cursor: holidayEntry ? 'default' : 'pointer',
                 }}
                 onClick={() => handleTaskClick(task)}
               >
@@ -207,6 +215,7 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
                     <span className={`day-create-task-title ${task.completed ? 'completed' : ''}`}>
                       {task.title}
                     </span>
+                    {holidayEntry && <span className="day-create-task-status">Feiertag</span>}
                     {task.teams_join_url && (
                       <span className="day-create-task-chip teams">
                         <Video size={11} /> Teams
@@ -214,7 +223,7 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
                     )}
                     {endedEvent && <span className="day-create-task-status">Beendet</span>}
                   </div>
-                  {catName && !endedEvent && (
+                  {catName && !endedEvent && !holidayEntry && (
                     <div className="day-create-task-cat">
                       <span
                         className="day-create-task-cat-dot"

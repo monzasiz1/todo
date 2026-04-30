@@ -2583,6 +2583,22 @@ input, textarea, select {
   box-shadow: 0 2px 8px rgba(0,122,255,0.35);
 }
 
+.calendar-day.holiday {
+  background: linear-gradient(180deg, rgba(217,44,44,0.03), rgba(217,44,44,0));
+}
+
+.calendar-day.holiday .calendar-day-number {
+  color: #D92C2C;
+  background: rgba(217,44,44,0.08);
+  box-shadow: inset 0 0 0 1px rgba(217,44,44,0.12);
+}
+
+.calendar-day.today.holiday .calendar-day-number {
+  background: #D92C2C;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(217,44,44,0.28);
+}
+
 .calendar-day.selected {
   background: rgba(0, 122, 255, 0.05);
 }
@@ -2658,6 +2674,14 @@ input, textarea, select {
 .calendar-day-task.completed {
   opacity: 0.4;
   text-decoration: line-through;
+}
+
+.calendar-day-task.holiday-entry {
+  font-weight: 700;
+}
+
+.calendar-day-task.holiday-entry:hover {
+  filter: none;
 }
 
 /* ── Multi-day spanning events in month view ── */
@@ -14620,6 +14644,14 @@ body.cal-is-dragging * {
   opacity: 0.5;
 }
 
+.day-create-task-item.holiday-entry:hover {
+  filter: none;
+}
+
+.day-create-task-item.holiday-entry:active {
+  transform: none;
+}
+
 .day-create-task-info {
   display: flex;
   flex-direction: column;
@@ -15073,13 +15105,13 @@ body.cal-is-dragging * {
   .day-create-modal {
     width: 100%;
     max-width: 100%;
-    /* Full viewport — drag handle inside provides notch spacing */
+    /* Fill full viewport height — content sits at top, empty space below */
+    height: 100dvh;
     max-height: 100dvh;
     border-radius: 20px 20px 0 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    /* Single upward shadow lifts sheet above the backdrop */
     box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.14);
     /* Clears bottom-nav (72px) + iPhone home indicator */
     padding-bottom: calc(72px + env(safe-area-inset-bottom, 16px));
