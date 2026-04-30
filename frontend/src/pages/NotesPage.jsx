@@ -2824,6 +2824,16 @@ export default function NotesPage() {
     }
   }, [editingNote]);
 
+  // Memoize which view should be active to avoid re-computation on every render
+  const activeView = useMemo(() => {
+    if (!isMobileView) return 'desktop';
+    return mobileViewMode === 'canvas' ? 'canvas' : 'grid';
+  }, [isMobileView, mobileViewMode]);
+
+  // Compute whether canvas should render (performance optimization)
+  const shouldRenderCanvas = activeView === 'desktop' || activeView === 'canvas';
+  const shouldRenderGrid = activeView === 'grid';
+
   const renderConnection = (connection, index) => {
     const firstId = connection?.note_id_1 || connection?.noteId1;
     const secondId = connection?.note_id_2 || connection?.noteId2;
@@ -2953,7 +2963,7 @@ export default function NotesPage() {
       </div>
 
       {/* ── Mobile Grid View ────────────────────────────────────────── */}
-      {isMobileView && mobileViewMode === 'grid' && (() => {
+      {shouldRenderGrid && (() => {
         const q = mobileSearch.toLowerCase();
         const filtered = notes.filter((n) => {
           if (mobileFilter !== 'all' && n.importance !== mobileFilter) return false;
@@ -3124,7 +3134,7 @@ export default function NotesPage() {
       })()}
 
       {/* ── Canvas / Desktop Workspace ───────────────────────────────── */}
-      {(!isMobileView || mobileViewMode === 'canvas') && (
+      {shouldRenderCanvas && (
       <div className="notes-workspace">
         <aside className={`notes-toolbox ${toolboxOpen ? 'open' : ''}`}>
           <div className="toolbox-header">

@@ -324,6 +324,14 @@
   display: flex;
   position: relative;
   gap: 12px;
+  /* Mobile: Stack vertically, one view at a time */
+  flex-direction: column;
+}
+
+@media (min-width: 1025px) {
+  .notes-workspace {
+    flex-direction: row;
+  }
 }
 
 .notes-toolbox {
@@ -524,6 +532,7 @@
   min-width: 0;
   min-height: 0;
   width: 100%;
+  contain: layout style;
 }
 
 .notes-context-panel {
@@ -910,6 +919,7 @@
   background: var(--glass);
   border: 1px solid var(--glass-border);
   box-shadow: var(--shadow-lg);
+  contain: layout style;
 }
 
 .notes-canvas.selection-armed {
