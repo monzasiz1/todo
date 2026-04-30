@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FixedSizeList as VirtualList } from 'react-window';
 import { useTaskStore } from '../store/taskStore';
@@ -359,6 +359,8 @@ function TaskRow({ index, style, data }) {
 export default function Dashboard() {
   const { tasks, fetchTasks, filter, setFilter } = useTaskStore();
   const { limit, atLimit } = usePlan();
+  const scrollRafRef = useRef(null);
+  const autoCollapsedTodayRef = useRef(false);
   const [showCompleted, setShowCompleted] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState({ today: false, week: true, later: true, past_events: true });
   const [groupVisibleCounts, setGroupVisibleCounts] = useState({});
@@ -457,21 +459,42 @@ export default function Dashboard() {
     const syncTodayCollapseWithScroll = () => {
       const isSmallScreen = window.innerWidth <= 1024;
       if (!isSmallScreen) {
+        autoCollapsedTodayRef.current = false;
         setCollapsedSections((s) => (s.today ? { ...s, today: false } : s));
         return;
       }
 
-      const shouldCollapseToday = window.scrollY > 16;
-      setCollapsedSections((s) => (s.today === shouldCollapseToday ? s : { ...s, today: shouldCollapseToday }));
+      const collapseY = getTodayCollapseThreshold();
+      const expandY = Math.max(12, collapseY - 18);
+      const y = window.scrollY;
+      const shouldCollapseToday = autoCollapsedTodayRef.current
+        ? y > expandY
+        : y > collapseY;
+
+      if (autoCollapsedTodayRef.current !== shouldCollapseToday) {
+        autoCollapsedTodayRef.current = shouldCollapseToday;
+        setCollapsedSections((s) => (s.today === shouldCollapseToday ? s : { ...s, today: shouldCollapseToday }));
+      }
+    };
+
+    const onScroll = () => {
+      if (scrollRafRef.current !== null) return;
+      scrollRafRef.current = window.requestAnimationFrame(() => {
+        scrollRafRef.current = null;
+        syncTodayCollapseWithScroll();
+      });
     };
 
     syncTodayCollapseWithScroll();
-    window.addEventListener('scroll', syncTodayCollapseWithScroll, { passive: true });
+    window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', syncTodayCollapseWithScroll);
 
     return () => {
-      window.removeEventListener('scroll', syncTodayCollapseWithScroll);
+      window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', syncTodayCollapseWithScroll);
+      if (scrollRafRef.current !== null) {
+        window.cancelAnimationFrame(scrollRafRef.current);
+      }
     };
   }, []);
 
@@ -590,8 +613,14 @@ export default function Dashboard() {
   const greetingHour = new Date().getHours();
   const greeting = greetingHour < 12 ? 'Guten Morgen' : greetingHour < 18 ? 'Guten Tag' : 'Guten Abend';
 
+  const getTodayCollapseThreshold = () => {
+    const mobileHeader = document.querySelector('.mobile-header');
+    const headerHeight = mobileHeader?.getBoundingClientRect().height || 56;
+    return Math.max(56, Math.round(headerHeight));
+  };
+
   const toggleSection = (key) => {
-    if (key === 'today' && window.innerWidth <= 1024 && window.scrollY > 16) {
+    if (key === 'today' && window.innerWidth <= 1024 && window.scrollY > getTodayCollapseThreshold()) {
       return;
     }
     setCollapsedSections((s) => ({ ...s, [key]: !s[key] }));
