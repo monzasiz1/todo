@@ -18825,19 +18825,32 @@ body.cal-is-dragging * {
   inset: 0;
   z-index: 200;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(460px, 1fr) minmax(460px, 560px);
+  gap: 28px;
+  padding: 24px;
+  align-items: stretch;
+  background: rgba(3, 6, 17, 0.52);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 /* ── Left: branded dark panel ── */
 .bq-auth-brand {
-  background: #06060A;
-  padding: 56px 64px;
+  background:
+    radial-gradient(circle at 14% 18%, rgba(0,122,255,0.22) 0%, transparent 45%),
+    radial-gradient(circle at 88% 84%, rgba(88,86,214,0.16) 0%, transparent 42%),
+    #070910;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: clamp(34px, 4vw, 56px);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 26px;
   position: relative;
   overflow: hidden;
   z-index: 1;
+  box-shadow: 0 26px 68px rgba(0, 0, 0, 0.42);
 }
 
 /* Blue glow */
@@ -18846,8 +18859,7 @@ body.cal-is-dragging * {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 80% 60% at 20% 20%, rgba(0,122,255,0.22) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 80% 80%, rgba(88,86,214,0.14) 0%, transparent 60%);
+    linear-gradient(145deg, rgba(255,255,255,0.06), rgba(255,255,255,0));
   pointer-events: none;
 }
 
@@ -18857,19 +18869,34 @@ body.cal-is-dragging * {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(255,255,255,0.028) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.028) 1px, transparent 1px);
-  background-size: 56px 56px;
+    linear-gradient(rgba(255,255,255,0.032) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.032) 1px, transparent 1px);
+  background-size: 48px 48px;
   pointer-events: none;
-  mask-image: radial-gradient(ellipse 100% 100% at 30% 30%, black 0%, transparent 75%);
-  -webkit-mask-image: radial-gradient(ellipse 100% 100% at 30% 30%, black 0%, transparent 75%);
+  mask-image: radial-gradient(ellipse 98% 95% at 25% 25%, black 0%, transparent 72%);
+  -webkit-mask-image: radial-gradient(ellipse 98% 95% at 25% 25%, black 0%, transparent 72%);
 }
 
 .bq-auth-brand-top {
   display: grid;
-  gap: 32px;
+  gap: 18px;
   position: relative;
   z-index: 1;
+}
+
+.bq-auth-kicker {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .bq-auth-logo {
@@ -18889,26 +18916,56 @@ body.cal-is-dragging * {
 }
 
 .bq-auth-brand-headline {
-  font-size: clamp(2rem, 3.2vw, 3rem);
+  font-size: clamp(2.1rem, 3.5vw, 3.2rem);
   font-weight: 900;
-  letter-spacing: -0.055em;
-  line-height: 1.05;
+  letter-spacing: -0.06em;
+  line-height: 0.98;
   color: #fff;
   white-space: pre-line;
 }
 
 .bq-auth-brand-sub {
   font-size: 1rem;
-  color: rgba(255,255,255,0.45);
-  line-height: 1.65;
-  max-width: 380px;
+  color: rgba(255,255,255,0.62);
+  line-height: 1.7;
+  max-width: 470px;
+}
+
+.bq-auth-brand-metrics {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.bq-auth-metric {
+  display: grid;
+  gap: 5px;
+  padding: 12px 13px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.bq-auth-metric strong {
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.bq-auth-metric span {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.74rem;
+  line-height: 1.4;
 }
 
 /* feature list on brand panel */
 .bq-auth-features {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   position: relative;
   z-index: 1;
 }
@@ -18917,6 +18974,10 @@ body.cal-is-dragging * {
   display: flex;
   align-items: center;
   gap: 14px;
+  padding: 11px 12px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .bq-auth-feature-icon {
@@ -18930,9 +18991,9 @@ body.cal-is-dragging * {
 
 .bq-auth-feature > span {
   font-size: 0.92rem;
-  color: rgba(255,255,255,0.62);
+  color: rgba(255,255,255,0.72);
   font-weight: 500;
-  line-height: 1.45;
+  line-height: 1.42;
 }
 
 .bq-auth-brand-footer {
@@ -18940,10 +19001,11 @@ body.cal-is-dragging * {
   align-items: center;
   gap: 10px;
   font-size: 0.78rem;
-  color: rgba(255,255,255,0.22);
+  color: rgba(255,255,255,0.3);
   position: relative;
   z-index: 1;
   flex-wrap: wrap;
+  margin-top: auto;
 }
 
 .bq-auth-brand-footer a {
@@ -18971,7 +19033,8 @@ body.cal-is-dragging * {
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 32px 80px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.06);
   width: 100%;
-  max-width: 480px;
+  max-width: 560px;
+  justify-self: center;
 }
 
 .bq-auth-close {
@@ -19416,6 +19479,9 @@ body.cal-is-dragging * {
   /* overlay (modal) */
   .bq-auth-overlay {
     grid-template-columns: 1fr;
+    gap: 0;
+    padding: 0;
+    background: rgba(4, 8, 24, 0.8);
   }
 
   .bq-auth-overlay .bq-auth-brand {
@@ -19438,6 +19504,10 @@ body.cal-is-dragging * {
   .bq-auth-form-panel {
     padding: 72px 20px 36px;
     align-items: flex-start;
+  }
+
+  .bq-auth-brand-metrics {
+    grid-template-columns: 1fr;
   }
 
   .bq-auth-form-inner {

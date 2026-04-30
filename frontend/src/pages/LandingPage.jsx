@@ -594,33 +594,35 @@ export default function LandingPage() {
               exit={{ opacity: 0, x: -32 }}
               transition={{ duration: 0.38, ease }}
             >
-                <div className="bq-auth-brand-top">
-                  <div className="bq-auth-logo">
-                    <img src="/icons/icon.png" alt="BeeQu" />
-                    <span>BeeQu</span>
-                  </div>
-                  <h2 className="bq-auth-brand-headline">
-                    {showRegister ? 'Kostenlos starten.\nIn 30 Sekunden.' : 'Willkommen zurück.'}
-                  </h2>
-                  <p className="bq-auth-brand-sub">
-                    {showRegister
-                      ? 'Tasks, Kalender und KI-Assistent — alles in einer App von BeeTwice.'
-                      : 'BeeQu hält deine Aufgaben, deinen Kalender und dein Team in Sync.'}
-                  </p>
-                </div>
               <div className="bq-auth-brand-top">
                 <div className="bq-auth-logo">
                   <img src="/icons/icon.png" alt="BeeQu" />
                   <span>BeeQu</span>
                 </div>
+                <span className="bq-auth-kicker">
+                  {showRegister ? 'Produktiv ab dem ersten Tag' : 'Dein Fokus startet hier'}
+                </span>
                 <h2 className="bq-auth-brand-headline">
                   {showRegister ? 'Kostenlos starten.\nIn 30 Sekunden.' : 'Willkommen zurück.'}
                 </h2>
                 <p className="bq-auth-brand-sub">
                   {showRegister
-                    ? 'Tasks, Kalender und KI-Assistent — alles in einer App von BeeTwice.'
-                    : 'BeeQu hält deine Aufgaben, deinen Kalender und dein Team in Sync.'}
+                    ? 'Tasks, Kalender, Notizen und Team-Kommunikation in einem klaren Workspace von BeeTwice.'
+                    : 'BeeQu hält Aufgaben, Kalender und Team-Kommunikation in einem Flow zusammen.'}
                 </p>
+              </div>
+
+              <div className="bq-auth-brand-metrics">
+                {[
+                  { value: '1 App', label: 'für Tasks, Kalender und Team' },
+                  { value: '60 Sek.', label: 'bis zur ersten geplanten Aufgabe' },
+                  { value: 'Live', label: 'Sync über alle Geräte' },
+                ].map(({ value, label }) => (
+                  <div key={label} className="bq-auth-metric">
+                    <strong>{value}</strong>
+                    <span>{label}</span>
+                  </div>
+                ))}
               </div>
 
               <div className="bq-auth-features">
@@ -850,36 +852,4 @@ export default function LandingPage() {
         </AnimatePresence>
       </div>
     );
-  }
-
-  const handleLogin = async (e) => {
-    e.preventDefault(); setLoginError('');
-    try {
-      const ok = await login(loginEmail, loginPassword);
-      // Token-Check: Nur weiterleiten, wenn wirklich eingeloggt
-      if (ok === true || (ok && ok.token)) {
-        navigate('/app');
-      } else {
-        setLoginError('Login fehlgeschlagen');
-      }
-    } catch (err) {
-      setLoginError(err.message || 'Login fehlgeschlagen');
-    }
-  };
-
-
-
-  const handleRegister = async (e) => {
-    e.preventDefault(); setRegisterError('');
-    try {
-      const res = await register(registerName, registerEmail, registerPassword);
-      if (res && res.success) {
-        setPendingEmail(registerEmail);
-      } else {
-        setRegisterError('Registrierung fehlgeschlagen');
-      }
-    } catch (err) {
-      setRegisterError(err.message || 'Registrierung fehlgeschlagen');
-  
-
-    }  };
+}
