@@ -6140,6 +6140,8 @@ body.cal-is-dragging * {
     height: auto !important;
     max-height: none !important;
     border-radius: 0 !important;
+    box-shadow: none !important;
+    background: var(--bg, #f2f2f7) !important;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -6155,7 +6157,7 @@ body.cal-is-dragging * {
     position: sticky;
     top: 0;
     z-index: 6;
-    background: var(--card-solid);
+    background: var(--bg);
     /* top=0 weil das Modal selbst bereits ab safe-area-top beginnt */
     padding-top: 14px;
     min-height: 56px;
@@ -10053,6 +10055,8 @@ body.cal-is-dragging * {
     height: auto !important;
     max-height: none !important;
     border-radius: 0 !important;
+    box-shadow: none !important;
+    background: var(--bg, #f2f2f7) !important;
     display: flex;
     flex-direction: column;
     overflow: hidden;
