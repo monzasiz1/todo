@@ -1,11 +1,10 @@
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTaskStore } from '../store/taskStore';
-import { lockScroll, unlockScroll } from '../utils/scrollLock';
 import { api } from '../utils/api';
 import {
-  X, ArrowLeft, Calendar, CalendarCheck, Clock, Tag, Flag, CheckCircle2, Circle,
+  ArrowLeft, Calendar, CalendarCheck, Clock, Tag, Flag, CheckCircle2, Circle,
   Trash2, AlertTriangle, Repeat, Bell, FileText, ListChecks,
   Users, UserCheck, Eye, Edit3, Share2, MoreVertical, MessageCircle, Send, Video
 } from 'lucide-react';
@@ -22,7 +21,7 @@ const priorityConfig = {
   urgent: { label: 'Dringend', color: 'var(--danger)', icon: AlertTriangle },
 };
 
-export default function TaskDetailModal({ task, onClose, onUpdated, portalTarget, pageMode }) {
+export default function TaskDetailModal({ task, onClose, onUpdated }) {
   const { toggleTask, deleteTask, fetchTasks, addToast } = useTaskStore();
   const [showEdit, setShowEdit] = useState(false);
   const [sharingToChat, setSharingToChat] = useState(false);
@@ -32,16 +31,6 @@ export default function TaskDetailModal({ task, onClose, onUpdated, portalTarget
   const [comments, setComments] = useState([]);
   const menuRef = useRef(null);
   const emojiPickerRef = useRef(null);
-  const [isMobile, setIsMobile] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
-  );
-
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 768px)');
-    const handler = (e) => setIsMobile(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
 
   const currentUser = useMemo(() => {
     try {
@@ -86,30 +75,10 @@ export default function TaskDetailModal({ task, onClose, onUpdated, portalTarget
   const isEventEnded = isEvent && !!eventEndAt && eventEndAt.getTime() < Date.now();
 
   useEffect(() => {
-    if (pageMode) return;
-    lockScroll();
-    return () => unlockScroll();
-  }, [pageMode]);
-
-  useEffect(() => {
-    if (!task?.id) {
-      setComments([]);
-      return;
-    }
-
-    const loadComments = async () => {
-      try {
-        const response = await api.getComments(task.id);
-        if (response.comments && Array.isArray(response.comments)) {
-          setComments(response.comments);
-        }
-      } catch (err) {
-        console.error('Failed to load comments:', err);
-        // Fall back to empty list
-        setComments([]);
-      }
-    };
-    loadComments();
+    if (!task?.id) { setComments([]); return; }
+    api.getComments(task.id)
+      .then((res) => { if (res.comments && Array.isArray(res.comments)) setComments(res.comments); })
+      .catch(() => setComments([]));
   }, [task?.id]);
 
   useEffect(() => {
@@ -119,9 +88,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, portalTarget
       setShowMenu(false);
       setShowEmojiPicker(false);
     };
-    if (showMenu || showEmojiPicker) {
-      document.addEventListener('mousedown', onClickOutside);
-    }
+    if (showMenu || showEmojiPicker) document.addEventListener('mousedown', onClickOutside);
     return () => document.removeEventListener('mousedown', onClickOutside);
   }, [showMenu, showEmojiPicker]);
 
@@ -140,33 +107,23 @@ export default function TaskDetailModal({ task, onClose, onUpdated, portalTarget
   const handleAddComment = async () => {
     const text = commentText.trim();
     if (!text) return;
-
-    // Optimistic UI update
-    const optimisticEntry = {
+    const optimistic = {
       id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-      emoji: '💬',
-      text,
+      emoji: '💬', text,
       author: currentUser?.name || 'Du',
       created_at: new Date().toISOString(),
       user_id: currentUser?.id || null,
     };
-
     setCommentText('');
-    setComments([...comments, optimisticEntry]);
-
+    setComments((prev) => [...prev, optimistic]);
     try {
-      const response = await api.addComment(task.id, '💬', text);
-      if (response.comment) {
-        // Replace optimistic entry with server response
-        setComments((prev) =>
-          prev.map((c) => (c.id === optimisticEntry.id ? response.comment : c))
-        );
+      const res = await api.addComment(task.id, '💬', text);
+      if (res.comment) {
+        setComments((prev) => prev.map((c) => (c.id === optimistic.id ? res.comment : c)));
         addToast('✅ Kommentar hinzugefügt');
       }
-    } catch (err) {
-      console.error('Failed to add comment:', err);
-      // Remove optimistic entry on failure
-      setComments((prev) => prev.filter((c) => c.id !== optimisticEntry.id));
+    } catch {
+      setComments((prev) => prev.filter((c) => c.id !== optimistic.id));
       addToast('❌ Kommentar konnte nicht gespeichert werden');
     }
   };
@@ -184,67 +141,38 @@ export default function TaskDetailModal({ task, onClose, onUpdated, portalTarget
     }
   };
 
-  const innerContent = (
-        <motion.div
-          className={`task-detail-modal${pageMode ? ' task-detail-page-mode' : ''}${!pageMode && isMobile ? ' is-mobile-fullscreen' : ''}${!isEvent ? ' is-task-detail' : ''}`}
-          initial={pageMode ? { opacity: 0, x: 30 } : (isMobile ? { x: '100%' } : { opacity: 0, y: 24 })}
-          animate={pageMode ? { opacity: 1, x: 0 } : (isMobile ? { x: 0 } : { opacity: 1, y: 0 })}
-          exit={pageMode ? { opacity: 0, x: 30 } : (isMobile ? { x: '100%' } : { opacity: 0, y: 16 })}
-          transition={{ type: 'tween', duration: pageMode ? 0.22 : (isMobile ? 0.24 : 0.2), ease: 'easeOut' }}
-          onClick={pageMode ? undefined : (e) => e.stopPropagation()}
-        >
-          {/* ── Linke Spalte (Desktop: details) ── */}
-          <div className="task-detail-main">
-          {/* Header */}
+  return (
+    <>
+      <motion.div
+        className={`task-detail-modal task-detail-page-mode${!isEvent ? ' is-task-detail' : ''}`}
+        initial={{ opacity: 0, x: 30 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ type: 'tween', duration: 0.22, ease: 'easeOut' }}
+      >
+        {/* ── Linke Spalte ── */}
+        <div className="task-detail-main">
           <div className="task-detail-header">
-            {pageMode && (
-              <button className="task-detail-back-btn" onClick={onClose}>
-                <ArrowLeft size={16} /> Zurück
-              </button>
-            )}
-            <div
-              className="task-detail-priority-bar"
-              style={{ background: priority.color }}
-            />
+            <button className="task-detail-back-btn" onClick={onClose}>
+              <ArrowLeft size={16} /> Zurück
+            </button>
+            <div className="task-detail-priority-bar" style={{ background: priority.color }} />
             <div className="task-detail-header-actions" ref={menuRef}>
-              <button
-                className="task-detail-more-btn"
-                onClick={() => setShowMenu((s) => !s)}
-                title="Mehr"
-                aria-label="Mehr"
-              >
+              <button className="task-detail-more-btn" onClick={() => setShowMenu((s) => !s)} title="Mehr" aria-label="Mehr">
                 <MoreVertical size={18} />
               </button>
               {showMenu && (
                 <div className="task-detail-more-menu">
                   {canEdit && (
-                    <button
-                      className="task-detail-more-item"
-                      onClick={() => {
-                        setShowMenu(false);
-                        setShowEdit(true);
-                      }}
-                    >
+                    <button className="task-detail-more-item" onClick={() => { setShowMenu(false); setShowEdit(true); }}>
                       Bearbeiten
                     </button>
                   )}
-                  {(task.is_owner !== false) && (
-                    <button
-                      className="task-detail-more-item danger"
-                      onClick={() => {
-                        setShowMenu(false);
-                        handleDelete();
-                      }}
-                    >
+                  {task.is_owner !== false && (
+                    <button className="task-detail-more-item danger" onClick={() => { setShowMenu(false); handleDelete(); }}>
                       Löschen
                     </button>
                   )}
                 </div>
-              )}
-              {!pageMode && (
-                <button className="task-detail-close" onClick={onClose}>
-                  <X size={20} />
-                </button>
               )}
             </div>
           </div>
@@ -252,41 +180,23 @@ export default function TaskDetailModal({ task, onClose, onUpdated, portalTarget
           {/* Status + Title */}
           <div className="task-detail-title-row">
             {isEvent ? (
-              <div className="task-detail-event-icon">
-                <CalendarCheck size={28} />
-              </div>
+              <div className="task-detail-event-icon"><CalendarCheck size={28} /></div>
             ) : (
-              <motion.div
-                className={`task-detail-checkbox ${task.completed ? 'checked' : ''}`}
-                onClick={handleToggle}
-                whileTap={{ scale: 0.85 }}
-              >
+              <motion.div className={`task-detail-checkbox ${task.completed ? 'checked' : ''}`} onClick={handleToggle} whileTap={{ scale: 0.85 }}>
                 {task.completed ? <CheckCircle2 size={28} /> : <Circle size={28} />}
               </motion.div>
             )}
             <div>
-              <h2 className={`task-detail-title ${task.completed && !isEvent ? 'completed' : ''}`}>
-                {task.title}
-              </h2>
-              {!isEvent && (
-                <span className="task-detail-status task">Aufgabe</span>
-              )}
-              {isEvent && (
-                <span className="task-detail-status event">Termin</span>
-              )}
-              {isEvent && isEventEnded && (
-                <span className="task-detail-status ended">Beendet</span>
-              )}
-              {!isEvent && task.completed && (
-                <span className="task-detail-status done">Erledigt</span>
-              )}
-              {isOverdue && !isEvent && (
-                <span className="task-detail-status overdue">Überfällig</span>
-              )}
+              <h2 className={`task-detail-title ${task.completed && !isEvent ? 'completed' : ''}`}>{task.title}</h2>
+              {!isEvent && <span className="task-detail-status task">Aufgabe</span>}
+              {isEvent && <span className="task-detail-status event">Termin</span>}
+              {isEvent && isEventEnded && <span className="task-detail-status ended">Beendet</span>}
+              {!isEvent && task.completed && <span className="task-detail-status done">Erledigt</span>}
+              {isOverdue && !isEvent && <span className="task-detail-status overdue">Überfällig</span>}
             </div>
           </div>
 
-          {/* Description / Details */}
+          {/* Description */}
           {task.description && (
             <div className="task-detail-section">
               <div className="task-detail-description-header">
@@ -296,9 +206,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, portalTarget
               <div className="task-detail-description">
                 {task.description.split('\n').map((line, i) => (
                   <div key={i} className={line.startsWith('•') ? 'task-detail-list-item' : 'task-detail-desc-line'}>
-                    {line.startsWith('•') ? (
-                      <><span className="task-detail-bullet">•</span>{line.substring(1).trim()}</>
-                    ) : line}
+                    {line.startsWith('•') ? (<><span className="task-detail-bullet">•</span>{line.substring(1).trim()}</>) : line}
                   </div>
                 ))}
               </div>
@@ -400,10 +308,8 @@ export default function TaskDetailModal({ task, onClose, onUpdated, portalTarget
             )}
           </div>
 
-          {/* Attachments */}
           <TaskAttachments taskId={task.id} canEdit={canEdit} />
 
-          {/* Footer + Actions */}
           {task.created_at && (
             <div className="task-detail-footer-info">
               Erstellt am {format(parseISO(task.created_at), 'd. MMMM yyyy, HH:mm', { locale: de })} Uhr
@@ -421,145 +327,120 @@ export default function TaskDetailModal({ task, onClose, onUpdated, portalTarget
               </motion.button>
             )}
           </div>
-          </div>{/* end task-detail-main */}
+        </div>
 
-          {/* ── Rechte Spalte: Collaboration + Kommentare ── */}
-          <div className="task-detail-aside">
-            {/* Collaboration */}
-            {isShared && (
-              <div className="task-detail-section task-detail-collab">
-                <div className="task-detail-description-header">
-                  {task.visibility === 'shared' ? <Users size={16} /> : <UserCheck size={16} />}
-                  <span>{task.visibility === 'shared' ? 'Mit allen Freunden geteilt' : 'Mit ausgewählten Personen geteilt'}</span>
-                </div>
-                {Array.isArray(task.shared_with_users) && task.shared_with_users.length > 0 && (
-                  <div className="task-detail-shared-users">
-                    {task.shared_with_users.map((u, i) => (
-                      <div key={i} className="task-detail-shared-user">
-                        <AvatarBadge className="collab-avatar" name={u.name} color={u.color || '#007AFF'} avatarUrl={u.avatar_url} size={22} />
-                        <span>{u.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {!task.is_owner && task.creator_name && (
-                  <div className="task-detail-collab-info">
-                    <AvatarBadge className="collab-avatar" name={task.creator_name} color={task.creator_color || '#007AFF'} avatarUrl={task.creator_avatar_url} size={22} />
-                    <span>Erstellt von <strong>{task.creator_name}</strong></span>
-                  </div>
-                )}
-                {!canEdit && <div className="task-detail-collab-info readonly"><Eye size={14} /><span>Du hast nur Leserechte</span></div>}
-                {task.last_editor_name && (
-                  <div className="task-detail-collab-info">
-                    <Edit3 size={14} /><span>Zuletzt bearbeitet von <strong>{task.last_editor_name}</strong></span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Group */}
-            {task.group_name && (
-              <div className="task-detail-section task-detail-collab">
-                <div className="task-detail-description-header">
-                  <AvatarBadge name={task.group_name} color={task.group_color || '#5856D6'} avatarUrl={task.group_image_url} size={16} />
-                  <span>Gruppe</span>
-                </div>
-                <div className="task-detail-group-badge" style={{ background: task.group_color ? `${task.group_color}15` : 'rgba(88,86,214,0.1)', borderLeft: `3px solid ${task.group_color || '#5856D6'}` }}>
-                  <AvatarBadge name={task.group_name} color={task.group_color || '#5856D6'} avatarUrl={task.group_image_url} size={32} />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <span style={{ fontWeight: 600, fontSize: 14 }}>{task.group_name}</span>
-                    {task.group_task_creator_name && (
-                      <span style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <AvatarBadge name={task.group_task_creator_name} color={task.group_task_creator_color || '#007AFF'} avatarUrl={task.group_task_creator_avatar_url} size={16} />
-                        Erstellt von {task.group_task_creator_name}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Comments */}
-            <div className="task-detail-section task-detail-comments-section">
+        {/* ── Rechte Spalte: Collaboration + Kommentare ── */}
+        <div className="task-detail-aside">
+          {isShared && (
+            <div className="task-detail-section task-detail-collab">
               <div className="task-detail-description-header">
-                <MessageCircle size={16} /><span>Kommentare</span>
+                {task.visibility === 'shared' ? <Users size={16} /> : <UserCheck size={16} />}
+                <span>{task.visibility === 'shared' ? 'Mit allen Freunden geteilt' : 'Mit ausgewählten Personen geteilt'}</span>
               </div>
-              <div className="task-detail-comments-box">
-                {comments.length === 0 ? (
-                  <div className="task-detail-comments-empty">Noch keine Kommentare</div>
-                ) : comments.map((c) => (
-                  <div key={c.id} className="task-detail-comment-item">
-                    <div className="task-detail-comment-top">
-                      <span className="task-detail-comment-emoji">{c.emoji}</span>
-                      <span className="task-detail-comment-author">{c.author}</span>
-                      <span className="task-detail-comment-time">{format(parseISO(c.created_at), 'd. MMM, HH:mm', { locale: de })}</span>
-                      {currentUser?.id === c.user_id && (
-                        <button type="button" className="task-detail-comment-delete" onClick={async () => {
-                          try {
-                            await api.deleteComment(c.id);
-                            setComments((prev) => prev.filter((item) => item.id !== c.id));
-                            addToast('🗑️ Kommentar gelöscht');
-                          } catch { addToast('❌ Kommentar konnte nicht gelöscht werden'); }
-                        }} title="Löschen"><Trash2 size={14} /></button>
-                      )}
+              {Array.isArray(task.shared_with_users) && task.shared_with_users.length > 0 && (
+                <div className="task-detail-shared-users">
+                  {task.shared_with_users.map((u, i) => (
+                    <div key={i} className="task-detail-shared-user">
+                      <AvatarBadge className="collab-avatar" name={u.name} color={u.color || '#007AFF'} avatarUrl={u.avatar_url} size={22} />
+                      <span>{u.name}</span>
                     </div>
-                    <div className="task-detail-comment-text">{c.text}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="task-detail-comment-input-wrap">
-                <div className="task-detail-comment-row">
-                  <button type="button" className="task-detail-emoji-picker-btn" onClick={() => setShowEmojiPicker(!showEmojiPicker)} title="Emoji einfügen">😊</button>
-                  <input className="task-detail-comment-input" placeholder="Kommentar schreiben..." value={commentText} onChange={(e) => setCommentText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(); }} />
-                  <button type="button" className="task-detail-comment-send" onClick={handleAddComment}><Send size={14} /></button>
+                  ))}
                 </div>
-                {showEmojiPicker && (
-                  <div ref={emojiPickerRef} className="task-detail-emoji-picker">
-                    {['💬', '👍', '✅', '🔥', '🙏', '🎉', '📌', '🤝'].map((emoji) => (
-                      <button key={emoji} type="button" className="task-detail-emoji-btn" onClick={() => { setCommentText(commentText + emoji); setShowEmojiPicker(false); }} title={emoji}>{emoji}</button>
-                    ))}
-                  </div>
-                )}
+              )}
+              {!task.is_owner && task.creator_name && (
+                <div className="task-detail-collab-info">
+                  <AvatarBadge className="collab-avatar" name={task.creator_name} color={task.creator_color || '#007AFF'} avatarUrl={task.creator_avatar_url} size={22} />
+                  <span>Erstellt von <strong>{task.creator_name}</strong></span>
+                </div>
+              )}
+              {!canEdit && <div className="task-detail-collab-info readonly"><Eye size={14} /><span>Du hast nur Leserechte</span></div>}
+              {task.last_editor_name && (
+                <div className="task-detail-collab-info">
+                  <Edit3 size={14} /><span>Zuletzt bearbeitet von <strong>{task.last_editor_name}</strong></span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {task.group_name && (
+            <div className="task-detail-section task-detail-collab">
+              <div className="task-detail-description-header">
+                <AvatarBadge name={task.group_name} color={task.group_color || '#5856D6'} avatarUrl={task.group_image_url} size={16} />
+                <span>Gruppe</span>
+              </div>
+              <div className="task-detail-group-badge" style={{ background: task.group_color ? `${task.group_color}15` : 'rgba(88,86,214,0.1)', borderLeft: `3px solid ${task.group_color || '#5856D6'}` }}>
+                <AvatarBadge name={task.group_name} color={task.group_color || '#5856D6'} avatarUrl={task.group_image_url} size={32} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span style={{ fontWeight: 600, fontSize: 14 }}>{task.group_name}</span>
+                  {task.group_task_creator_name && (
+                    <span style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <AvatarBadge name={task.group_task_creator_name} color={task.group_task_creator_color || '#007AFF'} avatarUrl={task.group_task_creator_avatar_url} size={16} />
+                      Erstellt von {task.group_task_creator_name}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
-          </div>{/* end task-detail-aside */}
-        </motion.div>
-  );
+          )}
 
-  const editPortal = showEdit && createPortal(
-    <TaskEditModal
-      task={task}
-      onClose={() => setShowEdit(false)}
-      onSaved={(updatedTask) => {
-        fetchTasks({
-          dashboard: 'true',
-          limit: '300',
-          horizon_days: '42',
-          completed_lookback_days: '30',
-        }, { force: true });
-        onUpdated?.(updatedTask);
-        onClose();
-      }}
-    />,
-    portalTarget || document.body
-  );
-
-  if (pageMode) {
-    return <>{innerContent}{editPortal}</>;
-  }
-
-  return (
-    <>
-      <motion.div
-        className="modal-overlay task-detail-overlay"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-      >
-        {innerContent}
+          {/* Comments */}
+          <div className="task-detail-section task-detail-comments-section">
+            <div className="task-detail-description-header">
+              <MessageCircle size={16} /><span>Kommentare</span>
+            </div>
+            <div className="task-detail-comments-box">
+              {comments.length === 0 ? (
+                <div className="task-detail-comments-empty">Noch keine Kommentare</div>
+              ) : comments.map((c) => (
+                <div key={c.id} className="task-detail-comment-item">
+                  <div className="task-detail-comment-top">
+                    <span className="task-detail-comment-emoji">{c.emoji}</span>
+                    <span className="task-detail-comment-author">{c.author}</span>
+                    <span className="task-detail-comment-time">{format(parseISO(c.created_at), 'd. MMM, HH:mm', { locale: de })}</span>
+                    {currentUser?.id === c.user_id && (
+                      <button type="button" className="task-detail-comment-delete" onClick={async () => {
+                        try {
+                          await api.deleteComment(c.id);
+                          setComments((prev) => prev.filter((item) => item.id !== c.id));
+                          addToast('🗑️ Kommentar gelöscht');
+                        } catch { addToast('❌ Kommentar konnte nicht gelöscht werden'); }
+                      }} title="Löschen"><Trash2 size={14} /></button>
+                    )}
+                  </div>
+                  <div className="task-detail-comment-text">{c.text}</div>
+                </div>
+              ))}
+            </div>
+            <div className="task-detail-comment-input-wrap">
+              <div className="task-detail-comment-row">
+                <button type="button" className="task-detail-emoji-picker-btn" onClick={() => setShowEmojiPicker(!showEmojiPicker)} title="Emoji einfügen">😊</button>
+                <input className="task-detail-comment-input" placeholder="Kommentar schreiben..." value={commentText} onChange={(e) => setCommentText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(); }} />
+                <button type="button" className="task-detail-comment-send" onClick={handleAddComment}><Send size={14} /></button>
+              </div>
+              {showEmojiPicker && (
+                <div ref={emojiPickerRef} className="task-detail-emoji-picker">
+                  {['💬', '👍', '✅', '🔥', '🙏', '🎉', '📌', '🤝'].map((emoji) => (
+                    <button key={emoji} type="button" className="task-detail-emoji-btn" onClick={() => { setCommentText(commentText + emoji); setShowEmojiPicker(false); }} title={emoji}>{emoji}</button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </motion.div>
-      {editPortal}
+
+      {showEdit && createPortal(
+        <TaskEditModal
+          task={task}
+          onClose={() => setShowEdit(false)}
+          onSaved={(updatedTask) => {
+            fetchTasks({ dashboard: 'true', limit: '300', horizon_days: '42', completed_lookback_days: '30' }, { force: true });
+            onUpdated?.(updatedTask);
+            onClose();
+          }}
+        />,
+        document.body
+      )}
     </>
   );
 }

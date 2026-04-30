@@ -9,7 +9,6 @@ import { Menu, X, MessageCircle } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import ReminderChecker from './ReminderChecker';
 import HelpChat from './HelpChat';
-import GroupChatPanel from './GroupChatPanel';
 import { lockScroll, unlockScroll } from '../utils/scrollLock';
 
 export default function Layout() {
@@ -18,7 +17,6 @@ export default function Layout() {
   const isNotesRoute = location.pathname === '/app/notes';
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [dragGhost, setDragGhost] = useState(null);
   const aiInputRef = useRef(null);
@@ -43,15 +41,15 @@ export default function Layout() {
 
   // Scroll-Lock: verhindert Background-Scrolling auf iOS wenn ein Panel offen ist
   useEffect(() => {
-    const anyOpen = sidebarOpen || chatOpen || showQuickAdd;
+    const anyOpen = sidebarOpen || showQuickAdd;
     if (anyOpen) lockScroll();
     else unlockScroll();
     return () => unlockScroll();
-  }, [sidebarOpen, chatOpen, showQuickAdd]);
+  }, [sidebarOpen, showQuickAdd]);
 
   useEffect(() => {
     const onDragStart = (e) => {
-      setChatOpen(true);
+      navigate('/app/chat');
       const d = e?.detail || {};
       if (d.source !== 'touch') {
         setDragGhost(null);
@@ -158,10 +156,7 @@ export default function Layout() {
       <ReminderChecker />
 
       {/* Help Chat */}
-      <HelpChat hideFab={chatOpen} />
-
-      {/* Group Chat Panel */}
-      <GroupChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />
+      <HelpChat />
 
       {/* Group Chat FAB (desktop) */}
       {location.pathname !== '/app/chat' && (
