@@ -459,17 +459,19 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   }
 
   return (
-    <AnimatePresence>
-      <motion.div
-        className="modal-overlay task-detail-overlay"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-      >
-        {content}
-      </motion.div>
+    <>
+      <AnimatePresence>
+        <motion.div
+          className="modal-overlay task-detail-overlay"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+        >
+          {content}
+        </motion.div>
+      </AnimatePresence>
       {editPortal}
-    </AnimatePresence>
+    </>
   );
 }
