@@ -4906,17 +4906,16 @@ body.cal-is-dragging * {
 .mobile-brand-title {
   font-weight: 800;
   font-size: 20px;
-  letter-spacing: -0.045em;
-  color: rgba(16, 56, 112, 0.68);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(173, 208, 255, 0.52) 38%, rgba(66, 124, 205, 0.6) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
+  letter-spacing: -0.05em;
+  color: transparent;
   -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 0.35px rgba(24, 77, 153, 0.18);
   text-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.58),
-    0 -1px 0 rgba(29, 80, 154, 0.14),
-    0 0 10px rgba(54, 132, 245, 0.08);
-  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.4));
+    0 1px 0 rgba(255, 255, 255, 0.72),
+    0 2px 2px rgba(255, 255, 255, 0.24),
+    0 -1px 0 rgba(31, 86, 163, 0.16),
+    0 -2px 4px rgba(17, 63, 129, 0.08);
+  filter: saturate(0.95);
 }
 
 .mobile-brand-sub {
