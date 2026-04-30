@@ -40,8 +40,9 @@ const WK_H     = 64;   // px per hour
 const MOBILE_BREAKPOINT = 768;
 const CALENDAR_DESKTOP_BREAKPOINT = 1180;
 const CALENDAR_WEEK_DEFAULT_BREAKPOINT = 1024;
-const HOLIDAY_COLOR = '#D92C2C';
+const DEFAULT_HOLIDAY_COLOR = '#D92C2C';
 const CALENDAR_HOLIDAY_STATE_KEY = 'beequ_calendar_holiday_state';
+const CALENDAR_HOLIDAY_COLOR_KEY = 'beequ_calendar_holiday_color';
 
 const minsToTime = (mins) => {
   const h = Math.floor(Math.max(0, mins) / 60);
@@ -245,6 +246,17 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       return '';
     }
   });
+  const [holidayColor, setHolidayColorState] = useState(() => {
+    try {
+      return localStorage.getItem(CALENDAR_HOLIDAY_COLOR_KEY) || DEFAULT_HOLIDAY_COLOR;
+    } catch {
+      return DEFAULT_HOLIDAY_COLOR;
+    }
+  });
+  const setHolidayColor = useCallback((color) => {
+    setHolidayColorState(color);
+    try { localStorage.setItem(CALENDAR_HOLIDAY_COLOR_KEY, color); } catch { /* ignore */ }
+  }, []);
   
   // â”€â”€ Debounced viewport state for tablet stability â”€â”€
   const [viewportState, setViewportState] = useState({
@@ -383,7 +395,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
         isHoliday: true,
         all_day: true,
         completed: false,
-        category_color: HOLIDAY_COLOR,
+        category_color: holidayColor,
         category_name: 'Feiertag',
       };
 
@@ -392,7 +404,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     });
 
     return map;
-  }, [holidayStateCode, visibleRange.end, visibleRange.start]);
+  }, [holidayStateCode, holidayColor, visibleRange.end, visibleRange.start]);
 
   const calendarEntriesByVisibleDate = useMemo(() => {
     const map = new Map(tasksByVisibleDate);
@@ -1161,7 +1173,10 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
               className={`calendar-day ${!isCurrentMonth ? 'other-month' : ''} ${isToday(d) ? 'today' : ''} ${isSelected ? 'selected' : ''} ${isHoliday ? 'holiday' : ''}`}
               onClick={() => handleDayClick(d)}
             >
-              <span className="calendar-day-number">{format(d, 'd')}</span>
+              <span
+                className="calendar-day-number"
+                style={isHoliday ? { color: holidayColor, background: `${holidayColor}14`, boxShadow: `inset 0 0 0 1px ${holidayColor}20` } : undefined}
+              >{format(d, 'd')}</span>
               {decoratedDayTasks.length > 0 && (
                 <div className="calendar-day-tasks">
                   {decoratedDayTasks.slice(0, maxVisiblePerCell).map(({ t, seg }, renderIdx) => {
@@ -1197,7 +1212,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                           gridRow: slotOrder + 1,
                           width: spanWidth,
                           maxWidth: spanWidth ? 'none' : '100%',
-                          background: isHolidayTask ? HOLIDAY_COLOR : accentColor,
+                          background: isHolidayTask ? holidayColor : accentColor,
                           color: ended ? '#999' : '#fff',
                           borderLeft: 'none',
                           cursor: isHolidayTask ? 'default' : 'pointer',
@@ -1210,8 +1225,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                           width: spanWidth,
                           maxWidth: spanWidth ? 'none' : '100%',
                           background: isHolidayTask ? 'rgba(217,44,44,0.12)' : ended ? 'rgba(142,142,147,0.12)' : categoryAccent ? `${categoryAccent}20` : t.group_id ? `${t.group_color || '#5856D6'}15` : 'var(--primary-bg)',
-                          color: isHolidayTask ? HOLIDAY_COLOR : ended ? '#59606B' : categoryAccent || (t.group_id ? (t.group_color || '#5856D6') : 'var(--primary)'),
-                          borderLeft: showBorderLeft ? `2px solid ${isHolidayTask ? HOLIDAY_COLOR : (ended ? 'rgba(142,142,147,0.55)' : accentColor)}` : 'none',
+                          color: isHolidayTask ? holidayColor : ended ? '#59606B' : categoryAccent || (t.group_id ? (t.group_color || '#5856D6') : 'var(--primary)'),
+                          borderLeft: showBorderLeft ? `2px solid ${isHolidayTask ? holidayColor : (ended ? 'rgba(142,142,147,0.55)' : accentColor)}` : 'none',
                           cursor: isHolidayTask ? 'default' : (viewportState.isDesktop && !ended ? 'grab' : 'pointer'),
                           userSelect: 'none',
                           zIndex: spanWidth ? 4 : undefined,
@@ -2010,15 +2025,15 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
             <span style={{ textTransform: 'capitalize' }}>{headerText}</span>
             <ChevronDown size={16} className={`cal-mp-chevron ${showMonthPicker ? 'open' : ''}`} />
           </button>
+          <button
+            className={`calendar-fs-btn cal-settings-trigger ${showHolidaySettings ? 'active' : ''}`}
+            onClick={() => setShowHolidaySettings(v => !v)}
+            title="Feiertage & Kalendereinstellungen"
+          >
+            <Settings size={17} />
+          </button>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <button
-              className={`calendar-fs-btn ${showHolidaySettings ? 'active' : ''}`}
-              onClick={() => setShowHolidaySettings(v => !v)}
-              title="Feiertage & Kalendereinstellungen"
-            >
-              <Settings size={17} />
-            </button>
           {!isMobile && (
             <button
               className={`calendar-fs-btn ${isCalendarFullscreen ? 'active' : ''}`}
@@ -2097,7 +2112,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
         <div className="cal-holiday-settings-panel">
           <div className="cal-settings-head">
             <strong>Kalendereinstellungen</strong>
-            <span>Feiertage nach Bundesland anzeigen</span>
+            <span>Feiertage & Darstellung anpassen</span>
           </div>
           <label className="cal-settings-field">
             <span>Bundesland</span>
@@ -2111,6 +2126,29 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
               ))}
             </select>
           </label>
+          <div className="cal-settings-field">
+            <span>Farbe der Feiertage</span>
+            <div className="cal-color-presets">
+              {['#D92C2C','#E8720C','#8B5CF6','#059669','#2563EB','#DB2777'].map((c) => (
+                <button
+                  key={c}
+                  className={`cal-color-preset ${holidayColor === c ? 'selected' : ''}`}
+                  style={{ background: c }}
+                  onClick={() => setHolidayColor(c)}
+                  aria-label={`Farbe ${c}`}
+                />
+              ))}
+              <label className="cal-color-custom" title="Eigene Farbe">
+                <input
+                  type="color"
+                  value={holidayColor}
+                  onChange={(e) => setHolidayColor(e.target.value)}
+                  aria-label="Eigene Farbe"
+                />
+                <span style={{ background: holidayColor }} />
+              </label>
+            </div>
+          </div>
           <p className="cal-settings-hint">
             Aktiv: {selectedHolidayStateLabel}. Bundesweite Feiertage bleiben immer sichtbar.
           </p>
