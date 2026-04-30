@@ -35,6 +35,8 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const menuRef = useRef(null);
   const emojiPickerRef = useRef(null);
   const swipeRef = useRef({ startY: 0, active: false });
+  const pullOffsetRef = useRef(0);
+  const [pullOffset, setPullOffset] = useState(0);
   const [isMobile, setIsMobile] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1024px)').matches
   );
@@ -51,12 +53,34 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     if (!isMobile) return;
     swipeRef.current = { startY: e.touches[0].clientY, active: true };
   };
+  const handleTouchMove = (e) => {
+    if (!isMobile || !swipeRef.current.active) return;
+    const dy = e.touches[0].clientY - swipeRef.current.startY;
+
+    // Only pull down when content is already at top.
+    if (dy <= 0 || e.currentTarget.scrollTop > 0) {
+      if (pullOffsetRef.current !== 0) {
+        pullOffsetRef.current = 0;
+        setPullOffset(0);
+      }
+      return;
+    }
+
+    // Prevent iOS rubber-band white area and move modal itself instead.
+    if (e.cancelable) e.preventDefault();
+    const resisted = Math.min(dy * 0.88, 320);
+    pullOffsetRef.current = resisted;
+    setPullOffset(resisted);
+  };
   const handleTouchEnd = (e) => {
     if (!isMobile || !swipeRef.current.active) return;
     const dy = e.changedTouches[0].clientY - swipeRef.current.startY;
     swipeRef.current.active = false;
-    // Down swipe: only close when already scrolled to top
-    if (dy > 100 && e.currentTarget.scrollTop <= 0) { onClose(); return; }
+    const shouldClose = dy > 130 && e.currentTarget.scrollTop <= 0;
+    pullOffsetRef.current = 0;
+    setPullOffset(0);
+    // Down swipe: close and return to underlying previous view.
+    if (shouldClose) { onClose(); return; }
   };
 
   useEffect(() => {
@@ -172,11 +196,12 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     <motion.div
       className={`task-detail-modal${pageMode ? ' task-detail-page-mode' : ''}${isMobile ? ' is-mobile-fullscreen' : ''}${!isEvent ? ' is-task-detail' : ''}`}
       initial={isMobile ? { y: '100%' } : (pageMode ? { opacity: 0, x: 30 } : { opacity: 0, y: 24 })}
-      animate={isMobile ? { y: 0 } : (pageMode ? { opacity: 1, x: 0 } : { opacity: 1, y: 0 })}
+      animate={isMobile ? { y: pullOffset } : (pageMode ? { opacity: 1, x: 0 } : { opacity: 1, y: 0 })}
       exit={isMobile ? { y: '100%' } : (pageMode ? {} : { opacity: 0, y: 16 })}
-      transition={{ type: 'tween', duration: isMobile ? 0.26 : (pageMode ? 0.22 : 0.2), ease: 'easeOut' }}
+      transition={{ type: 'tween', duration: isMobile ? 0.18 : (pageMode ? 0.22 : 0.2), ease: 'easeOut' }}
       onClick={(!pageMode && !isMobile) ? (e) => e.stopPropagation() : undefined}
       onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
       <div className="task-detail-main">
