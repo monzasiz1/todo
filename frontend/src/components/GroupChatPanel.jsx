@@ -124,6 +124,8 @@ function formatReminderLabel(localDateTime) {
 // pageMode=true: renders as a page (mobile/tablet, used by ChatPage)
 export default function GroupChatPanel({ open, onClose, pageMode = false }) {
   const navigate = useNavigate();
+  // pageMode is always "open" — treat both identically in effects
+  const isActive = open || pageMode;
   const { groups, fetchGroups } = useGroupStore();
   const { user } = useAuthStore();
 
@@ -168,8 +170,8 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
 
   // ── Fetch groups on mount ─────────────────────────────────────────────────
   useEffect(() => {
-    if (open && groups.length === 0) fetchGroups();
-  }, [open]);
+    if (isActive && groups.length === 0) fetchGroups();
+  }, [isActive]);
 
   // ── Auto-select first group ───────────────────────────────────────────────
   useEffect(() => {
@@ -190,21 +192,21 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
   }, [selectedGroupId]);
 
   useEffect(() => {
-    if (!open || !selectedGroupId) return;
+    if (!isActive || !selectedGroupId) return;
     setLoadingMsgs(true);
     loadMessages().finally(() => setLoadingMsgs(false));
 
     clearInterval(pollRef.current);
     pollRef.current = setInterval(loadMessages, 5000);
     return () => clearInterval(pollRef.current);
-  }, [open, selectedGroupId, loadMessages]);
+  }, [isActive, selectedGroupId, loadMessages]);
 
   // ── Focus input when opening ──────────────────────────────────────────────
   useEffect(() => {
-    if (open && inputRef.current) {
+    if (isActive && inputRef.current) {
       setTimeout(() => inputRef.current?.focus(), 300);
     }
-  }, [open]);
+  }, [isActive]);
 
   // ── Scroll to bottom on new messages ─────────────────────────────────────
   useEffect(() => {
