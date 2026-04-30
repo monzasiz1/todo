@@ -724,12 +724,12 @@ input, textarea, select {
   margin-top: 4px;
 }
 
-/* Dashboard top-panel collapse toggle — mobile only */
+/* Dashboard top-panel collapse toggle — mobile + tablet */
 .dash-top-toggle {
   display: none;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .dash-top-toggle {
     display: flex;
     align-items: center;

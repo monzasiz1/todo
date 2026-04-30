@@ -777,14 +777,14 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     onDayClick?.(date);
   };
 
-  // â”€â”€ Mobile Swipe-Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â”€â”€ Touch Swipe-Navigation (Mobile + Tablet) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleSwipeTouchStart = (e) => {
-    if (!isMobile) return;
+    if (deviceType === 'desktop') return;
     swipeRef.current = { startX: e.touches[0].clientX, startY: e.touches[0].clientY };
   };
 
   const handleSwipeTouchEnd = (e) => {
-    if (!isMobile) return;
+    if (deviceType === 'desktop') return;
     const dx = e.changedTouches[0].clientX - swipeRef.current.startX;
     const dy = e.changedTouches[0].clientY - swipeRef.current.startY;
     // Nur als horizontaler Swipe werten wenn dx dominant und groÃŸ genug
