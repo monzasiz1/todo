@@ -1124,13 +1124,14 @@ input, textarea, select {
 
 /* ── Heute-Block: visuell dominant ── */
 .dash-section[data-section="today"] {
-  border-color: rgba(255, 149, 0, 0.28);
-  border-top: 3px solid #FF9500;
-  box-shadow: 0 4px 18px rgba(255, 149, 0, 0.1);
+  border-color: rgba(255, 149, 0, 0.22);
+  background: linear-gradient(180deg, rgba(255, 149, 0, 0.07) 0%, rgba(255, 149, 0, 0.02) 40%, var(--card-solid) 100%);
+  box-shadow: 0 6px 20px rgba(255, 149, 0, 0.1), inset 0 0 0 1px rgba(255, 149, 0, 0.1);
 }
 
 .dash-section[data-section="today"] .dash-section-header {
   padding: 16px 16px 15px;
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .dash-section[data-section="today"] .dash-section-icon {

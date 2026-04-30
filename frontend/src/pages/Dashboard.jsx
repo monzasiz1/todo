@@ -361,6 +361,7 @@ export default function Dashboard() {
   const { limit, atLimit } = usePlan();
   const scrollRafRef = useRef(null);
   const autoCollapsedTodayRef = useRef(false);
+  const todayManualOverrideRef = useRef(false);
   const autoTransitionTimerRef = useRef(null);
   const [showCompleted, setShowCompleted] = useState(false);
   const [todayAutoTransition, setTodayAutoTransition] = useState(false);
@@ -477,6 +478,7 @@ export default function Dashboard() {
       const isSmallScreen = window.innerWidth <= 1024;
       if (!isSmallScreen) {
         autoCollapsedTodayRef.current = false;
+        todayManualOverrideRef.current = false;
         setCollapsedSections((s) => (s.today ? { ...s, today: false } : s));
         return;
       }
@@ -484,6 +486,16 @@ export default function Dashboard() {
       const collapseY = getTodayCollapseThreshold();
       const expandY = Math.max(12, collapseY - 18);
       const y = window.scrollY;
+
+      // User interaction has priority while scrolled.
+      if (todayManualOverrideRef.current) {
+        if (y <= expandY) {
+          todayManualOverrideRef.current = false;
+        } else {
+          return;
+        }
+      }
+
       const shouldCollapseToday = autoCollapsedTodayRef.current
         ? y > expandY
         : y > collapseY;
@@ -638,11 +650,9 @@ export default function Dashboard() {
   };
 
   const toggleSection = (key) => {
-    if (key === 'today' && window.innerWidth <= 1024 && window.scrollY > getTodayCollapseThreshold()) {
-      return;
-    }
     if (key === 'today') {
       setTodayAutoTransition(false);
+      todayManualOverrideRef.current = window.innerWidth <= 1024 && window.scrollY > getTodayCollapseThreshold();
     }
     setCollapsedSections((s) => ({ ...s, [key]: !s[key] }));
   };
