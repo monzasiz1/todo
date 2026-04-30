@@ -9119,6 +9119,81 @@ body.cal-is-dragging * {
   gap: 6px;
 }
 
+.task-edit-shared-avatars {
+  display: flex;
+  align-items: center;
+  overflow-x: auto;
+  padding: 4px 2px 8px 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.task-edit-shared-avatar-chip {
+  position: relative;
+  margin-left: -12px;
+}
+
+.task-edit-shared-avatar-chip:first-child {
+  margin-left: 0;
+}
+
+.task-edit-shared-avatar-chip:nth-child(even) {
+  transform: translateY(-2px);
+}
+
+.task-edit-shared-avatar-btn {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 2px solid var(--card-solid);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.task-edit-shared-avatar-perm {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--card-solid);
+}
+
+.task-edit-shared-avatar-perm.read {
+  background: #eef2f9;
+  color: #5b6b86;
+}
+
+.task-edit-shared-avatar-perm.edit {
+  background: #e8f2ff;
+  color: var(--primary);
+}
+
+.task-edit-shared-avatar-remove {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 59, 48, 0.92);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
 .task-edit-shared-item {
   display: flex;
   align-items: center;

@@ -762,38 +762,43 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
                       {permissions.length > 0 && (
                         <div className="task-edit-shared-list">
                           <div className="task-edit-shared-label">Geteilt mit:</div>
-                          {permissions.map((p) => (
-                            <div key={p.user_id} className="task-edit-shared-item">
+                          <div className="task-edit-shared-avatars" role="list" aria-label="Ausgewählte Personen">
+                            {permissions.map((p, idx) => (
                               <div
-                                className="task-edit-friend-avatar"
+                                key={p.user_id}
+                                role="listitem"
+                                className="task-edit-shared-avatar-chip"
+                                style={{ zIndex: permissions.length - idx }}
                               >
-                                <AvatarBadge
-                                  name={p.name}
-                                  color={p.avatar_color || '#007AFF'}
-                                  avatarUrl={p.avatar_url}
-                                  size={28}
-                                />
-                              </div>
-                              <span className="task-edit-friend-name">{p.name}</span>
-                              <div className="task-edit-friend-controls">
                                 <button
-                                  className={`task-edit-perm-btn ${p.can_edit ? 'active' : ''}`}
+                                  type="button"
+                                  className="task-edit-shared-avatar-btn"
                                   onClick={() => toggleFriendPermission(p.user_id, p.name, p.avatar_color, p.avatar_url, 'toggle_edit')}
-                                  title={p.can_edit ? 'Kann bearbeiten' : 'Nur lesen'}
+                                  title={`${p.name} • ${p.can_edit ? 'Kann bearbeiten' : 'Nur lesen'}`}
+                                  aria-label={`${p.name} Berechtigung umschalten`}
                                 >
-                                  {p.can_edit ? <Edit3 size={12} /> : <Eye size={12} />}
-                                  {p.can_edit ? 'Bearbeiten' : 'Lesen'}
+                                  <AvatarBadge
+                                    name={p.name}
+                                    color={p.avatar_color || '#007AFF'}
+                                    avatarUrl={p.avatar_url}
+                                    size={36}
+                                  />
+                                  <span className={`task-edit-shared-avatar-perm ${p.can_edit ? 'edit' : 'read'}`}>
+                                    {p.can_edit ? <Edit3 size={10} /> : <Eye size={10} />}
+                                  </span>
                                 </button>
                                 <button
-                                  className="task-edit-perm-btn remove"
+                                  type="button"
+                                  className="task-edit-shared-avatar-remove"
                                   onClick={() => toggleFriendPermission(p.user_id, null, null, null, 'remove')}
-                                  title="Entfernen"
+                                  title={`${p.name} entfernen`}
+                                  aria-label={`${p.name} entfernen`}
                                 >
-                                  <X size={12} />
+                                  <X size={10} />
                                 </button>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
                       )}
 
