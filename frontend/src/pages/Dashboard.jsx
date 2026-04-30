@@ -360,7 +360,10 @@ export default function Dashboard() {
   const { tasks, fetchTasks, filter, setFilter } = useTaskStore();
   const { limit, atLimit } = usePlan();
   const [showCompleted, setShowCompleted] = useState(false);
-  const [collapsedSections, setCollapsedSections] = useState({ week: true, later: true, past_events: true });
+  const [collapsedSections, setCollapsedSections] = useState(() => {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
+    return { today: isMobile, week: true, later: true, past_events: true };
+  });
   const [groupVisibleCounts, setGroupVisibleCounts] = useState({});
   const [showTaskLimitModal, setShowTaskLimitModal] = useState(false);
   const [showManualModal, setShowManualModal] = useState(false);
