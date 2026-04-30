@@ -200,6 +200,7 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
   }, [onClose]);
 
   const modalInner = (
+    <>
       <motion.div
         className={`day-create-modal${isMobile ? ' is-mobile-fullscreen day-create-fullscreen' : ''}`}
         onClick={(e) => e.stopPropagation()}
@@ -472,6 +473,7 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
         />
       )}
     </motion.div>
+    </>
   );
 
   if (isMobile) {
