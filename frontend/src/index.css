@@ -6536,6 +6536,16 @@ body.cal-is-dragging * {
   height: auto !important;
 }
 
+.task-detail-mobile-touch-blocker {
+  position: fixed;
+  inset: 0;
+  z-index: 10199;
+  background: transparent;
+  pointer-events: auto;
+  touch-action: none;
+  overscroll-behavior: none;
+}
+
 /* ===== MODALS / OVERLAYS ===== */
 .modal-overlay {
   position: fixed;
@@ -10041,7 +10051,7 @@ body.cal-is-dragging * {
     top: 0;
     z-index: 6;
     background: var(--card-solid);
-    padding-top: max(12px, env(safe-area-inset-top, 12px));
+    padding-top: max(20px, calc(env(safe-area-inset-top, 0px) + 10px));
   }
 
   .task-edit-body {

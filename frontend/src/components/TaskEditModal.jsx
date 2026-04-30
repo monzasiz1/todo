@@ -361,9 +361,9 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
     >
       <motion.div
         className={`task-edit-modal${isMobile ? ' is-mobile-fullscreen' : ''}`}
-        initial={isMobile ? { x: '100%' } : { opacity: 0, y: 60, scale: 0.95 }}
-        animate={isMobile ? { x: 0 } : { opacity: 1, y: 0, scale: 1 }}
-        exit={isMobile ? { x: '100%' } : { opacity: 0, y: 40, scale: 0.95 }}
+        initial={isMobile ? { y: '100%' } : { opacity: 0, y: 60, scale: 0.95 }}
+        animate={isMobile ? { y: 0 } : { opacity: 1, y: 0, scale: 1 }}
+        exit={isMobile ? { y: '100%' } : { opacity: 0, y: 40, scale: 0.95 }}
         transition={{ type: 'spring', damping: 28, stiffness: 350 }}
         onClick={(e) => e.stopPropagation()}
       >

@@ -35,6 +35,8 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const menuRef = useRef(null);
   const emojiPickerRef = useRef(null);
   const swipeRef = useRef({ startY: 0, active: false });
+  const pullRafRef = useRef(null);
+  const pullNextRef = useRef(0);
   const pullOffsetRef = useRef(0);
   const [pullOffset, setPullOffset] = useState(0);
   const [isMobile, setIsMobile] = useState(
@@ -49,6 +51,15 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   }, []);
 
   // Swipe down to close on mobile
+  const queuePullOffset = (next) => {
+    pullNextRef.current = next;
+    if (pullRafRef.current !== null) return;
+    pullRafRef.current = window.requestAnimationFrame(() => {
+      pullRafRef.current = null;
+      setPullOffset((prev) => (prev === pullNextRef.current ? prev : pullNextRef.current));
+    });
+  };
+
   const handleTouchStart = (e) => {
     if (!isMobile) return;
     swipeRef.current = { startY: e.touches[0].clientY, active: true };
@@ -61,7 +72,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     if (dy <= 0 || e.currentTarget.scrollTop > 0) {
       if (pullOffsetRef.current !== 0) {
         pullOffsetRef.current = 0;
-        setPullOffset(0);
+        queuePullOffset(0);
       }
       return;
     }
@@ -70,7 +81,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     if (e.cancelable) e.preventDefault();
     const resisted = Math.min(dy * 0.88, 320);
     pullOffsetRef.current = resisted;
-    setPullOffset(resisted);
+    queuePullOffset(resisted);
   };
   const handleTouchEnd = (e) => {
     if (!isMobile || !swipeRef.current.active) return;
@@ -78,10 +89,18 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     swipeRef.current.active = false;
     const shouldClose = dy > 130 && e.currentTarget.scrollTop <= 0;
     pullOffsetRef.current = 0;
-    setPullOffset(0);
+    queuePullOffset(0);
     // Down swipe: close and return to underlying previous view.
     if (shouldClose) { onClose(); return; }
   };
+
+  useEffect(() => {
+    return () => {
+      if (pullRafRef.current !== null) {
+        window.cancelAnimationFrame(pullRafRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     // Lock background scroll while modal is open (desktop + mobile overlay mode)
@@ -199,7 +218,11 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       initial={isMobile ? { y: '100%' } : (pageMode ? { opacity: 0, x: 30 } : { opacity: 0, y: 24 })}
       animate={isMobile ? { y: pullOffset } : (pageMode ? { opacity: 1, x: 0 } : { opacity: 1, y: 0 })}
       exit={isMobile ? { y: '100%' } : (pageMode ? {} : { opacity: 0, y: 16 })}
-      transition={{ type: 'tween', duration: isMobile ? 0.18 : (pageMode ? 0.22 : 0.2), ease: 'easeOut' }}
+      transition={{
+        type: 'tween',
+        duration: isMobile ? (pullOffset > 0 ? 0 : 0.16) : (pageMode ? 0.22 : 0.2),
+        ease: 'easeOut'
+      }}
       onClick={(!pageMode && !isMobile) ? (e) => e.stopPropagation() : undefined}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -509,7 +532,10 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     return (
       <>
         {createPortal(
-          <AnimatePresence>{content}</AnimatePresence>,
+          <>
+            <div className="task-detail-mobile-touch-blocker" aria-hidden="true" />
+            <AnimatePresence>{content}</AnimatePresence>
+          </>,
           document.body
         )}
         {editPortal}
