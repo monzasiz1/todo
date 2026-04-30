@@ -360,10 +360,7 @@ export default function Dashboard() {
   const { tasks, fetchTasks, filter, setFilter } = useTaskStore();
   const { limit, atLimit } = usePlan();
   const [showCompleted, setShowCompleted] = useState(false);
-  const [collapsedSections, setCollapsedSections] = useState(() => {
-    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
-    return { today: isMobile, week: true, later: true, past_events: true };
-  });
+  const [collapsedSections, setCollapsedSections] = useState({ today: false, week: true, later: true, past_events: true });
   const [groupVisibleCounts, setGroupVisibleCounts] = useState({});
   const [showTaskLimitModal, setShowTaskLimitModal] = useState(false);
   const [showManualModal, setShowManualModal] = useState(false);
@@ -453,6 +450,28 @@ export default function Dashboard() {
       if (intervalId) clearInterval(intervalId);
       window.removeEventListener('focus', onVisibilityOrFocus);
       document.removeEventListener('visibilitychange', onVisibilityOrFocus);
+    };
+  }, []);
+
+  useEffect(() => {
+    const syncTodayCollapseWithScroll = () => {
+      const isSmallScreen = window.innerWidth <= 1024;
+      if (!isSmallScreen) {
+        setCollapsedSections((s) => (s.today ? { ...s, today: false } : s));
+        return;
+      }
+
+      const shouldCollapseToday = window.scrollY > 16;
+      setCollapsedSections((s) => (s.today === shouldCollapseToday ? s : { ...s, today: shouldCollapseToday }));
+    };
+
+    syncTodayCollapseWithScroll();
+    window.addEventListener('scroll', syncTodayCollapseWithScroll, { passive: true });
+    window.addEventListener('resize', syncTodayCollapseWithScroll);
+
+    return () => {
+      window.removeEventListener('scroll', syncTodayCollapseWithScroll);
+      window.removeEventListener('resize', syncTodayCollapseWithScroll);
     };
   }, []);
 
@@ -572,6 +591,9 @@ export default function Dashboard() {
   const greeting = greetingHour < 12 ? 'Guten Morgen' : greetingHour < 18 ? 'Guten Tag' : 'Guten Abend';
 
   const toggleSection = (key) => {
+    if (key === 'today' && window.innerWidth <= 1024 && window.scrollY > 16) {
+      return;
+    }
     setCollapsedSections((s) => ({ ...s, [key]: !s[key] }));
   };
 
