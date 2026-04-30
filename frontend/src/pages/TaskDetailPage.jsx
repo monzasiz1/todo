@@ -51,7 +51,6 @@ export default function TaskDetailPage() {
 
   return (
     <TaskDetailModal
-      pageMode
       task={task}
       onClose={handleBack}
       onUpdated={(updated) => setTask((prev) => ({ ...prev, ...updated }))}
