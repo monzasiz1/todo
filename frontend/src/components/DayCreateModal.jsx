@@ -55,7 +55,7 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
   const debounceRef = useRef(null);
   const { aiCreateTask, aiParseOnly } = useTaskStore();
   // detected once — used for animation variant
-  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
 
   const dateStr = format(date, 'EEEE, d. MMMM yyyy', { locale: de });
 
