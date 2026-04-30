@@ -274,6 +274,23 @@ export default function Dashboard() {
   const [showTaskLimitModal, setShowTaskLimitModal] = useState(false);
   const [showManualModal, setShowManualModal] = useState(false);
   const [nowTs, setNowTs] = useState(Date.now());
+  const [aiCollapsed, setAiCollapsed] = useState(() => {
+    try { return localStorage.getItem('dash_ai_collapsed') === 'true'; } catch { return false; }
+  });
+  const [focusCollapsed, setFocusCollapsed] = useState(() => {
+    try { return localStorage.getItem('dash_focus_collapsed') === 'true'; } catch { return false; }
+  });
+
+  const toggleAi = () => setAiCollapsed(v => {
+    const next = !v;
+    try { localStorage.setItem('dash_ai_collapsed', next); } catch {}
+    return next;
+  });
+  const toggleFocus = () => setFocusCollapsed(v => {
+    const next = !v;
+    try { localStorage.setItem('dash_focus_collapsed', next); } catch {}
+    return next;
+  });
 
   useEffect(() => {
     // Load all tasks (open AND closed), let frontend filter do the rest
@@ -511,22 +528,40 @@ export default function Dashboard() {
             <span className="task-limit-upgrade">Upgrade für unbegrenzte Aufgaben →</span>
           </div>
         )}
-        <AIInput />
 
-        {/* Manuell-Launcher — nur auf Desktop sichtbar, öffnet Modal */}
-        <button
-          className="manual-task-launcher dashboard-manual-launcher"
-          onClick={() => setShowManualModal(true)}
-        >
-          <span className="manual-task-launcher-left">
-            <div className="manual-task-launcher-icon"><Plus size={16} /></div>
-            <div className="manual-task-launcher-copy">
-              <strong>Manuell erstellen</strong>
-              <span>Aufgabe oder Termin ohne KI anlegen</span>
-            </div>
-          </span>
-          <ChevronDown size={18} className="manual-task-launcher-chevron" />
+        {/* Mobile Toggle-Header für KI */}
+        <button className="dash-mobile-toggle" onClick={toggleAi}>
+          <span className="dash-mobile-toggle-label">KI-Eingabe</span>
+          <ChevronDown size={16} className={`dash-mobile-toggle-chevron${aiCollapsed ? ' rotated' : ''}`} />
         </button>
+
+        <AnimatePresence initial={false}>
+          {!aiCollapsed && (
+            <motion.div
+              key="ai-section"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.22, ease: 'easeInOut' }}
+              style={{ overflow: 'hidden' }}
+            >
+              <AIInput />
+              <button
+                className="manual-task-launcher dashboard-manual-launcher"
+                onClick={() => setShowManualModal(true)}
+              >
+                <span className="manual-task-launcher-left">
+                  <div className="manual-task-launcher-icon"><Plus size={16} /></div>
+                  <div className="manual-task-launcher-copy">
+                    <strong>Manuell erstellen</strong>
+                    <span>Aufgabe oder Termin ohne KI anlegen</span>
+                  </div>
+                </span>
+                <ChevronDown size={18} className="manual-task-launcher-chevron" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Manuell-Erstellungs-Modal (Desktop) */}
@@ -578,29 +613,45 @@ export default function Dashboard() {
 
       <section className="smart-insights" aria-label="Smart Insights">
         <div className="smart-insights-head">
-          <div className="smart-insights-title">
-            <Target size={14} />
-            Fokus heute
-          </div>
+          <button className="dash-mobile-toggle dash-mobile-toggle--inline" onClick={toggleFocus}>
+            <div className="smart-insights-title">
+              <Target size={14} />
+              Fokus heute
+            </div>
+            <ChevronDown size={16} className={`dash-mobile-toggle-chevron${focusCollapsed ? ' rotated' : ''}`} />
+          </button>
           <div className="smart-insights-meta-wrap">
             <span className="smart-insights-meta">Heute: {todayTasks.length}</span>
             <span className="smart-insights-meta">Überfällig: {overdueCount}</span>
             <span className="smart-insights-meta">Woche: {weekCompletionRate}%</span>
           </div>
         </div>
-        <div className="smart-insights-list">
-          {insights.map((item) => {
-            const Icon = item.icon;
-            return (
-              <article key={item.key} className="smart-insight-item">
-                <div className="smart-insight-icon" style={{ background: `${item.color}18`, color: item.color }}>
-                  <Icon size={14} />
-                </div>
-                <p>{item.text}</p>
-              </article>
-            );
-          })}
-        </div>
+        <AnimatePresence initial={false}>
+          {!focusCollapsed && (
+            <motion.div
+              key="focus-section"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.22, ease: 'easeInOut' }}
+              style={{ overflow: 'hidden' }}
+            >
+              <div className="smart-insights-list">
+                {insights.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <article key={item.key} className="smart-insight-item">
+                      <div className="smart-insight-icon" style={{ background: `${item.color}18`, color: item.color }}>
+                        <Icon size={14} />
+                      </div>
+                      <p>{item.text}</p>
+                    </article>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </section>
 
       {/* Filter Bar */}

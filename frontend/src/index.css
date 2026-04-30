@@ -4670,6 +4670,48 @@ body.cal-is-dragging * {
   padding: 14px;
 }
 
+/* Mobile collapse toggle — hidden on desktop */
+.dash-mobile-toggle {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .dash-mobile-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 4px 0 8px;
+    cursor: pointer;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .dash-mobile-toggle--inline {
+    padding: 0;
+    margin-bottom: 0;
+  }
+
+  .dash-mobile-toggle-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .dash-mobile-toggle-chevron {
+    transition: transform 0.22s ease;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+
+  .dash-mobile-toggle-chevron.rotated {
+    transform: rotate(-90deg);
+  }
+}
+
 .smart-insights-head {
   display: flex;
   align-items: center;
