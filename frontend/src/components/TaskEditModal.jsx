@@ -806,33 +806,35 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
                       {friends.length > 0 && (
                         <div className="task-edit-add-friends">
                           <div className="task-edit-shared-label">Freund hinzufügen:</div>
-                          {friends
-                            .filter(f => !permissions.find(p => p.user_id === f.friend_user_id))
-                            .map((friend) => (
-                              <div key={friend.friend_user_id} className="task-edit-shared-item addable">
-                                <div className="task-edit-friend-avatar">
-                                  <AvatarBadge
-                                    name={friend.name}
-                                    color={friend.avatar_color || '#007AFF'}
-                                    avatarUrl={friend.avatar_url}
-                                    size={28}
-                                  />
+                          <div className="task-edit-add-friends-avatars" role="list" aria-label="Freunde hinzufügen">
+                            {friends
+                              .filter(f => !permissions.find(p => p.user_id === f.friend_user_id))
+                              .map((friend) => (
+                                <div key={friend.friend_user_id} role="listitem" className="task-edit-shared-avatar-chip task-edit-shared-avatar-chip--add">
+                                  <button
+                                    type="button"
+                                    className="task-edit-shared-avatar-btn"
+                                    onClick={() => toggleFriendPermission(
+                                      friend.friend_user_id,
+                                      friend.name,
+                                      friend.avatar_color,
+                                      friend.avatar_url,
+                                      'add'
+                                    )}
+                                    title={`${friend.name} hinzufügen`}
+                                    aria-label={`${friend.name} hinzufügen`}
+                                  >
+                                    <AvatarBadge
+                                      name={friend.name}
+                                      color={friend.avatar_color || '#007AFF'}
+                                      avatarUrl={friend.avatar_url}
+                                      size={36}
+                                    />
+                                    <span className="task-edit-shared-avatar-add">+</span>
+                                  </button>
                                 </div>
-                                <span className="task-edit-friend-name">{friend.name}</span>
-                                <button
-                                  className="task-edit-perm-btn add"
-                                  onClick={() => toggleFriendPermission(
-                                    friend.friend_user_id,
-                                    friend.name,
-                                    friend.avatar_color,
-                                    friend.avatar_url,
-                                    'add'
-                                  )}
-                                >
-                                  + Hinzufügen
-                                </button>
-                              </div>
-                            ))}
+                              ))}
+                          </div>
                           {friends.filter(f => !permissions.find(p => p.user_id === f.friend_user_id)).length === 0 && (
                             <div className="task-edit-all-added">Alle Freunde hinzugefügt</div>
                           )}

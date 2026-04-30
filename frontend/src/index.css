@@ -8715,14 +8715,12 @@ body.cal-is-dragging * {
 .creator-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  color: var(--text-secondary);
+  justify-content: center;
 }
 
 .creator-dot {
-  width: 8px;
-  height: 8px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -8796,27 +8794,45 @@ body.cal-is-dragging * {
 .shared-users-chips {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 0;
   flex-wrap: wrap;
 }
 
 .shared-user-chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  background: rgba(0, 122, 255, 0.08);
-  padding: 2px 8px 2px 6px;
-  border-radius: 10px;
+  margin-left: -6px;
+  border: 1.5px solid var(--card-solid);
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--card-solid);
+}
+
+.shared-user-chip:first-child {
+  margin-left: 0;
 }
 
 .shared-user-dot {
-  width: 8px;
-  height: 8px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   flex-shrink: 0;
+}
+
+.shared-user-overflow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  margin-left: -6px;
+  padding: 0 5px;
+  border-radius: 999px;
+  border: 1.5px solid var(--card-solid);
+  background: #edf2fb;
+  color: #44536d;
+  font-size: 10px;
+  font-weight: 700;
 }
 
 /* Shared Users in Detail Modal */
@@ -9127,9 +9143,22 @@ body.cal-is-dragging * {
   -webkit-overflow-scrolling: touch;
 }
 
+.task-edit-add-friends-avatars {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 4px 2px 6px 2px;
+}
+
 .task-edit-shared-avatar-chip {
   position: relative;
   margin-left: -12px;
+}
+
+.task-edit-shared-avatar-chip--add {
+  margin-left: 0;
+  transform: none;
 }
 
 .task-edit-shared-avatar-chip:first-child {
@@ -9192,6 +9221,24 @@ body.cal-is-dragging * {
   align-items: center;
   justify-content: center;
   padding: 0;
+}
+
+.task-edit-shared-avatar-add {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid var(--card-solid);
+  background: #34c759;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .task-edit-shared-item {

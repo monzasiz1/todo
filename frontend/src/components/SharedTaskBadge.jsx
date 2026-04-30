@@ -25,6 +25,8 @@ export default function SharedTaskBadge({ task }) {
   };
 
   const sharedUsers = Array.isArray(shared_with_users) ? shared_with_users : [];
+  const visibleSharedUsers = sharedUsers.slice(0, 4);
+  const overflowSharedUsers = Math.max(0, sharedUsers.length - visibleSharedUsers.length);
 
   return (
     <div className="shared-task-badge">
@@ -34,40 +36,38 @@ export default function SharedTaskBadge({ task }) {
       </span>
       {sharedUsers.length > 0 && (
         <div className="shared-users-chips">
-          {sharedUsers.map((u, i) => (
-            <span key={i} className="shared-user-chip">
+          {visibleSharedUsers.map((u, i) => (
+            <span key={i} className="shared-user-chip" title={u.name}>
               <AvatarBadge
                 className="shared-user-dot"
                 name={u.name}
                 color={u.color || '#007AFF'}
                 avatarUrl={u.avatar_url}
-                size={12}
+                size={18}
               />
-              {u.name}
             </span>
           ))}
+          {overflowSharedUsers > 0 && (
+            <span className="shared-user-overflow" title={`+${overflowSharedUsers} weitere`}>
+              +{overflowSharedUsers}
+            </span>
+          )}
         </div>
       )}
       {!is_owner && creator_name && (
-        <span className="creator-badge">
+        <span className="creator-badge" title={`Erstellt von ${creator_name}`}>
           <AvatarBadge
             className="creator-dot"
             name={creator_name}
             color={creator_color || '#007AFF'}
             avatarUrl={task.creator_avatar_url}
-            size={12}
+            size={18}
           />
-          {creator_name}
         </span>
       )}
       {!can_edit && !is_owner && (
         <span className="readonly-badge">
           <Eye size={10} /> Nur lesen
-        </span>
-      )}
-      {last_editor_name && (
-        <span className="last-editor-badge">
-          Bearbeitet von {last_editor_name}
         </span>
       )}
     </div>
