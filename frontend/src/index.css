@@ -18906,7 +18906,7 @@ body.cal-is-dragging * {
 
 .bq-auth-brand-top {
   display: grid;
-  gap: 18px;
+  gap: 16px;
   position: relative;
   z-index: 1;
 }
@@ -18916,13 +18916,13 @@ body.cal-is-dragging * {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 7px 12px;
+  padding: 6px 11px;
   border-radius: 999px;
-  font-size: 0.76rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.03em;
-  color: rgba(255, 255, 255, 0.78);
-  background: rgba(255, 255, 255, 0.08);
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
@@ -18943,84 +18943,175 @@ body.cal-is-dragging * {
 }
 
 .bq-auth-brand-headline {
-  font-size: clamp(2.1rem, 3.5vw, 3.2rem);
+  font-size: clamp(2.2rem, 3.4vw, 3.35rem);
   font-weight: 900;
   letter-spacing: -0.06em;
-  line-height: 0.98;
+  line-height: 0.94;
   color: #fff;
   white-space: pre-line;
+  max-width: 8ch;
 }
 
 .bq-auth-brand-sub {
-  font-size: 1rem;
-  color: rgba(255,255,255,0.62);
-  line-height: 1.7;
-  max-width: 470px;
+  font-size: 0.98rem;
+  color: rgba(255,255,255,0.56);
+  line-height: 1.65;
+  max-width: 420px;
 }
 
-.bq-auth-brand-metrics {
+.bq-auth-visual {
   position: relative;
   z-index: 1;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.bq-auth-metric {
-  display: grid;
-  gap: 5px;
-  padding: 12px 13px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.bq-auth-metric strong {
-  color: #fff;
-  font-size: 0.95rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-.bq-auth-metric span {
-  color: rgba(255, 255, 255, 0.62);
-  font-size: 0.74rem;
-  line-height: 1.4;
-}
-
-/* feature list on brand panel */
-.bq-auth-features {
+  margin-top: 6px;
+  min-height: 320px;
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  position: relative;
-  z-index: 1;
+  align-items: flex-end;
 }
 
-.bq-auth-feature {
+.bq-auth-visual-glow {
+  position: absolute;
+  inset: 18px 14% auto 8%;
+  height: 220px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, rgba(0, 122, 255, 0.34) 0%, rgba(0, 122, 255, 0.06) 42%, transparent 72%),
+    radial-gradient(circle at 70% 50%, rgba(88, 86, 214, 0.26) 0%, transparent 58%);
+  filter: blur(26px);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.bq-auth-preview-card {
+  position: relative;
+  width: min(100%, 520px);
+  padding: 18px;
+  border-radius: 26px;
+  background:
+    linear-gradient(180deg, rgba(16, 20, 36, 0.86) 0%, rgba(12, 16, 29, 0.94) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.bq-auth-preview-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.08), transparent 34%),
+    radial-gradient(circle at 85% 15%, rgba(0,122,255,0.18), transparent 28%);
+  pointer-events: none;
+}
+
+.bq-auth-preview-top {
+  display: flex;
+  position: relative;
+  z-index: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.bq-auth-preview-label,
+.bq-auth-preview-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 11px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.bq-auth-preview-label {
+  color: rgba(255,255,255,0.72);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.bq-auth-preview-badge {
+  color: #7dc1ff;
+  background: rgba(0,122,255,0.14);
+  border: 1px solid rgba(0,122,255,0.18);
+}
+
+.bq-auth-preview-stack {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 12px;
+}
+
+.bq-auth-preview-item {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 11px 12px;
-  border-radius: 13px;
+  padding: 14px;
+  border-radius: 18px;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
-.bq-auth-feature-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 11px;
+.bq-auth-preview-item:nth-child(2) {
+  transform: translateX(18px);
+}
+
+.bq-auth-preview-item:nth-child(3) {
+  transform: translateX(40px);
+}
+
+.bq-auth-preview-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
   display: grid;
   place-items: center;
   flex-shrink: 0;
 }
 
-.bq-auth-feature > span {
-  font-size: 0.92rem;
-  color: rgba(255,255,255,0.72);
-  font-weight: 500;
-  line-height: 1.42;
+.bq-auth-preview-copy {
+  display: grid;
+  gap: 3px;
+}
+
+.bq-auth-preview-copy strong {
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.bq-auth-preview-copy span {
+  color: rgba(255,255,255,0.52);
+  font-size: 0.78rem;
+}
+
+.bq-auth-preview-footer {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.bq-auth-preview-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.64);
+  font-size: 0.74rem;
+  font-weight: 600;
 }
 
 .bq-auth-brand-footer {
@@ -19531,10 +19622,6 @@ body.cal-is-dragging * {
   .bq-auth-form-panel {
     padding: 72px 20px 36px;
     align-items: flex-start;
-  }
-
-  .bq-auth-brand-metrics {
-    grid-template-columns: 1fr;
   }
 
   .bq-auth-form-inner {

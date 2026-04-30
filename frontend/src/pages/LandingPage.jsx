@@ -600,44 +600,50 @@ export default function LandingPage() {
                   <span>BeeQu</span>
                 </div>
                 <span className="bq-auth-kicker">
-                  {showRegister ? 'Produktiv ab dem ersten Tag' : 'Dein Fokus startet hier'}
+                  {showRegister ? 'BeeQu Workspace' : 'Persoenlicher Workspace'}
                 </span>
                 <h2 className="bq-auth-brand-headline">
-                  {showRegister ? 'Kostenlos starten.\nIn 30 Sekunden.' : 'Willkommen zurück.'}
+                  {showRegister ? 'Klarer Start.\nRuhiger Fokus.' : 'Zurueck in deinen\nWorkspace.'}
                 </h2>
                 <p className="bq-auth-brand-sub">
                   {showRegister
-                    ? 'Tasks, Kalender, Notizen und Team-Kommunikation in einem klaren Workspace von BeeTwice.'
-                    : 'BeeQu hält Aufgaben, Kalender und Team-Kommunikation in einem Flow zusammen.'}
+                    ? 'Aufgaben, Kalender und Zusammenarbeit in einer ruhigen Oberflaeche.'
+                    : 'Deine Planung, Termine und Abstimmungen an einem Ort.'}
                 </p>
               </div>
 
-              <div className="bq-auth-brand-metrics">
-                {[
-                  { value: '1 App', label: 'für Tasks, Kalender und Team' },
-                  { value: '60 Sek.', label: 'bis zur ersten geplanten Aufgabe' },
-                  { value: 'Live', label: 'Sync über alle Geräte' },
-                ].map(({ value, label }) => (
-                  <div key={label} className="bq-auth-metric">
-                    <strong>{value}</strong>
-                    <span>{label}</span>
+              <div className="bq-auth-visual">
+                <div className="bq-auth-visual-glow" aria-hidden />
+                <div className="bq-auth-preview-card">
+                  <div className="bq-auth-preview-top">
+                    <span className="bq-auth-preview-label">Heute</span>
+                    <span className="bq-auth-preview-badge">Live Sync</span>
                   </div>
-                ))}
-              </div>
 
-              <div className="bq-auth-features">
-                {[
-                  { icon: Sparkles,    color: '#007AFF', text: 'KI erkennt Datum, Zeit & Priorität automatisch' },
-                  { icon: CalendarDays,color: '#5856D6', text: 'Alles im Blick mit Monats- & Wochenkalender' },
-                  { icon: UsersRound,  color: '#34C759', text: 'Teams & Echtzeit-Chat ohne extra Tools' },
-                ].map(({ icon: Icon, color, text }) => (
-                  <div key={text} className="bq-auth-feature">
-                    <div className="bq-auth-feature-icon" style={{ background: `${color}18`, color }}>
-                      <Icon size={16} />
-                    </div>
-                    <span>{text}</span>
+                  <div className="bq-auth-preview-stack">
+                    {[
+                      { icon: Sparkles, color: '#007AFF', title: 'Briefing finalisieren', meta: '14:00  ·  Hoch' },
+                      { icon: CalendarDays, color: '#5856D6', title: 'Wochenplanung', meta: 'Morgen  ·  Kalender' },
+                      { icon: UsersRound, color: '#34C759', title: 'Team-Update', meta: '3 neue Antworten' },
+                    ].map(({ icon: Icon, color, title, meta }) => (
+                      <div key={title} className="bq-auth-preview-item">
+                        <div className="bq-auth-preview-icon" style={{ color, background: `${color}20` }}>
+                          <Icon size={15} />
+                        </div>
+                        <div className="bq-auth-preview-copy">
+                          <strong>{title}</strong>
+                          <span>{meta}</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+
+                  <div className="bq-auth-preview-footer">
+                    {['KI', 'Kalender', 'Team'].map((label) => (
+                      <span key={label} className="bq-auth-preview-chip">{label}</span>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <div className="bq-auth-brand-footer">
