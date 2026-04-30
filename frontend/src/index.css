@@ -6117,34 +6117,14 @@ body.cal-is-dragging * {
     box-shadow: 0 2px 8px rgba(0, 122, 255, 0.25);
   }
 
-  /* Task Detail Modal — direkt zwischen Status-Bar und Bottom-Nav fixiert */
+  /* Task Detail Modal — on mobile/tablet, the overlay is never rendered.
+     The modal is portalled directly to body with is-mobile-fullscreen.
+     These rules are kept as a safety net but should not apply. */
   .task-detail-overlay {
     padding: 0 !important;
-    align-items: flex-start !important;
-    justify-content: flex-start !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    background: var(--bg, #f2f2f7) !important;
-  }
-
-  .task-detail-overlay .task-detail-modal {
-    position: fixed !important;
-    top: env(safe-area-inset-top, 0px) !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important;
-    width: 100% !important;
-    max-width: none !important;
-    height: auto !important;
-    max-height: none !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    background: var(--bg, #f2f2f7) !important;
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
+    background: transparent !important;
   }
 
   .task-detail-main,
@@ -6504,40 +6484,37 @@ body.cal-is-dragging * {
 }
 
 /* ===== MOBILE FULLSCREEN MODALS ===== */
-/* Applied via JS class regardless of media query — position: fixed overrides everything */
+/* Applied via JS className on ≤1024px — portalled directly to document.body, no overlay parent */
 .is-mobile-fullscreen {
   position: fixed !important;
-  top: 0 !important;
+  /* Respect notch at top, bottom nav at bottom */
+  top: env(safe-area-inset-top, 0px) !important;
   left: 0 !important;
   right: 0 !important;
-  bottom: 0 !important;
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important;
   width: 100% !important;
   max-width: none !important;
-  height: 100% !important;
+  height: auto !important;
   max-height: none !important;
   border-radius: 0 !important;
   box-shadow: none !important;
   background: var(--bg, #f2f2f7) !important;
-  /* Above BottomNav (z-index: 10100) */
   z-index: 10200 !important;
+  /* Single scroll container — children must NOT also scroll */
   overflow-y: auto !important;
+  overflow-x: hidden !important;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  display: flex !important;
-  flex-direction: column;
-  padding-top: env(safe-area-inset-top, 0px);
-  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
 }
 
+/* Sticky header inside the scroll container */
 .is-mobile-fullscreen .task-detail-header,
 .is-mobile-fullscreen .task-edit-header {
-  /* Only the header gets the notch offset — not the container too */
-  padding-top: 14px;
-  flex-shrink: 0;
-  background: var(--bg, #f2f2f7);
   position: sticky;
   top: 0;
   z-index: 6;
+  padding-top: 14px;
+  background: var(--bg, #f2f2f7);
 }
 
 .is-mobile-fullscreen .task-detail-priority-bar {
@@ -6545,20 +6522,17 @@ body.cal-is-dragging * {
 }
 
 .is-mobile-fullscreen .task-detail-header-actions {
-  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  top: 10px;
 }
 
+/* Kill nested scroll — the container above handles all scrolling */
 .is-mobile-fullscreen .task-detail-main,
+.is-mobile-fullscreen .task-detail-aside,
 .is-mobile-fullscreen .task-edit-body {
-  flex: 1;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-}
-
-.is-mobile-fullscreen .task-detail-aside {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow: visible !important;
+  flex: none !important;
+  min-height: unset !important;
+  height: auto !important;
 }
 
 /* ===== MODALS / OVERLAYS ===== */

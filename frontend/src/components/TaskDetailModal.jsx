@@ -56,15 +56,18 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     const dx = e.changedTouches[0].clientX - swipeRef.current.startX;
     const dy = e.changedTouches[0].clientY - swipeRef.current.startY;
     swipeRef.current.active = false;
+    // Right swipe: always close (doesn't conflict with scroll)
     if (dx > 80 && Math.abs(dy) < 60) { onClose(); return; }
-    if (dy > 100 && Math.abs(dx) < 80) { onClose(); return; }
+    // Down swipe: only close when already scrolled to top
+    if (dy > 100 && Math.abs(dx) < 80 && e.currentTarget.scrollTop <= 0) { onClose(); return; }
   };
 
   useEffect(() => {
-    if (pageMode) return;
+    // Lock scroll only for desktop overlay — mobile/tablet is its own page
+    if (pageMode || isMobile) return;
     lockScroll();
     return () => unlockScroll();
-  }, [pageMode]);
+  }, [pageMode, isMobile]);
 
   const currentUser = useMemo(() => {
     try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch { return null; }
@@ -171,11 +174,11 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const content = (
     <motion.div
       className={`task-detail-modal${pageMode ? ' task-detail-page-mode' : ''}${isMobile ? ' is-mobile-fullscreen' : ''}${!isEvent ? ' is-task-detail' : ''}`}
-      initial={pageMode ? { opacity: 0, x: 30 } : (isMobile ? { x: '100%' } : { opacity: 0, y: 24 })}
-      animate={pageMode ? { opacity: 1, x: 0 } : (isMobile ? { x: 0 } : { opacity: 1, y: 0 })}
-      exit={pageMode ? {} : (isMobile ? { x: '100%' } : { opacity: 0, y: 16 })}
-      transition={{ type: 'tween', duration: pageMode ? 0.22 : (isMobile ? 0.24 : 0.2), ease: 'easeOut' }}
-      onClick={pageMode ? undefined : (e) => e.stopPropagation()}
+      initial={isMobile ? { x: '100%' } : (pageMode ? { opacity: 0, x: 30 } : { opacity: 0, y: 24 })}
+      animate={isMobile ? { x: 0 } : (pageMode ? { opacity: 1, x: 0 } : { opacity: 1, y: 0 })}
+      exit={isMobile ? { x: '100%' } : (pageMode ? {} : { opacity: 0, y: 16 })}
+      transition={{ type: 'tween', duration: isMobile ? 0.26 : (pageMode ? 0.22 : 0.2), ease: 'easeOut' }}
+      onClick={(!pageMode && !isMobile) ? (e) => e.stopPropagation() : undefined}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
@@ -477,6 +480,21 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     return <>{content}{editPortal}</>;
   }
 
+  // Mobile/tablet: render directly into body — no overlay wrapper
+  // This ensures position:fixed works relative to viewport (not a stacking context)
+  if (isMobile) {
+    return (
+      <>
+        {createPortal(
+          <AnimatePresence>{content}</AnimatePresence>,
+          document.body
+        )}
+        {editPortal}
+      </>
+    );
+  }
+
+  // Desktop: classic centered overlay modal
   return (
     <>
       <AnimatePresence>
