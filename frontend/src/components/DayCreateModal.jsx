@@ -472,9 +472,7 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
           }}
         />
       )}
-    </motion.div>
-    </>
-  );
+
 
   if (isMobile) {
     return createPortal(modalInner, portalTarget || document.body);
