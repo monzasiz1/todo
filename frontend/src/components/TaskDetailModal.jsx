@@ -240,7 +240,6 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {isMobile && <div className="modal-pull-handle" />}
       <div className="task-detail-main">
         <div className="task-detail-header">
           {pageMode && (
@@ -249,6 +248,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
             </button>
           )}
           <div className="task-detail-priority-bar" style={{ background: priority.color }} />
+          {isMobile && <div className="modal-pull-handle" />}
           <div className="task-detail-header-actions" ref={menuRef}>
             <button className="task-detail-more-btn" onClick={() => setShowMenu((s) => !s)} title="Mehr" aria-label="Mehr">
               <MoreVertical size={18} />

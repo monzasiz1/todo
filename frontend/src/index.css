@@ -6487,8 +6487,8 @@ body.cal-is-dragging * {
 /* Applied via JS className on ≤1024px — portalled directly to document.body, no overlay parent */
 .is-mobile-fullscreen {
   position: fixed !important;
-  /* Respect notch at top; cover the full app including bottom nav */
-  top: env(safe-area-inset-top, 0px) !important;
+  /* Fullscreen without top gap so no underlying sheet/handle can bleed through */
+  top: 0 !important;
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
@@ -15650,15 +15650,29 @@ body.cal-is-dragging * {
   }
 
   /* Unified pull handle for pull-down closable sheets */
-  .modal-pull-handle,
+  .modal-pull-handle {
+    display: block;
+    width: 40px;
+    height: 5px;
+    background: var(--border-strong);
+    border-radius: 3px;
+    margin: 6px auto 4px;
+    pointer-events: none;
+    flex-shrink: 0;
+  }
+
   .day-create-drag-handle {
     display: block;
     width: 40px;
     height: 5px;
     background: var(--border-strong);
     border-radius: 3px;
-    margin: max(14px, calc(env(safe-area-inset-top, 0px) + 10px)) auto 0;
+    margin: max(10px, calc(env(safe-area-inset-top, 0px) + 6px)) auto 0;
     flex-shrink: 0;
+  }
+
+  .is-mobile-fullscreen .task-detail-header .modal-pull-handle {
+    margin: 6px auto 2px;
   }
 
   .day-create-header {
