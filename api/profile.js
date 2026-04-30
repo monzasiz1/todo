@@ -22,7 +22,7 @@ module.exports = async function handler(req, res) {
       try {
         userResult = await pool.query(
           `SELECT id, name, email, avatar_url, avatar_color, bio, theme, created_at,
-                  profile_visibility, twofa_enabled
+                  profile_visibility, twofa_enabled, calendar_holiday_color
            FROM users WHERE id = $1`,
           [user.id]
         );
@@ -37,6 +37,15 @@ module.exports = async function handler(req, res) {
         if (userResult.rows[0]) {
           const secretResult = await pool.query('SELECT twofa_secret FROM users WHERE id = $1', [user.id]);
           userResult.rows[0].twofa_enabled = !!secretResult.rows[0]?.twofa_secret;
+          try {
+            const holidayColorResult = await pool.query(
+              'SELECT calendar_holiday_color FROM users WHERE id = $1',
+              [user.id]
+            );
+            userResult.rows[0].calendar_holiday_color = holidayColorResult.rows[0]?.calendar_holiday_color || '#D92C2C';
+          } catch {
+            userResult.rows[0].calendar_holiday_color = '#D92C2C';
+          }
         }
       }
       if (userResult.rows.length === 0) {
@@ -126,10 +135,10 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // PUT /api/profile — Update name, bio, avatar_color, theme
+  // PUT /api/profile — Update name, bio, avatar_color, theme, calendar_holiday_color
   if (!action && req.method === 'PUT') {
     try {
-      const { name, bio, avatar_color, theme } = req.body;
+      const { name, bio, avatar_color, theme, calendar_holiday_color } = req.body;
 
       if (name !== undefined && (!name || name.trim().length < 1)) {
         return res.status(400).json({ error: 'Name darf nicht leer sein' });
@@ -143,22 +152,40 @@ module.exports = async function handler(req, res) {
       if (avatar_color !== undefined && !/^#[0-9A-Fa-f]{6}$/.test(avatar_color)) {
         return res.status(400).json({ error: 'Ungültige Farbe' });
       }
+      if (calendar_holiday_color !== undefined && !/^#[0-9A-Fa-f]{6}$/.test(calendar_holiday_color)) {
+        return res.status(400).json({ error: 'Ungültige Feiertagsfarbe' });
+      }
       if (theme !== undefined && !['light', 'dark', 'auto'].includes(theme)) {
         return res.status(400).json({ error: 'Ungültiges Theme' });
       }
 
-      const result = await pool.query(
-        `UPDATE users SET
-           name = COALESCE($2, name),
-           bio = COALESCE($3, bio),
-           avatar_color = COALESCE($4, avatar_color),
-           theme = COALESCE($5, theme)
-         WHERE id = $1
-         RETURNING id, name, email, avatar_url, avatar_color, bio, theme, created_at, twofa_enabled`,
-        [user.id, name || null, bio !== undefined ? bio : null, avatar_color || null, theme || null]
-      );
+      const result = calendar_holiday_color !== undefined
+        ? await pool.query(
+          `UPDATE users SET
+             name = COALESCE($2, name),
+             bio = COALESCE($3, bio),
+             avatar_color = COALESCE($4, avatar_color),
+             theme = COALESCE($5, theme),
+             calendar_holiday_color = COALESCE($6, calendar_holiday_color)
+           WHERE id = $1
+           RETURNING id, name, email, avatar_url, avatar_color, bio, theme, created_at, twofa_enabled, calendar_holiday_color`,
+          [user.id, name || null, bio !== undefined ? bio : null, avatar_color || null, theme || null, calendar_holiday_color || null]
+        )
+        : await pool.query(
+          `UPDATE users SET
+             name = COALESCE($2, name),
+             bio = COALESCE($3, bio),
+             avatar_color = COALESCE($4, avatar_color),
+             theme = COALESCE($5, theme)
+           WHERE id = $1
+           RETURNING id, name, email, avatar_url, avatar_color, bio, theme, created_at, twofa_enabled`,
+          [user.id, name || null, bio !== undefined ? bio : null, avatar_color || null, theme || null]
+        );
 
-      const updatedUser = result.rows[0];
+      const updatedUser = {
+        ...result.rows[0],
+        calendar_holiday_color: result.rows[0]?.calendar_holiday_color || calendar_holiday_color || '#D92C2C',
+      };
       const token = generateToken(updatedUser);
       return res.json({ user: updatedUser, twofa_enabled: updatedUser.twofa_enabled, token });
     } catch (err) {
