@@ -66,7 +66,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       return;
     }
 
-    // Prevent iOS rubber-band white area and move modal itself instead.
+    // Prevent iOS rubber-band/background scroll and move modal itself instead.
     if (e.cancelable) e.preventDefault();
     const resisted = Math.min(dy * 0.88, 320);
     pullOffsetRef.current = resisted;
@@ -84,11 +84,12 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   };
 
   useEffect(() => {
-    // Lock scroll only for desktop overlay — mobile/tablet is its own page
-    if (pageMode || isMobile) return;
+    // Lock background scroll while modal is open (desktop + mobile overlay mode)
+    // pageMode stays unlocked because it is rendered as normal page content.
+    if (pageMode) return;
     lockScroll();
     return () => unlockScroll();
-  }, [pageMode, isMobile]);
+  }, [pageMode]);
 
   const currentUser = useMemo(() => {
     try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch { return null; }
