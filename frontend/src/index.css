@@ -8690,6 +8690,16 @@ body.cal-is-dragging * {
   margin-bottom: 4px;
 }
 
+.shared-selection-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 7px 3px 6px;
+  border-radius: 999px;
+  background: rgba(52, 199, 89, 0.1);
+  border: 1px solid rgba(52, 199, 89, 0.22);
+}
+
 .visibility-badge {
   display: inline-flex;
   align-items: center;
@@ -8700,6 +8710,10 @@ body.cal-is-dragging * {
   border-radius: 6px;
   text-transform: uppercase;
   letter-spacing: 0.3px;
+}
+
+.visibility-badge.in-cluster {
+  margin-right: 1px;
 }
 
 .visibility-badge.shared {
@@ -8718,11 +8732,39 @@ body.cal-is-dragging * {
   justify-content: center;
 }
 
+.creator-badge.in-cluster {
+  position: relative;
+}
+
 .creator-dot {
   width: 18px;
   height: 18px;
   border-radius: 50%;
   flex-shrink: 0;
+  box-shadow: 0 0 0 1.5px var(--card-solid);
+}
+
+.cluster-separator {
+  width: 1px;
+  height: 16px;
+  background: rgba(52, 199, 89, 0.45);
+}
+
+.creator-tag {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  min-width: 10px;
+  height: 10px;
+  padding: 0 2px;
+  border-radius: 999px;
+  background: #007aff;
+  color: #fff;
+  font-size: 7px;
+  font-weight: 700;
+  line-height: 10px;
+  text-align: center;
+  border: 1px solid var(--card-solid);
 }
 
 .readonly-badge {
@@ -8798,6 +8840,10 @@ body.cal-is-dragging * {
   flex-wrap: wrap;
 }
 
+.shared-users-chips.in-cluster {
+  flex-wrap: nowrap;
+}
+
 .shared-user-chip {
   display: inline-flex;
   align-items: center;
@@ -8859,6 +8905,36 @@ body.cal-is-dragging * {
   width: 26px;
   height: 26px;
   font-size: 12px;
+}
+
+.task-detail-shared-avatars {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  margin-top: 8px;
+}
+
+.task-detail-shared-avatar {
+  display: inline-flex;
+  border-radius: 50%;
+  border: 2px solid var(--surface, #fff);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+.task-detail-shared-overflow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(0,122,255,0.15);
+  color: #007AFF;
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: -10px;
+  border: 2px solid var(--surface, #fff);
+  z-index: 1;
 }
 
 /* Collab mobile handled in main responsive section */

@@ -350,13 +350,15 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
               <span>{task.visibility === 'shared' ? 'Mit allen Freunden geteilt' : 'Mit ausgewählten Personen geteilt'}</span>
             </div>
             {Array.isArray(task.shared_with_users) && task.shared_with_users.length > 0 && (
-              <div className="task-detail-shared-users">
-                {task.shared_with_users.map((u, i) => (
-                  <div key={i} className="task-detail-shared-user">
-                    <AvatarBadge className="collab-avatar" name={u.name} color={u.color || '#007AFF'} avatarUrl={u.avatar_url} size={22} />
-                    <span>{u.name}</span>
-                  </div>
+              <div className="task-detail-shared-avatars">
+                {task.shared_with_users.slice(0, 5).map((u, i) => (
+                  <span key={i} className="task-detail-shared-avatar" style={{ zIndex: 10 - i, marginLeft: i > 0 ? -10 : 0 }} title={u.name}>
+                    <AvatarBadge name={u.name} color={u.color || '#007AFF'} avatarUrl={u.avatar_url} size={30} />
+                  </span>
                 ))}
+                {task.shared_with_users.length > 5 && (
+                  <span className="task-detail-shared-overflow">+{task.shared_with_users.length - 5}</span>
+                )}
               </div>
             )}
             {!task.is_owner && task.creator_name && (

@@ -27,43 +27,89 @@ export default function SharedTaskBadge({ task }) {
   const sharedUsers = Array.isArray(shared_with_users) ? shared_with_users : [];
   const visibleSharedUsers = sharedUsers.slice(0, 4);
   const overflowSharedUsers = Math.max(0, sharedUsers.length - visibleSharedUsers.length);
+  const isSelectedUsers = visibility === 'selected_users';
+  const showSelectionCluster = isSelectedUsers && sharedUsers.length > 0;
 
   return (
     <div className="shared-task-badge">
-      <span className={`visibility-badge ${visibility}`}>
-        {getVisibilityIcon()}
-        {getVisibilityLabel()}
-      </span>
-      {sharedUsers.length > 0 && (
-        <div className="shared-users-chips">
-          {visibleSharedUsers.map((u, i) => (
-            <span key={i} className="shared-user-chip" title={u.name}>
+      {showSelectionCluster ? (
+        <div className="shared-selection-cluster" title="Ausgewählte Personen und Ersteller">
+          <span className={`visibility-badge ${visibility} in-cluster`}>
+            {getVisibilityIcon()}
+            {getVisibilityLabel()}
+          </span>
+          <div className="shared-users-chips in-cluster">
+            {visibleSharedUsers.map((u, i) => (
+              <span key={i} className="shared-user-chip" title={u.name}>
+                <AvatarBadge
+                  className="shared-user-dot"
+                  name={u.name}
+                  color={u.color || '#007AFF'}
+                  avatarUrl={u.avatar_url}
+                  size={18}
+                />
+              </span>
+            ))}
+            {overflowSharedUsers > 0 && (
+              <span className="shared-user-overflow" title={`+${overflowSharedUsers} weitere`}>
+                +{overflowSharedUsers}
+              </span>
+            )}
+          </div>
+          {!is_owner && creator_name && (
+            <>
+              <span className="cluster-separator" />
+              <span className="creator-badge in-cluster" title={`Ersteller: ${creator_name}`}>
+                <AvatarBadge
+                  className="creator-dot"
+                  name={creator_name}
+                  color={creator_color || '#007AFF'}
+                  avatarUrl={task.creator_avatar_url}
+                  size={18}
+                />
+                <span className="creator-tag">E</span>
+              </span>
+            </>
+          )}
+        </div>
+      ) : (
+        <>
+          <span className={`visibility-badge ${visibility}`}>
+            {getVisibilityIcon()}
+            {getVisibilityLabel()}
+          </span>
+          {sharedUsers.length > 0 && (
+            <div className="shared-users-chips">
+              {visibleSharedUsers.map((u, i) => (
+                <span key={i} className="shared-user-chip" title={u.name}>
+                  <AvatarBadge
+                    className="shared-user-dot"
+                    name={u.name}
+                    color={u.color || '#007AFF'}
+                    avatarUrl={u.avatar_url}
+                    size={18}
+                  />
+                </span>
+              ))}
+              {overflowSharedUsers > 0 && (
+                <span className="shared-user-overflow" title={`+${overflowSharedUsers} weitere`}>
+                  +{overflowSharedUsers}
+                </span>
+              )}
+            </div>
+          )}
+          {!is_owner && creator_name && (
+            <span className="creator-badge" title={`Erstellt von ${creator_name}`}>
               <AvatarBadge
-                className="shared-user-dot"
-                name={u.name}
-                color={u.color || '#007AFF'}
-                avatarUrl={u.avatar_url}
+                className="creator-dot"
+                name={creator_name}
+                color={creator_color || '#007AFF'}
+                avatarUrl={task.creator_avatar_url}
                 size={18}
               />
             </span>
-          ))}
-          {overflowSharedUsers > 0 && (
-            <span className="shared-user-overflow" title={`+${overflowSharedUsers} weitere`}>
-              +{overflowSharedUsers}
-            </span>
           )}
-        </div>
-      )}
-      {!is_owner && creator_name && (
-        <span className="creator-badge" title={`Erstellt von ${creator_name}`}>
-          <AvatarBadge
-            className="creator-dot"
-            name={creator_name}
-            color={creator_color || '#007AFF'}
-            avatarUrl={task.creator_avatar_url}
-            size={18}
-          />
-        </span>
+        </>
       )}
       {!can_edit && !is_owner && (
         <span className="readonly-badge">
