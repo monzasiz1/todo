@@ -4909,13 +4909,13 @@ body.cal-is-dragging * {
   letter-spacing: -0.05em;
   color: transparent;
   -webkit-text-fill-color: transparent;
-  -webkit-text-stroke: 0.35px rgba(24, 77, 153, 0.18);
+  -webkit-text-stroke: 0.6px rgba(24, 77, 153, 0.28);
   text-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.72),
-    0 2px 2px rgba(255, 255, 255, 0.24),
-    0 -1px 0 rgba(31, 86, 163, 0.16),
-    0 -2px 4px rgba(17, 63, 129, 0.08);
-  filter: saturate(0.95);
+    0 1px 0 rgba(255, 255, 255, 0.85),
+    0 0 1px rgba(255, 255, 255, 0.55),
+    0 -1px 0 rgba(31, 86, 163, 0.22),
+    0 -2px 3px rgba(17, 63, 129, 0.1);
+  filter: saturate(1.02) contrast(1.04);
 }
 
 .mobile-brand-sub {
