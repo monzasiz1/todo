@@ -1,9 +1,9 @@
 ﻿import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../store/taskStore';
 import { ChevronLeft, ChevronRight, ChevronDown, Maximize2, Minimize2, Video } from 'lucide-react';
-import TaskDetailModal from './TaskDetailModal';
 import DayCreateModal from './DayCreateModal';
 import AvatarBadge from './AvatarBadge';
 import {
@@ -225,7 +225,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const [nowTs, setNowTs] = useState(Date.now());
   const [view, setView] = useState(window.innerWidth >= CALENDAR_WEEK_DEFAULT_BREAKPOINT ? 'week' : 'month');
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [detailTask, setDetailTask] = useState(null);
+  const navigate = useNavigate();
   const [showDayModal, setShowDayModal] = useState(false);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [showSidebarCategories, setShowSidebarCategories] = useState(true);
@@ -1151,7 +1151,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                           zIndex: spanWidth ? 4 : undefined,
                         }}
                         onPointerDown={viewportState.isDesktop && !ended ? (e) => handlePointerDown(e, t) : undefined}
-                        onClick={(e) => { e.stopPropagation(); if (!wasDragging.current) setDetailTask(t); }}
+                        onClick={(e) => { e.stopPropagation(); if (!wasDragging.current) navigate(`/app/tasks/${t.id}`); }}
                       >
                         {!isMobile && t.group_id && (
                           <AvatarBadge name={t.group_name} color={t.group_color || '#5856D6'} avatarUrl={t.group_image_url} size={10} />
@@ -1303,7 +1303,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         key={t.id}
                         className={`desktop-week-all-day-event ${spanClass}${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${t.completed ? ' completed' : ''}`}
                         style={{ background: doneOrOld ? 'rgba(142,142,147,0.4)' : (t.category_color || t.group_category_color || t.group_color || '#4C7BD9') }}
-                        onClick={(e) => { e.stopPropagation(); setDetailTask(t); }}
+                        onClick={(e) => { e.stopPropagation(); navigate(`/app/tasks/${t.id}`); }}
                       >
                         {showLabel && t.teams_join_url && <Video size={11} className="calendar-inline-teams-icon" />}
                         {showLabel && <span className={doneOrOld ? 'cal-allday-strike' : ''}>{t.title}</span>}
@@ -1446,7 +1446,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (!wasDragging.current) setDetailTask(t);
+                        if (!wasDragging.current) navigate(`/app/tasks/${t.id}`);
                       }}
                     >
                       {t.teams_join_url && <Video size={12} className="calendar-event-teams-icon" />}
@@ -1558,7 +1558,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                           key={`mwadt-${t.id}`}
                           className={`mobile-week-allday-pill ${spanClass}${doneOrOld ? ' done' : ''}`}
                           style={{ background: doneOrOld ? 'rgba(142,142,147,0.35)' : (t.category_color || t.group_category_color || t.group_color || '#4C7BD9') }}
-                          onClick={(e) => { e.stopPropagation(); setDetailTask(t); }}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/app/tasks/${t.id}`); }}
                         >
                           {showLabel && <span>{t.title}</span>}
                         </div>
@@ -1654,7 +1654,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                           if (e.target.closest('.cal-resize-handle')) return;
                           handleMobileWeekEventPointerDown(e, t, di, days);
                         }}
-                        onClick={(e) => { e.stopPropagation(); if (!wasDragging.current) setDetailTask(t); }}
+                        onClick={(e) => { e.stopPropagation(); if (!wasDragging.current) navigate(`/app/tasks/${t.id}`); }}
                       >
                           {t.teams_join_url && <Video size={11} className="calendar-event-teams-icon mobile" />}
                         {!ended && (
@@ -1754,7 +1754,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   key={`adtop-${t.id}`}
                   className={`mobile-day-allday-chip${doneOrOld ? ' done' : ''}`}
                   style={{ background: color }}
-                  onClick={(e) => { e.stopPropagation(); setDetailTask(t); }}
+                  onClick={(e) => { e.stopPropagation(); navigate(`/app/tasks/${t.id}`); }}
                 >
                   {t.group_id && (
                     <AvatarBadge name={t.group_name} color={t.group_color || '#5856D6'} avatarUrl={t.group_image_url} size={12} />
@@ -1837,7 +1837,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (!wasDragging.current) setDetailTask(t);
+                  if (!wasDragging.current) navigate(`/app/tasks/${t.id}`);
                 }}
               >
                 {t.teams_join_url && <Video size={11} className="calendar-event-teams-icon mobile" />}
@@ -2037,11 +2037,6 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
           </div>
         </div>,
         document.body
-      )}
-
-      {detailTask && createPortal(
-        <TaskDetailModal task={detailTask} portalTarget={isCalendarFullscreen && calendarWrapperRef.current ? calendarWrapperRef.current : document.body} onClose={() => setDetailTask(null)} onUpdated={onTaskUpdated} />,
-        isCalendarFullscreen && calendarWrapperRef.current ? calendarWrapperRef.current : document.body
       )}
 
       {dragInfo && createPortal(

@@ -12,6 +12,7 @@ import ProfilePage from './pages/ProfilePage';
 import GroupsPage from './pages/GroupsPage';
 import PricingPage from './pages/PricingPage';
 import NotesPage from './pages/NotesPage';
+import TaskDetailPage from './pages/TaskDetailPage';
 import InstallPrompt from './components/InstallPrompt';
 import OfflineBanner from './components/OfflineBanner';
 
@@ -67,6 +68,7 @@ export default function App() {
           <Route path="groups" element={<GroupsPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="pricing" element={<PricingPage />} />
+          <Route path="tasks/:taskId" element={<TaskDetailPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

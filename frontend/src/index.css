@@ -22183,3 +22183,95 @@ body.cal-is-dragging * {
   color: #5E5E66;
   background: rgba(142, 142, 147, 0.16);
 }
+
+/* ===== TASK DETAIL PAGE MODE ===== */
+
+/* Back-button (shown in page mode instead of X-close) */
+.task-detail-back-btn {
+  position: absolute;
+  left: 14px;
+  top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px 5px 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  transition: background 0.15s, color 0.15s;
+  z-index: 3;
+}
+.task-detail-back-btn:hover {
+  background: var(--hover-bg, rgba(0,0,0,0.06));
+  color: var(--primary);
+}
+
+/* Page mode: remove size/overflow constraints */
+.task-detail-modal.task-detail-page-mode {
+  max-width: 100%;
+  max-height: none;
+  overflow: visible;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+}
+
+/* Push title row below the back-button */
+.task-detail-page-mode .task-detail-header {
+  min-height: 52px;
+}
+.task-detail-page-mode .task-detail-title-row {
+  padding-top: 44px;
+}
+
+/* Desktop two-column: let content grow naturally, page handles scroll */
+@media (min-width: 900px) {
+  .task-detail-modal.task-detail-page-mode {
+    overflow: visible;
+    align-items: start;
+  }
+  .task-detail-modal.task-detail-page-mode .task-detail-main {
+    overflow-y: visible;
+    min-height: 0;
+  }
+  .task-detail-modal.task-detail-page-mode .task-detail-aside {
+    overflow-y: visible;
+    min-height: 0;
+  }
+}
+
+/* Mobile: no rounded corners, full width */
+@media (max-width: 768px) {
+  .task-detail-modal.task-detail-page-mode {
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+/* Loading / not-found states */
+.task-detail-page-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 80px 0;
+}
+.task-detail-page-notfound {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 80px 0;
+  color: var(--text-secondary);
+}
+.task-detail-page-notfound button {
+  padding: 8px 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--card);
+  cursor: pointer;
+  color: var(--text);
+  font-size: 14px;
+}

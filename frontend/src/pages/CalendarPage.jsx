@@ -1,8 +1,7 @@
 ﻿import { useCallback, useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { addDays, format as formatDate } from 'date-fns';
 import Calendar from '../components/Calendar';
-import TaskDetailModal from '../components/TaskDetailModal';
 import { useTaskStore } from '../store/taskStore';
 import { api } from '../utils/api';
 
@@ -31,6 +30,7 @@ function shiftRangeWindow(start, end, direction) {
 }
 
 export default function CalendarPage() {
+  const navigate = useNavigate();
   const { fetchTasksRange, getCachedTasksRange, primeTasksRangeCache, tasks: cachedTasks } = useTaskStore();
   const [calendarTasks, setCalendarTasks] = useState(() => Array.isArray(cachedTasks) ? cachedTasks : []);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -38,7 +38,6 @@ export default function CalendarPage() {
   const inflightRangeKeyRef = useRef('');
   const visibleRangeKeyRef = useRef('');
   const prefetchedRangeKeysRef = useRef(new Set());
-  const [highlightTask, setHighlightTask] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
   const loadRange = useCallback(async (start, end, force = false) => {
@@ -134,23 +133,11 @@ export default function CalendarPage() {
     const taskParam = searchParams.get('task');
     if (!taskParam) return;
     setSearchParams({}, { replace: true });
-    const taskId = Number(taskParam);
-    // Try from cache first
-    const cached = cachedTasks.find((t) => t.id === taskId);
-    if (cached) { setHighlightTask(cached); return; }
-    // Fetch from API
-    api.getTask(taskId).then((t) => { if (t) setHighlightTask(t); }).catch(() => null);
-  }, [searchParams, cachedTasks, setSearchParams]);
+    navigate(`/app/tasks/${taskParam}`, { replace: false });
+  }, [searchParams, setSearchParams, navigate]);
 
   return (
     <div className="calendar-page-wrap">
-      {highlightTask && (
-        <TaskDetailModal
-          task={highlightTask}
-          onClose={() => setHighlightTask(null)}
-          onUpdated={(updated) => { setHighlightTask(null); handleTaskUpdated(updated); }}
-        />
-      )}
       <div className="page-header">
         <h2>Kalender</h2>
         <p>Klicke auf einen Tag, um Aufgaben zu sehen oder zu erstellen</p>

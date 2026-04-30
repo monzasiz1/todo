@@ -1,11 +1,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { useGroupStore } from '../store/groupStore';
 import { useAuthStore } from '../store/authStore';
 import { useTaskStore } from '../store/taskStore';
 import { api } from '../utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Users, Plus, Hash, Copy, Check, ChevronRight, ChevronDown, Crown,
   Shield, UserMinus, Settings, Trash2, LogOut, X,
@@ -13,7 +12,6 @@ import {
   Camera, Tag, AlertTriangle, Pencil
 } from 'lucide-react';
 import AvatarBadge from '../components/AvatarBadge';
-import TaskDetailModal from '../components/TaskDetailModal';
 import { usePlan } from '../hooks/usePlan';
 import UpgradeModal from '../components/UpgradeModal';
 
@@ -77,14 +75,13 @@ async function fileToResizedDataUrl(file, maxSize = 320) {
 }
 
 export default function GroupsPage() {
+  const navigate = useNavigate();
   const { groups, fetchGroups, createGroup, joinGroup, loading } = useGroupStore();
   const [view, setView] = useState('list');
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
-  const [highlightTask, setHighlightTask] = useState(null);
   const { can, limit } = usePlan();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { tasks: cachedTasks } = useTaskStore();
   const pendingGroupRef = useRef(null); // kept for compat
   const pendingTaskRef = useRef(null);  // kept for compat
 
@@ -101,12 +98,7 @@ export default function GroupsPage() {
         setView('detail');
       }
       if (taskId) {
-        const cached = cachedTasks.find((t) => t.id === taskId);
-        if (cached) {
-          setHighlightTask(cached);
-        } else {
-          api.getTask(taskId).then((t) => { if (t) setHighlightTask(t); }).catch(() => null);
-        }
+        navigate(`/app/tasks/${taskId}`);
       }
     };
 
@@ -160,14 +152,6 @@ export default function GroupsPage() {
 
   return (
     <div>
-      {highlightTask && createPortal(
-        <TaskDetailModal
-          task={highlightTask}
-          onClose={() => setHighlightTask(null)}
-          onUpdated={() => setHighlightTask(null)}
-        />,
-        document.body
-      )}
       <AnimatePresence mode="wait">
         {view === 'list' && (
           <GroupList
@@ -531,6 +515,7 @@ const DASHBOARD_REFRESH_PARAMS = [
 ];
 
 function GroupDetail({ groupId, onBack }) {
+  const navigate = useNavigate();
   const {
     currentGroup, members, groupTasks, myRole,
     fetchGroup, addGroupTask, removeGroupTask, changeMemberRole, removeMember, deleteGroup, updateGroup,
@@ -542,7 +527,6 @@ function GroupDetail({ groupId, onBack }) {
   const [showAddTask, setShowAddTask] = useState(false);
   const [copied, setCopied] = useState(false);
   const [visibleCount, setVisibleCount] = useState(15);
-  const [detailTask, setDetailTask] = useState(null);
   const [showPastGroupTasks, setShowPastGroupTasks] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState('all');
 
@@ -714,7 +698,7 @@ function GroupDetail({ groupId, onBack }) {
                     await removeGroupTask(gId, tId);
                     fetchTasks(...DASHBOARD_REFRESH_PARAMS);
                   }}
-                  onOpenTask={setDetailTask}
+                  onOpenTask={(task) => navigate(`/app/tasks/${task.id}`)}
                 />
               ))}
               {visibleCount < filteredActiveTasks.length && (
@@ -744,7 +728,7 @@ function GroupDetail({ groupId, onBack }) {
                         await removeGroupTask(gId, tId);
                         fetchTasks(...DASHBOARD_REFRESH_PARAMS);
                       }}
-                      onOpenTask={setDetailTask}
+                      onOpenTask={(task) => navigate(`/app/tasks/${task.id}`)}
                     />
                   ))}
                 </div>
@@ -765,16 +749,6 @@ function GroupDetail({ groupId, onBack }) {
             />
           )}
 
-          {detailTask && (
-            <TaskDetailModal
-              task={detailTask}
-              onClose={() => setDetailTask(null)}
-              onUpdated={(updated) => {
-                updateGroupTask(updated.id, updated);
-                fetchTasks(...DASHBOARD_REFRESH_PARAMS);
-              }}
-            />
-          )}
         </div>
       )}
 

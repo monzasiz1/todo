@@ -5,7 +5,7 @@ import { useTaskStore } from '../store/taskStore';
 import { lockScroll, unlockScroll } from '../utils/scrollLock';
 import { api } from '../utils/api';
 import {
-  X, Calendar, CalendarCheck, Clock, Tag, Flag, CheckCircle2, Circle,
+  X, ArrowLeft, Calendar, CalendarCheck, Clock, Tag, Flag, CheckCircle2, Circle,
   Trash2, AlertTriangle, Repeat, Bell, FileText, ListChecks,
   Users, UserCheck, Eye, Edit3, Share2, MoreVertical, MessageCircle, Send, Video
 } from 'lucide-react';
@@ -22,7 +22,7 @@ const priorityConfig = {
   urgent: { label: 'Dringend', color: 'var(--danger)', icon: AlertTriangle },
 };
 
-export default function TaskDetailModal({ task, onClose, onUpdated, portalTarget }) {
+export default function TaskDetailModal({ task, onClose, onUpdated, portalTarget, pageMode }) {
   const { toggleTask, deleteTask, fetchTasks, addToast } = useTaskStore();
   const [showEdit, setShowEdit] = useState(false);
   const [sharingToChat, setSharingToChat] = useState(false);
@@ -86,9 +86,10 @@ export default function TaskDetailModal({ task, onClose, onUpdated, portalTarget
   const isEventEnded = isEvent && !!eventEndAt && eventEndAt.getTime() < Date.now();
 
   useEffect(() => {
+    if (pageMode) return;
     lockScroll();
     return () => unlockScroll();
-  }, []);
+  }, [pageMode]);
 
   useEffect(() => {
     if (!task?.id) {
@@ -183,29 +184,24 @@ export default function TaskDetailModal({ task, onClose, onUpdated, portalTarget
     }
   };
 
-  return (
-    <>
-      <motion.div
-        className="modal-overlay task-detail-overlay"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-      >
+  const innerContent = (
         <motion.div
-          className={`task-detail-modal${isMobile ? ' is-mobile-fullscreen' : ''}${!isEvent ? ' is-task-detail' : ''}`}
-          initial={isMobile ? { x: '100%' } : { opacity: 0, y: 24 }}
-          animate={isMobile ? { x: 0 } : { opacity: 1, y: 0 }}
-          exit={isMobile ? { x: '100%' } : { opacity: 0, y: 16 }}
-          transition={isMobile
-            ? { type: 'tween', duration: 0.24, ease: 'easeOut' }
-            : { type: 'tween', duration: 0.2, ease: 'easeOut' }}
-          onClick={(e) => e.stopPropagation()}
+          className={`task-detail-modal${pageMode ? ' task-detail-page-mode' : ''}${!pageMode && isMobile ? ' is-mobile-fullscreen' : ''}${!isEvent ? ' is-task-detail' : ''}`}
+          initial={pageMode ? { opacity: 0, x: 30 } : (isMobile ? { x: '100%' } : { opacity: 0, y: 24 })}
+          animate={pageMode ? { opacity: 1, x: 0 } : (isMobile ? { x: 0 } : { opacity: 1, y: 0 })}
+          exit={pageMode ? { opacity: 0, x: 30 } : (isMobile ? { x: '100%' } : { opacity: 0, y: 16 })}
+          transition={{ type: 'tween', duration: pageMode ? 0.22 : (isMobile ? 0.24 : 0.2), ease: 'easeOut' }}
+          onClick={pageMode ? undefined : (e) => e.stopPropagation()}
         >
           {/* ── Linke Spalte (Desktop: details) ── */}
           <div className="task-detail-main">
           {/* Header */}
           <div className="task-detail-header">
+            {pageMode && (
+              <button className="task-detail-back-btn" onClick={onClose}>
+                <ArrowLeft size={16} /> Zurück
+              </button>
+            )}
             <div
               className="task-detail-priority-bar"
               style={{ background: priority.color }}
@@ -245,9 +241,11 @@ export default function TaskDetailModal({ task, onClose, onUpdated, portalTarget
                   )}
                 </div>
               )}
-              <button className="task-detail-close" onClick={onClose}>
-                <X size={20} />
-              </button>
+              {!pageMode && (
+                <button className="task-detail-close" onClick={onClose}>
+                  <X size={20} />
+                </button>
+              )}
             </div>
           </div>
 
@@ -526,26 +524,42 @@ export default function TaskDetailModal({ task, onClose, onUpdated, portalTarget
             </div>
           </div>{/* end task-detail-aside */}
         </motion.div>
-      </motion.div>
+  );
 
-      {/* Edit Modal */}
-      {showEdit && createPortal(
-        <TaskEditModal
-          task={task}
-          onClose={() => setShowEdit(false)}
-          onSaved={(updatedTask) => {
-            fetchTasks({
-              dashboard: 'true',
-              limit: '300',
-              horizon_days: '42',
-              completed_lookback_days: '30',
-            }, { force: true });
-            onUpdated?.(updatedTask);
-            onClose();
-          }}
-        />,
-        portalTarget || document.body
-      )}
+  const editPortal = showEdit && createPortal(
+    <TaskEditModal
+      task={task}
+      onClose={() => setShowEdit(false)}
+      onSaved={(updatedTask) => {
+        fetchTasks({
+          dashboard: 'true',
+          limit: '300',
+          horizon_days: '42',
+          completed_lookback_days: '30',
+        }, { force: true });
+        onUpdated?.(updatedTask);
+        onClose();
+      }}
+    />,
+    portalTarget || document.body
+  );
+
+  if (pageMode) {
+    return <>{innerContent}{editPortal}</>;
+  }
+
+  return (
+    <>
+      <motion.div
+        className="modal-overlay task-detail-overlay"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+      >
+        {innerContent}
+      </motion.div>
+      {editPortal}
     </>
   );
 }

@@ -1,5 +1,6 @@
 ﻿import { useState, useRef, useEffect, useMemo } from 'react';
 import { Plus, ZoomIn, ZoomOut, Maximize2, Minimize2, Share2, Link2, Trash2, Edit2, X, CalendarDays, Sparkles, PanelsTopLeft, Workflow, LayoutGrid, ChevronLeft, Circle, CheckCircle2, Type } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useNotesStore } from '../store/notesStore';
 import { useFriendsStore } from '../store/friendsStore';
 import { useTaskStore } from '../store/taskStore';
@@ -7,7 +8,6 @@ import { useAuthStore } from '../store/authStore';
 import { api } from '../utils/api';
 import '../styles/notes.css';
 import { motion, AnimatePresence } from 'framer-motion';
-import TaskDetailModal from '../components/TaskDetailModal';
 import AvatarBadge from '../components/AvatarBadge';
 
 function getPickerSeriesKey(task) {
@@ -349,6 +349,7 @@ const PENDING_PAN_COMMIT_PX = 48;
 const PENDING_PAN_AXIS_PX = 24;
 
 export default function NotesPage() {
+  const navigate = useNavigate();
   const { notes, createNote, updateNote, deleteNote, linkNoteToTask, shareNoteWithFriend, unshareNoteForFriend, connectNotes, disconnectNotes, getNoteConnections } = useNotesStore();
   const { friends, fetchFriends } = useFriendsStore();
   const { tasks, fetchTasks } = useTaskStore();
@@ -389,7 +390,6 @@ export default function NotesPage() {
   const [connectionType, setConnectionType] = useState('related');
   const [actionNoteId, setActionNoteId] = useState(null);
   const [activeNoteId, setActiveNoteId] = useState(null);
-  const [selectedTask, setSelectedTask] = useState(null);
   const [contextTab, setContextTab] = useState('details');
   const [noteComments, setNoteComments] = useState({});
   const [commentDraft, setCommentDraft] = useState('');
@@ -3572,7 +3572,7 @@ export default function NotesPage() {
                       onMouseLeave={() => setHoveredTaskPreview(null)}
                       onClick={() => {
                         const task = linkedTask(note.id);
-                        if (task) setSelectedTask(task);
+                        if (task) navigate(`/app/tasks/${task.id}`);
                         setHoveredTaskPreview(null);
                       }}
                       title={`Hover für Übersicht, Klick für Details: ${linkedTask(note.id)?.title}`}
@@ -3762,7 +3762,7 @@ export default function NotesPage() {
             cursor: 'pointer',
           }}
           onClick={() => {
-            setSelectedTask(hoveredTaskPreview.task);
+            navigate(`/app/tasks/${hoveredTaskPreview.task.id}`);
             setHoveredTaskPreview(null);
           }}
           onMouseLeave={() => setHoveredTaskPreview(null)}
@@ -3867,12 +3867,6 @@ export default function NotesPage() {
           <div className="notes-canvas-menu-hint">Weitere Optionen folgen</div>
         </div>
       )}
-
-      <TaskDetailModal
-        task={selectedTask}
-        onClose={() => setSelectedTask(null)}
-        onUpdated={() => fetchTasks?.({ limit: '2000', completed: 'false' }, { force: true })}
-      />
 
         <aside className={`notes-context-panel ${activeNote ? 'open' : ''}`}>
           {!activeNote ? (
