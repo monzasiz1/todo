@@ -215,22 +215,22 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
 
   const buildShareText = () => {
     const lines = [];
-    lines.push(isEvent ? `📅 Termin: ${task.title}` : `📌 Aufgabe: ${task.title}`);
+    lines.push(isEvent ? `Termin: ${task.title}` : `Aufgabe: ${task.title}`);
     if (task.date) {
       const dateLabel = formatDate(task.date);
-      lines.push(`🗓 Datum: ${dateLabel}`);
+      lines.push(`Datum: ${dateLabel}`);
     }
     if (task.time) {
       const timeStr = task.time.slice(0, 5) + (task.time_end ? ` – ${task.time_end.slice(0, 5)}` : '');
-      lines.push(`⏰ Uhrzeit: ${timeStr}`);
+      lines.push(`Uhrzeit: ${timeStr}`);
     }
-    if (task.category_name) lines.push(`🏷 Kategorie: ${task.category_name}`);
+    if (task.category_name) lines.push(`Kategorie: ${task.category_name}`);
     if (task.priority) {
       const prioLabels = { low: 'Niedrig', medium: 'Mittel', high: 'Hoch', urgent: 'Dringend' };
-      lines.push(`🔔 Priorität: ${prioLabels[task.priority] || task.priority}`);
+      lines.push(`Priorität: ${prioLabels[task.priority] || task.priority}`);
     }
     if (task.description) lines.push(`\n${task.description}`);
-    lines.push('\n📲 Erstellt mit BeeQu');
+    lines.push('\nBeeQu – smarter planen. https://beequ.app');
     return lines.join('\n');
   };
 
@@ -238,20 +238,21 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     setShowMenu(false);
     setShowShareMenu(false);
     const text = buildShareText();
+    const link = `https://beequ.app/?task=${task.id}`;
     if (target === 'native' && navigator.share) {
-      try { await navigator.share({ title: task.title, text }); } catch { /* abgebrochen */ }
+      try { await navigator.share({ title: task.title, text, url: link }); } catch { /* abgebrochen */ }
       return;
     }
     if (target === 'whatsapp') {
-      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+      window.open(`https://wa.me/?text=${encodeURIComponent(text + '\n' + link)}`, '_blank', 'noopener,noreferrer');
       return;
     }
     if (target === 'copy') {
       try {
-        await navigator.clipboard.writeText(text);
-        addToast('✅ Text kopiert');
+        await navigator.clipboard.writeText(link);
+        addToast('Link kopiert');
       } catch {
-        addToast('❌ Kopieren fehlgeschlagen');
+        addToast('Kopieren fehlgeschlagen');
       }
     }
   };
@@ -312,20 +313,19 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
                   >
                     <Share2 size={14} style={{ marginRight: 6 }} />
                     Teilen
-                    <span style={{ marginLeft: 'auto', opacity: 0.5, fontSize: 11 }}>▶</span>
                   </button>
                   {showShareMenu && (
                     <div className="task-detail-share-submenu">
                       {typeof navigator !== 'undefined' && navigator.share && (
                         <button className="task-detail-more-item" onClick={() => handleShare('native')}>
-                          📤 Systemdialog
+                          Systemdialog
                         </button>
                       )}
                       <button className="task-detail-more-item" onClick={() => handleShare('whatsapp')}>
-                        💬 WhatsApp
+                        WhatsApp
                       </button>
                       <button className="task-detail-more-item" onClick={() => handleShare('copy')}>
-                        📋 Text kopieren
+                        Link kopieren
                       </button>
                     </div>
                   )}
