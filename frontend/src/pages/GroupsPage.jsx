@@ -765,22 +765,20 @@ function GroupDetail({ groupId, onBack }) {
         </div>
       )}
 
+      {/* Projects Tab */}
+      {tab === 'projects' && (
+        <div className="group-tab-content">
+          <GroupProjectBoard
+            groupId={groupId}
+            groupTasks={groupTasks}
+            isAdmin={isAdmin}
+            userId={user?.id}
+          />
+        </div>
+      )}
+
       {/* Members Tab */}
       {tab === 'members' && (
-              {/* Projects Tab */}
-              {tab === 'projects' && (
-                <div className="group-tab-content">
-                  <GroupProjectBoard
-                    groupId={groupId}
-                    groupTasks={groupTasks}
-                    isAdmin={isAdmin}
-                    userId={user?.id}
-                  />
-                </div>
-              )}
-
-              {/* Members Tab */}
-              {tab === 'members' && (
         <div className="group-tab-content">
           <div className="group-tab-heading-wrap" style={{ marginBottom: 12 }}>
             <h3 className="group-tab-heading">Mitgliederverwaltung</h3>
