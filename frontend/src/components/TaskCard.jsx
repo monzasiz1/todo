@@ -3,7 +3,7 @@ import { memo, useEffect, useRef, useState } from 'react';
 import { useTaskStore } from '../store/taskStore';
 import { useOpenTask } from '../hooks/useOpenTask';
 import TaskDetailModal from './TaskDetailModal';
-import { Check, Trash2, Clock, Calendar, CalendarCheck, GripVertical, Lock, Users, UserCheck, Repeat, Paperclip, Video, Circle } from 'lucide-react';
+import { Check, Trash2, Clock, Calendar, CalendarCheck, GripVertical, Lock, Users, UserCheck, Repeat, Paperclip, Video, Circle, Link2 } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
 import SharedTaskBadge from './SharedTaskBadge';
@@ -80,6 +80,8 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
   const hasGroupCategoryCombo = !!task.group_name && !!task.group_category_name;
   const dashboardDateParts = showDashboardDateTile ? getDashboardDateParts(task.date) : null;
   const useDashboardDateRail = Boolean(showDashboardDateTile && dashboardDateParts);
+  const linkedCount = Number(task.linked_items_count || 0);
+  const linkedPreview = Array.isArray(task.linked_items_preview) ? task.linked_items_preview : [];
 
   useEffect(() => {
     return () => {
@@ -431,7 +433,22 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
               {task.attachment_count}
             </span>
           )}
+          {linkedCount > 0 && (
+            <span className="task-meta-item task-link-badge" title="Verknüpfte Einträge">
+              <Link2 size={12} />
+              {linkedCount}
+            </span>
+          )}
         </div>
+        {linkedCount > 0 && (
+          <div className="task-linked-preview-row">
+            {linkedPreview.slice(0, 3).map((item) => (
+              <span key={item.id} className="task-linked-preview-pill">
+                {item.type === 'event' ? 'Termin' : 'Aufgabe'}: {item.title}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Actions */}

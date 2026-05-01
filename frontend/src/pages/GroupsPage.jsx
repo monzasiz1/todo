@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import GroupProjectBoard from '../components/GroupProjectBoard';
 import { useGroupStore } from '../store/groupStore';
 import { useAuthStore } from '../store/authStore';
@@ -12,7 +12,7 @@ import {
   Users, Plus, Hash, Copy, Check, ChevronRight, ChevronDown, Crown,
   Shield, UserMinus, Settings, Trash2, LogOut, X,
   Calendar, CalendarCheck, Clock, Flag, Search, ArrowLeft, ListTodo,
-  Camera, Tag, AlertTriangle, Pencil
+  Camera, Tag, AlertTriangle, Pencil, Link2
 } from 'lucide-react';
 import AvatarBadge from '../components/AvatarBadge';
 import { usePlan } from '../hooks/usePlan';
@@ -532,9 +532,30 @@ function GroupDetail({ groupId, onBack }) {
   const [visibleCount, setVisibleCount] = useState(15);
   const [showPastGroupTasks, setShowPastGroupTasks] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [groupTaskLinks, setGroupTaskLinks] = useState([]);
+  const [loadingLinks, setLoadingLinks] = useState(false);
+  const [pendingLink, setPendingLink] = useState(null);
+  const [pickerSourceTask, setPickerSourceTask] = useState(null);
+  const [isLinking, setIsLinking] = useState(false);
 
   useEffect(() => { fetchGroup(groupId); }, [groupId]);
   useEffect(() => { setVisibleCount(15); }, [tab]);
+
+  const loadTaskLinks = useCallback(async () => {
+    setLoadingLinks(true);
+    try {
+      const data = await api.getGroupTaskLinks(groupId);
+      setGroupTaskLinks(data.links || []);
+    } catch {
+      setGroupTaskLinks([]);
+    } finally {
+      setLoadingLinks(false);
+    }
+  }, [groupId]);
+
+  useEffect(() => {
+    loadTaskLinks();
+  }, [loadTaskLinks]);
 
   const copyCode = () => {
     if (!currentGroup?.invite_code) return;
@@ -584,6 +605,63 @@ function GroupDetail({ groupId, onBack }) {
     });
   }, [members, user?.id]);
   const adminCount = useMemo(() => members.filter((m) => m.role === 'admin' || m.role === 'owner').length, [members]);
+  const groupTaskById = useMemo(
+    () => new Map((groupTasks || []).map((t) => [Number(t.id), t])),
+    [groupTasks]
+  );
+  const linksByParent = useMemo(() => {
+    const map = new Map();
+    (groupTaskLinks || []).forEach((link) => {
+      const parentId = Number(link.parent_task_id);
+      if (!map.has(parentId)) map.set(parentId, []);
+      const child = groupTaskById.get(Number(link.child_task_id));
+      map.get(parentId).push({ ...link, child });
+    });
+    return map;
+  }, [groupTaskLinks, groupTaskById]);
+  const linksByChildCount = useMemo(() => {
+    const map = new Map();
+    (groupTaskLinks || []).forEach((link) => {
+      const childId = Number(link.child_task_id);
+      map.set(childId, (map.get(childId) || 0) + 1);
+    });
+    return map;
+  }, [groupTaskLinks]);
+
+  const requestLink = useCallback((sourceTaskId, targetTaskId) => {
+    const source = groupTaskById.get(Number(sourceTaskId));
+    const target = groupTaskById.get(Number(targetTaskId));
+    if (!source || !target) return;
+    if (Number(source.id) === Number(target.id)) return;
+    setPendingLink({ source, target });
+  }, [groupTaskById]);
+
+  const confirmLink = useCallback(async () => {
+    if (!pendingLink?.source?.id || !pendingLink?.target?.id) return;
+    setIsLinking(true);
+    try {
+      await api.createGroupTaskLink(groupId, pendingLink.target.id, pendingLink.source.id);
+      addToast(`🔗 "${pendingLink.source.title}" wurde "${pendingLink.target.title}" hinzugefügt`);
+      setPendingLink(null);
+      await loadTaskLinks();
+      fetchTasks(...DASHBOARD_REFRESH_PARAMS);
+    } catch (err) {
+      addToast(`⚠️ ${err?.message || 'Verknüpfung fehlgeschlagen'}`);
+    } finally {
+      setIsLinking(false);
+    }
+  }, [pendingLink, groupId, addToast, loadTaskLinks, fetchTasks]);
+
+  const removeLink = useCallback(async (linkId) => {
+    try {
+      await api.deleteGroupTaskLink(groupId, linkId);
+      setGroupTaskLinks((prev) => prev.filter((l) => Number(l.id) !== Number(linkId)));
+      addToast('Verknüpfung entfernt');
+      fetchTasks(...DASHBOARD_REFRESH_PARAMS);
+    } catch (err) {
+      addToast(`⚠️ ${err?.message || 'Konnte Verknüpfung nicht entfernen'}`);
+    }
+  }, [groupId, addToast, fetchTasks]);
 
   useEffect(() => {
     if (categoryFilter === 'all') return;
@@ -694,12 +772,25 @@ function GroupDetail({ groupId, onBack }) {
             <div className="group-empty-tab">Noch keine Einträge in dieser Gruppe</div>
           ) : (
             <div className="group-task-list">
+              <div className="group-linking-hint">
+                <Link2 size={14} />
+                <span>Desktop: Eintrag auf einen anderen ziehen. Mobil/Tablet: über "Verknüpfen" auswählen.</span>
+                {loadingLinks && <span className="group-linking-loading">Lade Verknüpfungen…</span>}
+              </div>
               {filteredActiveTasks.slice(0, visibleCount).map((task) => (
                 <GroupTaskCard
                   key={task.id}
                   task={task}
                   groupId={groupId}
+                  allGroupTasks={groupTasks}
+                  linkedChildren={linksByParent.get(Number(task.id)) || []}
+                  linkedToCount={linksByChildCount.get(Number(task.id)) || 0}
+                  isAdmin={isAdmin}
+                  currentUserId={user?.id}
                   canRemove={isAdmin || task.user_id === user?.id}
+                  onRequestLink={requestLink}
+                  onDeleteLink={removeLink}
+                  onOpenLinkPicker={(sourceTask) => setPickerSourceTask(sourceTask)}
                   onRemove={async (gId, tId) => {
                     await removeGroupTask(gId, tId);
                     fetchTasks(...DASHBOARD_REFRESH_PARAMS);
@@ -729,7 +820,15 @@ function GroupDetail({ groupId, onBack }) {
                       key={task.id}
                       task={task}
                       groupId={groupId}
+                      allGroupTasks={groupTasks}
+                      linkedChildren={linksByParent.get(Number(task.id)) || []}
+                      linkedToCount={linksByChildCount.get(Number(task.id)) || 0}
+                      isAdmin={isAdmin}
+                      currentUserId={user?.id}
                       canRemove={isAdmin || task.user_id === user?.id}
+                      onRequestLink={requestLink}
+                      onDeleteLink={removeLink}
+                      onOpenLinkPicker={(sourceTask) => setPickerSourceTask(sourceTask)}
                       onRemove={async (gId, tId) => {
                         await removeGroupTask(gId, tId);
                         fetchTasks(...DASHBOARD_REFRESH_PARAMS);
@@ -760,6 +859,28 @@ function GroupDetail({ groupId, onBack }) {
               task={detailTask}
               onClose={closeTask}
               onUpdated={(updated) => { updateGroupTask(updated.id, updated); fetchTasks(...DASHBOARD_REFRESH_PARAMS); closeTask(); }}
+            />
+          )}
+
+          {pendingLink && (
+            <TaskLinkConfirmModal
+              sourceTask={pendingLink.source}
+              targetTask={pendingLink.target}
+              loading={isLinking}
+              onCancel={() => setPendingLink(null)}
+              onConfirm={confirmLink}
+            />
+          )}
+
+          {pickerSourceTask && (
+            <TaskLinkPickerModal
+              sourceTask={pickerSourceTask}
+              tasks={groupTasks}
+              onClose={() => setPickerSourceTask(null)}
+              onSelectTarget={(targetTask) => {
+                setPickerSourceTask(null);
+                requestLink(pickerSourceTask.id, targetTask.id);
+              }}
             />
           )}
         </div>
@@ -900,23 +1021,164 @@ function GroupDetail({ groupId, onBack }) {
 }
 
 // ============================================
+// Group Task Linking Modals
+// ============================================
+function TaskLinkConfirmModal({ sourceTask, targetTask, loading, onCancel, onConfirm }) {
+  return (
+    <motion.div
+      className="group-link-modal-overlay"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onCancel}
+    >
+      <motion.div
+        className="group-link-modal"
+        initial={{ opacity: 0, y: 20, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 10, scale: 0.98 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3><Link2 size={16} /> Verknüpfung bestätigen</h3>
+        <p>
+          Möchtest du den Eintrag <strong>{sourceTask?.title}</strong> dem Eintrag <strong>{targetTask?.title}</strong> hinzufügen?
+        </p>
+        <div className="group-link-modal-note">
+          Quelle: {sourceTask?.type === 'event' ? 'Termin' : 'Aufgabe'} · Ziel: {targetTask?.type === 'event' ? 'Termin' : 'Aufgabe'}
+        </div>
+        <div className="group-link-modal-actions">
+          <button type="button" className="group-link-btn-cancel" onClick={onCancel}>Abbrechen</button>
+          <button type="button" className="group-link-btn-confirm" onClick={onConfirm} disabled={loading}>
+            {loading ? 'Verknüpfe…' : 'Ja, hinzufügen'}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function TaskLinkPickerModal({ sourceTask, tasks, onSelectTarget, onClose }) {
+  const [query, setQuery] = useState('');
+  const candidates = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return (tasks || [])
+      .filter((t) => Number(t.id) !== Number(sourceTask?.id))
+      .filter((t) => !q || String(t.title || '').toLowerCase().includes(q))
+      .slice(0, 40);
+  }, [tasks, sourceTask?.id, query]);
+
+  return (
+    <motion.div
+      className="group-link-modal-overlay"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.div
+        className="group-link-picker"
+        initial={{ opacity: 0, y: 20, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 10, scale: 0.98 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3><Link2 size={16} /> Ziel für „{sourceTask?.title}“ wählen</h3>
+        <input
+          className="group-link-search"
+          placeholder="Eintrag suchen..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          autoFocus
+        />
+        <div className="group-link-candidate-list">
+          {candidates.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className="group-link-candidate"
+              onClick={() => onSelectTarget(t)}
+            >
+              <span className={`group-entry-type-badge ${t.type === 'event' ? 'event' : 'task'}`}>
+                {t.type === 'event' ? 'Termin' : 'Aufgabe'}
+              </span>
+              <span>{t.title}</span>
+            </button>
+          ))}
+          {candidates.length === 0 && <p className="group-link-empty">Keine passenden Einträge gefunden.</p>}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ============================================
 // Group Task Card
 // ============================================
-function GroupTaskCard({ task, groupId, canRemove, onRemove, onOpenTask }) {
+function GroupTaskCard({
+  task,
+  groupId,
+  allGroupTasks,
+  linkedChildren,
+  linkedToCount,
+  isAdmin,
+  currentUserId,
+  canRemove,
+  onRemove,
+  onOpenTask,
+  onRequestLink,
+  onDeleteLink,
+  onOpenLinkPicker,
+}) {
   const priorityColors = {
     low: 'var(--success)', medium: 'var(--primary)',
     high: 'var(--warning)', urgent: 'var(--danger)',
   };
+  const [dropActive, setDropActive] = useState(false);
+  const canDragDrop = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer:fine)').matches;
 
   const endedEvent = isEventEnded(task);
   const categoryLabel = task.group_category_name;
   const categoryColor = task.group_category_color || '#8E8E93';
 
+  const handleDragStart = (e) => {
+    if (!canDragDrop) return;
+    e.dataTransfer.setData('application/x-group-task-id', String(task.id));
+    e.dataTransfer.effectAllowed = 'copy';
+  };
+
+  const handleDragOver = (e) => {
+    if (!canDragDrop) return;
+    const sourceId = Number(e.dataTransfer.getData('application/x-group-task-id'));
+    if (!sourceId || sourceId === Number(task.id)) return;
+    e.preventDefault();
+    setDropActive(true);
+  };
+
+  const handleDragLeave = () => {
+    setDropActive(false);
+  };
+
+  const handleDrop = (e) => {
+    if (!canDragDrop) return;
+    const sourceId = Number(e.dataTransfer.getData('application/x-group-task-id'));
+    setDropActive(false);
+    if (!sourceId || sourceId === Number(task.id)) return;
+    e.preventDefault();
+    onRequestLink?.(sourceId, task.id);
+  };
+
+  const linkedChildrenSafe = Array.isArray(linkedChildren) ? linkedChildren : [];
+
   return (
     <div
-      className={`group-task-card group-task-card-clickable ${task.completed ? 'completed' : ''} ${endedEvent ? 'ended-event' : ''}`}
+      className={`group-task-card group-task-card-clickable ${task.completed ? 'completed' : ''} ${endedEvent ? 'ended-event' : ''} ${dropActive ? 'group-task-drop-active' : ''}`}
       role="button"
       tabIndex={0}
+      draggable={canDragDrop}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
       onClick={() => onOpenTask?.(task)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -961,8 +1223,47 @@ function GroupTaskCard({ task, groupId, canRemove, onRemove, onOpenTask }) {
           {task.time && (
             <span><Clock size={11} /> {task.time.substring(0, 5)}</span>
           )}
+          {linkedToCount > 0 && (
+            <span className="group-task-linked-from"><Link2 size={11} /> Gehört zu {linkedToCount}</span>
+          )}
         </div>
+
+        {linkedChildrenSafe.length > 0 && (
+          <div className="group-task-linked-list">
+            {linkedChildrenSafe.map((link) => (
+              <div key={link.id} className="group-task-linked-item" onClick={(e) => e.stopPropagation()}>
+                <span className={`group-entry-type-badge ${link.child?.type === 'event' ? 'event' : 'task'}`}>
+                  {link.child?.type === 'event' ? 'Termin' : 'Aufgabe'}
+                </span>
+                <span className="group-task-linked-title">{link.child?.title || link.child_title || `Eintrag ${link.child_task_id}`}</span>
+                {(isAdmin || Number(link.created_by) === Number(currentUserId)) && (
+                  <button
+                    type="button"
+                    className="group-task-link-remove"
+                    onClick={() => onDeleteLink?.(link.id)}
+                    title="Verknüpfung entfernen"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+
+      <button
+        type="button"
+        className="group-task-link-btn"
+        onClick={(e) => {
+          e.stopPropagation();
+          onOpenLinkPicker?.(task, allGroupTasks);
+        }}
+        title="Eintrag verknüpfen"
+      >
+        <Link2 size={14} />
+      </button>
+
       {canRemove && (
         <button
           className="group-task-remove"
