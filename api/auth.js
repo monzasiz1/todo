@@ -14,9 +14,9 @@ function getOtp() {
 
 // Mailer lazy laden — damit ein fehlgeschlagener nodemailer-Import
 // die gesamte Funktion nicht crasht
-function getSendActivationMail() {
+function getSendVerificationCodeMail() {
   try {
-    return require('./_lib/mailer').sendActivationMail;
+    return require('./_lib/mailer').sendVerificationCodeMail;
   } catch (e) {
     console.error('Mailer konnte nicht geladen werden:', e.message);
     return null;
@@ -45,19 +45,18 @@ module.exports = async function handler(req, res) {
       if (existing.rows.length > 0)
         return res.status(409).json({ error: 'E-Mail bereits registriert' });
 
-      const hashedPassword = await bcrypt.hash(password, 12);
-      const activationToken = crypto.randomBytes(32).toString('hex');
+      // 6-stelligen Verifikationscode generieren
+      const verificationCode = String(Math.floor(100000 + Math.random() * 900000));
+      const codeExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 Minuten
 
-      // Spalten email_verified / email_verification_token absichern:
-      // Falls sie in der DB noch nicht existieren (ALTER TABLE noch nicht ausgeführt),
-      // fällt der Insert auf den einfachen Fallback zurück.
+      // Spalten email_verified / email_verification_code absichern:
       let result;
       try {
         result = await pool.query(
-          `INSERT INTO users (name, email, password, email_verification_token, email_verified)
-           VALUES ($1, $2, $3, $4, FALSE)
+          `INSERT INTO users (name, email, password, email_verification_code, email_verification_code_expires_at, email_verified)
+           VALUES ($1, $2, $3, $4, $5, FALSE)
            RETURNING id, name, email, avatar_url, avatar_color, plan, created_at`,
-          [name, email, hashedPassword, activationToken]
+          [name, email, hashedPassword, verificationCode, codeExpiresAt]
         );
       } catch (colErr) {
         if (colErr.message && colErr.message.includes('column')) {
@@ -92,26 +91,69 @@ module.exports = async function handler(req, res) {
         );
       }
 
-      // Aktivierungsmail senden — Fehler blockiert Registration nicht
-      const baseUrl = process.env.APP_BASE_URL || 'https://beequ.de';
-      const activationUrl = `${baseUrl}/api/auth/activate?token=${activationToken}`;
+      // Verifikationscode per E-Mail senden
       try {
-        const sendActivationMail = getSendActivationMail();
-        if (sendActivationMail) {
-          await sendActivationMail({ to: email, name, activationUrl });
+        const sendVerificationCodeMail = getSendVerificationCodeMail();
+        if (sendVerificationCodeMail) {
+          await sendVerificationCodeMail({ to: email, name, code: verificationCode });
         }
       } catch (mailErr) {
-        console.error('Aktivierungsmail Fehler:', mailErr.message);
+        console.error('Verifikationsmail Fehler:', mailErr.message);
       }
 
-      // KEIN token zurückgeben — User muss E-Mail bestätigen
+      // KEIN token zurückgeben — User muss Code eingeben
       return res.status(201).json({
         user,
-        message: 'Bitte bestätige deine E-Mail-Adresse. Wir haben dir einen Aktivierungslink gesendet.',
+        message: 'Bitte gib den Code ein, den wir an deine E-Mail-Adresse gesendet haben.',
       });
     } catch (err) {
       console.error('Register error:', err);
       return res.status(500).json({ error: 'Registrierung fehlgeschlagen' });
+    }
+  }
+
+  /* ── POST /api/auth/verify-code ── */
+  if (action === 'verify-code' && req.method === 'POST') {
+    try {
+      const { email, code } = req.body;
+      if (!email || !code)
+        return res.status(400).json({ error: 'E-Mail und Code sind erforderlich' });
+
+      const pool = getPool();
+      const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+      if (result.rows.length === 0)
+        return res.status(404).json({ error: 'Konto nicht gefunden' });
+
+      const user = result.rows[0];
+
+      if (user.email_verified)
+        return res.status(409).json({ error: 'Konto bereits verifiziert' });
+
+      const storedCode = user.email_verification_code;
+      const expiresAt  = user.email_verification_code_expires_at;
+
+      if (!storedCode || String(storedCode).trim() !== String(code).trim())
+        return res.status(400).json({ error: 'Ungültiger Code. Bitte prüfe deine E-Mail.' });
+
+      if (expiresAt && new Date(expiresAt) < new Date())
+        return res.status(400).json({ error: 'Der Code ist abgelaufen. Bitte registriere dich erneut.' });
+
+      // Code als verwendet markieren + E-Mail verifizieren
+      await pool.query(
+        `UPDATE users SET email_verified = TRUE, email_verification_code = NULL,
+         email_verification_code_expires_at = NULL WHERE id = $1`,
+        [user.id]
+      );
+
+      // Direkt einloggen — JWT zurückgeben
+      const token = generateToken({ id: user.id, email: user.email });
+      const { password: _pw, email_verification_code: _code, email_verification_code_expires_at: _exp, twofa_secret: _s, ...safeUser } = user;
+      safeUser.email_verified = true;
+
+      return res.status(200).json({ token, user: safeUser });
+    } catch (err) {
+      console.error('verify-code error:', err);
+      return res.status(500).json({ error: 'Verifizierung fehlgeschlagen' });
     }
   }
 
