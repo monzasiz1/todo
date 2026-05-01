@@ -1315,7 +1315,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                           <AvatarBadge name={t.group_name} color={t.group_color || '#5856D6'} avatarUrl={t.group_image_url} size={10} />
                         )}
                         {showTaskLabel && t.teams_join_url && <Video size={10} className="calendar-day-task-teams-icon" />}
-                        {showTaskLabel && t.time && <span className="calendar-day-task-time">{t.time.slice(0, 5)}</span>}
+                        {showTaskLabel && t.time && deviceType === 'desktop' && <span className="calendar-day-task-time">{t.time.slice(0, 5)}</span>}
                         {showTaskLabel && <span className="calendar-day-task-title">{t.title}</span>}
                         {!isMobile && ended && <span className="calendar-day-task-ended">Beendet</span>}
                       </div>
