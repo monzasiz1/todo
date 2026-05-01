@@ -36,9 +36,6 @@ function shiftDate(dateValue, days) {
   return d.toISOString().split('T')[0];
 }
 const crypto = require('crypto');
-let groupTaskLinksEnabledCache = null;
-let groupTaskLinksEnabledCacheAt = 0;
-const GROUP_TASK_LINKS_CACHE_TTL_MS = 5 * 60 * 1000;
 
 module.exports = async function handler(req, res) {
   cors(res);
@@ -135,22 +132,6 @@ module.exports = async function handler(req, res) {
       [groupId, messageId, user.id]
     );
     return result.rows[0] || null;
-  }
-
-  async function isGroupTaskLinksEnabled() {
-    const now = Date.now();
-    if (groupTaskLinksEnabledCache !== null && (now - groupTaskLinksEnabledCacheAt) < GROUP_TASK_LINKS_CACHE_TTL_MS) {
-      return groupTaskLinksEnabledCache;
-    }
-    const check = await pool.query(
-      `SELECT EXISTS (
-         SELECT 1 FROM information_schema.tables
-         WHERE table_schema = 'public' AND table_name = 'group_task_links'
-       ) AS exists_table`
-    );
-    groupTaskLinksEnabledCache = check.rows[0]?.exists_table === true;
-    groupTaskLinksEnabledCacheAt = now;
-    return groupTaskLinksEnabledCache;
   }
 
   async function inheritTaskRelations(parentId, concreteTaskId) {
@@ -784,123 +765,6 @@ module.exports = async function handler(req, res) {
     } catch (err) {
       console.error('Remove member error:', err);
       return res.status(500).json({ error: 'Fehler beim Entfernen' });
-    }
-  }
-
-  // ============================================
-  // GET /api/groups/:id/task-links — List links between group tasks/events
-  // ============================================
-  if (segments.length === 2 && segments[1] === 'task-links' && req.method === 'GET') {
-    try {
-      const groupId = Number(segments[0]);
-      const membership = await getMembership(groupId);
-      if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
-      if (!(await isGroupTaskLinksEnabled())) return res.json({ links: [] });
-
-      const { rows } = await pool.query(
-        `SELECT l.id, l.group_id, l.parent_task_id, l.child_task_id, l.note, l.created_by, l.created_at,
-                p.title AS parent_title, p.type AS parent_type,
-                c.title AS child_title, c.type AS child_type,
-                u.name AS created_by_name, u.avatar_color AS created_by_color, u.avatar_url AS created_by_avatar
-         FROM group_task_links l
-         JOIN tasks p ON p.id = l.parent_task_id
-         JOIN tasks c ON c.id = l.child_task_id
-         LEFT JOIN users u ON u.id = l.created_by
-         WHERE l.group_id = $1
-         ORDER BY l.created_at DESC`,
-        [groupId]
-      );
-
-      return res.json({ links: rows });
-    } catch (err) {
-      console.error('Get group task links error:', err);
-      return res.status(500).json({ error: 'Fehler beim Laden der Verknüpfungen' });
-    }
-  }
-
-  // ============================================
-  // POST /api/groups/:id/task-links — Link one group entry to another
-  // ============================================
-  if (segments.length === 2 && segments[1] === 'task-links' && req.method === 'POST') {
-    try {
-      const groupId = Number(segments[0]);
-      const membership = await getMembership(groupId);
-      if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
-      if (!(await isGroupTaskLinksEnabled())) {
-        return res.status(503).json({ error: 'Feature noch nicht aktiviert. Bitte SQL-Migration ausführen.' });
-      }
-
-      const { parent_task_id, child_task_id, note = '' } = req.body || {};
-      if (!parent_task_id || !child_task_id) {
-        return res.status(400).json({ error: 'parent_task_id und child_task_id sind erforderlich' });
-      }
-      if (Number(parent_task_id) === Number(child_task_id)) {
-        return res.status(400).json({ error: 'Ein Eintrag kann nicht mit sich selbst verknüpft werden' });
-      }
-
-      const check = await pool.query(
-        `SELECT gt.task_id
-         FROM group_tasks gt
-         WHERE gt.group_id = $1 AND gt.task_id = ANY($2::int[])
-         LIMIT 2`,
-        [groupId, [Number(parent_task_id), Number(child_task_id)]]
-      );
-      if (check.rows.length < 2) {
-        return res.status(403).json({ error: 'Beide Einträge müssen in dieser Gruppe sein' });
-      }
-
-      const existingInverse = await pool.query(
-        `SELECT id
-         FROM group_task_links
-         WHERE group_id = $1 AND parent_task_id = $2 AND child_task_id = $3
-         LIMIT 1`,
-        [groupId, Number(child_task_id), Number(parent_task_id)]
-      );
-      if (existingInverse.rows[0]) {
-        return res.status(400).json({ error: 'Diese Verknüpfung besteht bereits in umgekehrter Richtung' });
-      }
-
-      const { rows } = await pool.query(
-        `INSERT INTO group_task_links (group_id, parent_task_id, child_task_id, created_by, note)
-         VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (group_id, parent_task_id, child_task_id)
-         DO UPDATE SET note = EXCLUDED.note
-         RETURNING *`,
-        [groupId, Number(parent_task_id), Number(child_task_id), user.id, String(note || '').trim()]
-      );
-
-      return res.status(201).json({ link: rows[0] });
-    } catch (err) {
-      console.error('Create group task link error:', err);
-      return res.status(500).json({ error: 'Fehler beim Verknüpfen' });
-    }
-  }
-
-  // ============================================
-  // DELETE /api/groups/:id/task-links/:linkId — Remove link
-  // ============================================
-  if (segments.length === 3 && segments[1] === 'task-links' && req.method === 'DELETE') {
-    try {
-      const groupId = Number(segments[0]);
-      const linkId = Number(segments[2]);
-      const membership = await getMembership(groupId);
-      if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
-      if (!(await isGroupTaskLinksEnabled())) return res.status(404).json({ error: 'Feature nicht verfügbar' });
-
-      const link = await pool.query(
-        `SELECT * FROM group_task_links WHERE id = $1 AND group_id = $2 LIMIT 1`,
-        [linkId, groupId]
-      );
-      if (!link.rows[0]) return res.status(404).json({ error: 'Verknüpfung nicht gefunden' });
-
-      const canDelete = ['owner', 'admin'].includes(membership.role) || link.rows[0].created_by === user.id;
-      if (!canDelete) return res.status(403).json({ error: 'Keine Berechtigung' });
-
-      await pool.query('DELETE FROM group_task_links WHERE id = $1', [linkId]);
-      return res.json({ success: true });
-    } catch (err) {
-      console.error('Delete group task link error:', err);
-      return res.status(500).json({ error: 'Fehler beim Löschen der Verknüpfung' });
     }
   }
 

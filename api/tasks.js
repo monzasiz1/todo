@@ -325,8 +325,6 @@ function normalizeTaskRow(row) {
   if (!row || typeof row !== 'object') return row;
 
   const attachmentCount = Number(row.attachment_count);
-  const linkedItemsCount = Number(row.linked_items_count);
-  const linkedItemsPreview = Array.isArray(row.linked_items_preview) ? row.linked_items_preview : [];
 
   return {
     ...row,
@@ -334,8 +332,6 @@ function normalizeTaskRow(row) {
     teams_meeting_id: row.teams_meeting_id || null,
     shared_with_users: Array.isArray(row.shared_with_users) ? row.shared_with_users : [],
     attachment_count: Number.isFinite(attachmentCount) ? attachmentCount : 0,
-    linked_items_count: Number.isFinite(linkedItemsCount) ? linkedItemsCount : 0,
-    linked_items_preview: linkedItemsPreview,
     creator_name: row.creator_name || null,
     creator_color: row.creator_color || null,
     creator_avatar_url: row.creator_avatar_url || null,
@@ -376,9 +372,6 @@ function buildDashboardOrderByClause() {
 let collabEnabledCache = null;
 let collabEnabledCacheAt = 0;
 const COLLAB_CACHE_TTL_MS = 5 * 60 * 1000;
-let taskLinksEnabledCache = null;
-let taskLinksEnabledCacheAt = 0;
-const TASK_LINKS_CACHE_TTL_MS = 5 * 60 * 1000;
 
 async function getCollabEnabled(pool) {
   const now = Date.now();
@@ -392,24 +385,6 @@ async function getCollabEnabled(pool) {
   collabEnabledCache = hasCollab.rows[0]?.has_visibility === true;
   collabEnabledCacheAt = now;
   return collabEnabledCache;
-}
-
-async function getTaskLinksEnabled(pool) {
-  const now = Date.now();
-  if (taskLinksEnabledCache !== null && (now - taskLinksEnabledCacheAt) < TASK_LINKS_CACHE_TTL_MS) {
-    return taskLinksEnabledCache;
-  }
-
-  const hasTaskLinks = await pool.query(
-    `SELECT EXISTS (
-       SELECT 1
-       FROM information_schema.tables
-       WHERE table_schema = 'public' AND table_name = 'group_task_links'
-     ) AS exists_table`
-  );
-  taskLinksEnabledCache = hasTaskLinks.rows[0]?.exists_table === true;
-  taskLinksEnabledCacheAt = now;
-  return taskLinksEnabledCache;
 }
 
 module.exports = async function handler(req, res) {
@@ -1011,37 +986,6 @@ module.exports = async function handler(req, res) {
         ? Math.max(20, Math.min(maxLimit, requestedLimit))
         : defaultLimit;
       const dashboardOrderBy = buildDashboardOrderByClause();
-      const taskLinksEnabled = await getTaskLinksEnabled(pool);
-      const taskLinksSelectForRt = taskLinksEnabled
-        ? `(SELECT COUNT(*)::int FROM group_task_links gtl WHERE gtl.parent_task_id = rt.id OR gtl.child_task_id = rt.id) AS linked_items_count,
-           COALESCE((
-             SELECT json_agg(json_build_object('id', rel.id, 'title', rel.title, 'type', rel.type))
-             FROM (
-               SELECT t2.id, t2.title, t2.type
-               FROM group_task_links gtl2
-               JOIN tasks t2
-                 ON t2.id = CASE WHEN gtl2.parent_task_id = rt.id THEN gtl2.child_task_id ELSE gtl2.parent_task_id END
-               WHERE gtl2.parent_task_id = rt.id OR gtl2.child_task_id = rt.id
-               ORDER BY t2.updated_at DESC NULLS LAST, t2.id DESC
-               LIMIT 4
-             ) rel
-           ), '[]'::json) AS linked_items_preview`
-        : `0::int AS linked_items_count, '[]'::json AS linked_items_preview`;
-      const taskLinksSelectForT = taskLinksEnabled
-        ? `(SELECT COUNT(*)::int FROM group_task_links gtl WHERE gtl.parent_task_id = t.id OR gtl.child_task_id = t.id) AS linked_items_count,
-           COALESCE((
-             SELECT json_agg(json_build_object('id', rel.id, 'title', rel.title, 'type', rel.type))
-             FROM (
-               SELECT t2.id, t2.title, t2.type
-               FROM group_task_links gtl2
-               JOIN tasks t2
-                 ON t2.id = CASE WHEN gtl2.parent_task_id = t.id THEN gtl2.child_task_id ELSE gtl2.parent_task_id END
-               WHERE gtl2.parent_task_id = t.id OR gtl2.child_task_id = t.id
-               ORDER BY t2.updated_at DESC NULLS LAST, t2.id DESC
-               LIMIT 4
-             ) rel
-           ), '[]'::json) AS linked_items_preview`
-        : `0::int AS linked_items_count, '[]'::json AS linked_items_preview`;
 
       // 🚀 CACHE: Check dashboard cache first
       if (lite) {
@@ -1154,7 +1098,6 @@ module.exports = async function handler(req, res) {
                     g.group_category_name,
                     g.group_category_color,
                     0::int AS attachment_count,
-                    ${taskLinksSelectForRt},
                     COALESCE(sh.shared_with_users, '[]'::json) AS shared_with_users
              FROM ranked_tasks rt
              LEFT JOIN categories c ON rt.category_id = c.id
@@ -1232,7 +1175,6 @@ module.exports = async function handler(req, res) {
                     g.group_category_name,
                     g.group_category_color,
                     0::int AS attachment_count,
-                    ${taskLinksSelectForRt},
                     '[]'::json AS shared_with_users,
                     true AS is_owner,
                     true AS can_edit,
@@ -1299,7 +1241,6 @@ module.exports = async function handler(req, res) {
                       g.group_category_id, g.group_category_name, g.group_category_color,
                       g.group_task_creator_name, g.group_task_creator_color, g.group_task_creator_avatar_url,
                       0::int as attachment_count,
-                      ${taskLinksSelectForT},
                       COALESCE((
                         SELECT json_agg(
                           json_build_object('name', su.name, 'color', su.avatar_color, 'avatar_url', su.avatar_url)
@@ -1362,7 +1303,6 @@ module.exports = async function handler(req, res) {
                       g.group_category_id, g.group_category_name, g.group_category_color,
                       g.group_task_creator_name, g.group_task_creator_color, g.group_task_creator_avatar_url,
                       0::int as attachment_count,
-                      ${taskLinksSelectForT},
                       '[]'::json as shared_with_users,
                       'private'::text as visibility
                FROM tasks t
@@ -1434,7 +1374,6 @@ module.exports = async function handler(req, res) {
              gc.id as group_category_id, gc.name as group_category_name, gc.color as group_category_color,
              gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color, gtc.avatar_url as group_task_creator_avatar_url,
              (SELECT COUNT(*) FROM task_attachments ta WHERE ta.task_id = t.id)::int as attachment_count,
-             ${taskLinksSelectForT},
              (SELECT COALESCE(json_agg(json_build_object('name', su.name, 'color', su.avatar_color, 'avatar_url', su.avatar_url)), '[]'::json)
               FROM task_permissions tp2 JOIN users su ON tp2.user_id = su.id
               WHERE tp2.task_id = t.id) as shared_with_users
@@ -1464,8 +1403,7 @@ module.exports = async function handler(req, res) {
              gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url,
              gc.id as group_category_id, gc.name as group_category_name, gc.color as group_category_color,
              gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color, gtc.avatar_url as group_task_creator_avatar_url,
-             (SELECT COUNT(*) FROM task_attachments ta WHERE ta.task_id = t.id)::int as attachment_count,
-             ${taskLinksSelectForT}
+             (SELECT COUNT(*) FROM task_attachments ta WHERE ta.task_id = t.id)::int as attachment_count
            FROM tasks t LEFT JOIN categories c ON t.category_id = c.id
            LEFT JOIN group_tasks gt ON gt.task_id = t.id
            LEFT JOIN groups grp ON grp.id = gt.group_id
