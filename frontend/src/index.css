@@ -3238,7 +3238,7 @@ body.cal-is-dragging * {
   font-weight: 600;
 }
 
-
+.mobile-week-grid-scroll {
   display: flex;
   flex: 1;
   overflow-y: auto;
@@ -8164,7 +8164,7 @@ body.cal-is-dragging * {
     background: rgba(217, 44, 44, 0.06);
   }
 
-
+  .desktop-week-all-day-cell {
     min-height: 34px;
     border-right: 1px solid #e3e7ef;
     padding: 4px;
