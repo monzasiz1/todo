@@ -58,15 +58,15 @@ function CategoryForm({ initial, onSave, onCancel }) {
     <form className="catm-form" onSubmit={handleSubmit}>
       <div className="catm-form-field">
         <label>Name</label>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="z.B. Sport, Projekte..."
-          className="catm-form-input"
-          autoFocus
-          maxLength={50}
-        />
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="z.B. Sport, Team..."
+              className="catm-form-input"
+              autoFocus
+              maxLength={50}
+            />
       </div>
       <div className="catm-form-field">
         <label>Farbe</label>

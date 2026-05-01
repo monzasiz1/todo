@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = 'beequ-v6';
+﻿const CACHE_NAME = 'beequ-v7';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -267,6 +267,11 @@ self.addEventListener('push', (event) => {
 
 // ─── Message Handler ──────────────────────────────────────────────────────
 self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+    return;
+  }
+
   // App sends updated auth token whenever user logs in or token refreshes
   if (event.data?.type === 'SET_AUTH_TOKEN') {
     const token = event.data.token;

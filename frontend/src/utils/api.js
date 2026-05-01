@@ -505,37 +505,6 @@ export const api = {
     }),
 
   // Plans
-    // Group Projects
-    getGroupProjects: (groupId) => request(`/groups/${groupId}/projects`),
-
-    createGroupProject: (groupId, data) =>
-      request(`/groups/${groupId}/projects`, {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
-
-    updateGroupProject: (groupId, projectId, data) =>
-      request(`/groups/${groupId}/projects/${projectId}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      }),
-
-    deleteGroupProject: (groupId, projectId) =>
-      request(`/groups/${groupId}/projects/${projectId}`, { method: 'DELETE' }),
-
-    getGroupProjectItems: (groupId, projectId) =>
-      request(`/groups/${groupId}/projects/${projectId}/items`),
-
-    pinGroupProjectItem: (groupId, projectId, task_id, note = '') =>
-      request(`/groups/${groupId}/projects/${projectId}/items`, {
-        method: 'POST',
-        body: JSON.stringify({ task_id, note }),
-      }),
-
-    unpinGroupProjectItem: (groupId, projectId, pinId) =>
-      request(`/groups/${groupId}/projects/${projectId}/items/${pinId}`, { method: 'DELETE' }),
-
-    // Plans
   getPlans: () => request('/plans'),
 
   getMyPlan: () => request('/plans/me'),

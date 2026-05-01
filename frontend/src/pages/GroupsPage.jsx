@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import GroupProjectBoard from '../components/GroupProjectBoard';
 import { useGroupStore } from '../store/groupStore';
 import { useAuthStore } from '../store/authStore';
 import { useTaskStore } from '../store/taskStore';
@@ -405,7 +404,7 @@ function CreateGroup({ onBack, onCreate }) {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="z.B. WG Haushalt, Projekt Alpha..."
+            placeholder="z.B. WG Haushalt, Team-Planung..."
             className="task-edit-input"
             maxLength={100}
             autoFocus
@@ -526,7 +525,7 @@ function GroupDetail({ groupId, onBack }) {
   } = useGroupStore();
   const { user } = useAuthStore();
   const { addToast, fetchTasks } = useTaskStore();
-  const [tab, setTab] = useState('tasks'); // 'tasks' | 'projects' | 'members' | 'settings'
+  const [tab, setTab] = useState('tasks'); // 'tasks' | 'members' | 'settings'
   const [showAddTask, setShowAddTask] = useState(false);
   const [copied, setCopied] = useState(false);
   const [visibleCount, setVisibleCount] = useState(15);
@@ -729,9 +728,6 @@ function GroupDetail({ groupId, onBack }) {
         <button className={`group-tab ${tab === 'tasks' ? 'active' : ''}`} onClick={() => setTab('tasks')}>
           Einträge <span className="group-tab-count">{groupTasks.length}</span>
         </button>
-        <button className={`group-tab ${tab === 'projects' ? 'active' : ''}`} onClick={() => setTab('projects')}>
-          Projekte
-        </button>
         <button className={`group-tab ${tab === 'members' ? 'active' : ''}`} onClick={() => setTab('members')}>
           Mitglieder <span className="group-tab-count">{members.length}</span>
         </button>
@@ -883,18 +879,6 @@ function GroupDetail({ groupId, onBack }) {
               }}
             />
           )}
-        </div>
-      )}
-
-      {/* Projects Tab */}
-      {tab === 'projects' && (
-        <div className="group-tab-content">
-          <GroupProjectBoard
-            groupId={groupId}
-            groupTasks={groupTasks}
-            isAdmin={isAdmin}
-            userId={user?.id}
-          />
         </div>
       )}
 

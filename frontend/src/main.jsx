@@ -16,9 +16,21 @@ purgeAuthQueueEntries().catch(() => {});
 // Service Worker Registration + Offline-Sync
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
+    let reloadedAfterSwUpdate = false;
+
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (reloadedAfterSwUpdate) return;
+      reloadedAfterSwUpdate = true;
+      window.location.reload();
+    });
+
     navigator.serviceWorker.register('/sw.js').then((reg) => {
       console.log('SW registered:', reg.scope);
       reg.update();
+
+      if (reg.waiting) {
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }
 
       // Send auth token to SW so it can make authenticated background requests
       const sendTokenToSW = () => {
@@ -37,6 +49,9 @@ if ('serviceWorker' in navigator) {
         const newWorker = reg.installing;
         if (newWorker) {
           newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              newWorker.postMessage({ type: 'SKIP_WAITING' });
+            }
             if (newWorker.state === 'activated') sendTokenToSW();
           });
         }

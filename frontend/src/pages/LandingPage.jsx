@@ -675,7 +675,7 @@ export default function LandingPage() {
                     {[
                       { icon: CheckCircle2, color: '#34C759', title: 'Einkaufen — heute 17:30', meta: 'Privat  ·  Niedrig' },
                       { icon: CalendarDays, color: '#007AFF', title: 'Meeting vorbereiten', meta: 'Freitag  ·  14:00  ·  Hoch' },
-                      { icon: UsersRound,   color: '#5856D6', title: 'Gruppen-Chat: Projekt Alpha', meta: '2 ungelesene Nachrichten' },
+                      { icon: UsersRound,   color: '#5856D6', title: 'Gruppen-Chat: Teamrunde', meta: '2 ungelesene Nachrichten' },
                     ].map(({ icon: Icon, color, title, meta }) => (
                       <div key={title} className="bq-auth-preview-item">
                         <div className="bq-auth-preview-icon" style={{ color, background: `${color}20` }}>
