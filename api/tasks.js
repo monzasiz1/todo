@@ -432,37 +432,6 @@ module.exports = async function handler(req, res) {
       }
 
       const collabEnabled = await getCollabEnabled(pool);
-      const taskLinksEnabled = await getTaskLinksEnabled(pool);
-      const taskLinksSelectForRt = taskLinksEnabled
-        ? `(SELECT COUNT(*)::int FROM group_task_links gtl WHERE gtl.parent_task_id = rt.id OR gtl.child_task_id = rt.id) AS linked_items_count,
-           COALESCE((
-             SELECT json_agg(json_build_object('id', rel.id, 'title', rel.title, 'type', rel.type))
-             FROM (
-               SELECT t2.id, t2.title, t2.type
-               FROM group_task_links gtl2
-               JOIN tasks t2
-                 ON t2.id = CASE WHEN gtl2.parent_task_id = rt.id THEN gtl2.child_task_id ELSE gtl2.parent_task_id END
-               WHERE gtl2.parent_task_id = rt.id OR gtl2.child_task_id = rt.id
-               ORDER BY t2.updated_at DESC NULLS LAST, t2.id DESC
-               LIMIT 4
-             ) rel
-           ), '[]'::json) AS linked_items_preview`
-        : `0::int AS linked_items_count, '[]'::json AS linked_items_preview`;
-      const taskLinksSelectForT = taskLinksEnabled
-        ? `(SELECT COUNT(*)::int FROM group_task_links gtl WHERE gtl.parent_task_id = t.id OR gtl.child_task_id = t.id) AS linked_items_count,
-           COALESCE((
-             SELECT json_agg(json_build_object('id', rel.id, 'title', rel.title, 'type', rel.type))
-             FROM (
-               SELECT t2.id, t2.title, t2.type
-               FROM group_task_links gtl2
-               JOIN tasks t2
-                 ON t2.id = CASE WHEN gtl2.parent_task_id = t.id THEN gtl2.child_task_id ELSE gtl2.parent_task_id END
-               WHERE gtl2.parent_task_id = t.id OR gtl2.child_task_id = t.id
-               ORDER BY t2.updated_at DESC NULLS LAST, t2.id DESC
-               LIMIT 4
-             ) rel
-           ), '[]'::json) AS linked_items_preview`
-        : `0::int AS linked_items_count, '[]'::json AS linked_items_preview`;
 
       // 1. Fetch all concrete rows in [start, end] (includes templates + any materialized overrides)
       let concreteResult;
@@ -1042,6 +1011,37 @@ module.exports = async function handler(req, res) {
         ? Math.max(20, Math.min(maxLimit, requestedLimit))
         : defaultLimit;
       const dashboardOrderBy = buildDashboardOrderByClause();
+      const taskLinksEnabled = await getTaskLinksEnabled(pool);
+      const taskLinksSelectForRt = taskLinksEnabled
+        ? `(SELECT COUNT(*)::int FROM group_task_links gtl WHERE gtl.parent_task_id = rt.id OR gtl.child_task_id = rt.id) AS linked_items_count,
+           COALESCE((
+             SELECT json_agg(json_build_object('id', rel.id, 'title', rel.title, 'type', rel.type))
+             FROM (
+               SELECT t2.id, t2.title, t2.type
+               FROM group_task_links gtl2
+               JOIN tasks t2
+                 ON t2.id = CASE WHEN gtl2.parent_task_id = rt.id THEN gtl2.child_task_id ELSE gtl2.parent_task_id END
+               WHERE gtl2.parent_task_id = rt.id OR gtl2.child_task_id = rt.id
+               ORDER BY t2.updated_at DESC NULLS LAST, t2.id DESC
+               LIMIT 4
+             ) rel
+           ), '[]'::json) AS linked_items_preview`
+        : `0::int AS linked_items_count, '[]'::json AS linked_items_preview`;
+      const taskLinksSelectForT = taskLinksEnabled
+        ? `(SELECT COUNT(*)::int FROM group_task_links gtl WHERE gtl.parent_task_id = t.id OR gtl.child_task_id = t.id) AS linked_items_count,
+           COALESCE((
+             SELECT json_agg(json_build_object('id', rel.id, 'title', rel.title, 'type', rel.type))
+             FROM (
+               SELECT t2.id, t2.title, t2.type
+               FROM group_task_links gtl2
+               JOIN tasks t2
+                 ON t2.id = CASE WHEN gtl2.parent_task_id = t.id THEN gtl2.child_task_id ELSE gtl2.parent_task_id END
+               WHERE gtl2.parent_task_id = t.id OR gtl2.child_task_id = t.id
+               ORDER BY t2.updated_at DESC NULLS LAST, t2.id DESC
+               LIMIT 4
+             ) rel
+           ), '[]'::json) AS linked_items_preview`
+        : `0::int AS linked_items_count, '[]'::json AS linked_items_preview`;
 
       // 🚀 CACHE: Check dashboard cache first
       if (lite) {
