@@ -7,8 +7,7 @@ import { api } from '../utils/api';
 import {
   X, ArrowLeft, Calendar, CalendarCheck, Clock, Tag, Flag, CheckCircle2, Circle,
   Trash2, AlertTriangle, Repeat, Bell, FileText, ListChecks,
-  Users, UserCheck, Eye, Edit3, Share2, MoreVertical, MessageCircle, Send, Video,
-  Link2, Plus, ArrowRight
+  Users, UserCheck, Eye, Edit3, Share2, MoreVertical, MessageCircle, Send, Video
 } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -32,14 +31,6 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const [showMenu, setShowMenu] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [taskLinks, setTaskLinks] = useState([]);
-  const [groupTaskCandidates, setGroupTaskCandidates] = useState([]);
-  const [loadingLinks, setLoadingLinks] = useState(false);
-  const [showLinkPicker, setShowLinkPicker] = useState(false);
-  const [linkQuery, setLinkQuery] = useState('');
-  const [pendingLinkTarget, setPendingLinkTarget] = useState(null);
-  const [linkSaving, setLinkSaving] = useState(false);
-  const [removingLinkId, setRemovingLinkId] = useState(null);
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState([]);
   const menuRef = useRef(null);
@@ -169,45 +160,6 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const isEvent = task?.type === 'event';
   const eventEndAt = isEvent ? getEventEndDate(task) : null;
   const isEventEnded = isEvent && !!eventEndAt && eventEndAt.getTime() < Date.now();
-  const hasGroupContext = !!task?.group_id;
-
-  const refreshTaskLinks = async () => {
-    if (!task?.group_id || !task?.id) {
-      setTaskLinks([]);
-      return;
-    }
-    setLoadingLinks(true);
-    try {
-      const [linksRes, groupRes] = await Promise.all([
-        api.getGroupTaskLinks(task.group_id),
-        api.getGroup(task.group_id),
-      ]);
-      const allLinks = Array.isArray(linksRes?.links) ? linksRes.links : [];
-      const allTasks = Array.isArray(groupRes?.tasks) ? groupRes.tasks : [];
-      const ownId = Number(task.id);
-      const relevant = allLinks
-        .filter((l) => Number(l.parent_task_id) === ownId || Number(l.child_task_id) === ownId)
-        .map((l) => {
-          const isParent = Number(l.parent_task_id) === ownId;
-          const relatedId = isParent ? Number(l.child_task_id) : Number(l.parent_task_id);
-          const relatedTask = allTasks.find((t) => Number(t.id) === relatedId) || null;
-          return {
-            ...l,
-            relation: isParent ? 'contains' : 'belongs_to',
-            related_task_id: relatedId,
-            related_task: relatedTask,
-          };
-        });
-
-      setTaskLinks(relevant);
-      setGroupTaskCandidates(allTasks.filter((t) => Number(t.id) !== ownId));
-    } catch {
-      setTaskLinks([]);
-      setGroupTaskCandidates([]);
-    } finally {
-      setLoadingLinks(false);
-    }
-  };
 
   useEffect(() => {
     if (!task?.id) { setComments([]); return; }
@@ -215,10 +167,6 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       .then((res) => { if (res.comments && Array.isArray(res.comments)) setComments(res.comments); })
       .catch(() => setComments([]));
   }, [task?.id]);
-
-  useEffect(() => {
-    refreshTaskLinks();
-  }, [task?.id, task?.group_id]);
 
   useEffect(() => {
     const onClickOutside = (e) => {
@@ -321,146 +269,6 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       setSharingToChat(false);
     }
   };
-
-  const filteredLinkCandidates = useMemo(() => {
-    const q = linkQuery.trim().toLowerCase();
-    const usedIds = new Set(taskLinks.map((l) => Number(l.related_task_id)));
-    return groupTaskCandidates
-      .filter((t) => !usedIds.has(Number(t.id)))
-      .filter((t) => !q || String(t.title || '').toLowerCase().includes(q))
-      .slice(0, 40);
-  }, [groupTaskCandidates, taskLinks, linkQuery]);
-
-  const confirmCreateLink = async (direction) => {
-    if (!pendingLinkTarget?.id || !task?.group_id) return;
-    const parentTaskId = direction === 'to_current' ? Number(task.id) : Number(pendingLinkTarget.id);
-    const childTaskId = direction === 'to_current' ? Number(pendingLinkTarget.id) : Number(task.id);
-    setLinkSaving(true);
-    try {
-      await api.createGroupTaskLink(task.group_id, parentTaskId, childTaskId);
-      addToast('🔗 Verknüpfung erstellt');
-      setPendingLinkTarget(null);
-      setShowLinkPicker(false);
-      setLinkQuery('');
-      await refreshTaskLinks();
-      fetchTasks({ dashboard: 'true', limit: '300', horizon_days: '42', completed_lookback_days: '30' }, { force: true });
-    } catch (err) {
-      addToast(`❌ ${err?.message || 'Verknüpfung fehlgeschlagen'}`);
-    } finally {
-      setLinkSaving(false);
-    }
-  };
-
-  const handleRemoveLink = async (linkId) => {
-    if (!task?.group_id || !linkId) return;
-    setRemovingLinkId(linkId);
-    try {
-      await api.deleteGroupTaskLink(task.group_id, linkId);
-      setTaskLinks((prev) => prev.filter((l) => Number(l.id) !== Number(linkId)));
-      addToast('Verknüpfung entfernt');
-      fetchTasks({ dashboard: 'true', limit: '300', horizon_days: '42', completed_lookback_days: '30' }, { force: true });
-    } catch (err) {
-      addToast(`❌ ${err?.message || 'Löschen fehlgeschlagen'}`);
-    } finally {
-      setRemovingLinkId(null);
-    }
-  };
-
-  const linkSection = hasGroupContext ? (
-    <div className="task-detail-section task-detail-links">
-      <div className="task-detail-description-header">
-        <Link2 size={16} /><span>Verknüpfungen</span>
-      </div>
-
-      <div className={`task-detail-links-shell${isMobile ? ' mobile' : ' desktop'}`}>
-        <div className="task-detail-links-topbar">
-          <span className="task-detail-links-count">{taskLinks.length} verbunden</span>
-          <button type="button" className="task-detail-links-add" onClick={() => setShowLinkPicker((v) => !v)}>
-            <Plus size={14} /> Hinzufügen
-          </button>
-        </div>
-
-        {showLinkPicker && (
-          <div className="task-detail-links-picker">
-            <input
-              className="task-detail-links-search"
-              placeholder="Eintrag suchen..."
-              value={linkQuery}
-              onChange={(e) => setLinkQuery(e.target.value)}
-            />
-            <div className="task-detail-links-candidates">
-              {filteredLinkCandidates.map((candidate) => (
-                <button
-                  key={candidate.id}
-                  type="button"
-                  className="task-detail-links-candidate"
-                  onClick={() => setPendingLinkTarget(candidate)}
-                >
-                  <span className={`task-detail-link-type ${candidate.type === 'event' ? 'event' : 'task'}`}>
-                    {candidate.type === 'event' ? 'Termin' : 'Aufgabe'}
-                  </span>
-                  <span className="task-detail-links-candidate-title">{candidate.title}</span>
-                </button>
-              ))}
-              {filteredLinkCandidates.length === 0 && (
-                <p className="task-detail-links-empty">Keine verfügbaren Einträge gefunden.</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {pendingLinkTarget && (
-          <div className="task-detail-links-confirm">
-            <p>
-              Möchtest du <strong>{pendingLinkTarget.title}</strong> mit <strong>{task.title}</strong> verknüpfen?
-            </p>
-            <div className="task-detail-links-confirm-actions">
-              <button type="button" onClick={() => confirmCreateLink('to_current')} disabled={linkSaving}>
-                <ArrowRight size={14} /> Zu diesem Eintrag hinzufügen
-              </button>
-              <button type="button" onClick={() => confirmCreateLink('from_current')} disabled={linkSaving}>
-                <ArrowRight size={14} /> Diesem Eintrag unterordnen
-              </button>
-              <button type="button" className="ghost" onClick={() => setPendingLinkTarget(null)} disabled={linkSaving}>
-                Abbrechen
-              </button>
-            </div>
-          </div>
-        )}
-
-        {loadingLinks ? (
-          <div className="task-detail-links-loading">Lade Verknüpfungen...</div>
-        ) : taskLinks.length === 0 ? (
-          <div className="task-detail-links-empty-wrap">Noch keine Verknüpfungen.</div>
-        ) : (
-          <div className="task-detail-links-list">
-            {taskLinks.map((link) => (
-              <div key={link.id} className="task-detail-link-row">
-                <div className="task-detail-link-main">
-                  <span className={`task-detail-link-type ${link.related_task?.type === 'event' ? 'event' : 'task'}`}>
-                    {link.related_task?.type === 'event' ? 'Termin' : 'Aufgabe'}
-                  </span>
-                  <span className="task-detail-link-title">{link.related_task?.title || link.child_title || link.parent_title}</span>
-                  <span className="task-detail-link-direction">
-                    {link.relation === 'contains' ? 'Hinzugefügt' : 'Gehört zu'}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  className="task-detail-link-delete"
-                  onClick={() => handleRemoveLink(link.id)}
-                  disabled={removingLinkId === link.id}
-                  title="Verknüpfung entfernen"
-                >
-                  <Trash2 size={13} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  ) : null;
 
   const content = (
     <motion.div
@@ -664,8 +472,6 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
 
         <TaskAttachments taskId={task.id} canEdit={canEdit} />
 
-        {isMobile && linkSection}
-
         {task.created_at && (
           <div className="task-detail-footer-info">
             Erstellt am {format(parseISO(task.created_at), 'd. MMMM yyyy, HH:mm', { locale: de })} Uhr
@@ -686,7 +492,6 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       </div>
 
       <div className="task-detail-aside">
-        {!isMobile && linkSection}
         {isShared && (
           <div className="task-detail-section task-detail-collab">
             <div className="task-detail-description-header">

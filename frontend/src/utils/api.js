@@ -150,12 +150,6 @@ export const api = {
       body: JSON.stringify({ name, email, password }),
     }),
 
-  verifyCode: (email, code) =>
-    request('/auth/verify-code', {
-      method: 'POST',
-      body: JSON.stringify({ email, code }),
-    }),
-
   getMe: () => request('/auth/me'),
 
   // 2FA
@@ -435,18 +429,6 @@ export const api = {
 
   removeGroupTask: (groupId, taskId) =>
     request(`/groups/${groupId}/tasks/${taskId}`, { method: 'DELETE' }),
-
-  getGroupTaskLinks: (groupId) =>
-    request(`/groups/${groupId}/task-links`),
-
-  createGroupTaskLink: (groupId, parent_task_id, child_task_id, note = '') =>
-    request(`/groups/${groupId}/task-links`, {
-      method: 'POST',
-      body: JSON.stringify({ parent_task_id, child_task_id, note }),
-    }),
-
-  deleteGroupTaskLink: (groupId, linkId) =>
-    request(`/groups/${groupId}/task-links/${linkId}`, { method: 'DELETE' }),
 
   getGroupCategories: (groupId) => request(`/groups/${groupId}/categories`),
 

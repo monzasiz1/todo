@@ -67,29 +67,10 @@ export const useAuthStore = create((set) => ({
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         set({ user: null, token: null, loading: false });
-        return { success: false, message: data.message || 'Bitte gib den Verifizierungscode ein.' };
+        return { success: false, message: data.message || 'Bitte bestätige deine E-Mail-Adresse.' };
       }
     } catch (err) {
       set({ error: err.message, loading: false });
-      return { success: false, error: err.message };
-    }
-  },
-
-  verifyCode: async (email, code) => {
-    set({ loading: true, error: null });
-    try {
-      const data = await api.verifyCode(email, code);
-      if (data.token) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        set({ user: data.user, token: data.token, loading: false });
-        window.dispatchEvent(new Event('beequ:token-updated'));
-        return { success: true };
-      }
-      set({ loading: false });
-      return { success: false, error: data.error || 'Verifizierung fehlgeschlagen' };
-    } catch (err) {
-      set({ loading: false, error: err.message });
       return { success: false, error: err.message };
     }
   },
