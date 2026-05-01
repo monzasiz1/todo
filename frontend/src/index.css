@@ -3210,34 +3210,6 @@ body.cal-is-dragging * {
   line-height: 1.2;
 }
 
-.mobile-week-grid-day-num.holiday-num {
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto;
-  font-size: 12px;
-}
-
-.mobile-week-holiday-dot {
-  display: block;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  margin: 2px auto 0;
-}
-
-.mobile-day-holiday-banner {
-  margin: 8px 12px 4px;
-  padding: 8px 12px;
-  border-left: 3px solid;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-}
-
 .mobile-week-grid-scroll {
   display: flex;
   flex: 1;
@@ -8147,21 +8119,6 @@ body.cal-is-dragging * {
   .desktop-week-day-head.today {
     background: #edf3ff;
     color: #285db5;
-  }
-
-  .cal-week-holiday-label {
-    font-size: 10px;
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-    line-height: 1.2;
-    margin-top: 1px;
-  }
-
-  .desktop-week-day-head.has-holiday {
-    background: rgba(217, 44, 44, 0.06);
   }
 
   .desktop-week-all-day-cell {
