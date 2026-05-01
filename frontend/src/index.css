@@ -6840,6 +6840,36 @@ body.cal-is-dragging * {
   color: var(--text);
 }
 
+.task-detail-time-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.task-detail-time-chip {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--primary);
+  background: var(--primary-bg);
+  border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
+  border-radius: 8px;
+  padding: 3px 10px;
+  letter-spacing: 0.01em;
+}
+
+.task-detail-time-chip--end {
+  color: #5856D6;
+  background: rgba(88,86,214,0.08);
+  border-color: rgba(88,86,214,0.2);
+}
+
+.task-detail-time-arrow {
+  font-size: 13px;
+  color: #9ca3af;
+  line-height: 1;
+}
+
 .task-detail-category-badge {
   display: inline-block;
   font-size: 0.8rem;

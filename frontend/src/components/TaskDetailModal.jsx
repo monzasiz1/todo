@@ -409,7 +409,15 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
               <div className="task-detail-item-icon"><Clock size={18} /></div>
               <div>
                 <div className="task-detail-item-label">Uhrzeit</div>
-                <div className="task-detail-item-value">{formatTime(task.time)}{task.time_end ? ` – ${formatTime(task.time_end)}` : ''}</div>
+                <div className="task-detail-time-range">
+                  <span className="task-detail-time-chip">{task.time.slice(0, 5)}</span>
+                  {task.time_end && (
+                    <>
+                      <span className="task-detail-time-arrow">→</span>
+                      <span className="task-detail-time-chip task-detail-time-chip--end">{task.time_end.slice(0, 5)}</span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           )}
