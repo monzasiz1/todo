@@ -1219,5 +1219,192 @@ module.exports = async function handler(req, res) {
     }
   }
 
+
+  /* ════════════════════════════════════════════════════════
+     GRUPPEN-PROJEKTE  /groups/:groupId/projects
+     ════════════════════════════════════════════════════════ */
+
+  /* ── GET  /:groupId/projects ── */
+  if (segments.length === 2 && segments[1] === 'projects' && req.method === 'GET') {
+    try {
+      const groupId = Number(segments[0]);
+      const membership = await getMembership(groupId);
+      if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
+      const { rows } = await pool.query(
+        `SELECT p.*, u.name AS creator_name, u.avatar_url AS creator_avatar, u.avatar_color AS creator_color,
+                (SELECT COUNT(*) FROM group_project_items WHERE project_id = p.id) AS item_count
+         FROM group_projects p LEFT JOIN users u ON u.id = p.created_by
+         WHERE p.group_id = $1 ORDER BY p.date_start ASC, p.created_at DESC`,
+        [groupId]
+      );
+      return res.json({ projects: rows });
+    } catch (err) {
+      console.error('Get projects error:', err);
+      return res.status(500).json({ error: 'Fehler beim Laden der Projekte' });
+    }
+  }
+
+  /* ── POST /:groupId/projects ── */
+  if (segments.length === 2 && segments[1] === 'projects' && req.method === 'POST') {
+    try {
+      const groupId = Number(segments[0]);
+      const membership = await getMembership(groupId);
+      if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
+      const { title, description = '', color = '#007AFF', date_start, date_end } = req.body;
+      if (!title || !date_start || !date_end)
+        return res.status(400).json({ error: 'Titel, Start- und Enddatum sind erforderlich' });
+      if (new Date(date_start) > new Date(date_end))
+        return res.status(400).json({ error: 'Startdatum muss vor dem Enddatum liegen' });
+      const { rows } = await pool.query(
+        `INSERT INTO group_projects (group_id, created_by, title, description, color, date_start, date_end)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+        [groupId, user.id, title.trim(), description.trim(), color, date_start, date_end]
+      );
+      const project = rows[0];
+      notifyGroupMembers(groupId, user.id, () => ({
+        title: 'Neues Projekt', body: `${user.name} hat das Projekt "${title}" erstellt`,
+        type: 'group_project', tag: `group-project-${project.id}`, url: `/groups?group=${groupId}`,
+      })).catch(() => {});
+      return res.status(201).json({ project });
+    } catch (err) {
+      console.error('Create project error:', err);
+      return res.status(500).json({ error: 'Fehler beim Erstellen des Projekts' });
+    }
+  }
+
+  /* ── PUT /:groupId/projects/:projectId ── */
+  if (segments.length === 3 && segments[1] === 'projects' && req.method === 'PUT') {
+    try {
+      const groupId = Number(segments[0]); const projectId = Number(segments[2]);
+      const membership = await getMembership(groupId);
+      if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
+      const proj = await pool.query('SELECT * FROM group_projects WHERE id = $1 AND group_id = $2', [projectId, groupId]);
+      if (!proj.rows[0]) return res.status(404).json({ error: 'Projekt nicht gefunden' });
+      const isCreator = proj.rows[0].created_by === user.id;
+      const isPriv = ['owner','admin'].includes(membership.role);
+      if (!isCreator && !isPriv) return res.status(403).json({ error: 'Kein Zugriff' });
+      const { title, description, color, date_start, date_end, status } = req.body;
+      if (date_start && date_end && new Date(date_start) > new Date(date_end))
+        return res.status(400).json({ error: 'Startdatum muss vor dem Enddatum liegen' });
+      const { rows } = await pool.query(
+        `UPDATE group_projects SET title=COALESCE($1,title), description=COALESCE($2,description),
+         color=COALESCE($3,color), date_start=COALESCE($4,date_start), date_end=COALESCE($5,date_end),
+         status=COALESCE($6,status), updated_at=NOW() WHERE id=$7 AND group_id=$8 RETURNING *`,
+        [title, description, color, date_start, date_end, status, projectId, groupId]
+      );
+      return res.json({ project: rows[0] });
+    } catch (err) {
+      console.error('Update project error:', err);
+      return res.status(500).json({ error: 'Fehler beim Aktualisieren' });
+    }
+  }
+
+  /* ── DELETE /:groupId/projects/:projectId ── */
+  if (segments.length === 3 && segments[1] === 'projects' && req.method === 'DELETE') {
+    try {
+      const groupId = Number(segments[0]); const projectId = Number(segments[2]);
+      const membership = await getMembership(groupId);
+      if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
+      const proj = await pool.query('SELECT * FROM group_projects WHERE id = $1 AND group_id = $2', [projectId, groupId]);
+      if (!proj.rows[0]) return res.status(404).json({ error: 'Projekt nicht gefunden' });
+      const isCreator = proj.rows[0].created_by === user.id;
+      const isPriv = ['owner','admin'].includes(membership.role);
+      if (!isCreator && !isPriv) return res.status(403).json({ error: 'Kein Zugriff' });
+      await pool.query('DELETE FROM group_projects WHERE id = $1', [projectId]);
+      return res.json({ success: true });
+    } catch (err) {
+      console.error('Delete project error:', err);
+      return res.status(500).json({ error: 'Fehler beim Löschen' });
+    }
+  }
+
+  /* ── GET /:groupId/projects/:projectId/items ── */
+  if (segments.length === 4 && segments[1] === 'projects' && segments[3] === 'items' && req.method === 'GET') {
+    try {
+      const groupId = Number(segments[0]); const projectId = Number(segments[2]);
+      const membership = await getMembership(groupId);
+      if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
+      const { rows } = await pool.query(
+        `SELECT pi.id AS pin_id, pi.note, pi.pinned_at,
+                pu.name AS pinned_by_name, pu.avatar_url AS pinned_by_avatar, pu.avatar_color AS pinned_by_color,
+                t.id, t.title, t.description, t.date, t.date_end, t.time, t.time_end, t.type,
+                t.priority, t.completed, t.category_id, t.user_id,
+                tu.name AS task_owner_name, tu.avatar_url AS task_owner_avatar, tu.avatar_color AS task_owner_color,
+                c.name AS category_name, c.color AS category_color
+         FROM group_project_items pi
+         JOIN tasks t ON t.id = pi.task_id
+         JOIN users tu ON tu.id = t.user_id
+         LEFT JOIN users pu ON pu.id = pi.pinned_by
+         LEFT JOIN categories c ON c.id = t.category_id
+         WHERE pi.project_id = $1
+         ORDER BY t.date ASC NULLS LAST, t.time ASC NULLS LAST, pi.pinned_at DESC`,
+        [projectId]
+      );
+      return res.json({ items: rows });
+    } catch (err) {
+      console.error('Get project items error:', err);
+      return res.status(500).json({ error: 'Fehler beim Laden der Items' });
+    }
+  }
+
+  /* ── POST /:groupId/projects/:projectId/items ── */
+  if (segments.length === 4 && segments[1] === 'projects' && segments[3] === 'items' && req.method === 'POST') {
+    try {
+      const groupId = Number(segments[0]); const projectId = Number(segments[2]);
+      const membership = await getMembership(groupId);
+      if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
+      const { task_id, note = '' } = req.body;
+      if (!task_id) return res.status(400).json({ error: 'task_id fehlt' });
+      const taskCheck = await pool.query(
+        `SELECT t.id FROM tasks t WHERE t.id = $1 AND (
+           t.user_id = $2
+           OR EXISTS (SELECT 1 FROM group_tasks gt WHERE gt.task_id = t.id AND gt.group_id = $3)
+         )`,
+        [task_id, user.id, groupId]
+      );
+      if (!taskCheck.rows[0]) return res.status(403).json({ error: 'Aufgabe nicht gefunden oder kein Zugriff' });
+      const projCheck = await pool.query('SELECT id FROM group_projects WHERE id = $1 AND group_id = $2', [projectId, groupId]);
+      if (!projCheck.rows[0]) return res.status(404).json({ error: 'Projekt nicht gefunden' });
+      const { rows } = await pool.query(
+        `INSERT INTO group_project_items (project_id, task_id, pinned_by, note)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (project_id, task_id) DO UPDATE SET note = EXCLUDED.note RETURNING *`,
+        [projectId, task_id, user.id, note.trim()]
+      );
+      const taskTitle = (await pool.query('SELECT title FROM tasks WHERE id = $1', [task_id])).rows[0]?.title || '';
+      notifyGroupMembers(groupId, user.id, () => ({
+        title: 'Aufgabe angeheftet', body: `${user.name} hat "${taskTitle}" an ein Projekt geheftet`,
+        type: 'group_project', tag: `group-project-pin-${rows[0].id}`, url: `/groups?group=${groupId}`,
+      })).catch(() => {});
+      return res.status(201).json({ item: rows[0] });
+    } catch (err) {
+      console.error('Pin project item error:', err);
+      return res.status(500).json({ error: 'Fehler beim Anheften' });
+    }
+  }
+
+  /* ── DELETE /:groupId/projects/:projectId/items/:pinId ── */
+  if (segments.length === 5 && segments[1] === 'projects' && segments[3] === 'items' && req.method === 'DELETE') {
+    try {
+      const groupId = Number(segments[0]); const projectId = Number(segments[2]); const pinId = Number(segments[4]);
+      const membership = await getMembership(groupId);
+      if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
+      const pin = await pool.query(
+        `SELECT pi.* FROM group_project_items pi JOIN group_projects p ON p.id = pi.project_id
+         WHERE pi.id = $1 AND p.group_id = $2`,
+        [pinId, groupId]
+      );
+      if (!pin.rows[0]) return res.status(404).json({ error: 'Eintrag nicht gefunden' });
+      const isOwner = pin.rows[0].pinned_by === user.id;
+      const isPriv = ['owner','admin'].includes(membership.role);
+      if (!isOwner && !isPriv) return res.status(403).json({ error: 'Kein Zugriff' });
+      await pool.query('DELETE FROM group_project_items WHERE id = $1', [pinId]);
+      return res.json({ success: true });
+    } catch (err) {
+      console.error('Unpin project item error:', err);
+      return res.status(500).json({ error: 'Fehler beim Ablösen' });
+    }
+  }
+
   return res.status(404).json({ error: 'Route nicht gefunden' });
 };
