@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import GroupProjectBoard from '../components/GroupProjectBoard';
 import { useGroupStore } from '../store/groupStore';
 import { useAuthStore } from '../store/authStore';
 import { useTaskStore } from '../store/taskStore';
@@ -525,7 +526,7 @@ function GroupDetail({ groupId, onBack }) {
   } = useGroupStore();
   const { user } = useAuthStore();
   const { addToast, fetchTasks } = useTaskStore();
-  const [tab, setTab] = useState('tasks'); // 'tasks' | 'members' | 'settings'
+  const [tab, setTab] = useState('tasks'); // 'tasks' | 'projects' | 'members' | 'settings'
   const [showAddTask, setShowAddTask] = useState(false);
   const [copied, setCopied] = useState(false);
   const [visibleCount, setVisibleCount] = useState(15);
@@ -650,6 +651,9 @@ function GroupDetail({ groupId, onBack }) {
         <button className={`group-tab ${tab === 'tasks' ? 'active' : ''}`} onClick={() => setTab('tasks')}>
           Einträge <span className="group-tab-count">{groupTasks.length}</span>
         </button>
+        <button className={`group-tab ${tab === 'projects' ? 'active' : ''}`} onClick={() => setTab('projects')}>
+          Projekte
+        </button>
         <button className={`group-tab ${tab === 'members' ? 'active' : ''}`} onClick={() => setTab('members')}>
           Mitglieder <span className="group-tab-count">{members.length}</span>
         </button>
@@ -763,6 +767,20 @@ function GroupDetail({ groupId, onBack }) {
 
       {/* Members Tab */}
       {tab === 'members' && (
+              {/* Projects Tab */}
+              {tab === 'projects' && (
+                <div className="group-tab-content">
+                  <GroupProjectBoard
+                    groupId={groupId}
+                    groupTasks={groupTasks}
+                    isAdmin={isAdmin}
+                    userId={user?.id}
+                  />
+                </div>
+              )}
+
+              {/* Members Tab */}
+              {tab === 'members' && (
         <div className="group-tab-content">
           <div className="group-tab-heading-wrap" style={{ marginBottom: 12 }}>
             <h3 className="group-tab-heading">Mitgliederverwaltung</h3>
