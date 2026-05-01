@@ -1457,7 +1457,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       >
                         {showLabel && t.teams_join_url && <Video size={11} className="calendar-inline-teams-icon" />}
                         {showLabel && <span className={doneOrOld ? 'cal-allday-strike' : ''}>{t.title}{isHolidayEntry(t) && ' (Feiertag)'}</span>}
-                        {showLabel && ended && !t.completed && <span style={{ opacity: 0.75, marginLeft: 3 }}>Â· beendet</span>}
+                        {showLabel && ended && !t.completed && <span style={{ opacity: 0.75, marginLeft: 3 }}>· beendet</span>}
                       </button>
                     );
                   })}
@@ -1618,7 +1618,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       </div>
                       <span className="desktop-week-event-time">
                         {t.time?.slice(0, 5)}{t.time_end ? ` - ${t.time_end.slice(0, 5)}` : ''}
-                        {t.group_category_name && !doneOrEnded && <span className="cal-event-cat-inline"> Â· {t.group_category_name}</span>}
+                        {t.group_category_name && !doneOrEnded && <span className="cal-event-cat-inline"> · {t.group_category_name}</span>}
                       </span>
                       {t.completed && <span className="desktop-week-event-ended">Erledigt</span>}
                       {!t.completed && ended && <span className="desktop-week-event-ended">Beendet</span>}
@@ -1676,7 +1676,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
           if (!hasAny) return null;
           return (
             <div className="mobile-week-allday-strip">
-              <div className="mobile-week-allday-corner">Ganztg.</div>
+              <div className="mobile-week-allday-corner">Ganztäg.</div>
               {days.map((d) => {
                 const dayStr = format(d, 'yyyy-MM-dd');
                 const weekDay = d.getDay(); // 0=Sun, 1=Mon..6=Sat
@@ -1894,7 +1894,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
         {/* â”€â”€ All-Day Section â€” TOP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {allDayTasks.length > 0 && (
           <div className="mobile-day-allday-top">
-            <span className="mobile-day-allday-label">GanztÃ¤gig</span>
+            <span className="mobile-day-allday-label">Ganztägig</span>
             {allDayTasks.map((t) => {
               const ended    = isEventEnded(t, nowTs);
               const doneOrOld = t.completed || ended;
@@ -2005,7 +2005,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                 </div>
                 <span className="cal-event-time-row">
                   {t.time?.slice(0, 5)}{t.time_end ? `-${t.time_end.slice(0, 5)}` : ''}
-                  {t.group_category_name && !doneOrEnded && <span className="cal-event-cat-inline"> Â· {t.group_category_name}</span>}
+                  {t.group_category_name && !doneOrEnded && <span className="cal-event-cat-inline"> · {t.group_category_name}</span>}
                 </span>
                 {t.completed && <span className="mobile-day-event-ended">Erledigt</span>}
                 {!t.completed && ended && <span className="mobile-day-event-ended">Beendet</span>}

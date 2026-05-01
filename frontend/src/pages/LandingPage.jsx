@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -84,8 +84,13 @@ export default function LandingPage() {
   const [loginError,    setLoginError]    = useState('');
   const [registerError, setRegisterError] = useState('');
   const [pendingEmail,  setPendingEmail]  = useState('');
+  // Code-Verifikation
+  const [verifyDigits,  setVerifyDigits]  = useState(['','','','','','']);
+  const [verifyStep,    setVerifyStep]    = useState('input'); // 'input' | 'checking' | 'done'
+  const [verifyError,   setVerifyError]   = useState('');
+  const verifyRefs = [useRef(null),useRef(null),useRef(null),useRef(null),useRef(null),useRef(null)];
   const [aiIdx, setAiIdx] = useState(0);
-  const { login, register, loading } = useAuthStore();
+  const { login, register, verifyCode, loading } = useAuthStore();
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
@@ -98,14 +103,60 @@ export default function LandingPage() {
     try {
       const result = await register(registerName, registerEmail, registerPassword);
       if (result?.success) {
-        navigate('/app');
+        navigate('/');
       } else if (result?.message) {
+        setVerifyDigits(['','','','','','']);
+        setVerifyStep('input');
+        setVerifyError('');
         setPendingEmail(registerEmail);
+        setTimeout(() => verifyRefs[0]?.current?.focus(), 80);
       } else if (result?.error) {
         setRegisterError(result.error);
       }
     } catch (err) {
       setRegisterError(err.message || 'Registrierung fehlgeschlagen');
+    }
+  };
+
+  const handleVerifyDigit = (idx, val) => {
+    const digit = val.replace(/\D/g, '').slice(-1);
+    const next  = [...verifyDigits];
+    next[idx]   = digit;
+    setVerifyDigits(next);
+    setVerifyError('');
+    if (digit && idx < 5) setTimeout(() => verifyRefs[idx + 1]?.current?.focus(), 10);
+  };
+
+  const handleVerifyKeyDown = (idx, e) => {
+    if (e.key === 'Backspace' && !verifyDigits[idx] && idx > 0)
+      setTimeout(() => verifyRefs[idx - 1]?.current?.focus(), 10);
+  };
+
+  const handleVerifyPaste = (e) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g,'').slice(0, 6);
+    if (!pasted) return;
+    const next = ['','','','','',''];
+    [...pasted].forEach((ch, i) => { next[i] = ch; });
+    setVerifyDigits(next);
+    const focusIdx = Math.min(pasted.length, 5);
+    setTimeout(() => verifyRefs[focusIdx]?.current?.focus(), 10);
+  };
+
+  const handleVerifySubmit = async () => {
+    const code = verifyDigits.join('');
+    if (code.length < 6) { setVerifyError('Bitte alle 6 Stellen eingeben.'); return; }
+    setVerifyStep('checking');
+    setVerifyError('');
+    const result = await verifyCode(pendingEmail, code);
+    if (result?.success) {
+      setVerifyStep('done');
+      setTimeout(() => navigate('/'), 1400);
+    } else {
+      setVerifyStep('input');
+      setVerifyError(result?.error || 'Ungültiger Code. Bitte nochmal prüfen.');
+      setVerifyDigits(['','','','','','']);
+      setTimeout(() => verifyRefs[0]?.current?.focus(), 80);
     }
   };
 
@@ -747,29 +798,110 @@ export default function LandingPage() {
                       transition={{ duration: 0.25 }}
                     >
                       {pendingEmail ? (
-                        /* ── E-Mail-Bestätigung ausstehend ── */
-                        <div className="bq-auth-verify">
-                          <div className="bq-auth-verify-icon">✉️</div>
-                          <h1>E-Mail bestätigen</h1>
-                          <p>
-                            Wir haben einen Aktivierungslink an<br />
-                            <strong>{pendingEmail}</strong><br />
-                            gesendet. Bitte prüfe dein Postfach und klicke auf den Link.
-                          </p>
-                          <button
-                            className="bq-auth-submit"
-                            onClick={() => {
-                              setPendingEmail('');
-                              setShowRegister(false);
-                              setShowLogin(true);
-                            }}
-                          >
-                            Zum Login <ArrowRight size={16} />
-                          </button>
-                          <p className="bq-auth-verify-hint">
-                            Kein Mail erhalten? Prüfe deinen Spam-Ordner.
-                          </p>
-                        </div>
+                        /* ── Code-Verifikation ── */
+                        <AnimatePresence mode="wait">
+                          {verifyStep === 'checking' && (
+                            <motion.div
+                              key="checking"
+                              className="bq-auth-verify"
+                              initial={{ opacity: 0, scale: 0.94 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.94 }}
+                              transition={{ duration: 0.22 }}
+                            >
+                              <div className="bq-verify-spinner-wrap">
+                                <svg className="bq-verify-arc" viewBox="0 0 48 48" fill="none">
+                                  <circle cx="24" cy="24" r="20" stroke="#E5E7EB" strokeWidth="4"/>
+                                  <circle cx="24" cy="24" r="20" stroke="#007AFF" strokeWidth="4"
+                                    strokeDasharray="60 66" strokeLinecap="round"
+                                    style={{ transformOrigin: '50% 50%', animation: 'bq-spin 0.9s linear infinite' }}/>
+                                </svg>
+                              </div>
+                              <h1 style={{ marginTop: 20 }}>Wird überprüft…</h1>
+                              <p>Dein Code wird verifiziert.</p>
+                            </motion.div>
+                          )}
+                          {verifyStep === 'done' && (
+                            <motion.div
+                              key="done"
+                              className="bq-auth-verify"
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.3, type: 'spring', stiffness: 280, damping: 22 }}
+                            >
+                              <div className="bq-verify-success-icon">
+                                <svg viewBox="0 0 48 48" fill="none" width="56" height="56">
+                                  <circle cx="24" cy="24" r="24" fill="#34C759" fillOpacity="0.12"/>
+                                  <circle cx="24" cy="24" r="20" stroke="#34C759" strokeWidth="2.5"/>
+                                  <path d="M15 24.5l6.5 6.5 11-12" stroke="#34C759" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              </div>
+                              <h1 style={{ marginTop: 16, color: '#34C759' }}>Konto aktiviert!</h1>
+                              <p>Du wirst automatisch weitergeleitet…</p>
+                            </motion.div>
+                          )}
+                          {verifyStep === 'input' && (
+                            <motion.div
+                              key="input"
+                              className="bq-auth-verify"
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -10 }}
+                              transition={{ duration: 0.22 }}
+                            >
+                              <div className="bq-verify-mail-icon">
+                                <Mail size={28} color="#007AFF"/>
+                              </div>
+                              <h1>Code eingeben</h1>
+                              <p>
+                                Wir haben einen 6-stelligen Code an<br />
+                                <strong>{pendingEmail}</strong><br />
+                                gesendet. Bitte prüfe dein Postfach.
+                              </p>
+                              <div className="bq-verify-digits" onPaste={handleVerifyPaste}>
+                                {verifyDigits.map((d, i) => (
+                                  <input
+                                    key={i}
+                                    ref={verifyRefs[i]}
+                                    type="text"
+                                    inputMode="numeric"
+                                    maxLength={1}
+                                    value={d}
+                                    className={`bq-verify-digit${d ? ' filled' : ''}`}
+                                    onChange={e => handleVerifyDigit(i, e.target.value)}
+                                    onKeyDown={e => handleVerifyKeyDown(i, e)}
+                                  />
+                                ))}
+                              </div>
+                              {verifyError && (
+                                <div className="bq-auth-error" style={{ marginTop: 8 }}>
+                                  <AlertCircle size={14} />
+                                  <span>{verifyError}</span>
+                                </div>
+                              )}
+                              <button
+                                className="bq-auth-submit"
+                                style={{ marginTop: 20 }}
+                                onClick={handleVerifySubmit}
+                                disabled={verifyDigits.join('').length < 6 || loading}
+                              >
+                                {loading ? <span className="bq-auth-spinner"/> : <>Bestätigen <ArrowRight size={16}/></>}
+                              </button>
+                              <p className="bq-auth-verify-hint">
+                                Kein Mail erhalten? Prüfe deinen Spam-Ordner.<br />
+                                Der Code ist 10 Minuten gültig.
+                              </p>
+                              <button
+                                className="bq-auth-switch-btn"
+                                style={{ marginTop: 4 }}
+                                onClick={() => { setPendingEmail(''); setVerifyStep('input'); setVerifyDigits(['','','','','','']); }}
+                              >
+                                Zurück zur Registrierung
+                              </button>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       ) : (
                         /* ── Registrierungsformular ── */
                         <>
