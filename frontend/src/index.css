@@ -20091,6 +20091,65 @@ body.cal-is-dragging * {
   margin-top: -8px;
 }
 
+/* ── Code digit inputs ── */
+.bq-verify-mail-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 56px; height: 56px; border-radius: 16px;
+  background: #EFF6FF; margin: 0 auto;
+}
+
+.bq-verify-digits {
+  display: flex; gap: 10px; justify-content: center; margin: 8px 0 0;
+}
+
+.bq-verify-digit {
+  width: 44px; height: 52px;
+  border: 2px solid #E5E7EB;
+  border-radius: 12px;
+  font-size: 1.5rem; font-weight: 700; text-align: center;
+  color: #1C1C1E; background: #F9FAFB;
+  outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+  caret-color: #007AFF;
+}
+.bq-verify-digit:focus {
+  border-color: #007AFF;
+  box-shadow: 0 0 0 3px rgba(0,122,255,0.15);
+  background: #fff;
+}
+.bq-verify-digit.filled {
+  border-color: #007AFF;
+  background: #EFF6FF;
+}
+
+/* ── Spinner arc ── */
+.bq-verify-spinner-wrap {
+  display: flex; align-items: center; justify-content: center;
+  margin: 8px auto 0;
+  width: 56px; height: 56px;
+}
+.bq-verify-arc {
+  width: 56px; height: 56px;
+}
+
+@keyframes bq-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Success check icon ── */
+.bq-verify-success-icon {
+  display: flex; align-items: center; justify-content: center;
+  margin: 8px auto 0;
+}
+
+/* ── Switch-back link button ── */
+.bq-auth-switch-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 0.82rem; color: #AEAEB2;
+  padding: 0; text-decoration: underline;
+  transition: color 0.15s;
+}
+.bq-auth-switch-btn:hover { color: #007AFF; }
+
 /* ── Dedicated page wrapper (Login.jsx / Register.jsx) ── */
 .bq-auth-page {
   min-height: 100vh;

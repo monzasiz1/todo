@@ -150,6 +150,12 @@ export const api = {
       body: JSON.stringify({ name, email, password }),
     }),
 
+  verifyCode: (email, code) =>
+    request('/auth/verify-code', {
+      method: 'POST',
+      body: JSON.stringify({ email, code }),
+    }),
+
   getMe: () => request('/auth/me'),
 
   // 2FA

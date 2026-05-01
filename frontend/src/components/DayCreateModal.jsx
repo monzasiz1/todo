@@ -452,8 +452,9 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
                 Zurück
               </button>
               <ManualTaskForm
+                key={format(date, 'yyyy-MM-dd')}
                 onTaskCreated={handleManualCreated}
-                defaultDate={date}
+                defaultDate={format(date, 'yyyy-MM-dd')}
                 embedded
                 onCancel={() => setMode(null)}
               />

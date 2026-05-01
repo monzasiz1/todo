@@ -32,7 +32,10 @@ const VISIBILITY_OPTIONS = [
 function toDateValue(value) {
   if (!value) return '';
   if (typeof value === 'string') return value.substring(0, 10);
-  return value.toISOString().split('T')[0];
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 // Wandelt datetime-local Wert in ISO mit Timezone-Offset um
@@ -123,7 +126,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
 
   useEffect(() => {
     if (!defaultDate) return;
-    setDate((current) => current || toDateValue(defaultDate));
+    setDate(toDateValue(defaultDate));
   }, [defaultDate]);
 
   const resetForm = () => {

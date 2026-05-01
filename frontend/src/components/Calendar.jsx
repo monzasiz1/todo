@@ -1301,7 +1301,15 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                           zIndex: spanWidth ? 4 : undefined,
                         }}
                         onPointerDown={viewportState.isDesktop && !ended && !isHolidayTask ? (e) => handlePointerDown(e, t) : undefined}
-                        onClick={(e) => { e.stopPropagation(); if (!wasDragging.current) openCalendarEntry(t); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (wasDragging.current) return;
+                          if (deviceType === 'desktop') {
+                            openCalendarEntry(t);
+                            return;
+                          }
+                          handleDayClick(d);
+                        }}
                       >
                         {!isMobile && t.group_id && (
                           <AvatarBadge name={t.group_name} color={t.group_color || '#5856D6'} avatarUrl={t.group_image_url} size={10} />
