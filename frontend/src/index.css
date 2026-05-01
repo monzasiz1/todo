@@ -3210,7 +3210,35 @@ body.cal-is-dragging * {
   line-height: 1.2;
 }
 
-.mobile-week-grid-scroll {
+.mobile-week-grid-day-num.holiday-num {
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  font-size: 12px;
+}
+
+.mobile-week-holiday-dot {
+  display: block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  margin: 2px auto 0;
+}
+
+.mobile-day-holiday-banner {
+  margin: 8px 12px 4px;
+  padding: 8px 12px;
+  border-left: 3px solid;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+
   display: flex;
   flex: 1;
   overflow-y: auto;
@@ -8121,7 +8149,22 @@ body.cal-is-dragging * {
     color: #285db5;
   }
 
-  .desktop-week-all-day-cell {
+  .cal-week-holiday-label {
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    line-height: 1.2;
+    margin-top: 1px;
+  }
+
+  .desktop-week-day-head.has-holiday {
+    background: rgba(217, 44, 44, 0.06);
+  }
+
+
     min-height: 34px;
     border-right: 1px solid #e3e7ef;
     padding: 4px;
@@ -10031,6 +10074,26 @@ body.cal-is-dragging * {
 
 .task-detail-more-item.danger {
   color: var(--danger);
+}
+
+.task-detail-more-item-wrap {
+  position: relative;
+}
+
+.task-detail-share-submenu {
+  position: absolute;
+  right: calc(100% + 6px);
+  top: 0;
+  min-width: 152px;
+  background: var(--card-solid);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 10;
 }
 
 .task-detail-btn.edit {
@@ -17905,67 +17968,6 @@ body.cal-is-dragging * {
   font-weight: 600;
 }
 .bq-hero-trust svg { color: rgba(255,255,255,0.38); }
-.bq-hero-video-wrap {
-  width: min(860px, calc(100vw - 44px));
-  margin: 8px auto 0;
-  position: relative;
-}
-.bq-hero-video-shine {
-  position: absolute;
-  inset: -16px;
-  border-radius: 24px;
-  background:
-    radial-gradient(circle at 15% 12%, rgba(0, 122, 255, 0.42), transparent 40%),
-    radial-gradient(circle at 85% 88%, rgba(88, 86, 214, 0.34), transparent 42%);
-  filter: blur(18px);
-  opacity: 0.7;
-  pointer-events: none;
-}
-.bq-hero-video-card {
-  position: relative;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 24px 48px rgba(3, 6, 18, 0.52);
-  overflow: hidden;
-}
-.bq-hero-video-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(5, 9, 22, 0.5);
-}
-.bq-hero-video-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: #d9e9ff;
-  background: rgba(0, 122, 255, 0.24);
-  border: 1px solid rgba(77, 163, 255, 0.45);
-  border-radius: 999px;
-  padding: 5px 10px;
-}
-.bq-hero-video-note {
-  font-size: 0.76rem;
-  color: rgba(228, 236, 252, 0.72);
-  font-weight: 600;
-}
-.bq-hero-video {
-  display: block;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  object-fit: cover;
-  background: #090b14;
-}
 
 /* ── hero mock ── */
 .bq-hero-mock-wrap {
@@ -17975,12 +17977,6 @@ body.cal-is-dragging * {
   position: relative;
   z-index: 1;
   margin-top: 8px;
-  .bq-hero-video-wrap {
-    width: min(100%, calc(100vw - 28px));
-  }
-  .bq-hero-video-head {
-    padding: 10px 12px;
-  }
 }
 .bq-hero-mock-wrap::after {
   content: '';

@@ -29,6 +29,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const [showEdit, setShowEdit] = useState(false);
   const [sharingToChat, setSharingToChat] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState([]);
@@ -172,6 +173,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       if (menuRef.current?.contains(e.target)) return;
       if (emojiPickerRef.current?.contains(e.target)) return;
       setShowMenu(false);
+      setShowShareMenu(false);
       setShowEmojiPicker(false);
     };
     if (showMenu || showEmojiPicker) document.addEventListener('mousedown', onClickOutside);
@@ -208,6 +210,49 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     } catch {
       setComments((prev) => prev.filter((c) => c.id !== optimistic.id));
       addToast('❌ Kommentar konnte nicht gespeichert werden');
+    }
+  };
+
+  const buildShareText = () => {
+    const lines = [];
+    lines.push(isEvent ? `📅 Termin: ${task.title}` : `📌 Aufgabe: ${task.title}`);
+    if (task.date) {
+      const dateLabel = formatDate(task.date);
+      lines.push(`🗓 Datum: ${dateLabel}`);
+    }
+    if (task.time) {
+      const timeStr = task.time.slice(0, 5) + (task.time_end ? ` – ${task.time_end.slice(0, 5)}` : '');
+      lines.push(`⏰ Uhrzeit: ${timeStr}`);
+    }
+    if (task.category_name) lines.push(`🏷 Kategorie: ${task.category_name}`);
+    if (task.priority) {
+      const prioLabels = { low: 'Niedrig', medium: 'Mittel', high: 'Hoch', urgent: 'Dringend' };
+      lines.push(`🔔 Priorität: ${prioLabels[task.priority] || task.priority}`);
+    }
+    if (task.description) lines.push(`\n${task.description}`);
+    lines.push('\n📲 Erstellt mit BeeQu');
+    return lines.join('\n');
+  };
+
+  const handleShare = async (target) => {
+    setShowMenu(false);
+    setShowShareMenu(false);
+    const text = buildShareText();
+    if (target === 'native' && navigator.share) {
+      try { await navigator.share({ title: task.title, text }); } catch { /* abgebrochen */ }
+      return;
+    }
+    if (target === 'whatsapp') {
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    if (target === 'copy') {
+      try {
+        await navigator.clipboard.writeText(text);
+        addToast('✅ Text kopiert');
+      } catch {
+        addToast('❌ Kopieren fehlgeschlagen');
+      }
     }
   };
 
@@ -260,6 +305,31 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
                     Bearbeiten
                   </button>
                 )}
+                <div className="task-detail-more-item-wrap">
+                  <button
+                    className="task-detail-more-item"
+                    onClick={() => setShowShareMenu((s) => !s)}
+                  >
+                    <Share2 size={14} style={{ marginRight: 6 }} />
+                    Teilen
+                    <span style={{ marginLeft: 'auto', opacity: 0.5, fontSize: 11 }}>▶</span>
+                  </button>
+                  {showShareMenu && (
+                    <div className="task-detail-share-submenu">
+                      {typeof navigator !== 'undefined' && navigator.share && (
+                        <button className="task-detail-more-item" onClick={() => handleShare('native')}>
+                          📤 Systemdialog
+                        </button>
+                      )}
+                      <button className="task-detail-more-item" onClick={() => handleShare('whatsapp')}>
+                        💬 WhatsApp
+                      </button>
+                      <button className="task-detail-more-item" onClick={() => handleShare('copy')}>
+                        📋 Text kopieren
+                      </button>
+                    </div>
+                  )}
+                </div>
                 {task.is_owner !== false && (
                   <button className="task-detail-more-item danger" onClick={() => { setShowMenu(false); handleDelete(); }}>
                     Löschen

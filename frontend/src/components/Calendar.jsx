@@ -1408,16 +1408,25 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
         <div className="desktop-week-main">
           <div className="desktop-week-days-row">
             <div className="desktop-week-left-head" />
-            {days.map((d) => (
-              <button
-                key={`head-${d.toISOString()}`}
-                className={`desktop-week-day-head ${isToday(d) ? 'today' : ''}`}
-                onClick={() => handleDayClick(d)}
-              >
-                <span>{format(d, 'EEE', { locale: de })}</span>
-                <strong>{format(d, 'd.M')}</strong>
-              </button>
-            ))}
+            {days.map((d) => {
+              const dayKey = format(d, 'yyyy-MM-dd');
+              const dayHolidays = holidaysByVisibleDate.get(dayKey) || [];
+              return (
+                <button
+                  key={`head-${d.toISOString()}`}
+                  className={`desktop-week-day-head ${isToday(d) ? 'today' : ''}${dayHolidays.length > 0 ? ' has-holiday' : ''}`}
+                  onClick={() => handleDayClick(d)}
+                >
+                  <span>{format(d, 'EEE', { locale: de })}</span>
+                  <strong>{format(d, 'd.M')}</strong>
+                  {dayHolidays.length > 0 && (
+                    <span className="cal-week-holiday-label" style={{ color: holidayColor }}>
+                      {dayHolidays[0].title}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           <div className="desktop-week-all-day-row">
@@ -1658,16 +1667,26 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
         {/* day headers */}
         <div className="mobile-week-grid-header">
           <div className="mobile-week-grid-tlabel" />
-          {days.map((d) => (
-            <div
-              key={`mwh-${d.toISOString()}`}
-              className={`mobile-week-grid-day-head ${isToday(d) ? 'today' : ''} ${selectedDate && isSameDay(d, selectedDate) ? 'selected' : ''}`}
-              onClick={() => handleDayClick(d)}
-            >
-              <span className="mobile-week-grid-day-name">{format(d, 'EEE', { locale: de })}</span>
-              <span className="mobile-week-grid-day-num">{format(d, 'd')}</span>
-            </div>
-          ))}
+          {days.map((d) => {
+            const dayKey = format(d, 'yyyy-MM-dd');
+            const dayHolidays = holidaysByVisibleDate.get(dayKey) || [];
+            return (
+              <div
+                key={`mwh-${d.toISOString()}`}
+                className={`mobile-week-grid-day-head ${isToday(d) ? 'today' : ''} ${selectedDate && isSameDay(d, selectedDate) ? 'selected' : ''}${dayHolidays.length > 0 ? ' has-holiday' : ''}`}
+                onClick={() => handleDayClick(d)}
+              >
+                <span className="mobile-week-grid-day-name">{format(d, 'EEE', { locale: de })}</span>
+                <span className={`mobile-week-grid-day-num${dayHolidays.length > 0 ? ' holiday-num' : ''}`}
+                  style={dayHolidays.length > 0 ? { background: holidayColor, color: '#fff' } : undefined}>
+                  {format(d, 'd')}
+                </span>
+                {dayHolidays.length > 0 && (
+                  <span className="mobile-week-holiday-dot" style={{ background: holidayColor }} title={dayHolidays[0].title} />
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* â”€â”€ All-Day Strip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
@@ -1847,6 +1866,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     const hourHeight = 56;
     const totalHeight = (endHour - startHour) * hourHeight + 28;
     const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
+    const selectedDayKey = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null;
+    const dayViewHolidays = selectedDayKey ? (holidaysByVisibleDate.get(selectedDayKey) || []) : [];
 
     const toMinutes = (time) => {
       if (!time) return null;
@@ -1888,6 +1909,14 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
 
     return (
       <div className="mobile-day-view">
+
+        {/* Holiday Banner */}
+        {dayViewHolidays.length > 0 && (
+          <div className="mobile-day-holiday-banner" style={{ borderColor: holidayColor, color: holidayColor, background: `14` }}>
+            🎉 {dayViewHolidays.map((h) => h.title).join(' · ')}
+          </div>
+        )}
+
 
         {/* â”€â”€ All-Day Section â€” TOP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {allDayTasks.length > 0 && (

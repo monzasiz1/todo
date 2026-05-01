@@ -173,31 +173,6 @@ export default function LandingPage() {
               <span key={t}><Check size={13} strokeWidth={3} />{t}</span>
             ))}
           </motion.div>
-
-          <motion.div
-            className="bq-hero-video-wrap"
-            initial={{ opacity: 0, y: 26 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.62, delay: 0.48, ease }}
-          >
-            <div className="bq-hero-video-shine" aria-hidden />
-            <div className="bq-hero-video-card">
-              <div className="bq-hero-video-head">
-                <span className="bq-hero-video-badge">Produkt-Preview</span>
-                <span className="bq-hero-video-note">Live aus BeeQu</span>
-              </div>
-              <video
-                className="bq-hero-video"
-                src="/f_b_d_df_dmp_.mp4"
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="metadata"
-                controls
-              />
-            </div>
-          </motion.div>
         </motion.div>
 
         {/* ── floating app mock ── */}
@@ -625,15 +600,15 @@ export default function LandingPage() {
                   <span>BeeQu</span>
                 </div>
                 <span className="bq-auth-kicker">
-                  {showRegister ? 'BeeQu Workspace' : 'Persoenlicher Workspace'}
+                  {showRegister ? 'BeeQu Workspace' : 'Persönlicher Workspace'}
                 </span>
                 <h2 className="bq-auth-brand-headline">
-                  {showRegister ? 'Klarer Start.\nRuhiger Fokus.' : 'Zurueck in deinen\nWorkspace.'}
+                  {showRegister ? 'Klarer Start.\nRuhiger Fokus.' : 'Zurück in deinen\nWorkspace.'}
                 </h2>
                 <p className="bq-auth-brand-sub">
                   {showRegister
-                    ? 'Aufgaben, Kalender und Zusammenarbeit in einer ruhigen Oberflaeche.'
-                    : 'Deine Planung, Termine und Abstimmungen an einem Ort.'}
+                    ? 'Aufgaben, Kalender und Zusammenarbeit in einer übersichtlichen Oberfläche.'
+                    : 'Deine Aufgaben, Termine und Gruppen warten auf dich.'}
                 </p>
               </div>
 
@@ -647,9 +622,9 @@ export default function LandingPage() {
 
                   <div className="bq-auth-preview-stack">
                     {[
-                      { icon: Sparkles, color: '#007AFF', title: 'Briefing finalisieren', meta: '14:00  ·  Hoch' },
-                      { icon: CalendarDays, color: '#5856D6', title: 'Wochenplanung', meta: 'Morgen  ·  Kalender' },
-                      { icon: UsersRound, color: '#34C759', title: 'Team-Update', meta: '3 neue Antworten' },
+                      { icon: CheckCircle2, color: '#34C759', title: 'Einkaufen — heute 17:30', meta: 'Privat  ·  Niedrig' },
+                      { icon: CalendarDays, color: '#007AFF', title: 'Meeting vorbereiten', meta: 'Freitag  ·  14:00  ·  Hoch' },
+                      { icon: UsersRound,   color: '#5856D6', title: 'Gruppen-Chat: Projekt Alpha', meta: '2 ungelesene Nachrichten' },
                     ].map(({ icon: Icon, color, title, meta }) => (
                       <div key={title} className="bq-auth-preview-item">
                         <div className="bq-auth-preview-icon" style={{ color, background: `${color}20` }}>
