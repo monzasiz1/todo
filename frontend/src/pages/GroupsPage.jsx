@@ -593,7 +593,7 @@ function GroupDetail({ groupId, onBack }) {
   if (!currentGroup || String(currentGroup.id) !== String(groupId)) return <div className="group-loading">Laden...</div>;
 
   return (
-    <motion.div className="group-detail-shell" data-ui-version="groups-no-projects-2026-05-01" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+    <motion.div className="group-detail-shell" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
       {/* Header */}
       <div className="group-detail-header">
         <button className="group-back-btn" onClick={onBack}><ArrowLeft size={20} /></button>
