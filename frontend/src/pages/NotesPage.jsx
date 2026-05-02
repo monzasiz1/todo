@@ -368,8 +368,14 @@ export default function NotesPage() {
     const cachedMode = readNoteViewCache()?.mobileViewMode;
     return cachedMode === 'canvas' ? 'canvas' : 'grid';
   }); // 'grid' | 'canvas'
+  const [workspaceMode, setWorkspaceMode] = useState(() => {
+    const cachedMode = readNoteViewCache()?.workspaceMode;
+    return cachedMode === 'canvas' || cachedMode === 'list' ? cachedMode : 'studio';
+  }); // 'studio' | 'canvas' | 'list'
   const [mobileSearch, setMobileSearch] = useState('');
   const [mobileFilter, setMobileFilter] = useState('all'); // 'all' | 'high' | 'medium' | 'low'
+  const [workspaceSearch, setWorkspaceSearch] = useState('');
+  const [workspaceFilter, setWorkspaceFilter] = useState('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingNote, setEditingNote] = useState(null);
   const [selectedNote, setSelectedNote] = useState(null);
@@ -383,7 +389,7 @@ export default function NotesPage() {
   const [hoveredNoteId, setHoveredNoteId] = useState(null);
   const [hoveredTaskPreview, setHoveredTaskPreview] = useState(null);
   const [taskSearch, setTaskSearch] = useState('');
-  const [toolboxOpen, setToolboxOpen] = useState(false);
+  const [toolboxOpen, setToolboxOpen] = useState(() => window.innerWidth >= 640);
   const [quickCreatePosition, setQuickCreatePosition] = useState(null);
   const [canvasContextMenu, setCanvasContextMenu] = useState(null);
   const [selectionModeArmed, setSelectionModeArmed] = useState(false);
@@ -396,6 +402,7 @@ export default function NotesPage() {
   const [commentDraft, setCommentDraft] = useState('');
   const [notePeopleMap, setNotePeopleMap] = useState(() => readNotePeopleCache());
   const [isMobileView, setIsMobileView] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 640 : false));
+  const [isTabletView, setIsTabletView] = useState(() => (typeof window !== 'undefined' ? window.innerWidth >= 640 && window.innerWidth <= 1024 : false));
   const [isCanvasFullscreen, setIsCanvasFullscreen] = useState(false);
   const [isCanvasPseudoFullscreen, setIsCanvasPseudoFullscreen] = useState(false);
   const [fsToolbarPos, setFsToolbarPos] = useState({ x: 14, y: 86 });
@@ -424,6 +431,7 @@ export default function NotesPage() {
   const handleTouchMoveRef = useRef(null);
   const handleCanvasTouchStartRef = useRef(null);
   const mobileViewModeRef = useRef(mobileViewMode);
+  const workspaceModeRef = useRef(workspaceMode);
   const didManualZoomRef = useRef(false);
   const didInitialViewportFitRef = useRef(false);
   const didRestoreViewportRef = useRef(false);
@@ -676,6 +684,7 @@ export default function NotesPage() {
     writeNoteViewCache({
       zoom: Math.round(zoomRef.current),
       mobileViewMode: mobileViewModeRef.current,
+      workspaceMode: workspaceModeRef.current,
       scrollLeft: canvas ? canvas.scrollLeft : undefined,
       scrollTop: canvas ? canvas.scrollTop : undefined,
       updatedAt: Date.now(),
@@ -730,6 +739,10 @@ export default function NotesPage() {
   useEffect(() => {
     mobileViewModeRef.current = mobileViewMode;
   }, [mobileViewMode]);
+
+  useEffect(() => {
+    workspaceModeRef.current = workspaceMode;
+  }, [workspaceMode]);
 
   const refreshConnections = async (sourceNotes = notes) => {
     if (!sourceNotes.length) {
@@ -892,14 +905,16 @@ export default function NotesPage() {
 
   useEffect(() => {
     const syncViewport = () => {
-      setIsMobileView(window.innerWidth < 640);
+      const width = window.innerWidth;
+      setIsMobileView(width < 640);
+      setIsTabletView(width >= 640 && width <= 1024);
       if (!didManualZoomRef.current) {
-        const next = window.innerWidth < 640 ? 92 : getAdaptiveZoom(window.innerWidth, window.innerHeight);
+        const next = width < 640 ? 92 : getAdaptiveZoom(width, window.innerHeight);
         applyZoom(next);
         setZoom(next);
       }
 
-      if (window.innerWidth >= 640) {
+      if (width >= 640) {
         requestAnimationFrame(() => {
           centerCanvasOnContent();
           schedulePersistNoteViewState();
@@ -2601,6 +2616,22 @@ export default function NotesPage() {
     : null;
   const shortcutTasks = visibleTasks.slice(0, 10);
 
+  const workspaceNotes = useMemo(() => {
+    const q = String(workspaceSearch || '').trim().toLowerCase();
+    return [...notes]
+      .filter((n) => {
+        if (workspaceFilter !== 'all' && String(n.importance || 'medium') !== workspaceFilter) return false;
+        if (!q) return true;
+        const hay = `${n.title || ''} ${n.content || ''}`.toLowerCase();
+        return hay.includes(q);
+      })
+      .sort((a, b) => {
+        const aTs = new Date(a.updated_at || a.created_at || 0).getTime();
+        const bTs = new Date(b.updated_at || b.created_at || 0).getTime();
+        return bTs - aTs;
+      });
+  }, [notes, workspaceFilter, workspaceSearch]);
+
   const connectedNoteIds = useMemo(() => {
     const set = new Set();
     if (!hoveredNoteId) return set;
@@ -2725,6 +2756,27 @@ export default function NotesPage() {
     };
   };
 
+  const focusNoteOnCanvas = (noteId) => {
+    const geom = getNoteGeometry(noteId);
+    setActiveNoteId(noteId);
+    setContextTab('details');
+
+    if (workspaceMode === 'list') {
+      setWorkspaceMode('studio');
+    }
+
+    if (!geom) return;
+
+    requestAnimationFrame(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const scale = zoomRef.current / 100;
+      const targetLeft = Math.max(0, geom.centerX * scale - canvas.clientWidth / 2);
+      const targetTop = Math.max(0, geom.centerY * scale - canvas.clientHeight / 2);
+      canvas.scrollTo({ left: targetLeft, top: targetTop, behavior: 'smooth' });
+    });
+  };
+
   // Pre-compute markdown HTML per note to avoid re-processing on every render
   const noteMarkdownCache = useMemo(() => {
     const map = new Map();
@@ -2766,7 +2818,7 @@ export default function NotesPage() {
 
   useEffect(() => {
     persistNoteViewState();
-  }, [mobileViewMode, zoom]);
+  }, [mobileViewMode, workspaceMode, zoom]);
 
   useEffect(() => {
     const onVisibility = () => {
@@ -2826,12 +2878,12 @@ export default function NotesPage() {
 
   // Memoize which view should be active to avoid re-computation on every render
   const activeView = useMemo(() => {
-    if (!isMobileView) return 'desktop';
+    if (!isMobileView) return workspaceMode;
     return mobileViewMode === 'canvas' ? 'canvas' : 'grid';
-  }, [isMobileView, mobileViewMode]);
+  }, [isMobileView, mobileViewMode, workspaceMode]);
 
   // Compute whether canvas should render (performance optimization)
-  const shouldRenderCanvas = activeView === 'desktop' || activeView === 'canvas';
+  const shouldRenderCanvas = !isMobileView;
   const shouldRenderGrid = activeView === 'grid';
 
   const renderConnection = (connection, index) => {
@@ -2942,6 +2994,37 @@ export default function NotesPage() {
         {/* Zoom controls — desktop only */}
         {!isMobileView && (
           <div className="notes-controls">
+            <button
+              type="button"
+              className={`header-tool-btn toolbox-desktop-toggle ${toolboxOpen ? 'active' : ''}`}
+              onClick={() => setToolboxOpen((prev) => !prev)}
+              title={toolboxOpen ? 'Werkzeuge einklappen' : 'Werkzeuge öffnen'}
+            >
+              <PanelsTopLeft size={16} />
+            </button>
+            <div className="workspace-mode-toggle" role="tablist" aria-label="Ansicht">
+              <button
+                type="button"
+                className={`workspace-mode-btn ${workspaceMode === 'studio' ? 'active' : ''}`}
+                onClick={() => setWorkspaceMode('studio')}
+              >
+                Studio
+              </button>
+              <button
+                type="button"
+                className={`workspace-mode-btn ${workspaceMode === 'canvas' ? 'active' : ''}`}
+                onClick={() => setWorkspaceMode('canvas')}
+              >
+                Canvas
+              </button>
+              <button
+                type="button"
+                className={`workspace-mode-btn ${workspaceMode === 'list' ? 'active' : ''}`}
+                onClick={() => { setWorkspaceMode('list'); setToolboxOpen(true); }}
+              >
+                Liste
+              </button>
+            </div>
             <button className="zoom-btn" onClick={() => setZoomManual(zoom - 10)} title="Zoom out">
               <ZoomOut size={18} />
             </button>
@@ -3135,7 +3218,7 @@ export default function NotesPage() {
 
       {/* ── Canvas / Desktop Workspace ───────────────────────────────── */}
       {shouldRenderCanvas && (
-      <div className="notes-workspace">
+      <div className={`notes-workspace mode-${workspaceMode} ${isTabletView ? 'is-tablet' : 'is-desktop'}`}>
         <aside className={`notes-toolbox ${toolboxOpen ? 'open' : ''}`}>
           <div className="toolbox-header">
             <div>
@@ -3219,6 +3302,74 @@ export default function NotesPage() {
                     </div>
                   </button>
                 ))
+              )}
+            </div>
+          </div>
+
+          <div className="toolbox-section toolbox-notes-section">
+            <div className="toolbox-section-head">
+              <h3>Alle Notes</h3>
+              <span>{workspaceNotes.length}</span>
+            </div>
+            <div className="toolbox-notes-toolbar">
+              <input
+                className="toolbox-notes-search"
+                type="text"
+                placeholder="Notizen suchen..."
+                value={workspaceSearch}
+                onChange={(event) => setWorkspaceSearch(event.target.value)}
+              />
+              <div className="toolbox-notes-filters">
+                {[
+                  { value: 'all', label: 'Alle' },
+                  { value: 'high', label: 'Hoch' },
+                  { value: 'medium', label: 'Mittel' },
+                  { value: 'low', label: 'Niedrig' },
+                ].map((f) => (
+                  <button
+                    key={f.value}
+                    type="button"
+                    className={`toolbox-notes-filter ${workspaceFilter === f.value ? 'active' : ''}`}
+                    onClick={() => setWorkspaceFilter(f.value)}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="toolbox-notes-list">
+              {workspaceNotes.length === 0 ? (
+                <div className="toolbox-empty">Keine passenden Notizen gefunden.</div>
+              ) : (
+                workspaceNotes.map((note) => {
+                  const isActive = String(activeNoteId || '') === String(note.id);
+                  const isDone = isNoteCompletedByData(note.id);
+                  const linkCount = connections.filter((entry) => {
+                    const a = String(entry?.note_id_1 || entry?.noteId1 || '');
+                    const b = String(entry?.note_id_2 || entry?.noteId2 || '');
+                    return a === String(note.id) || b === String(note.id);
+                  }).length;
+
+                  return (
+                    <button
+                      key={note.id}
+                      type="button"
+                      className={`toolbox-note-item ${isActive ? 'active' : ''} ${isDone ? 'done' : ''}`}
+                      onClick={() => focusNoteOnCanvas(note.id)}
+                    >
+                      <div className="toolbox-note-item-head">
+                        <strong>{note.title || 'Ohne Titel'}</strong>
+                        <span className={`toolbox-note-item-prio ${note.importance || 'medium'}`}>{note.importance || 'medium'}</span>
+                      </div>
+                      {note.content ? <p>{markdownToPlainText(note.content).slice(0, 86)}</p> : <p>Keine Beschreibung</p>}
+                      <div className="toolbox-note-item-meta">
+                        <span>{linkCount} Verbindungen</span>
+                        <span>{note.date ? new Date(note.date).toLocaleDateString('de-DE') : 'Ohne Datum'}</span>
+                      </div>
+                    </button>
+                  );
+                })
               )}
             </div>
           </div>
