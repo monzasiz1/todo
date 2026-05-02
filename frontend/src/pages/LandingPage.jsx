@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -74,6 +74,8 @@ const fadeIn = {
 /* ─────────────── component ─────────────── */
 
 export default function LandingPage() {
+  const heroRef = useRef(null);
+  const frameRef = useRef(null);
   const [showLogin,    setShowLogin]    = useState(false);
   const [showRegister, setShowRegister] = useState(false);
   const [loginEmail,      setLoginEmail]      = useState('');
@@ -162,6 +164,58 @@ export default function LandingPage() {
 
   const ai = aiExamples[aiIdx];
 
+  useEffect(() => {
+    const hero = heroRef.current;
+    if (!hero) return undefined;
+
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    const onMove = (e) => {
+      if (mq.matches) return;
+      const rect = hero.getBoundingClientRect();
+      const px = (e.clientX - rect.left) / rect.width - 0.5;
+      const py = (e.clientY - rect.top) / rect.height - 0.5;
+
+      const logoX = px * 26;
+      const logoY = py * 22;
+      const auraX = px * 14;
+      const auraY = py * 12;
+
+      if (frameRef.current) cancelAnimationFrame(frameRef.current);
+      frameRef.current = requestAnimationFrame(() => {
+        hero.style.setProperty('--bq-logo-x', `${logoX.toFixed(2)}px`);
+        hero.style.setProperty('--bq-logo-y', `${logoY.toFixed(2)}px`);
+        hero.style.setProperty('--bq-aura-x', `${auraX.toFixed(2)}px`);
+        hero.style.setProperty('--bq-aura-y', `${auraY.toFixed(2)}px`);
+      });
+    };
+
+    const onScroll = () => {
+      const rect = hero.getBoundingClientRect();
+      const progress = Math.min(1, Math.max(0, (-rect.top) / Math.max(1, rect.height * 0.65)));
+      hero.style.setProperty('--bq-hero-scroll', progress.toFixed(3));
+    };
+
+    const onLeave = () => {
+      hero.style.setProperty('--bq-logo-x', '0px');
+      hero.style.setProperty('--bq-logo-y', '0px');
+      hero.style.setProperty('--bq-aura-x', '0px');
+      hero.style.setProperty('--bq-aura-y', '0px');
+    };
+
+    onScroll();
+    hero.addEventListener('mousemove', onMove);
+    hero.addEventListener('mouseleave', onLeave);
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    return () => {
+      if (frameRef.current) cancelAnimationFrame(frameRef.current);
+      hero.removeEventListener('mousemove', onMove);
+      hero.removeEventListener('mouseleave', onLeave);
+      window.removeEventListener('scroll', onScroll);
+    };
+  }, []);
+
   return (
     <div className="bq">
 
@@ -185,13 +239,14 @@ export default function LandingPage() {
       </nav>
 
       {/* ══════════ HERO (dark) ══════════ */}
-      <section className="bq-hero">
+      <section className="bq-hero" ref={heroRef}>
         <div className="bq-hero-bg" aria-hidden />
         <div className="bq-hero-grid-lines" aria-hidden />
         <div className="bq-hero-logo-bg" aria-hidden>
           <img src="/icons/icon.png" alt="" className="bq-hero-logo-mark" />
           <div className="bq-hero-logo-aura" />
         </div>
+        <div className="bq-hero-bottom-fade" aria-hidden />
 
         {/* copy */}
         <motion.div

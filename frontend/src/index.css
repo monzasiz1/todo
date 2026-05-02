@@ -18128,6 +18128,11 @@ body.cal-is-dragging * {
 
 /* ── hero ── */
 .bq-hero {
+  --bq-logo-x: 0px;
+  --bq-logo-y: 0px;
+  --bq-aura-x: 0px;
+  --bq-aura-y: 0px;
+  --bq-hero-scroll: 0;
   min-height: 100vh;
   background: #06060A;
   display: flex;
@@ -18165,6 +18170,7 @@ body.cal-is-dragging * {
   pointer-events: none;
   z-index: 0;
   overflow: hidden;
+  opacity: calc(1 - (var(--bq-hero-scroll) * 0.34));
 }
 
 .bq-hero-logo-mark {
@@ -18173,10 +18179,11 @@ body.cal-is-dragging * {
   height: auto;
   left: 50%;
   top: 43%;
-  transform: translate(-50%, -50%) rotate(-22deg);
+  transform: translate(calc(-50% + var(--bq-logo-x)), calc(-50% + var(--bq-logo-y))) rotate(-22deg);
   opacity: 0.14;
-  filter: drop-shadow(0 20px 56px rgba(0, 122, 255, 0.22));
+  filter: drop-shadow(0 20px 56px rgba(0, 122, 255, 0.26)) drop-shadow(0 0 42px rgba(88, 86, 214, 0.24));
   mix-blend-mode: screen;
+  transition: transform 0.22s cubic-bezier(0.22, 0.61, 0.36, 1);
   animation: bq-hero-logo-float 9s ease-in-out infinite;
 }
 
@@ -18187,12 +18194,25 @@ body.cal-is-dragging * {
   aspect-ratio: 1;
   left: 50%;
   top: 44%;
-  transform: translate(-50%, -50%) rotate(-20deg);
+  transform: translate(calc(-50% + var(--bq-aura-x)), calc(-50% + var(--bq-aura-y))) rotate(-20deg);
   background:
-    radial-gradient(circle at 50% 50%, rgba(0, 122, 255, 0.28) 0%, rgba(88, 86, 214, 0.18) 28%, rgba(0, 122, 255, 0.06) 54%, transparent 74%);
-  filter: blur(40px);
-  opacity: 0.55;
+    radial-gradient(circle at 50% 50%, rgba(0, 122, 255, 0.34) 0%, rgba(88, 86, 214, 0.24) 28%, rgba(0, 122, 255, 0.1) 54%, transparent 74%);
+  filter: blur(44px);
+  opacity: 0.6;
+  transition: transform 0.26s cubic-bezier(0.22, 0.61, 0.36, 1);
   animation: bq-hero-logo-glow 9s ease-in-out infinite;
+}
+
+.bq-hero-bottom-fade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: clamp(120px, 16vw, 210px);
+  background: linear-gradient(to top, #06060A 0%, rgba(6, 6, 10, 0.92) 28%, rgba(6, 6, 10, 0) 100%);
+  opacity: calc(0.42 + (var(--bq-hero-scroll) * 0.5));
+  pointer-events: none;
+  z-index: 1;
 }
 
 @keyframes bq-hero-logo-float {
@@ -19284,12 +19304,13 @@ body.cal-is-dragging * {
     width: clamp(360px, 86vw, 680px);
     top: 38%;
     opacity: 0.12;
-    transform: translate(-50%, -50%) rotate(-18deg);
+    transform: translate(calc(-50% + var(--bq-logo-x)), calc(-50% + var(--bq-logo-y))) rotate(-18deg);
   }
   .bq-hero-logo-aura {
     width: 88vw;
     top: 40%;
     opacity: 0.44;
+    transform: translate(calc(-50% + var(--bq-aura-x)), calc(-50% + var(--bq-aura-y))) rotate(-18deg);
   }
 }
 @media (max-width: 768px) {
@@ -19299,6 +19320,10 @@ body.cal-is-dragging * {
   .bq-hero-logo-mark {
     top: 33%;
     opacity: 0.11;
+  }
+  .bq-hero-bottom-fade {
+    height: 130px;
+    opacity: 0.5;
   }
   .bq-bento { grid-template-columns: 1fr 1fr; }
   .bq-mock-sidebar { display: none; }
@@ -19310,12 +19335,13 @@ body.cal-is-dragging * {
     width: 120vw;
     top: 30%;
     opacity: 0.1;
-    transform: translate(-50%, -50%) rotate(-15deg);
+    transform: translate(calc(-50% + var(--bq-logo-x)), calc(-50% + var(--bq-logo-y))) rotate(-15deg);
   }
   .bq-hero-logo-aura {
     width: 120vw;
     top: 31%;
     opacity: 0.34;
+    transform: translate(calc(-50% + var(--bq-aura-x)), calc(-50% + var(--bq-aura-y))) rotate(-15deg);
   }
   .bq-bento { grid-template-columns: 1fr; }
   .bq-bento-card.wide { grid-column: span 1; }
