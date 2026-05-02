@@ -7,6 +7,10 @@ import { otpMail } from '../services/mailTemplates.js';
 
 const router = Router();
 
+function generateVerificationCode() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
 // Register
 router.post('/register', async (req, res) => {
   try {
@@ -22,7 +26,7 @@ router.post('/register', async (req, res) => {
       return res.status(409).json({ error: 'E-Mail bereits registriert' });
     }
     const hashedPassword = await bcrypt.hash(password, 12);
-    const verificationCode = String(Math.floor(100000 + Math.random() * 900000));
+    const verificationCode = generateVerificationCode();
     const codeExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     let result;
@@ -77,6 +81,58 @@ router.post('/register', async (req, res) => {
   } catch (err) {
     console.error('Register error:', err);
     res.status(500).json({ error: 'Registrierung fehlgeschlagen' });
+  }
+});
+
+// Resend verification code
+router.post('/resend-code', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'E-Mail ist erforderlich' });
+
+    const result = await pool.query('SELECT id, name, email, email_verified FROM users WHERE email = $1', [email]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Konto nicht gefunden' });
+    }
+
+    const user = result.rows[0];
+    if (user.email_verified) {
+      return res.status(409).json({ error: 'E-Mail ist bereits verifiziert' });
+    }
+
+    const verificationCode = generateVerificationCode();
+    const codeExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    try {
+      await pool.query(
+        `UPDATE users
+         SET email_verification_code = $2,
+             email_verification_code_expires_at = $3,
+             email_verification_token = NULL
+         WHERE id = $1`,
+        [user.id, verificationCode, codeExpiresAt]
+      );
+    } catch (colErr) {
+      if (colErr.message && colErr.message.includes('column')) {
+        await pool.query(
+          'UPDATE users SET email_verification_token = $2 WHERE id = $1',
+          [user.id, verificationCode]
+        );
+      } else {
+        throw colErr;
+      }
+    }
+
+    await sendMail({
+      to: user.email,
+      subject: 'Dein BeeQu Verifizierungscode',
+      html: otpMail({ name: user.name, otp: verificationCode }),
+    });
+
+    return res.json({ success: true, message: 'Neuer Verifizierungscode wurde gesendet.' });
+  } catch (err) {
+    console.error('resend-code error:', err);
+    return res.status(500).json({ error: 'Code konnte nicht erneut gesendet werden' });
   }
 });
 

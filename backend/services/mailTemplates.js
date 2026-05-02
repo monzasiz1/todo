@@ -33,8 +33,8 @@ function activationMail({ name, activationUrl }) {
 
 function otpMail({ name, otp }) {
   return wrapBeeQuMail({
-    title: 'Dein BeeQu 2FA-Code',
-    body: `Hallo ${name || ''},<br><br>dein Einmal-Code für die Anmeldung lautet:<br>
+    title: 'Dein BeeQu Verifizierungscode',
+    body: `Hallo ${name || ''},<br><br>dein 6-stelliger Verifizierungscode lautet:<br>
       <div style='font-size:2.2rem;font-weight:800;letter-spacing:0.18em;color:#0A84FF;margin:18px 0;'>${otp}</div>
       Der Code ist 10 Minuten gültig.`
   });
