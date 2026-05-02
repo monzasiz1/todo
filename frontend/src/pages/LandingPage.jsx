@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { PLANS } from '../lib/plans';
 import { useAuthStore } from '../store/authStore';
+import AvatarBadge from '../components/AvatarBadge';
 
 /* ─────────────── data ─────────────── */
 
