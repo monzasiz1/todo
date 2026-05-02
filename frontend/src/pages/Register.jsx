@@ -272,8 +272,8 @@ export default function Register() {
 
             <p className="bq-auth-consent">
               Mit der Registrierung stimmst du unseren{' '}
-              <a href="#">AGB</a> und der{' '}
-              <a href="#">Datenschutzerklärung</a> zu.
+              <Link to="/agb">AGB</Link> und der{' '}
+              <Link to="/datenschutz">Datenschutzerklaerung</Link> zu.
             </p>
 
             <button type="submit" className="bq-auth-submit" disabled={loading}>

@@ -14,6 +14,8 @@ import PricingPage from './pages/PricingPage';
 import NotesPage from './pages/NotesPage';
 import TaskDetailPage from './pages/TaskDetailPage';
 import ChatPage from './pages/ChatPage';
+import TermsPage from './pages/TermsPage';
+import PrivacyPage from './pages/PrivacyPage';
 import InstallPrompt from './components/InstallPrompt';
 import OfflineBanner from './components/OfflineBanner';
 
@@ -52,6 +54,8 @@ export default function App() {
         {/* Root zeigt LandingPage */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/landing" element={<LandingPage />} />
+        <Route path="/agb" element={<TermsPage />} />
+        <Route path="/datenschutz" element={<PrivacyPage />} />
         <Route path="/app/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/login" element={<Navigate to="/app/login" replace />} />
         <Route path="/confirm-password-change" element={<PasswordChangeConfirmed />} />

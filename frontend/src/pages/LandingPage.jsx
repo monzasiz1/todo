@@ -784,6 +784,8 @@ export default function LandingPage() {
             <a href="#features">Features</a>
             <a href="#ai">KI-Eingabe</a>
             <a href="#pricing">Preise</a>
+            <Link to="/datenschutz">Datenschutz</Link>
+            <Link to="/agb">AGB</Link>
           </nav>
           <p className="bq-footer-copy">© 2026 BeeQu. Alle Rechte vorbehalten.</p>
         </div>
@@ -830,9 +832,9 @@ export default function LandingPage() {
               <div className="bq-auth-brand-footer">
                 <span>© 2026 BeeQu</span>
                 <span>·</span>
-                <a href="#">Datenschutz</a>
+                <Link to="/datenschutz">Datenschutz</Link>
                 <span>·</span>
-                <a href="#">AGB</a>
+                <Link to="/agb">AGB</Link>
               </div>
             </motion.div>
 
@@ -1093,7 +1095,7 @@ export default function LandingPage() {
                               </div>
                             </div>
                             <p className="bq-auth-consent">
-                              Mit der Registrierung stimmst du unseren <a href="#">AGB</a> und der <a href="#">Datenschutzerklärung</a> zu.
+                              Mit der Registrierung stimmst du unseren <Link to="/agb">AGB</Link> und der <Link to="/datenschutz">Datenschutzerklaerung</Link> zu.
                             </p>
                             <button type="submit" disabled={loading} className="bq-auth-submit">
                               {loading ? (
