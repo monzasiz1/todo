@@ -1154,21 +1154,6 @@ input, textarea, select {
   border: 1px solid #dbe5f4;
 }
 
-/* Sticky auf Mobile/Tablet */
-@media (max-width: 1024px) {
-  .dash-section[data-section="today"] {
-    position: sticky;
-    top: calc(56px + env(safe-area-inset-top, 0px));
-    z-index: 18;
-    background: var(--card-solid);
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08), inset 0 0 0 1px rgba(18, 28, 45, 0.08);
-  }
-
-  .dash-section[data-section="today"] .dash-section-header {
-    background: #f3f6fb;
-  }
-}
-
 .dash-section-header {
   display: flex;
   align-items: center;
@@ -3805,21 +3790,11 @@ body.cal-is-dragging * {
 
 .toast__msg {
   flex: 1;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
   font-size: 0.875rem;
   font-weight: 600;
   color: #111;
   line-height: 1.4;
   min-width: 0;
-}
-
-.toast__symbol {
-  color: var(--t-color, #34C759);
-  font-weight: 900;
-  font-size: 0.86rem;
-  flex-shrink: 0;
 }
 
 .toast__actions {
