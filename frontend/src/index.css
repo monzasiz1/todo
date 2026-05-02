@@ -12808,23 +12808,58 @@ body.cal-is-dragging * {
   color: var(--danger);
 }
 
-/* --- Load More Button --- */
-.group-load-more-btn {
+/* --- Dashboard section expander --- */
+.dash-section-expander {
   width: 100%;
-  padding: 12px;
-  border-radius: 14px;
-  border: 1.5px solid var(--border);
-  background: var(--surface);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--primary);
-  cursor: pointer;
-  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin-top: 4px;
+  padding: 10px 2px 2px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  transition: color 0.18s ease, transform 0.18s ease;
 }
-.group-load-more-btn:hover {
-  border-color: var(--primary);
-  background: var(--primary-bg);
+
+.dash-section-expander:hover {
+  color: var(--primary);
+}
+
+.dash-section-expander-line {
+  height: 1px;
+  flex: 1;
+  background: linear-gradient(90deg, rgba(148,163,184,0), rgba(148,163,184,0.45), rgba(148,163,184,0));
+}
+
+.dash-section-expander-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.dash-section-expander-icon {
+  transition: transform 0.2s ease;
+}
+
+.dash-section-expander.expanded .dash-section-expander-icon {
+  transform: rotate(180deg);
+}
+
+@media (max-width: 768px) {
+  .dash-section-expander {
+    gap: 10px;
+    padding-top: 8px;
+  }
+
+  .dash-section-expander-copy {
+    font-size: 11px;
+  }
 }
 
 .group-past-section {

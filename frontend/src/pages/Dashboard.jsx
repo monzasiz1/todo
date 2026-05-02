@@ -1,6 +1,5 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FixedSizeList as VirtualList } from 'react-window';
 import { useTaskStore } from '../store/taskStore';
 import AIInput from '../components/AIInput';
 import ManualTaskForm from '../components/ManualTaskForm';
@@ -328,14 +327,10 @@ function buildSmartInsights({
   return items;
 }
 
-const VIRTUAL_THRESHOLD = 24;
-const VIRTUAL_ITEM_SIZE = 112;
-const VIRTUAL_MAX_HEIGHT = 560;
 const DASHBOARD_FETCH_LIMIT = '160';
 const DASHBOARD_HORIZON_DAYS = '28';
 const DASHBOARD_COMPLETED_LOOKBACK_DAYS = '30';
 const INITIAL_GROUP_VISIBLE = 18;
-const GROUP_VISIBLE_STEP = 18;
 
 function initialVisibleCountMap(groups) {
   const map = {};
@@ -343,17 +338,6 @@ function initialVisibleCountMap(groups) {
     map[group.key] = INITIAL_GROUP_VISIBLE;
   });
   return map;
-}
-
-function TaskRow({ index, style, data }) {
-  const task = data.tasks[index];
-  return (
-    <div style={style}>
-      <div style={{ paddingBottom: 10 }}>
-        <TaskCard task={task} index={index} disableLayout showDashboardDateTile />
-      </div>
-    </div>
-  );
 }
 
 export default function Dashboard() {
@@ -651,10 +635,10 @@ export default function Dashboard() {
     setCollapsedSections((s) => ({ ...s, [key]: !s[key] }));
   };
 
-  const showMoreInSection = (key) => {
+  const toggleExpandedInSection = (key, totalCount) => {
     setGroupVisibleCounts((s) => ({
       ...s,
-      [key]: Math.max(INITIAL_GROUP_VISIBLE, (s[key] || INITIAL_GROUP_VISIBLE) + GROUP_VISIBLE_STEP),
+      [key]: (s[key] || INITIAL_GROUP_VISIBLE) >= totalCount ? INITIAL_GROUP_VISIBLE : totalCount,
     }));
   };
 
@@ -847,6 +831,7 @@ export default function Dashboard() {
           const visibleCount = groupVisibleCounts[group.key] || INITIAL_GROUP_VISIBLE;
           const visibleTasks = group.tasks.slice(0, visibleCount);
           const hasMore = visibleTasks.length < group.tasks.length;
+          const isExpanded = !hasMore && group.tasks.length > INITIAL_GROUP_VISIBLE;
           return (
             <div key={group.key} className="dash-section" data-section={group.key}>
               <button
@@ -874,24 +859,19 @@ export default function Dashboard() {
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.24, ease: 'easeInOut' }}
                   >
-                    {visibleTasks.length > VIRTUAL_THRESHOLD ? (
-                      <VirtualList
-                        height={Math.min(VIRTUAL_MAX_HEIGHT, visibleTasks.length * VIRTUAL_ITEM_SIZE)}
-                        itemCount={visibleTasks.length}
-                        itemSize={VIRTUAL_ITEM_SIZE}
-                        width="100%"
-                        itemData={{ tasks: visibleTasks }}
-                      >
-                        {TaskRow}
-                      </VirtualList>
-                    ) : (
-                      visibleTasks.map((task, i) => (
-                        <TaskCard key={task.id} task={task} index={i} showDashboardDateTile />
-                      ))
-                    )}
-                    {hasMore && (
-                      <button className="group-load-more-btn" onClick={() => showMoreInSection(group.key)}>
-                        <ChevronsDown size={14} /> Mehr anzeigen ({group.tasks.length - visibleTasks.length})
+                    {visibleTasks.map((task, i) => (
+                      <TaskCard key={task.id} task={task} index={i} showDashboardDateTile />
+                    ))}
+                    {group.tasks.length > INITIAL_GROUP_VISIBLE && (
+                      <button className={`dash-section-expander ${isExpanded ? 'expanded' : ''}`} onClick={() => toggleExpandedInSection(group.key, group.tasks.length)}>
+                        <span className="dash-section-expander-line" aria-hidden />
+                        <span className="dash-section-expander-copy">
+                          <ChevronsDown size={14} className="dash-section-expander-icon" />
+                          {isExpanded
+                            ? 'Weniger anzeigen'
+                            : `${group.tasks.length - visibleTasks.length} weitere anzeigen`}
+                        </span>
+                        <span className="dash-section-expander-line" aria-hidden />
                       </button>
                     )}
                   </motion.div>
@@ -938,21 +918,9 @@ export default function Dashboard() {
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.2 }}
               >
-                {completedTasks.length > VIRTUAL_THRESHOLD ? (
-                  <VirtualList
-                    height={Math.min(VIRTUAL_MAX_HEIGHT, completedTasks.length * VIRTUAL_ITEM_SIZE)}
-                    itemCount={completedTasks.length}
-                    itemSize={VIRTUAL_ITEM_SIZE}
-                    width="100%"
-                    itemData={{ tasks: completedTasks }}
-                  >
-                    {TaskRow}
-                  </VirtualList>
-                ) : (
-                  completedTasks.map((task, i) => (
-                    <TaskCard key={task.id} task={task} index={i} showDashboardDateTile />
-                  ))
-                )}
+                {completedTasks.map((task, i) => (
+                  <TaskCard key={task.id} task={task} index={i} showDashboardDateTile />
+                ))}
               </motion.div>
             )}
           </AnimatePresence>
