@@ -383,6 +383,8 @@ export default function NotesPage() {
   const [hoveredNoteId, setHoveredNoteId] = useState(null);
   const [hoveredTaskPreview, setHoveredTaskPreview] = useState(null);
   const [taskSearch, setTaskSearch] = useState('');
+  const [workspaceNoteSearch, setWorkspaceNoteSearch] = useState('');
+  const [workspaceNoteFilter, setWorkspaceNoteFilter] = useState('all');
   const [toolboxOpen, setToolboxOpen] = useState(false);
   const [quickCreatePosition, setQuickCreatePosition] = useState(null);
   const [canvasContextMenu, setCanvasContextMenu] = useState(null);
@@ -399,7 +401,7 @@ export default function NotesPage() {
   const [isTabletView, setIsTabletView] = useState(() => (typeof window !== 'undefined' ? window.innerWidth >= 640 && window.innerWidth < 1025 : false));
   const [tabletViewMode, setTabletViewMode] = useState(() => {
     const cachedMode = readNoteViewCache()?.tabletViewMode;
-    return cachedMode === 'tools' || cachedMode === 'split' ? cachedMode : 'canvas';
+    return cachedMode === 'tools' || cachedMode === 'canvas' || cachedMode === 'split' ? cachedMode : 'split';
   }); // 'canvas' | 'tools' | 'split'
   const [isCanvasFullscreen, setIsCanvasFullscreen] = useState(false);
   const [isCanvasPseudoFullscreen, setIsCanvasPseudoFullscreen] = useState(false);
@@ -2614,6 +2616,24 @@ export default function NotesPage() {
     : null;
   const shortcutTasks = visibleTasks.slice(0, 10);
 
+  const workspaceNotes = useMemo(() => {
+    const query = String(workspaceNoteSearch || '').trim().toLowerCase();
+    return [...notes]
+      .filter((note) => {
+        if (workspaceNoteFilter !== 'all' && String(note.importance || 'medium') !== workspaceNoteFilter) {
+          return false;
+        }
+        if (!query) return true;
+        const haystack = `${note.title || ''} ${note.content || ''}`.toLowerCase();
+        return haystack.includes(query);
+      })
+      .sort((a, b) => {
+        const aTime = new Date(a.updated_at || a.created_at || 0).getTime();
+        const bTime = new Date(b.updated_at || b.created_at || 0).getTime();
+        return bTime - aTime;
+      });
+  }, [notes, workspaceNoteFilter, workspaceNoteSearch]);
+
   const connectedNoteIds = useMemo(() => {
     const set = new Set();
     if (!hoveredNoteId) return set;
@@ -2736,6 +2756,31 @@ export default function NotesPage() {
       centerX: position.x + width / 2,
       centerY: position.y + height / 2,
     };
+  };
+
+  const focusNoteOnCanvas = (noteId) => {
+    const geometry = getNoteGeometry(noteId);
+    if (!geometry) return;
+
+    setActiveNoteId(noteId);
+    setContextTab('details');
+
+    if (isTabletView && tabletViewMode === 'tools') {
+      setTabletViewMode('split');
+    }
+
+    requestAnimationFrame(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const scale = zoomRef.current / 100;
+      const targetX = geometry.centerX * scale - (canvas.clientWidth / 2);
+      const targetY = geometry.centerY * scale - (canvas.clientHeight / 2);
+      canvas.scrollTo({
+        left: Math.max(0, targetX),
+        top: Math.max(0, targetY),
+        behavior: 'smooth',
+      });
+    });
   };
 
   // Pre-compute markdown HTML per note to avoid re-processing on every render
@@ -3273,6 +3318,69 @@ export default function NotesPage() {
                     </div>
                   </button>
                 ))
+              )}
+            </div>
+          </div>
+
+          <div className="toolbox-section">
+            <div className="toolbox-section-head">
+              <h3>Alle Notizen</h3>
+              <span>{workspaceNotes.length}</span>
+            </div>
+            <div className="toolbox-note-toolbar">
+              <input
+                type="text"
+                className="toolbox-note-search"
+                value={workspaceNoteSearch}
+                onChange={(event) => setWorkspaceNoteSearch(event.target.value)}
+                placeholder="Notizen suchen..."
+              />
+              <div className="toolbox-note-filter-row">
+                {[
+                  { value: 'all', label: 'Alle' },
+                  { value: 'high', label: 'Hoch' },
+                  { value: 'medium', label: 'Mittel' },
+                  { value: 'low', label: 'Niedrig' },
+                ].map((f) => (
+                  <button
+                    key={f.value}
+                    type="button"
+                    className={`toolbox-note-filter ${workspaceNoteFilter === f.value ? 'active' : ''}`}
+                    onClick={() => setWorkspaceNoteFilter(f.value)}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="toolbox-note-list">
+              {workspaceNotes.length === 0 ? (
+                <div className="toolbox-empty">Keine passenden Notizen gefunden.</div>
+              ) : (
+                workspaceNotes.map((note) => {
+                  const isActive = String(activeNoteId || '') === String(note.id);
+                  const isCompleted = isNoteCompletedByData(note.id);
+                  const noteConnections = connections.filter((entry) => String(entry.note_id_1 || entry.noteId1 || '') === String(note.id) || String(entry.note_id_2 || entry.noteId2 || '') === String(note.id));
+                  return (
+                    <button
+                      key={note.id}
+                      type="button"
+                      className={`toolbox-note-card ${isActive ? 'active' : ''} ${isCompleted ? 'done' : ''}`}
+                      onClick={() => focusNoteOnCanvas(note.id)}
+                    >
+                      <div className="toolbox-note-card-top">
+                        <strong>{note.title || 'Ohne Titel'}</strong>
+                        <span className={`toolbox-note-pill ${note.importance || 'medium'}`}>{note.importance || 'medium'}</span>
+                      </div>
+                      {note.content && <p>{markdownToPlainText(note.content).slice(0, 88)}</p>}
+                      <div className="toolbox-note-meta">
+                        <span>{noteConnections.length} Verbindungen</span>
+                        <span>{note.date ? new Date(note.date).toLocaleDateString('de-DE') : 'Ohne Datum'}</span>
+                      </div>
+                    </button>
+                  );
+                })
               )}
             </div>
           </div>
