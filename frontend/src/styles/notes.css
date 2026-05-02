@@ -1159,6 +1159,48 @@
   padding-top: 4px;
 }
 
+.workspace-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.04);
+  border: 1px solid rgba(0,0,0,0.08);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.workspace-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
+  font-family: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.workspace-mode-btn:hover {
+  background: rgba(0,0,0,0.05);
+  color: var(--text);
+}
+
+.workspace-mode-btn.active {
+  background: #ffffff;
+  color: #6366f1;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+
 .zoom-btn {
   display: flex;
   align-items: center;
@@ -3716,5 +3758,59 @@
   .note-card { padding: 26px; border-radius: 24px; gap: 18px; }
   .note-title { font-size: 20px; }
   .note-content { font-size: 16px; -webkit-line-clamp: 6; line-clamp: 6; }
+}
+
+/* ── Tablet Stabilisierung (640-1024) ── */
+@media (min-width: 640px) and (max-width: 1024px) {
+  .notes-page-header {
+    margin-bottom: 10px;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .notes-header-main {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .notes-controls {
+    margin-left: auto;
+    gap: 6px;
+    padding-top: 0;
+    min-width: 0;
+  }
+
+  .workspace-mode-toggle {
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .workspace-mode-toggle::-webkit-scrollbar { display: none; }
+
+  .workspace-mode-btn {
+    padding: 0 8px;
+    font-size: 11.5px;
+  }
+
+  .notes-workspace {
+    gap: 12px !important;
+    padding: 12px !important;
+  }
+
+  .notes-toolbox.open {
+    width: 250px;
+    min-width: 250px;
+  }
+
+  .notes-workspace.mode-list .notes-toolbox,
+  .notes-workspace.mode-list .notes-toolbox.open {
+    width: 290px;
+    min-width: 290px;
+  }
+
+  /* Verhindert gequetschtes 3-Spalten Layout auf Tablet */
+  .notes-context-panel {
+    display: none !important;
+  }
 }
 
