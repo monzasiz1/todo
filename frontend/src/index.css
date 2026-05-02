@@ -8823,21 +8823,54 @@ body.cal-is-dragging * {
 
 /* Task Detail Collab Section */
 .task-detail-collab {
-  background: rgba(0, 122, 255, 0.04);
-  border-radius: 12px;
+  background: linear-gradient(165deg, rgba(0, 122, 255, 0.08), rgba(88, 86, 214, 0.04));
+  border-radius: 14px;
+  border: 1px solid rgba(0, 122, 255, 0.16);
   padding: 14px;
+}
+
+.task-detail-collab-shared {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.task-detail-collab-visibility {
+  color: var(--text);
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
 .task-detail-collab-info {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 8px;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 10px;
   font-size: 13px;
   color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  padding: 9px 10px;
 }
 
 .task-detail-collab-info.readonly {
+  color: #6b7280;
+  background: rgba(255, 149, 0, 0.08);
+  border-color: rgba(255, 149, 0, 0.22);
+}
+
+.task-detail-collab-info-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1.3;
+  min-width: 0;
+}
+
+.task-detail-collab-label {
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  font-weight: 700;
   color: var(--text-tertiary);
 }
 
@@ -8949,7 +8982,15 @@ body.cal-is-dragging * {
   display: flex;
   align-items: center;
   flex-direction: row;
+}
+
+.task-detail-shared-stack-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin-top: 8px;
+  padding: 2px 0 4px;
 }
 
 .task-detail-shared-avatar {
@@ -8957,6 +8998,17 @@ body.cal-is-dragging * {
   border-radius: 50%;
   border: 2px solid var(--surface, #fff);
   box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+.task-detail-shared-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: #31578b;
+  background: rgba(49, 87, 139, 0.11);
+  border: 1px solid rgba(49, 87, 139, 0.18);
+  border-radius: 999px;
+  padding: 4px 9px;
+  white-space: nowrap;
 }
 
 .task-detail-shared-overflow {
@@ -8973,6 +9025,49 @@ body.cal-is-dragging * {
   margin-left: -10px;
   border: 2px solid var(--surface, #fff);
   z-index: 1;
+}
+
+@media (max-width: 1024px) {
+  .task-detail-collab {
+    border-radius: 12px;
+    border-color: rgba(0, 122, 255, 0.14);
+  }
+
+  .task-detail-collab-info {
+    margin-top: 8px;
+    gap: 9px;
+    padding: 8px 9px;
+    font-size: 12px;
+  }
+
+  .task-detail-collab-label {
+    font-size: 10px;
+  }
+
+  .task-detail-shared-count {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+}
+
+@media (max-width: 560px) {
+  .task-detail-shared-stack-wrap {
+    gap: 8px;
+  }
+
+  .task-detail-shared-avatar {
+    border-width: 1.5px;
+  }
+
+  .task-detail-shared-overflow {
+    width: 28px;
+    height: 28px;
+    font-size: 10px;
+  }
+
+  .task-detail-collab-info-text {
+    overflow-wrap: anywhere;
+  }
 }
 
 /* Collab mobile handled in main responsive section */

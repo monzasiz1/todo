@@ -501,33 +501,36 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
 
       <div className="task-detail-aside">
         {isShared && (
-          <div className="task-detail-section task-detail-collab">
+          <div className="task-detail-section task-detail-collab task-detail-collab-shared">
             <div className="task-detail-description-header">
               {task.visibility === 'shared' ? <Users size={16} /> : <UserCheck size={16} />}
-              <span>{task.visibility === 'shared' ? 'Mit allen Freunden geteilt' : 'Mit ausgewählten Personen geteilt'}</span>
+              <span className="task-detail-collab-visibility">{task.visibility === 'shared' ? 'Mit allen Freunden geteilt' : 'Mit ausgewählten Personen geteilt'}</span>
             </div>
             {Array.isArray(task.shared_with_users) && task.shared_with_users.length > 0 && (
-              <div className="task-detail-shared-avatars">
-                {task.shared_with_users.slice(0, 5).map((u, i) => (
-                  <span key={i} className="task-detail-shared-avatar" style={{ zIndex: 10 - i, marginLeft: i > 0 ? -10 : 0 }} title={u.name}>
-                    <AvatarBadge name={u.name} color={u.color || '#007AFF'} avatarUrl={u.avatar_url} size={30} />
-                  </span>
-                ))}
-                {task.shared_with_users.length > 5 && (
-                  <span className="task-detail-shared-overflow">+{task.shared_with_users.length - 5}</span>
-                )}
+              <div className="task-detail-shared-stack-wrap">
+                <div className="task-detail-shared-avatars">
+                  {task.shared_with_users.slice(0, 5).map((u, i) => (
+                    <span key={i} className="task-detail-shared-avatar" style={{ zIndex: 10 - i, marginLeft: i > 0 ? -10 : 0 }} title={u.name}>
+                      <AvatarBadge name={u.name} color={u.color || '#007AFF'} avatarUrl={u.avatar_url} size={30} />
+                    </span>
+                  ))}
+                  {task.shared_with_users.length > 5 && (
+                    <span className="task-detail-shared-overflow">+{task.shared_with_users.length - 5}</span>
+                  )}
+                </div>
+                <span className="task-detail-shared-count">{task.shared_with_users.length} Person{task.shared_with_users.length === 1 ? '' : 'en'}</span>
               </div>
             )}
             {!task.is_owner && task.creator_name && (
               <div className="task-detail-collab-info">
                 <AvatarBadge className="collab-avatar" name={task.creator_name} color={task.creator_color || '#007AFF'} avatarUrl={task.creator_avatar_url} size={22} />
-                <span>Erstellt von <strong>{task.creator_name}</strong></span>
+                <span className="task-detail-collab-info-text"><span className="task-detail-collab-label">Erstellt von</span><strong>{task.creator_name}</strong></span>
               </div>
             )}
-            {!canEdit && <div className="task-detail-collab-info readonly"><Eye size={14} /><span>Du hast nur Leserechte</span></div>}
+            {!canEdit && <div className="task-detail-collab-info readonly"><Eye size={14} /><span className="task-detail-collab-info-text"><span className="task-detail-collab-label">Zugriff</span>Du hast nur Leserechte</span></div>}
             {task.last_editor_name && (
               <div className="task-detail-collab-info">
-                <Edit3 size={14} /><span>Zuletzt bearbeitet von <strong>{task.last_editor_name}</strong></span>
+                <Edit3 size={14} /><span className="task-detail-collab-info-text"><span className="task-detail-collab-label">Zuletzt bearbeitet von</span><strong>{task.last_editor_name}</strong></span>
               </div>
             )}
           </div>
