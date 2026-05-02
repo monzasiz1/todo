@@ -322,6 +322,14 @@ function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick })
           {filteredGroups.map((g, i) => {
             const roleConf = ROLE_CONFIG[g.role] || ROLE_CONFIG.member;
             const cardColor = g.color || '#007AFF';
+            const RoleIcon = roleConf.icon || Users;
+            const teamCaption = g.member_count > 1
+              ? `${g.member_count} Personen planen hier gemeinsam.`
+              : 'Dein Space ist bereit fuer die erste Zusammenarbeit.';
+            const activityCaption = g.task_count > 0
+              ? `${g.task_count} Eintraege halten das Team im Flow.`
+              : 'Noch leer - perfekt fuer einen starken Start.';
+            const previewMembers = Array.from({ length: Math.min(Math.max(g.member_count, 1), 3) }, (_, idx) => idx);
             return (
               <motion.div
                 key={g.id}
@@ -341,6 +349,8 @@ function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick })
                   }}
                 >
                   <div className="group-card-cover-glow" style={{ background: cardColor }} />
+                  <div className="group-card-cover-orb" />
+                  <div className="group-card-cover-pattern" />
                   <AvatarBadge
                     name={g.name}
                     color={cardColor}
@@ -351,11 +361,30 @@ function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick })
                   <span className={`group-role-badge ${g.role}`}>
                     {roleConf.label}
                   </span>
+                  <div className="group-card-presence">
+                    <div className="group-card-presence-stack" aria-hidden>
+                      {previewMembers.map((memberIdx) => (
+                        <span key={memberIdx} className="group-card-presence-avatar">
+                          {String(g.name || 'G').charAt(memberIdx).toUpperCase() || 'G'}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="group-card-presence-copy">
+                      <span>Team Space</span>
+                      <strong>{g.member_count} aktiv</strong>
+                    </div>
+                  </div>
+                  <div className="group-card-cover-stat">
+                    <RoleIcon size={12} />
+                    <span>{roleConf.label}</span>
+                  </div>
                 </div>
 
                 {/* Body */}
                 <div className="group-card-body">
+                  <span className="group-card-eyebrow">Gemeinsam organisieren</span>
                   <h3 className="group-card-title">{g.name}</h3>
+                  <p className="group-card-description">{teamCaption} {activityCaption}</p>
                   <div className="group-card-meta">
                     <span className="group-card-chip">
                       <Users size={11} /> {g.member_count}
@@ -367,8 +396,11 @@ function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick })
                 </div>
 
                 {/* Arrow */}
-                <div className="group-card-arrow">
-                  <ChevronRight size={16} />
+                <div className="group-card-footer">
+                  <span className="group-card-footer-copy">Space oeffnen</span>
+                  <div className="group-card-arrow">
+                    <ChevronRight size={16} />
+                  </div>
                 </div>
               </motion.div>
             );
