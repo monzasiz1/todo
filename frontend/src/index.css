@@ -11982,13 +11982,14 @@ body.cal-is-dragging * {
   border: 1px solid var(--border);
   border-radius: 22px;
   padding: 18px;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
   background:
     radial-gradient(180px 80px at 10% -10%, color-mix(in srgb, var(--primary) 16%, transparent), transparent 70%),
     radial-gradient(220px 120px at 100% 0%, color-mix(in srgb, var(--success) 12%, transparent), transparent 70%),
     var(--card-solid);
 }
 
+/* ── Stat Cards ── */
 .groups-hub-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -11997,29 +11998,60 @@ body.cal-is-dragging * {
 }
 
 .groups-hub-stat-card {
-  border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
-  border-radius: 14px;
-  padding: 10px 12px;
-  background: color-mix(in srgb, var(--surface) 76%, transparent);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--stat-color, var(--primary)) 22%, var(--border));
+  background: color-mix(in srgb, var(--stat-color, var(--primary)) 8%, var(--card-solid));
   backdrop-filter: blur(4px);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.groups-hub-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--stat-color, var(--primary)) 20%, transparent);
 }
 
-.groups-hub-stat-card span {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.groups-hub-stat-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--stat-color, var(--primary)) 18%, transparent);
+  color: var(--stat-color, var(--primary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.groups-hub-stat-card strong {
+.groups-hub-stat-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.groups-hub-stat-text strong {
   display: block;
-  margin-top: 4px;
-  font-size: 24px;
+  font-size: 22px;
+  font-weight: 800;
   line-height: 1.1;
   color: var(--text);
 }
 
+.groups-hub-stat-text span {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Action Row ── */
 .group-actions-row {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -12063,6 +12095,7 @@ body.cal-is-dragging * {
   transform: translateY(-1px);
 }
 
+/* ── Search ── */
 .groups-search-wrap {
   display: flex;
   align-items: center;
@@ -12110,63 +12143,116 @@ body.cal-is-dragging * {
   color: var(--text);
 }
 
-/* --- Group List --- */
+/* ── Group List – responsive grid ── */
 .group-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
 }
 
+@media (max-width: 900px) {
+  .group-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 540px) {
+  .group-list {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+/* ── Group Card – tile ── */
 .group-card {
   position: relative;
   display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 16px;
+  flex-direction: column;
   background: var(--card-solid);
-  border-radius: 18px;
+  border-radius: 20px;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-  border: 1px solid var(--border);
-  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.05);
   overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.07);
+  transition: transform 0.22s cubic-bezier(.34,1.56,.64,1), box-shadow 0.22s ease, border-color 0.22s ease;
 }
 
 .group-card:hover {
-  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.11);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.14);
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--border));
 }
 
-.group-card-accent {
-  position: absolute;
-  left: 0;
-  top: 10px;
-  bottom: 10px;
-  width: 4px;
-  border-radius: 0 6px 6px 0;
-}
-
-.group-card-avatar {
-  flex-shrink: 0;
-}
-
-.group-card-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.group-card-name-row {
+/* Cover */
+.group-card-cover {
+  position: relative;
+  height: 88px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 7px;
+  justify-content: center;
+  padding: 12px 14px;
+  overflow: hidden;
 }
 
-.group-card-name-row h3 {
+.group-card-cover-glow {
+  position: absolute;
+  inset: 0;
+  opacity: 0.18;
+  filter: blur(20px);
+  transform: scale(1.4);
+  pointer-events: none;
+}
+
+.group-card-cover-avatar {
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.22);
+  border: 2px solid rgba(255,255,255,0.35);
+  border-radius: 16px;
+}
+
+.group-role-badge {
+  position: absolute;
+  top: 9px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  backdrop-filter: blur(6px);
+  z-index: 2;
+}
+.group-role-badge.owner {
+  background: rgba(255, 215, 0, 0.30);
+  color: #8a6a00;
+  border: 1px solid rgba(255,215,0,0.35);
+}
+.group-role-badge.admin {
+  background: rgba(255,255,255,0.28);
+  color: var(--primary);
+  border: 1px solid rgba(255,255,255,0.3);
+}
+.group-role-badge.member {
+  background: rgba(255,255,255,0.22);
+  color: rgba(255,255,255,0.9);
+  border: 1px solid rgba(255,255,255,0.25);
+}
+
+/* Body */
+.group-card-body {
+  flex: 1;
+  padding: 14px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.group-card-title {
   margin: 0;
-  font-size: 18px;
-  line-height: 1.2;
+  font-size: 16px;
   font-weight: 750;
   color: var(--text);
   white-space: nowrap;
@@ -12177,11 +12263,11 @@ body.cal-is-dragging * {
 .group-card-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
-.group-card-meta span {
+.group-card-chip {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -12191,39 +12277,19 @@ body.cal-is-dragging * {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 4px 8px;
+  padding: 4px 9px;
 }
 
-.group-card-chevron {
-  color: var(--text-tertiary);
-  flex-shrink: 0;
-}
-
-/* --- Group Role Badge --- */
-.group-role-badge {
-  display: inline-flex;
+/* Arrow */
+.group-card-arrow {
+  display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-}
-.group-role-badge.owner {
-  background: rgba(255, 215, 0, 0.18);
-  color: #8a6a00;
-}
-.group-role-badge.admin {
-  background: color-mix(in srgb, var(--primary) 16%, transparent);
-  color: var(--primary);
-}
-.group-role-badge.member {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
+  justify-content: flex-end;
+  padding: 0 14px 12px;
+  color: var(--text-tertiary);
 }
 
-/* --- Group Empty --- */
+/* ── Group Empty ── */
 .group-empty {
   text-align: center;
   padding: 52px 24px;
@@ -12231,6 +12297,9 @@ body.cal-is-dragging * {
   border: 1px dashed var(--border);
   border-radius: 20px;
   background: color-mix(in srgb, var(--surface) 75%, transparent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 .group-empty-icon {
   width: 64px;
@@ -13928,27 +13997,14 @@ body.cal-is-dragging * {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
-  .groups-hub-stat-card strong {
+  .groups-hub-stat-text strong {
     font-size: 20px;
   }
   .groups-search-wrap {
     padding: 9px 10px;
   }
-  .group-card {
-    padding: 12px 13px;
-    border-radius: 15px;
-  }
-  .group-card-name-row {
-    align-items: flex-start;
-    gap: 6px;
-    flex-direction: column;
-  }
-  .group-card-name-row h3 {
-    font-size: 16px;
-    white-space: normal;
-  }
-  .group-card-meta {
-    gap: 6px;
+  .group-card-cover {
+    height: 76px;
   }
   .group-action-btn {
     padding: 10px 12px;

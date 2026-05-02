@@ -7,6 +7,7 @@ const TASK_RANGE_CACHE_KEY = 'beequ_tasks_range_cache_v1';
 const TASK_RANGE_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
 const TASK_RANGE_CACHE_MAX_ENTRIES = 12;
 const QUICK_UNDO_FIELDS = new Set(['title', 'description', 'date', 'date_end', 'time', 'time_end', 'priority', 'category_id', 'reminder_at', 'type']);
+const pendingTaskDeletes = new Map();
 
 function readCachedTasks() {
   try {
@@ -132,6 +133,13 @@ function isUndoableTaskUpdate(previousTask, updates, options = {}) {
   const keys = Object.keys(updates);
   if (keys.length === 0 || keys.length > 4) return false;
   return keys.every((key) => QUICK_UNDO_FIELDS.has(key));
+}
+
+function restoreTaskAtIndex(tasks, task, index) {
+  const list = Array.isArray(tasks) ? [...tasks] : [];
+  const safeIndex = Math.max(0, Math.min(Number.isInteger(index) ? index : list.length, list.length));
+  list.splice(safeIndex, 0, task);
+  return list;
 }
 
 export const useTaskStore = create((set, get) => ({
@@ -614,25 +622,49 @@ export const useTaskStore = create((set, get) => ({
   },
 
   deleteTask: async (id) => {
-    // Optimistic removal
+    const key = String(id);
     const prev = get().tasks;
-    const deletedTask = prev.find((task) => task.id === id) || null;
-    set((s) => ({ tasks: s.tasks.filter((t) => t.id !== id), rangeCache: {} }));
+    const deletedTaskIndex = prev.findIndex((task) => String(task.id) === key);
+    const deletedTask = deletedTaskIndex >= 0 ? prev[deletedTaskIndex] : null;
+    if (!deletedTask) return;
+    if (pendingTaskDeletes.has(key)) return;
+
+    set((s) => ({ tasks: s.tasks.filter((t) => String(t.id) !== key), rangeCache: {} }));
     writeCachedTaskRanges({});
-    try {
-      await api.deleteTask(id);
-      get().addToast('Gelöscht', 'info', deletedTask ? {
-        actionLabel: 'Rückgängig',
-        duration: 6000,
-        onAction: async () => {
-          await get().restoreDeletedTask(deletedTask);
-        },
-      } : undefined);
-      emitTasksChanged();
-    } catch (err) {
-      set({ tasks: prev });
-      get().addToast(err.message, 'error');
-    }
+    emitTasksChanged();
+
+    const timeoutMs = 6000;
+    const finalizeDelete = async () => {
+      try {
+        await api.deleteTask(id);
+        emitTasksChanged();
+      } catch (err) {
+        set((s) => ({ tasks: restoreTaskAtIndex(s.tasks, deletedTask, deletedTaskIndex), rangeCache: {} }));
+        writeCachedTaskRanges({});
+        emitTasksChanged();
+        get().addToast(err.message || 'Löschen fehlgeschlagen', 'error');
+      } finally {
+        pendingTaskDeletes.delete(key);
+      }
+    };
+
+    const timerId = setTimeout(finalizeDelete, timeoutMs);
+    pendingTaskDeletes.set(key, { timerId, task: deletedTask, index: deletedTaskIndex });
+
+    get().addToast('Gelöscht', 'info', {
+      actionLabel: 'Rückgängig',
+      duration: timeoutMs,
+      onAction: async () => {
+        const pending = pendingTaskDeletes.get(key);
+        if (!pending) return;
+        clearTimeout(pending.timerId);
+        pendingTaskDeletes.delete(key);
+        set((s) => ({ tasks: restoreTaskAtIndex(s.tasks, pending.task, pending.index), rangeCache: {} }));
+        writeCachedTaskRanges({});
+        emitTasksChanged();
+        get().addToast('Löschen rückgängig gemacht');
+      },
+    });
   },
 
   // Categories

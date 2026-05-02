@@ -200,6 +200,13 @@ export default function GroupsPage() {
 // ============================================
 // Group List
 // ============================================
+const STAT_DEFS = [
+  { key: 'totalGroups', label: 'Gruppen', icon: Users, color: '#007AFF' },
+  { key: 'totalMembers', label: 'Mitglieder', icon: Users, color: '#34C759' },
+  { key: 'totalTasks', label: 'Einträge', icon: ListTodo, color: '#5856D6' },
+  { key: 'adminOrOwnerCount', label: 'Leitungsrollen', icon: Crown, color: '#FF9500' },
+];
+
 function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick }) {
   const [query, setQuery] = useState('');
 
@@ -237,25 +244,29 @@ function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick })
       </div>
 
       <section className="groups-hub">
+        {/* Stats */}
         <div className="groups-hub-stats" aria-label="Gruppen Statistiken">
-          <article className="groups-hub-stat-card">
-            <span>Anzahl Gruppen</span>
-            <strong>{stats.totalGroups}</strong>
-          </article>
-          <article className="groups-hub-stat-card">
-            <span>Mitglieder gesamt</span>
-            <strong>{stats.totalMembers}</strong>
-          </article>
-          <article className="groups-hub-stat-card">
-            <span>Einträge gesamt</span>
-            <strong>{stats.totalTasks}</strong>
-          </article>
-          <article className="groups-hub-stat-card">
-            <span>Leitungsrollen</span>
-            <strong>{stats.adminOrOwnerCount}</strong>
-          </article>
+          {STAT_DEFS.map((def) => {
+            const Icon = def.icon;
+            return (
+              <article
+                key={def.key}
+                className="groups-hub-stat-card"
+                style={{ '--stat-color': def.color }}
+              >
+                <div className="groups-hub-stat-icon">
+                  <Icon size={16} />
+                </div>
+                <div className="groups-hub-stat-text">
+                  <strong>{stats[def.key]}</strong>
+                  <span>{def.label}</span>
+                </div>
+              </article>
+            );
+          })}
         </div>
 
+        {/* Actions */}
         <div className="group-actions-row">
           <button className="group-action-btn primary" onClick={onCreateClick}>
             <Plus size={18} /> Gruppe erstellen
@@ -265,6 +276,7 @@ function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick })
           </button>
         </div>
 
+        {/* Search */}
         <div className="groups-search-wrap">
           <Search size={16} />
           <input
@@ -289,7 +301,7 @@ function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick })
       </section>
 
       {loading && groups.length === 0 ? (
-        <div className="group-loading">Laden...</div>
+        <div className="group-loading">Laden…</div>
       ) : filteredGroups.length === 0 && groups.length > 0 ? (
         <div className="group-empty">
           <div className="group-empty-icon"><Search size={32} /></div>
@@ -301,40 +313,66 @@ function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick })
           <div className="group-empty-icon"><Users size={40} /></div>
           <h3>Noch keine Gruppen</h3>
           <p>Erstelle eine Gruppe oder tritt einer bei</p>
+          <button className="group-action-btn primary" style={{ marginTop: 18, alignSelf: 'center' }} onClick={onCreateClick}>
+            <Plus size={16} /> Erste Gruppe anlegen
+          </button>
         </div>
       ) : (
         <div className="group-list">
-          {filteredGroups.map((g) => (
-            <motion.div
-              key={g.id}
-              className="group-card"
-              onClick={() => onOpenGroup(g.id)}
-              whileHover={{ y: -3 }}
-              whileTap={{ scale: 0.99 }}
-            >
-              <div className="group-card-accent" style={{ background: g.color || '#007AFF' }} />
-              <AvatarBadge
-                className="group-card-avatar"
-                name={g.name}
-                color={g.color || '#007AFF'}
-                avatarUrl={g.image_url}
-                size={46}
-              />
-              <div className="group-card-info">
-                <div className="group-card-name-row">
-                  <h3>{g.name}</h3>
+          {filteredGroups.map((g, i) => {
+            const roleConf = ROLE_CONFIG[g.role] || ROLE_CONFIG.member;
+            const cardColor = g.color || '#007AFF';
+            return (
+              <motion.div
+                key={g.id}
+                className="group-card"
+                onClick={() => onOpenGroup(g.id)}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05, duration: 0.28, ease: 'easeOut' }}
+                whileHover={{ y: -5, scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                {/* Cover */}
+                <div
+                  className="group-card-cover"
+                  style={{
+                    background: `linear-gradient(135deg, ${cardColor}ee 0%, ${cardColor}88 100%)`,
+                  }}
+                >
+                  <div className="group-card-cover-glow" style={{ background: cardColor }} />
+                  <AvatarBadge
+                    name={g.name}
+                    color={cardColor}
+                    avatarUrl={g.image_url}
+                    size={52}
+                    className="group-card-cover-avatar"
+                  />
                   <span className={`group-role-badge ${g.role}`}>
-                    {ROLE_CONFIG[g.role]?.label || 'Mitglied'}
+                    {roleConf.label}
                   </span>
                 </div>
-                <div className="group-card-meta">
-                  <span><Users size={12} /> {g.member_count} Mitglieder</span>
-                  <span><Calendar size={12} /> {g.task_count} Einträge</span>
+
+                {/* Body */}
+                <div className="group-card-body">
+                  <h3 className="group-card-title">{g.name}</h3>
+                  <div className="group-card-meta">
+                    <span className="group-card-chip">
+                      <Users size={11} /> {g.member_count}
+                    </span>
+                    <span className="group-card-chip">
+                      <ListTodo size={11} /> {g.task_count}
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <ChevronRight size={18} className="group-card-chevron" />
-            </motion.div>
-          ))}
+
+                {/* Arrow */}
+                <div className="group-card-arrow">
+                  <ChevronRight size={16} />
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
       )}
     </motion.div>
