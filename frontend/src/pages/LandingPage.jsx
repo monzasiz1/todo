@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   AlertCircle, ArrowRight, ArrowUp, BarChart2, Bell, CalendarDays,
-  Check, CheckCircle2, ChevronDown, Clock, FileText, Flag, GripVertical,
+  Check, CheckCircle2, ChevronDown, Clock, FileText, Flag,
   Key, Layers3, LayoutDashboard, ListTodo, Mail, Paperclip, Repeat,
   Sparkles, Tag, Target, UsersRound, User, X, Zap,
 } from 'lucide-react';
@@ -48,9 +48,73 @@ const bentoFeatures = [
 ];
 
 const mockTasks = [
-  { title: 'Team-Meeting vorbereiten', cat: 'Arbeit',   catColor: '#007AFF', prio: 'urgent', time: '14:00', repeat: true,  done: false },
-  { title: 'Design Review Präsentation', cat: 'Design', catColor: '#5856D6', prio: 'high',   time: '16:30', repeat: false, done: false },
-  { title: 'Arzttermin vorbereiten',    cat: 'Privat',  catColor: '#34C759', prio: 'low',    time: '09:00', repeat: false, done: true  },
+  {
+    title: 'Aufbau Zelt / Aufraeumaktion',
+    subtitle: 'Ausrichter: Verein Team',
+    cat: 'Gut Schlag',
+    catColor: '#34C759',
+    prio: 'medium',
+    time: '10:00 Uhr - 16:00 Uhr',
+    day: '2',
+    month: 'MAI',
+    type: 'Termin',
+    done: false,
+    section: 'today',
+    tags: ['Auswahl', 'Nur lesen'],
+  },
+  {
+    title: 'Rechnung begleichen',
+    subtitle: 'Telefonica Germany',
+    cat: 'Einkaufen',
+    catColor: '#FF3B30',
+    prio: 'urgent',
+    time: '4. Mai',
+    day: '4',
+    month: 'MAI',
+    type: 'Aufgabe',
+    done: false,
+    section: 'later',
+    tags: [],
+  },
+  {
+    title: 'Gemeinschaftsprobe',
+    subtitle: 'Musikheim',
+    cat: 'Gesundheit',
+    catColor: '#00C7BE',
+    prio: 'low',
+    time: '6. Mai, 19:00 Uhr - 21:00 Uhr',
+    day: '6',
+    month: 'MAI',
+    type: 'Termin',
+    done: false,
+    section: 'later',
+    tags: ['Woechentlich'],
+  },
+  {
+    title: 'Martina Geburtstag',
+    subtitle: 'Familie',
+    cat: 'Familie',
+    catColor: '#5856D6',
+    prio: 'medium',
+    time: '7. Mai',
+    day: '7',
+    month: 'MAI',
+    type: 'Termin',
+    done: false,
+    section: 'later',
+    tags: ['Jaehrlich'],
+  },
+];
+
+const mockSidebarCategories = [
+  { name: 'Alle', color: '#007AFF', n: 45 },
+  { name: 'Arbeit', color: '#007AFF', n: 8 },
+  { name: 'Auftritt', color: '#5AC8FA', n: 4 },
+  { name: 'Bildung', color: '#34C759', n: 3 },
+  { name: 'Einkaufen', color: '#FF3B30', n: 2 },
+  { name: 'Finanzen', color: '#5856D6', n: 3 },
+  { name: 'Gesundheit', color: '#00C7BE', n: 6 },
+  { name: 'Familie', color: '#AF52DE', n: 5 },
 ];
 
 const prioBar = { urgent: '#FF3B30', high: '#FF9500', medium: '#007AFF', low: '#34C759' };
@@ -93,7 +157,7 @@ export default function LandingPage() {
   const verifyRefs = [useRef(null),useRef(null),useRef(null),useRef(null),useRef(null),useRef(null)];
   const [aiIdx, setAiIdx] = useState(0);
   const [mockFilter, setMockFilter] = useState('all');
-  const [mockCollapsed, setMockCollapsed] = useState(false);
+  const [mockCollapsed, setMockCollapsed] = useState({ today: false, later: false });
   const [mockSearchOpen, setMockSearchOpen] = useState(false);
   const [mockQuery, setMockQuery] = useState('');
   const [mockTaskState, setMockTaskState] = useState(() =>
@@ -176,8 +240,6 @@ export default function LandingPage() {
     return mockTaskState.filter((task) => {
       const byFilter =
         mockFilter === 'all' ? true :
-        mockFilter === 'open' ? !task.done :
-        mockFilter === 'done' ? task.done :
         task.prio === mockFilter;
 
       if (!byFilter) return false;
@@ -195,6 +257,16 @@ export default function LandingPage() {
       task.id === taskId ? { ...task, done: !task.done } : task
     )));
   };
+
+  const visibleTodayTasks = useMemo(
+    () => visibleMockTasks.filter((task) => task.section === 'today'),
+    [visibleMockTasks]
+  );
+
+  const visibleLaterTasks = useMemo(
+    () => visibleMockTasks.filter((task) => task.section === 'later'),
+    [visibleMockTasks]
+  );
 
   useEffect(() => {
     const hero = heroRef.current;
@@ -348,7 +420,8 @@ export default function LandingPage() {
                     { icon: CalendarDays,    label: 'Kalender',  active: false },
                     { icon: Sparkles,        label: 'Notizen',   active: false },
                     { icon: UsersRound,      label: 'Gruppen',   active: false },
-                    { icon: User,            label: 'Profil',    active: false },
+                    { icon: UsersRound,      label: 'Freunde',   active: false },
+                    { icon: Bell,            label: 'Benachrichtigungen', active: false },
                   ].map(({ icon: Icon, label, active }) => (
                     <div key={label} className={`bq-mock-nav-item${active ? ' active' : ''}`}>
                       <Icon size={15} />
@@ -364,12 +437,11 @@ export default function LandingPage() {
                   <p>Schreib z.B. "Freitag Reinigung 18 Uhr" und die KI erkennt alles.</p>
                 </div>
                 <div className="bq-mock-cats">
-                  <div className="bq-mock-cats-label">KATEGORIEN</div>
-                  {[
-                    { name: 'Arbeit',  color: '#007AFF', n: 8 },
-                    { name: 'Privat',  color: '#34C759', n: 3 },
-                    { name: 'Design',  color: '#5856D6', n: 5 },
-                  ].map(({ name, color, n }) => (
+                  <div className="bq-mock-cats-label-row">
+                    <span className="bq-mock-cats-label">KATEGORIEN</span>
+                    <span className="bq-mock-cats-manage">Verwalten</span>
+                  </div>
+                  {mockSidebarCategories.map(({ name, color, n }) => (
                     <div key={name} className="bq-mock-cat">
                       <span className="bq-mock-cat-dot" style={{ background: color }} />
                       <span className="bq-mock-cat-name">{name}</span>
@@ -377,12 +449,20 @@ export default function LandingPage() {
                     </div>
                   ))}
                 </div>
+
+                <div className="bq-mock-user-card">
+                  <AvatarBadge name="Rene Schroers" color="#1D4ED8" size={24} />
+                  <div className="bq-mock-user-meta">
+                    <strong>Rene Schroers</strong>
+                    <span>rene-schroers@gmx.de</span>
+                  </div>
+                </div>
               </aside>
 
               {/* main */}
               <div className="bq-mock-main">
                 <div className="bq-mock-greeting">
-                  <h3>Guten Morgen 👋</h3>
+                  <h3>Guten Abend 👋</h3>
                   <p>Was steht heute an?</p>
                 </div>
 
@@ -457,6 +537,13 @@ export default function LandingPage() {
                   >
                     <span className="bq-fd" style={{ background: '#007AFF' }} />Mittel
                   </button>
+                  <button
+                    type="button"
+                    className={`bq-mock-filter-btn${mockFilter === 'low' ? ' active' : ''}`}
+                    onClick={() => setMockFilter('low')}
+                  >
+                    <span className="bq-fd" style={{ background: '#34C759' }} />Niedrig
+                  </button>
                   <span className="bq-mock-filter-sep" />
                   <button
                     type="button"
@@ -482,25 +569,28 @@ export default function LandingPage() {
                   <button
                     type="button"
                     className="bq-mock-sec-head"
-                    onClick={() => setMockCollapsed((prev) => !prev)}
+                    onClick={() => setMockCollapsed((prev) => ({ ...prev, today: !prev.today }))}
                   >
                     <div className="bq-mock-sec-left">
                       <div className="bq-mock-sec-icon warning">!</div>
                       <span>Heute</span>
                     </div>
-                    <span className="bq-mock-count">{visibleMockTasks.length}</span>
-                    <ChevronDown size={14} className={`bq-mock-chevron${mockCollapsed ? ' collapsed' : ''}`} />
+                    <span className="bq-mock-count">{visibleTodayTasks.length}</span>
+                    <ChevronDown size={14} className={`bq-mock-chevron${mockCollapsed.today ? ' collapsed' : ''}`} />
                   </button>
 
-                  {!mockCollapsed && (
+                  {!mockCollapsed.today && (
                     <div className="bq-mock-task-list">
-                      {visibleMockTasks.length === 0 && (
+                      {visibleTodayTasks.length === 0 && (
                         <div className="bq-mock-empty">Keine passenden Aufgaben</div>
                       )}
-                      {visibleMockTasks.map(({ id, title, cat, catColor, prio, time, repeat, done }) => (
+                      {visibleTodayTasks.map(({ id, title, subtitle, cat, catColor, prio, time, day, month, type, tags, done }) => (
                         <div key={id} className={`bq-mock-task${done ? ' done' : ''}`}>
                           <div className="bq-mock-task-bar" style={{ background: prioBar[prio] }} />
-                          <GripVertical size={11} className="bq-mock-grip" />
+                          <div className="bq-mock-date-chip">
+                            <span>{month}</span>
+                            <strong>{day}</strong>
+                          </div>
                           <button
                             type="button"
                             className={`bq-mock-task-check${done ? ' checked' : ''}`}
@@ -511,11 +601,69 @@ export default function LandingPage() {
                           </button>
                           <div className="bq-mock-task-body">
                             <div className="bq-mock-task-title-row">
+                              <span className={`bq-mock-type-pill ${type === 'Termin' ? 'event' : 'task'}`}>{type}</span>
                               <strong className={done ? 'struck' : ''}>{title}</strong>
                             </div>
+                            <div className="bq-mock-task-subtitle">{subtitle}</div>
                             <div className="bq-mock-task-meta">
                               <span className="bq-mock-cat-badge" style={{ background: `${catColor}22`, color: catColor }}>{cat}</span>
-                              {repeat && <span className="bq-mock-repeat-badge"><Repeat size={9} />wiederkehrend</span>}
+                              {tags?.map((tag) => (
+                                <span key={tag} className="bq-mock-repeat-badge"><Repeat size={9} />{tag}</span>
+                              ))}
+                              <span className="bq-mock-meta-item"><Clock size={10} />{time}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="bq-mock-section">
+                  <button
+                    type="button"
+                    className="bq-mock-sec-head"
+                    onClick={() => setMockCollapsed((prev) => ({ ...prev, later: !prev.later }))}
+                  >
+                    <div className="bq-mock-sec-left">
+                      <div className="bq-mock-sec-icon">•</div>
+                      <span>Spaeter</span>
+                    </div>
+                    <span className="bq-mock-count">{visibleLaterTasks.length}</span>
+                    <ChevronDown size={14} className={`bq-mock-chevron${mockCollapsed.later ? ' collapsed' : ''}`} />
+                  </button>
+
+                  {!mockCollapsed.later && (
+                    <div className="bq-mock-task-list">
+                      {visibleLaterTasks.length === 0 && (
+                        <div className="bq-mock-empty">Keine passenden Aufgaben</div>
+                      )}
+                      {visibleLaterTasks.map(({ id, title, subtitle, cat, catColor, prio, time, day, month, type, tags, done }) => (
+                        <div key={id} className={`bq-mock-task${done ? ' done' : ''}`}>
+                          <div className="bq-mock-task-bar" style={{ background: prioBar[prio] }} />
+                          <div className="bq-mock-date-chip">
+                            <span>{month}</span>
+                            <strong>{day}</strong>
+                          </div>
+                          <button
+                            type="button"
+                            className={`bq-mock-task-check${done ? ' checked' : ''}`}
+                            onClick={() => toggleMockTask(id)}
+                            aria-label={`Aufgabe ${title} umschalten`}
+                          >
+                            {done && <Check size={11} strokeWidth={3} />}
+                          </button>
+                          <div className="bq-mock-task-body">
+                            <div className="bq-mock-task-title-row">
+                              <span className={`bq-mock-type-pill ${type === 'Termin' ? 'event' : 'task'}`}>{type}</span>
+                              <strong className={done ? 'struck' : ''}>{title}</strong>
+                            </div>
+                            <div className="bq-mock-task-subtitle">{subtitle}</div>
+                            <div className="bq-mock-task-meta">
+                              <span className="bq-mock-cat-badge" style={{ background: `${catColor}22`, color: catColor }}>{cat}</span>
+                              {tags?.map((tag) => (
+                                <span key={tag} className="bq-mock-repeat-badge"><Repeat size={9} />{tag}</span>
+                              ))}
                               <span className="bq-mock-meta-item"><Clock size={10} />{time}</span>
                             </div>
                           </div>
