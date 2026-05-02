@@ -4,10 +4,10 @@ import { useTaskStore } from '../store/taskStore';
 import { CheckCircle2, XCircle, Info, AlertTriangle, X } from 'lucide-react';
 
 const TYPE_CONFIG = {
-  success: { Icon: CheckCircle2, color: '#34C759', bg: 'rgba(52,199,89,0.08)',  border: 'rgba(52,199,89,0.2)'  },
-  error:   { Icon: XCircle,      color: '#FF3B30', bg: 'rgba(255,59,48,0.07)',  border: 'rgba(255,59,48,0.2)'  },
-  info:    { Icon: Info,         color: '#007AFF', bg: 'rgba(0,122,255,0.07)',  border: 'rgba(0,122,255,0.2)'  },
-  warning: { Icon: AlertTriangle,color: '#FF9500', bg: 'rgba(255,149,0,0.07)',  border: 'rgba(255,149,0,0.2)'  },
+  success: { Icon: CheckCircle2, symbol: '✓', color: '#34C759', bg: 'rgba(52,199,89,0.08)',  border: 'rgba(52,199,89,0.2)'  },
+  error:   { Icon: XCircle,      symbol: '✕', color: '#FF3B30', bg: 'rgba(255,59,48,0.07)',  border: 'rgba(255,59,48,0.2)'  },
+  info:    { Icon: Info,         symbol: 'i', color: '#007AFF', bg: 'rgba(0,122,255,0.07)',  border: 'rgba(0,122,255,0.2)'  },
+  warning: { Icon: AlertTriangle,symbol: '!', color: '#FF9500', bg: 'rgba(255,149,0,0.07)',  border: 'rgba(255,149,0,0.2)'  },
 };
 
 export default function FeedbackToast() {
@@ -41,7 +41,7 @@ export default function FeedbackToast() {
       <AnimatePresence>
         {toasts.map((toast) => {
           const cfg = TYPE_CONFIG[toast.type] ?? TYPE_CONFIG.success;
-          const { Icon, color, bg, border } = cfg;
+          const { Icon, symbol, color, bg, border } = cfg;
 
           return (
             <motion.div
@@ -56,7 +56,7 @@ export default function FeedbackToast() {
               <div className="toast__icon">
                 <Icon size={17} strokeWidth={2.3} />
               </div>
-              <span className="toast__msg">{toast.message}</span>
+              <span className="toast__msg"><span className="toast__symbol">{symbol}</span>{toast.message}</span>
               <div className="toast__actions">
                 {toast.actionLabel && toast.onAction && (
                   <button

@@ -3805,11 +3805,21 @@ body.cal-is-dragging * {
 
 .toast__msg {
   flex: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 0.875rem;
   font-weight: 600;
   color: #111;
   line-height: 1.4;
   min-width: 0;
+}
+
+.toast__symbol {
+  color: var(--t-color, #34C759);
+  font-weight: 900;
+  font-size: 0.86rem;
+  flex-shrink: 0;
 }
 
 .toast__actions {
