@@ -368,8 +368,14 @@ export default function NotesPage() {
     const cachedMode = readNoteViewCache()?.mobileViewMode;
     return cachedMode === 'canvas' ? 'canvas' : 'grid';
   }); // 'grid' | 'canvas'
+  const [workspaceMode, setWorkspaceMode] = useState(() => {
+    const cachedMode = readNoteViewCache()?.workspaceMode;
+    return cachedMode === 'canvas' || cachedMode === 'list' ? cachedMode : 'studio';
+  }); // 'studio' | 'canvas' | 'list'
   const [mobileSearch, setMobileSearch] = useState('');
   const [mobileFilter, setMobileFilter] = useState('all'); // 'all' | 'high' | 'medium' | 'low'
+  const [workspaceSearch, setWorkspaceSearch] = useState('');
+  const [workspaceFilter, setWorkspaceFilter] = useState('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingNote, setEditingNote] = useState(null);
   const [selectedNote, setSelectedNote] = useState(null);
@@ -383,8 +389,6 @@ export default function NotesPage() {
   const [hoveredNoteId, setHoveredNoteId] = useState(null);
   const [hoveredTaskPreview, setHoveredTaskPreview] = useState(null);
   const [taskSearch, setTaskSearch] = useState('');
-  const [workspaceNoteSearch, setWorkspaceNoteSearch] = useState('');
-  const [workspaceNoteFilter, setWorkspaceNoteFilter] = useState('all');
   const [toolboxOpen, setToolboxOpen] = useState(false);
   const [quickCreatePosition, setQuickCreatePosition] = useState(null);
   const [canvasContextMenu, setCanvasContextMenu] = useState(null);
@@ -398,11 +402,7 @@ export default function NotesPage() {
   const [commentDraft, setCommentDraft] = useState('');
   const [notePeopleMap, setNotePeopleMap] = useState(() => readNotePeopleCache());
   const [isMobileView, setIsMobileView] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 640 : false));
-  const [isTabletView, setIsTabletView] = useState(() => (typeof window !== 'undefined' ? window.innerWidth >= 640 && window.innerWidth < 1025 : false));
-  const [tabletViewMode, setTabletViewMode] = useState(() => {
-    const cachedMode = readNoteViewCache()?.tabletViewMode;
-    return cachedMode === 'tools' || cachedMode === 'canvas' || cachedMode === 'split' ? cachedMode : 'split';
-  }); // 'canvas' | 'tools' | 'split'
+  const [isTabletView, setIsTabletView] = useState(() => (typeof window !== 'undefined' ? window.innerWidth >= 640 && window.innerWidth <= 1024 : false));
   const [isCanvasFullscreen, setIsCanvasFullscreen] = useState(false);
   const [isCanvasPseudoFullscreen, setIsCanvasPseudoFullscreen] = useState(false);
   const [fsToolbarPos, setFsToolbarPos] = useState({ x: 14, y: 86 });
@@ -431,7 +431,7 @@ export default function NotesPage() {
   const handleTouchMoveRef = useRef(null);
   const handleCanvasTouchStartRef = useRef(null);
   const mobileViewModeRef = useRef(mobileViewMode);
-  const tabletViewModeRef = useRef(tabletViewMode);
+  const workspaceModeRef = useRef(workspaceMode);
   const didManualZoomRef = useRef(false);
   const didInitialViewportFitRef = useRef(false);
   const didRestoreViewportRef = useRef(false);
@@ -684,7 +684,7 @@ export default function NotesPage() {
     writeNoteViewCache({
       zoom: Math.round(zoomRef.current),
       mobileViewMode: mobileViewModeRef.current,
-      tabletViewMode: tabletViewModeRef.current,
+      workspaceMode: workspaceModeRef.current,
       scrollLeft: canvas ? canvas.scrollLeft : undefined,
       scrollTop: canvas ? canvas.scrollTop : undefined,
       updatedAt: Date.now(),
@@ -741,8 +741,8 @@ export default function NotesPage() {
   }, [mobileViewMode]);
 
   useEffect(() => {
-    tabletViewModeRef.current = tabletViewMode;
-  }, [tabletViewMode]);
+    workspaceModeRef.current = workspaceMode;
+  }, [workspaceMode]);
 
   const refreshConnections = async (sourceNotes = notes) => {
     if (!sourceNotes.length) {
@@ -907,14 +907,14 @@ export default function NotesPage() {
     const syncViewport = () => {
       const width = window.innerWidth;
       setIsMobileView(width < 640);
-      setIsTabletView(width >= 640 && width < 1025);
+      setIsTabletView(width >= 640 && width <= 1024);
       if (!didManualZoomRef.current) {
         const next = width < 640 ? 92 : getAdaptiveZoom(width, window.innerHeight);
         applyZoom(next);
         setZoom(next);
       }
 
-      if (window.innerWidth >= 640) {
+      if (width >= 640) {
         requestAnimationFrame(() => {
           centerCanvasOnContent();
           schedulePersistNoteViewState();
@@ -2617,22 +2617,20 @@ export default function NotesPage() {
   const shortcutTasks = visibleTasks.slice(0, 10);
 
   const workspaceNotes = useMemo(() => {
-    const query = String(workspaceNoteSearch || '').trim().toLowerCase();
+    const q = String(workspaceSearch || '').trim().toLowerCase();
     return [...notes]
-      .filter((note) => {
-        if (workspaceNoteFilter !== 'all' && String(note.importance || 'medium') !== workspaceNoteFilter) {
-          return false;
-        }
-        if (!query) return true;
-        const haystack = `${note.title || ''} ${note.content || ''}`.toLowerCase();
-        return haystack.includes(query);
+      .filter((n) => {
+        if (workspaceFilter !== 'all' && String(n.importance || 'medium') !== workspaceFilter) return false;
+        if (!q) return true;
+        const hay = `${n.title || ''} ${n.content || ''}`.toLowerCase();
+        return hay.includes(q);
       })
       .sort((a, b) => {
-        const aTime = new Date(a.updated_at || a.created_at || 0).getTime();
-        const bTime = new Date(b.updated_at || b.created_at || 0).getTime();
-        return bTime - aTime;
+        const aTs = new Date(a.updated_at || a.created_at || 0).getTime();
+        const bTs = new Date(b.updated_at || b.created_at || 0).getTime();
+        return bTs - aTs;
       });
-  }, [notes, workspaceNoteFilter, workspaceNoteSearch]);
+  }, [notes, workspaceFilter, workspaceSearch]);
 
   const connectedNoteIds = useMemo(() => {
     const set = new Set();
@@ -2759,27 +2757,23 @@ export default function NotesPage() {
   };
 
   const focusNoteOnCanvas = (noteId) => {
-    const geometry = getNoteGeometry(noteId);
-    if (!geometry) return;
-
+    const geom = getNoteGeometry(noteId);
     setActiveNoteId(noteId);
     setContextTab('details');
 
-    if (isTabletView && tabletViewMode === 'tools') {
-      setTabletViewMode('split');
+    if (workspaceMode === 'list') {
+      setWorkspaceMode('studio');
     }
+
+    if (!geom) return;
 
     requestAnimationFrame(() => {
       const canvas = canvasRef.current;
       if (!canvas) return;
       const scale = zoomRef.current / 100;
-      const targetX = geometry.centerX * scale - (canvas.clientWidth / 2);
-      const targetY = geometry.centerY * scale - (canvas.clientHeight / 2);
-      canvas.scrollTo({
-        left: Math.max(0, targetX),
-        top: Math.max(0, targetY),
-        behavior: 'smooth',
-      });
+      const targetLeft = Math.max(0, geom.centerX * scale - canvas.clientWidth / 2);
+      const targetTop = Math.max(0, geom.centerY * scale - canvas.clientHeight / 2);
+      canvas.scrollTo({ left: targetLeft, top: targetTop, behavior: 'smooth' });
     });
   };
 
@@ -2824,7 +2818,7 @@ export default function NotesPage() {
 
   useEffect(() => {
     persistNoteViewState();
-  }, [mobileViewMode, tabletViewMode, zoom]);
+  }, [mobileViewMode, workspaceMode, zoom]);
 
   useEffect(() => {
     const onVisibility = () => {
@@ -2884,12 +2878,12 @@ export default function NotesPage() {
 
   // Memoize which view should be active to avoid re-computation on every render
   const activeView = useMemo(() => {
-    if (!isMobileView) return 'desktop';
+    if (!isMobileView) return workspaceMode;
     return mobileViewMode === 'canvas' ? 'canvas' : 'grid';
-  }, [isMobileView, mobileViewMode]);
+  }, [isMobileView, mobileViewMode, workspaceMode]);
 
   // Compute whether canvas should render (performance optimization)
-  const shouldRenderCanvas = activeView === 'desktop' || activeView === 'canvas';
+  const shouldRenderCanvas = !isMobileView;
   const shouldRenderGrid = activeView === 'grid';
 
   const renderConnection = (connection, index) => {
@@ -2986,47 +2980,6 @@ export default function NotesPage() {
             </div>
           )}
 
-          {isTabletView && (
-            <div className="notes-tablet-tools">
-              <div className="notes-tablet-view-toggle">
-                <button
-                  type="button"
-                  className={`ntvt-btn ${tabletViewMode === 'tools' ? 'active' : ''}`}
-                  onClick={() => setTabletViewMode('tools')}
-                >
-                  <PanelsTopLeft size={15} />
-                  <span>Werkzeuge</span>
-                </button>
-                <button
-                  type="button"
-                  className={`ntvt-btn ${tabletViewMode === 'canvas' ? 'active' : ''}`}
-                  onClick={() => setTabletViewMode('canvas')}
-                >
-                  <Maximize2 size={15} />
-                  <span>Canvas</span>
-                </button>
-                <button
-                  type="button"
-                  className={`ntvt-btn ${tabletViewMode === 'split' ? 'active' : ''}`}
-                  onClick={() => setTabletViewMode('split')}
-                >
-                  <LayoutGrid size={15} />
-                  <span>Split</span>
-                </button>
-              </div>
-              {tabletViewMode !== 'tools' && (
-                <div className="notes-tablet-quick-actions">
-                  <button type="button" className="header-tool-btn" onClick={openBlankCreateModalAtViewport} title="Neue Note">
-                    <Plus size={16} />
-                  </button>
-                  <button type="button" className={`header-tool-btn ${quickConnectMode ? 'active' : ''}`} onClick={handleQuickConnectToggle} title="Quick Connect">
-                    <Link2 size={16} />
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
           {/* Desktop Mobile Tools */}
           {!isMobileView && (
             <div className="notes-mobile-tools" style={{ display: 'none' }} />
@@ -3041,6 +2994,29 @@ export default function NotesPage() {
         {/* Zoom controls — desktop only */}
         {!isMobileView && (
           <div className="notes-controls">
+            <div className="workspace-mode-toggle" role="tablist" aria-label="Ansicht">
+              <button
+                type="button"
+                className={`workspace-mode-btn ${workspaceMode === 'studio' ? 'active' : ''}`}
+                onClick={() => setWorkspaceMode('studio')}
+              >
+                Studio
+              </button>
+              <button
+                type="button"
+                className={`workspace-mode-btn ${workspaceMode === 'canvas' ? 'active' : ''}`}
+                onClick={() => setWorkspaceMode('canvas')}
+              >
+                Canvas
+              </button>
+              <button
+                type="button"
+                className={`workspace-mode-btn ${workspaceMode === 'list' ? 'active' : ''}`}
+                onClick={() => setWorkspaceMode('list')}
+              >
+                Liste
+              </button>
+            </div>
             <button className="zoom-btn" onClick={() => setZoomManual(zoom - 10)} title="Zoom out">
               <ZoomOut size={18} />
             </button>
@@ -3234,7 +3210,7 @@ export default function NotesPage() {
 
       {/* ── Canvas / Desktop Workspace ───────────────────────────────── */}
       {shouldRenderCanvas && (
-      <div className={`notes-workspace ${isTabletView ? `tablet-mode-${tabletViewMode}` : ''}`}>
+      <div className={`notes-workspace mode-${workspaceMode} ${isTabletView ? 'is-tablet' : 'is-desktop'}`}>
         <aside className={`notes-toolbox ${toolboxOpen ? 'open' : ''}`}>
           <div className="toolbox-header">
             <div>
@@ -3322,20 +3298,20 @@ export default function NotesPage() {
             </div>
           </div>
 
-          <div className="toolbox-section">
+          <div className="toolbox-section toolbox-notes-section">
             <div className="toolbox-section-head">
-              <h3>Alle Notizen</h3>
+              <h3>Alle Notes</h3>
               <span>{workspaceNotes.length}</span>
             </div>
-            <div className="toolbox-note-toolbar">
+            <div className="toolbox-notes-toolbar">
               <input
+                className="toolbox-notes-search"
                 type="text"
-                className="toolbox-note-search"
-                value={workspaceNoteSearch}
-                onChange={(event) => setWorkspaceNoteSearch(event.target.value)}
                 placeholder="Notizen suchen..."
+                value={workspaceSearch}
+                onChange={(event) => setWorkspaceSearch(event.target.value)}
               />
-              <div className="toolbox-note-filter-row">
+              <div className="toolbox-notes-filters">
                 {[
                   { value: 'all', label: 'Alle' },
                   { value: 'high', label: 'Hoch' },
@@ -3345,8 +3321,8 @@ export default function NotesPage() {
                   <button
                     key={f.value}
                     type="button"
-                    className={`toolbox-note-filter ${workspaceNoteFilter === f.value ? 'active' : ''}`}
-                    onClick={() => setWorkspaceNoteFilter(f.value)}
+                    className={`toolbox-notes-filter ${workspaceFilter === f.value ? 'active' : ''}`}
+                    onClick={() => setWorkspaceFilter(f.value)}
                   >
                     {f.label}
                   </button>
@@ -3354,28 +3330,33 @@ export default function NotesPage() {
               </div>
             </div>
 
-            <div className="toolbox-note-list">
+            <div className="toolbox-notes-list">
               {workspaceNotes.length === 0 ? (
                 <div className="toolbox-empty">Keine passenden Notizen gefunden.</div>
               ) : (
                 workspaceNotes.map((note) => {
                   const isActive = String(activeNoteId || '') === String(note.id);
-                  const isCompleted = isNoteCompletedByData(note.id);
-                  const noteConnections = connections.filter((entry) => String(entry.note_id_1 || entry.noteId1 || '') === String(note.id) || String(entry.note_id_2 || entry.noteId2 || '') === String(note.id));
+                  const isDone = isNoteCompletedByData(note.id);
+                  const linkCount = connections.filter((entry) => {
+                    const a = String(entry?.note_id_1 || entry?.noteId1 || '');
+                    const b = String(entry?.note_id_2 || entry?.noteId2 || '');
+                    return a === String(note.id) || b === String(note.id);
+                  }).length;
+
                   return (
                     <button
                       key={note.id}
                       type="button"
-                      className={`toolbox-note-card ${isActive ? 'active' : ''} ${isCompleted ? 'done' : ''}`}
+                      className={`toolbox-note-item ${isActive ? 'active' : ''} ${isDone ? 'done' : ''}`}
                       onClick={() => focusNoteOnCanvas(note.id)}
                     >
-                      <div className="toolbox-note-card-top">
+                      <div className="toolbox-note-item-head">
                         <strong>{note.title || 'Ohne Titel'}</strong>
-                        <span className={`toolbox-note-pill ${note.importance || 'medium'}`}>{note.importance || 'medium'}</span>
+                        <span className={`toolbox-note-item-prio ${note.importance || 'medium'}`}>{note.importance || 'medium'}</span>
                       </div>
-                      {note.content && <p>{markdownToPlainText(note.content).slice(0, 88)}</p>}
-                      <div className="toolbox-note-meta">
-                        <span>{noteConnections.length} Verbindungen</span>
+                      {note.content ? <p>{markdownToPlainText(note.content).slice(0, 86)}</p> : <p>Keine Beschreibung</p>}
+                      <div className="toolbox-note-item-meta">
+                        <span>{linkCount} Verbindungen</span>
                         <span>{note.date ? new Date(note.date).toLocaleDateString('de-DE') : 'Ohne Datum'}</span>
                       </div>
                     </button>
