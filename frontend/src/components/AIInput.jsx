@@ -111,14 +111,14 @@ export default function AIInput({ onTaskCreated }) {
         file_data: base64,
       });
 
-      addToast(`📎 "${file.name}" an "${task.title}" angehängt`);
+      addToast(`"${file.name}" an "${task.title}" angehängt`);
       if (onTaskCreated) {
         onTaskCreated();
       } else {
         fetchTasks({ lite: 'true' }, { force: true });
       }
     } catch (err) {
-      addToast('❌ ' + (err.message || 'Upload fehlgeschlagen'), 'error');
+      addToast(err.message || 'Upload fehlgeschlagen', 'error');
     } finally {
       if (attachFileRef.current) attachFileRef.current.value = '';
       attachTaskRef.current = null;

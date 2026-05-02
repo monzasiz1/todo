@@ -461,7 +461,7 @@ function JoinGroup({ onBack, onJoin }) {
     setJoining(true);
     try {
       const data = await onJoin(code.trim());
-      addToast(`✅ ${data.message || 'Gruppe beigetreten!'}`);
+      addToast(data.message || 'Gruppe beigetreten');
     } catch (err) {
       setError(err.message || 'Ungültiger Code');
     } finally {
@@ -744,7 +744,7 @@ function GroupDetail({ groupId, onBack }) {
               onClose={() => setShowAddTask(false)}
               onAdd={async (task) => {
                 await addGroupTask(groupId, task);
-                addToast(`✅ ${task.type === 'event' ? 'Termin' : 'Aufgabe'} zur Gruppe hinzugefügt`);
+                addToast(`${task.type === 'event' ? 'Termin' : 'Aufgabe'} zur Gruppe hinzugefügt`);
                 setShowAddTask(false);
                 fetchTasks(...DASHBOARD_REFRESH_PARAMS);
               }}

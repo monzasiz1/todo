@@ -3809,6 +3809,15 @@ body.cal-is-dragging * {
   font-weight: 600;
   color: #111;
   line-height: 1.4;
+  min-width: 0;
+}
+
+.toast__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .toast__action {
@@ -6315,7 +6324,7 @@ body.cal-is-dragging * {
     width: 100%;
     gap: 9px;
     padding-right: 12px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     border-radius: 16px;
     box-shadow:
       0 14px 34px rgba(15, 23, 42, 0.16),
@@ -6326,9 +6335,8 @@ body.cal-is-dragging * {
     min-width: 0;
   }
 
-  .toast__action {
-    order: 3;
-    margin-left: 43px;
+  .toast__actions {
+    gap: 6px;
   }
 
   /* Shared Task Badge */

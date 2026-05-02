@@ -181,7 +181,7 @@ export const useTaskStore = create((set, get) => ({
       get().addToast('Löschen rückgängig gemacht');
       return true;
     } catch (err) {
-      get().addToast('❌ Wiederherstellen fehlgeschlagen', 'error');
+      get().addToast('Wiederherstellen fehlgeschlagen', 'error');
       return false;
     }
   },
@@ -213,7 +213,7 @@ export const useTaskStore = create((set, get) => ({
       get().addToast('Kategorie wiederhergestellt');
       return true;
     } catch (err) {
-      get().addToast('❌ Kategorie konnte nicht wiederhergestellt werden', 'error');
+      get().addToast('Kategorie konnte nicht wiederhergestellt werden', 'error');
       return false;
     }
   },
@@ -229,7 +229,7 @@ export const useTaskStore = create((set, get) => ({
       get().addToast('Erledigt rückgängig gemacht');
       return true;
     } catch (err) {
-      get().addToast('❌ Rückgängig fehlgeschlagen', 'error');
+      get().addToast('Rückgängig fehlgeschlagen', 'error');
       return false;
     }
   },
@@ -340,7 +340,7 @@ export const useTaskStore = create((set, get) => ({
         };
         set((s) => ({ tasks: [tempTask, ...s.tasks], rangeCache: {} }));
         writeCachedTaskRanges({});
-        get().addToast('📵 Offline gespeichert – wird synchronisiert sobald du online bist', 'info');
+        get().addToast('Offline gespeichert – wird synchronisiert sobald du online bist', 'info');
         return { task: tempTask };
       }
 
@@ -360,7 +360,7 @@ export const useTaskStore = create((set, get) => ({
         set((s) => ({ lastTasksFetchKey: '', lastTasksFetchAt: 0 }));
       return data;
     } catch (err) {
-      get().addToast('❌ ' + err.message, 'error');
+      get().addToast(err.message, 'error');
       return null;
     }
   },
@@ -373,7 +373,7 @@ export const useTaskStore = create((set, get) => ({
     const entries = await getAllQueued();
     if (entries.length === 0) return;
 
-    get().addToast(`🔄 ${entries.length} Offline-Änderung(en) werden synchronisiert…`, 'info');
+    get().addToast(`${entries.length} Offline-Änderung(en) werden synchronisiert…`, 'info');
 
     for (const entry of entries) {
       try {
@@ -407,7 +407,7 @@ export const useTaskStore = create((set, get) => ({
 
     // Tasks neu laden um echte IDs zu bekommen
     await get().fetchTasks({ dashboard: 'true' }, { force: true });
-    get().addToast('✅ Offline-Änderungen synchronisiert');
+    get().addToast('Offline-Änderungen synchronisiert');
   },
 
   aiCreateTask: async (input) => {
@@ -420,9 +420,9 @@ export const useTaskStore = create((set, get) => ({
         if (smart.success && smart.deleted_task) {
           set((s) => ({ tasks: s.tasks.filter((t) => t.id !== smart.deleted_task.id && t.recurrence_parent_id !== smart.deleted_task.id), rangeCache: {} }));
           writeCachedTaskRanges({});
-          get().addToast(`🗑️ ${smart.message}`);
+          get().addToast(smart.message);
         } else {
-          get().addToast(`⚠️ ${smart.message}`, 'error');
+          get().addToast(smart.message, 'error');
         }
         return smart;
       }
@@ -435,9 +435,9 @@ export const useTaskStore = create((set, get) => ({
             rangeCache: {},
           }));
           writeCachedTaskRanges({});
-          get().addToast(`📅 ${smart.message}`);
+          get().addToast(smart.message);
         } else {
-          get().addToast(`⚠️ ${smart.message}`, 'error');
+          get().addToast(smart.message, 'error');
         }
         return smart;
       }
@@ -450,9 +450,9 @@ export const useTaskStore = create((set, get) => ({
             rangeCache: {},
           }));
           writeCachedTaskRanges({});
-          get().addToast(`✏️ ${smart.message}`);
+          get().addToast(smart.message);
         } else {
-          get().addToast(`⚠️ ${smart.message}`, 'error');
+          get().addToast(smart.message, 'error');
         }
         return smart;
       }
@@ -460,9 +460,9 @@ export const useTaskStore = create((set, get) => ({
       // Attach – return task info so frontend can open file picker
       if (smart.intent === 'attach') {
         if (smart.success && smart.task) {
-          get().addToast(`📎 ${smart.message}`);
+          get().addToast(smart.message);
         } else {
-          get().addToast(`⚠️ ${smart.message}`, 'error');
+          get().addToast(smart.message, 'error');
         }
         return smart;
       }
@@ -490,13 +490,13 @@ export const useTaskStore = create((set, get) => ({
         ? ` 🔄 ${data.created_count} Termine erstellt`
         : (data.parsed.recurrence_rule ? ' 🔄 Wiederkehrend' : '');
       const shareErr = data.parsed.share_error ? `\n⚠️ ${data.parsed.share_error}` : '';
-      get().addToast(`✅ "${data.parsed.title}"${cat}${range}${shared}${groupMsg}${recMsg} gespeichert${shareErr}`);
+      get().addToast(`"${data.parsed.title}"${cat}${range}${shared}${groupMsg}${recMsg} gespeichert${shareErr}`);
       if (data.conflict_info?.has_conflict) {
-        get().addToast(`⚠️ ${data.conflict_info.message}`, 'error');
+        get().addToast(data.conflict_info.message, 'error');
       }
       return data;
     } catch (err) {
-      get().addToast('❌ ' + (err.message || 'Fehler'), 'error');
+      get().addToast(err.message || 'Fehler', 'error');
       return null;
     }
   },
@@ -506,7 +506,7 @@ export const useTaskStore = create((set, get) => ({
       const data = await api.parseInput(input);
       return data.parsed;
     } catch (err) {
-      get().addToast('❌ ' + err.message, 'error');
+      get().addToast(err.message, 'error');
       return null;
     }
   },
@@ -550,7 +550,7 @@ export const useTaskStore = create((set, get) => ({
       return current || data.task;
     } catch (err) {
       console.error('[taskStore] updateTask error:', err);
-      get().addToast('❌ ' + err.message, 'error');
+      get().addToast(err.message, 'error');
       // On error: also reset cache to ensure fresh data on retry
       set({ lastTasksFetchKey: '', lastTasksFetchAt: 0 });
       return null;
@@ -579,7 +579,7 @@ export const useTaskStore = create((set, get) => ({
       emitTasksChanged();
       const task = data.task;
       if (task.completed && data.nextTask) {
-        get().addToast('✅ Erledigt! 🔄 Nächste Wiederholung erstellt');
+        get().addToast('Erledigt. Nächste Wiederholung erstellt');
       } else if (task.completed && previousTask) {
         get().addToast('Als erledigt markiert', 'info', {
           actionLabel: 'Rückgängig',
@@ -589,7 +589,7 @@ export const useTaskStore = create((set, get) => ({
           },
         });
       } else {
-        get().addToast(task.completed ? '✅ Erledigt!' : '↩️ Wieder offen');
+        get().addToast(task.completed ? 'Erledigt' : 'Wieder offen');
       }
       return data.task;
     } catch (err) {
@@ -599,7 +599,7 @@ export const useTaskStore = create((set, get) => ({
           t.id === id ? { ...t, completed: !t.completed } : t
         ),
       }));
-      get().addToast('❌ ' + err.message, 'error');
+      get().addToast(err.message, 'error');
       return null;
     }
   },
@@ -609,7 +609,7 @@ export const useTaskStore = create((set, get) => ({
       await api.reorderTasks(taskIds);
       emitTasksChanged();
     } catch (err) {
-      get().addToast('❌ ' + err.message, 'error');
+      get().addToast(err.message, 'error');
     }
   },
 
@@ -631,7 +631,7 @@ export const useTaskStore = create((set, get) => ({
       emitTasksChanged();
     } catch (err) {
       set({ tasks: prev });
-      get().addToast('❌ ' + err.message, 'error');
+      get().addToast(err.message, 'error');
     }
   },
 
@@ -649,10 +649,10 @@ export const useTaskStore = create((set, get) => ({
     try {
       const data = await api.createCategory(category);
       set((s) => ({ categories: [...s.categories, data.category].sort((a, b) => a.name.localeCompare(b.name)) }));
-      get().addToast('✅ Kategorie erstellt');
+      get().addToast('Kategorie erstellt');
       return data.category;
     } catch (err) {
-      get().addToast('❌ ' + err.message, 'error');
+      get().addToast(err.message, 'error');
       return null;
     }
   },
@@ -663,10 +663,10 @@ export const useTaskStore = create((set, get) => ({
       set((s) => ({
         categories: s.categories.map((c) => (c.id === id ? data.category : c)).sort((a, b) => a.name.localeCompare(b.name)),
       }));
-      get().addToast('✅ Kategorie aktualisiert');
+      get().addToast('Kategorie aktualisiert');
       return data.category;
     } catch (err) {
-      get().addToast('❌ ' + err.message, 'error');
+      get().addToast(err.message, 'error');
       return null;
     }
   },
@@ -691,7 +691,7 @@ export const useTaskStore = create((set, get) => ({
       } : undefined);
       return true;
     } catch (err) {
-      get().addToast('❌ ' + err.message, 'error');
+      get().addToast(err.message, 'error');
       return false;
     }
   },

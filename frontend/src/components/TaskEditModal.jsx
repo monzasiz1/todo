@@ -388,14 +388,14 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
               teams_join_url: teamsResult?.join_url || finalTask?.teams_join_url || null,
               teams_meeting_id: teamsResult?.meeting_id || finalTask?.teams_meeting_id || null,
             };
-            addToast('✅ Teams-Meeting erstellt');
+            addToast('Teams-Meeting erstellt');
           } catch (err) {
-            addToast('⚠️ ' + (err.message || 'Teams-Meeting konnte nicht erstellt werden'), 'error');
+            addToast(err.message || 'Teams-Meeting konnte nicht erstellt werden', 'error');
           }
         }
       }
 
-      addToast('✅ Änderungen gespeichert');
+      addToast('Änderungen gespeichert');
 
       onSaved?.(finalTask);
       
@@ -406,7 +406,7 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
       
       onClose();
     } catch (err) {
-      addToast('❌ ' + (err.message || 'Speichern fehlgeschlagen'), 'error');
+      addToast(err.message || 'Speichern fehlgeschlagen', 'error');
     } finally {
       setSaving(false);
     }

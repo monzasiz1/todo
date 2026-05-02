@@ -57,21 +57,23 @@ export default function FeedbackToast() {
                 <Icon size={17} strokeWidth={2.3} />
               </div>
               <span className="toast__msg">{toast.message}</span>
-              {toast.actionLabel && toast.onAction && (
+              <div className="toast__actions">
+                {toast.actionLabel && toast.onAction && (
+                  <button
+                    className="toast__action"
+                    onClick={() => handleAction(toast)}
+                  >
+                    {toast.actionLabel}
+                  </button>
+                )}
                 <button
-                  className="toast__action"
-                  onClick={() => handleAction(toast)}
+                  className="toast__close"
+                  onClick={() => removeToast(toast.id)}
+                  aria-label="Schließen"
                 >
-                  {toast.actionLabel}
+                  <X size={13} />
                 </button>
-              )}
-              <button
-                className="toast__close"
-                onClick={() => removeToast(toast.id)}
-                aria-label="Schließen"
-              >
-                <X size={13} />
-              </button>
+              </div>
               <div className="toast__bar" style={{ animationDuration: `${toast.duration || 4000}ms` }} />
             </motion.div>
           );

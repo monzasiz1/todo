@@ -65,9 +65,9 @@ export default function TaskAttachments({ taskId, canEdit = true, compact = fals
         file_data: base64,
       });
       setAttachments((prev) => [...prev, result.attachment]);
-      addToast(`📎 "${file.name}" angehängt`);
+      addToast(`"${file.name}" angehängt`);
     } catch (err) {
-      addToast('❌ ' + (err.message || 'Upload fehlgeschlagen'), 'error');
+      addToast(err.message || 'Upload fehlgeschlagen', 'error');
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = '';
@@ -78,9 +78,9 @@ export default function TaskAttachments({ taskId, canEdit = true, compact = fals
     try {
       await api.deleteAttachment(taskId, attachmentId);
       setAttachments((prev) => prev.filter((a) => a.id !== attachmentId));
-      addToast(`🗑️ "${fileName}" entfernt`);
+      addToast(`"${fileName}" entfernt`);
     } catch (err) {
-      addToast('❌ ' + (err.message || 'Löschen fehlgeschlagen'), 'error');
+      addToast(err.message || 'Löschen fehlgeschlagen', 'error');
     }
   };
 

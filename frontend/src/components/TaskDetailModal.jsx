@@ -205,11 +205,11 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       const res = await api.addComment(task.id, '💬', text);
       if (res.comment) {
         setComments((prev) => prev.map((c) => (c.id === optimistic.id ? res.comment : c)));
-        addToast('✅ Kommentar hinzugefügt');
+        addToast('Kommentar hinzugefügt');
       }
     } catch {
       setComments((prev) => prev.filter((c) => c.id !== optimistic.id));
-      addToast('❌ Kommentar konnte nicht gespeichert werden');
+      addToast('Kommentar konnte nicht gespeichert werden');
     }
   };
 
@@ -264,7 +264,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       await api.shareTaskToGroupChat(task.group_id, task.id);
       addToast('📤 Termin wurde in den Gruppen-Chat geteilt');
     } catch (err) {
-      addToast(`❌ ${err.message || 'Teilen fehlgeschlagen'}`, 'error');
+      addToast(err.message || 'Teilen fehlgeschlagen', 'error');
     } finally {
       setSharingToChat(false);
     }
@@ -575,8 +575,8 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
                       try {
                         await api.deleteComment(c.id);
                         setComments((prev) => prev.filter((item) => item.id !== c.id));
-                        addToast('🗑️ Kommentar gelöscht');
-                      } catch { addToast('❌ Kommentar konnte nicht gelöscht werden'); }
+                        addToast('Kommentar gelöscht');
+                      } catch { addToast('Kommentar konnte nicht gelöscht werden'); }
                     }} title="Löschen"><Trash2 size={14} /></button>
                   )}
                 </div>
