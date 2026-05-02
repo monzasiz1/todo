@@ -95,7 +95,7 @@ export default function LandingPage() {
 
   const handleLogin = async (e) => {
     e.preventDefault(); setLoginError('');
-    try { const ok = await login(loginEmail, loginPassword); if (ok) navigate('/'); }
+    try { const ok = await login(loginEmail, loginPassword); if (ok) navigate('/app'); }
     catch (err) { setLoginError(err.message || 'Login fehlgeschlagen'); }
   };
   const handleRegister = async (e) => {
@@ -103,7 +103,7 @@ export default function LandingPage() {
     try {
       const result = await register(registerName, registerEmail, registerPassword);
       if (result?.success) {
-        navigate('/');
+        navigate('/app');
       } else if (result?.message) {
         setVerifyDigits(['','','','','','']);
         setVerifyStep('input');
@@ -151,7 +151,7 @@ export default function LandingPage() {
     const result = await verifyCode(pendingEmail, code);
     if (result?.success) {
       setVerifyStep('done');
-      setTimeout(() => navigate('/'), 1400);
+      setTimeout(() => navigate('/app'), 1400);
     } else {
       setVerifyStep('input');
       setVerifyError(result?.error || 'Ungültiger Code. Bitte nochmal prüfen.');
@@ -197,7 +197,7 @@ export default function LandingPage() {
         >
           <motion.div className="bq-eyebrow" variants={fadeUp}>
             <span className="bq-live-dot" />
-            Von BeeTwice — Jetzt verfügbar
+            BeeQu — Jetzt verfügbar
           </motion.div>
 
           <motion.h1 className="bq-hero-h1" variants={fadeUp}>
@@ -615,7 +615,6 @@ export default function LandingPage() {
             <img src="/icons/icon.png" alt="" className="bq-footer-icon" />
             <div>
               <strong>BeeQu</strong>
-              <span>von BeeTwice</span>
             </div>
           </div>
           <nav className="bq-footer-nav">
@@ -623,7 +622,7 @@ export default function LandingPage() {
             <a href="#ai">KI-Eingabe</a>
             <a href="#pricing">Preise</a>
           </nav>
-          <p className="bq-footer-copy">© 2026 BeeTwice. Alle Rechte vorbehalten.</p>
+          <p className="bq-footer-copy">© 2026 BeeQu. Alle Rechte vorbehalten.</p>
         </div>
       </footer>
 
@@ -698,7 +697,7 @@ export default function LandingPage() {
               </div>
 
               <div className="bq-auth-brand-footer">
-                <span>© 2026 BeeTwice GmbH</span>
+                <span>© 2026 BeeQu</span>
                 <span>·</span>
                 <a href="#">Datenschutz</a>
                 <span>·</span>
