@@ -662,39 +662,7 @@ export default function LandingPage() {
                 </p>
               </div>
 
-              <div className="bq-auth-visual">
-                <div className="bq-auth-visual-glow" aria-hidden />
-                <div className="bq-auth-preview-card">
-                  <div className="bq-auth-preview-top">
-                    <span className="bq-auth-preview-label">Heute</span>
-                    <span className="bq-auth-preview-badge">Live Sync</span>
-                  </div>
 
-                  <div className="bq-auth-preview-stack">
-                    {[
-                      { icon: CheckCircle2, color: '#34C759', title: 'Einkaufen — heute 17:30', meta: 'Privat  ·  Niedrig' },
-                      { icon: CalendarDays, color: '#007AFF', title: 'Meeting vorbereiten', meta: 'Freitag  ·  14:00  ·  Hoch' },
-                      { icon: UsersRound,   color: '#5856D6', title: 'Gruppen-Chat: Projekt Alpha', meta: '2 ungelesene Nachrichten' },
-                    ].map(({ icon: Icon, color, title, meta }) => (
-                      <div key={title} className="bq-auth-preview-item">
-                        <div className="bq-auth-preview-icon" style={{ color, background: `${color}20` }}>
-                          <Icon size={15} />
-                        </div>
-                        <div className="bq-auth-preview-copy">
-                          <strong>{title}</strong>
-                          <span>{meta}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="bq-auth-preview-footer">
-                    {['KI', 'Kalender', 'Team'].map((label) => (
-                      <span key={label} className="bq-auth-preview-chip">{label}</span>
-                    ))}
-                  </div>
-                </div>
-              </div>
 
               <div className="bq-auth-brand-footer">
                 <span>© 2026 BeeQu</span>
