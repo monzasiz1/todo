@@ -3,9 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   AlertCircle, ArrowRight, ArrowUp, BarChart2, Bell, CalendarDays,
-  Check, CheckCircle2, ChevronDown, Clock, FileText, GripVertical,
-  Key, Layers3, LayoutDashboard, Mail, Paperclip, Repeat,
-  Sparkles, Target, UsersRound, User, X, Zap,
+  Check, CheckCircle2, ChevronDown, Clock, FileText, Flag, GripVertical,
+  Key, Layers3, LayoutDashboard, ListTodo, Mail, Paperclip, Repeat,
+  Sparkles, Tag, Target, UsersRound, User, X, Zap,
 } from 'lucide-react';
 import { PLANS } from '../lib/plans';
 import { useAuthStore } from '../store/authStore';
@@ -454,11 +454,7 @@ export default function LandingPage() {
               transition={{ duration: 0.55, ease }}
             >
               <div className="bq-ai-demo-card">
-                <div className="bq-ai-demo-head">
-                  <Sparkles size={15} color="#007AFF" />
-                  <span>KI verarbeitet deine Eingabe</span>
-                </div>
-
+                {/* Beispiel-Buttons */}
                 <div className="bq-ai-examples">
                   {aiExamples.map((ex, i) => (
                     <button
@@ -471,27 +467,46 @@ export default function LandingPage() {
                   ))}
                 </div>
 
+                {/* Echtes Input-Feld (Demo) */}
+                <div className="bq-ai-input-mock">
+                  <div className="bq-ai-input-mock-icon">
+                    <Sparkles size={18} />
+                  </div>
+                  <span className="bq-ai-input-mock-text">{ai.input}</span>
+                  <div className="bq-ai-input-mock-send">
+                    <ArrowUp size={16} />
+                  </div>
+                </div>
+
+                {/* Live-Vorschau Tags (wie in der echten App) */}
                 <motion.div
                   key={aiIdx}
-                  className="bq-ai-result"
-                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                  className="bq-ai-tags-preview"
+                  initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.28 }}
                 >
-                  <div className="bq-ai-result-head">
-                    <CheckCircle2 size={14} color="#34C759" />
-                    Aufgabe erstellt
-                  </div>
-                  <div className="bq-ai-result-grid">
-                    {[
-                      ['Titel', ai.title], ['Datum', ai.date],
-                      ['Uhrzeit', ai.time], ['Kategorie', ai.cat],
-                      ['Priorität', ai.prio],
-                    ].map(([k, v]) => (
-                      <div key={k} className="bq-ai-field">
-                        <span>{k}</span><strong>{v}</strong>
-                      </div>
-                    ))}
-                  </div>
+                  <span className="bq-ai-tag task-type">
+                    <ListTodo size={12} /> Aufgabe
+                  </span>
+                  <span className="bq-ai-tag">
+                    <Tag size={12} /> {ai.title}
+                  </span>
+                  <span className="bq-ai-tag date">
+                    <CalendarDays size={12} /> {ai.date}
+                  </span>
+                  {ai.time && (
+                    <span className="bq-ai-tag time">
+                      <Clock size={12} /> {ai.time}
+                    </span>
+                  )}
+                  <span className="bq-ai-tag category">
+                    {ai.cat}
+                  </span>
+                  {ai.prio !== 'Mittel' && (
+                    <span className="bq-ai-tag priority">
+                      <Flag size={12} /> {ai.prio}
+                    </span>
+                  )}
                 </motion.div>
 
                 <div className="bq-ai-langs">🌍 Deutsch &amp; Englisch unterstützt</div>
