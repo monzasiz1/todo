@@ -45,8 +45,9 @@
 html {
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  scrollbar-gutter: stable;
+  min-height: 100dvh;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
 body {
@@ -57,13 +58,8 @@ body {
   min-height: 100dvh;
   min-height: 100vh;
   overflow-x: hidden;
-  -webkit-tap-highlight-color: transparent;
-  -webkit-touch-callout: none;
-  overscroll-behavior-y: contain;
 }
 
-/* ── Scroll-Lock: verhindert Background-Scrolling bei offenem Modal / Panel ── */
-/* KEIN position:fixed/transform auf html oder body — das würde die Bottom-Nav verschieben */
 html:has(.modal-overlay),
 html:has(.friends-overlay),
 html:has(.gchat-panel:not(.gchat-page-mode)),
@@ -71,11 +67,7 @@ html:has(.upgrade-modal-overlay),
 html:has(.friend-profile-overlay),
 html:has(.group-add-overlay),
 html:has(.sidebar-overlay.open),
-html:has(.help-chat) {
-  overflow: hidden;
-  overscroll-behavior: none;
-}
-
+html:has(.help-chat),
 body:has(.modal-overlay),
 body:has(.friends-overlay),
 body:has(.gchat-panel:not(.gchat-page-mode)),
@@ -85,35 +77,21 @@ body:has(.group-add-overlay),
 body:has(.sidebar-overlay.open),
 body:has(.help-chat) {
   overflow: hidden;
+  text-decoration: none;
   overscroll-behavior: none;
 }
 
-/* Overlays selbst: iOS Momentum-Scrolling des Hintergrunds sperren */
-.modal-overlay,
-.friends-overlay,
-.upgrade-modal-overlay,
-.friend-profile-overlay,
-.group-add-overlay {
-  overscroll-behavior: contain;
-  touch-action: pan-y; /* Scrollen innerhalb des Overlays erlauben */
-}
-
-#root {
-  min-height: 100dvh;
-  min-height: 100vh;
-}
-
 a {
-  text-decoration: none;
   color: inherit;
+  text-decoration: none;
 }
 
 button {
-  font-family: inherit;
   cursor: pointer;
-  border: none;
   background: none;
+  border: none;
   font-size: inherit;
+  font-family: inherit;
 }
 
 input, textarea, select {
@@ -18542,7 +18520,7 @@ body.cal-is-dragging * {
 }
 
 .bq-mock-ai-glow {
-  border-radius: calc(var(--bq-r-lg) + 1.5px);
+  border-radius: 18px;
   padding: 1.5px;
   background: conic-gradient(
     from var(--bq-ai-angle),
@@ -18554,23 +18532,23 @@ body.cal-is-dragging * {
 .bq-mock-ai-glow::before {
   content: '';
   position: absolute;
-  inset: -6px;
-  border-radius: calc(var(--bq-r-lg) + 7.5px);
+  inset: -4px;
+  border-radius: 22px;
   background: inherit;
-  filter: blur(14px);
-  opacity: 0.25;
+  filter: blur(10px);
+  opacity: 0.2;
   z-index: -1;
   animation: bq-ai-rotate 5s linear infinite;
 }
 .bq-mock-ai-card {
   background: #fff;
-  border-radius: var(--bq-r-lg);
+  border-radius: 16px;
   overflow: hidden;
 }
 .bq-mock-ai-row {
   display: flex;
   align-items: center;
-  padding: 12px 12px 8px 18px;
+  padding: 10px 10px 8px 14px;
   gap: 10px;
 }
 .bq-mock-ai-spark {
@@ -18584,14 +18562,14 @@ body.cal-is-dragging * {
 }
 .bq-mock-ai-placeholder {
   flex: 1;
-  font-size: 0.92rem;
+  font-size: 0.84rem;
   color: #AEAEB2;
   font-weight: 500;
 }
 .bq-mock-ai-submit {
-  width: 38px;
-  height: 38px;
-  border-radius: 13px;
+  width: 32px;
+  height: 32px;
+  border-radius: 11px;
   background: linear-gradient(135deg, #1f6fff, #7b61ff);
   color: #fff;
   display: grid;
@@ -18603,24 +18581,24 @@ body.cal-is-dragging * {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  padding: 0 18px 8px;
+  padding: 0 14px 10px;
 }
 .bq-mock-tag {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 10px;
+  padding: 4px 9px;
   border-radius: 999px;
-  font-size: 0.74rem;
-  font-weight: 600;
+  font-size: 0.68rem;
+  font-weight: 700;
 }
 .bq-tag-date { background: rgba(52,199,89,0.12);  color: #34C759; }
 .bq-tag-time { background: rgba(255,149,0,0.12);  color: #FF9500; }
 .bq-tag-prio { background: rgba(255,59,48,0.12);  color: #FF3B30; }
 .bq-tag-cat  { background: rgba(0,122,255,0.1);   color: var(--bq-blue); }
 .bq-mock-ai-helper {
-  padding: 0 18px 10px;
-  font-size: 0.68rem;
+  padding: 0 14px 10px;
+  font-size: 0.62rem;
   line-height: 1.45;
   color: #9AA3B2;
   white-space: nowrap;
@@ -18632,16 +18610,16 @@ body.cal-is-dragging * {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 18px;
+  padding: 6px 14px;
   background: transparent;
   border-top: 1px solid rgba(0,0,0,0.05);
   cursor: default;
-  font-size: 0.72rem;
+  font-size: 0.66rem;
   font-weight: 600;
   color: #8F96A3;
   gap: 8px;
 }
-.bq-mock-manual-sub { font-size: 0.72rem; font-weight: 500; }
+.bq-mock-manual-sub { font-size: 0.66rem; font-weight: 500; }
 
 /* insights */
 .bq-mock-insights {
@@ -18818,8 +18796,8 @@ body.cal-is-dragging * {
 .bq-mock-task {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  padding: 11px 16px 11px 0;
+  gap: 12px;
+  padding: 14px 18px 14px 0;
   background: #fff;
   border: 1px solid rgba(0,0,0,0.06);
   border-radius: var(--bq-r-md);
@@ -18827,29 +18805,93 @@ body.cal-is-dragging * {
   overflow: hidden;
   transition: transform 0.16s ease, box-shadow 0.16s ease;
 }
+.bq-mock-task.event {
+  border-color: rgba(0, 122, 255, 0.12);
+  background: linear-gradient(180deg, rgba(247, 250, 255, 0.95), rgba(255, 255, 255, 0.98) 55%);
+}
 .bq-mock-task:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
 .bq-mock-task.done { opacity: 0.65; }
 .bq-mock-date-chip {
-  width: 38px;
-  border-radius: 12px;
-  background: linear-gradient(180deg, #F9FBFF 0%, #EDF4FF 100%);
-  border: 1px solid #D9E6FB;
-  display: grid;
-  justify-items: center;
-  padding: 4px 0;
-  margin-left: 8px;
+  width: 54px;
+  min-width: 54px;
+  align-self: stretch;
+  border-radius: 14px 16px 16px 14px;
+  background: linear-gradient(180deg, #f5f6f8, #eceff3);
+  border: 1px solid rgba(28, 28, 30, 0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 10px 0;
+  margin: -14px 0 -14px -10px;
   flex-shrink: 0;
+  box-shadow: 2px 0 10px rgba(15, 23, 42, 0.04);
+  position: relative;
+  overflow: hidden;
+}
+.bq-mock-date-chip::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--task-priority-color, rgba(0, 122, 255, 0.5));
+  opacity: 0.55;
+}
+.bq-mock-date-chip.event {
+  background: linear-gradient(180deg, rgba(241, 246, 255, 0.98), rgba(231, 239, 251, 0.96));
+  border-color: rgba(0, 122, 255, 0.12);
 }
 .bq-mock-date-chip span {
-  font-size: 0.56rem;
+  font-size: 10px;
   font-weight: 800;
-  color: #6b7280;
-  letter-spacing: 0.06em;
+  color: #7b8190;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  margin-top: 2px;
 }
 .bq-mock-date-chip strong {
-  font-size: 0.94rem;
+  font-size: 18px;
   line-height: 1;
   color: #111827;
+}
+.bq-mock-date-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  color: #3c78c7;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: inset 0 0 0 1px rgba(0, 122, 255, 0.08);
+}
+.bq-mock-date-toggle {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 246, 250, 0.96));
+  color: #5e6673;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 0 1.5px rgba(28, 28, 30, 0.18), 0 3px 8px rgba(15, 23, 42, 0.12);
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+.bq-mock-date-toggle:hover { transform: scale(1.04); }
+.bq-mock-date-toggle.checked {
+  background: linear-gradient(180deg, #2b86f2, #1f7aec);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(0, 122, 255, 0.16), 0 4px 10px rgba(31, 122, 236, 0.32);
+}
+.bq-mock-date-circle {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 2px rgba(94, 102, 115, 0.75);
 }
 .bq-mock-task-bar {
   position: absolute;
@@ -18857,35 +18899,17 @@ body.cal-is-dragging * {
   width: 3px;
   border-radius: 0 0 0 0;
 }
-.bq-mock-grip { color: #AEAEB2; margin-top: 2px; flex-shrink: 0; margin-left: 10px; }
-.bq-mock-task-check {
-  width: 22px; height: 22px;
-  border-radius: 50%;
-  border: 2px solid rgba(0,0,0,0.15);
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  color: var(--bq-muted);
-  background: #fff;
-  cursor: pointer;
-  transition: transform 0.14s ease, border-color 0.14s ease;
-}
-.bq-mock-task-check:hover { transform: scale(1.06); border-color: rgba(0,122,255,0.45); }
-.bq-mock-task-check.checked {
-  background: var(--bq-green);
-  border-color: var(--bq-green);
-  color: #fff;
-}
 .bq-mock-task-body { flex: 1; min-width: 0; display: grid; gap: 6px; }
-.bq-mock-task-title-row { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.bq-mock-task-title-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 2px; }
 .bq-mock-type-pill {
   display: inline-flex;
   align-items: center;
-  padding: 2px 6px;
+  padding: 1px 7px;
   border-radius: 999px;
-  font-size: 0.62rem;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 .bq-mock-type-pill.event {
   background: rgba(0,122,255,0.12);
@@ -18896,8 +18920,8 @@ body.cal-is-dragging * {
   color: #4B5563;
 }
 .bq-mock-task-body strong {
-  font-size: 0.88rem;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 650;
   line-height: 1.35;
   white-space: nowrap;
   overflow: hidden;
@@ -18908,15 +18932,16 @@ body.cal-is-dragging * {
   color: var(--bq-muted);
 }
 .bq-mock-task-subtitle {
-  font-size: 0.74rem;
-  color: #6b7280;
+  font-size: 12px;
+  color: #7a7f89;
+  margin-top: 1px;
 }
 .bq-mock-task-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .bq-mock-cat-badge {
   display: inline-flex;
   padding: 3px 8px;
   border-radius: 7px;
-  font-size: 0.72rem;
+  font-size: 11px;
   font-weight: 600;
 }
 .bq-mock-repeat-badge {
@@ -18925,16 +18950,16 @@ body.cal-is-dragging * {
   gap: 4px;
   padding: 3px 8px;
   border-radius: 7px;
-  font-size: 0.72rem;
+  font-size: 11px;
   font-weight: 600;
-  background: rgba(0,122,255,0.1);
+  background: rgba(0,122,255,0.08);
   color: var(--bq-blue);
 }
 .bq-mock-meta-item {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.74rem;
+  font-size: 11px;
   color: var(--bq-muted);
 }
 

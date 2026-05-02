@@ -63,6 +63,20 @@ const mockTasks = [
     tags: ['Abstimmung', 'Team'],
   },
   {
+    title: 'Rechnung freigeben',
+    subtitle: 'Budget fuer Kampagne bestaetigen',
+    cat: 'Finanzen',
+    catColor: '#FF3B30',
+    prio: 'urgent',
+    time: 'Heute, 17:00 Uhr',
+    day: '2',
+    month: 'MAI',
+    type: 'Aufgabe',
+    done: false,
+    section: 'today',
+    tags: [],
+  },
+  {
     title: 'Reisekosten einreichen',
     subtitle: 'Belege fuer April hochladen',
     cat: 'Finanzen',
@@ -481,7 +495,7 @@ export default function LandingPage() {
                       <span className="bq-mock-tag bq-tag-cat">Produkt</span>
                     </div>
                     <div className="bq-mock-ai-helper">
-                      "Sprint Review Freitag 10 Uhr" · "Budget planen" · "Morgen 9 Uhr anrufen"
+                      "Freitag Reinigung 18 Uhr" · "Loesche Zahnarzt" · "Wo hab ich noch Kapazitaeten?" · "Wann kann ich zum Sport?"
                     </div>
                   </div>
                   <button className="bq-mock-manual">
@@ -587,21 +601,27 @@ export default function LandingPage() {
                       {visibleTodayTasks.length === 0 && (
                         <div className="bq-mock-empty">Keine passenden Aufgaben</div>
                       )}
-                      {visibleTodayTasks.map(({ id, title, subtitle, cat, catColor, prio, time, day, month, type, tags, done }) => (
-                        <div key={id} className={`bq-mock-task${done ? ' done' : ''}`}>
+                      {visibleTodayTasks.map(({ id, title, subtitle, cat, catColor, prio, time, day, month, type, tags, done }) => {
+                        const isEvent = type === 'Termin';
+                        return (
+                        <div key={id} className={`bq-mock-task ${isEvent ? 'event' : 'todo'}${done ? ' done' : ''}`}>
                           <div className="bq-mock-task-bar" style={{ background: prioBar[prio] }} />
-                          <div className="bq-mock-date-chip">
+                          <div className={`bq-mock-date-chip ${isEvent ? 'event' : 'todo'}`}>
+                            {isEvent ? (
+                              <span className="bq-mock-date-icon"><CalendarDays size={11} /></span>
+                            ) : (
+                              <button
+                                type="button"
+                                className={`bq-mock-date-toggle${done ? ' checked' : ''}`}
+                                onClick={() => toggleMockTask(id)}
+                                aria-label={`Aufgabe ${title} umschalten`}
+                              >
+                                {done ? <Check size={12} strokeWidth={3} /> : <div className="bq-mock-date-circle" />}
+                              </button>
+                            )}
                             <span>{month}</span>
                             <strong>{day}</strong>
                           </div>
-                          <button
-                            type="button"
-                            className={`bq-mock-task-check${done ? ' checked' : ''}`}
-                            onClick={() => toggleMockTask(id)}
-                            aria-label={`Aufgabe ${title} umschalten`}
-                          >
-                            {done && <Check size={11} strokeWidth={3} />}
-                          </button>
                           <div className="bq-mock-task-body">
                             <div className="bq-mock-task-title-row">
                               <span className={`bq-mock-type-pill ${type === 'Termin' ? 'event' : 'task'}`}>{type}</span>
@@ -617,7 +637,7 @@ export default function LandingPage() {
                             </div>
                           </div>
                         </div>
-                      ))}
+                      )})}
                     </div>
                   )}
                 </div>
@@ -641,21 +661,27 @@ export default function LandingPage() {
                       {visibleLaterTasks.length === 0 && (
                         <div className="bq-mock-empty">Keine passenden Aufgaben</div>
                       )}
-                      {visibleLaterTasks.map(({ id, title, subtitle, cat, catColor, prio, time, day, month, type, tags, done }) => (
-                        <div key={id} className={`bq-mock-task${done ? ' done' : ''}`}>
+                      {visibleLaterTasks.map(({ id, title, subtitle, cat, catColor, prio, time, day, month, type, tags, done }) => {
+                        const isEvent = type === 'Termin';
+                        return (
+                        <div key={id} className={`bq-mock-task ${isEvent ? 'event' : 'todo'}${done ? ' done' : ''}`}>
                           <div className="bq-mock-task-bar" style={{ background: prioBar[prio] }} />
-                          <div className="bq-mock-date-chip">
+                          <div className={`bq-mock-date-chip ${isEvent ? 'event' : 'todo'}`}>
+                            {isEvent ? (
+                              <span className="bq-mock-date-icon"><CalendarDays size={11} /></span>
+                            ) : (
+                              <button
+                                type="button"
+                                className={`bq-mock-date-toggle${done ? ' checked' : ''}`}
+                                onClick={() => toggleMockTask(id)}
+                                aria-label={`Aufgabe ${title} umschalten`}
+                              >
+                                {done ? <Check size={12} strokeWidth={3} /> : <div className="bq-mock-date-circle" />}
+                              </button>
+                            )}
                             <span>{month}</span>
                             <strong>{day}</strong>
                           </div>
-                          <button
-                            type="button"
-                            className={`bq-mock-task-check${done ? ' checked' : ''}`}
-                            onClick={() => toggleMockTask(id)}
-                            aria-label={`Aufgabe ${title} umschalten`}
-                          >
-                            {done && <Check size={11} strokeWidth={3} />}
-                          </button>
                           <div className="bq-mock-task-body">
                             <div className="bq-mock-task-title-row">
                               <span className={`bq-mock-type-pill ${type === 'Termin' ? 'event' : 'task'}`}>{type}</span>
@@ -671,7 +697,7 @@ export default function LandingPage() {
                             </div>
                           </div>
                         </div>
-                      ))}
+                      )})}
                     </div>
                   )}
                 </div>
