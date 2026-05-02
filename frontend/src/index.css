@@ -7013,13 +7013,14 @@ body.cal-is-dragging * {
   margin-bottom: 4px;
 }
 
-.task-detail-comment-emoji {
-  font-size: 1rem;
+.task-detail-comment-avatar {
+  flex-shrink: 0;
 }
 
 .task-detail-comment-author {
   font-weight: 600;
   color: var(--text);
+  line-height: 1;
 }
 
 .task-detail-comment-time {

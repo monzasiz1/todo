@@ -196,6 +196,8 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       emoji: '💬', text,
       author: currentUser?.name || 'Du',
+      author_avatar_url: currentUser?.avatar_url || null,
+      author_color: currentUser?.avatar_color || currentUser?.color || '#007AFF',
       created_at: new Date().toISOString(),
       user_id: currentUser?.id || null,
     };
@@ -567,7 +569,13 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
             ) : comments.map((c) => (
               <div key={c.id} className="task-detail-comment-item">
                 <div className="task-detail-comment-top">
-                  <span className="task-detail-comment-emoji">{c.emoji}</span>
+                  <AvatarBadge
+                    className="task-detail-comment-avatar"
+                    name={c.author || 'Nutzer'}
+                    color={c.author_color || '#8E8E93'}
+                    avatarUrl={c.author_avatar_url}
+                    size={20}
+                  />
                   <span className="task-detail-comment-author">{c.author}</span>
                   <span className="task-detail-comment-time">{format(parseISO(c.created_at), 'd. MMM, HH:mm', { locale: de })}</span>
                   {currentUser?.id === c.user_id && (
