@@ -2883,7 +2883,7 @@ export default function NotesPage() {
   }, [isMobileView, mobileViewMode, workspaceMode]);
 
   // Compute whether canvas should render (performance optimization)
-  const shouldRenderCanvas = !isMobileView;
+  const shouldRenderCanvas = !isMobileView || mobileViewMode === 'canvas';
   const shouldRenderGrid = activeView === 'grid';
 
   const renderConnection = (connection, index) => {
@@ -3218,7 +3218,7 @@ export default function NotesPage() {
 
       {/* ── Canvas / Desktop Workspace ───────────────────────────────── */}
       {shouldRenderCanvas && (
-      <div className={`notes-workspace mode-${workspaceMode} ${isTabletView ? 'is-tablet' : 'is-desktop'}`}>
+      <div className={`notes-workspace mode-${workspaceMode} ${isTabletView ? 'is-tablet' : 'is-desktop'}${isMobileView && mobileViewMode === 'canvas' ? ' is-mobile-canvas' : ''}`}>
         <aside className={`notes-toolbox ${toolboxOpen ? 'open' : ''}`}>
           <div className="toolbox-header">
             <div>

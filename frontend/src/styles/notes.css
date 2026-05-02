@@ -330,6 +330,21 @@
   flex-direction: column;
 }
 
+@media (min-width: 640px) {
+  .notes-workspace {
+    flex-direction: row;
+  }
+  .notes-mobile-list-view {
+    display: none;
+  }
+  .notes-mobile-tools {
+    display: none;
+  }
+  .nmlv-fab {
+    display: none;
+  }
+}
+
 @media (min-width: 1025px) {
   .notes-workspace {
     flex-direction: row;
@@ -3760,57 +3775,58 @@
   .note-content { font-size: 16px; -webkit-line-clamp: 6; line-clamp: 6; }
 }
 
-/* ── Tablet Stabilisierung (640-1024) ── */
+/* ── Tablet (640–1024px) ── */
 @media (min-width: 640px) and (max-width: 1024px) {
-  .notes-page-header {
-    margin-bottom: 10px;
-    align-items: center;
+  .notes-workspace {
+    flex-direction: row !important;
     gap: 10px;
+    padding: 10px;
   }
 
-  .notes-header-main {
-    min-width: 0;
-    flex: 1;
+  .notes-toolbox.open {
+    width: 240px;
+    min-width: 240px;
   }
 
-  .notes-controls {
-    margin-left: auto;
-    gap: 6px;
-    padding-top: 0;
-    min-width: 0;
+  .notes-workspace.mode-list .notes-toolbox,
+  .notes-workspace.mode-list .notes-toolbox.open {
+    width: 280px;
+    min-width: 280px;
   }
 
-  .workspace-mode-toggle {
-    max-width: 100%;
-    overflow-x: auto;
-    scrollbar-width: none;
+  /* Kein Context-Panel auf Tablet – zu eng */
+  .notes-context-panel {
+    display: none !important;
   }
-  .workspace-mode-toggle::-webkit-scrollbar { display: none; }
 
   .workspace-mode-btn {
     padding: 0 8px;
     font-size: 11.5px;
   }
+}
 
+/* ── Mobile Canvas-Modus ── */
+@media (max-width: 639px) {
   .notes-workspace {
-    gap: 12px !important;
-    padding: 12px !important;
+    display: none;
   }
-
-  .notes-toolbox.open {
-    width: 250px;
-    min-width: 250px;
+  .notes-workspace.is-mobile-canvas {
+    display: flex !important;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
   }
-
-  .notes-workspace.mode-list .notes-toolbox,
-  .notes-workspace.mode-list .notes-toolbox.open {
-    width: 290px;
-    min-width: 290px;
-  }
-
-  /* Verhindert gequetschtes 3-Spalten Layout auf Tablet */
-  .notes-context-panel {
+  .notes-workspace.is-mobile-canvas .notes-toolbox {
     display: none !important;
+  }
+  .notes-workspace.is-mobile-canvas .notes-context-panel {
+    display: none !important;
+  }
+  .notes-mobile-list-view {
+    display: flex;
+  }
+  .nmlv-fab {
+    display: flex;
   }
 }
 
