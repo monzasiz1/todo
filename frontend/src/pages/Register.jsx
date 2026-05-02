@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { motion } from 'framer-motion';
@@ -11,9 +11,28 @@ export default function Register() {
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
 
-  const { register, loading, error, clearError } = useAuthStore();
+  const { register, verifyCode, loading, error, clearError } = useAuthStore();
   const navigate = useNavigate();
   const [pendingEmail, setPendingEmail] = useState(null);
+  const [verifyDigits, setVerifyDigits] = useState(['', '', '', '', '', '']);
+  const [verifyError, setVerifyError] = useState('');
+  const [resendCountdown, setResendCountdown] = useState(30);
+  const [resendMessage, setResendMessage] = useState('');
+  const verifyRefs = [useRef(null), useRef(null), useRef(null), useRef(null), useRef(null), useRef(null)];
+
+  useEffect(() => {
+    if (!pendingEmail || resendCountdown <= 0) return undefined;
+    const timer = window.setInterval(() => {
+      setResendCountdown((prev) => {
+        if (prev <= 1) {
+          window.clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [pendingEmail, resendCountdown]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,7 +42,77 @@ export default function Register() {
       navigate('/app');
     } else if (result.message) {
       setPendingEmail(email);
+      setVerifyDigits(['', '', '', '', '', '']);
+      setVerifyError('');
+      setResendMessage('');
+      setResendCountdown(30);
+      setTimeout(() => verifyRefs[0]?.current?.focus(), 80);
     }
+  };
+
+  const handleVerifyDigit = (idx, val) => {
+    const digit = val.replace(/\D/g, '').slice(-1);
+    const next = [...verifyDigits];
+    next[idx] = digit;
+    setVerifyDigits(next);
+    setVerifyError('');
+    if (digit && idx < 5) setTimeout(() => verifyRefs[idx + 1]?.current?.focus(), 10);
+  };
+
+  const handleVerifyKeyDown = (idx, e) => {
+    if (e.key === 'Backspace' && !verifyDigits[idx] && idx > 0) {
+      setTimeout(() => verifyRefs[idx - 1]?.current?.focus(), 10);
+    }
+  };
+
+  const handleVerifyPaste = (e) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!pasted) return;
+    const next = ['', '', '', '', '', ''];
+    [...pasted].forEach((ch, i) => {
+      next[i] = ch;
+    });
+    setVerifyDigits(next);
+    setVerifyError('');
+    const focusIdx = Math.min(pasted.length, 5);
+    setTimeout(() => verifyRefs[focusIdx]?.current?.focus(), 10);
+  };
+
+  const handleVerifySubmit = async () => {
+    const code = verifyDigits.join('');
+    if (code.length < 6) {
+      setVerifyError('Bitte alle 6 Stellen eingeben.');
+      return;
+    }
+
+    const result = await verifyCode(pendingEmail, code);
+    if (result?.success) {
+      navigate('/app');
+      return;
+    }
+
+    setVerifyError(result?.error || 'Ungültiger Code. Bitte erneut versuchen.');
+    setVerifyDigits(['', '', '', '', '', '']);
+    setTimeout(() => verifyRefs[0]?.current?.focus(), 80);
+  };
+
+  const handleResendCode = async () => {
+    if (!pendingEmail || resendCountdown > 0 || loading) return;
+    clearError();
+    setVerifyError('');
+    setResendMessage('');
+
+    const result = await register(name, pendingEmail, password);
+    if (result?.message) {
+      setVerifyDigits(['', '', '', '', '', '']);
+      setResendCountdown(30);
+      setResendMessage('Neuer Code wurde gesendet.');
+      setTimeout(() => verifyRefs[0]?.current?.focus(), 80);
+      return;
+    }
+
+    setVerifyError(result?.error || 'Code konnte nicht erneut gesendet werden.');
   };
 
   if (pendingEmail) {
@@ -31,18 +120,65 @@ export default function Register() {
       <div className="bq-verify-screen">
         <div className="bq-verify-card">
           <img src="/icons/icon.png" alt="BeeQu" className="bq-verify-logo" />
-          <div className="bq-verify-icon">✉️</div>
-          <h1>Bitte bestätige deine<br />E-Mail-Adresse</h1>
+          <div className="bq-verify-mail-icon"><Mail size={28} color="#007AFF" /></div>
+          <h1>Code eingeben</h1>
           <p>
-            Wir haben dir eine E-Mail an<br />
+            Wir haben einen 6-stelligen Code an<br />
             <strong>{pendingEmail}</strong><br />
-            gesendet. Klicke auf den Link in der Mail,<br />
-            um dein Konto zu aktivieren.
+            gesendet. Bitte prüfe dein Postfach.
           </p>
-          <Link to="/app/login" className="bq-btn bq-primary bq-btn-lg">
-            Zum Login
-          </Link>
-          <span className="bq-verify-hint">Kein Mail? Prüfe deinen Spam-Ordner.</span>
+          <div className="bq-verify-digits" onPaste={handleVerifyPaste}>
+            {verifyDigits.map((d, i) => (
+              <input
+                key={i}
+                ref={verifyRefs[i]}
+                type="text"
+                inputMode="numeric"
+                maxLength={1}
+                value={d}
+                className={`bq-verify-digit${d ? ' filled' : ''}`}
+                onChange={(e) => handleVerifyDigit(i, e.target.value)}
+                onKeyDown={(e) => handleVerifyKeyDown(i, e)}
+              />
+            ))}
+          </div>
+          {verifyError && (
+            <div className="bq-auth-error" style={{ marginTop: 8 }}>
+              <AlertCircle size={14} />
+              <span>{verifyError}</span>
+            </div>
+          )}
+          <button
+            type="button"
+            className="bq-btn bq-primary bq-btn-lg"
+            onClick={handleVerifySubmit}
+            disabled={verifyDigits.join('').length < 6 || loading}
+          >
+            {loading ? 'Prüfen...' : 'Bestätigen'}
+          </button>
+          <button
+            type="button"
+            className="bq-auth-resend-btn"
+            onClick={handleResendCode}
+            disabled={resendCountdown > 0 || loading}
+          >
+            {resendCountdown > 0 ? `Code erneut senden in ${resendCountdown}s` : 'Code erneut senden'}
+          </button>
+          {resendMessage && <span className="bq-auth-resend-msg">{resendMessage}</span>}
+          <span className="bq-auth-verify-hint">Kein Mail erhalten? Prüfe deinen Spam-Ordner. Der Code ist 10 Minuten gültig.</span>
+          <button
+            type="button"
+            className="bq-auth-switch-btn"
+            onClick={() => {
+              setPendingEmail(null);
+              setVerifyDigits(['', '', '', '', '', '']);
+              setVerifyError('');
+              setResendMessage('');
+              setResendCountdown(30);
+            }}
+          >
+            Zurück zur Registrierung
+          </button>
         </div>
       </div>
     );

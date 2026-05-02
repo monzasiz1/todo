@@ -20216,6 +20216,29 @@ body.cal-is-dragging * {
   margin-top: -8px;
 }
 
+.bq-auth-resend-btn {
+  border: none;
+  background: transparent;
+  color: #007AFF;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  margin-top: 2px;
+}
+
+.bq-auth-resend-btn:disabled {
+  color: #9CA3AF;
+  cursor: not-allowed;
+}
+
+.bq-auth-resend-msg {
+  font-size: 0.82rem;
+  color: #34C759;
+  font-weight: 600;
+  margin-top: -4px;
+}
+
 /* ── Code digit inputs ── */
 .bq-verify-mail-icon {
   display: flex; align-items: center; justify-content: center;
