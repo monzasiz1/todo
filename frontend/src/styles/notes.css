@@ -248,12 +248,25 @@
 }
 .toolbox-section:last-child { border-bottom: none; }
 .toolbox-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--text-tertiary);
   padding: 4px 4px 8px;
+}
+.toolbox-section-head span {
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--n-accent-soft);
+  color: var(--n-accent);
+  padding: 1px 7px;
+  border-radius: 20px;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 /* Action cards */
@@ -364,13 +377,10 @@
 }
 
 .toolbox-notes-search {
-  position: relative;
-  padding: 0 12px 8px;
-}
-.toolbox-notes-search input {
-  width: 100%;
+  width: calc(100% - 24px);
   height: 34px;
-  padding: 0 10px 0 32px;
+  padding: 0 10px;
+  margin: 0 12px 8px;
   border-radius: 9px;
   border: 1.5px solid rgba(0,0,0,0.08);
   background: rgba(0,0,0,0.03);
@@ -380,10 +390,11 @@
   transition: border-color var(--n-ease-fast), box-shadow var(--n-ease-fast);
   font-family: var(--font);
   box-sizing: border-box;
+  display: block;
   -webkit-appearance: none;
   appearance: none;
 }
-.toolbox-notes-search input:focus {
+.toolbox-notes-search:focus {
   border-color: var(--n-accent);
   box-shadow: 0 0 0 3px var(--n-accent-soft);
 }
@@ -466,9 +477,12 @@
   flex-shrink: 0;
   background: var(--n-imp-none);
 }
-.toolbox-note-item-prio.imp-low    { background: var(--n-imp-low); }
-.toolbox-note-item-prio.imp-medium { background: var(--n-imp-medium); }
-.toolbox-note-item-prio.imp-high   { background: var(--n-imp-high); }
+.toolbox-note-item-prio.imp-low,
+.toolbox-note-item-prio.low    { background: var(--n-imp-low); }
+.toolbox-note-item-prio.imp-medium,
+.toolbox-note-item-prio.medium { background: var(--n-imp-medium); }
+.toolbox-note-item-prio.imp-high,
+.toolbox-note-item-prio.high   { background: var(--n-imp-high); }
 .toolbox-note-item-head span {
   font-size: 13px;
   font-weight: 500;
@@ -2042,6 +2056,14 @@
 /* ─── 35. Mobile only (max 639px) ─────────────────────────────────────────── */
 @media (max-width: 639px) {
   .notes-workspace { display: none !important; }
+  /* Mobile Canvas mode: override display:none when user explicitly chose canvas view */
+  .notes-workspace.is-mobile-canvas {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100%;
+  }
+  .notes-workspace.is-mobile-canvas .notes-toolbox { display: none !important; }
+  .notes-workspace.is-mobile-canvas .notes-context-panel { display: none !important; }
   .notes-mobile-list-view { display: flex; }
   .notes-mobile-tools { display: flex; }
   .nmlv-fab { display: flex; }
