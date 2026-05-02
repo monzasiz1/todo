@@ -11,7 +11,7 @@ import {
   Users, Plus, Hash, Copy, Check, ChevronRight, ChevronDown, Crown,
   Shield, UserMinus, Settings, Trash2, LogOut, X,
   Calendar, CalendarCheck, Clock, Flag, Search, ArrowLeft, ListTodo,
-  Camera, Tag, AlertTriangle, Pencil
+  Camera, Tag, AlertTriangle, Pencil, ChevronsDown
 } from 'lucide-react';
 import AvatarBadge from '../components/AvatarBadge';
 import { usePlan } from '../hooks/usePlan';
@@ -609,6 +609,11 @@ function GroupDetail({ groupId, onBack }) {
     if (categoryFilter === 'all') return pastTasks;
     return pastTasks.filter((task) => String(task.group_category_id || task.group_category_name) === categoryFilter);
   }, [pastTasks, categoryFilter]);
+  const hasMoreActive = visibleCount < filteredActiveTasks.length;
+  const isExpandedActive = !hasMoreActive && filteredActiveTasks.length > 15;
+  const toggleActiveExpanded = () => {
+    setVisibleCount((prev) => (prev < filteredActiveTasks.length ? filteredActiveTasks.length : 15));
+  };
   const completionRate = groupTasks.length > 0 ? Math.round((pastTasks.length / groupTasks.length) * 100) : 0;
   const sortedMembers = useMemo(() => {
     const roleWeight = { owner: 0, admin: 1, member: 2 };
@@ -741,12 +746,19 @@ function GroupDetail({ groupId, onBack }) {
                   onOpenTask={openTask}
                 />
               ))}
-              {visibleCount < filteredActiveTasks.length && (
+              {filteredActiveTasks.length > 15 && (
                 <button
-                  className="group-load-more-btn"
-                  onClick={() => setVisibleCount(v => v + 15)}
+                  className={`dash-section-expander ${isExpandedActive ? 'expanded' : ''}`}
+                  onClick={toggleActiveExpanded}
                 >
-                  Mehr anzeigen ({filteredActiveTasks.length - visibleCount} weitere)
+                  <span className="dash-section-expander-line" aria-hidden />
+                  <span className="dash-section-expander-copy">
+                    <ChevronsDown size={14} className="dash-section-expander-icon" />
+                    {hasMoreActive
+                      ? `Mehr anzeigen (${filteredActiveTasks.length - visibleCount} weitere)`
+                      : 'Weniger anzeigen'}
+                  </span>
+                  <span className="dash-section-expander-line" aria-hidden />
                 </button>
               )}
               {filteredPastTasks.length > 0 && (
