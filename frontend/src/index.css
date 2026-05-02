@@ -18657,9 +18657,14 @@ body.cal-is-dragging * {
   font-size: 0.76rem;
   font-weight: 600;
   color: var(--bq-muted);
-  cursor: default;
+  cursor: pointer;
   white-space: nowrap;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease;
 }
+.bq-mock-filter-btn:hover { background: rgba(0,0,0,0.05); color: var(--bq-text); }
 .bq-mock-filter-btn.active {
   background: var(--bq-blue);
   color: #fff;
@@ -18672,6 +18677,23 @@ body.cal-is-dragging * {
 }
 .bq-mock-filter-sep { width: 1px; height: 18px; background: rgba(0,0,0,0.07); margin: 0 4px; }
 .bq-mock-search { padding-left: 8px; }
+.bq-mock-search-input {
+  flex: 1;
+  min-width: 130px;
+  max-width: 220px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(0,0,0,0.1);
+  background: #fff;
+  padding: 0 9px;
+  font-size: 0.74rem;
+  color: var(--bq-text);
+  outline: none;
+}
+.bq-mock-search-input:focus {
+  border-color: rgba(0,122,255,0.6);
+  box-shadow: 0 0 0 2px rgba(0,122,255,0.12);
+}
 
 /* task section header */
 .bq-mock-section { display: flex; flex-direction: column; gap: 8px; }
@@ -18683,7 +18705,15 @@ body.cal-is-dragging * {
   background: #fff;
   border: 1px solid rgba(0,0,0,0.06);
   border-radius: var(--bq-r-md);
-  cursor: default;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+.bq-mock-sec-head:hover {
+  border-color: rgba(0,122,255,0.18);
+  box-shadow: 0 2px 10px rgba(0,122,255,0.08);
 }
 .bq-mock-sec-left { display: flex; align-items: center; gap: 8px; font-size: 0.84rem; font-weight: 600; flex: 1; }
 .bq-mock-sec-icon {
@@ -18703,10 +18733,22 @@ body.cal-is-dragging * {
   background: var(--bq-bg);
   color: var(--bq-muted);
 }
-.bq-mock-chevron { color: var(--bq-muted); }
+.bq-mock-chevron { color: var(--bq-muted); transition: transform 0.18s ease; }
+.bq-mock-chevron.collapsed { transform: rotate(-90deg); }
 
 /* task cards */
 .bq-mock-task-list { display: flex; flex-direction: column; gap: 6px; }
+.bq-mock-empty {
+  display: grid;
+  place-items: center;
+  min-height: 60px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--bq-muted);
+  background: #fff;
+  border: 1px dashed rgba(0,0,0,0.12);
+  border-radius: var(--bq-r-md);
+}
 .bq-mock-task {
   display: flex;
   align-items: flex-start;
@@ -18717,7 +18759,9 @@ body.cal-is-dragging * {
   border-radius: var(--bq-r-md);
   position: relative;
   overflow: hidden;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
 }
+.bq-mock-task:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
 .bq-mock-task.done { opacity: 0.65; }
 .bq-mock-task-bar {
   position: absolute;
@@ -18734,7 +18778,11 @@ body.cal-is-dragging * {
   place-items: center;
   flex-shrink: 0;
   color: var(--bq-muted);
+  background: #fff;
+  cursor: pointer;
+  transition: transform 0.14s ease, border-color 0.14s ease;
 }
+.bq-mock-task-check:hover { transform: scale(1.06); border-color: rgba(0,122,255,0.45); }
 .bq-mock-task-check.checked {
   background: var(--bq-green);
   border-color: var(--bq-green);

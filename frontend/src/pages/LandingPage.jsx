@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -92,6 +92,13 @@ export default function LandingPage() {
   const [verifyError,   setVerifyError]   = useState('');
   const verifyRefs = [useRef(null),useRef(null),useRef(null),useRef(null),useRef(null),useRef(null)];
   const [aiIdx, setAiIdx] = useState(0);
+  const [mockFilter, setMockFilter] = useState('all');
+  const [mockCollapsed, setMockCollapsed] = useState(false);
+  const [mockSearchOpen, setMockSearchOpen] = useState(false);
+  const [mockQuery, setMockQuery] = useState('');
+  const [mockTaskState, setMockTaskState] = useState(() =>
+    mockTasks.map((task, idx) => ({ ...task, id: `${idx}-${task.title}` }))
+  );
   const { login, register, verifyCode, loading } = useAuthStore();
   const navigate = useNavigate();
 
@@ -163,6 +170,31 @@ export default function LandingPage() {
   };
 
   const ai = aiExamples[aiIdx];
+
+  const visibleMockTasks = useMemo(() => {
+    const q = mockQuery.trim().toLowerCase();
+    return mockTaskState.filter((task) => {
+      const byFilter =
+        mockFilter === 'all' ? true :
+        mockFilter === 'open' ? !task.done :
+        mockFilter === 'done' ? task.done :
+        task.prio === mockFilter;
+
+      if (!byFilter) return false;
+      if (!q) return true;
+
+      return (
+        String(task.title || '').toLowerCase().includes(q) ||
+        String(task.cat || '').toLowerCase().includes(q)
+      );
+    });
+  }, [mockFilter, mockQuery, mockTaskState]);
+
+  const toggleMockTask = (taskId) => {
+    setMockTaskState((prev) => prev.map((task) => (
+      task.id === taskId ? { ...task, done: !task.done } : task
+    )));
+  };
 
   useEffect(() => {
     const hero = heroRef.current;
@@ -397,46 +429,100 @@ export default function LandingPage() {
 
                 {/* Filter bar */}
                 <div className="bq-mock-filter">
-                  <button className="bq-mock-filter-btn active">Alle</button>
-                  <button className="bq-mock-filter-btn"><span className="bq-fd" style={{ background: '#FF3B30' }} />Dringend</button>
-                  <button className="bq-mock-filter-btn"><span className="bq-fd" style={{ background: '#FF9500' }} />Hoch</button>
-                  <button className="bq-mock-filter-btn"><span className="bq-fd" style={{ background: '#007AFF' }} />Mittel</button>
+                  <button
+                    type="button"
+                    className={`bq-mock-filter-btn${mockFilter === 'all' ? ' active' : ''}`}
+                    onClick={() => setMockFilter('all')}
+                  >
+                    Alle
+                  </button>
+                  <button
+                    type="button"
+                    className={`bq-mock-filter-btn${mockFilter === 'urgent' ? ' active' : ''}`}
+                    onClick={() => setMockFilter('urgent')}
+                  >
+                    <span className="bq-fd" style={{ background: '#FF3B30' }} />Dringend
+                  </button>
+                  <button
+                    type="button"
+                    className={`bq-mock-filter-btn${mockFilter === 'high' ? ' active' : ''}`}
+                    onClick={() => setMockFilter('high')}
+                  >
+                    <span className="bq-fd" style={{ background: '#FF9500' }} />Hoch
+                  </button>
+                  <button
+                    type="button"
+                    className={`bq-mock-filter-btn${mockFilter === 'medium' ? ' active' : ''}`}
+                    onClick={() => setMockFilter('medium')}
+                  >
+                    <span className="bq-fd" style={{ background: '#007AFF' }} />Mittel
+                  </button>
                   <span className="bq-mock-filter-sep" />
-                  <button className="bq-mock-filter-btn bq-mock-search">🔍 Suchen</button>
+                  <button
+                    type="button"
+                    className={`bq-mock-filter-btn bq-mock-search${mockSearchOpen ? ' active' : ''}`}
+                    onClick={() => setMockSearchOpen((prev) => !prev)}
+                  >
+                    🔍 Suchen
+                  </button>
+                  {mockSearchOpen && (
+                    <input
+                      type="text"
+                      value={mockQuery}
+                      onChange={(e) => setMockQuery(e.target.value)}
+                      className="bq-mock-search-input"
+                      placeholder="Titel oder Kategorie"
+                      aria-label="Mock Suche"
+                    />
+                  )}
                 </div>
 
                 {/* Task section */}
                 <div className="bq-mock-section">
-                  <div className="bq-mock-sec-head">
+                  <button
+                    type="button"
+                    className="bq-mock-sec-head"
+                    onClick={() => setMockCollapsed((prev) => !prev)}
+                  >
                     <div className="bq-mock-sec-left">
                       <div className="bq-mock-sec-icon warning">!</div>
                       <span>Heute</span>
                     </div>
-                    <span className="bq-mock-count">3</span>
-                    <ChevronDown size={14} className="bq-mock-chevron" />
-                  </div>
+                    <span className="bq-mock-count">{visibleMockTasks.length}</span>
+                    <ChevronDown size={14} className={`bq-mock-chevron${mockCollapsed ? ' collapsed' : ''}`} />
+                  </button>
 
-                  <div className="bq-mock-task-list">
-                    {mockTasks.map(({ title, cat, catColor, prio, time, repeat, done }) => (
-                      <div key={title} className={`bq-mock-task${done ? ' done' : ''}`}>
-                        <div className="bq-mock-task-bar" style={{ background: prioBar[prio] }} />
-                        <GripVertical size={11} className="bq-mock-grip" />
-                        <div className={`bq-mock-task-check${done ? ' checked' : ''}`}>
-                          {done && <Check size={11} strokeWidth={3} />}
-                        </div>
-                        <div className="bq-mock-task-body">
-                          <div className="bq-mock-task-title-row">
-                            <strong className={done ? 'struck' : ''}>{title}</strong>
+                  {!mockCollapsed && (
+                    <div className="bq-mock-task-list">
+                      {visibleMockTasks.length === 0 && (
+                        <div className="bq-mock-empty">Keine passenden Aufgaben</div>
+                      )}
+                      {visibleMockTasks.map(({ id, title, cat, catColor, prio, time, repeat, done }) => (
+                        <div key={id} className={`bq-mock-task${done ? ' done' : ''}`}>
+                          <div className="bq-mock-task-bar" style={{ background: prioBar[prio] }} />
+                          <GripVertical size={11} className="bq-mock-grip" />
+                          <button
+                            type="button"
+                            className={`bq-mock-task-check${done ? ' checked' : ''}`}
+                            onClick={() => toggleMockTask(id)}
+                            aria-label={`Aufgabe ${title} umschalten`}
+                          >
+                            {done && <Check size={11} strokeWidth={3} />}
+                          </button>
+                          <div className="bq-mock-task-body">
+                            <div className="bq-mock-task-title-row">
+                              <strong className={done ? 'struck' : ''}>{title}</strong>
+                            </div>
+                            <div className="bq-mock-task-meta">
+                              <span className="bq-mock-cat-badge" style={{ background: `${catColor}22`, color: catColor }}>{cat}</span>
+                              {repeat && <span className="bq-mock-repeat-badge"><Repeat size={9} />wiederkehrend</span>}
+                              <span className="bq-mock-meta-item"><Clock size={10} />{time}</span>
+                            </div>
                           </div>
-                          <div className="bq-mock-task-meta">
-                            <span className="bq-mock-cat-badge" style={{ background: `${catColor}22`, color: catColor }}>{cat}</span>
-                            {repeat && <span className="bq-mock-repeat-badge"><Repeat size={9} />wiederkehrend</span>}
-                            <span className="bq-mock-meta-item"><Clock size={10} />{time}</span>
-                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
