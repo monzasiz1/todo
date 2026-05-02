@@ -188,6 +188,10 @@ export default function LandingPage() {
       <section className="bq-hero">
         <div className="bq-hero-bg" aria-hidden />
         <div className="bq-hero-grid-lines" aria-hidden />
+        <div className="bq-hero-logo-bg" aria-hidden>
+          <img src="/icons/icon.png" alt="" className="bq-hero-logo-mark" />
+          <div className="bq-hero-logo-aura" />
+        </div>
 
         {/* copy */}
         <motion.div
