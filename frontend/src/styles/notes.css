@@ -26,6 +26,46 @@
 }
 .nmvt-btn.active { background: #fff; color: #007AFF; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
 
+.notes-tablet-tools {
+  display: none;
+}
+
+.notes-tablet-view-toggle {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.ntvt-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+}
+
+.ntvt-btn.active {
+  background: #fff;
+  color: var(--primary);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.notes-tablet-quick-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 /* ── Mobile List View ── */
 .notes-mobile-list-view {
   flex: 1; min-height: 0;
@@ -3185,6 +3225,77 @@
   .perm-btn {
     flex: 0 0 auto;
     min-width: 82px;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1024px) {
+  .notes-page-header {
+    align-items: flex-start;
+  }
+
+  .notes-header-main {
+    gap: 8px;
+  }
+
+  .notes-tablet-tools {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .notes-tablet-tools::-webkit-scrollbar {
+    display: none;
+  }
+
+  .notes-workspace {
+    flex-direction: row;
+    align-items: stretch;
+    gap: 12px;
+    padding: 12px;
+    min-height: calc(100vh - 128px);
+  }
+
+  .notes-toolbox {
+    width: 310px;
+    min-width: 310px;
+    max-width: 310px;
+    height: auto;
+    min-height: calc(100vh - 150px);
+    max-height: calc(100vh - 150px);
+  }
+
+  .notes-canvas-shell {
+    min-height: calc(100vh - 150px);
+  }
+
+  .notes-workspace.tablet-mode-canvas .notes-toolbox {
+    display: none;
+  }
+
+  .notes-workspace.tablet-mode-tools .notes-canvas-shell {
+    display: none;
+  }
+
+  .notes-workspace.tablet-mode-canvas .notes-canvas-shell,
+  .notes-workspace.tablet-mode-tools .notes-toolbox {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .notes-workspace.tablet-mode-tools .notes-toolbox {
+    max-height: none;
+  }
+
+  .notes-workspace.tablet-mode-split .notes-toolbox {
+    width: 292px;
+    min-width: 292px;
+    max-width: 292px;
   }
 }
 

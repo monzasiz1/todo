@@ -396,6 +396,11 @@ export default function NotesPage() {
   const [commentDraft, setCommentDraft] = useState('');
   const [notePeopleMap, setNotePeopleMap] = useState(() => readNotePeopleCache());
   const [isMobileView, setIsMobileView] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 640 : false));
+  const [isTabletView, setIsTabletView] = useState(() => (typeof window !== 'undefined' ? window.innerWidth >= 640 && window.innerWidth < 1025 : false));
+  const [tabletViewMode, setTabletViewMode] = useState(() => {
+    const cachedMode = readNoteViewCache()?.tabletViewMode;
+    return cachedMode === 'tools' || cachedMode === 'split' ? cachedMode : 'canvas';
+  }); // 'canvas' | 'tools' | 'split'
   const [isCanvasFullscreen, setIsCanvasFullscreen] = useState(false);
   const [isCanvasPseudoFullscreen, setIsCanvasPseudoFullscreen] = useState(false);
   const [fsToolbarPos, setFsToolbarPos] = useState({ x: 14, y: 86 });
@@ -424,6 +429,7 @@ export default function NotesPage() {
   const handleTouchMoveRef = useRef(null);
   const handleCanvasTouchStartRef = useRef(null);
   const mobileViewModeRef = useRef(mobileViewMode);
+  const tabletViewModeRef = useRef(tabletViewMode);
   const didManualZoomRef = useRef(false);
   const didInitialViewportFitRef = useRef(false);
   const didRestoreViewportRef = useRef(false);
@@ -676,6 +682,7 @@ export default function NotesPage() {
     writeNoteViewCache({
       zoom: Math.round(zoomRef.current),
       mobileViewMode: mobileViewModeRef.current,
+      tabletViewMode: tabletViewModeRef.current,
       scrollLeft: canvas ? canvas.scrollLeft : undefined,
       scrollTop: canvas ? canvas.scrollTop : undefined,
       updatedAt: Date.now(),
@@ -730,6 +737,10 @@ export default function NotesPage() {
   useEffect(() => {
     mobileViewModeRef.current = mobileViewMode;
   }, [mobileViewMode]);
+
+  useEffect(() => {
+    tabletViewModeRef.current = tabletViewMode;
+  }, [tabletViewMode]);
 
   const refreshConnections = async (sourceNotes = notes) => {
     if (!sourceNotes.length) {
@@ -892,9 +903,11 @@ export default function NotesPage() {
 
   useEffect(() => {
     const syncViewport = () => {
-      setIsMobileView(window.innerWidth < 640);
+      const width = window.innerWidth;
+      setIsMobileView(width < 640);
+      setIsTabletView(width >= 640 && width < 1025);
       if (!didManualZoomRef.current) {
-        const next = window.innerWidth < 640 ? 92 : getAdaptiveZoom(window.innerWidth, window.innerHeight);
+        const next = width < 640 ? 92 : getAdaptiveZoom(width, window.innerHeight);
         applyZoom(next);
         setZoom(next);
       }
@@ -2766,7 +2779,7 @@ export default function NotesPage() {
 
   useEffect(() => {
     persistNoteViewState();
-  }, [mobileViewMode, zoom]);
+  }, [mobileViewMode, tabletViewMode, zoom]);
 
   useEffect(() => {
     const onVisibility = () => {
@@ -2924,6 +2937,47 @@ export default function NotesPage() {
                     <LayoutGrid size={16} />
                   </button>
                 </>
+              )}
+            </div>
+          )}
+
+          {isTabletView && (
+            <div className="notes-tablet-tools">
+              <div className="notes-tablet-view-toggle">
+                <button
+                  type="button"
+                  className={`ntvt-btn ${tabletViewMode === 'tools' ? 'active' : ''}`}
+                  onClick={() => setTabletViewMode('tools')}
+                >
+                  <PanelsTopLeft size={15} />
+                  <span>Werkzeuge</span>
+                </button>
+                <button
+                  type="button"
+                  className={`ntvt-btn ${tabletViewMode === 'canvas' ? 'active' : ''}`}
+                  onClick={() => setTabletViewMode('canvas')}
+                >
+                  <Maximize2 size={15} />
+                  <span>Canvas</span>
+                </button>
+                <button
+                  type="button"
+                  className={`ntvt-btn ${tabletViewMode === 'split' ? 'active' : ''}`}
+                  onClick={() => setTabletViewMode('split')}
+                >
+                  <LayoutGrid size={15} />
+                  <span>Split</span>
+                </button>
+              </div>
+              {tabletViewMode !== 'tools' && (
+                <div className="notes-tablet-quick-actions">
+                  <button type="button" className="header-tool-btn" onClick={openBlankCreateModalAtViewport} title="Neue Note">
+                    <Plus size={16} />
+                  </button>
+                  <button type="button" className={`header-tool-btn ${quickConnectMode ? 'active' : ''}`} onClick={handleQuickConnectToggle} title="Quick Connect">
+                    <Link2 size={16} />
+                  </button>
+                </div>
               )}
             </div>
           )}
@@ -3135,7 +3189,7 @@ export default function NotesPage() {
 
       {/* ── Canvas / Desktop Workspace ───────────────────────────────── */}
       {shouldRenderCanvas && (
-      <div className="notes-workspace">
+      <div className={`notes-workspace ${isTabletView ? `tablet-mode-${tabletViewMode}` : ''}`}>
         <aside className={`notes-toolbox ${toolboxOpen ? 'open' : ''}`}>
           <div className="toolbox-header">
             <div>

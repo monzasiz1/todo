@@ -13,6 +13,9 @@
   --primary-bg: rgba(0, 122, 255, 0.08);
   --bg: #F2F2F7;
   --bg-elevated: #FFFFFF;
+  --surface: #FFFFFF;
+  --surface-2: #F7F8FC;
+  --hover: rgba(28, 28, 30, 0.06);
   --card: rgba(255, 255, 255, 0.72);
   --card-solid: #FFFFFF;
   --text: #1C1C1E;
@@ -92,6 +95,10 @@ button {
   border: none;
   font-size: inherit;
   font-family: inherit;
+  color: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 input, textarea, select {
@@ -100,6 +107,9 @@ input, textarea, select {
   border: none;
   outline: none;
   background: none;
+  color: inherit;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 /* ========== LAYOUT ========== */
@@ -12052,13 +12062,16 @@ body.cal-is-dragging * {
 }
 
 .group-action-btn.primary {
+  background: linear-gradient(135deg, #007AFF 0%, #2F8CFF 100%);
   background: linear-gradient(135deg, var(--primary) 0%, color-mix(in srgb, var(--primary) 70%, #1f75ff) 100%);
   color: #fff;
+  box-shadow: 0 10px 20px rgba(0, 122, 255, 0.24);
   box-shadow: 0 10px 20px color-mix(in srgb, var(--primary) 26%, transparent);
 }
 
 .group-action-btn.primary:hover {
   transform: translateY(-1px);
+  box-shadow: 0 14px 24px rgba(0, 122, 255, 0.3);
   box-shadow: 0 14px 24px color-mix(in srgb, var(--primary) 34%, transparent);
 }
 
@@ -12742,6 +12755,7 @@ body.cal-is-dragging * {
 .group-tabs {
   display: flex;
   gap: 2px;
+  background: rgba(255, 255, 255, 0.82);
   background: color-mix(in srgb, var(--surface) 78%, transparent);
   border-radius: 14px;
   border: 1px solid var(--border);
@@ -12769,6 +12783,7 @@ body.cal-is-dragging * {
   background: rgba(255,255,255,0.5);
 }
 .group-tab.active {
+  background: linear-gradient(180deg, #fff 0%, #f3f7ff 100%);
   background: linear-gradient(180deg, #fff 0%, color-mix(in srgb, #fff 72%, var(--surface)) 100%);
   color: var(--text-primary);
   box-shadow: 0 4px 10px rgba(0,0,0,0.08);
@@ -12838,7 +12853,9 @@ body.cal-is-dragging * {
   width: auto;
   padding: 11px 14px;
   border-radius: 14px;
+  border: 1px solid rgba(0, 122, 255, 0.2);
   border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--border));
+  background: rgba(0, 122, 255, 0.08);
   background: color-mix(in srgb, var(--primary) 8%, transparent);
   font-size: 14px;
   font-weight: 700;
@@ -12852,6 +12869,7 @@ body.cal-is-dragging * {
 }
 .group-add-task-btn:hover {
   border-color: var(--primary);
+  background: rgba(0, 122, 255, 0.14);
   background: color-mix(in srgb, var(--primary) 14%, transparent);
   transform: translateY(-1px);
 }
@@ -13061,6 +13079,7 @@ body.cal-is-dragging * {
   align-items: center;
   gap: 12px;
   padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.86);
   background: color-mix(in srgb, var(--surface) 84%, transparent);
   border-radius: 14px;
   border: 1px solid var(--border);
@@ -13132,12 +13151,15 @@ body.cal-is-dragging * {
   font-size: 12px;
   font-weight: 700;
   border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.92);
   background: color-mix(in srgb, var(--surface) 78%, transparent);
 }
 
 .group-member-action-btn.role.active {
+  border-color: rgba(0, 122, 255, 0.32);
   border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
   color: var(--primary);
+  background: rgba(0, 122, 255, 0.12);
   background: color-mix(in srgb, var(--primary-bg) 62%, var(--surface));
 }
 
