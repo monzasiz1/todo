@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import { PLANS } from '../lib/plans';
 import { useAuthStore } from '../store/authStore';
-import AvatarBadge from '../components/AvatarBadge';
 
 /* ─────────────── data ─────────────── */
 
@@ -50,23 +49,23 @@ const bentoFeatures = [
 
 const mockTasks = [
   {
-    title: 'Aufbau Zelt / Aufraeumaktion',
-    subtitle: 'Ausrichter: Verein Team',
-    cat: 'Gut Schlag',
+    title: 'Sprint-Review vorbereiten',
+    subtitle: 'Agenda und Status fuer das Team finalisieren',
+    cat: 'Produkt',
     catColor: '#34C759',
     prio: 'medium',
-    time: '10:00 Uhr - 16:00 Uhr',
+    time: 'Heute, 10:00 Uhr - 11:30 Uhr',
     day: '2',
     month: 'MAI',
     type: 'Termin',
     done: false,
     section: 'today',
-    tags: ['Auswahl', 'Nur lesen'],
+    tags: ['Abstimmung', 'Team'],
   },
   {
-    title: 'Rechnung begleichen',
-    subtitle: 'Telefonica Germany',
-    cat: 'Einkaufen',
+    title: 'Reisekosten einreichen',
+    subtitle: 'Belege fuer April hochladen',
+    cat: 'Finanzen',
     catColor: '#FF3B30',
     prio: 'urgent',
     time: '4. Mai',
@@ -78,12 +77,12 @@ const mockTasks = [
     tags: [],
   },
   {
-    title: 'Gemeinschaftsprobe',
-    subtitle: 'Musikheim',
-    cat: 'Gesundheit',
+    title: 'Design-System Check-in',
+    subtitle: 'Komponentenstand mit dem UI-Team abstimmen',
+    cat: 'Design',
     catColor: '#00C7BE',
     prio: 'low',
-    time: '6. Mai, 19:00 Uhr - 21:00 Uhr',
+    time: '6. Mai, 15:00 Uhr - 16:00 Uhr',
     day: '6',
     month: 'MAI',
     type: 'Termin',
@@ -92,9 +91,9 @@ const mockTasks = [
     tags: ['Woechentlich'],
   },
   {
-    title: 'Martina Geburtstag',
-    subtitle: 'Familie',
-    cat: 'Familie',
+    title: 'Kundentermin abstimmen',
+    subtitle: 'Naechsten Projektmeilenstein vorbereiten',
+    cat: 'Arbeit',
     catColor: '#5856D6',
     prio: 'medium',
     time: '7. Mai',
@@ -103,27 +102,27 @@ const mockTasks = [
     type: 'Termin',
     done: false,
     section: 'later',
-    tags: ['Jaehrlich'],
+    tags: ['Follow-up'],
   },
 ];
 
 const mockSidebarCategories = [
-  { name: 'Alle', color: '#007AFF', n: 45 },
-  { name: 'Arbeit', color: '#007AFF', n: 8 },
-  { name: 'Auftritt', color: '#5AC8FA', n: 4 },
-  { name: 'Bildung', color: '#34C759', n: 3 },
-  { name: 'Einkaufen', color: '#FF3B30', n: 2 },
-  { name: 'Finanzen', color: '#5856D6', n: 3 },
-  { name: 'Gesundheit', color: '#00C7BE', n: 6 },
-  { name: 'Familie', color: '#AF52DE', n: 5 },
+  { name: 'Alle', color: '#007AFF', n: 28 },
+  { name: 'Arbeit', color: '#007AFF', n: 6 },
+  { name: 'Produkt', color: '#34C759', n: 5 },
+  { name: 'Design', color: '#00C7BE', n: 4 },
+  { name: 'Finanzen', color: '#FF3B30', n: 2 },
+  { name: 'Recherche', color: '#5856D6', n: 3 },
+  { name: 'Privat', color: '#AF52DE', n: 4 },
+  { name: 'Gesundheit', color: '#FF9500', n: 4 },
 ];
 
 const prioBar = { urgent: '#FF3B30', high: '#FF9500', medium: '#007AFF', low: '#34C759' };
 
 const aiExamples = [
-  { input: '"Meeting Freitag 14:00, hohe Priorität"',   title: 'Meeting',    date: 'Freitag', time: '14:00', cat: 'Arbeit',  prio: 'Hoch'   },
-  { input: '"Morgen Einkaufen um 17:30"',                title: 'Einkaufen',  date: 'Morgen',  time: '17:30', cat: 'Privat',  prio: 'Niedrig'},
-  { input: '"Montag Sportstudio 19 Uhr, mittel"',        title: 'Sportstudio',date: 'Montag',  time: '19:00', cat: 'Sport',   prio: 'Mittel' },
+  { input: '"Sprint Review Freitag 10 Uhr, hohe Prioritaet"', title: 'Sprint Review', date: 'Freitag', time: '10:00', cat: 'Produkt', prio: 'Hoch' },
+  { input: '"Montag Rechnung abschicken um 9 Uhr"',            title: 'Rechnung',      date: 'Montag',  time: '09:00', cat: 'Finanzen', prio: 'Mittel' },
+  { input: '"Mittwoch Workout 18:30 erinnern"',               title: 'Workout',       date: 'Mittwoch',time: '18:30', cat: 'Gesundheit', prio: 'Niedrig' },
 ];
 
 const ease = [0.25, 0.46, 0.45, 0.94];
@@ -452,10 +451,10 @@ export default function LandingPage() {
                 </div>
 
                 <div className="bq-mock-user-card">
-                  <AvatarBadge name="Rene Schroers" color="#1D4ED8" size={24} />
+                  <div className="bq-mock-user-avatar">D</div>
                   <div className="bq-mock-user-meta">
-                    <strong>Rene Schroers</strong>
-                    <span>rene-schroers@gmx.de</span>
+                    <strong>Demo Workspace</strong>
+                    <span>hello@beequ.app</span>
                   </div>
                 </div>
               </aside>
@@ -476,10 +475,13 @@ export default function LandingPage() {
                       <div className="bq-mock-ai-submit"><ArrowUp size={13} /></div>
                     </div>
                     <div className="bq-mock-ai-tags">
-                      <span className="bq-mock-tag bq-tag-date">📅 Freitag</span>
-                      <span className="bq-mock-tag bq-tag-time">⏰ 14:00</span>
-                      <span className="bq-mock-tag bq-tag-prio">🔴 Hoch</span>
-                      <span className="bq-mock-tag bq-tag-cat">💼 Arbeit</span>
+                      <span className="bq-mock-tag bq-tag-date">Freitag</span>
+                      <span className="bq-mock-tag bq-tag-time">10:00</span>
+                      <span className="bq-mock-tag bq-tag-prio">Hoch</span>
+                      <span className="bq-mock-tag bq-tag-cat">Produkt</span>
+                    </div>
+                    <div className="bq-mock-ai-helper">
+                      "Sprint Review Freitag 10 Uhr" · "Budget planen" · "Morgen 9 Uhr anrufen"
                     </div>
                   </div>
                   <button className="bq-mock-manual">
@@ -493,7 +495,7 @@ export default function LandingPage() {
                   <div className="bq-mock-ins-head">
                     <div className="bq-mock-ins-title"><Target size={12} />Fokus heute</div>
                     <div className="bq-mock-ins-metas">
-                      <span>Heute: 4</span><span>Überfällig: 1</span><span>Woche: 87%</span>
+                      <span>Heute: 4</span><span>Überfällig: 1</span><span>Woche: 82%</span>
                     </div>
                   </div>
                   <div className="bq-mock-ins-list">
@@ -503,7 +505,7 @@ export default function LandingPage() {
                     </div>
                     <div className="bq-mock-ins-item">
                       <div className="bq-mock-ins-icon calm">✓</div>
-                      <span>Du liegst diese Woche 12% über deinem Schnitt</span>
+                      <span>5,5h freie Zeit für fokussierte Aufgaben</span>
                     </div>
                   </div>
                 </div>
@@ -627,7 +629,7 @@ export default function LandingPage() {
                     onClick={() => setMockCollapsed((prev) => ({ ...prev, later: !prev.later }))}
                   >
                     <div className="bq-mock-sec-left">
-                      <div className="bq-mock-sec-icon">•</div>
+                      <div className="bq-mock-sec-icon bq-mock-sec-icon-neutral">•</div>
                       <span>Spaeter</span>
                     </div>
                     <span className="bq-mock-count">{visibleLaterTasks.length}</span>
