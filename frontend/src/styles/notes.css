@@ -1063,8 +1063,7 @@
   text-align: center;
 }
 
-  opacity: 0.66;
-  stroke-width: 18;
+
 .notes-canvas {
   flex: 1 1 auto;
   width: 100%;
@@ -1077,11 +1076,6 @@
   border: 1px solid var(--glass-border);
   box-shadow: var(--shadow-lg);
   contain: layout style;
-}
-
-  stroke-width: 3.35;
-  outline: 2px dashed rgba(0, 122, 255, 0.45);
-  outline-offset: -6px;
 }
 
 .canvas-quick-create-btn {
