@@ -409,8 +409,10 @@ export default function LandingPage() {
       </div>
 
       {/* ══════════ BENTO FEATURES ══════════ */}
-      <section className="bq-section" id="features">
+      <section className="bq-section bq-features-section" id="features">
         <div className="bq-container">
+          <div className="bq-features-orb bq-features-orb-a" aria-hidden />
+          <div className="bq-features-orb bq-features-orb-b" aria-hidden />
           <motion.div
             className="bq-section-head"
             initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-60px' }}
@@ -426,6 +428,7 @@ export default function LandingPage() {
               <motion.div
                 key={title}
                 className={`bq-bento-card${wide ? ' wide' : ''}`}
+                style={{ '--bq-card-accent': color, '--bq-card-tint': bg }}
                 initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-40px' }}
                 custom={i % 4} variants={fadeUp}
               >

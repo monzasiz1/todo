@@ -80,6 +80,30 @@ function emitTasksChanged() {
   }
 }
 
+function buildTaskRestorePayload(task) {
+  if (!task) return null;
+
+  return {
+    title: task.title,
+    description: task.description || '',
+    date: task.date || null,
+    date_end: task.date_end || null,
+    time: task.time || null,
+    time_end: task.time_end || null,
+    priority: task.priority || 'medium',
+    category_id: task.category_id || null,
+    reminder_at: task.reminder_at || null,
+    recurrence_rule: task.recurrence_rule || null,
+    recurrence_interval: task.recurrence_interval || null,
+    recurrence_end: task.recurrence_end || null,
+    group_id: task.group_id || null,
+    group_category_id: task.group_category_id || null,
+    visibility: task.visibility || 'private',
+    permissions: task.permissions || null,
+    type: task.type || 'task',
+  };
+}
+
 export const useTaskStore = create((set, get) => ({
   tasks: readCachedTasks(),
   rangeCache: readCachedTaskRanges(),
@@ -93,15 +117,43 @@ export const useTaskStore = create((set, get) => ({
   toasts: [],
 
   // Toast management
-  addToast: (message, type = 'success') => {
+  addToast: (message, type = 'success', options = {}) => {
     const id = Date.now();
-    set((s) => ({ toasts: [...s.toasts, { id, message, type }] }));
+    const duration = typeof options.duration === 'number' ? options.duration : 4000;
+    const toast = {
+      id,
+      message,
+      type,
+      duration,
+      actionLabel: options.actionLabel || null,
+      onAction: typeof options.onAction === 'function' ? options.onAction : null,
+    };
+    set((s) => ({ toasts: [...s.toasts, toast] }));
     setTimeout(() => {
       set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }));
-    }, 4000);
+    }, duration);
   },
   removeToast: (id) => {
     set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }));
+  },
+  restoreDeletedTask: async (task) => {
+    const payload = buildTaskRestorePayload(task);
+    if (!payload) return false;
+
+    try {
+      const data = await api.createTask(payload);
+      const restored = Array.isArray(data.created_tasks) && data.created_tasks.length > 0
+        ? data.created_tasks
+        : [data.task];
+      set((s) => ({ tasks: [...restored, ...s.tasks], rangeCache: {} }));
+      writeCachedTaskRanges({});
+      emitTasksChanged();
+      get().addToast('Löschen rückgängig gemacht');
+      return true;
+    } catch (err) {
+      get().addToast('❌ Wiederherstellen fehlgeschlagen', 'error');
+      return false;
+    }
   },
 
   // Task CRUD
@@ -460,11 +512,18 @@ export const useTaskStore = create((set, get) => ({
   deleteTask: async (id) => {
     // Optimistic removal
     const prev = get().tasks;
+    const deletedTask = prev.find((task) => task.id === id) || null;
     set((s) => ({ tasks: s.tasks.filter((t) => t.id !== id), rangeCache: {} }));
     writeCachedTaskRanges({});
     try {
       await api.deleteTask(id);
-      get().addToast('🗑️ Gelöscht');
+      get().addToast('Gelöscht', 'info', deletedTask ? {
+        actionLabel: 'Rückgängig',
+        duration: 6000,
+        onAction: async () => {
+          await get().restoreDeletedTask(deletedTask);
+        },
+      } : undefined);
       emitTasksChanged();
     } catch (err) {
       set({ tasks: prev });

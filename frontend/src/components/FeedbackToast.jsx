@@ -12,6 +12,12 @@ const TYPE_CONFIG = {
 export default function FeedbackToast() {
   const { toasts, removeToast } = useTaskStore();
 
+  const handleAction = async (toast) => {
+    if (typeof toast.onAction !== 'function') return;
+    removeToast(toast.id);
+    await toast.onAction();
+  };
+
   return (
     <div className="toast-container">
       <AnimatePresence>
@@ -33,6 +39,14 @@ export default function FeedbackToast() {
                 <Icon size={17} strokeWidth={2.3} />
               </div>
               <span className="toast__msg">{toast.message}</span>
+              {toast.actionLabel && toast.onAction && (
+                <button
+                  className="toast__action"
+                  onClick={() => handleAction(toast)}
+                >
+                  {toast.actionLabel}
+                </button>
+              )}
               <button
                 className="toast__close"
                 onClick={() => removeToast(toast.id)}
@@ -40,7 +54,7 @@ export default function FeedbackToast() {
               >
                 <X size={13} />
               </button>
-              <div className="toast__bar" />
+              <div className="toast__bar" style={{ animationDuration: `${toast.duration || 4000}ms` }} />
             </motion.div>
           );
         })}
