@@ -94,6 +94,18 @@ export const useAuthStore = create((set) => ({
     }
   },
 
+  resendCode: async (email) => {
+    set({ loading: true, error: null });
+    try {
+      const data = await api.resendCode(email);
+      set({ loading: false });
+      return { success: true, message: data.message || 'Neuer Code wurde gesendet.' };
+    } catch (err) {
+      set({ loading: false, error: err.message });
+      return { success: false, error: err.message };
+    }
+  },
+
   checkAuth: async () => {
     try {
       const data = await api.getMe();

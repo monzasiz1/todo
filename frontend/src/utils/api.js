@@ -156,6 +156,12 @@ export const api = {
       body: JSON.stringify({ email, code }),
     }),
 
+  resendCode: (email) =>
+    request('/auth/resend-code', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+
   getMe: () => request('/auth/me'),
 
   // 2FA

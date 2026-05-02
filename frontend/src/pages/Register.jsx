@@ -11,7 +11,7 @@ export default function Register() {
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
 
-  const { register, verifyCode, loading, error, clearError } = useAuthStore();
+  const { register, verifyCode, resendCode, loading, error, clearError } = useAuthStore();
   const navigate = useNavigate();
   const [pendingEmail, setPendingEmail] = useState(null);
   const [verifyDigits, setVerifyDigits] = useState(['', '', '', '', '', '']);
@@ -103,11 +103,11 @@ export default function Register() {
     setVerifyError('');
     setResendMessage('');
 
-    const result = await register(name, pendingEmail, password);
-    if (result?.message) {
+    const result = await resendCode(pendingEmail);
+    if (result?.success) {
       setVerifyDigits(['', '', '', '', '', '']);
       setResendCountdown(30);
-      setResendMessage('Neuer Code wurde gesendet.');
+      setResendMessage(result.message || 'Neuer Code wurde gesendet.');
       setTimeout(() => verifyRefs[0]?.current?.focus(), 80);
       return;
     }
