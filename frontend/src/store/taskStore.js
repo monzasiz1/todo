@@ -6,6 +6,7 @@ const TASK_CACHE_KEY = 'beequ_tasks_cache_v1';
 const TASK_RANGE_CACHE_KEY = 'beequ_tasks_range_cache_v1';
 const TASK_RANGE_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
 const TASK_RANGE_CACHE_MAX_ENTRIES = 12;
+const QUICK_UNDO_FIELDS = new Set(['title', 'description', 'date', 'date_end', 'time', 'time_end', 'priority', 'category_id', 'reminder_at', 'type']);
 
 function readCachedTasks() {
   try {
@@ -104,6 +105,35 @@ function buildTaskRestorePayload(task) {
   };
 }
 
+function buildCategoryRestorePayload(category) {
+  if (!category) return null;
+
+  return {
+    name: category.name,
+    color: category.color || '#007AFF',
+    icon: category.icon || 'folder',
+  };
+}
+
+function buildTaskUpdateRevertPayload(previousTask, updates) {
+  if (!previousTask || !updates) return null;
+
+  return Object.keys(updates).reduce((acc, key) => {
+    acc[key] = Object.prototype.hasOwnProperty.call(previousTask, key) ? previousTask[key] : null;
+    return acc;
+  }, {});
+}
+
+function isUndoableTaskUpdate(previousTask, updates, options = {}) {
+  if (!previousTask || !updates) return false;
+  if (options.undoable === false) return false;
+  if (options.undoable === true) return true;
+
+  const keys = Object.keys(updates);
+  if (keys.length === 0 || keys.length > 4) return false;
+  return keys.every((key) => QUICK_UNDO_FIELDS.has(key));
+}
+
 export const useTaskStore = create((set, get) => ({
   tasks: readCachedTasks(),
   rangeCache: readCachedTaskRanges(),
@@ -152,6 +182,54 @@ export const useTaskStore = create((set, get) => ({
       return true;
     } catch (err) {
       get().addToast('❌ Wiederherstellen fehlgeschlagen', 'error');
+      return false;
+    }
+  },
+  restoreDeletedCategory: async (category, affectedTasks = []) => {
+    const payload = buildCategoryRestorePayload(category);
+    if (!payload) return false;
+
+    try {
+      const data = await api.createCategory(payload);
+      const restoredCategory = data.category;
+      const restoredTasks = [];
+
+      for (const task of affectedTasks) {
+        try {
+          const updated = await api.updateTask(task.id, { category_id: restoredCategory.id });
+          if (updated?.task) restoredTasks.push(updated.task);
+        } catch {
+          // keep restoring remaining tasks even if one fails
+        }
+      }
+
+      set((s) => ({
+        categories: [...s.categories, restoredCategory].sort((a, b) => a.name.localeCompare(b.name)),
+        tasks: s.tasks.map((task) => restoredTasks.find((item) => String(item.id) === String(task.id)) || task),
+        rangeCache: {},
+      }));
+      writeCachedTaskRanges({});
+      emitTasksChanged();
+      get().addToast('Kategorie wiederhergestellt');
+      return true;
+    } catch (err) {
+      get().addToast('❌ Kategorie konnte nicht wiederhergestellt werden', 'error');
+      return false;
+    }
+  },
+  restoreTaskCompletion: async (taskId) => {
+    try {
+      const data = await api.toggleTask(taskId);
+      set((s) => ({
+        tasks: s.tasks.map((task) => (String(task.id) === String(taskId) ? data.task : task)),
+        rangeCache: {},
+      }));
+      writeCachedTaskRanges({});
+      emitTasksChanged();
+      get().addToast('Erledigt rückgängig gemacht');
+      return true;
+    } catch (err) {
+      get().addToast('❌ Rückgängig fehlgeschlagen', 'error');
       return false;
     }
   },
@@ -433,7 +511,8 @@ export const useTaskStore = create((set, get) => ({
     }
   },
 
-  updateTask: async (id, updates) => {
+  updateTask: async (id, updates, options = {}) => {
+    const previousTask = get().tasks.find((t) => String(t.id) === String(id));
     try {
       console.log(`[taskStore] Updating task ${id} with:`, updates);
       const data = await api.updateTask(id, updates);
@@ -450,6 +529,22 @@ export const useTaskStore = create((set, get) => ({
       set({ lastTasksFetchKey: '', lastTasksFetchAt: 0 });
       console.log(`[taskStore] Invalidated fetch cache, next load will fetch fresh data`);
       emitTasksChanged();
+
+      if (isUndoableTaskUpdate(previousTask, updates, options)) {
+        const revertPayload = buildTaskUpdateRevertPayload(previousTask, updates);
+        if (revertPayload) {
+          get().addToast(options.toastMessage || 'Änderung gespeichert', 'info', {
+            actionLabel: 'Rückgängig',
+            duration: 6000,
+            onAction: async () => {
+              const reverted = await get().updateTask(id, revertPayload, { undoable: false, silentSuccess: true });
+              if (reverted) {
+                get().addToast('Bearbeitung rückgängig gemacht');
+              }
+            },
+          });
+        }
+      }
       
       const current = get().tasks.find((t) => t.id === id);
       return current || data.task;
@@ -463,6 +558,7 @@ export const useTaskStore = create((set, get) => ({
   },
 
   toggleTask: async (id) => {
+    const previousTask = get().tasks.find((task) => String(task.id) === String(id));
     // Optimistic update
     set((s) => ({
       tasks: s.tasks.map((t) =>
@@ -484,6 +580,14 @@ export const useTaskStore = create((set, get) => ({
       const task = data.task;
       if (task.completed && data.nextTask) {
         get().addToast('✅ Erledigt! 🔄 Nächste Wiederholung erstellt');
+      } else if (task.completed && previousTask) {
+        get().addToast('Als erledigt markiert', 'info', {
+          actionLabel: 'Rückgängig',
+          duration: 6000,
+          onAction: async () => {
+            await get().restoreTaskCompletion(task.id);
+          },
+        });
       } else {
         get().addToast(task.completed ? '✅ Erledigt!' : '↩️ Wieder offen');
       }
@@ -569,12 +673,22 @@ export const useTaskStore = create((set, get) => ({
 
   deleteCategory: async (id) => {
     try {
+      const deletedCategory = get().categories.find((category) => String(category.id) === String(id)) || null;
+      const affectedTasks = get().tasks.filter((task) => String(task.category_id) === String(id));
       await api.deleteCategory(id);
       set((s) => ({
         categories: s.categories.filter((c) => c.id !== id),
         tasks: s.tasks.map((t) => (t.category_id === id ? { ...t, category_id: null, category_name: null, category_color: null } : t)),
+        rangeCache: {},
       }));
-      get().addToast('🗑️ Kategorie gelöscht');
+      writeCachedTaskRanges({});
+      get().addToast('Kategorie gelöscht', 'info', deletedCategory ? {
+        actionLabel: 'Rückgängig',
+        duration: 6000,
+        onAction: async () => {
+          await get().restoreDeletedCategory(deletedCategory, affectedTasks);
+        },
+      } : undefined);
       return true;
     } catch (err) {
       get().addToast('❌ ' + err.message, 'error');

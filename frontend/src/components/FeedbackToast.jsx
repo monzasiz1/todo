@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useTaskStore } from '../store/taskStore';
 import { CheckCircle2, XCircle, Info, AlertTriangle, X } from 'lucide-react';
@@ -11,6 +12,23 @@ const TYPE_CONFIG = {
 
 export default function FeedbackToast() {
   const { toasts, removeToast } = useTaskStore();
+  const [fromTop, setFromTop] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1060 : false));
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const media = window.matchMedia('(max-width: 1060px)');
+    const handleChange = () => setFromTop(media.matches);
+    handleChange();
+
+    if (typeof media.addEventListener === 'function') {
+      media.addEventListener('change', handleChange);
+      return () => media.removeEventListener('change', handleChange);
+    }
+
+    media.addListener(handleChange);
+    return () => media.removeListener(handleChange);
+  }, []);
 
   const handleAction = async (toast) => {
     if (typeof toast.onAction !== 'function') return;
@@ -30,9 +48,9 @@ export default function FeedbackToast() {
               key={toast.id}
               className="toast"
               style={{ '--t-color': color, '--t-bg': bg, '--t-border': border }}
-              initial={{ opacity: 0, y: 32, scale: 0.92 }}
+              initial={{ opacity: 0, y: fromTop ? -28 : 32, scale: 0.92 }}
               animate={{ opacity: 1, y: 0,  scale: 1    }}
-              exit={{    opacity: 0, y: 16,  scale: 0.94 }}
+              exit={{    opacity: 0, y: fromTop ? -20 : 16,  scale: 0.94 }}
               transition={{ type: 'spring', stiffness: 420, damping: 30 }}
             >
               <div className="toast__icon">

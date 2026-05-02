@@ -3866,7 +3866,8 @@ body.cal-is-dragging * {
   .toast-container {
     left: 50%;
     right: auto;
-    bottom: 20px;
+    top: calc(14px + env(safe-area-inset-top, 0px));
+    bottom: auto;
     width: min(480px, calc(100vw - 32px));
     transform: translateX(-50%);
     align-items: stretch;
@@ -6302,7 +6303,8 @@ body.cal-is-dragging * {
     right: 12px;
     width: auto;
     transform: none;
-    bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+    top: calc(10px + env(safe-area-inset-top, 0px));
+    bottom: auto;
     align-items: stretch;
   }
 
@@ -6314,6 +6316,10 @@ body.cal-is-dragging * {
     gap: 9px;
     padding-right: 12px;
     flex-wrap: wrap;
+    border-radius: 16px;
+    box-shadow:
+      0 14px 34px rgba(15, 23, 42, 0.16),
+      0 4px 12px rgba(15, 23, 42, 0.08);
   }
 
   .toast__msg {
