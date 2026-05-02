@@ -2,9 +2,8 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import pool from '../config/db.js';
 import { generateToken } from '../middleware/auth.js';
-import crypto from 'crypto';
 import { sendMail } from '../services/mailer.js';
-import { activationMail, otpMail } from '../services/mailTemplates.js';
+import { otpMail } from '../services/mailTemplates.js';
 
 const router = Router();
 
@@ -23,12 +22,29 @@ router.post('/register', async (req, res) => {
       return res.status(409).json({ error: 'E-Mail bereits registriert' });
     }
     const hashedPassword = await bcrypt.hash(password, 12);
-    // Aktivierungs-Token generieren
-    const activationToken = crypto.randomBytes(32).toString('hex');
-    const result = await pool.query(
-      'INSERT INTO users (name, email, password, email_verification_token) VALUES ($1, $2, $3, $4) RETURNING id, name, email, created_at',
-      [name, email, hashedPassword, activationToken]
-    );
+    const verificationCode = String(Math.floor(100000 + Math.random() * 900000));
+    const codeExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    let result;
+    try {
+      result = await pool.query(
+        `INSERT INTO users (name, email, password, email_verification_code, email_verification_code_expires_at, email_verified)
+         VALUES ($1, $2, $3, $4, $5, FALSE)
+         RETURNING id, name, email, created_at`,
+        [name, email, hashedPassword, verificationCode, codeExpiresAt]
+      );
+    } catch (colErr) {
+      if (colErr.message && colErr.message.includes('column')) {
+        result = await pool.query(
+          `INSERT INTO users (name, email, password, email_verification_token, email_verified)
+           VALUES ($1, $2, $3, $4, FALSE)
+           RETURNING id, name, email, created_at`,
+          [name, email, hashedPassword, verificationCode]
+        );
+      } else {
+        throw colErr;
+      }
+    }
     const user = result.rows[0];
     // Default-Kategorien
     const defaultCategories = [
@@ -47,23 +63,96 @@ router.post('/register', async (req, res) => {
         [user.id, cat.name, cat.color, cat.icon]
       );
     }
-    // Aktivierungslink bauen
-    const baseUrl = process.env.APP_BASE_URL || 'https://beequ.de';
-    const activationUrl = `${baseUrl}/api/auth/activate?token=${activationToken}`;
-    // Mail senden — Fehler dürfen die Registration nicht blockieren
+    // Code-Mail senden — Fehler dürfen die Registration nicht blockieren
     try {
       await sendMail({
         to: email,
-        subject: 'BeeQu Account aktivieren',
-        html: activationMail({ name, activationUrl }),
+        subject: 'Dein BeeQu Verifizierungscode',
+        html: otpMail({ name, otp: verificationCode }),
       });
     } catch (mailErr) {
-      console.error('Aktivierungsmail konnte nicht gesendet werden:', mailErr.message);
+      console.error('Verifikationsmail konnte nicht gesendet werden:', mailErr.message);
     }
-    res.status(201).json({ user, message: 'Bitte bestätige deine E-Mail-Adresse. Wir haben dir einen Aktivierungslink gesendet.' });
+    res.status(201).json({ user, message: 'Bitte gib den Code ein, den wir an deine E-Mail-Adresse gesendet haben.' });
   } catch (err) {
     console.error('Register error:', err);
     res.status(500).json({ error: 'Registrierung fehlgeschlagen' });
+  }
+});
+
+// Verify code
+router.post('/verify-code', async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    if (!email || !code) {
+      return res.status(400).json({ error: 'E-Mail und Code sind erforderlich' });
+    }
+
+    let result;
+    try {
+      result = await pool.query(
+        'SELECT * FROM users WHERE email = $1',
+        [email]
+      );
+    } catch {
+      return res.status(500).json({ error: 'Verifizierung fehlgeschlagen' });
+    }
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Konto nicht gefunden' });
+    }
+
+    const user = result.rows[0];
+    if (user.email_verified) {
+      return res.status(409).json({ error: 'Konto bereits verifiziert' });
+    }
+
+    const storedCode = user.email_verification_code || user.email_verification_token;
+    const expiresAt = user.email_verification_code_expires_at || null;
+
+    if (!storedCode || String(storedCode).trim() !== String(code).trim()) {
+      return res.status(400).json({ error: 'Ungültiger Code. Bitte prüfe deine E-Mail.' });
+    }
+
+    if (expiresAt && new Date(expiresAt) < new Date()) {
+      return res.status(400).json({ error: 'Der Code ist abgelaufen. Bitte registriere dich erneut.' });
+    }
+
+    try {
+      await pool.query(
+        `UPDATE users
+         SET email_verified = TRUE,
+             email_verification_code = NULL,
+             email_verification_code_expires_at = NULL,
+             email_verification_token = NULL
+         WHERE id = $1`,
+        [user.id]
+      );
+    } catch (colErr) {
+      if (colErr.message && colErr.message.includes('column')) {
+        await pool.query(
+          `UPDATE users
+           SET email_verified = TRUE,
+               email_verification_token = NULL
+           WHERE id = $1`,
+          [user.id]
+        );
+      } else {
+        throw colErr;
+      }
+    }
+
+    const { password: _, twofa_secret: __, ...safeUser } = user;
+    safeUser.email_verified = true;
+    safeUser.email_verification_code = null;
+    safeUser.email_verification_code_expires_at = null;
+    safeUser.email_verification_token = null;
+
+    const token = generateToken(safeUser);
+    return res.json({ user: safeUser, token });
+  } catch (err) {
+    console.error('verify-code error:', err);
+    return res.status(500).json({ error: 'Verifizierung fehlgeschlagen' });
   }
 });
 
@@ -80,7 +169,7 @@ router.post('/login', async (req, res) => {
     }
     const user = result.rows[0];
     if (!user.email_verified) {
-      return res.status(403).json({ error: 'Bitte bestätige zuerst deine E-Mail-Adresse.' });
+      return res.status(403).json({ error: 'Bitte bestätige zuerst deine E-Mail-Adresse mit dem 6-stelligen Code.' });
     }
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
@@ -119,7 +208,7 @@ router.get('/me', async (req, res) => {
   }
 });
 
-// E-Mail-Aktivierung
+// E-Mail-Aktivierung (Legacy)
 router.get('/activate', async (req, res) => {
   const { token } = req.query;
   if (!token) return res.status(400).send('Kein Aktivierungs-Token angegeben.');
