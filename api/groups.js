@@ -855,7 +855,7 @@ module.exports = async function handler(req, res) {
       const membership = await getMembership(groupId);
       if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
 
-      let { task_id, with_rsvp } = req.body;
+      let { task_id } = req.body;
       if (!task_id) return res.status(400).json({ error: 'task_id fehlt' });
 
       const virtual = parseVirtualId(task_id);
@@ -882,9 +882,7 @@ module.exports = async function handler(req, res) {
       }
 
       const isEventTask = String(task.type || '').toLowerCase() === 'event';
-      const messageType = isEventTask
-        ? 'group_event'
-        : ((with_rsvp === true || task.enable_group_rsvp === true) ? 'group_task_rsvp' : 'group_task');
+      const messageType = isEventTask ? 'group_event' : 'group_task';
       const content = task.title || (messageType === 'group_event' ? 'Gruppen-Termin' : 'Gruppen-Aufgabe');
       const ins = await pool.query(
         `INSERT INTO group_messages (group_id, user_id, content, message_type, linked_task_id)
