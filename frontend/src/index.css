@@ -5891,17 +5891,17 @@ body.cal-is-dragging * {
   }
 
   .cal-header-row1 {
-    padding: 10px 14px 9px;
+    padding: 9px 14px 8px;
     gap: 8px;
-    position: relative;
   }
 
+  /* row2 stapelt Switchbar und Include-Chips vertikal auf Mobile */
   .cal-header-row2 {
-    padding: 7px 14px 9px;
+    padding: 0 0 0;
+    flex-direction: column;
+    align-items: stretch;
     gap: 0;
-    overflow-x: auto;
-    scrollbar-width: none;
-    flex-wrap: nowrap;
+    overflow: visible;
   }
 
   .cal-header-row2::-webkit-scrollbar {
@@ -5955,6 +5955,14 @@ body.cal-is-dragging * {
     width: auto;
     justify-content: flex-end;
     margin-top: 0;
+    gap: 2px;
+  }
+
+  /* Heute-Button auf Mobile kompakter */
+  .cal-nav-today-btn {
+    padding: 0 9px;
+    font-size: 11px;
+    height: 30px;
   }
 
   .calendar-view-toggle {
@@ -5981,7 +5989,16 @@ body.cal-is-dragging * {
 
   .calendar-source-switchbar {
     gap: 6px;
-    flex-shrink: 0;
+    flex-shrink: unset;
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 7px 14px 6px;
+    border-top: 1px solid #eef0f5;
+  }
+
+  .calendar-source-switchbar::-webkit-scrollbar {
+    display: none;
   }
 
   .calendar-source-switch-btn {
@@ -5996,8 +6013,20 @@ body.cal-is-dragging * {
   }
 
   .calendar-own-include-row {
-    margin-top: 6px;
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid #eef0f5;
+    margin-left: 0;
+    padding-left: 0;
+    padding: 6px 14px 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
     gap: 6px;
+  }
+
+  .calendar-own-include-row::-webkit-scrollbar {
+    display: none;
   }
 
   .calendar-own-include-label {
