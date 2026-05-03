@@ -54,6 +54,10 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
   const pullNextRef = useRef(0);
   const pullOffsetRef = useRef(0);
   const [pullOffset, setPullOffset] = useState(0);
+  const titleFieldRef = useRef(null);
+  const editHeaderRef = useRef(null);
+  const [editTitleHidden, setEditTitleHidden] = useState(false);
+  const [editScrollDarkened, setEditScrollDarkened] = useState(false);
   const [isMobile, setIsMobile] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1024px)').matches
   );
@@ -67,6 +71,31 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
   }, []);
+
+  useEffect(() => {
+    const titleEl = titleFieldRef.current;
+    const headerEl = editHeaderRef.current;
+    if (!titleEl || !headerEl) return;
+    const check = () => {
+      const titleRect = titleEl.getBoundingClientRect();
+      const headerRect = headerEl.getBoundingClientRect();
+      setEditTitleHidden(titleRect.top < headerRect.bottom);
+      setEditScrollDarkened(titleRect.top < headerRect.bottom + 64);
+    };
+    const scrollEl =
+      titleEl.closest('.is-mobile-fullscreen') ||
+      titleEl.closest('.task-edit-body') ||
+      titleEl.closest('.task-edit-modal');
+    scrollEl?.addEventListener('scroll', check, { passive: true });
+    window.addEventListener('scroll', check, { passive: true });
+    window.addEventListener('resize', check, { passive: true });
+    check();
+    return () => {
+      scrollEl?.removeEventListener('scroll', check);
+      window.removeEventListener('scroll', check);
+      window.removeEventListener('resize', check);
+    };
+  }, [isMobile]);
 
   const queuePullOffset = (next) => {
     pullNextRef.current = next;
@@ -438,8 +467,13 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
       >
         {isMobile && <div className="modal-pull-handle" />}
         {/* Header */}
-        <div className="task-edit-header">
-          <h2>Aufgabe bearbeiten</h2>
+        <div className={`task-edit-header${editScrollDarkened ? ' scrolled' : ''}`} ref={editHeaderRef}>
+          <h2 style={{ opacity: editTitleHidden ? 0 : 1, transition: 'opacity 0.15s ease', pointerEvents: 'none' }}>
+            Aufgabe bearbeiten
+          </h2>
+          <div className={`task-detail-sticky-title task-edit-sticky-title${editTitleHidden ? ' visible' : ''}`}>
+            <span>{title || 'Aufgabe bearbeiten'}</span>
+          </div>
           <button className="task-edit-close" onClick={onClose}>
             <X size={20} />
           </button>
@@ -468,7 +502,7 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
           </div>
 
           {/* Title */}
-          <div className="task-edit-field">
+          <div className="task-edit-field" ref={titleFieldRef}>
             <label><FileText size={14} /> Titel</label>
             <input
               type="text"
