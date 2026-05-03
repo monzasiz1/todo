@@ -123,10 +123,10 @@ module.exports = async function handler(req, res) {
               (SELECT COUNT(*)::int FROM group_event_rsvps r WHERE r.message_id = m.id AND r.status = 'maybe') as rsvp_maybe_count,
               (SELECT COUNT(*)::int FROM group_event_rsvps r WHERE r.message_id = m.id AND r.status = 'no') as rsvp_no_count,
               (SELECT status FROM group_event_rsvps r WHERE r.message_id = m.id AND r.user_id = $3 LIMIT 1) as my_rsvp,
-              (SELECT COALESCE(json_agg(json_build_object('name', u2.name, 'avatar_color', u2.avatar_color) ORDER BY r2.updated_at ASC), '[]'::json)
+              (SELECT COALESCE(json_agg(json_build_object('name', u2.name, 'avatar_color', u2.avatar_color, 'avatar_url', u2.avatar_url) ORDER BY r2.updated_at ASC), '[]'::json)
                FROM group_event_rsvps r2 JOIN users u2 ON u2.id = r2.user_id
                WHERE r2.message_id = m.id AND r2.status = 'yes') as rsvp_yes_users,
-              (SELECT COALESCE(json_agg(json_build_object('name', u2.name, 'avatar_color', u2.avatar_color) ORDER BY r2.updated_at ASC), '[]'::json)
+              (SELECT COALESCE(json_agg(json_build_object('name', u2.name, 'avatar_color', u2.avatar_color, 'avatar_url', u2.avatar_url) ORDER BY r2.updated_at ASC), '[]'::json)
                FROM group_event_rsvps r2 JOIN users u2 ON u2.id = r2.user_id
                WHERE r2.message_id = m.id AND r2.status = 'no') as rsvp_no_users
        FROM group_messages m
@@ -797,10 +797,10 @@ module.exports = async function handler(req, res) {
                 (SELECT COUNT(*)::int FROM group_event_rsvps r WHERE r.message_id = m.id AND r.status = 'maybe') as rsvp_maybe_count,
                 (SELECT COUNT(*)::int FROM group_event_rsvps r WHERE r.message_id = m.id AND r.status = 'no') as rsvp_no_count,
                 (SELECT status FROM group_event_rsvps r WHERE r.message_id = m.id AND r.user_id = $2 LIMIT 1) as my_rsvp,
-                (SELECT COALESCE(json_agg(json_build_object('name', u2.name, 'avatar_color', u2.avatar_color) ORDER BY r2.updated_at ASC), '[]'::json)
+                (SELECT COALESCE(json_agg(json_build_object('name', u2.name, 'avatar_color', u2.avatar_color, 'avatar_url', u2.avatar_url) ORDER BY r2.updated_at ASC), '[]'::json)
                  FROM group_event_rsvps r2 JOIN users u2 ON u2.id = r2.user_id
                  WHERE r2.message_id = m.id AND r2.status = 'yes') as rsvp_yes_users,
-                (SELECT COALESCE(json_agg(json_build_object('name', u2.name, 'avatar_color', u2.avatar_color) ORDER BY r2.updated_at ASC), '[]'::json)
+                (SELECT COALESCE(json_agg(json_build_object('name', u2.name, 'avatar_color', u2.avatar_color, 'avatar_url', u2.avatar_url) ORDER BY r2.updated_at ASC), '[]'::json)
                  FROM group_event_rsvps r2 JOIN users u2 ON u2.id = r2.user_id
                  WHERE r2.message_id = m.id AND r2.status = 'no') as rsvp_no_users
          FROM group_messages m
