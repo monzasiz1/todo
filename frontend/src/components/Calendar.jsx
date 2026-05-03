@@ -1437,7 +1437,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
         : null;
     const timeToMinutes = timeToMins;
     const weekTimedTasks = filteredTasks.filter((t) => {
-      if (!t.time || !t.date) return false;
+      if (!t.date || isAllDayTask(t)) return false;
       const taskStart = t.date.substring(0, 10);
       const taskEnd = (t.date_end || t.date).substring(0, 10);
       return taskStart <= weekEndStr && taskEnd >= weekStartStr;
@@ -1541,7 +1541,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
               const weekDay = d.getDay(); // 0=Sun, 1=Mon..6=Sat
               const isWeekRowStart = weekDay === 1;
               const isWeekRowEnd = weekDay === 0;
-              const dayTasks = getTasksForDate(d).filter((t) => !t.time);
+              const dayTasks = getTasksForDate(d).filter((t) => isAllDayTask(t));
               return (
                 <div key={`allday-${d.toISOString()}`} className="desktop-week-all-day-cell" data-caldate={format(d, 'yyyy-MM-dd')}>
                   {dayTasks.slice(0, 3).map((t) => {
@@ -1690,10 +1690,11 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   const eventBg = doneOrEnded
                     ? 'rgba(142, 142, 147, 0.72)'
                     : (t.group_category_color || t.category_color || t.group_color || '#4C7BD9');
+                  const desktopWeekRenderKey = `${String(t.id)}_${taskStart}_${taskEnd}_${t.time || 'na'}_${t.time_end || 'na'}`;
 
                   return (
                     <div
-                      key={t.id}
+                      key={desktopWeekRenderKey}
                       className={`desktop-week-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${t.completed ? ' completed' : ''}${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
                       style={{
                         left: isSingleDay ? singleDayLeft : `calc((100% / 7) * ${startIdx} + 4px)`,
