@@ -370,6 +370,136 @@ function buildDashboardOrderByClause() {
              t.created_at DESC`;
 }
 
+function parseVirtualTaskId(rawId) {
+  if (typeof rawId !== 'string' || !rawId.startsWith('v_')) return null;
+  const parts = rawId.split('_');
+  if (parts.length < 3) return null;
+  const date = parts[parts.length - 1];
+  const parentId = parts.slice(1, -1).join('_');
+  if (!parentId || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  return { parentId: Number(parentId), date };
+}
+
+function getVoteKey(taskId, occurrenceDate) {
+  return `${taskId}|${occurrenceDate || ''}`;
+}
+
+function getTaskVoteContext(task) {
+  const virtual = parseVirtualTaskId(task?.id);
+  if (virtual) {
+    return {
+      baseTaskId: virtual.parentId,
+      occurrenceDate: virtual.date,
+    };
+  }
+
+  if (task?.recurrence_parent_id) {
+    return {
+      baseTaskId: Number(task.recurrence_parent_id),
+      occurrenceDate: toIsoDateStr(task.date),
+    };
+  }
+
+  if (task?.recurrence_rule) {
+    return {
+      baseTaskId: Number(task.id),
+      occurrenceDate: toIsoDateStr(task.date),
+    };
+  }
+
+  return {
+    baseTaskId: Number(task?.id),
+    occurrenceDate: null,
+  };
+}
+
+async function enrichTaskVoteStats(pool, tasks) {
+  if (!Array.isArray(tasks) || tasks.length === 0) return tasks;
+
+  const eligible = tasks.filter((t) => t && t.group_id && t.enable_group_rsvp === true);
+  if (eligible.length === 0) {
+    return tasks.map((t) => ({
+      ...t,
+      vote_yes_count: Number(t?.vote_yes_count || 0),
+      vote_no_count: Number(t?.vote_no_count || 0),
+      vote_unanswered_count: Number(t?.vote_unanswered_count || 0),
+      vote_member_count: Number(t?.vote_member_count || 0),
+    }));
+  }
+
+  const contextByTaskId = new Map();
+  const baseTaskIdsSet = new Set();
+  for (const task of eligible) {
+    const ctx = getTaskVoteContext(task);
+    if (!ctx.baseTaskId || Number.isNaN(ctx.baseTaskId)) continue;
+    contextByTaskId.set(String(task.id), ctx);
+    baseTaskIdsSet.add(ctx.baseTaskId);
+  }
+
+  const baseTaskIds = Array.from(baseTaskIdsSet);
+  if (baseTaskIds.length === 0) return tasks;
+
+  const memberCountsRes = await pool.query(
+    `SELECT gt.task_id, COUNT(DISTINCT gm.user_id)::int AS member_count
+     FROM group_tasks gt
+     JOIN group_members gm ON gm.group_id = gt.group_id
+     WHERE gt.task_id = ANY($1::int[])
+     GROUP BY gt.task_id`,
+    [baseTaskIds]
+  );
+
+  const memberCountByTaskId = new Map();
+  for (const row of memberCountsRes.rows || []) {
+    memberCountByTaskId.set(Number(row.task_id), Number(row.member_count || 0));
+  }
+
+  const voteStatsRes = await pool.query(
+    `SELECT task_id,
+            occurrence_date,
+            COUNT(*) FILTER (WHERE status = 'yes')::int AS yes_count,
+            COUNT(*) FILTER (WHERE status = 'no')::int AS no_count
+     FROM task_votes
+     WHERE task_id = ANY($1::int[])
+     GROUP BY task_id, occurrence_date`,
+    [baseTaskIds]
+  );
+
+  const voteByKey = new Map();
+  for (const row of voteStatsRes.rows || []) {
+    const key = getVoteKey(Number(row.task_id), row.occurrence_date ? toIsoDateStr(row.occurrence_date) : null);
+    voteByKey.set(key, {
+      yes: Number(row.yes_count || 0),
+      no: Number(row.no_count || 0),
+    });
+  }
+
+  return tasks.map((task) => {
+    if (!task || !(task.group_id && task.enable_group_rsvp === true)) {
+      return {
+        ...task,
+        vote_yes_count: Number(task?.vote_yes_count || 0),
+        vote_no_count: Number(task?.vote_no_count || 0),
+        vote_unanswered_count: Number(task?.vote_unanswered_count || 0),
+        vote_member_count: Number(task?.vote_member_count || 0),
+      };
+    }
+
+    const ctx = contextByTaskId.get(String(task.id)) || getTaskVoteContext(task);
+    const key = getVoteKey(ctx.baseTaskId, ctx.occurrenceDate);
+    const stat = voteByKey.get(key) || { yes: 0, no: 0 };
+    const memberCount = Number(memberCountByTaskId.get(ctx.baseTaskId) || 0);
+    const unanswered = Math.max(0, memberCount - stat.yes - stat.no);
+
+    return {
+      ...task,
+      vote_yes_count: stat.yes,
+      vote_no_count: stat.no,
+      vote_unanswered_count: unanswered,
+      vote_member_count: memberCount,
+    };
+  });
+}
+
 let collabEnabledCache = null;
 let collabEnabledCacheAt = 0;
 const COLLAB_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -1061,6 +1191,7 @@ module.exports = async function handler(req, res) {
              ranked_tasks AS (
                SELECT t.id, t.user_id, t.title, t.description, t.date, t.date_end, t.time, t.time_end,
                  t.priority, t.completed, t.type, t.sort_order, t.created_at, t.updated_at, t.visibility,
+                 t.recurrence_rule, t.recurrence_parent_id, t.enable_group_rsvp,
                  t.teams_join_url, t.teams_meeting_id,
                       t.category_id,
                       CASE WHEN t.user_id = $1 THEN true ELSE false END AS is_owner,
@@ -1099,6 +1230,7 @@ module.exports = async function handler(req, res) {
              )
                   SELECT rt.id, rt.user_id, rt.title, rt.description, rt.date, rt.date_end, rt.time, rt.time_end,
                     rt.priority, rt.completed, rt.type, rt.sort_order, rt.created_at, rt.updated_at, rt.visibility,
+                    rt.recurrence_rule, rt.recurrence_parent_id, rt.enable_group_rsvp,
                     rt.teams_join_url, rt.teams_meeting_id,
                     rt.category_id,
                     c.name as category_name,
@@ -1167,6 +1299,7 @@ module.exports = async function handler(req, res) {
              ranked_tasks AS (
                SELECT t.id, t.user_id, t.title, t.description, t.date, t.date_end, t.time, t.time_end,
                  t.priority, t.completed, t.type, t.sort_order, t.created_at, t.updated_at,
+                 t.recurrence_rule, t.recurrence_parent_id, t.enable_group_rsvp,
                  t.teams_join_url, t.teams_meeting_id,
                       t.category_id
                FROM uniq_ids ids
@@ -1182,6 +1315,7 @@ module.exports = async function handler(req, res) {
              )
                   SELECT rt.id, rt.user_id, rt.title, rt.description, rt.date, rt.date_end, rt.time, rt.time_end,
                     rt.priority, rt.completed, rt.type, rt.sort_order, rt.created_at, rt.updated_at,
+                    rt.recurrence_rule, rt.recurrence_parent_id, rt.enable_group_rsvp,
                     rt.teams_join_url, rt.teams_meeting_id,
                     rt.category_id,
                     c.name as category_name,
@@ -1363,8 +1497,10 @@ module.exports = async function handler(req, res) {
           mergedTasks = normalizeTaskRows(result.rows || []);
         }
 
+        const enrichedTasks = await enrichTaskVoteStats(pool, mergedTasks);
+
         // 🚀 CACHE: Store result for 30 seconds
-        const response = { tasks: mergedTasks, lite: true };
+        const response = { tasks: enrichedTasks, lite: true };
         const cacheKey = buildDashboardCacheKey(user.id, completedFilter, limit, horizonDays, completedLookbackDays);
         try {
           await cacheManager.set(cacheKey, response, 120, String(user.id));
@@ -1437,7 +1573,9 @@ module.exports = async function handler(req, res) {
         );
       }
 
-      return res.json({ tasks: normalizeTaskRows(result.rows) });
+      const normalized = normalizeTaskRows(result.rows);
+      const enriched = await enrichTaskVoteStats(pool, normalized);
+      return res.json({ tasks: enriched });
     } catch (err) {
       console.error('Tasks list error:', err);
       return res.status(500).json({ error: 'Fehler beim Laden der Aufgaben' });

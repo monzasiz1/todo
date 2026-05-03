@@ -97,7 +97,7 @@ img{-ms-interpolation-mode:bicubic;border:0;outline:none;text-decoration:none}
                   <span style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.6);
                                font-family:Inter,-apple-system,Arial,sans-serif;
                                letter-spacing:0.05em;text-transform:uppercase;">
-                    von BeeTwice
+                    BeeQu
                   </span>
                 </td>
               </tr>
@@ -287,7 +287,7 @@ img{-ms-interpolation-mode:bicubic;border:0;outline:none;text-decoration:none}
                 <td>
                   <p style="margin:0 0 4px;font-size:13px;color:#374151;font-weight:600;
                              font-family:Inter,-apple-system,Arial,sans-serif;">
-                    BeeTwice GmbH
+                    BeeQu
                   </p>
                   <p style="margin:0;font-size:12px;color:#9CA3AF;
                              font-family:Inter,-apple-system,Arial,sans-serif;">
@@ -356,7 +356,7 @@ async function sendPasswordChangedMail({ to, name }) {
               </tr></table>
             </td>
             <td align="right" style="vertical-align:middle;">
-              <span style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.6);font-family:Inter,-apple-system,Arial,sans-serif;letter-spacing:0.05em;text-transform:uppercase;">von BeeTwice</span>
+              <span style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.6);font-family:Inter,-apple-system,Arial,sans-serif;letter-spacing:0.05em;text-transform:uppercase;">BeeQu</span>
             </td>
           </tr></table>
         </td>
@@ -383,7 +383,7 @@ async function sendPasswordChangedMail({ to, name }) {
       <tr>
         <td bgcolor="#F9FAFB" style="background-color:#F9FAFB;border-radius:0 0 16px 16px;padding:24px 48px;border-top:1px solid #E5E7EB;">
           <table width="100%"><tr>
-            <td><p style="margin:0 0 4px;font-size:13px;color:#374151;font-weight:600;font-family:Inter,-apple-system,Arial,sans-serif;">BeeTwice GmbH</p>
+            <td><p style="margin:0 0 4px;font-size:13px;color:#374151;font-weight:600;font-family:Inter,-apple-system,Arial,sans-serif;">BeeQu</p>
               <p style="margin:0;font-size:12px;color:#9CA3AF;font-family:Inter,-apple-system,Arial,sans-serif;">© 2026 · <a href="https://beequ.de" style="color:#007AFF;text-decoration:none;">beequ.de</a>&nbsp;·&nbsp;<a href="https://beequ.de/datenschutz" style="color:#9CA3AF;text-decoration:none;">Datenschutz</a>&nbsp;·&nbsp;<a href="https://beequ.de/agb" style="color:#9CA3AF;text-decoration:none;">AGB</a></p>
             </td>
             <td align="right" style="vertical-align:middle;"><img src="https://beequ.de/icons/icon.png" alt="BeeQu" width="28" height="28" style="display:block;border-radius:50%;border:0;opacity:0.35;"></td>
@@ -435,7 +435,7 @@ async function sendPasswordChangeConfirmMail({ to, name, confirmUrl }) {
               </tr></table>
             </td>
             <td align="right" style="vertical-align:middle;">
-              <span style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.6);font-family:Inter,-apple-system,Arial,sans-serif;letter-spacing:0.05em;text-transform:uppercase;">von BeeTwice</span>
+              <span style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.6);font-family:Inter,-apple-system,Arial,sans-serif;letter-spacing:0.05em;text-transform:uppercase;">BeeQu</span>
             </td>
           </tr></table>
         </td>
@@ -464,7 +464,7 @@ async function sendPasswordChangeConfirmMail({ to, name, confirmUrl }) {
       <tr>
         <td bgcolor="#F9FAFB" style="background-color:#F9FAFB;border-radius:0 0 16px 16px;padding:24px 48px;border-top:1px solid #E5E7EB;">
           <table width="100%"><tr>
-            <td><p style="margin:0 0 4px;font-size:13px;color:#374151;font-weight:600;font-family:Inter,-apple-system,Arial,sans-serif;">BeeTwice GmbH</p>
+            <td><p style="margin:0 0 4px;font-size:13px;color:#374151;font-weight:600;font-family:Inter,-apple-system,Arial,sans-serif;">BeeQu</p>
               <p style="margin:0;font-size:12px;color:#9CA3AF;font-family:Inter,-apple-system,Arial,sans-serif;">© 2026 · <a href="https://beequ.de" style="color:#007AFF;text-decoration:none;">beequ.de</a>&nbsp;·&nbsp;<a href="https://beequ.de/datenschutz" style="color:#9CA3AF;text-decoration:none;">Datenschutz</a>&nbsp;·&nbsp;<a href="https://beequ.de/agb" style="color:#9CA3AF;text-decoration:none;">AGB</a></p>
             </td>
             <td align="right" style="vertical-align:middle;"><img src="https://beequ.de/icons/icon.png" alt="BeeQu" width="28" height="28" style="display:block;border-radius:50%;border:0;opacity:0.35;"></td>
@@ -500,7 +500,7 @@ async function sendPasswordResetMail({ to, name, resetUrl }) {
         </td>
         <td style="vertical-align:middle;font-size:22px;font-weight:900;color:#fff;letter-spacing:-0.04em;">BeeQu</td>
       </tr></table></td>
-      <td align="right" style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.05em;">von BeeTwice</td>
+      <td align="right" style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.05em;">BeeQu</td>
     </tr></table>
   </td></tr>
   <tr><td bgcolor="#ffffff" style="background:#fff;padding:48px 48px 40px;">
@@ -523,7 +523,7 @@ async function sendPasswordResetMail({ to, name, resetUrl }) {
   </td></tr>
   <tr><td bgcolor="#F9FAFB" style="background:#F9FAFB;border-radius:0 0 16px 16px;padding:20px 48px;border-top:1px solid #E5E7EB;">
     <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-      <td><p style="margin:0;font-size:12px;color:#9CA3AF;">© 2026 BeeTwice GmbH · <a href="https://beequ.de" style="color:#007AFF;text-decoration:none;">beequ.de</a></p></td>
+      <td><p style="margin:0;font-size:12px;color:#9CA3AF;">© 2026 BeeQu · <a href="https://beequ.de" style="color:#007AFF;text-decoration:none;">beequ.de</a></p></td>
       <td align="right"><img src="https://beequ.de/icons/icon.png" alt="BeeQu" width="28" height="28" style="display:block;border-radius:50%;opacity:0.35;"></td>
     </tr></table>
   </td></tr>
@@ -594,7 +594,7 @@ body{margin:0;padding:0;background:#F0F4F8;font-family:-apple-system,BlinkMacSys
   <!-- FOOTER -->
   <tr><td bgcolor="#F9FAFB" style="background:#F9FAFB;border-radius:0 0 16px 16px;padding:20px 48px;border-top:1px solid #E5E7EB;">
     <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-      <td><p style="margin:0;font-size:12px;color:#9CA3AF;">© 2026 BeeTwice GmbH · <a href="https://beequ.de" style="color:#007AFF;text-decoration:none;">beequ.de</a></p></td>
+      <td><p style="margin:0;font-size:12px;color:#9CA3AF;">© 2026 BeeQu · <a href="https://beequ.de" style="color:#007AFF;text-decoration:none;">beequ.de</a></p></td>
       <td align="right"><img src="https://beequ.de/icons/icon.png" alt="BeeQu" width="28" height="28" style="display:block;border-radius:50%;opacity:0.35;"></td>
     </tr></table>
   </td></tr>
