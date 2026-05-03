@@ -432,20 +432,20 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
             </span>
           )}
           {task.group_id && task.enable_group_rsvp === true && (
-            <>
-              <span className="task-meta-item task-vote-stat task-vote-stat--yes" title="Zusagen">
+            <div className="task-meta-votes-row">
+              <span className="task-vote-stat task-vote-stat--yes" title="Zusagen">
                 <Check size={12} />
                 {Number(task.vote_yes_count || 0)}
               </span>
-              <span className="task-meta-item task-vote-stat task-vote-stat--no" title="Absagen">
+              <span className="task-vote-stat task-vote-stat--no" title="Absagen">
                 <ThumbsDown size={12} />
                 {Number(task.vote_no_count || 0)}
               </span>
-              <span className="task-meta-item task-vote-stat task-vote-stat--pending" title="Unbeantwortet">
+              <span className="task-vote-stat task-vote-stat--pending" title="Unbeantwortet">
                 <Users size={12} />
                 {Number(task.vote_unanswered_count || 0)}
               </span>
-            </>
+            </div>
           )}
         </div>
       </div>

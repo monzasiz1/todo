@@ -657,8 +657,6 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
                 </button>
               </div>
 
-              <div className="task-detail-vote-hint">Erneut tippen entfernt deine Auswahl.</div>
-
               <div className="task-detail-vote-attendees">
                 {taskVotes.yes_users.length > 0 && (
                   <button

@@ -1934,13 +1934,27 @@ input, textarea, select {
   height: 14px;
 }
 
+.task-meta-votes-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 100%;
+  width: 100%;
+  order: 99;
+  margin-top: 2px;
+}
+
 .task-vote-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   padding: 1px 7px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
   line-height: 1.2;
   border: 1px solid transparent;
+  white-space: nowrap;
 }
 
 .task-vote-stat--yes {
@@ -1959,6 +1973,17 @@ input, textarea, select {
   color: #4a5568;
   background: rgba(142, 142, 147, 0.14);
   border-color: rgba(142, 142, 147, 0.3);
+}
+
+@media (max-width: 480px) {
+  .task-meta-votes-row {
+    gap: 5px;
+  }
+
+  .task-vote-stat {
+    padding: 1px 6px;
+    font-size: 10.5px;
+  }
 }
 
 .task-category-badge {
@@ -7030,10 +7055,10 @@ body.cal-is-dragging * {
 }
 
 .task-detail-vote-surface {
-  margin-top: 10px;
+  margin-top: 8px;
   border: 1px solid color-mix(in srgb, var(--primary) 12%, transparent);
   border-radius: 16px;
-  padding: 11px;
+  padding: 10px;
   background: color-mix(in srgb, var(--card-solid) 90%, white 10%);
   backdrop-filter: blur(6px);
 }
@@ -7103,22 +7128,22 @@ body.cal-is-dragging * {
 }
 
 .task-detail-vote-actions {
-  display: flex;
-  gap: 10px;
+  display: inline-flex;
+  gap: 8px;
   margin-top: 10px;
+  flex-wrap: wrap;
 }
 
 .task-detail-vote-btn {
-  flex: 1;
-  min-width: 0;
+  min-width: 124px;
   border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
   background: color-mix(in srgb, var(--card-solid) 95%, white 5%);
   border-radius: 999px;
-  padding: 8px 10px;
+  padding: 7px 10px;
   font-size: 12px;
   font-weight: 700;
   color: var(--text);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
   cursor: pointer;
@@ -7138,11 +7163,11 @@ body.cal-is-dragging * {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  height: 20px;
+  min-width: 18px;
+  height: 18px;
   border-radius: 999px;
   padding: 0 6px;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
 }
 
@@ -7151,7 +7176,7 @@ body.cal-is-dragging * {
   border-color: rgba(52, 199, 89, 0.45);
   background: rgba(52, 199, 89, 0.14);
   color: #1f8a47;
-  transform: translateY(-1px);
+  transform: translateY(-0.5px);
 }
 
 .task-detail-vote-btn.yes .task-detail-vote-btn-count {
@@ -7163,7 +7188,7 @@ body.cal-is-dragging * {
   border-color: rgba(255, 59, 48, 0.45);
   background: rgba(255, 59, 48, 0.12);
   color: #c0392b;
-  transform: translateY(-1px);
+  transform: translateY(-0.5px);
 }
 
 .task-detail-vote-btn.no .task-detail-vote-btn-count {
@@ -7176,31 +7201,25 @@ body.cal-is-dragging * {
   transform: none;
 }
 
-.task-detail-vote-hint {
-  margin-top: 8px;
-  font-size: 11.5px;
-  color: var(--text-secondary);
-}
-
 .task-detail-vote-attendees {
-  margin-top: 10px;
+  margin-top: 8px;
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
   position: relative;
 }
 
 .task-detail-vote-stack-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   border: 1.5px solid transparent;
   border-radius: 999px;
-  padding: 5px 10px 5px 7px;
+  padding: 4px 8px 4px 6px;
   background: transparent;
   cursor: pointer;
   transition: all 0.16s ease;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
 }
 
@@ -7231,6 +7250,7 @@ body.cal-is-dragging * {
   align-items: center;
   gap: 4px;
   white-space: nowrap;
+  font-size: 10.5px;
 }
 
 .task-detail-vote-stack {
@@ -7262,14 +7282,14 @@ body.cal-is-dragging * {
 
 .task-detail-vote-count {
   margin-left: 2px;
-  min-width: 20px;
-  height: 20px;
+  min-width: 18px;
+  height: 18px;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0 6px;
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 700;
   opacity: 0.92;
 }
@@ -7364,21 +7384,12 @@ body.cal-is-dragging * {
 }
 
 @media (max-width: 560px) {
-  .task-detail-vote-surface {
-    padding: 10px;
-  }
-
-  .task-detail-vote-actions {
-    flex-direction: column;
-  }
-
   .task-detail-vote-btn {
-    width: 100%;
+    min-width: 110px;
   }
 
   .task-detail-vote-stack-btn {
-    width: 100%;
-    justify-content: space-between;
+    max-width: 100%;
   }
 }
 
