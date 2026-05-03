@@ -1022,13 +1022,9 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
                                       <ThumbsUp size={11} />
                                       <span className="gchat-rsvp-stack">
                                         {msg.rsvp_yes_users.slice(0, 5).map((u, i) => (
-                                          <span
-                                            key={i}
-                                            className="gchat-rsvp-avatar"
-                                            style={{ background: u.avatar_color || '#4C7BD9', zIndex: 5 - i }}
-                                          >
-                                            {String(u.name || '?').charAt(0).toUpperCase()}
-                                          </span>
+                                          u.avatar_url
+                                            ? <img key={i} className="gchat-rsvp-avatar gchat-rsvp-avatar--img" src={u.avatar_url} alt={u.name} style={{ zIndex: 5 - i }} />
+                                            : <span key={i} className="gchat-rsvp-avatar" style={{ background: u.avatar_color || '#4C7BD9', zIndex: 5 - i }}>{String(u.name || '?').charAt(0).toUpperCase()}</span>
                                         ))}
                                         {msg.rsvp_yes_users.length > 5 && (
                                           <span className="gchat-rsvp-avatar gchat-rsvp-avatar--more">+{msg.rsvp_yes_users.length - 5}</span>
@@ -1045,13 +1041,9 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
                                       <ThumbsDown size={11} />
                                       <span className="gchat-rsvp-stack">
                                         {msg.rsvp_no_users.slice(0, 5).map((u, i) => (
-                                          <span
-                                            key={i}
-                                            className="gchat-rsvp-avatar gchat-rsvp-avatar--no"
-                                            style={{ background: u.avatar_color || '#8e8e93', zIndex: 5 - i }}
-                                          >
-                                            {String(u.name || '?').charAt(0).toUpperCase()}
-                                          </span>
+                                          u.avatar_url
+                                            ? <img key={i} className="gchat-rsvp-avatar gchat-rsvp-avatar--img gchat-rsvp-avatar--no" src={u.avatar_url} alt={u.name} style={{ zIndex: 5 - i }} />
+                                            : <span key={i} className="gchat-rsvp-avatar gchat-rsvp-avatar--no" style={{ background: u.avatar_color || '#8e8e93', zIndex: 5 - i }}>{String(u.name || '?').charAt(0).toUpperCase()}</span>
                                         ))}
                                         {msg.rsvp_no_users.length > 5 && (
                                           <span className="gchat-rsvp-avatar gchat-rsvp-avatar--more gchat-rsvp-avatar--no">+{msg.rsvp_no_users.length - 5}</span>
@@ -1075,12 +1067,10 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
                                         <div className="gchat-rsvp-popup-list">
                                           {users.map((u, i) => (
                                             <div key={i} className="gchat-rsvp-popup-row">
-                                              <span
-                                                className="gchat-rsvp-popup-avatar"
-                                                style={{ background: u.avatar_color || (isYes ? '#4C7BD9' : '#8e8e93') }}
-                                              >
-                                                {String(u.name || '?').charAt(0).toUpperCase()}
-                                              </span>
+                                              {u.avatar_url
+                                                ? <img className="gchat-rsvp-popup-avatar gchat-rsvp-popup-avatar--img" src={u.avatar_url} alt={u.name} />
+                                                : <span className="gchat-rsvp-popup-avatar" style={{ background: u.avatar_color || (isYes ? '#4C7BD9' : '#8e8e93') }}>{String(u.name || '?').charAt(0).toUpperCase()}</span>
+                                              }
                                               <span className="gchat-rsvp-popup-name">{u.name}</span>
                                             </div>
                                           ))}

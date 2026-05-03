@@ -23884,6 +23884,14 @@ body.cal-is-dragging * {
   color: #3a4a60;
   font-size: 9px;
 }
+.gchat-rsvp-avatar--img {
+  object-fit: cover;
+  background: #e0e4ef;
+}
+.gchat-rsvp-popup-avatar--img {
+  object-fit: cover;
+  background: #e0e4ef;
+}
 
 /* Popup */
 .gchat-rsvp-popup {
