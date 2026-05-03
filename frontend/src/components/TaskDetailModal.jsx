@@ -278,7 +278,8 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   // canShare: alle Gruppenmitglieder dürfen teilen; persönliche Tasks → canEdit
   const canShare = task?.group_id ? isGroupMember : canEdit;
   const isShared = task?.visibility && task.visibility !== 'private';
-  const showPrivateShareSection = isShared && !hidePrivateShareInfo;
+  const canSeePrivateShareInfo = task?.visibility !== 'selected_users' || task?.can_see_private_share_info === true;
+  const showPrivateShareSection = isShared && !hidePrivateShareInfo && canSeePrivateShareInfo;
   const isEvent = task?.type === 'event';
   const groupWatermarkUrl = task?.group_image_url || task?.group_avatar_url || task?.group_photo_url || task?.group_logo_url || null;
   const hasGroupWatermark = Boolean(task?.group_id && groupWatermarkUrl);
@@ -832,27 +833,6 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       </div>
 
       <div className="task-detail-aside">
-        {task.group_name && (
-          <div className="task-detail-section task-detail-collab">
-            <div className="task-detail-description-header">
-              <AvatarBadge name={task.group_name} color={task.group_color || '#5856D6'} avatarUrl={task.group_image_url} size={16} />
-              <span>Gruppe</span>
-            </div>
-            <div className="task-detail-group-badge" style={{ background: task.group_color ? `${task.group_color}15` : 'rgba(88,86,214,0.1)', borderLeft: `3px solid ${task.group_color || '#5856D6'}` }}>
-              <AvatarBadge name={task.group_name} color={task.group_color || '#5856D6'} avatarUrl={task.group_image_url} size={32} />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <span style={{ fontWeight: 600, fontSize: 14 }}>{task.group_name}</span>
-                {task.group_task_creator_name && (
-                  <span style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <AvatarBadge name={task.group_task_creator_name} color={task.group_task_creator_color || '#007AFF'} avatarUrl={task.group_task_creator_avatar_url} size={16} />
-                    Erstellt von {task.group_task_creator_name}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* ── Untergruppe: Anzeige für Mitglieder + Bearbeitung für Admins ── */}
         {isGroupMember && (task.subgroup_id || isGroupAdmin) && (
           <div className="task-detail-section task-detail-collab task-detail-subgroup-card">
@@ -952,6 +932,46 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
           </div>
         )}
 
+        {/* ── Privat geteilte Personen ── */}
+        {showPrivateShareSection && (
+          <div className="task-detail-section task-detail-collab task-detail-collab-shared">
+            <div className="task-detail-description-header">
+              {task.visibility === 'shared' ? <Users size={16} /> : <UserCheck size={16} />}
+              <span className="task-detail-collab-visibility">
+                {task.visibility === 'shared' ? 'Mit allen Freunden geteilt' : 'Privat geteilt'}
+              </span>
+            </div>
+            {task.visibility === 'selected_users' && Array.isArray(task.shared_with_users) && task.shared_with_users.length > 0 && (
+              <div className="task-detail-shared-stack-wrap">
+                <div className="task-detail-shared-avatars">
+                  {task.shared_with_users.slice(0, 5).map((u, i) => (
+                    <span key={i} className="task-detail-shared-avatar" style={{ zIndex: 10 - i, marginLeft: i > 0 ? -10 : 0 }} title={u.name}>
+                      <AvatarBadge name={u.name} color={u.color || u.avatar_color || '#007AFF'} avatarUrl={u.avatar_url} size={30} />
+                    </span>
+                  ))}
+                  {task.shared_with_users.length > 5 && (
+                    <span className="task-detail-shared-overflow">+{task.shared_with_users.length - 5}</span>
+                  )}
+                </div>
+                <span className="task-detail-shared-count">{task.shared_with_users.length} Person{task.shared_with_users.length === 1 ? '' : 'en'}</span>
+              </div>
+            )}
+            {/* Gruppenkontext-Info nur für echte Mitglieder */}
+            {isGroupMember && !task.is_owner && task.creator_name && (
+              <div className="task-detail-collab-info">
+                <AvatarBadge className="collab-avatar" name={task.creator_name} color={task.creator_color || '#007AFF'} avatarUrl={task.creator_avatar_url} size={22} />
+                <span className="task-detail-collab-info-text"><span className="task-detail-collab-label">Erstellt von</span><strong>{task.creator_name}</strong></span>
+              </div>
+            )}
+            {!canEdit && <div className="task-detail-collab-info readonly"><Eye size={14} /><span className="task-detail-collab-info-text"><span className="task-detail-collab-label">Zugriff</span>Du hast nur Leserechte</span></div>}
+            {task.last_editor_name && (
+              <div className="task-detail-collab-info">
+                <Edit3 size={14} /><span className="task-detail-collab-info-text"><span className="task-detail-collab-label">Zuletzt bearbeitet von</span><strong>{task.last_editor_name}</strong></span>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Teilen-Panel: alle Gruppenmitglieder + Bearbeiter bei persönlichen Tasks */}
         {canShare && (
           <div className="task-detail-section task-detail-collab">
@@ -963,7 +983,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
               <div className="task-detail-sharing-toggle-left">
                 <Users size={15} />
                 <span className="task-detail-sharing-toggle-title">Mit Personen teilen</span>
-                {sharePermissions.length > 0 && (
+                {canSeePrivateShareInfo && sharePermissions.length > 0 && (
                   <span className="task-edit-sharing-count">{sharePermissions.length}</span>
                 )}
               </div>
@@ -1002,7 +1022,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
                       {/* Mitglieder dürfen nur mit Auswahl teilen */}
                       {(isGroupAdmin || !task.group_id ? shareVisibility === 'selected_users' : true) && (
                         <div className="task-edit-friends-section" style={{ marginTop: 10 }}>
-                          {sharePermissions.length > 0 && (
+                          {canSeePrivateShareInfo && sharePermissions.length > 0 && (
                             <div className="task-edit-shared-list">
                               <div className="task-edit-shared-label">Geteilt mit:</div>
                               {sharePermissions.map((p) => (
@@ -1067,43 +1087,24 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
           </div>
         )}
 
-        {/* ── Privat geteilte Personen ── */}
-        {showPrivateShareSection && (
-          <div className="task-detail-section task-detail-collab task-detail-collab-shared">
+        {task.group_name && (
+          <div className="task-detail-section task-detail-collab">
             <div className="task-detail-description-header">
-              {task.visibility === 'shared' ? <Users size={16} /> : <UserCheck size={16} />}
-              <span className="task-detail-collab-visibility">
-                {task.visibility === 'shared' ? 'Mit allen Freunden geteilt' : 'Privat geteilt'}
-              </span>
+              <AvatarBadge name={task.group_name} color={task.group_color || '#5856D6'} avatarUrl={task.group_image_url} size={16} />
+              <span>Gruppe</span>
             </div>
-            {task.visibility === 'selected_users' && Array.isArray(task.shared_with_users) && task.shared_with_users.length > 0 && (
-              <div className="task-detail-shared-stack-wrap">
-                <div className="task-detail-shared-avatars">
-                  {task.shared_with_users.slice(0, 5).map((u, i) => (
-                    <span key={i} className="task-detail-shared-avatar" style={{ zIndex: 10 - i, marginLeft: i > 0 ? -10 : 0 }} title={u.name}>
-                      <AvatarBadge name={u.name} color={u.color || u.avatar_color || '#007AFF'} avatarUrl={u.avatar_url} size={30} />
-                    </span>
-                  ))}
-                  {task.shared_with_users.length > 5 && (
-                    <span className="task-detail-shared-overflow">+{task.shared_with_users.length - 5}</span>
-                  )}
-                </div>
-                <span className="task-detail-shared-count">{task.shared_with_users.length} Person{task.shared_with_users.length === 1 ? '' : 'en'}</span>
+            <div className="task-detail-group-badge" style={{ background: task.group_color ? `${task.group_color}15` : 'rgba(88,86,214,0.1)', borderLeft: `3px solid ${task.group_color || '#5856D6'}` }}>
+              <AvatarBadge name={task.group_name} color={task.group_color || '#5856D6'} avatarUrl={task.group_image_url} size={32} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontWeight: 600, fontSize: 14 }}>{task.group_name}</span>
+                {task.group_task_creator_name && (
+                  <span style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <AvatarBadge name={task.group_task_creator_name} color={task.group_task_creator_color || '#007AFF'} avatarUrl={task.group_task_creator_avatar_url} size={16} />
+                    Erstellt von {task.group_task_creator_name}
+                  </span>
+                )}
               </div>
-            )}
-            {/* Gruppenkontext-Info nur für echte Mitglieder */}
-            {isGroupMember && !task.is_owner && task.creator_name && (
-              <div className="task-detail-collab-info">
-                <AvatarBadge className="collab-avatar" name={task.creator_name} color={task.creator_color || '#007AFF'} avatarUrl={task.creator_avatar_url} size={22} />
-                <span className="task-detail-collab-info-text"><span className="task-detail-collab-label">Erstellt von</span><strong>{task.creator_name}</strong></span>
-              </div>
-            )}
-            {!canEdit && <div className="task-detail-collab-info readonly"><Eye size={14} /><span className="task-detail-collab-info-text"><span className="task-detail-collab-label">Zugriff</span>Du hast nur Leserechte</span></div>}
-            {task.last_editor_name && (
-              <div className="task-detail-collab-info">
-                <Edit3 size={14} /><span className="task-detail-collab-info-text"><span className="task-detail-collab-label">Zuletzt bearbeitet von</span><strong>{task.last_editor_name}</strong></span>
-              </div>
-            )}
+            </div>
           </div>
         )}
 
