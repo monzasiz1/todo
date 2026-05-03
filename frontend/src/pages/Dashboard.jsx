@@ -340,8 +340,25 @@ function initialVisibleCountMap(groups) {
   return map;
 }
 
+function DashboardLoadingState() {
+  return (
+    <div className="dashboard-loading-wrap" aria-live="polite" aria-busy="true">
+      {[0, 1, 2].map((section) => (
+        <div key={section} className="dash-loading-section">
+          <div className="dash-loading-header beequ-shimmer" />
+          <div className="dash-loading-list">
+            {[0, 1, 2].map((row) => (
+              <div key={`${section}_${row}`} className="dash-loading-card beequ-shimmer" />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function Dashboard() {
-  const { tasks, fetchTasks, filter, setFilter } = useTaskStore();
+  const { tasks, fetchTasks, filter, setFilter, loading } = useTaskStore();
   const { limit, atLimit } = usePlan();
   const [showCompleted, setShowCompleted] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState({ today: false, week: true, later: true, past_events: true });
@@ -745,7 +762,9 @@ export default function Dashboard() {
       </div>
 
       {/* Date-Grouped Task Sections */}
-      {groups.length > 0 ? (
+      {loading && tasks.length === 0 ? (
+        <DashboardLoadingState />
+      ) : groups.length > 0 ? (
         groups.map((group) => {
           const Icon = group.icon;
           const collapsed = collapsedSections[group.key];
