@@ -3,7 +3,7 @@ import { memo, useEffect, useRef, useState } from 'react';
 import { useTaskStore } from '../store/taskStore';
 import { useOpenTask } from '../hooks/useOpenTask';
 import TaskDetailModal from './TaskDetailModal';
-import { Check, Trash2, Clock, Calendar, CalendarCheck, GripVertical, Lock, Users, UserCheck, Repeat, Paperclip, Video, Circle } from 'lucide-react';
+import { Check, Trash2, Clock, Calendar, CalendarCheck, GripVertical, Lock, Users, UserCheck, Repeat, Paperclip, Video, Circle, ThumbsDown } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
 import SharedTaskBadge from './SharedTaskBadge';
@@ -430,6 +430,22 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
               <Paperclip size={12} />
               {task.attachment_count}
             </span>
+          )}
+          {task.group_id && task.enable_group_rsvp === true && (
+            <>
+              <span className="task-meta-item task-vote-stat task-vote-stat--yes" title="Zusagen">
+                <Check size={12} />
+                {Number(task.vote_yes_count || 0)}
+              </span>
+              <span className="task-meta-item task-vote-stat task-vote-stat--no" title="Absagen">
+                <ThumbsDown size={12} />
+                {Number(task.vote_no_count || 0)}
+              </span>
+              <span className="task-meta-item task-vote-stat task-vote-stat--pending" title="Unbeantwortet">
+                <Users size={12} />
+                {Number(task.vote_unanswered_count || 0)}
+              </span>
+            </>
           )}
         </div>
       </div>
