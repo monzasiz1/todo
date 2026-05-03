@@ -206,38 +206,6 @@ const STAT_DEFS = [
   { key: 'adminOrOwnerCount', label: 'Leitungsrollen', icon: Crown, color: '#FF9500' },
 ];
 
-function GroupListLoadingSkeleton() {
-  return (
-    <div className="group-loading-skeleton" aria-live="polite" aria-busy="true">
-      {[0, 1, 2].map((idx) => (
-        <div key={idx} className="group-loading-card beequ-shimmer" />
-      ))}
-    </div>
-  );
-}
-
-function GroupDetailLoadingSkeleton({ onBack }) {
-  return (
-    <div className="group-detail-shell group-detail-loading" aria-live="polite" aria-busy="true">
-      <div className="group-sub-header">
-        <button className="group-back-btn" onClick={onBack}><ArrowLeft size={20} /></button>
-        <h2>Lade Gruppe...</h2>
-      </div>
-      <div className="group-detail-loading-header beequ-shimmer" />
-      <div className="group-detail-loading-stats">
-        {[0, 1, 2, 3].map((idx) => (
-          <div key={idx} className="group-detail-loading-stat beequ-shimmer" />
-        ))}
-      </div>
-      <div className="group-detail-loading-list">
-        {[0, 1, 2].map((idx) => (
-          <div key={idx} className="group-detail-loading-row beequ-shimmer" />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick }) {
   const [query, setQuery] = useState('');
 
@@ -332,7 +300,7 @@ function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick })
       </section>
 
       {loading && groups.length === 0 ? (
-        <GroupListLoadingSkeleton />
+        <div className="group-loading">Laden…</div>
       ) : filteredGroups.length === 0 && groups.length > 0 ? (
         <div className="group-empty">
           <div className="group-empty-icon"><Search size={32} /></div>
@@ -616,7 +584,7 @@ const DASHBOARD_REFRESH_PARAMS = [
 
 function GroupDetail({ groupId, onBack }) {
   const {
-    currentGroup, members, groupTasks, myRole, subgroups, loading,
+    currentGroup, members, groupTasks, myRole, subgroups,
     fetchGroup, addGroupTask, changeMemberRole, removeMember, deleteGroup, updateGroup,
   } = useGroupStore();
   const { user } = useAuthStore();
@@ -691,9 +659,7 @@ function GroupDetail({ groupId, onBack }) {
     if (!exists) setCategoryFilter('all');
   }, [categoryFilter, categoryOptions]);
 
-  if (loading || !currentGroup || String(currentGroup.id) !== String(groupId)) {
-    return <GroupDetailLoadingSkeleton onBack={onBack} />;
-  }
+  if (!currentGroup || String(currentGroup.id) !== String(groupId)) return <div className="group-loading">Laden...</div>;
 
   return (
     <motion.div className="group-detail-shell" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>

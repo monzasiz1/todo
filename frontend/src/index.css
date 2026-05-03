@@ -1242,48 +1242,6 @@ input, textarea, select {
   box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
 }
 
-@keyframes beequ-shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-.beequ-shimmer {
-  background: linear-gradient(90deg, rgba(220, 225, 233, 0.55) 20%, rgba(246, 248, 252, 0.92) 50%, rgba(220, 225, 233, 0.55) 80%);
-  background-size: 220% 100%;
-  animation: beequ-shimmer 1.2s ease-in-out infinite;
-}
-
-.dashboard-loading-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.dash-loading-section {
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--card-solid);
-  padding: 14px 12px 12px;
-}
-
-.dash-loading-header {
-  width: 190px;
-  height: 18px;
-  border-radius: 999px;
-  margin-bottom: 12px;
-}
-
-.dash-loading-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.dash-loading-card {
-  height: 74px;
-  border-radius: 14px;
-}
-
 .dash-section-list .task-drag-handle--corner {
   position: absolute;
   top: 50%;
@@ -13648,51 +13606,6 @@ body.cal-is-dragging * {
   line-height: 1.5;
 }
 
-.group-loading-skeleton {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-}
-
-.group-loading-card {
-  min-height: 230px;
-  border-radius: 20px;
-  border: 1px solid var(--border);
-}
-
-.group-detail-loading .group-sub-header {
-  margin-bottom: 14px;
-}
-
-.group-detail-loading-header {
-  height: 120px;
-  border-radius: 18px;
-  margin-bottom: 14px;
-}
-
-.group-detail-loading-stats {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.group-detail-loading-stat {
-  height: 72px;
-  border-radius: 12px;
-}
-
-.group-detail-loading-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.group-detail-loading-row {
-  height: 78px;
-  border-radius: 14px;
-}
-
 /* --- Sub Header / Back --- */
 .group-sub-header {
   display: flex;
@@ -14774,11 +14687,6 @@ body.cal-is-dragging * {
     opacity: 1;
   }
 }
-
-  .group-loading-skeleton {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
 
 /* Empty state */
 .gs-empty {
