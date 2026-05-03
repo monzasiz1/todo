@@ -5,8 +5,7 @@ import { useTaskStore } from '../store/taskStore';
 import { api } from '../utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useOpenTask } from '../hooks/useOpenTask';
-import TaskDetailModal from '../components/TaskDetailModal';
+import TaskCard from '../components/TaskCard';
 import {
   Users, Plus, Hash, Copy, Check, ChevronRight, ChevronDown, Crown,
   Shield, UserMinus, Settings, Trash2, LogOut, X,
@@ -584,11 +583,9 @@ const DASHBOARD_REFRESH_PARAMS = [
 ];
 
 function GroupDetail({ groupId, onBack }) {
-  const { detailTask, openTask, closeTask } = useOpenTask();
   const {
     currentGroup, members, groupTasks, myRole,
-    fetchGroup, addGroupTask, removeGroupTask, changeMemberRole, removeMember, deleteGroup, updateGroup,
-    updateGroupTask,
+    fetchGroup, addGroupTask, changeMemberRole, removeMember, deleteGroup, updateGroup,
   } = useGroupStore();
   const { user } = useAuthStore();
   const { addToast, fetchTasks } = useTaskStore();
@@ -761,18 +758,13 @@ function GroupDetail({ groupId, onBack }) {
           {groupTasks.length === 0 ? (
             <div className="group-empty-tab">Noch keine Einträge in dieser Gruppe</div>
           ) : (
-            <div className="group-task-list">
-              {filteredActiveTasks.slice(0, visibleCount).map((task) => (
-                <GroupTaskCard
+            <div className="group-task-list dash-section-list">
+              {filteredActiveTasks.slice(0, visibleCount).map((task, index) => (
+                <TaskCard
                   key={task.id}
                   task={task}
-                  groupId={groupId}
-                  canRemove={isAdmin || task.user_id === user?.id}
-                  onRemove={async (gId, tId) => {
-                    await removeGroupTask(gId, tId);
-                    fetchTasks(...DASHBOARD_REFRESH_PARAMS);
-                  }}
-                  onOpenTask={openTask}
+                  index={index}
+                  showDashboardDateTile
                 />
               ))}
               {filteredActiveTasks.length > 15 && (
@@ -799,19 +791,19 @@ function GroupDetail({ groupId, onBack }) {
                     <span>Vergangene / Erledigte ({filteredPastTasks.length})</span>
                     <ChevronDown size={14} style={{ transform: showPastGroupTasks ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
                   </button>
-                  {showPastGroupTasks && filteredPastTasks.map((task) => (
-                    <GroupTaskCard
-                      key={task.id}
-                      task={task}
-                      groupId={groupId}
-                      canRemove={isAdmin || task.user_id === user?.id}
-                      onRemove={async (gId, tId) => {
-                        await removeGroupTask(gId, tId);
-                        fetchTasks(...DASHBOARD_REFRESH_PARAMS);
-                      }}
-                      onOpenTask={openTask}
-                    />
-                  ))}
+                  {showPastGroupTasks && (
+                    <div className="group-task-list dash-section-list dash-section-completed">
+                      {filteredPastTasks.map((task, index) => (
+                        <TaskCard
+                          key={task.id}
+                          task={task}
+                          index={index}
+                          disableLayout
+                          showDashboardDateTile
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -827,14 +819,6 @@ function GroupDetail({ groupId, onBack }) {
                 setShowAddTask(false);
                 fetchTasks(...DASHBOARD_REFRESH_PARAMS);
               }}
-            />
-          )}
-
-          {detailTask && (
-            <TaskDetailModal
-              task={detailTask}
-              onClose={closeTask}
-              onUpdated={(updated) => { updateGroupTask(updated.id, updated); fetchTasks(...DASHBOARD_REFRESH_PARAMS); closeTask(); }}
             />
           )}
         </div>
@@ -959,86 +943,6 @@ function GroupDetail({ groupId, onBack }) {
         </>
       )}
     </motion.div>
-  );
-}
-
-// ============================================
-// Group Task Card
-// ============================================
-function GroupTaskCard({ task, groupId, canRemove, onRemove, onOpenTask }) {
-  const priorityColors = {
-    low: 'var(--success)', medium: 'var(--primary)',
-    high: 'var(--warning)', urgent: 'var(--danger)',
-  };
-
-  const endedEvent = isEventEnded(task);
-  const categoryLabel = task.group_category_name;
-  const categoryColor = task.group_category_color || '#8E8E93';
-
-  return (
-    <div
-      className={`group-task-card group-task-card-clickable ${task.completed ? 'completed' : ''} ${endedEvent ? 'ended-event' : ''}`}
-      role="button"
-      tabIndex={0}
-      onClick={() => onOpenTask?.(task)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onOpenTask?.(task);
-        }
-      }}
-      title="Aufgabe öffnen"
-    >
-      <div className="group-task-priority" style={{ background: priorityColors[task.priority] }} />
-      <div className="group-task-content">
-        <div className="group-task-title">
-          <span className={`group-entry-type-badge ${task.type === 'event' ? 'event' : 'task'}`}>
-            {task.type === 'event' ? <CalendarCheck size={11} /> : <ListTodo size={11} />}
-            {task.type === 'event' ? 'Termin' : 'Aufgabe'}
-          </span>
-          {task.title}
-          {endedEvent && <span className="group-task-status">Beendet</span>}
-        </div>
-        <div className="group-task-meta">
-          {categoryLabel && (
-            <span className="group-task-category">
-              <span className="group-task-category-dot" style={{ background: categoryColor }} />
-              {categoryLabel}
-            </span>
-          )}
-          {task.creator_name && (
-            <span className="group-task-creator">
-              <AvatarBadge
-                className="group-task-creator-dot"
-                name={task.creator_name}
-                color={task.creator_color || '#007AFF'}
-                avatarUrl={task.creator_avatar_url}
-                size={12}
-              />
-              {task.creator_name}
-            </span>
-          )}
-          {task.date && (
-            <span><Calendar size={11} /> {task.date.substring(0, 10)}</span>
-          )}
-          {task.time && (
-            <span><Clock size={11} /> {task.time.substring(0, 5)}</span>
-          )}
-        </div>
-      </div>
-      {canRemove && (
-        <button
-          className="group-task-remove"
-          onClick={(e) => {
-            e.stopPropagation();
-            onRemove(groupId, task.id);
-          }}
-          title="Entfernen"
-        >
-          <X size={14} />
-        </button>
-      )}
-    </div>
   );
 }
 
