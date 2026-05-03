@@ -6915,7 +6915,7 @@ body.cal-is-dragging * {
 .is-mobile-fullscreen .task-detail-sticky-top {
   position: sticky;
   top: 0 !important;
-  z-index: 30;
+  right: 116px;
   background: transparent;
   border-bottom: none;
 }
@@ -6924,6 +6924,7 @@ body.cal-is-dragging * {
   position: static;
   padding-top: 0;
   /* Priority-Bar + safe-area + Platz für Buttons */
+  z-index: 40;
   min-height: calc(env(safe-area-inset-top, 0px) + 52px);
   background: transparent;
 }
@@ -6932,7 +6933,7 @@ body.cal-is-dragging * {
 .is-mobile-fullscreen.task-detail-modal .task-detail-top-shadow {
   position: sticky;
   top: 0;
-  z-index: 24;
+  pointer-events: auto;
 }
 
 .is-mobile-fullscreen.task-edit-modal .task-edit-header {
@@ -6965,7 +6966,7 @@ body.cal-is-dragging * {
 
 .is-mobile-fullscreen .task-detail-sticky-title {
   top: calc(env(safe-area-inset-top, 0px) + 10px);
-  right: 96px;
+  right: 112px;
 }
 
 /* Kill nested scroll — the container above handles all scrolling */
@@ -7106,7 +7107,7 @@ body.cal-is-dragging * {
 .task-detail-sticky-title {
   position: absolute;
   left: 18px;
-  right: 100px;
+  right: 116px;
   top: 16px;
   height: 36px;
   display: flex;
@@ -7115,6 +7116,7 @@ body.cal-is-dragging * {
   pointer-events: none;
   transition: opacity 0.15s ease;
   overflow: hidden;
+  z-index: 40;
 }
 .task-detail-sticky-title span {
   font-size: 0.88rem;
@@ -11296,7 +11298,7 @@ body.cal-is-dragging * {
   position: absolute;
   right: 16px;
   top: 16px;
-  z-index: 20;
+  z-index: 80;
   pointer-events: auto;
 }
 
