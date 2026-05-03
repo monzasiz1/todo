@@ -6928,19 +6928,11 @@ body.cal-is-dragging * {
   background: transparent;
 }
 
-/* In TaskDetail fullscreen, keep fade shadow pinned to viewport so it always applies while scrolling */
+/* In TaskDetail fullscreen, keep top shadow in the scroll flow (same behavior as edit modal) */
 .is-mobile-fullscreen.task-detail-modal .task-detail-top-shadow {
-  position: fixed;
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
   z-index: 24;
-}
-.is-mobile-fullscreen.task-detail-modal .task-detail-top-shadow::before {
-  height: calc(env(safe-area-inset-top, 0px) + 108px);
-}
-.is-mobile-fullscreen.task-detail-modal .task-detail-top-shadow::after {
-  height: calc(env(safe-area-inset-top, 0px) + 84px);
 }
 
 .is-mobile-fullscreen.task-edit-modal .task-edit-header {

@@ -139,8 +139,8 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       const titleRect = titleEl.getBoundingClientRect();
       const stickyRect = stickyEl.getBoundingClientRect();
       const scrolled = titleRect.top < stickyRect.bottom;
-      // Show sticky title only when the full title row is behind the header
-      setTitleHidden(titleRect.bottom < stickyRect.bottom);
+      // Show sticky title as soon as the title row starts moving behind the header
+      setTitleHidden(scrolled);
       setScrollDarkened(titleRect.top < stickyRect.bottom + 8);
       setPullHandleHidden(scrolled);
     };
