@@ -74,6 +74,12 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
   }, []);
 
   useEffect(() => {
+    if (!isMobile) {
+      setEditTitleHidden(false);
+      setEditScrollDarkened(false);
+      setPullHandleHidden(false);
+      return;
+    }
     const titleEl = titleFieldRef.current;
     const headerEl = editHeaderRef.current;
     if (!titleEl || !headerEl) return;
@@ -486,6 +492,7 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
 
         {/* Scrollable content */}
         <div className="task-edit-body">
+          {isMobile && <h2 className="task-edit-scroll-title" ref={titleFieldRef}>Aufgabe bearbeiten</h2>}
           {/* Type Toggle */}
           <div className="task-type-toggle">
             <button
@@ -507,7 +514,7 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
           </div>
 
           {/* Title */}
-          <div className="task-edit-field" ref={titleFieldRef}>
+          <div className="task-edit-field">
             <label><FileText size={14} /> Titel</label>
             <input
               type="text"

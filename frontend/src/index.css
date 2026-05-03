@@ -10265,6 +10265,14 @@ body.cal-is-dragging * {
   color: var(--text);
   margin: 0;
 }
+.task-edit-scroll-title {
+  font-size: 32px;
+  line-height: 1.12;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin: 2px 0 10px;
+}
 
 .task-edit-close {
   width: 34px;
@@ -15331,6 +15339,9 @@ body.cal-is-dragging * {
   -webkit-backdrop-filter: blur(16px);
   background: rgba(8, 15, 30, 0.62);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.is-mobile-fullscreen.task-edit-modal .task-edit-header h2 {
+  display: none;
 }
 
 .lpx-nav {
