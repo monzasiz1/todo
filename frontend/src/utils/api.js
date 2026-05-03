@@ -522,6 +522,16 @@ export const api = {
   deleteComment: (commentId) =>
     request(`/comments?commentId=${commentId}`, { method: 'DELETE' }),
 
+  // Task Votes (TaskDetailModal)
+  getTaskVotes: (taskId) =>
+    request(`/task-votes?taskId=${taskId}`),
+
+  voteTask: (taskId, status = null) =>
+    request('/task-votes', {
+      method: 'POST',
+      body: JSON.stringify({ taskId, status }),
+    }),
+
   // Microsoft Teams
   getTeamsStatus: () => request('/teams/status'),
 

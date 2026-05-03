@@ -902,7 +902,7 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
                     const isOwn = msg.user_id === user?.id;
                     const isLinkedEvent = String(msg.linked_task_type || '').toLowerCase() === 'event';
                     const isEventMsg = msg.message_type === 'group_event' && (isLinkedEvent || !msg.linked_task_type);
-                    const isTaskMsg = msg.message_type === 'group_task' || (msg.message_type === 'group_event' && msg.linked_task_type && !isLinkedEvent);
+                    const isTaskMsg = msg.message_type === 'group_task' || msg.message_type === 'group_task_rsvp' || (msg.message_type === 'group_event' && msg.linked_task_type && !isLinkedEvent);
                     const isEnded = isEndedEvent(msg);
                     const hasTime = !msg.is_poll && !isEventMsg && !isTaskMsg && detectTimeHint(msg.content);
                     const showSender =

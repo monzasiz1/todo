@@ -7,7 +7,7 @@ import { api } from '../utils/api';
 import {
   X, ArrowLeft, Calendar, CalendarCheck, Clock, Tag, Flag, CheckCircle2, Circle,
   Trash2, AlertTriangle, Repeat, Bell, FileText, ListChecks,
-  Users, UserCheck, Eye, Edit3, Share2, MoreVertical, MessageCircle, Send, Video
+  Users, UserCheck, Eye, Edit3, Share2, MoreVertical, MessageCircle, Send, Video, ThumbsUp, ThumbsDown
 } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -33,6 +33,9 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState([]);
+  const [taskVotes, setTaskVotes] = useState({ yes_count: 0, no_count: 0, yes_users: [], no_users: [], my_vote: null });
+  const [voting, setVoting] = useState(false);
+  const [votesOpen, setVotesOpen] = useState(null);
   const menuRef = useRef(null);
   const emojiPickerRef = useRef(null);
   const swipeRef = useRef({ startY: 0, active: false });
@@ -169,6 +172,27 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   }, [task?.id]);
 
   useEffect(() => {
+    if (!task?.id || task?.enable_group_rsvp !== true) {
+      setTaskVotes({ yes_count: 0, no_count: 0, yes_users: [], no_users: [], my_vote: null });
+      setVotesOpen(null);
+      return;
+    }
+    api.getTaskVotes(task.id)
+      .then((res) => {
+        setTaskVotes({
+          yes_count: Number(res?.yes_count || 0),
+          no_count: Number(res?.no_count || 0),
+          yes_users: Array.isArray(res?.yes_users) ? res.yes_users : [],
+          no_users: Array.isArray(res?.no_users) ? res.no_users : [],
+          my_vote: res?.my_vote || null,
+        });
+      })
+      .catch(() => {
+        setTaskVotes({ yes_count: 0, no_count: 0, yes_users: [], no_users: [], my_vote: null });
+      });
+  }, [task?.id, task?.enable_group_rsvp]);
+
+  useEffect(() => {
     const onClickOutside = (e) => {
       if (menuRef.current?.contains(e.target)) return;
       if (emojiPickerRef.current?.contains(e.target)) return;
@@ -263,12 +287,32 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     if (!task.group_id || sharingToChat) return;
     setSharingToChat(true);
     try {
-      await api.shareTaskToGroupChat(task.group_id, task.id, { withRsvp: task.enable_group_rsvp === true });
+      await api.shareTaskToGroupChat(task.group_id, task.id);
       addToast('📤 In den Gruppen-Chat geteilt');
     } catch (err) {
       addToast(err.message || 'Teilen fehlgeschlagen', 'error');
     } finally {
       setSharingToChat(false);
+    }
+  };
+
+  const handleVote = async (status) => {
+    if (!task?.id || voting) return;
+    setVoting(true);
+    try {
+      const next = taskVotes.my_vote === status ? null : status;
+      const res = await api.voteTask(task.id, next);
+      setTaskVotes({
+        yes_count: Number(res?.yes_count || 0),
+        no_count: Number(res?.no_count || 0),
+        yes_users: Array.isArray(res?.yes_users) ? res.yes_users : [],
+        no_users: Array.isArray(res?.no_users) ? res.no_users : [],
+        my_vote: res?.my_vote || null,
+      });
+    } catch {
+      addToast('Abstimmung konnte nicht gespeichert werden');
+    } finally {
+      setVoting(false);
     }
   };
 
@@ -555,6 +599,70 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
                   </span>
                 )}
               </div>
+            </div>
+          </div>
+        )}
+
+        {task.group_id && task.enable_group_rsvp === true && (
+          <div className="task-detail-section task-detail-votes-section">
+            <div className="task-detail-description-header">
+              <ThumbsUp size={16} /><span>Abstimmung</span>
+            </div>
+            <div className="task-detail-vote-actions">
+              <button
+                type="button"
+                className={`task-detail-vote-btn yes ${taskVotes.my_vote === 'yes' ? 'active' : ''}`}
+                onClick={() => handleVote('yes')}
+                disabled={voting}
+              >
+                <ThumbsUp size={14} /> Zusagen ({taskVotes.yes_count || 0})
+              </button>
+              <button
+                type="button"
+                className={`task-detail-vote-btn no ${taskVotes.my_vote === 'no' ? 'active' : ''}`}
+                onClick={() => handleVote('no')}
+                disabled={voting}
+              >
+                <ThumbsDown size={14} /> Absagen ({taskVotes.no_count || 0})
+              </button>
+            </div>
+            <div className="task-detail-vote-lists">
+              {taskVotes.yes_users.length > 0 && (
+                <div className="task-detail-vote-group">
+                  <button type="button" className="task-detail-vote-group-head" onClick={() => setVotesOpen(votesOpen === 'yes' ? null : 'yes')}>
+                    <span>Zusagen</span>
+                    <span>{taskVotes.yes_users.length}</span>
+                  </button>
+                  {votesOpen === 'yes' && (
+                    <div className="task-detail-vote-users">
+                      {taskVotes.yes_users.map((u, i) => (
+                        <div key={`yes_${i}`} className="task-detail-vote-user">
+                          <AvatarBadge name={u.name} color={u.avatar_color || '#4C7BD9'} avatarUrl={u.avatar_url} size={20} />
+                          <span>{u.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              {taskVotes.no_users.length > 0 && (
+                <div className="task-detail-vote-group">
+                  <button type="button" className="task-detail-vote-group-head" onClick={() => setVotesOpen(votesOpen === 'no' ? null : 'no')}>
+                    <span>Absagen</span>
+                    <span>{taskVotes.no_users.length}</span>
+                  </button>
+                  {votesOpen === 'no' && (
+                    <div className="task-detail-vote-users">
+                      {taskVotes.no_users.map((u, i) => (
+                        <div key={`no_${i}`} className="task-detail-vote-user">
+                          <AvatarBadge name={u.name} color={u.avatar_color || '#8e8e93'} avatarUrl={u.avatar_url} size={20} />
+                          <span>{u.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
