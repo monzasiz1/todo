@@ -6933,7 +6933,16 @@ body.cal-is-dragging * {
   top: 0;
   z-index: 6;
   padding-top: max(20px, calc(env(safe-area-inset-top, 0px) + 10px)) !important;
-  background: transparent !important;
+  background: transparent;
+}
+.is-mobile-fullscreen.task-edit-modal .task-edit-header.scrolled {
+  background: var(--card-solid) !important;
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+}
+/* In edit-modal, top-shadow sits below the sticky header */
+.is-mobile-fullscreen.task-edit-modal .task-detail-top-shadow {
+  z-index: 4;
 }
 
 .is-mobile-fullscreen .task-detail-priority-bar {
@@ -10210,6 +10219,12 @@ body.cal-is-dragging * {
   flex-shrink: 0;
   position: relative;
   background: transparent;
+  transition: background 0.22s ease, backdrop-filter 0.22s ease;
+}
+.task-edit-header.scrolled {
+  background: var(--card-glass, rgba(255,255,255,0.72));
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
 }
 .task-edit-header::after {
   content: '';
@@ -10218,7 +10233,7 @@ body.cal-is-dragging * {
   left: 0;
   right: 0;
   height: 64px;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.10) 45%, transparent 100%);
+  background: linear-gradient(to bottom, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.07) 45%, transparent 100%);
   pointer-events: none;
   z-index: 5;
   opacity: 0;
@@ -17250,6 +17265,11 @@ body.cal-is-dragging * {
     margin: 6px auto 4px;
     pointer-events: none;
     flex-shrink: 0;
+    opacity: 1;
+    transition: opacity 0.2s ease;
+  }
+  .modal-pull-handle.pull-handle-hidden {
+    opacity: 0;
   }
 
   .day-create-drag-handle {

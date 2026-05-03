@@ -58,6 +58,7 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
   const editHeaderRef = useRef(null);
   const [editTitleHidden, setEditTitleHidden] = useState(false);
   const [editScrollDarkened, setEditScrollDarkened] = useState(false);
+  const [pullHandleHidden, setPullHandleHidden] = useState(false);
   const [isMobile, setIsMobile] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1024px)').matches
   );
@@ -79,8 +80,10 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
     const check = () => {
       const titleRect = titleEl.getBoundingClientRect();
       const headerRect = headerEl.getBoundingClientRect();
-      setEditTitleHidden(titleRect.top < headerRect.bottom);
-      setEditScrollDarkened(titleRect.top < headerRect.bottom + 64);
+      const scrolled = titleRect.top < headerRect.bottom;
+      setEditTitleHidden(scrolled);
+      setEditScrollDarkened(titleRect.top < headerRect.bottom + 8);
+      setPullHandleHidden(scrolled);
     };
     const scrollEl =
       titleEl.closest('.is-mobile-fullscreen') ||
@@ -465,14 +468,16 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {isMobile && <div className="modal-pull-handle" />}
+        {isMobile && <div className={`modal-pull-handle${pullHandleHidden ? ' pull-handle-hidden' : ''}`} />}
+        {/* Top shadow for edit modal */}
+        <div className={`task-detail-top-shadow${editScrollDarkened ? ' visible' : ''}`} aria-hidden="true" />
         {/* Header */}
         <div className={`task-edit-header${editScrollDarkened ? ' scrolled' : ''}`} ref={editHeaderRef}>
           <h2 style={{ opacity: editTitleHidden ? 0 : 1, transition: 'opacity 0.15s ease', pointerEvents: 'none' }}>
             Aufgabe bearbeiten
           </h2>
           <div className={`task-detail-sticky-title task-edit-sticky-title${editTitleHidden ? ' visible' : ''}`}>
-            <span>{title || 'Aufgabe bearbeiten'}</span>
+            <span>Aufgabe bearbeiten</span>
           </div>
           <button className="task-edit-close" onClick={onClose}>
             <X size={20} />
