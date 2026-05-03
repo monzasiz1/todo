@@ -765,6 +765,7 @@ function GroupDetail({ groupId, onBack }) {
                   task={task}
                   index={index}
                   showDashboardDateTile
+                  showSharedInfo={false}
                 />
               ))}
               {filteredActiveTasks.length > 15 && (
@@ -800,6 +801,7 @@ function GroupDetail({ groupId, onBack }) {
                           index={index}
                           disableLayout
                           showDashboardDateTile
+                          showSharedInfo={false}
                         />
                       ))}
                     </div>

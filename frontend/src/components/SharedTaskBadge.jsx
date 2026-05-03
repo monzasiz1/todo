@@ -5,6 +5,7 @@ export default function SharedTaskBadge({ task }) {
   if (!task) return null;
 
   const { visibility, is_owner, creator_name, creator_color, can_edit, last_editor_name, shared_with_users } = task;
+  const showReadOnlyBadge = is_owner === false && can_edit === false;
 
   if (visibility === 'private' || !visibility) return null;
 
@@ -110,7 +111,7 @@ export default function SharedTaskBadge({ task }) {
           )}
         </>
       )}
-      {!can_edit && !is_owner && (
+      {showReadOnlyBadge && (
         <span className="readonly-badge">
           <Eye size={10} /> Nur lesen
         </span>

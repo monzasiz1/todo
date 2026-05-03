@@ -9,7 +9,7 @@ import { de } from 'date-fns/locale';
 import SharedTaskBadge from './SharedTaskBadge';
 import AvatarBadge from './AvatarBadge';
 
-function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = false }) {
+function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = false, showSharedInfo = true }) {
   const { toggleTask, deleteTask } = useTaskStore();
   const { detailTask, openTask, closeTask } = useOpenTask();
   const [nowTs, setNowTs] = useState(Date.now());
@@ -331,7 +331,7 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
             {task.description.length > 60 ? task.description.substring(0, 60) + '…' : task.description}
           </div>
         )}
-        <SharedTaskBadge task={task} />
+        {showSharedInfo && <SharedTaskBadge task={task} />}
         {hasGroupCategoryCombo && (
           <span
             className="task-group-combo-badge"
