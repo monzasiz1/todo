@@ -151,6 +151,7 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
   const [conflictInfo, setConflictInfo] = useState(null);
   const [claimingMsgId, setClaimingMsgId] = useState(null);
   const [rsvpMsgId, setRsvpMsgId] = useState(null);
+  const [rsvpPopup, setRsvpPopup] = useState(null); // { msgId, type: 'yes'|'no' }
   const [followUpMsgId, setFollowUpMsgId] = useState(null);
   const [dragShareActive, setDragShareActive] = useState(false);
   const [dragShareOver, setDragShareOver] = useState(false);
@@ -1010,53 +1011,83 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
                                 )}
                               </div>
 
-                              {/* RSVP-Teilnehmerliste */}
+                              {/* RSVP-Teilnehmerliste – nur Avatare, Popup bei Klick */}
                               {((msg.rsvp_yes_users?.length > 0) || (msg.rsvp_no_users?.length > 0)) && (
                                 <div className="gchat-rsvp-attendees">
                                   {msg.rsvp_yes_users?.length > 0 && (
-                                    <div className="gchat-rsvp-attendees-group">
-                                      <span className="gchat-rsvp-attendees-label gchat-rsvp-attendees-label--yes">
-                                        <ThumbsUp size={11} /> Zusagen
-                                      </span>
-                                      <div className="gchat-rsvp-attendees-list">
-                                        {msg.rsvp_yes_users.map((u, i) => (
+                                    <button
+                                      className="gchat-rsvp-stack-btn gchat-rsvp-stack-btn--yes"
+                                      onClick={(e) => { e.stopPropagation(); setRsvpPopup(rsvpPopup?.msgId === msg.id && rsvpPopup.type === 'yes' ? null : { msgId: msg.id, type: 'yes' }); }}
+                                    >
+                                      <ThumbsUp size={11} />
+                                      <span className="gchat-rsvp-stack">
+                                        {msg.rsvp_yes_users.slice(0, 5).map((u, i) => (
                                           <span
                                             key={i}
                                             className="gchat-rsvp-avatar"
-                                            style={{ background: u.avatar_color || '#4C7BD9' }}
-                                            title={u.name}
+                                            style={{ background: u.avatar_color || '#4C7BD9', zIndex: 5 - i }}
                                           >
                                             {String(u.name || '?').charAt(0).toUpperCase()}
                                           </span>
                                         ))}
-                                        <span className="gchat-rsvp-names">
-                                          {msg.rsvp_yes_users.map(u => u.name).join(', ')}
-                                        </span>
-                                      </div>
-                                    </div>
+                                        {msg.rsvp_yes_users.length > 5 && (
+                                          <span className="gchat-rsvp-avatar gchat-rsvp-avatar--more">+{msg.rsvp_yes_users.length - 5}</span>
+                                        )}
+                                      </span>
+                                      <span className="gchat-rsvp-count">{msg.rsvp_yes_users.length}</span>
+                                    </button>
                                   )}
                                   {msg.rsvp_no_users?.length > 0 && (
-                                    <div className="gchat-rsvp-attendees-group">
-                                      <span className="gchat-rsvp-attendees-label gchat-rsvp-attendees-label--no">
-                                        <ThumbsDown size={11} /> Absagen
-                                      </span>
-                                      <div className="gchat-rsvp-attendees-list">
-                                        {msg.rsvp_no_users.map((u, i) => (
+                                    <button
+                                      className="gchat-rsvp-stack-btn gchat-rsvp-stack-btn--no"
+                                      onClick={(e) => { e.stopPropagation(); setRsvpPopup(rsvpPopup?.msgId === msg.id && rsvpPopup.type === 'no' ? null : { msgId: msg.id, type: 'no' }); }}
+                                    >
+                                      <ThumbsDown size={11} />
+                                      <span className="gchat-rsvp-stack">
+                                        {msg.rsvp_no_users.slice(0, 5).map((u, i) => (
                                           <span
                                             key={i}
                                             className="gchat-rsvp-avatar gchat-rsvp-avatar--no"
-                                            style={{ background: u.avatar_color || '#8e8e93' }}
-                                            title={u.name}
+                                            style={{ background: u.avatar_color || '#8e8e93', zIndex: 5 - i }}
                                           >
                                             {String(u.name || '?').charAt(0).toUpperCase()}
                                           </span>
                                         ))}
-                                        <span className="gchat-rsvp-names gchat-rsvp-names--no">
-                                          {msg.rsvp_no_users.map(u => u.name).join(', ')}
-                                        </span>
-                                      </div>
-                                    </div>
+                                        {msg.rsvp_no_users.length > 5 && (
+                                          <span className="gchat-rsvp-avatar gchat-rsvp-avatar--more gchat-rsvp-avatar--no">+{msg.rsvp_no_users.length - 5}</span>
+                                        )}
+                                      </span>
+                                      <span className="gchat-rsvp-count">{msg.rsvp_no_users.length}</span>
+                                    </button>
                                   )}
+
+                                  {/* Popup */}
+                                  {rsvpPopup?.msgId === msg.id && (() => {
+                                    const isYes = rsvpPopup.type === 'yes';
+                                    const users = isYes ? (msg.rsvp_yes_users || []) : (msg.rsvp_no_users || []);
+                                    return (
+                                      <div className={`gchat-rsvp-popup ${isYes ? 'gchat-rsvp-popup--yes' : 'gchat-rsvp-popup--no'}`}>
+                                        <div className="gchat-rsvp-popup-head">
+                                          {isYes ? <ThumbsUp size={12} /> : <ThumbsDown size={12} />}
+                                          <span>{isYes ? 'Zusagen' : 'Absagen'} ({users.length})</span>
+                                          <button className="gchat-rsvp-popup-close" onClick={() => setRsvpPopup(null)}><X size={12} /></button>
+                                        </div>
+                                        <div className="gchat-rsvp-popup-list">
+                                          {users.map((u, i) => (
+                                            <div key={i} className="gchat-rsvp-popup-row">
+                                              <span
+                                                className="gchat-rsvp-popup-avatar"
+                                                style={{ background: u.avatar_color || (isYes ? '#4C7BD9' : '#8e8e93') }}
+                                              >
+                                                {String(u.name || '?').charAt(0).toUpperCase()}
+                                              </span>
+                                              <span className="gchat-rsvp-popup-name">{u.name}</span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
                                 </div>
                               )}
                               <div className="gchat-bubble-meta">
