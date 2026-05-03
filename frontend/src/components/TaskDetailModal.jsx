@@ -36,6 +36,9 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const [shareLoading, setShareLoading] = useState(false);
   const [shareSaving, setShareSaving] = useState(false);
   const [showSubgroupList, setShowSubgroupList] = useState(false);
+  const [groupSubgroups, setGroupSubgroups] = useState([]);
+  const [showSubgroupPicker, setShowSubgroupPicker] = useState(false);
+  const [subgroupSaving, setSubgroupSaving] = useState(false);
   const [sharingToChat, setSharingToChat] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
@@ -193,6 +196,26 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     return () => { mounted = false; };
   }, [showSharePanel, task.id, fetchFriends]);
 
+  useEffect(() => {
+    if (!isGroupAdmin || !task?.group_id) return;
+    api.getGroupSubgroups(task.group_id)
+      .then((data) => setGroupSubgroups(Array.isArray(data) ? data : (data?.subgroups || [])))
+      .catch(() => {});
+  }, [isGroupAdmin, task?.group_id]);
+
+  const handleSubgroupChange = async (subgroupId) => {
+    setSubgroupSaving(true);
+    try {
+      await api.updateGroupTask(task.group_id, task.id, { subgroup_id: subgroupId });
+      addToast('Untergruppe aktualisiert', 'success');
+      if (onUpdated) onUpdated();
+      setShowSubgroupPicker(false);
+    } catch {
+      addToast('Fehler beim Speichern', 'error');
+    }
+    setSubgroupSaving(false);
+  };
+
   const handleSaveShare = async () => {
     setShareSaving(true);
     try {
@@ -248,7 +271,9 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const isGroupMember = task?.group_id
     ? (task?.is_group_member !== false)
     : false;
-  // Wer darf teilen: alle Gruppenmitglieder + Bearbeiter persönlicher Tasks
+  // Nur Owner/Admin der Gruppe dürfen Berechtigungen verteilen
+  const isGroupAdmin = task?.my_group_role === 'owner' || task?.my_group_role === 'admin';
+  // canShare: alle Gruppenmitglieder dürfen teilen; persönliche Tasks → canEdit
   const canShare = task?.group_id ? isGroupMember : canEdit;
   const isShared = task?.visibility && task.visibility !== 'private';
   const showPrivateShareSection = isShared && !hidePrivateShareInfo;
@@ -805,54 +830,100 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       </div>
 
       <div className="task-detail-aside">
-        {/* ── Untergruppe: nur für echte Gruppenmitglieder ── */}
-        {isGroupMember && task.subgroup_id && Array.isArray(task.subgroup_members) && task.subgroup_members.length > 0 && (
+        {/* ── Untergruppe: Anzeige für Mitglieder + Bearbeitung für Admins ── */}
+        {isGroupMember && (task.subgroup_id || isGroupAdmin) && (
           <div className="task-detail-section task-detail-collab">
-            <div className="task-detail-description-header">
-              <span style={{ width: 12, height: 12, borderRadius: 3, background: task.subgroup_color || '#8E8E93', flexShrink: 0, display: 'inline-block' }} />
-              <span>Untergruppe: <strong>{task.subgroup_name}</strong></span>
-            </div>
-            <button
-              type="button"
-              className="task-detail-shared-stack-wrap"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left', width: '100%' }}
-              onClick={() => setShowSubgroupList((s) => !s)}
-              title="Liste anzeigen"
-            >
-              <div className="task-detail-shared-avatars">
-                {task.subgroup_members.slice(0, 5).map((u, i) => (
-                  <span key={i} className="task-detail-shared-avatar" style={{ zIndex: 10 - i, marginLeft: i > 0 ? -10 : 0 }} title={u.name}>
-                    <AvatarBadge name={u.name} color={u.avatar_color || '#007AFF'} avatarUrl={u.avatar_url} size={30} />
-                  </span>
-                ))}
-                {task.subgroup_members.length > 5 && (
-                  <span className="task-detail-shared-overflow">+{task.subgroup_members.length - 5}</span>
+            {/* Header */}
+            <div className="task-detail-description-header" style={{ justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {task.subgroup_id && (
+                  <span style={{ width: 12, height: 12, borderRadius: 3, background: task.subgroup_color || '#8E8E93', flexShrink: 0, display: 'inline-block' }} />
                 )}
+                <span>
+                  {task.subgroup_id
+                    ? <><span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>Untergruppe: </span><strong>{task.subgroup_name}</strong></>
+                    : <span style={{ color: 'var(--text-secondary)' }}>Keine Untergruppe</span>}
+                </span>
               </div>
-              <span className="task-detail-shared-count">
-                {task.subgroup_members.length} Mitglied{task.subgroup_members.length === 1 ? '' : 'er'}
-                <ChevronDown size={13} style={{ marginLeft: 4, transform: showSubgroupList ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', verticalAlign: 'middle' }} />
-              </span>
-            </button>
-            <AnimatePresence>
-              {showSubgroupList && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  style={{ overflow: 'hidden' }}
+              {isGroupAdmin && (
+                <button
+                  type="button"
+                  onClick={() => setShowSubgroupPicker((s) => !s)}
+                  style={{ fontSize: '0.78rem', color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, padding: 0, flexShrink: 0 }}
                 >
-                  <div style={{ paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {task.subgroup_members.map((u, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <AvatarBadge name={u.name} color={u.avatar_color || '#007AFF'} avatarUrl={u.avatar_url} size={28} />
-                        <span style={{ fontSize: '0.88rem', fontWeight: 500, color: 'var(--text)' }}>{u.name}</span>
-                      </div>
+                  {task.subgroup_id ? 'Ändern' : '+ Zuweisen'}
+                </button>
+              )}
+            </div>
+
+            {/* Admin: Untergruppe-Picker */}
+            <AnimatePresence>
+              {isGroupAdmin && showSubgroupPicker && (
+                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: 'hidden' }}>
+                  <div style={{ paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {task.subgroup_id && (
+                      <button type="button" className="task-edit-shared-item addable"
+                        style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 10, cursor: 'pointer', padding: '6px 10px', textAlign: 'left' }}
+                        disabled={subgroupSaving}
+                        onClick={() => handleSubgroupChange(null)}>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Keine Untergruppe</span>
+                        <span className="task-edit-perm-btn" style={{ marginLeft: 'auto' }}>Entfernen</span>
+                      </button>
+                    )}
+                    {groupSubgroups.map((sg) => (
+                      <button key={sg.id} type="button"
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, background: String(task.subgroup_id) === String(sg.id) ? 'var(--hover)' : 'none', border: '1px solid var(--border)', borderRadius: 10, cursor: 'pointer', padding: '6px 10px' }}
+                        disabled={subgroupSaving || String(task.subgroup_id) === String(sg.id)}
+                        onClick={() => handleSubgroupChange(sg.id)}>
+                        <span style={{ width: 10, height: 10, borderRadius: 2, background: sg.color || '#8E8E93', flexShrink: 0 }} />
+                        <span style={{ fontSize: '0.85rem', fontWeight: 500, flex: 1, textAlign: 'left' }}>{sg.name}</span>
+                        {Array.isArray(sg.members) && <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{sg.members.length} Mitgl.</span>}
+                        {String(task.subgroup_id) !== String(sg.id) && <span className="task-edit-perm-btn add" style={{ marginLeft: 'auto', flexShrink: 0 }}>Auswählen</span>}
+                      </button>
                     ))}
+                    {groupSubgroups.length === 0 && (
+                      <span style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', padding: '4px 0' }}>Keine Untergruppen vorhanden</span>
+                    )}
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Mitgliederliste der aktuellen Untergruppe */}
+            {task.subgroup_id && Array.isArray(task.subgroup_members) && task.subgroup_members.length > 0 && (
+              <>
+                <button type="button" className="task-detail-shared-stack-wrap"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left', width: '100%', marginTop: 8 }}
+                  onClick={() => setShowSubgroupList((s) => !s)}>
+                  <div className="task-detail-shared-avatars">
+                    {task.subgroup_members.slice(0, 5).map((u, i) => (
+                      <span key={i} className="task-detail-shared-avatar" style={{ zIndex: 10 - i, marginLeft: i > 0 ? -10 : 0 }} title={u.name}>
+                        <AvatarBadge name={u.name} color={u.avatar_color || '#007AFF'} avatarUrl={u.avatar_url} size={30} />
+                      </span>
+                    ))}
+                    {task.subgroup_members.length > 5 && <span className="task-detail-shared-overflow">+{task.subgroup_members.length - 5}</span>}
+                  </div>
+                  <span className="task-detail-shared-count">
+                    {task.subgroup_members.length} Mitglied{task.subgroup_members.length === 1 ? '' : 'er'}
+                    <ChevronDown size={13} style={{ marginLeft: 4, transform: showSubgroupList ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', verticalAlign: 'middle' }} />
+                  </span>
+                </button>
+                <AnimatePresence>
+                  {showSubgroupList && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: 'hidden' }}>
+                      <div style={{ paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {task.subgroup_members.map((u, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <AvatarBadge name={u.name} color={u.avatar_color || '#007AFF'} avatarUrl={u.avatar_url} size={28} />
+                            <span style={{ fontSize: '0.88rem', fontWeight: 500, color: 'var(--text)' }}>{u.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </>
+            )}
           </div>
         )}
 
@@ -925,25 +996,26 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
                     <div style={{ padding: '12px 0', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Lädt…</div>
                   ) : (
                     <div style={{ paddingTop: 12 }}>
-                      <div className="task-edit-visibility-pills">
-                        {[
-                          { value: 'private', label: 'Privat', Icon: Lock, color: '#8E8E93' },
-                          { value: 'shared', label: 'Alle Freunde', Icon: Users, color: '#007AFF' },
-                          { value: 'selected_users', label: 'Auswahl', Icon: UserCheck, color: '#34C759' },
-                        ].map(({ value, label, Icon, color }) => (
-                          <button
-                            key={value}
-                            type="button"
-                            className={`task-edit-pill${shareVisibility === value ? ' active' : ''}`}
-                            style={shareVisibility === value ? { background: color, color: '#fff' } : {}}
-                            onClick={() => { setShareVisibility(value); if (value !== 'selected_users') setSharePermissions([]); }}
-                          >
-                            <Icon size={13} /> {label}
-                          </button>
-                        ))}
-                      </div>
+                      {/* Sichtbarkeits-Pills: nur für Admins/Owner */}
+                      {(isGroupAdmin || !task.group_id) && (
+                        <div className="task-edit-visibility-pills">
+                          {[
+                            { value: 'private', label: 'Privat', Icon: Lock, color: '#8E8E93' },
+                            { value: 'shared', label: 'Alle Freunde', Icon: Users, color: '#007AFF' },
+                            { value: 'selected_users', label: 'Auswahl', Icon: UserCheck, color: '#34C759' },
+                          ].map(({ value, label, Icon, color }) => (
+                            <button key={value} type="button"
+                              className={`task-edit-pill${shareVisibility === value ? ' active' : ''}`}
+                              style={shareVisibility === value ? { background: color, color: '#fff' } : {}}
+                              onClick={() => { setShareVisibility(value); if (value !== 'selected_users') setSharePermissions([]); }}>
+                              <Icon size={13} /> {label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
 
-                      {shareVisibility === 'selected_users' && (
+                      {/* Mitglieder dürfen nur mit Auswahl teilen */}
+                      {(isGroupAdmin || !task.group_id ? shareVisibility === 'selected_users' : true) && (
                         <div className="task-edit-friends-section" style={{ marginTop: 10 }}>
                           {sharePermissions.length > 0 && (
                             <div className="task-edit-shared-list">
@@ -953,19 +1025,26 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
                                   <AvatarBadge name={p.name} color={p.avatar_color || '#007AFF'} avatarUrl={p.avatar_url} size={28} />
                                   <span className="task-edit-friend-name">{p.name}</span>
                                   <div className="task-edit-friend-controls">
-                                    <button type="button" className={`task-edit-perm-btn${p.can_edit ? ' active' : ''}`}
-                                      onClick={() => setSharePermissions((prev) => prev.map((pp) => pp.user_id === p.user_id ? { ...pp, can_edit: !pp.can_edit } : pp))}>
-                                      {p.can_edit ? <><Edit3 size={11} /> Bearbeiten</> : <><Eye size={11} /> Lesen</>}
-                                    </button>
-                                    <button type="button" className="task-edit-perm-btn remove"
-                                      onClick={() => setSharePermissions((prev) => prev.filter((pp) => pp.user_id !== p.user_id))}>
-                                      <X size={11} />
-                                    </button>
+                                    {/* Berechtigungs-Toggle nur für Admins */}
+                                    {(isGroupAdmin || !task.group_id) && (
+                                      <button type="button" className={`task-edit-perm-btn${p.can_edit ? ' active' : ''}`}
+                                        onClick={() => setSharePermissions((prev) => prev.map((pp) => pp.user_id === p.user_id ? { ...pp, can_edit: !pp.can_edit } : pp))}>
+                                        {p.can_edit ? <><Edit3 size={11} /> Bearbeiten</> : <><Eye size={11} /> Lesen</>}
+                                      </button>
+                                    )}
+                                    {/* Entfernen nur für Admins */}
+                                    {(isGroupAdmin || !task.group_id) && (
+                                      <button type="button" className="task-edit-perm-btn remove"
+                                        onClick={() => setSharePermissions((prev) => prev.filter((pp) => pp.user_id !== p.user_id))}>
+                                        <X size={11} />
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
                               ))}
                             </div>
                           )}
+                          {/* Freunde hinzufügen: alle Mitglieder dürfen das */}
                           {friends.filter((f) => !sharePermissions.find((p) => p.user_id === f.friend_user_id)).length > 0 && (
                             <div className="task-edit-add-friends">
                               <div className="task-edit-shared-label">Freund hinzufügen:</div>

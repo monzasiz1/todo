@@ -442,6 +442,12 @@ export const api = {
   removeGroupTask: (groupId, taskId) =>
     request(`/groups/${groupId}/tasks/${taskId}`, { method: 'DELETE' }),
 
+  updateGroupTask: (groupId, taskId, data) =>
+    request(`/groups/${groupId}/tasks/${taskId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
   getGroupCategories: (groupId) => request(`/groups/${groupId}/categories`),
 
   createGroupCategory: (groupId, data) =>
