@@ -1216,7 +1216,7 @@ function SubgroupManager({ groupId, members, subgroups, onRefresh }) {
     }
   };
 
-  const groupMembers = members.filter((m) => m.role !== 'owner');
+  const groupMembers = Array.isArray(members) ? members : [];
 
   return (
     <div className="group-cat-manager">
