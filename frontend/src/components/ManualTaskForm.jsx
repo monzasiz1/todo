@@ -613,7 +613,8 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
               </div>
             )}
 
-            <div className="task-edit-sharing" style={{ marginTop: 2 }}>
+            {/* Teilen & Berechtigungen nur wenn KEINE Gruppe ausgewählt */}
+            {!groupId && <div className="task-edit-sharing" style={{ marginTop: 2 }}>
               <button
                 type="button"
                 className="task-edit-sharing-toggle"
@@ -734,7 +735,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
                   </motion.div>
                 )}
               </AnimatePresence>
-            </div>
+            </div>}
 
             {/* Teams Meeting Toggle (events only) */}
             {taskType === 'event' && (

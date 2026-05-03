@@ -10479,7 +10479,8 @@ body.cal-is-dragging * {
   padding-top: 10px;
 }
 
-.task-edit-sharing-toggle {
+.task-edit-sharing-toggle,
+.task-detail-sharing-toggle {
   display: flex;
   align-items: center;
   justify-content: space-between;

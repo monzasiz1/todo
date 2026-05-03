@@ -7,13 +7,15 @@ import { api } from '../utils/api';
 import {
   X, ArrowLeft, Calendar, CalendarCheck, Clock, Tag, Flag, CheckCircle2, Circle,
   Trash2, AlertTriangle, Repeat, Bell, FileText, ListChecks,
-  Users, UserCheck, Eye, Edit3, Share2, MoreVertical, MessageCircle, Send, Video, ThumbsUp, ThumbsDown
+  Users, UserCheck, Eye, Edit3, Share2, MoreVertical, MessageCircle, Send, Video, ThumbsUp, ThumbsDown,
+  Lock, ChevronDown
 } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
 import TaskEditModal from './TaskEditModal';
 import TaskAttachments from './TaskAttachments';
 import AvatarBadge from './AvatarBadge';
+import { useFriendsStore } from '../store/friendsStore';
 
 const priorityConfig = {
   low: { label: 'Niedrig', color: 'var(--success)', icon: Flag },
@@ -26,7 +28,13 @@ const priorityConfig = {
 // pageMode=false (default) → renders as a modal popup (desktop)
 export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = false, hidePrivateShareInfo = false }) {
   const { toggleTask, deleteTask, fetchTasks, addToast } = useTaskStore();
+  const { friends, fetchFriends } = useFriendsStore();
   const [showEdit, setShowEdit] = useState(false);
+  const [showSharePanel, setShowSharePanel] = useState(false);
+  const [shareVisibility, setShareVisibility] = useState('private');
+  const [sharePermissions, setSharePermissions] = useState([]);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareSaving, setShareSaving] = useState(false);
   const [sharingToChat, setSharingToChat] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
@@ -158,6 +166,48 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       window.removeEventListener('resize', check);
     };
   }, [isMobile]);
+
+  useEffect(() => {
+    if (!showSharePanel) return;
+    let mounted = true;
+    setShareLoading(true);
+    fetchFriends();
+    api.getPermissions(task.id)
+      .then((data) => {
+        if (!mounted) return;
+        setShareVisibility(data.visibility || 'private');
+        setSharePermissions(
+          (data.permissions || []).map((p) => ({
+            user_id: p.user_id,
+            can_view: p.can_view,
+            can_edit: p.can_edit,
+            name: p.user_name,
+            avatar_color: p.avatar_color,
+            avatar_url: p.avatar_url,
+          }))
+        );
+      })
+      .catch(() => {})
+      .finally(() => { if (mounted) setShareLoading(false); });
+    return () => { mounted = false; };
+  }, [showSharePanel, task.id, fetchFriends]);
+
+  const handleSaveShare = async () => {
+    setShareSaving(true);
+    try {
+      await api.setPermissions(task.id, {
+        visibility: shareVisibility,
+        permissions: shareVisibility === 'selected_users'
+          ? sharePermissions.map((p) => ({ user_id: p.user_id, can_view: p.can_view, can_edit: p.can_edit }))
+          : [],
+      });
+      addToast('Freigabe gespeichert', 'success');
+      if (onUpdated) onUpdated();
+    } catch {
+      addToast('Fehler beim Speichern', 'error');
+    }
+    setShareSaving(false);
+  };
 
   const currentUser = useMemo(() => {
     try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch { return null; }
@@ -780,6 +830,114 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
                 <Edit3 size={14} /><span className="task-detail-collab-info-text"><span className="task-detail-collab-label">Zuletzt bearbeitet von</span><strong>{task.last_editor_name}</strong></span>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Teilen-Panel: nur für eigene Termine ohne Gruppe */}
+        {isEvent && canEdit && !task.group_id && (
+          <div className="task-detail-section task-detail-collab">
+            <button
+              type="button"
+              className="task-detail-sharing-toggle"
+              onClick={() => setShowSharePanel((s) => !s)}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+                <Users size={15} />
+                <span style={{ fontWeight: 600, fontSize: '0.88rem' }}>Mit Personen teilen</span>
+                {sharePermissions.length > 0 && (
+                  <span className="task-edit-sharing-count">{sharePermissions.length}</span>
+                )}
+              </div>
+              <ChevronDown size={15} className={`task-edit-chevron${showSharePanel ? ' open' : ''}`} />
+            </button>
+            <AnimatePresence>
+              {showSharePanel && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  style={{ overflow: 'hidden' }}
+                >
+                  {shareLoading ? (
+                    <div style={{ padding: '12px 0', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Lädt…</div>
+                  ) : (
+                    <div style={{ paddingTop: 12 }}>
+                      <div className="task-edit-visibility-pills">
+                        {[
+                          { value: 'private', label: 'Privat', Icon: Lock, color: '#8E8E93' },
+                          { value: 'shared', label: 'Alle Freunde', Icon: Users, color: '#007AFF' },
+                          { value: 'selected_users', label: 'Auswahl', Icon: UserCheck, color: '#34C759' },
+                        ].map(({ value, label, Icon, color }) => (
+                          <button
+                            key={value}
+                            type="button"
+                            className={`task-edit-pill${shareVisibility === value ? ' active' : ''}`}
+                            style={shareVisibility === value ? { background: color, color: '#fff' } : {}}
+                            onClick={() => { setShareVisibility(value); if (value !== 'selected_users') setSharePermissions([]); }}
+                          >
+                            <Icon size={13} /> {label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {shareVisibility === 'selected_users' && (
+                        <div className="task-edit-friends-section" style={{ marginTop: 10 }}>
+                          {sharePermissions.length > 0 && (
+                            <div className="task-edit-shared-list">
+                              <div className="task-edit-shared-label">Geteilt mit:</div>
+                              {sharePermissions.map((p) => (
+                                <div key={p.user_id} className="task-edit-shared-item">
+                                  <AvatarBadge name={p.name} color={p.avatar_color || '#007AFF'} avatarUrl={p.avatar_url} size={28} />
+                                  <span className="task-edit-friend-name">{p.name}</span>
+                                  <div className="task-edit-friend-controls">
+                                    <button type="button" className={`task-edit-perm-btn${p.can_edit ? ' active' : ''}`}
+                                      onClick={() => setSharePermissions((prev) => prev.map((pp) => pp.user_id === p.user_id ? { ...pp, can_edit: !pp.can_edit } : pp))}>
+                                      {p.can_edit ? <><Edit3 size={11} /> Bearbeiten</> : <><Eye size={11} /> Lesen</>}
+                                    </button>
+                                    <button type="button" className="task-edit-perm-btn remove"
+                                      onClick={() => setSharePermissions((prev) => prev.filter((pp) => pp.user_id !== p.user_id))}>
+                                      <X size={11} />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {friends.filter((f) => !sharePermissions.find((p) => p.user_id === f.friend_user_id)).length > 0 && (
+                            <div className="task-edit-add-friends">
+                              <div className="task-edit-shared-label">Freund hinzufügen:</div>
+                              {friends
+                                .filter((f) => !sharePermissions.find((p) => p.user_id === f.friend_user_id))
+                                .map((f) => (
+                                  <div key={f.friend_user_id} className="task-edit-shared-item addable">
+                                    <AvatarBadge name={f.name} color={f.avatar_color || '#007AFF'} avatarUrl={f.avatar_url} size={28} />
+                                    <span className="task-edit-friend-name">{f.name}</span>
+                                    <button type="button" className="task-edit-perm-btn add"
+                                      onClick={() => setSharePermissions((prev) => [...prev, { user_id: f.friend_user_id, can_view: true, can_edit: false, name: f.name, avatar_color: f.avatar_color, avatar_url: f.avatar_url }])}>
+                                      + Hinzufügen
+                                    </button>
+                                  </div>
+                                ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <motion.button
+                        type="button"
+                        className="task-detail-btn edit"
+                        style={{ marginTop: 14, width: '100%' }}
+                        disabled={shareSaving}
+                        onClick={handleSaveShare}
+                        whileTap={{ scale: 0.97 }}
+                      >
+                        {shareSaving ? 'Speichert…' : 'Freigabe speichern'}
+                      </motion.button>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         )}
 
