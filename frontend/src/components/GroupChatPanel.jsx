@@ -900,9 +900,11 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
 
                   {visibleMessages.map((msg, idx) => {
                     const isOwn = msg.user_id === user?.id;
-                    const isEventMsg = msg.message_type === 'group_event';
+                    const isLinkedEvent = String(msg.linked_task_type || '').toLowerCase() === 'event';
+                    const isEventMsg = msg.message_type === 'group_event' && (isLinkedEvent || !msg.linked_task_type);
+                    const isTaskMsg = msg.message_type === 'group_task' || (msg.message_type === 'group_event' && msg.linked_task_type && !isLinkedEvent);
                     const isEnded = isEndedEvent(msg);
-                    const hasTime = !msg.is_poll && !isEventMsg && detectTimeHint(msg.content);
+                    const hasTime = !msg.is_poll && !isEventMsg && !isTaskMsg && detectTimeHint(msg.content);
                     const showSender =
                       !isOwn &&
                       (idx === 0 || visibleMessages[idx - 1].user_id !== msg.user_id);
@@ -1108,6 +1110,48 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
                                   })()}
                                 </div>
                               )}
+                              <div className="gchat-bubble-meta">
+                                <span className="gchat-time">{formatTime(msg.created_at)}</span>
+                                {isOwn && (
+                                  <button
+                                    className={`gchat-pin-btn gchat-delete-btn ${deletingMsgId === msg.id ? 'deleting' : ''}`}
+                                    onClick={() => deleteMessage(msg.id)}
+                                    title="Löschen"
+                                    disabled={deletingMsgId === msg.id}
+                                  >
+                                    <Trash2 size={10} />
+                                  </button>
+                                )}
+                                <button
+                                  className={`gchat-pin-btn ${msg.is_pinned ? 'active' : ''}`}
+                                  onClick={() => togglePin(msg)}
+                                  title={msg.is_pinned ? 'Losgelöst' : 'Anpinnen'}
+                                >
+                                  <Pin size={10} />
+                                </button>
+                              </div>
+                            </div>
+                          ) : isTaskMsg ? (
+                            <div className={`gchat-shared-event ${isOwn ? 'own' : ''} ${msg.is_pinned ? 'pinned' : ''}`}>
+                              <div className="gchat-shared-event-head">
+                                <Check size={14} />
+                                <span>Gruppen-Aufgabe</span>
+                              </div>
+                              <p className="gchat-shared-event-title">{msg.linked_task_title || msg.content}</p>
+                              <div className="gchat-shared-event-meta">
+                                {msg.linked_task_date && <span>📆 {String(msg.linked_task_date).substring(0, 10)}</span>}
+                                {msg.linked_task_time && <span>🕕 {String(msg.linked_task_time).substring(0, 5)} Uhr</span>}
+                                <span>👤 erstellt von {msg.sender_name}</span>
+                              </div>
+                              <div className="gchat-shared-event-actions">
+                                <button
+                                  className="gchat-shared-btn"
+                                  onClick={() => commentOnEvent(msg)}
+                                >
+                                  <MessageSquare size={12} />
+                                  Kommentieren
+                                </button>
+                              </div>
                               <div className="gchat-bubble-meta">
                                 <span className="gchat-time">{formatTime(msg.created_at)}</span>
                                 {isOwn && (
