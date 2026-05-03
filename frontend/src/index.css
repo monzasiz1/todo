@@ -9890,11 +9890,11 @@ body.cal-is-dragging * {
 
 .help-fab {
   position: fixed;
-  bottom: 90px;
-  right: 20px;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
+  bottom: 24px;
+  right: 88px;
+  width: 50px;
+  height: 50px;
+  border-radius: 16px;
   background: linear-gradient(135deg, #5856D6, #007AFF);
   color: white;
   border: none;
@@ -9904,7 +9904,7 @@ body.cal-is-dragging * {
   justify-content: center;
   box-shadow: 0 4px 20px rgba(88, 86, 214, 0.4);
   z-index: 999;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s var(--spring), box-shadow 0.2s;
 }
 
 .help-fab:hover {
@@ -9918,29 +9918,28 @@ body.cal-is-dragging * {
 
 @media (min-width: 1025px) {
   .help-fab {
-    bottom: calc(50vh + 6px);
-    right: 0;
-    width: auto;
-    height: auto;
-    border-radius: 12px 0 0 12px;
-    padding: 12px 18px 12px 14px;
-    gap: 9px;
-    box-shadow: -4px 2px 20px rgba(88, 86, 214, 0.22);
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: -0.1px;
+    bottom: 24px;
+    right: 88px;
+    width: 50px;
+    height: 50px;
+    border-radius: 16px;
+    padding: 0;
+    gap: 0;
+    box-shadow: 0 4px 20px rgba(88, 86, 214, 0.4);
+    font-size: inherit;
+    font-weight: inherit;
     flex-direction: row;
     transform: none;
   }
   .help-fab::after {
-    content: 'Hilfe';
+    content: none;
   }
   .help-fab:hover {
-    transform: translateX(-4px);
-    box-shadow: -6px 4px 24px rgba(88, 86, 214, 0.32);
+    transform: scale(1.08);
+    box-shadow: 0 6px 28px rgba(88, 86, 214, 0.5);
   }
   .help-fab:active {
-    transform: translateX(-2px);
+    transform: scale(0.95);
   }
 }
 
@@ -23341,26 +23340,25 @@ body.cal-is-dragging * {
 }
 @media (min-width: 1025px) {
   .gchat-fab {
-    bottom: calc(50vh - 54px);
-    right: 0;
-    width: auto;
-    height: auto;
-    border-radius: 12px 0 0 12px;
-    padding: 12px 18px 12px 14px;
-    gap: 9px;
-    box-shadow: -4px 2px 20px rgba(0, 122, 255, 0.22);
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: -0.1px;
+    bottom: 24px;
+    right: 24px;
+    width: 50px;
+    height: 50px;
+    border-radius: 16px;
+    padding: 0;
+    gap: 0;
+    box-shadow: 0 4px 20px rgba(0, 122, 255, 0.35);
+    font-size: inherit;
+    font-weight: inherit;
     flex-direction: row;
     transform: none;
   }
   .gchat-fab::after {
-    content: 'Chat';
+    content: none;
   }
   .gchat-fab:hover {
-    transform: translateX(-4px);
-    box-shadow: -6px 4px 24px rgba(0, 122, 255, 0.32);
+    transform: scale(1.08);
+    box-shadow: 0 6px 28px rgba(0, 122, 255, 0.45);
   }
 }
 @media (max-width: 1024px) {
