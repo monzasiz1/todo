@@ -369,7 +369,8 @@ module.exports = async function handler(req, res) {
              FROM task_permissions tp
              JOIN users u3 ON u3.id = tp.user_id
              WHERE tp.task_id = t.id AND tp.can_view = true
-           ), '[]'::json) as shared_with_users
+           ), '[]'::json) as shared_with_users,
+           $2::text as my_group_role
          FROM group_tasks gt
          JOIN tasks t ON t.id = gt.task_id
          LEFT JOIN categories c ON t.category_id = c.id
@@ -792,6 +793,35 @@ module.exports = async function handler(req, res) {
     } catch (err) {
       console.error('Add group task error:', err);
       return res.status(500).json({ error: 'Fehler beim Erstellen des Eintrags' });
+    }
+  }
+
+  // ============================================
+  // PATCH /api/groups/:id/tasks/:taskId — Update subgroup / group_category
+  // ============================================
+  if (segments.length === 3 && segments[1] === 'tasks' && req.method === 'PATCH') {
+    try {
+      const groupId = segments[0];
+      const taskId = segments[2];
+      const membership = await getMembership(groupId);
+      if (!membership || !['owner', 'admin'].includes(membership.role)) {
+        return res.status(403).json({ error: 'Nur Admins können Aufgaben-Untergruppen ändern' });
+      }
+      const { subgroup_id, group_category_id } = req.body;
+      const updates = [];
+      const params = [];
+      if (subgroup_id !== undefined) { updates.push(`subgroup_id = $${params.length + 1}`); params.push(subgroup_id || null); }
+      if (group_category_id !== undefined) { updates.push(`group_category_id = $${params.length + 1}`); params.push(group_category_id || null); }
+      if (updates.length === 0) return res.status(400).json({ error: 'Keine Felder zum Aktualisieren' });
+      params.push(groupId, taskId);
+      await pool.query(
+        `UPDATE group_tasks SET ${updates.join(', ')} WHERE group_id = $${params.length - 1} AND task_id = $${params.length}`,
+        params
+      );
+      return res.json({ success: true });
+    } catch (err) {
+      console.error('Patch group task error:', err);
+      return res.status(500).json({ error: 'Fehler beim Aktualisieren' });
     }
   }
 

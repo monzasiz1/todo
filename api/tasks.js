@@ -1201,7 +1201,12 @@ module.exports = async function handler(req, res) {
                           SELECT 1 FROM task_permissions tp
                           WHERE tp.task_id = t.id AND tp.user_id = $1 AND tp.can_edit = true
                         )
-                      END AS can_edit
+                      END AS can_edit,
+                      EXISTS (
+                        SELECT 1 FROM group_tasks gt2
+                        JOIN group_members gm2 ON gm2.group_id = gt2.group_id
+                        WHERE gt2.task_id = t.id AND gm2.user_id = $1
+                      ) AS is_group_member
                FROM task_ids ids
                JOIN tasks t ON t.id = ids.id
                WHERE ($2::boolean IS NULL OR t.completed = $2)
@@ -1242,6 +1247,7 @@ module.exports = async function handler(req, res) {
                     NULL::text AS last_editor_name,
                     rt.is_owner,
                     rt.can_edit,
+                    rt.is_group_member,
                     g.group_id,
                     g.group_name,
                     g.group_color,
@@ -1249,6 +1255,7 @@ module.exports = async function handler(req, res) {
                     g.group_category_id,
                     g.group_category_name,
                     g.group_category_color,
+                    g.my_group_role,
                     0::int AS attachment_count,
                     COALESCE(sh.shared_with_users, '[]'::json) AS shared_with_users
              FROM ranked_tasks rt
@@ -1262,7 +1269,10 @@ module.exports = async function handler(req, res) {
                       grp.image_url as group_image_url,
                       gt.group_category_id,
                       gc.name as group_category_name,
-                      gc.color as group_category_color
+                      gc.color as group_category_color,
+                      (SELECT gm.role FROM group_members gm
+                       WHERE gm.group_id = gt.group_id AND gm.user_id = $1
+                       LIMIT 1) as my_group_role
                FROM group_tasks gt
                JOIN groups grp ON grp.id = gt.group_id
                LEFT JOIN group_categories gc ON gc.id = gt.group_category_id
