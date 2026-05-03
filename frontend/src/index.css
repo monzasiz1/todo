@@ -9916,6 +9916,34 @@ body.cal-is-dragging * {
   transform: scale(0.95);
 }
 
+@media (min-width: 1025px) {
+  .help-fab {
+    bottom: calc(50vh + 6px);
+    right: 0;
+    width: auto;
+    height: auto;
+    border-radius: 12px 0 0 12px;
+    padding: 12px 18px 12px 14px;
+    gap: 9px;
+    box-shadow: -4px 2px 20px rgba(88, 86, 214, 0.22);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.1px;
+    flex-direction: row;
+    transform: none;
+  }
+  .help-fab::after {
+    content: 'Hilfe';
+  }
+  .help-fab:hover {
+    transform: translateX(-4px);
+    box-shadow: -6px 4px 24px rgba(88, 86, 214, 0.32);
+  }
+  .help-fab:active {
+    transform: translateX(-2px);
+  }
+}
+
 .help-chat {
   position: fixed;
   bottom: 90px;
@@ -23304,10 +23332,36 @@ body.cal-is-dragging * {
   box-shadow: 0 4px 20px rgba(0, 122, 255, 0.35);
   z-index: 200;
   transition: transform 0.2s var(--spring), box-shadow var(--transition);
+  border: none;
+  cursor: pointer;
 }
 .gchat-fab:hover {
   transform: scale(1.08);
   box-shadow: 0 6px 28px rgba(0, 122, 255, 0.45);
+}
+@media (min-width: 1025px) {
+  .gchat-fab {
+    bottom: calc(50vh - 54px);
+    right: 0;
+    width: auto;
+    height: auto;
+    border-radius: 12px 0 0 12px;
+    padding: 12px 18px 12px 14px;
+    gap: 9px;
+    box-shadow: -4px 2px 20px rgba(0, 122, 255, 0.22);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.1px;
+    flex-direction: row;
+    transform: none;
+  }
+  .gchat-fab::after {
+    content: 'Chat';
+  }
+  .gchat-fab:hover {
+    transform: translateX(-4px);
+    box-shadow: -6px 4px 24px rgba(0, 122, 255, 0.32);
+  }
 }
 @media (max-width: 1024px) {
   .gchat-fab { display: none; }

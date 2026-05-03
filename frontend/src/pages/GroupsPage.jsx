@@ -374,10 +374,7 @@ function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick })
                       <strong>{g.member_count} aktiv</strong>
                     </div>
                   </div>
-                  <div className="group-card-cover-stat">
-                    <RoleIcon size={12} />
-                    <span>{roleConf.label}</span>
-                  </div>
+
                 </div>
 
                 {/* Body */}
@@ -397,7 +394,7 @@ function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick })
 
                 {/* Arrow */}
                 <div className="group-card-footer">
-                  <span className="group-card-footer-copy">Space oeffnen</span>
+                  <span className="group-card-footer-copy">Space öffnen</span>
                   <div className="group-card-arrow">
                     <ChevronRight size={16} />
                   </div>
