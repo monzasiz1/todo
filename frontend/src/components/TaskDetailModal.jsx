@@ -38,13 +38,11 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const [votesOpen, setVotesOpen] = useState(null);
   const menuRef = useRef(null);
   const emojiPickerRef = useRef(null);
-  const modalScrollRef = useRef(null);
   const swipeRef = useRef({ startY: 0, active: false });
   const pullRafRef = useRef(null);
   const pullNextRef = useRef(0);
   const pullOffsetRef = useRef(0);
   const [pullOffset, setPullOffset] = useState(0);
-  const [showCompactTitle, setShowCompactTitle] = useState(false);
   const [isMobile, setIsMobile] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1024px)').matches
   );
@@ -216,45 +214,6 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     if (showMenu || showEmojiPicker) document.addEventListener('mousedown', onClickOutside);
     return () => document.removeEventListener('mousedown', onClickOutside);
   }, [showMenu, showEmojiPicker]);
-
-  useEffect(() => {
-    if (!isMobile) {
-      setShowCompactTitle(false);
-      return;
-    }
-
-    const scroller = modalScrollRef.current;
-    if (!scroller) return;
-
-    const onScroll = () => {
-      // Schwelle: ~160px
-      // Header (~56px) + Title-Row (~70px) + etwas Padding = ~160px
-      // Compact title zeigt sich, wenn großer Titel scrollt vorbei
-      let scrollTop = scroller.scrollTop || 0;
-      
-      // Fallback: wenn modal scrollTop = 0 aber window/document hat scroll, nutze das
-      if (scrollTop === 0) {
-        const docTop = document.documentElement?.scrollTop || 0;
-        const bodyTop = document.body?.scrollTop || 0;
-        const winTop = typeof window !== 'undefined' ? window.scrollY || 0 : 0;
-        scrollTop = Math.max(docTop, bodyTop, winTop);
-      }
-      
-      const shouldShow = scrollTop > 160;
-      setShowCompactTitle((prev) => (prev === shouldShow ? prev : shouldShow));
-    };
-
-    onScroll();
-    scroller.addEventListener('scroll', onScroll, { passive: true });
-    
-    // Fallback: listen to window scroll too, in case modal is not the scroll container
-    window.addEventListener('scroll', onScroll, { passive: true });
-
-    return () => {
-      scroller.removeEventListener('scroll', onScroll);
-      window.removeEventListener('scroll', onScroll);
-    };
-  }, [isMobile, task?.id, task?.title]);
 
   if (!task) return null;
 
@@ -513,7 +472,6 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
 
   const content = (
     <motion.div
-      ref={modalScrollRef}
       className={`task-detail-modal${pageMode ? ' task-detail-page-mode' : ''}${isMobile ? ' is-mobile-fullscreen' : ''}${!isEvent ? ' is-task-detail' : ''}`}
       initial={isMobile ? { y: '100%' } : (pageMode ? { opacity: 0, x: 30 } : { opacity: 0, y: 24 })}
       animate={isMobile ? { y: pullOffset } : (pageMode ? { opacity: 1, x: 0 } : { opacity: 1, y: 0 })}
@@ -534,66 +492,64 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
             <img src={groupWatermarkUrl} alt="" loading="lazy" />
           </div>
         )}
-        <div className="task-detail-header">
-          {pageMode && (
-            <button className="task-detail-back-btn" onClick={onClose}>
-              <ArrowLeft size={18} />
-            </button>
-          )}
-          <div className="task-detail-priority-bar" style={{ background: priority.color }} />
-          {isMobile && <div className="modal-pull-handle" />}
-          <div className={`task-detail-scroll-title ${showCompactTitle ? 'visible' : ''}${task.completed && !isEvent ? ' completed' : ''}`}>
-            {task.title}
-          </div>
-          <div className="task-detail-header-actions" ref={menuRef} style={{ zIndex: 200, pointerEvents: 'auto' }}>
-            <button className="task-detail-more-btn" onClick={() => setShowMenu((s) => !s)} title="Mehr" aria-label="Mehr" style={{ position: 'relative', zIndex: 201, pointerEvents: 'auto' }}>
-              <MoreVertical size={18} />
-            </button>
-            {showMenu && (
-              <div className="task-detail-more-menu">
-                {canEdit && (
-                  <button className="task-detail-more-item" onClick={() => { setShowMenu(false); setShowEdit(true); }}>
-                    Bearbeiten
-                  </button>
-                )}
-                <div className="task-detail-more-item-wrap">
-                  <button
-                    className="task-detail-more-item"
-                    onClick={() => setShowShareMenu((s) => !s)}
-                  >
-                    <Share2 size={14} style={{ marginRight: 6 }} />
-                    Teilen
-                  </button>
-                  {showShareMenu && (
-                    <div className="task-detail-share-submenu">
-                      {typeof navigator !== 'undefined' && navigator.share && (
-                        <button className="task-detail-more-item" onClick={() => handleShare('native')}>
-                          Systemdialog
+        <div className="task-detail-sticky-top">
+          <div className="task-detail-header">
+            {pageMode && (
+              <button className="task-detail-back-btn" onClick={onClose}>
+                <ArrowLeft size={18} />
+              </button>
+            )}
+            <div className="task-detail-priority-bar" style={{ background: priority.color }} />
+            {isMobile && <div className="modal-pull-handle" />}
+            <div className="task-detail-header-actions" ref={menuRef} style={{ zIndex: 200, pointerEvents: 'auto' }}>
+              <button className="task-detail-more-btn" onClick={() => setShowMenu((s) => !s)} title="Mehr" aria-label="Mehr" style={{ position: 'relative', zIndex: 201, pointerEvents: 'auto' }}>
+                <MoreVertical size={18} />
+              </button>
+              {showMenu && (
+                <div className="task-detail-more-menu">
+                  {canEdit && (
+                    <button className="task-detail-more-item" onClick={() => { setShowMenu(false); setShowEdit(true); }}>
+                      Bearbeiten
+                    </button>
+                  )}
+                  <div className="task-detail-more-item-wrap">
+                    <button
+                      className="task-detail-more-item"
+                      onClick={() => setShowShareMenu((s) => !s)}
+                    >
+                      <Share2 size={14} style={{ marginRight: 6 }} />
+                      Teilen
+                    </button>
+                    {showShareMenu && (
+                      <div className="task-detail-share-submenu">
+                        {typeof navigator !== 'undefined' && navigator.share && (
+                          <button className="task-detail-more-item" onClick={() => handleShare('native')}>
+                            Systemdialog
+                          </button>
+                        )}
+                        <button className="task-detail-more-item" onClick={() => handleShare('whatsapp')}>
+                          WhatsApp
                         </button>
-                      )}
-                      <button className="task-detail-more-item" onClick={() => handleShare('whatsapp')}>
-                        WhatsApp
-                      </button>
-                      <button className="task-detail-more-item" onClick={() => handleShare('copy')}>
-                        Link kopieren
-                      </button>
-                    </div>
+                        <button className="task-detail-more-item" onClick={() => handleShare('copy')}>
+                          Link kopieren
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {task.is_owner !== false && (
+                    <button className="task-detail-more-item danger" onClick={() => { setShowMenu(false); handleDelete(); }}>
+                      Löschen
+                    </button>
                   )}
                 </div>
-                {task.is_owner !== false && (
-                  <button className="task-detail-more-item danger" onClick={() => { setShowMenu(false); handleDelete(); }}>
-                    Löschen
-                  </button>
-                )}
-              </div>
-            )}
-            {!pageMode && (
-              <button className="task-detail-close" onClick={onClose} style={{ position: 'relative', zIndex: 201, pointerEvents: 'auto' }}><X size={20} /></button>
-            )}
+              )}
+              {!pageMode && (
+                <button className="task-detail-close" onClick={onClose} style={{ position: 'relative', zIndex: 201, pointerEvents: 'auto' }}><X size={20} /></button>
+              )}
+            </div>
           </div>
-        </div>
 
-        <div className="task-detail-title-row">
+          <div className="task-detail-title-row">
             {isEvent ? (
               <div className="task-detail-event-icon"><CalendarCheck size={28} /></div>
             ) : (
@@ -610,6 +566,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
               {isOverdue && !isEvent && <span className="task-detail-status overdue">Überfällig</span>}
             </div>
           </div>
+        </div>
 
         {task.teams_join_url && (
           <div className="task-detail-section task-detail-teams-card">

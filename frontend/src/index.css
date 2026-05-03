@@ -6906,14 +6906,20 @@ body.cal-is-dragging * {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-.is-mobile-fullscreen .task-detail-header {
+/* Sticky-Wrapper im Vollbild-Scroll-Container */
+.is-mobile-fullscreen .task-detail-sticky-top {
   position: sticky;
-  top: 0;
+  top: 0 !important;
   z-index: 30;
-  padding-top: 0;
-  min-height: 56px;
   background: var(--bg, #f2f2f7);
   border-bottom: 1px solid var(--border);
+}
+
+.is-mobile-fullscreen .task-detail-header {
+  position: static;
+  padding-top: 0;
+  min-height: 52px;
+  background: transparent;
 }
 
 .is-mobile-fullscreen.task-edit-modal .task-edit-header {
@@ -6935,15 +6941,6 @@ body.cal-is-dragging * {
 
 .is-mobile-fullscreen .task-detail-header-actions {
   top: calc(env(safe-area-inset-top, 0px) + 10px);
-}
-
-.is-mobile-fullscreen .task-detail-scroll-title {
-  left: 18px;
-  right: 118px;
-}
-
-.is-mobile-fullscreen.task-detail-page-mode .task-detail-scroll-title {
-  left: 52px;
 }
 
 /* Kill nested scroll — the container above handles all scrolling */
@@ -7077,33 +7074,6 @@ body.cal-is-dragging * {
   position: relative;
   padding: 0;
   z-index: 30;
-}
-
-.task-detail-scroll-title {
-  position: absolute;
-  left: 18px;
-  right: 112px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 0.98rem;
-  font-weight: 700;
-  line-height: 1.2;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.16s ease;
-}
-
-.task-detail-scroll-title.visible {
-  opacity: 1;
-}
-
-.task-detail-scroll-title.completed {
-  text-decoration: line-through;
-  color: var(--text-tertiary);
 }
 
 .task-detail-priority-bar {
@@ -17178,11 +17148,11 @@ body.cal-is-dragging * {
   }
 
   .is-mobile-fullscreen .task-detail-header .modal-pull-handle {
-    margin: calc(env(safe-area-inset-top, 0px) + 10px) auto 6px;
+    margin: 4px auto 4px;
   }
 
   .is-mobile-fullscreen.task-edit-modal > .modal-pull-handle {
-    margin: calc(env(safe-area-inset-top, 0px) + 10px) auto 6px;
+    margin: calc(env(safe-area-inset-top, 0px) + 8px) auto 6px;
   }
 
   /* DayCreateModal fullscreen on mobile */
