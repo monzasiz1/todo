@@ -5,7 +5,7 @@ import TaskDetailModal from './TaskDetailModal';
 import { useOpenTask } from '../hooks/useOpenTask';
 import { useTaskStore } from '../store/taskStore';
 import { api } from '../utils/api';
-import { ChevronLeft, ChevronRight, ChevronDown, Maximize2, Minimize2, Video, Settings } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, Maximize2, Minimize2, Video, Settings, User } from 'lucide-react';
 import DayCreateModal from './DayCreateModal';
 import AvatarBadge from './AvatarBadge';
 import { FEDERAL_STATES, getGermanHolidaysInRange } from '../utils/holidays';
@@ -44,6 +44,8 @@ const CALENDAR_WEEK_DEFAULT_BREAKPOINT = 1024;
 const DEFAULT_HOLIDAY_COLOR = '#D92C2C';
 const CALENDAR_HOLIDAY_STATE_KEY = 'beequ_calendar_holiday_state';
 const CALENDAR_HOLIDAY_COLOR_KEY = 'beequ_calendar_holiday_color';
+const CALENDAR_ACTIVE_SOURCE_KEY = 'beequ_calendar_active_source';
+const CALENDAR_GROUPS_IN_OWN_KEY = 'beequ_calendar_groups_in_own';
 
 const minsToTime = (mins) => {
   const h = Math.floor(Math.max(0, mins) / 60);
@@ -215,6 +217,7 @@ const getTaskSource = (t) => {
       key: `group:${t.group_id || t.group_name}`,
       name: t.group_name || 'Gruppe', 
       color: t.group_color || '#5856D6',
+      avatarUrl: t.group_image_url || null,
     };
   }
   if (t.category_id || t.category_name) {
@@ -287,11 +290,39 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const dropdownRef = useRef(null);
   const { tasks: storeTasks, updateTask } = useTaskStore();
   const tasks = Array.isArray(tasksProp) ? tasksProp : storeTasks;
+  const currentUser = useMemo(() => {
+    try {
+      const parsed = JSON.parse(localStorage.getItem('user') || 'null');
+      return parsed && typeof parsed === 'object' ? parsed : null;
+    } catch {
+      return null;
+    }
+  }, []);
 
   // â”€â”€ Memoized calendar sources with performance optimization â”€â”€
   const calendarSources = useMemo(() => calculateCalendarSources(tasks), [tasks]);
+  const groupCalendarSources = useMemo(
+    () => calendarSources.filter((s) => String(s.key).startsWith('group:')),
+    [calendarSources]
+  );
 
   const [visibleSources, setVisibleSources] = useState({});
+  const [activeCalendarSource, setActiveCalendarSource] = useState(() => {
+    try {
+      return localStorage.getItem(CALENDAR_ACTIVE_SOURCE_KEY) || 'own';
+    } catch {
+      return 'own';
+    }
+  });
+  const [groupsShownInOwn, setGroupsShownInOwn] = useState(() => {
+    try {
+      const raw = localStorage.getItem(CALENDAR_GROUPS_IN_OWN_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+      return {};
+    }
+  });
 
   useEffect(() => {
     tasksRef.current = tasks;
@@ -385,6 +416,48 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     });
   }, [calendarSources]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(CALENDAR_ACTIVE_SOURCE_KEY, activeCalendarSource);
+    } catch {
+      // ignore
+    }
+  }, [activeCalendarSource]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CALENDAR_GROUPS_IN_OWN_KEY, JSON.stringify(groupsShownInOwn));
+    } catch {
+      // ignore
+    }
+  }, [groupsShownInOwn]);
+
+  useEffect(() => {
+    setGroupsShownInOwn((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      groupCalendarSources.forEach((groupSource) => {
+        if (typeof next[groupSource.key] === 'undefined') {
+          next[groupSource.key] = true;
+          changed = true;
+        }
+      });
+      Object.keys(next).forEach((key) => {
+        if (String(key).startsWith('group:') && !groupCalendarSources.some((s) => s.key === key)) {
+          delete next[key];
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [groupCalendarSources]);
+
+  useEffect(() => {
+    if (activeCalendarSource === 'own') return;
+    const exists = groupCalendarSources.some((s) => s.key === activeCalendarSource);
+    if (!exists) setActiveCalendarSource('own');
+  }, [activeCalendarSource, groupCalendarSources]);
+
   // -- Stale-tasks ref: keep last non-empty tasks so calendar never goes blank during navigation --
   const staleTasksRef = useRef([]);
 
@@ -394,12 +467,24 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     const source = tasks.length > 0 ? tasks : staleTasksRef.current;
     const result = source.filter((t) => {
       const s = getTaskSource(t);
-      return visibleSources[s.key] !== false;
+      if (visibleSources[s.key] === false) return false;
+
+      const isGroupEntry = String(s.key).startsWith('group:');
+      if (activeCalendarSource === 'own') {
+        if (!isGroupEntry) return true;
+        return groupsShownInOwn[s.key] !== false;
+      }
+
+      if (String(activeCalendarSource).startsWith('group:')) {
+        return s.key === activeCalendarSource;
+      }
+
+      return true;
     });
     // Update stale cache whenever we have real data
     if (tasks.length > 0) staleTasksRef.current = tasks;
     return result;
-  }, [tasks, visibleSources]);
+  }, [tasks, visibleSources, activeCalendarSource, groupsShownInOwn]);
 
   // â”€â”€ Memoized visible range calculation â”€â”€
   const visibleRange = useMemo(() => {
@@ -2178,6 +2263,69 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
             </button>
           </div>
         </div>
+
+        <div className="calendar-source-switchbar" role="tablist" aria-label="Kalenderquelle">
+          <button
+            type="button"
+            className={`calendar-source-switch-btn own ${activeCalendarSource === 'own' ? 'active' : ''}`}
+            onClick={() => setActiveCalendarSource('own')}
+            title="Mein Kalender"
+          >
+            <span className="calendar-source-switch-own-icon"><User size={13} /></span>
+            <span>Mein</span>
+          </button>
+
+          {groupCalendarSources.map((source) => (
+            <button
+              type="button"
+              key={`switch_${source.key}`}
+              className={`calendar-source-switch-btn ${activeCalendarSource === source.key ? 'active' : ''}`}
+              onClick={() => setActiveCalendarSource(source.key)}
+              title={`${source.name} Kalender`}
+            >
+              <AvatarBadge
+                name={source.name}
+                color={source.color || '#5856D6'}
+                avatarUrl={source.avatarUrl}
+                size={18}
+              />
+              <span>{source.name}</span>
+            </button>
+          ))}
+        </div>
+
+        {activeCalendarSource === 'own' && groupCalendarSources.length > 0 && (
+          <div className="calendar-own-include-row">
+            <span className="calendar-own-include-label">Im eigenen Kalender:</span>
+            <div className="calendar-own-include-list">
+              {groupCalendarSources.map((source) => {
+                const included = groupsShownInOwn[source.key] !== false;
+                return (
+                  <button
+                    key={`own_include_${source.key}`}
+                    type="button"
+                    className={`calendar-own-include-chip ${included ? 'on' : 'off'}`}
+                    onClick={() => {
+                      setGroupsShownInOwn((prev) => {
+                        const isOn = prev[source.key] !== false;
+                        return { ...prev, [source.key]: !isOn };
+                      });
+                    }}
+                    title={included ? `${source.name} im eigenen Kalender ausblenden` : `${source.name} im eigenen Kalender einblenden`}
+                  >
+                    <AvatarBadge
+                      name={source.name}
+                      color={source.color || '#5856D6'}
+                      avatarUrl={source.avatarUrl}
+                      size={16}
+                    />
+                    <span>{source.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       <div
