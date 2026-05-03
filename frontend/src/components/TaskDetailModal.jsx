@@ -135,18 +135,22 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     const titleEl = titleRef.current;
     const stickyEl = stickyTopRef.current;
     if (!titleEl || !stickyEl) return;
-    const check = () => {
-      const titleRect = titleEl.getBoundingClientRect();
-      const stickyRect = stickyEl.getBoundingClientRect();
-      const scrolled = titleRect.top < stickyRect.bottom;
-      setTitleHidden(scrolled);
-      setScrollDarkened(titleRect.top < stickyRect.bottom + 8);
-      setPullHandleHidden(scrolled);
-    };
     const scrollEl =
       titleEl.closest('.is-mobile-fullscreen') ||
       titleEl.closest('.task-detail-main') ||
       titleEl.closest('.task-detail-modal');
+    const check = () => {
+      const titleRect = titleEl.getBoundingClientRect();
+      const stickyRect = stickyEl.getBoundingClientRect();
+      const localScrollTop = scrollEl && typeof scrollEl.scrollTop === 'number' ? scrollEl.scrollTop : 0;
+      const windowScrollTop = typeof window !== 'undefined'
+        ? (window.scrollY || document.documentElement.scrollTop || 0)
+        : 0;
+      const scrolled = titleRect.top < stickyRect.bottom || localScrollTop > 6 || windowScrollTop > 6;
+      setTitleHidden(scrolled);
+      setScrollDarkened(titleRect.top < stickyRect.bottom + 8);
+      setPullHandleHidden(scrolled);
+    };
     scrollEl?.addEventListener('scroll', check, { passive: true });
     window.addEventListener('scroll', check, { passive: true });
     window.addEventListener('resize', check, { passive: true });

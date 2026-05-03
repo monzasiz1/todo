@@ -7136,6 +7136,13 @@ body.cal-is-dragging * {
   height: auto;
 }
 
+/* Keep edit sticky title behavior even on mobile fullscreen (do not inherit task-detail offsets) */
+.is-mobile-fullscreen.task-edit-modal .task-edit-sticky-title {
+  top: 50%;
+  right: 56px;
+  transform: translateY(-50%);
+}
+
 /* Scroll-Schatten: verdunkelt den oberen Bereich wenn Inhalt unter den Header scrollt */
 .task-detail-top-shadow {
   position: sticky;
