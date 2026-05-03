@@ -6962,6 +6962,12 @@ body.cal-is-dragging * {
   right: 96px;
 }
 
+.is-mobile-fullscreen.task-edit-modal .task-edit-sticky-title {
+  top: 50%;
+  right: 56px;
+  transform: translateY(-50%);
+}
+
 /* Kill nested scroll — the container above handles all scrolling */
 .is-mobile-fullscreen .task-detail-main,
 .is-mobile-fullscreen .task-detail-aside,
