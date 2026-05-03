@@ -163,6 +163,11 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const isEvent = task?.type === 'event';
   const eventEndAt = isEvent ? getEventEndDate(task) : null;
   const isEventEnded = isEvent && !!eventEndAt && eventEndAt.getTime() < Date.now();
+  const voteYesCount = Number(taskVotes.yes_count || 0);
+  const voteNoCount = Number(taskVotes.no_count || 0);
+  const votePendingCount = Number.isFinite(Number(task?.vote_unanswered_count))
+    ? Math.max(0, Number(task.vote_unanswered_count))
+    : null;
 
   useEffect(() => {
     if (!task?.id) { setComments([]); return; }
@@ -608,87 +613,116 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
             <div className="task-detail-description-header">
               <ThumbsUp size={16} /><span>Abstimmung</span>
             </div>
-            <div className="task-detail-vote-actions">
-              <button
-                type="button"
-                className={`task-detail-vote-btn yes ${taskVotes.my_vote === 'yes' ? 'active' : ''}`}
-                onClick={() => handleVote('yes')}
-                disabled={voting}
-              >
-                <ThumbsUp size={14} /> Zusagen ({taskVotes.yes_count || 0})
-              </button>
-              <button
-                type="button"
-                className={`task-detail-vote-btn no ${taskVotes.my_vote === 'no' ? 'active' : ''}`}
-                onClick={() => handleVote('no')}
-                disabled={voting}
-              >
-                <ThumbsDown size={14} /> Absagen ({taskVotes.no_count || 0})
-              </button>
-            </div>
-            <div className="task-detail-vote-attendees">
-              {taskVotes.yes_users.length > 0 && (
-                <button
-                  type="button"
-                  className="task-detail-vote-stack-btn task-detail-vote-stack-btn--yes"
-                  onClick={() => setVotesOpen(votesOpen === 'yes' ? null : 'yes')}
-                >
-                  <ThumbsUp size={11} />
-                  <span className="task-detail-vote-stack">
-                    {taskVotes.yes_users.slice(0, 5).map((u, i) => (
-                      <span key={`yes_${i}`} className="task-detail-vote-avatar-wrap" style={{ zIndex: 6 - i }}>
-                        <AvatarBadge name={u.name} color={u.avatar_color || '#4C7BD9'} avatarUrl={u.avatar_url} size={22} />
-                      </span>
-                    ))}
-                    {taskVotes.yes_users.length > 5 && (
-                      <span className="task-detail-vote-avatar-wrap task-detail-vote-avatar-wrap--more">+{taskVotes.yes_users.length - 5}</span>
-                    )}
-                  </span>
-                  <span className="task-detail-vote-count">{taskVotes.yes_users.length}</span>
-                </button>
-              )}
-              {taskVotes.no_users.length > 0 && (
-                <button
-                  type="button"
-                  className="task-detail-vote-stack-btn task-detail-vote-stack-btn--no"
-                  onClick={() => setVotesOpen(votesOpen === 'no' ? null : 'no')}
-                >
-                  <ThumbsDown size={11} />
-                  <span className="task-detail-vote-stack">
-                    {taskVotes.no_users.slice(0, 5).map((u, i) => (
-                      <span key={`no_${i}`} className="task-detail-vote-avatar-wrap" style={{ zIndex: 6 - i }}>
-                        <AvatarBadge name={u.name} color={u.avatar_color || '#8e8e93'} avatarUrl={u.avatar_url} size={22} />
-                      </span>
-                    ))}
-                    {taskVotes.no_users.length > 5 && (
-                      <span className="task-detail-vote-avatar-wrap task-detail-vote-avatar-wrap--more">+{taskVotes.no_users.length - 5}</span>
-                    )}
-                  </span>
-                  <span className="task-detail-vote-count">{taskVotes.no_users.length}</span>
-                </button>
-              )}
-
-              {votesOpen && (() => {
-                const isYes = votesOpen === 'yes';
-                const users = isYes ? taskVotes.yes_users : taskVotes.no_users;
-                return (
-                  <div className={`task-detail-vote-popup ${isYes ? 'task-detail-vote-popup--yes' : 'task-detail-vote-popup--no'}`}>
-                    <div className="task-detail-vote-popup-head">
-                      {isYes ? <ThumbsUp size={12} /> : <ThumbsDown size={12} />}
-                      <span>{isYes ? 'Zusagen' : 'Absagen'} ({users.length})</span>
-                      <button type="button" className="task-detail-vote-popup-close" onClick={() => setVotesOpen(null)}><X size={12} /></button>
-                    </div>
-                    <div className="task-detail-vote-popup-list">
-                      {users.map((u, i) => (
-                        <div key={`${isYes ? 'py' : 'pn'}_${i}`} className="task-detail-vote-popup-row">
-                          <AvatarBadge name={u.name} color={u.avatar_color || (isYes ? '#4C7BD9' : '#8e8e93')} avatarUrl={u.avatar_url} size={24} />
-                          <span className="task-detail-vote-popup-name">{u.name}</span>
-                        </div>
-                      ))}
-                    </div>
+            <div className="task-detail-vote-surface">
+              <div className="task-detail-vote-summary">
+                <div className={`task-detail-vote-summary-chip yes ${taskVotes.my_vote === 'yes' ? 'is-my-vote' : ''}`}>
+                  <ThumbsUp size={13} />
+                  <span>Zusagen</span>
+                  <strong>{voteYesCount}</strong>
+                </div>
+                <div className={`task-detail-vote-summary-chip no ${taskVotes.my_vote === 'no' ? 'is-my-vote' : ''}`}>
+                  <ThumbsDown size={13} />
+                  <span>Absagen</span>
+                  <strong>{voteNoCount}</strong>
+                </div>
+                {votePendingCount !== null && (
+                  <div className="task-detail-vote-summary-chip neutral">
+                    <Users size={13} />
+                    <span>Unbeantwortet</span>
+                    <strong>{votePendingCount}</strong>
                   </div>
-                );
-              })()}
+                )}
+              </div>
+
+              <div className="task-detail-vote-actions">
+                <button
+                  type="button"
+                  className={`task-detail-vote-btn yes ${taskVotes.my_vote === 'yes' ? 'active' : ''}`}
+                  onClick={() => handleVote('yes')}
+                  disabled={voting}
+                >
+                  <ThumbsUp size={14} />
+                  <span>Zusagen</span>
+                  <span className="task-detail-vote-btn-count">{voteYesCount}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`task-detail-vote-btn no ${taskVotes.my_vote === 'no' ? 'active' : ''}`}
+                  onClick={() => handleVote('no')}
+                  disabled={voting}
+                >
+                  <ThumbsDown size={14} />
+                  <span>Absagen</span>
+                  <span className="task-detail-vote-btn-count">{voteNoCount}</span>
+                </button>
+              </div>
+
+              <div className="task-detail-vote-hint">Erneut tippen entfernt deine Auswahl.</div>
+
+              <div className="task-detail-vote-attendees">
+                {taskVotes.yes_users.length > 0 && (
+                  <button
+                    type="button"
+                    className="task-detail-vote-stack-btn task-detail-vote-stack-btn--yes"
+                    onClick={() => setVotesOpen(votesOpen === 'yes' ? null : 'yes')}
+                  >
+                    <span className="task-detail-vote-stack-label"><ThumbsUp size={11} /> Zusagen</span>
+                    <span className="task-detail-vote-stack">
+                      {taskVotes.yes_users.slice(0, 5).map((u, i) => (
+                        <span key={`yes_${i}`} className="task-detail-vote-avatar-wrap" style={{ zIndex: 6 - i }}>
+                          <AvatarBadge name={u.name} color={u.avatar_color || '#4C7BD9'} avatarUrl={u.avatar_url} size={22} />
+                        </span>
+                      ))}
+                      {taskVotes.yes_users.length > 5 && (
+                        <span className="task-detail-vote-avatar-wrap task-detail-vote-avatar-wrap--more">+{taskVotes.yes_users.length - 5}</span>
+                      )}
+                    </span>
+                    <span className="task-detail-vote-count">{taskVotes.yes_users.length}</span>
+                  </button>
+                )}
+                {taskVotes.no_users.length > 0 && (
+                  <button
+                    type="button"
+                    className="task-detail-vote-stack-btn task-detail-vote-stack-btn--no"
+                    onClick={() => setVotesOpen(votesOpen === 'no' ? null : 'no')}
+                  >
+                    <span className="task-detail-vote-stack-label"><ThumbsDown size={11} /> Absagen</span>
+                    <span className="task-detail-vote-stack">
+                      {taskVotes.no_users.slice(0, 5).map((u, i) => (
+                        <span key={`no_${i}`} className="task-detail-vote-avatar-wrap" style={{ zIndex: 6 - i }}>
+                          <AvatarBadge name={u.name} color={u.avatar_color || '#8e8e93'} avatarUrl={u.avatar_url} size={22} />
+                        </span>
+                      ))}
+                      {taskVotes.no_users.length > 5 && (
+                        <span className="task-detail-vote-avatar-wrap task-detail-vote-avatar-wrap--more">+{taskVotes.no_users.length - 5}</span>
+                      )}
+                    </span>
+                    <span className="task-detail-vote-count">{taskVotes.no_users.length}</span>
+                  </button>
+                )}
+
+                {votesOpen && (() => {
+                  const isYes = votesOpen === 'yes';
+                  const users = isYes ? taskVotes.yes_users : taskVotes.no_users;
+                  return (
+                    <div className={`task-detail-vote-popup ${isYes ? 'task-detail-vote-popup--yes' : 'task-detail-vote-popup--no'}`}>
+                      <div className="task-detail-vote-popup-head">
+                        {isYes ? <ThumbsUp size={12} /> : <ThumbsDown size={12} />}
+                        <span>{isYes ? 'Zusagen' : 'Absagen'} ({users.length})</span>
+                        <button type="button" className="task-detail-vote-popup-close" onClick={() => setVotesOpen(null)}><X size={12} /></button>
+                      </div>
+                      <div className="task-detail-vote-popup-list">
+                        {users.map((u, i) => (
+                          <div key={`${isYes ? 'py' : 'pn'}_${i}`} className="task-detail-vote-popup-row">
+                            <AvatarBadge name={u.name} color={u.avatar_color || (isYes ? '#4C7BD9' : '#8e8e93')} avatarUrl={u.avatar_url} size={24} />
+                            <span className="task-detail-vote-popup-name">{u.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
           </div>
         )}
