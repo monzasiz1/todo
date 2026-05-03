@@ -424,22 +424,6 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
           </div>
         </div>
 
-        {task.description && (
-          <div className="task-detail-section">
-            <div className="task-detail-description-header">
-              {task.description.includes('•') ? <ListChecks size={16} /> : <FileText size={16} />}
-              <span>{task.description.includes('•') ? 'Liste' : 'Details'}</span>
-            </div>
-            <div className="task-detail-description">
-              {task.description.split('\n').map((line, i) => (
-                <div key={i} className={line.startsWith('•') ? 'task-detail-list-item' : 'task-detail-desc-line'}>
-                  {line.startsWith('•') ? (<><span className="task-detail-bullet">•</span>{line.substring(1).trim()}</>) : line}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {task.teams_join_url && (
           <div className="task-detail-section task-detail-teams-card">
             <div className="task-detail-teams-top">
@@ -539,6 +523,22 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
               </div>
             </div>
           )}
+        </div>
+
+        <div className="task-detail-section">
+          <div className="task-detail-description-header">
+            {task.description?.includes('•') ? <ListChecks size={16} /> : <FileText size={16} />}
+            <span>{task.description?.includes('•') ? 'Liste' : 'Details'}</span>
+          </div>
+          <div className="task-detail-description">
+            {task.description
+              ? task.description.split('\n').map((line, i) => (
+                  <div key={i} className={line.startsWith('•') ? 'task-detail-list-item' : 'task-detail-desc-line'}>
+                    {line.startsWith('•') ? (<><span className="task-detail-bullet">•</span>{line.substring(1).trim()}</>) : line}
+                  </div>
+                ))
+              : <div className="task-detail-desc-line">Keine Details hinterlegt.</div>}
+          </div>
         </div>
 
         <TaskAttachments taskId={task.id} canEdit={canEdit} />
