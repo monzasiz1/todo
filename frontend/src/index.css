@@ -10243,6 +10243,12 @@ body.cal-is-dragging * {
   z-index: 40;
   background: transparent;
 }
+/* Re-assert mobile fullscreen sticky behavior after base .task-edit-header declaration */
+.is-mobile-fullscreen.task-edit-modal .task-edit-header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 40;
+}
 .task-edit-header::after {
   content: '';
   position: absolute;
