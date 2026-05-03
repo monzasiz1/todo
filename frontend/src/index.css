@@ -6906,18 +6906,11 @@ body.cal-is-dragging * {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Wrapper bleibt normal; nur Header selbst klebt oben */
-.is-mobile-fullscreen .task-detail-sticky-top {
-  position: static;
-  background: transparent;
-  border-bottom: none;
-}
-
 .is-mobile-fullscreen .task-detail-header {
   position: sticky;
   top: 0;
   z-index: 30;
-  padding-top: max(8px, calc(env(safe-area-inset-top, 0px) + 6px));
+  padding-top: 0;
   min-height: 56px;
   background: var(--bg, #f2f2f7);
   border-bottom: 1px solid var(--border);
@@ -6941,7 +6934,7 @@ body.cal-is-dragging * {
 }
 
 .is-mobile-fullscreen .task-detail-header-actions {
-  top: calc(env(safe-area-inset-top, 0px) + 8px);
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
 }
 
 .is-mobile-fullscreen .task-detail-scroll-title {
@@ -17185,7 +17178,7 @@ body.cal-is-dragging * {
   }
 
   .is-mobile-fullscreen .task-detail-header .modal-pull-handle {
-    margin: calc(env(safe-area-inset-top, 0px) + 4px) auto 6px;
+    margin: calc(env(safe-area-inset-top, 0px) + 10px) auto 6px;
   }
 
   .is-mobile-fullscreen.task-edit-modal > .modal-pull-handle {
