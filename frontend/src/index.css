@@ -2881,6 +2881,13 @@ input, textarea, select {
   grid-template-columns: repeat(7, minmax(0, 1fr));
 }
 
+/* Keep desktop month view fully vivid (no accidental gray overlay/filter). */
+.calendar-wrapper.calendar-view-month,
+.calendar-wrapper.calendar-view-month .calendar-grid {
+  opacity: 1 !important;
+  filter: none !important;
+}
+
 .calendar-day-header {
   padding: 10px 12px;
   text-align: center;
