@@ -10389,7 +10389,12 @@ body.cal-is-dragging * {
 }
 
 .is-mobile-fullscreen.task-edit-modal > .modal-pull-handle {
-  margin: calc(env(safe-area-inset-top, 0px) + 8px) auto 6px;
+  position: absolute;
+  left: 50%;
+  top: calc(env(safe-area-inset-top, 0px) + 8px);
+  transform: translateX(-50%);
+  margin: 0;
+  z-index: 7;
 }
 
 .is-mobile-fullscreen.task-edit-modal .task-edit-close {
@@ -17312,7 +17317,12 @@ body.cal-is-dragging * {
   }
 
   .is-mobile-fullscreen.task-edit-modal > .modal-pull-handle {
-    margin: calc(env(safe-area-inset-top, 0px) + 8px) auto 6px;
+    position: absolute;
+    left: 50%;
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    transform: translateX(-50%);
+    margin: 0;
+    z-index: 7;
   }
 
   /* DayCreateModal fullscreen on mobile */
