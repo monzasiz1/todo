@@ -355,22 +355,56 @@ module.exports = async function handler(req, res) {
         `SELECT t.*, c.name as category_name, c.color as category_color,
            gt.group_category_id, gc.name as group_category_name, gc.color as group_category_color,
            u.name as creator_name, u.avatar_color as creator_color, u.avatar_url as creator_avatar_url,
-           gt.created_at as added_to_group_at
+           gt.created_at as added_to_group_at,
+           gt.subgroup_id,
+           gs.name as subgroup_name, gs.color as subgroup_color,
+           COALESCE((
+             SELECT json_agg(json_build_object('user_id', u2.id, 'name', u2.name, 'avatar_color', u2.avatar_color, 'avatar_url', u2.avatar_url))
+             FROM group_subgroup_members gsm2
+             JOIN users u2 ON u2.id = gsm2.user_id
+             WHERE gsm2.subgroup_id = gt.subgroup_id
+           ), '[]'::json) as subgroup_members
          FROM group_tasks gt
          JOIN tasks t ON t.id = gt.task_id
          LEFT JOIN categories c ON t.category_id = c.id
          LEFT JOIN group_categories gc ON gc.id = gt.group_category_id
          LEFT JOIN users u ON gt.created_by = u.id
+         LEFT JOIN group_subgroups gs ON gs.id = gt.subgroup_id
          WHERE gt.group_id = $1
+           AND (
+             gt.subgroup_id IS NULL
+             OR $2 IN ('owner','admin')
+             OR EXISTS (
+               SELECT 1 FROM group_subgroup_members gsm
+               WHERE gsm.subgroup_id = gt.subgroup_id AND gsm.user_id = $3
+             )
+           )
          ORDER BY gt.created_at DESC`,
-        [groupId]
+        [groupId, membership.role, user.id]
       );
+
+      // Load subgroups with members
+      let subgroupsResult = { rows: [] };
+      try {
+        subgroupsResult = await pool.query(
+          `SELECT gs.*, COALESCE((
+             SELECT json_agg(json_build_object('user_id', u.id, 'name', u.name, 'avatar_color', u.avatar_color, 'avatar_url', u.avatar_url))
+             FROM group_subgroup_members gsm JOIN users u ON u.id = gsm.user_id
+             WHERE gsm.subgroup_id = gs.id
+           ), '[]'::json) as members
+           FROM group_subgroups gs
+           WHERE gs.group_id = $1
+           ORDER BY gs.created_at ASC`,
+          [groupId]
+        );
+      } catch { /* table may not exist yet */ }
 
       return res.json({
         group: groupResult.rows[0],
         members: membersResult.rows,
         tasks: tasksResult.rows,
         myRole: membership.role,
+        subgroups: subgroupsResult.rows,
       });
     } catch (err) {
       console.error('Group detail error:', err);
@@ -536,6 +570,91 @@ module.exports = async function handler(req, res) {
   }
 
   // ============================================
+  // GET /api/groups/:id/subgroups
+  // ============================================
+  if (segments.length === 2 && segments[1] === 'subgroups' && req.method === 'GET') {
+    try {
+      const groupId = segments[0];
+      const membership = await getMembership(groupId);
+      if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
+      const result = await pool.query(
+        `SELECT gs.*, COALESCE((
+           SELECT json_agg(json_build_object('user_id', u.id, 'name', u.name, 'avatar_color', u.avatar_color, 'avatar_url', u.avatar_url))
+           FROM group_subgroup_members gsm JOIN users u ON u.id = gsm.user_id
+           WHERE gsm.subgroup_id = gs.id
+         ), '[]'::json) as members
+         FROM group_subgroups gs
+         WHERE gs.group_id = $1
+         ORDER BY gs.created_at ASC`,
+        [groupId]
+      );
+      return res.json({ subgroups: result.rows });
+    } catch (err) {
+      console.error('Get subgroups error:', err);
+      return res.status(500).json({ error: 'Fehler beim Laden der Untergruppen' });
+    }
+  }
+
+  // ============================================
+  // POST /api/groups/:id/subgroups — Create subgroup (admin/owner)
+  // ============================================
+  if (segments.length === 2 && segments[1] === 'subgroups' && req.method === 'POST') {
+    try {
+      const groupId = segments[0];
+      const membership = await getMembership(groupId);
+      if (!membership || membership.role === 'member') return res.status(403).json({ error: 'Kein Zugriff' });
+      const { name, color, member_ids } = req.body;
+      if (!name || !String(name).trim()) return res.status(400).json({ error: 'Name erforderlich' });
+      const result = await pool.query(
+        `INSERT INTO group_subgroups (group_id, name, color, created_by) VALUES ($1, $2, $3, $4) RETURNING *`,
+        [groupId, String(name).trim(), color || '#007AFF', user.id]
+      );
+      const subgroup = result.rows[0];
+      if (Array.isArray(member_ids) && member_ids.length > 0) {
+        // Validate they are actually group members
+        const validMembers = await pool.query(
+          `SELECT user_id FROM group_members WHERE group_id = $1 AND user_id = ANY($2::int[])`,
+          [groupId, member_ids]
+        );
+        for (const row of validMembers.rows) {
+          await pool.query(
+            `INSERT INTO group_subgroup_members (subgroup_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+            [subgroup.id, row.user_id]
+          );
+        }
+      }
+      // Return with members
+      const membersResult = await pool.query(
+        `SELECT json_agg(json_build_object('user_id', u.id, 'name', u.name, 'avatar_color', u.avatar_color, 'avatar_url', u.avatar_url)) as members
+         FROM group_subgroup_members gsm JOIN users u ON u.id = gsm.user_id
+         WHERE gsm.subgroup_id = $1`,
+        [subgroup.id]
+      );
+      return res.status(201).json({ subgroup: { ...subgroup, members: membersResult.rows[0]?.members || [] } });
+    } catch (err) {
+      console.error('Create subgroup error:', err);
+      return res.status(500).json({ error: 'Fehler beim Erstellen der Untergruppe' });
+    }
+  }
+
+  // ============================================
+  // DELETE /api/groups/:id/subgroups/:subgroupId — Delete subgroup (admin/owner)
+  // ============================================
+  if (segments.length === 3 && segments[1] === 'subgroups' && req.method === 'DELETE') {
+    try {
+      const groupId = segments[0];
+      const subgroupId = segments[2];
+      const membership = await getMembership(groupId);
+      if (!membership || membership.role === 'member') return res.status(403).json({ error: 'Kein Zugriff' });
+      await pool.query(`DELETE FROM group_subgroups WHERE id = $1 AND group_id = $2`, [subgroupId, groupId]);
+      return res.json({ success: true });
+    } catch (err) {
+      console.error('Delete subgroup error:', err);
+      return res.status(500).json({ error: 'Fehler beim Loeschen der Untergruppe' });
+    }
+  }
+
+  // ============================================
   // POST /api/groups/:id/tasks — Add task to group
   // ============================================
   if (segments.length === 2 && segments[1] === 'tasks' && req.method === 'POST') {
@@ -543,11 +662,9 @@ module.exports = async function handler(req, res) {
       const groupId = segments[0];
       const membership = await getMembership(groupId);
       if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
-      if (membership.role === 'member') {
-        // Members can only add tasks, not restricted further for now
-      }
+      if (membership.role === 'member') return res.status(403).json({ error: 'Nur Admins und Owner können Einträge erstellen' });
 
-      const { existing_task_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, type, group_category_id, enable_group_rsvp } = req.body;
+      const { existing_task_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, type, group_category_id, enable_group_rsvp, subgroup_id } = req.body;
       const entryType = type === 'event' ? 'event' : 'task';
 
       let selectedGroupCategory = null;
@@ -609,8 +726,8 @@ module.exports = async function handler(req, res) {
 
         // Link to group
         await pool.query(
-          'INSERT INTO group_tasks (group_id, task_id, created_by, group_category_id) VALUES ($1, $2, $3, $4)',
-          [groupId, task.id, user.id, selectedGroupCategory?.id || null]
+          'INSERT INTO group_tasks (group_id, task_id, created_by, group_category_id, subgroup_id) VALUES ($1, $2, $3, $4, $5)',
+          [groupId, task.id, user.id, selectedGroupCategory?.id || null, subgroup_id || null]
         );
       }
 
@@ -629,6 +746,26 @@ module.exports = async function handler(req, res) {
         categoryMeta = categoryResult.rows[0] || null;
       }
 
+      // Subgroup members for response
+      let subgroupMeta = null;
+      let subgroupMembers = [];
+      if (subgroup_id) {
+        try {
+          const sgResult = await pool.query(
+            `SELECT gs.name, gs.color,
+               COALESCE(( SELECT json_agg(json_build_object('user_id', u.id, 'name', u.name, 'avatar_color', u.avatar_color, 'avatar_url', u.avatar_url))
+                 FROM group_subgroup_members gsm JOIN users u ON u.id = gsm.user_id WHERE gsm.subgroup_id = $1
+               ), '[]'::json) as members
+             FROM group_subgroups gs WHERE gs.id = $1 LIMIT 1`,
+            [subgroup_id]
+          );
+          if (sgResult.rows[0]) {
+            subgroupMeta = sgResult.rows[0];
+            subgroupMembers = sgResult.rows[0].members || [];
+          }
+        } catch { /* ignore */ }
+      }
+
       return res.status(201).json({
         task: {
           ...task,
@@ -640,6 +777,10 @@ module.exports = async function handler(req, res) {
           group_category_color: selectedGroupCategory?.color || null,
           category_name: categoryMeta?.name || null,
           category_color: categoryMeta?.color || null,
+          subgroup_id: subgroup_id || null,
+          subgroup_name: subgroupMeta?.name || null,
+          subgroup_color: subgroupMeta?.color || null,
+          subgroup_members: subgroupMembers,
         }
       });
     } catch (err) {
