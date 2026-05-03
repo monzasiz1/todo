@@ -1384,6 +1384,21 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       <div className="desktop-week-layout">
         <aside className="desktop-calendar-sidebar">
           <div className="desktop-calendar-sidebar-title">Kalender</div>
+
+          {/* All-toggle */}
+          <button
+            className={`desktop-sidebar-all-toggle ${Object.values(visibleSources).every((v) => v !== false) ? 'all-active' : ''}`}
+            onClick={() => {
+              const allOn = calendarSources.every((s) => visibleSources[s.key] !== false);
+              const next = {};
+              calendarSources.forEach((s) => { next[s.key] = !allOn; });
+              setVisibleSources(next);
+            }}
+          >
+            <span className="desktop-sidebar-all-dot" />
+            <span>Alle anzeigen</span>
+          </button>
+
           <button className="desktop-sidebar-section-toggle" onClick={() => setShowSidebarCategories((v) => !v)}>
             <span>Kategorien</span>
             <ChevronDown size={15} className={`desktop-sidebar-chevron ${showSidebarCategories ? 'open' : ''}`} />
@@ -1397,17 +1412,24 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.2 }}
               >
-                {calendarSources.map((source) => (
-                  <label key={source.key} className="desktop-calendar-source-item">
-                    <input
-                      type="checkbox"
-                      checked={visibleSources[source.key] !== false}
-                      onChange={(e) => setVisibleSources((s) => ({ ...s, [source.key]: e.target.checked }))}
-                    />
-                    <span className="desktop-calendar-source-dot" style={{ background: source.color }} />
-                    <span className="desktop-calendar-source-name">{source.name}</span>
-                  </label>
-                ))}
+                {calendarSources.map((source) => {
+                  const isActive = visibleSources[source.key] !== false;
+                  return (
+                    <button
+                      key={source.key}
+                      className={`desktop-calendar-source-item${isActive ? ' active' : ' inactive'}`}
+                      onClick={() => setVisibleSources((s) => ({ ...s, [source.key]: !isActive }))}
+                      title={isActive ? `${source.name} ausblenden` : `${source.name} einblenden`}
+                    >
+                      <span
+                        className="desktop-calendar-source-dot"
+                        style={{ background: isActive ? source.color : 'transparent', border: `2px solid ${source.color}` }}
+                      />
+                      <span className="desktop-calendar-source-name">{source.name}</span>
+                      <span className={`desktop-source-check${isActive ? ' visible' : ''}`}>✓</span>
+                    </button>
+                  );
+                })}
               </motion.div>
             )}
           </AnimatePresence>

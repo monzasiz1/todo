@@ -8107,48 +8107,89 @@ body.cal-is-dragging * {
   }
 
   .desktop-calendar-sidebar {
-    border-right: 1px solid #dfe3eb;
-    background: #fff;
-    padding: 14px 12px;
+    border-right: 1px solid #e2e8f4;
+    background: linear-gradient(180deg, #f8fafd 0%, #ffffff 100%);
+    padding: 18px 14px 14px;
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: rgba(0,0,0,0.12) transparent;
+    scrollbar-color: rgba(0,0,0,0.1) transparent;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
   }
 
   .desktop-calendar-sidebar-title {
-    font-size: 22px;
-    font-weight: 700;
-    color: #232b38;
-    margin-bottom: 12px;
+    font-size: 20px;
+    font-weight: 800;
+    color: #1a2235;
+    margin-bottom: 6px;
+    letter-spacing: -0.3px;
+  }
+
+  .desktop-sidebar-all-toggle {
+    width: 100%;
+    border: 1.5px solid #e0e6f0;
+    background: #fff;
+    color: #3d4f6b;
+    border-radius: 10px;
+    padding: 9px 12px;
+    margin-bottom: 2px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  }
+  .desktop-sidebar-all-toggle:hover {
+    background: #f0f4ff;
+    border-color: #c5d0e8;
+  }
+  .desktop-sidebar-all-toggle.all-active {
+    background: #eef3ff;
+    border-color: #b3c4f0;
+    color: #1e3a8a;
+  }
+  .desktop-sidebar-all-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: conic-gradient(#4C7BD9 0% 33%, #34C759 33% 66%, #FF9500 66% 100%);
+    flex-shrink: 0;
   }
 
   .desktop-calendar-source-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 5px;
     overflow: hidden;
   }
 
   .desktop-sidebar-section-toggle {
     width: 100%;
-    border: 1px solid #e1e6f0;
-    background: #f4f7fc;
-    color: #2e3749;
-    border-radius: 8px;
-    padding: 8px 10px;
-    margin-bottom: 8px;
+    border: none;
+    background: transparent;
+    color: #8a96ab;
+    border-radius: 6px;
+    padding: 6px 4px;
+    margin-top: 4px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 12px;
+    font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
     cursor: pointer;
+    transition: color 0.15s;
+  }
+  .desktop-sidebar-section-toggle:hover {
+    color: #4a5568;
   }
 
   .desktop-sidebar-chevron {
-    color: #6c7891;
+    color: inherit;
     transition: transform 0.2s;
   }
 
@@ -8159,20 +8200,44 @@ body.cal-is-dragging * {
   .desktop-calendar-source-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    border: 1px solid #e6eaf2;
-    background: #f9fbff;
-    border-radius: 8px;
-    padding: 8px;
+    gap: 9px;
+    border: 1.5px solid #e8edf7;
+    background: #fff;
+    border-radius: 10px;
+    padding: 9px 11px;
     font-size: 13px;
-    color: #2e3749;
+    color: #2e3a50;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, opacity 0.15s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .desktop-calendar-source-item:hover {
+    background: #f4f8ff;
+    border-color: #c8d6f0;
+    box-shadow: 0 2px 8px rgba(76,123,217,0.1);
+  }
+  .desktop-calendar-source-item.active {
+    border-color: #d0dcf5;
+    background: #f7faff;
+  }
+  .desktop-calendar-source-item.inactive {
+    opacity: 0.48;
+    background: #f5f5f7;
+    border-color: #e0e4ec;
+  }
+  .desktop-calendar-source-item.inactive:hover {
+    opacity: 0.75;
+    background: #eef2fb;
   }
 
   .desktop-calendar-source-dot {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
     flex-shrink: 0;
+    transition: background 0.15s, border-color 0.15s;
   }
 
   .desktop-calendar-source-name {
@@ -8180,6 +8245,19 @@ body.cal-is-dragging * {
     text-overflow: ellipsis;
     white-space: nowrap;
     font-weight: 600;
+    flex: 1;
+  }
+
+  .desktop-source-check {
+    font-size: 12px;
+    font-weight: 700;
+    color: #4C7BD9;
+    opacity: 0;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+  }
+  .desktop-source-check.visible {
+    opacity: 1;
   }
 
   .desktop-week-main {
