@@ -38,11 +38,14 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const [votesOpen, setVotesOpen] = useState(null);
   const menuRef = useRef(null);
   const emojiPickerRef = useRef(null);
+  const modalScrollRef = useRef(null);
+  const titleHeadingRef = useRef(null);
   const swipeRef = useRef({ startY: 0, active: false });
   const pullRafRef = useRef(null);
   const pullNextRef = useRef(0);
   const pullOffsetRef = useRef(0);
   const [pullOffset, setPullOffset] = useState(0);
+  const [showCompactTitle, setShowCompactTitle] = useState(false);
   const [isMobile, setIsMobile] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1024px)').matches
   );
@@ -214,6 +217,43 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     if (showMenu || showEmojiPicker) document.addEventListener('mousedown', onClickOutside);
     return () => document.removeEventListener('mousedown', onClickOutside);
   }, [showMenu, showEmojiPicker]);
+
+  useEffect(() => {
+    const scroller = modalScrollRef.current;
+    if (!isMobile || !scroller) {
+      setShowCompactTitle(false);
+      return;
+    }
+
+    let rafId = 0;
+    const updateCompactTitle = () => {
+      rafId = 0;
+      const titleEl = titleHeadingRef.current;
+      if (!titleEl) {
+        setShowCompactTitle(false);
+        return;
+      }
+      const scrollerTop = scroller.getBoundingClientRect().top;
+      const titleBottom = titleEl.getBoundingClientRect().bottom;
+      const shouldShow = titleBottom <= (scrollerTop + 72);
+      setShowCompactTitle((prev) => (prev === shouldShow ? prev : shouldShow));
+    };
+
+    const onScrollOrResize = () => {
+      if (rafId) return;
+      rafId = window.requestAnimationFrame(updateCompactTitle);
+    };
+
+    updateCompactTitle();
+    scroller.addEventListener('scroll', onScrollOrResize, { passive: true });
+    window.addEventListener('resize', onScrollOrResize);
+
+    return () => {
+      scroller.removeEventListener('scroll', onScrollOrResize);
+      window.removeEventListener('resize', onScrollOrResize);
+      if (rafId) window.cancelAnimationFrame(rafId);
+    };
+  }, [isMobile, task?.id, task?.title]);
 
   if (!task) return null;
 
@@ -472,6 +512,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
 
   const content = (
     <motion.div
+      ref={modalScrollRef}
       className={`task-detail-modal${pageMode ? ' task-detail-page-mode' : ''}${isMobile ? ' is-mobile-fullscreen' : ''}${!isEvent ? ' is-task-detail' : ''}`}
       initial={isMobile ? { y: '100%' } : (pageMode ? { opacity: 0, x: 30 } : { opacity: 0, y: 24 })}
       animate={isMobile ? { y: pullOffset } : (pageMode ? { opacity: 1, x: 0 } : { opacity: 1, y: 0 })}
@@ -501,6 +542,9 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
             )}
             <div className="task-detail-priority-bar" style={{ background: priority.color }} />
             {isMobile && <div className="modal-pull-handle" />}
+            <div className={`task-detail-scroll-title ${showCompactTitle ? 'visible' : ''}${task.completed && !isEvent ? ' completed' : ''}`}>
+              {task.title}
+            </div>
             <div className="task-detail-header-actions" ref={menuRef} style={{ zIndex: 200, pointerEvents: 'auto' }}>
               <button className="task-detail-more-btn" onClick={() => setShowMenu((s) => !s)} title="Mehr" aria-label="Mehr" style={{ position: 'relative', zIndex: 201, pointerEvents: 'auto' }}>
                 <MoreVertical size={18} />
@@ -558,7 +602,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
               </motion.div>
             )}
             <div>
-              <h2 className={`task-detail-title ${task.completed && !isEvent ? 'completed' : ''}`}>{task.title}</h2>
+              <h2 ref={titleHeadingRef} className={`task-detail-title ${task.completed && !isEvent ? 'completed' : ''}`}>{task.title}</h2>
               {!isEvent && <span className="task-detail-status task">Aufgabe</span>}
               {isEvent && <span className="task-detail-status event">Termin</span>}
               {isEvent && isEventEnded && <span className="task-detail-status ended">Beendet</span>}
