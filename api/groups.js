@@ -547,7 +547,7 @@ module.exports = async function handler(req, res) {
         // Members can only add tasks, not restricted further for now
       }
 
-      const { existing_task_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, type, group_category_id } = req.body;
+      const { existing_task_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, type, group_category_id, enable_group_rsvp } = req.body;
       const entryType = type === 'event' ? 'event' : 'task';
 
       let selectedGroupCategory = null;
@@ -598,12 +598,12 @@ module.exports = async function handler(req, res) {
 
         // Create the entry (task or event) owned by the user
         const taskResult = await pool.query(
-          `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order, type)
+          `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order, type, enable_group_rsvp)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-             (SELECT COALESCE(MAX(sort_order),0)+1 FROM tasks WHERE user_id = $1), $11)
+             (SELECT COALESCE(MAX(sort_order),0)+1 FROM tasks WHERE user_id = $1), $11, $12)
            RETURNING *`,
           [user.id, title.trim(), description || null, date || null, date_end || null,
-           time || null, time_end || null, priority || 'medium', category_id || null, reminder_at || null, entryType]
+           time || null, time_end || null, priority || 'medium', category_id || null, reminder_at || null, entryType, enable_group_rsvp === true]
         );
         task = taskResult.rows[0];
 
