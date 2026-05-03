@@ -2329,11 +2329,37 @@ input, textarea, select {
 
 .calendar-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 28px;
+  flex-direction: column;
   border-bottom: 1px solid var(--border);
   background: var(--card-solid);
+}
+
+/* ── Zeile 1: Datum-Trigger + Controls ── */
+.cal-header-row1 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px 12px;
+  gap: 12px;
+}
+
+/* ── Zeile 2: Kalender-Switch + Include-Chips ── */
+.cal-header-row2 {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 24px 10px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  padding-top: 8px;
+  overflow: hidden;
+}
+
+/* ── Controls-Block (Toggle + Nav + Vollbild) ── */
+.cal-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .calendar-header h3 {
@@ -2361,14 +2387,18 @@ input, textarea, select {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 800;
   color: var(--text);
-  padding: 6px 10px;
-  margin: -6px -10px;
-  border-radius: 12px;
+  padding: 5px 8px;
+  margin: -5px -8px;
+  border-radius: 10px;
   transition: background 0.15s;
   letter-spacing: -0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
 }
 
 .cal-mp-trigger:hover {
@@ -2658,6 +2688,14 @@ input, textarea, select {
   border-color: var(--primary-border, rgba(0,122,255,0.2));
 }
 
+/* Heute-Button hat auto-Breite */
+.cal-nav-today-btn {
+  width: auto;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .calendar-view-toggle {
   display: flex;
   background: var(--bg);
@@ -2681,14 +2719,17 @@ input, textarea, select {
 }
 
 .calendar-source-switchbar {
-  width: 100%;
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 7px;
   overflow-x: auto;
-  padding-bottom: 2px;
-  scrollbar-width: thin;
+  scrollbar-width: none;
+  flex-shrink: 0;
+  padding-right: 4px;
+}
+
+.calendar-source-switchbar::-webkit-scrollbar {
+  display: none;
 }
 
 .calendar-source-switch-btn {
@@ -2731,12 +2772,15 @@ input, textarea, select {
 }
 
 .calendar-own-include-row {
-  width: 100%;
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 8px;
-  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  padding-left: 14px;
+  margin-left: 12px;
+  border-left: 1px solid var(--border);
 }
 
 .calendar-own-include-label {
@@ -5842,12 +5886,26 @@ body.cal-is-dragging * {
   }
 
   .calendar-header {
-    padding: 10px 14px 8px;
-    flex-wrap: wrap;
-    gap: 6px;
     background: #fff;
     border-bottom: 1px solid #eef0f5;
+  }
+
+  .cal-header-row1 {
+    padding: 10px 14px 9px;
+    gap: 8px;
     position: relative;
+  }
+
+  .cal-header-row2 {
+    padding: 7px 14px 9px;
+    gap: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+  }
+
+  .cal-header-row2::-webkit-scrollbar {
+    display: none;
   }
 
   .cal-mp-wrap {
@@ -5893,9 +5951,7 @@ body.cal-is-dragging * {
   }
 
   .calendar-nav {
-    position: absolute;
-    top: 10px;
-    right: 12px;
+    position: static;
     width: auto;
     justify-content: flex-end;
     margin-top: 0;
@@ -5924,9 +5980,8 @@ body.cal-is-dragging * {
   }
 
   .calendar-source-switchbar {
-    margin-top: 6px;
     gap: 6px;
-    padding-right: 88px;
+    flex-shrink: 0;
   }
 
   .calendar-source-switch-btn {
@@ -8831,12 +8886,19 @@ body.cal-is-dragging * {
   .calendar-header {
     background: #fff;
     border-bottom: 1px solid #dfe3eb;
-    padding: 12px 14px;
+  }
+
+  .cal-header-row1 {
+    padding: 14px 24px 12px;
+  }
+
+  .cal-header-row2 {
+    padding: 8px 24px 12px;
   }
 
   .cal-mp-trigger {
-    font-size: 27px;
-    font-weight: 700;
+    font-size: 19px;
+    font-weight: 800;
     color: #222b3a;
   }
 

@@ -2202,128 +2202,131 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       onTouchEnd={handleSwipeTouchEnd}
     >
       <div className="calendar-header">
-        <div className="cal-mp-wrap">
-          <button
-            ref={triggerRef}
-            className="cal-mp-trigger"
-            onClick={() => { setPickerYear(getYear(currentDate)); setShowMonthPicker(v => !v); }}
-          >
-            <span style={{ textTransform: 'capitalize' }}>{headerText}</span>
-            <ChevronDown size={16} className={`cal-mp-chevron ${showMonthPicker ? 'open' : ''}`} />
-          </button>
-          <button
-            className={`calendar-fs-btn cal-settings-trigger ${showHolidaySettings ? 'active' : ''}`}
-            onClick={() => setShowHolidaySettings(v => !v)}
-            title="Feiertage & Kalendereinstellungen"
-          >
-            <Settings size={17} />
-          </button>
-        </div>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          {!isMobile && (
+        {/* ── Zeile 1: Datum + Controls ── */}
+        <div className="cal-header-row1">
+          <div className="cal-mp-wrap">
             <button
-              className={`calendar-fs-btn ${isCalendarFullscreen ? 'active' : ''}`}
-              onClick={toggleCalendarFullscreen}
-              title={isCalendarFullscreen ? 'Vollbild beenden' : 'Kalender im Vollbild'}
+              ref={triggerRef}
+              className="cal-mp-trigger"
+              onClick={() => { setPickerYear(getYear(currentDate)); setShowMonthPicker(v => !v); }}
             >
-              {isCalendarFullscreen ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
-            </button>
-          )}
-          <div className="calendar-view-toggle">
-            <button
-              className={`calendar-view-btn ${view === 'month' ? 'active' : ''}`}
-              onClick={() => setView('month')}
-            >
-              Monat
+              <span style={{ textTransform: 'capitalize' }}>{headerText}</span>
+              <ChevronDown size={15} className={`cal-mp-chevron ${showMonthPicker ? 'open' : ''}`} />
             </button>
             <button
-              className={`calendar-view-btn ${view === 'week' ? 'active' : ''}`}
-              onClick={() => setView('week')}
+              className={`calendar-fs-btn cal-settings-trigger ${showHolidaySettings ? 'active' : ''}`}
+              onClick={() => setShowHolidaySettings(v => !v)}
+              title="Feiertage & Kalendereinstellungen"
             >
-              Woche
+              <Settings size={16} />
             </button>
           </div>
-          <div className="calendar-nav">
-            <button className="calendar-nav-btn" onClick={() => navigate('prev')}>
-              <ChevronLeft size={20} />
-            </button>
-            <button
-              className="calendar-nav-btn"
-              onClick={() => {
-                const today = new Date();
-                setCurrentDate(today);
-                setSelectedDate(today);
-              }}
-              style={{ fontSize: 12, fontWeight: 700, width: 'auto', padding: '0 12px' }}
-            >
-              Heute
-            </button>
-            <button className="calendar-nav-btn" onClick={() => navigate('next')}>
-              <ChevronRight size={20} />
-            </button>
-          </div>
-        </div>
 
-        <div className="calendar-source-switchbar" role="tablist" aria-label="Kalenderquelle">
-          <button
-            type="button"
-            className={`calendar-source-switch-btn own ${activeCalendarSource === 'own' ? 'active' : ''}`}
-            onClick={() => setActiveCalendarSource('own')}
-            title="Mein Kalender"
-          >
-            <span className="calendar-source-switch-own-icon"><User size={13} /></span>
-            <span>Mein</span>
-          </button>
-
-          {groupCalendarSources.map((source) => (
-            <button
-              type="button"
-              key={`switch_${source.key}`}
-              className={`calendar-source-switch-btn ${activeCalendarSource === source.key ? 'active' : ''}`}
-              onClick={() => setActiveCalendarSource(source.key)}
-              title={`${source.name} Kalender`}
-            >
-              <AvatarBadge
-                name={source.name}
-                color={source.color || '#5856D6'}
-                avatarUrl={source.avatarUrl}
-                size={18}
-              />
-              <span>{source.name}</span>
-            </button>
-          ))}
-        </div>
-
-        {activeCalendarSource === 'own' && groupCalendarSources.length > 0 && (
-          <div className="calendar-own-include-row">
-            <span className="calendar-own-include-label">Im eigenen Kalender:</span>
-            <div className="calendar-own-include-list">
-              {groupCalendarSources.map((source) => {
-                const included = groupsShownInOwn[source.key] !== false;
-                return (
-                  <button
-                    key={`own_include_${source.key}`}
-                    type="button"
-                    className={`calendar-own-include-chip ${included ? 'on' : 'off'}`}
-                    onClick={() => {
-                      setGroupsShownInOwn((prev) => {
-                        const isOn = prev[source.key] !== false;
-                        return { ...prev, [source.key]: !isOn };
-                      });
-                    }}
-                    title={included ? `${source.name} im eigenen Kalender ausblenden` : `${source.name} im eigenen Kalender einblenden`}
-                  >
-                    <AvatarBadge
-                      name={source.name}
-                      color={source.color || '#5856D6'}
-                      avatarUrl={source.avatarUrl}
-                      size={16}
-                    />
-                    <span>{source.name}</span>
-                  </button>
-                );
-              })}
+          <div className="cal-header-controls">
+            {!isMobile && (
+              <button
+                className={`calendar-fs-btn ${isCalendarFullscreen ? 'active' : ''}`}
+                onClick={toggleCalendarFullscreen}
+                title={isCalendarFullscreen ? 'Vollbild beenden' : 'Kalender im Vollbild'}
+              >
+                {isCalendarFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+              </button>
+            )}
+            <div className="calendar-view-toggle">
+              <button
+                className={`calendar-view-btn ${view === 'month' ? 'active' : ''}`}
+                onClick={() => setView('month')}
+              >
+                Monat
+              </button>
+              <button
+                className={`calendar-view-btn ${view === 'week' ? 'active' : ''}`}
+                onClick={() => setView('week')}
+              >
+                Woche
+              </button>
             </div>
+            <div className="calendar-nav">
+              <button className="calendar-nav-btn" onClick={() => navigate('prev')}>
+                <ChevronLeft size={18} />
+              </button>
+              <button
+                className="calendar-nav-btn cal-nav-today-btn"
+                onClick={() => { const today = new Date(); setCurrentDate(today); setSelectedDate(today); }}
+              >
+                Heute
+              </button>
+              <button className="calendar-nav-btn" onClick={() => navigate('next')}>
+                <ChevronRight size={18} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Zeile 2: Kalender-Switch + Include-Chips (nur wenn Gruppen vorhanden) ── */}
+        {groupCalendarSources.length > 0 && (
+          <div className="cal-header-row2">
+            <div className="calendar-source-switchbar" role="tablist" aria-label="Kalenderquelle">
+              <button
+                type="button"
+                className={`calendar-source-switch-btn own ${activeCalendarSource === 'own' ? 'active' : ''}`}
+                onClick={() => setActiveCalendarSource('own')}
+                title="Mein Kalender"
+              >
+                <span className="calendar-source-switch-own-icon"><User size={12} /></span>
+                <span>Mein</span>
+              </button>
+              {groupCalendarSources.map((source) => (
+                <button
+                  type="button"
+                  key={`switch_${source.key}`}
+                  className={`calendar-source-switch-btn ${activeCalendarSource === source.key ? 'active' : ''}`}
+                  onClick={() => setActiveCalendarSource(source.key)}
+                  title={`${source.name} Kalender`}
+                >
+                  <AvatarBadge
+                    name={source.name}
+                    color={source.color || '#5856D6'}
+                    avatarUrl={source.avatarUrl}
+                    size={17}
+                  />
+                  <span>{source.name}</span>
+                </button>
+              ))}
+            </div>
+
+            {activeCalendarSource === 'own' && (
+              <div className="calendar-own-include-row">
+                <span className="calendar-own-include-label">Einblenden:</span>
+                <div className="calendar-own-include-list">
+                  {groupCalendarSources.map((source) => {
+                    const included = groupsShownInOwn[source.key] !== false;
+                    return (
+                      <button
+                        key={`own_include_${source.key}`}
+                        type="button"
+                        className={`calendar-own-include-chip ${included ? 'on' : 'off'}`}
+                        onClick={() => {
+                          setGroupsShownInOwn((prev) => {
+                            const isOn = prev[source.key] !== false;
+                            return { ...prev, [source.key]: !isOn };
+                          });
+                        }}
+                        title={included ? `${source.name} ausblenden` : `${source.name} einblenden`}
+                      >
+                        <AvatarBadge
+                          name={source.name}
+                          color={source.color || '#5856D6'}
+                          avatarUrl={source.avatarUrl}
+                          size={15}
+                        />
+                        <span>{source.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
