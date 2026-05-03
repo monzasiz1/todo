@@ -6918,14 +6918,13 @@ body.cal-is-dragging * {
   z-index: 30;
   background: var(--bg, #f2f2f7);
   border-bottom: 1px solid var(--border);
-  /* iPhone-Notch: Hintergrund füllt den Safe-Area-Bereich */
-  padding-top: env(safe-area-inset-top, 0px);
 }
 
 .is-mobile-fullscreen .task-detail-header {
   position: static;
   padding-top: 0;
-  min-height: 56px;
+  /* Priority-Bar + safe-area + Platz für Buttons */
+  min-height: calc(env(safe-area-inset-top, 0px) + 52px);
   background: transparent;
 }
 
@@ -6939,6 +6938,8 @@ body.cal-is-dragging * {
 
 .is-mobile-fullscreen .task-detail-priority-bar {
   border-radius: 0;
+  /* Priority-Bar füllt Notch-Bereich — dehnt sich von oben bis unter den Notch */
+  height: calc(4px + env(safe-area-inset-top, 0px));
 }
 
 .is-mobile-fullscreen .task-detail-title-row {
@@ -7196,6 +7197,10 @@ body.cal-is-dragging * {
 .task-detail-main.has-group-watermark > :not(.task-detail-group-watermark) {
   position: relative;
   z-index: 1;
+}
+/* sticky-top darf nicht auf relative gesetzt werden — das bricht position:sticky */
+.task-detail-main.has-group-watermark > .task-detail-sticky-top {
+  position: sticky;
 }
 
 .task-detail-group-watermark {
