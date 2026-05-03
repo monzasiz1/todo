@@ -24,7 +24,7 @@ const priorityConfig = {
 
 // pageMode=true → renders as a scrollable page (mobile/tablet)
 // pageMode=false (default) → renders as a modal popup (desktop)
-export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = false }) {
+export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = false, hidePrivateShareInfo = false }) {
   const { toggleTask, deleteTask, fetchTasks, addToast } = useTaskStore();
   const [showEdit, setShowEdit] = useState(false);
   const [sharingToChat, setSharingToChat] = useState(false);
@@ -193,6 +193,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const PriorityIcon = priority.icon;
   const canEdit = task?.is_owner === false ? (task?.can_edit === true) : true;
   const isShared = task?.visibility && task.visibility !== 'private';
+  const showPrivateShareSection = isShared && !hidePrivateShareInfo;
   const isEvent = task?.type === 'event';
   const groupWatermarkUrl = task?.group_image_url || task?.group_avatar_url || task?.group_photo_url || task?.group_logo_url || null;
   const hasGroupWatermark = Boolean(task?.group_id && groupWatermarkUrl);
@@ -746,7 +747,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       </div>
 
       <div className="task-detail-aside">
-        {isShared && (
+        {showPrivateShareSection && (
           <div className="task-detail-section task-detail-collab task-detail-collab-shared">
             <div className="task-detail-description-header">
               {task.visibility === 'shared' ? <Users size={16} /> : <UserCheck size={16} />}

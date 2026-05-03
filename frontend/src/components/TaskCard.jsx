@@ -466,7 +466,12 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
     </motion.div>
 
     {detailTask && (
-      <TaskDetailModal task={detailTask} onClose={closeTask} onUpdated={closeTask} />
+      <TaskDetailModal
+        task={detailTask}
+        onClose={closeTask}
+        onUpdated={closeTask}
+        hidePrivateShareInfo={!showSharedInfo}
+      />
     )}
     </>
   );

@@ -10,7 +10,7 @@ import {
   Users, Plus, Hash, Copy, Check, ChevronRight, ChevronDown, Crown,
   Shield, UserMinus, Settings, Trash2, LogOut, X,
   Calendar, CalendarCheck, Clock, Flag, Search, ArrowLeft, ListTodo,
-  Camera, Tag, AlertTriangle, Pencil, ChevronsDown
+  Camera, Tag, AlertTriangle, Pencil, ChevronsDown, ThumbsUp
 } from 'lucide-react';
 import AvatarBadge from '../components/AvatarBadge';
 import { usePlan } from '../hooks/usePlan';
@@ -762,7 +762,13 @@ function GroupDetail({ groupId, onBack }) {
               {filteredActiveTasks.slice(0, visibleCount).map((task, index) => (
                 <TaskCard
                   key={task.id}
-                  task={task}
+                  task={{
+                    ...task,
+                    group_id: task.group_id || currentGroup?.id,
+                    group_name: task.group_name || currentGroup?.name,
+                    group_color: task.group_color || currentGroup?.color,
+                    group_image_url: task.group_image_url || currentGroup?.image_url,
+                  }}
                   index={index}
                   showDashboardDateTile
                   showSharedInfo={false}
@@ -797,7 +803,13 @@ function GroupDetail({ groupId, onBack }) {
                       {filteredPastTasks.map((task, index) => (
                         <TaskCard
                           key={task.id}
-                          task={task}
+                          task={{
+                            ...task,
+                            group_id: task.group_id || currentGroup?.id,
+                            group_name: task.group_name || currentGroup?.name,
+                            group_color: task.group_color || currentGroup?.color,
+                            group_image_url: task.group_image_url || currentGroup?.image_url,
+                          }}
                           index={index}
                           disableLayout
                           showDashboardDateTile
@@ -960,6 +972,7 @@ function AddGroupTask({ groupId, onClose, onAdd }) {
   const [priority, setPriority] = useState('medium');
   const [groupCategories, setGroupCategories] = useState([]);
   const [groupCategoryId, setGroupCategoryId] = useState('');
+  const [enableGroupRsvp, setEnableGroupRsvp] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const loadGroupCategories = async () => {
@@ -988,6 +1001,7 @@ function AddGroupTask({ groupId, onClose, onAdd }) {
         time_end: type === 'event' ? (timeEnd || null) : null,
         priority,
         group_category_id: groupCategoryId || null,
+        enable_group_rsvp: enableGroupRsvp === true,
       });
     } finally {
       setSaving(false);
@@ -1087,6 +1101,20 @@ function AddGroupTask({ groupId, onClose, onAdd }) {
             ))}
           </select>
           <p className="group-cat-manage-hint">Kategorien im Tab Einstellungen verwalten.</p>
+        </div>
+
+        <div className="task-edit-field" style={{ marginBottom: 0 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}>
+            <ThumbsUp size={14} style={{ color: '#1f8a47' }} />
+            <span style={{ flex: 1 }}>Abstimmung (Zu-/Absage) aktivieren</span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={enableGroupRsvp}
+              className={`manual-task-allday-btn${enableGroupRsvp ? ' on' : ''}`}
+              onClick={() => setEnableGroupRsvp((v) => !v)}
+            />
+          </label>
         </div>
 
         <button type="submit" className="group-submit-btn" disabled={!title.trim() || saving}>
