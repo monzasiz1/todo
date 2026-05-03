@@ -7151,16 +7151,19 @@ body.cal-is-dragging * {
   top: 0;
   left: 0;
   right: 0;
-  height: calc(env(safe-area-inset-top, 0px) + 96px);
+  height: calc(env(safe-area-inset-top, 0px) + 132px);
   background: linear-gradient(
     to bottom,
-    var(--card) 0%,
-    var(--card) 30%,
+    var(--card-solid, var(--card)) 0%,
+    var(--card-solid, var(--card)) 42%,
+    rgba(255, 255, 255, 0.82) 68%,
     transparent 100%
   );
   opacity: 0;
   transition: opacity 0.25s ease;
   pointer-events: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .task-detail-top-shadow::after {
   content: '';
@@ -7168,11 +7171,12 @@ body.cal-is-dragging * {
   top: 0;
   left: 0;
   right: 0;
-  height: calc(env(safe-area-inset-top, 0px) + 72px);
+  height: calc(env(safe-area-inset-top, 0px) + 104px);
   background: linear-gradient(
     to bottom,
-    rgba(0, 0, 0, 0.22) 0%,
-    rgba(0, 0, 0, 0.08) 50%,
+    rgba(0, 0, 0, 0.24) 0%,
+    rgba(0, 0, 0, 0.12) 38%,
+    rgba(0, 0, 0, 0.04) 68%,
     transparent 100%
   );
   opacity: 0;
