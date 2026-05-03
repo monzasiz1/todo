@@ -2329,11 +2329,37 @@ input, textarea, select {
 
 .calendar-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 28px;
+  flex-direction: column;
   border-bottom: 1px solid var(--border);
   background: var(--card-solid);
+}
+
+/* ── Zeile 1: Datum-Trigger + Controls ── */
+.cal-header-row1 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px 12px;
+  gap: 12px;
+}
+
+/* ── Zeile 2: Kalender-Switch + Include-Chips ── */
+.cal-header-row2 {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 24px 10px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  padding-top: 8px;
+  overflow: hidden;
+}
+
+/* ── Controls-Block (Toggle + Nav + Vollbild) ── */
+.cal-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .calendar-header h3 {
@@ -2361,14 +2387,18 @@ input, textarea, select {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 800;
   color: var(--text);
-  padding: 6px 10px;
-  margin: -6px -10px;
-  border-radius: 12px;
+  padding: 5px 8px;
+  margin: -5px -8px;
+  border-radius: 10px;
   transition: background 0.15s;
   letter-spacing: -0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
 }
 
 .cal-mp-trigger:hover {
@@ -2658,6 +2688,14 @@ input, textarea, select {
   border-color: var(--primary-border, rgba(0,122,255,0.2));
 }
 
+/* Heute-Button hat auto-Breite */
+.cal-nav-today-btn {
+  width: auto;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .calendar-view-toggle {
   display: flex;
   background: var(--bg);
@@ -2678,6 +2716,114 @@ input, textarea, select {
   background: var(--card-solid);
   color: var(--text);
   box-shadow: var(--shadow-sm);
+}
+
+.calendar-source-switchbar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex-shrink: 0;
+  padding-right: 4px;
+}
+
+.calendar-source-switchbar::-webkit-scrollbar {
+  display: none;
+}
+
+.calendar-source-switch-btn {
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border-radius: 999px;
+  height: 34px;
+  padding: 0 11px 0 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all var(--transition);
+}
+
+.calendar-source-switch-btn:hover {
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+  color: var(--text);
+}
+
+.calendar-source-switch-btn.active {
+  background: color-mix(in srgb, var(--primary-bg) 62%, var(--card-solid));
+  border-color: color-mix(in srgb, var(--primary) 38%, var(--border));
+  color: var(--primary);
+}
+
+.calendar-source-switch-own-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ecf3ff;
+  color: #2f5fbf;
+}
+
+.calendar-own-include-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  padding-left: 14px;
+  margin-left: 12px;
+  border-left: 1px solid var(--border);
+}
+
+.calendar-own-include-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.calendar-own-include-list {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.calendar-own-include-chip {
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  border-radius: 999px;
+  height: 30px;
+  padding: 0 10px 0 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: all var(--transition);
+}
+
+.calendar-own-include-chip.on {
+  background: color-mix(in srgb, var(--success, #34c759) 12%, var(--card-solid));
+  border-color: color-mix(in srgb, var(--success, #34c759) 35%, var(--border));
+  color: color-mix(in srgb, var(--success, #34c759) 75%, #1f2937);
+}
+
+.calendar-own-include-chip.off {
+  opacity: 0.68;
+}
+
+.calendar-own-include-chip:hover {
+  opacity: 1;
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--border));
 }
 
 .calendar-wrapper:fullscreen,
@@ -5740,12 +5886,26 @@ body.cal-is-dragging * {
   }
 
   .calendar-header {
-    padding: 10px 14px 8px;
-    flex-wrap: wrap;
-    gap: 6px;
     background: #fff;
     border-bottom: 1px solid #eef0f5;
-    position: relative;
+  }
+
+  .cal-header-row1 {
+    padding: 9px 14px 8px;
+    gap: 8px;
+  }
+
+  /* row2 stapelt Switchbar und Include-Chips vertikal auf Mobile */
+  .cal-header-row2 {
+    padding: 0 0 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    overflow: visible;
+  }
+
+  .cal-header-row2::-webkit-scrollbar {
+    display: none;
   }
 
   .cal-mp-wrap {
@@ -5791,12 +5951,18 @@ body.cal-is-dragging * {
   }
 
   .calendar-nav {
-    position: absolute;
-    top: 10px;
-    right: 12px;
+    position: static;
     width: auto;
     justify-content: flex-end;
     margin-top: 0;
+    gap: 2px;
+  }
+
+  /* Heute-Button auf Mobile kompakter */
+  .cal-nav-today-btn {
+    padding: 0 9px;
+    font-size: 11px;
+    height: 30px;
   }
 
   .calendar-view-toggle {
@@ -5819,6 +5985,62 @@ body.cal-is-dragging * {
   .calendar-view-btn {
     padding: 6px 14px;
     font-size: 12px;
+  }
+
+  .calendar-source-switchbar {
+    gap: 6px;
+    flex-shrink: unset;
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 7px 14px 6px;
+    border-top: 1px solid #eef0f5;
+  }
+
+  .calendar-source-switchbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .calendar-source-switch-btn {
+    height: 31px;
+    font-size: 11px;
+    padding: 0 10px 0 7px;
+  }
+
+  .calendar-source-switch-own-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .calendar-own-include-row {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid #eef0f5;
+    margin-left: 0;
+    padding-left: 0;
+    padding: 6px 14px 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+
+  .calendar-own-include-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .calendar-own-include-label {
+    font-size: 11px;
+  }
+
+  .calendar-own-include-list {
+    gap: 6px;
+  }
+
+  .calendar-own-include-chip {
+    height: 28px;
+    font-size: 11px;
+    padding: 0 9px 0 6px;
   }
 
   /* ── Calendar Page: Vollbild wie native App ── */
@@ -6273,13 +6495,20 @@ body.cal-is-dragging * {
     -webkit-overflow-scrolling: touch;
   }
 
-  .task-detail-header {
+  /* Sticky-Wrapper: Header + Titel kleben gemeinsam oben */
+  .task-detail-sticky-top {
     position: sticky;
     top: 0;
     z-index: 6;
     background: var(--bg, #f2f2f7);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .task-detail-header {
+    position: static;
     padding-top: 14px;
     min-height: 56px;
+    background: transparent;
   }
 
   .task-detail-priority-bar {
@@ -6291,9 +6520,16 @@ body.cal-is-dragging * {
     right: 16px;
   }
 
+  .task-detail-sticky-title {
+    top: 14px;
+    right: 96px;
+  }
+
   .task-detail-title-row {
-    padding: 20px 18px 0;
+    padding: 12px 18px 14px;
     gap: 10px;
+    margin-bottom: 0;
+    border-bottom: none;
   }
 
   .task-detail-title {
@@ -6673,18 +6909,24 @@ body.cal-is-dragging * {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   padding-bottom: env(safe-area-inset-bottom, 0px);
-  will-change: transform;
-  transform: translateZ(0);
-  backface-visibility: hidden;
 }
 
-/* Sticky header inside the scroll container */
-.is-mobile-fullscreen .task-detail-header {
+/* Sticky-Wrapper im Vollbild-Scroll-Container */
+.is-mobile-fullscreen .task-detail-sticky-top {
   position: sticky;
-  top: 0;
-  z-index: 6;
-  padding-top: 0;
+  top: 0 !important;
+  z-index: 30;
   background: var(--bg, #f2f2f7);
+  border-bottom: 1px solid var(--border);
+  /* iPhone-Notch: Hintergrund füllt den Safe-Area-Bereich */
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.is-mobile-fullscreen .task-detail-header {
+  position: static;
+  padding-top: 0;
+  min-height: 56px;
+  background: transparent;
 }
 
 .is-mobile-fullscreen.task-edit-modal .task-edit-header {
@@ -6699,8 +6941,18 @@ body.cal-is-dragging * {
   border-radius: 0;
 }
 
+.is-mobile-fullscreen .task-detail-title-row {
+  padding: 12px 18px 14px;
+  border-bottom: none;
+}
+
 .is-mobile-fullscreen .task-detail-header-actions {
   top: calc(env(safe-area-inset-top, 0px) + 10px);
+}
+
+.is-mobile-fullscreen .task-detail-sticky-title {
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  right: 96px;
 }
 
 /* Kill nested scroll — the container above handles all scrolling */
@@ -6834,6 +7086,33 @@ body.cal-is-dragging * {
   position: relative;
   padding: 0;
   z-index: 30;
+  min-height: 56px;
+}
+
+/* Compact sticky title — fades in when original title has scrolled behind the sticky header */
+.task-detail-sticky-title {
+  position: absolute;
+  left: 18px;
+  right: 100px;
+  top: 16px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  overflow: hidden;
+}
+.task-detail-sticky-title span {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.task-detail-sticky-title.visible {
+  opacity: 1;
 }
 
 .task-detail-priority-bar {
@@ -8693,12 +8972,19 @@ body.cal-is-dragging * {
   .calendar-header {
     background: #fff;
     border-bottom: 1px solid #dfe3eb;
-    padding: 12px 14px;
+  }
+
+  .cal-header-row1 {
+    padding: 14px 24px 12px;
+  }
+
+  .cal-header-row2 {
+    padding: 8px 24px 12px;
   }
 
   .cal-mp-trigger {
-    font-size: 27px;
-    font-weight: 700;
+    font-size: 19px;
+    font-weight: 800;
     color: #222b3a;
   }
 
@@ -16901,7 +17187,7 @@ body.cal-is-dragging * {
   }
 
   .is-mobile-fullscreen .task-detail-header .modal-pull-handle {
-    margin: calc(env(safe-area-inset-top, 0px) + 8px) auto 6px;
+    margin: 4px auto 4px;
   }
 
   .is-mobile-fullscreen.task-edit-modal > .modal-pull-handle {
@@ -25208,12 +25494,19 @@ body.cal-is-dragging * {
   box-shadow: var(--shadow-xl);
 }
 
-/* Push title row below the back-button */
+/* Header tall enough for back-button + compact sticky title */
 .task-detail-page-mode .task-detail-header {
-  min-height: 52px;
+  min-height: 54px;
 }
+/* Compact sticky title: clear the back-button on the left */
+.task-detail-page-mode .task-detail-sticky-title {
+  left: 54px;
+  right: 56px;
+  top: 12px;
+}
+/* Title row now follows the sticky header naturally */
 .task-detail-page-mode .task-detail-title-row {
-  padding-top: 44px;
+  padding-top: 16px;
 }
 
 /* Desktop two-column: let content grow naturally, page handles scroll */

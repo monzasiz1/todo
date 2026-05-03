@@ -43,6 +43,9 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const pullNextRef = useRef(0);
   const pullOffsetRef = useRef(0);
   const [pullOffset, setPullOffset] = useState(0);
+  const titleRef = useRef(null);
+  const stickyTopRef = useRef(null);
+  const [titleHidden, setTitleHidden] = useState(false);
   const [isMobile, setIsMobile] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1024px)').matches
   );
@@ -125,6 +128,30 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     lockScroll();
     return () => unlockScroll();
   }, [pageMode]);
+
+  useEffect(() => {
+    const titleEl = titleRef.current;
+    const stickyEl = stickyTopRef.current;
+    if (!titleEl || !stickyEl) return;
+    const check = () => {
+      const titleRect = titleEl.getBoundingClientRect();
+      const stickyRect = stickyEl.getBoundingClientRect();
+      setTitleHidden(titleRect.top < stickyRect.bottom);
+    };
+    const scrollEl =
+      titleEl.closest('.is-mobile-fullscreen') ||
+      titleEl.closest('.task-detail-main') ||
+      titleEl.closest('.task-detail-modal');
+    scrollEl?.addEventListener('scroll', check, { passive: true });
+    window.addEventListener('scroll', check, { passive: true });
+    window.addEventListener('resize', check, { passive: true });
+    check();
+    return () => {
+      scrollEl?.removeEventListener('scroll', check);
+      window.removeEventListener('scroll', check);
+      window.removeEventListener('resize', check);
+    };
+  }, [isMobile]);
 
   const currentUser = useMemo(() => {
     try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch { return null; }
@@ -492,7 +519,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
             <img src={groupWatermarkUrl} alt="" loading="lazy" />
           </div>
         )}
-        <div className="task-detail-sticky-top">
+        <div className="task-detail-sticky-top" ref={stickyTopRef}>
           <div className="task-detail-header">
             {pageMode && (
               <button className="task-detail-back-btn" onClick={onClose}>
@@ -501,6 +528,9 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
             )}
             <div className="task-detail-priority-bar" style={{ background: priority.color }} />
             {isMobile && <div className="modal-pull-handle" />}
+            <div className={`task-detail-sticky-title${titleHidden ? ' visible' : ''}`}>
+              <span>{task.title}</span>
+            </div>
             <div className="task-detail-header-actions" ref={menuRef} style={{ zIndex: 200, pointerEvents: 'auto' }}>
               <button className="task-detail-more-btn" onClick={() => setShowMenu((s) => !s)} title="Mehr" aria-label="Mehr" style={{ position: 'relative', zIndex: 201, pointerEvents: 'auto' }}>
                 <MoreVertical size={18} />
@@ -548,23 +578,23 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
               )}
             </div>
           </div>
+        </div>
 
-          <div className="task-detail-title-row">
-            {isEvent ? (
-              <div className="task-detail-event-icon"><CalendarCheck size={28} /></div>
-            ) : (
-              <motion.div className={`task-detail-checkbox ${task.completed ? 'checked' : ''}`} onClick={handleToggle} whileTap={{ scale: 0.85 }}>
-                {task.completed ? <CheckCircle2 size={28} /> : <Circle size={28} />}
-              </motion.div>
-            )}
-            <div>
-              <h2 className={`task-detail-title ${task.completed && !isEvent ? 'completed' : ''}`}>{task.title}</h2>
-              {!isEvent && <span className="task-detail-status task">Aufgabe</span>}
-              {isEvent && <span className="task-detail-status event">Termin</span>}
-              {isEvent && isEventEnded && <span className="task-detail-status ended">Beendet</span>}
-              {!isEvent && task.completed && <span className="task-detail-status done">Erledigt</span>}
-              {isOverdue && !isEvent && <span className="task-detail-status overdue">Überfällig</span>}
-            </div>
+        <div className="task-detail-title-row" ref={titleRef}>
+          {isEvent ? (
+            <div className="task-detail-event-icon"><CalendarCheck size={28} /></div>
+          ) : (
+            <motion.div className={`task-detail-checkbox ${task.completed ? 'checked' : ''}`} onClick={handleToggle} whileTap={{ scale: 0.85 }}>
+              {task.completed ? <CheckCircle2 size={28} /> : <Circle size={28} />}
+            </motion.div>
+          )}
+          <div>
+            <h2 className={`task-detail-title ${task.completed && !isEvent ? 'completed' : ''}`}>{task.title}</h2>
+            {!isEvent && <span className="task-detail-status task">Aufgabe</span>}
+            {isEvent && <span className="task-detail-status event">Termin</span>}
+            {isEvent && isEventEnded && <span className="task-detail-status ended">Beendet</span>}
+            {!isEvent && task.completed && <span className="task-detail-status done">Erledigt</span>}
+            {isOverdue && !isEvent && <span className="task-detail-status overdue">Überfällig</span>}
           </div>
         </div>
 
