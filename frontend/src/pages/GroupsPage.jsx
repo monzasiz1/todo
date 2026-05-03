@@ -1298,6 +1298,9 @@ function SubgroupManager({ groupId, members, subgroups, onRefresh }) {
 }
 
 function GroupCategoryManager({ groupId }) {
+  const [categories, setCategories] = useState([]);
+  const [name, setName] = useState('');
+  const [color, setColor] = useState('#8E8E93');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
