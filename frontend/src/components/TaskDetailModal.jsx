@@ -46,6 +46,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const titleRef = useRef(null);
   const stickyTopRef = useRef(null);
   const [titleHidden, setTitleHidden] = useState(false);
+  const [scrollDarkened, setScrollDarkened] = useState(false);
   const [isMobile, setIsMobile] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1024px)').matches
   );
@@ -137,6 +138,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       const titleRect = titleEl.getBoundingClientRect();
       const stickyRect = stickyEl.getBoundingClientRect();
       setTitleHidden(titleRect.top < stickyRect.bottom);
+      setScrollDarkened(titleRect.top < stickyRect.bottom + 64);
     };
     const scrollEl =
       titleEl.closest('.is-mobile-fullscreen') ||
@@ -514,6 +516,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       onTouchEnd={handleTouchEnd}
     >
       <div className={`task-detail-main${hasGroupWatermark ? ' has-group-watermark' : ''}`}>
+        <div className={`task-detail-top-shadow${scrollDarkened ? ' visible' : ''}`} aria-hidden="true" />
         {hasGroupWatermark && (
           <div className="task-detail-group-watermark" aria-hidden="true">
             <img src={groupWatermarkUrl} alt="" loading="lazy" />
