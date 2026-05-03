@@ -106,12 +106,27 @@ async function loadVotes(pool, voteTaskId, occurrenceDate, userId) {
     if (Number(row.user_id) === Number(userId)) myVote = row.status;
   }
 
+  const memberResult = await pool.query(
+    `SELECT COUNT(DISTINCT gm.user_id) AS member_count
+       FROM group_tasks gt
+       JOIN group_members gm ON gm.group_id = gt.group_id
+      WHERE gt.task_id = $1`,
+    [voteTaskId]
+  );
+
+  const memberCount = Number(memberResult.rows?.[0]?.member_count || 0);
+  const unansweredCount = memberCount > 0
+    ? Math.max(0, memberCount - yesUsers.length - noUsers.length)
+    : null;
+
   return {
     yes_count: yesUsers.length,
     no_count: noUsers.length,
     yes_users: yesUsers,
     no_users: noUsers,
     my_vote: myVote,
+    member_count: memberCount || null,
+    unanswered_count: unansweredCount,
   };
 }
 
