@@ -330,6 +330,146 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     }
   };
 
+  const renderVoteSection = () => (
+    <div className={`task-detail-section task-detail-votes-section${voteNeedsAction ? ' vote-needs-action' : ''}`}>
+      <div className="task-detail-description-header">
+        <ThumbsUp size={16} /><span>Abstimmung</span>
+      </div>
+      <div className="task-detail-vote-surface">
+        {voteNeedsAction && (
+          <div className="task-detail-vote-cta">Bitte stimme jetzt ab, damit die Gruppe direkt planen kann.</div>
+        )}
+
+        <div className={`task-detail-vote-actions${voteNeedsAction ? ' is-unvoted' : ''}`}>
+          <button
+            type="button"
+            className={`task-detail-vote-btn yes ${taskVotes.my_vote === 'yes' ? 'active' : ''}`}
+            onClick={() => handleVote('yes')}
+            disabled={voting}
+          >
+            <ThumbsUp size={14} />
+            <span>Zusagen</span>
+            <span className="task-detail-vote-btn-count">{voteYesCount}</span>
+          </button>
+          <button
+            type="button"
+            className={`task-detail-vote-btn no ${taskVotes.my_vote === 'no' ? 'active' : ''}`}
+            onClick={() => handleVote('no')}
+            disabled={voting}
+          >
+            <ThumbsDown size={14} />
+            <span>Absagen</span>
+            <span className="task-detail-vote-btn-count">{voteNoCount}</span>
+          </button>
+          {votePendingCount !== null && (
+            <button
+              type="button"
+              className={`task-detail-vote-btn pending ${votesOpen === 'pending' ? 'active' : ''}`}
+              onClick={() => setVotesOpen(votesOpen === 'pending' ? null : 'pending')}
+              disabled={voting}
+              title="Unbeantwortete anzeigen"
+            >
+              <Users size={13} />
+              <span>Unbeantwortet</span>
+              <span className="task-detail-vote-btn-count">{votePendingCount}</span>
+            </button>
+          )}
+        </div>
+
+        <div className="task-detail-vote-attendees">
+          {taskVotes.yes_users.length > 0 && (
+            <button
+              type="button"
+              className="task-detail-vote-stack-btn task-detail-vote-stack-btn--yes"
+              onClick={() => setVotesOpen(votesOpen === 'yes' ? null : 'yes')}
+              title={`Zusagen (${taskVotes.yes_users.length})`}
+            >
+              <ThumbsUp size={12} />
+              <span className="task-detail-vote-stack">
+                {taskVotes.yes_users.slice(0, 5).map((u, i) => (
+                  <span key={`yes_${i}`} className="task-detail-vote-avatar-wrap" style={{ zIndex: 6 - i }}>
+                    <AvatarBadge name={u.name} color={u.avatar_color || '#4C7BD9'} avatarUrl={u.avatar_url} size={22} />
+                  </span>
+                ))}
+                {taskVotes.yes_users.length > 5 && (
+                  <span className="task-detail-vote-avatar-wrap task-detail-vote-avatar-wrap--more">+{taskVotes.yes_users.length - 5}</span>
+                )}
+              </span>
+              <span className="task-detail-vote-count">{taskVotes.yes_users.length}</span>
+            </button>
+          )}
+          {taskVotes.no_users.length > 0 && (
+            <button
+              type="button"
+              className="task-detail-vote-stack-btn task-detail-vote-stack-btn--no"
+              onClick={() => setVotesOpen(votesOpen === 'no' ? null : 'no')}
+              title={`Absagen (${taskVotes.no_users.length})`}
+            >
+              <ThumbsDown size={12} />
+              <span className="task-detail-vote-stack">
+                {taskVotes.no_users.slice(0, 5).map((u, i) => (
+                  <span key={`no_${i}`} className="task-detail-vote-avatar-wrap" style={{ zIndex: 6 - i }}>
+                    <AvatarBadge name={u.name} color={u.avatar_color || '#8e8e93'} avatarUrl={u.avatar_url} size={22} />
+                  </span>
+                ))}
+                {taskVotes.no_users.length > 5 && (
+                  <span className="task-detail-vote-avatar-wrap task-detail-vote-avatar-wrap--more">+{taskVotes.no_users.length - 5}</span>
+                )}
+              </span>
+              <span className="task-detail-vote-count">{taskVotes.no_users.length}</span>
+            </button>
+          )}
+          {taskVotes.unanswered_users.length > 0 && (
+            <button
+              type="button"
+              className="task-detail-vote-stack-btn task-detail-vote-stack-btn--pending"
+              onClick={() => setVotesOpen(votesOpen === 'pending' ? null : 'pending')}
+              title={`Unbeantwortet (${taskVotes.unanswered_users.length})`}
+            >
+              <Users size={12} />
+              <span className="task-detail-vote-stack">
+                {taskVotes.unanswered_users.slice(0, 5).map((u, i) => (
+                  <span key={`pending_${i}`} className="task-detail-vote-avatar-wrap" style={{ zIndex: 6 - i }}>
+                    <AvatarBadge name={u.name} color={u.avatar_color || '#8e8e93'} avatarUrl={u.avatar_url} size={22} />
+                  </span>
+                ))}
+                {taskVotes.unanswered_users.length > 5 && (
+                  <span className="task-detail-vote-avatar-wrap task-detail-vote-avatar-wrap--more">+{taskVotes.unanswered_users.length - 5}</span>
+                )}
+              </span>
+              <span className="task-detail-vote-count">{taskVotes.unanswered_users.length}</span>
+            </button>
+          )}
+
+          {votesOpen && (() => {
+            const isYes = votesOpen === 'yes';
+            const isNo = votesOpen === 'no';
+            const users = isYes
+              ? taskVotes.yes_users
+              : (isNo ? taskVotes.no_users : taskVotes.unanswered_users);
+            return (
+              <div className={`task-detail-vote-popup ${isYes ? 'task-detail-vote-popup--yes' : (isNo ? 'task-detail-vote-popup--no' : 'task-detail-vote-popup--pending')}`}>
+                <div className="task-detail-vote-popup-head">
+                  {isYes ? <ThumbsUp size={12} /> : (isNo ? <ThumbsDown size={12} /> : <Users size={12} />)}
+                  <span>{isYes ? 'Zusagen' : (isNo ? 'Absagen' : 'Unbeantwortet')} ({users.length})</span>
+                  <button type="button" className="task-detail-vote-popup-close" onClick={() => setVotesOpen(null)}><X size={12} /></button>
+                </div>
+                <div className="task-detail-vote-popup-list">
+                  {users.map((u, i) => (
+                    <div key={`${isYes ? 'py' : (isNo ? 'pn' : 'pp')}_${i}`} className="task-detail-vote-popup-row">
+                      <AvatarBadge name={u.name} color={u.avatar_color || (isYes ? '#4C7BD9' : '#8e8e93')} avatarUrl={u.avatar_url} size={24} />
+                      <span className="task-detail-vote-popup-name">{u.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      </div>
+    </div>
+  );
+
   const content = (
     <motion.div
       className={`task-detail-modal${pageMode ? ' task-detail-page-mode' : ''}${isMobile ? ' is-mobile-fullscreen' : ''}${!isEvent ? ' is-task-detail' : ''}`}
@@ -543,145 +683,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
           </div>
         </div>
 
-        {task.group_id && task.enable_group_rsvp === true && (
-          <div className={`task-detail-section task-detail-votes-section${voteNeedsAction ? ' vote-needs-action' : ''}`}>
-            <div className="task-detail-description-header">
-              <ThumbsUp size={16} /><span>Abstimmung</span>
-            </div>
-            <div className="task-detail-vote-surface">
-              {voteNeedsAction && (
-                <div className="task-detail-vote-cta">Bitte stimme jetzt ab, damit die Gruppe direkt planen kann.</div>
-              )}
-
-              <div className={`task-detail-vote-actions${voteNeedsAction ? ' is-unvoted' : ''}`}>
-                <button
-                  type="button"
-                  className={`task-detail-vote-btn yes ${taskVotes.my_vote === 'yes' ? 'active' : ''}`}
-                  onClick={() => handleVote('yes')}
-                  disabled={voting}
-                >
-                  <ThumbsUp size={14} />
-                  <span>Zusagen</span>
-                  <span className="task-detail-vote-btn-count">{voteYesCount}</span>
-                </button>
-                <button
-                  type="button"
-                  className={`task-detail-vote-btn no ${taskVotes.my_vote === 'no' ? 'active' : ''}`}
-                  onClick={() => handleVote('no')}
-                  disabled={voting}
-                >
-                  <ThumbsDown size={14} />
-                  <span>Absagen</span>
-                  <span className="task-detail-vote-btn-count">{voteNoCount}</span>
-                </button>
-                {votePendingCount !== null && (
-                  <button
-                    type="button"
-                    className={`task-detail-vote-btn pending ${votesOpen === 'pending' ? 'active' : ''}`}
-                    onClick={() => setVotesOpen(votesOpen === 'pending' ? null : 'pending')}
-                    disabled={voting}
-                    title="Unbeantwortete anzeigen"
-                  >
-                    <Users size={13} />
-                    <span>Unbeantwortet</span>
-                    <span className="task-detail-vote-btn-count">{votePendingCount}</span>
-                  </button>
-                )}
-              </div>
-
-              <div className="task-detail-vote-attendees">
-                {taskVotes.yes_users.length > 0 && (
-                  <button
-                    type="button"
-                    className="task-detail-vote-stack-btn task-detail-vote-stack-btn--yes"
-                    onClick={() => setVotesOpen(votesOpen === 'yes' ? null : 'yes')}
-                    title={`Zusagen (${taskVotes.yes_users.length})`}
-                  >
-                    <ThumbsUp size={12} />
-                    <span className="task-detail-vote-stack">
-                      {taskVotes.yes_users.slice(0, 5).map((u, i) => (
-                        <span key={`yes_${i}`} className="task-detail-vote-avatar-wrap" style={{ zIndex: 6 - i }}>
-                          <AvatarBadge name={u.name} color={u.avatar_color || '#4C7BD9'} avatarUrl={u.avatar_url} size={22} />
-                        </span>
-                      ))}
-                      {taskVotes.yes_users.length > 5 && (
-                        <span className="task-detail-vote-avatar-wrap task-detail-vote-avatar-wrap--more">+{taskVotes.yes_users.length - 5}</span>
-                      )}
-                    </span>
-                    <span className="task-detail-vote-count">{taskVotes.yes_users.length}</span>
-                  </button>
-                )}
-                {taskVotes.no_users.length > 0 && (
-                  <button
-                    type="button"
-                    className="task-detail-vote-stack-btn task-detail-vote-stack-btn--no"
-                    onClick={() => setVotesOpen(votesOpen === 'no' ? null : 'no')}
-                    title={`Absagen (${taskVotes.no_users.length})`}
-                  >
-                    <ThumbsDown size={12} />
-                    <span className="task-detail-vote-stack">
-                      {taskVotes.no_users.slice(0, 5).map((u, i) => (
-                        <span key={`no_${i}`} className="task-detail-vote-avatar-wrap" style={{ zIndex: 6 - i }}>
-                          <AvatarBadge name={u.name} color={u.avatar_color || '#8e8e93'} avatarUrl={u.avatar_url} size={22} />
-                        </span>
-                      ))}
-                      {taskVotes.no_users.length > 5 && (
-                        <span className="task-detail-vote-avatar-wrap task-detail-vote-avatar-wrap--more">+{taskVotes.no_users.length - 5}</span>
-                      )}
-                    </span>
-                    <span className="task-detail-vote-count">{taskVotes.no_users.length}</span>
-                  </button>
-                )}
-                {taskVotes.unanswered_users.length > 0 && (
-                  <button
-                    type="button"
-                    className="task-detail-vote-stack-btn task-detail-vote-stack-btn--pending"
-                    onClick={() => setVotesOpen(votesOpen === 'pending' ? null : 'pending')}
-                    title={`Unbeantwortet (${taskVotes.unanswered_users.length})`}
-                  >
-                    <Users size={12} />
-                    <span className="task-detail-vote-stack">
-                      {taskVotes.unanswered_users.slice(0, 5).map((u, i) => (
-                        <span key={`pending_${i}`} className="task-detail-vote-avatar-wrap" style={{ zIndex: 6 - i }}>
-                          <AvatarBadge name={u.name} color={u.avatar_color || '#8e8e93'} avatarUrl={u.avatar_url} size={22} />
-                        </span>
-                      ))}
-                      {taskVotes.unanswered_users.length > 5 && (
-                        <span className="task-detail-vote-avatar-wrap task-detail-vote-avatar-wrap--more">+{taskVotes.unanswered_users.length - 5}</span>
-                      )}
-                    </span>
-                    <span className="task-detail-vote-count">{taskVotes.unanswered_users.length}</span>
-                  </button>
-                )}
-
-                {votesOpen && (() => {
-                  const isYes = votesOpen === 'yes';
-                  const isNo = votesOpen === 'no';
-                  const users = isYes
-                    ? taskVotes.yes_users
-                    : (isNo ? taskVotes.no_users : taskVotes.unanswered_users);
-                  return (
-                    <div className={`task-detail-vote-popup ${isYes ? 'task-detail-vote-popup--yes' : (isNo ? 'task-detail-vote-popup--no' : 'task-detail-vote-popup--pending')}`}>
-                      <div className="task-detail-vote-popup-head">
-                        {isYes ? <ThumbsUp size={12} /> : (isNo ? <ThumbsDown size={12} /> : <Users size={12} />)}
-                        <span>{isYes ? 'Zusagen' : (isNo ? 'Absagen' : 'Unbeantwortet')} ({users.length})</span>
-                        <button type="button" className="task-detail-vote-popup-close" onClick={() => setVotesOpen(null)}><X size={12} /></button>
-                      </div>
-                      <div className="task-detail-vote-popup-list">
-                        {users.map((u, i) => (
-                          <div key={`${isYes ? 'py' : (isNo ? 'pn' : 'pp')}_${i}`} className="task-detail-vote-popup-row">
-                            <AvatarBadge name={u.name} color={u.avatar_color || (isYes ? '#4C7BD9' : '#8e8e93')} avatarUrl={u.avatar_url} size={24} />
-                            <span className="task-detail-vote-popup-name">{u.name}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-            </div>
-          </div>
-        )}
+        {isMobile && task.group_id && task.enable_group_rsvp === true && renderVoteSection()}
 
         <TaskAttachments taskId={task.id} canEdit={canEdit} />
 
@@ -761,6 +763,8 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
             </div>
           </div>
         )}
+
+        {!isMobile && task.group_id && task.enable_group_rsvp === true && renderVoteSection()}
 
         <div className="task-detail-section task-detail-comments-section">
           <div className="task-detail-description-header">
