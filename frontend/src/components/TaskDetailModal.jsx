@@ -218,22 +218,34 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   }, [showMenu, showEmojiPicker]);
 
   useEffect(() => {
-    const scroller = modalScrollRef.current;
-    if (!isMobile || !scroller) {
+    if (!isMobile) {
       setShowCompactTitle(false);
       return;
     }
 
+    const scroller = modalScrollRef.current;
+
+    const readScrollTop = () => {
+      const modalTop = scroller?.scrollTop || 0;
+      if (modalTop > 0) return modalTop;
+      const docTop = document.documentElement?.scrollTop || 0;
+      const bodyTop = document.body?.scrollTop || 0;
+      const winTop = typeof window !== 'undefined' ? window.scrollY || 0 : 0;
+      return Math.max(docTop, bodyTop, winTop);
+    };
+
     const onScroll = () => {
-      const shouldShow = scroller.scrollTop > 92;
+      const shouldShow = readScrollTop() > 92;
       setShowCompactTitle((prev) => (prev === shouldShow ? prev : shouldShow));
     };
 
     onScroll();
-    scroller.addEventListener('scroll', onScroll, { passive: true });
+    scroller?.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('scroll', onScroll, { passive: true });
 
     return () => {
-      scroller.removeEventListener('scroll', onScroll);
+      scroller?.removeEventListener('scroll', onScroll);
+      window.removeEventListener('scroll', onScroll);
     };
   }, [isMobile, task?.id, task?.title]);
 
