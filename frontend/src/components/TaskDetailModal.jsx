@@ -198,11 +198,12 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   }, [showSharePanel, task.id]);
 
   useEffect(() => {
-    if (!isGroupAdmin || !task?.group_id) return;
+    const hasGroupAdminRole = task?.my_group_role === 'owner' || task?.my_group_role === 'admin';
+    if (!hasGroupAdminRole || !task?.group_id) return;
     api.getGroupSubgroups(task.group_id)
       .then((data) => setGroupSubgroups(Array.isArray(data) ? data : (data?.subgroups || [])))
       .catch(() => {});
-  }, [isGroupAdmin, task?.group_id]);
+  }, [task?.group_id, task?.my_group_role]);
 
   const handleSubgroupChange = async (subgroupId) => {
     setSubgroupSaving(true);
