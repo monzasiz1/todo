@@ -14,6 +14,7 @@ function readGroupCache() {
       members: Array.isArray(parsed.members) ? parsed.members : [],
       groupTasks: Array.isArray(parsed.groupTasks) ? parsed.groupTasks : [],
       myRole: parsed.myRole || null,
+      subgroups: Array.isArray(parsed.subgroups) ? parsed.subgroups : [],
       groupDetailsById: parsed.groupDetailsById && typeof parsed.groupDetailsById === 'object'
         ? parsed.groupDetailsById
         : {},
@@ -31,6 +32,7 @@ function writeGroupCache(state) {
       members: state.members || [],
       groupTasks: state.groupTasks || [],
       myRole: state.myRole || null,
+      subgroups: state.subgroups || [],
       groupDetailsById: state.groupDetailsById || {},
     }));
   } catch {
@@ -46,6 +48,7 @@ export const useGroupStore = create((set, get) => ({
   members: cached?.members || [],
   groupTasks: cached?.groupTasks || [],
   myRole: cached?.myRole || null,
+  subgroups: cached?.subgroups || [],
   groupDetailsById: cached?.groupDetailsById || {},
   loading: false,
 
@@ -84,6 +87,7 @@ export const useGroupStore = create((set, get) => ({
         members: cachedDetail.members || [],
         groupTasks: cachedDetail.tasks || [],
         myRole: cachedDetail.myRole || null,
+        subgroups: cachedDetail.subgroups || [],
         loading: false,
       });
     } else {
@@ -97,6 +101,7 @@ export const useGroupStore = create((set, get) => ({
         members: data.members || [],
         groupTasks: data.tasks || [],
         myRole: data.myRole,
+        subgroups: data.subgroups || [],
         groupDetailsById: {
           ...(get().groupDetailsById || {}),
           [key]: {
@@ -104,6 +109,7 @@ export const useGroupStore = create((set, get) => ({
             members: data.members || [],
             tasks: data.tasks || [],
             myRole: data.myRole || null,
+            subgroups: data.subgroups || [],
           },
         },
         loading: false,

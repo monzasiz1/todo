@@ -10,7 +10,7 @@ import {
   Users, Plus, Hash, Copy, Check, ChevronRight, ChevronDown, Crown,
   Shield, UserMinus, Settings, Trash2, LogOut, X,
   Calendar, CalendarCheck, Clock, Flag, Search, ArrowLeft, ListTodo,
-  Camera, Tag, AlertTriangle, Pencil, ChevronsDown, ThumbsUp
+  Camera, Tag, AlertTriangle, Pencil, ChevronsDown, ThumbsUp, Eye
 } from 'lucide-react';
 import AvatarBadge from '../components/AvatarBadge';
 import { usePlan } from '../hooks/usePlan';
@@ -584,7 +584,7 @@ const DASHBOARD_REFRESH_PARAMS = [
 
 function GroupDetail({ groupId, onBack }) {
   const {
-    currentGroup, members, groupTasks, myRole,
+    currentGroup, members, groupTasks, myRole, subgroups,
     fetchGroup, addGroupTask, changeMemberRole, removeMember, deleteGroup, updateGroup,
   } = useGroupStore();
   const { user } = useAuthStore();
@@ -722,7 +722,7 @@ function GroupDetail({ groupId, onBack }) {
         <button className={`group-tab ${tab === 'members' ? 'active' : ''}`} onClick={() => setTab('members')}>
           Mitglieder <span className="group-tab-count">{members.length}</span>
         </button>
-        {isAdmin && (
+        {isOwner && (
           <button className={`group-tab ${tab === 'settings' ? 'active' : ''}`} onClick={() => setTab('settings')}>
             <Settings size={14} />
           </button>
@@ -750,9 +750,13 @@ function GroupDetail({ groupId, onBack }) {
                 ))}
               </select>
             )}
-            <button className="group-add-task-btn" onClick={() => setShowAddTask(true)}>
-              <Plus size={16} /> Eintrag hinzufügen
-            </button>
+            {isAdmin ? (
+              <button className="group-add-task-btn" onClick={() => setShowAddTask(true)}>
+                <Plus size={16} /> Eintrag hinzufügen
+              </button>
+            ) : (
+              <span className="group-readonly-hint"><Eye size={13} /> Nur lesen</span>
+            )}
           </div>
 
           {groupTasks.length === 0 ? (
@@ -823,9 +827,11 @@ function GroupDetail({ groupId, onBack }) {
             </div>
           )}
 
-          {showAddTask && (
+          {showAddTask && isAdmin && (
             <AddGroupTask
               groupId={groupId}
+              subgroups={subgroups}
+              members={members}
               onClose={() => setShowAddTask(false)}
               onAdd={async (task) => {
                 await addGroupTask(groupId, task);
@@ -930,7 +936,7 @@ function GroupDetail({ groupId, onBack }) {
       )}
 
       {/* Settings Tab */}
-      {tab === 'settings' && isAdmin && (
+      {tab === 'settings' && isOwner && (
         <>
           <div className="gs-page-header">
             <div className="gs-page-header-icon">
@@ -942,6 +948,7 @@ function GroupDetail({ groupId, onBack }) {
             </div>
           </div>
           <div className="group-settings-layout">
+            <SubgroupManager groupId={groupId} members={members} subgroups={subgroups} onRefresh={() => fetchGroup(groupId)} />
             <GroupCategoryManager groupId={groupId} />
             <GroupSettings
               group={currentGroup}
@@ -963,7 +970,7 @@ function GroupDetail({ groupId, onBack }) {
 // ============================================
 // Add Task to Group (Quick Form)
 // ============================================
-function AddGroupTask({ groupId, onClose, onAdd }) {
+function AddGroupTask({ groupId, onClose, onAdd, subgroups = [], members = [] }) {
   const [type, setType] = useState('task');
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
@@ -973,6 +980,7 @@ function AddGroupTask({ groupId, onClose, onAdd }) {
   const [groupCategories, setGroupCategories] = useState([]);
   const [groupCategoryId, setGroupCategoryId] = useState('');
   const [enableGroupRsvp, setEnableGroupRsvp] = useState(false);
+  const [subgroupId, setSubgroupId] = useState('');
   const [saving, setSaving] = useState(false);
 
   const loadGroupCategories = async () => {
@@ -1002,6 +1010,7 @@ function AddGroupTask({ groupId, onClose, onAdd }) {
         priority,
         group_category_id: groupCategoryId || null,
         enable_group_rsvp: enableGroupRsvp === true,
+        subgroup_id: subgroupId || null,
       });
     } finally {
       setSaving(false);
@@ -1103,6 +1112,39 @@ function AddGroupTask({ groupId, onClose, onAdd }) {
           <p className="group-cat-manage-hint">Kategorien im Tab Einstellungen verwalten.</p>
         </div>
 
+        {subgroups.length > 0 && (
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Users size={12} /> Sichtbar für
+            </label>
+            <select value={subgroupId} onChange={(e) => setSubgroupId(e.target.value)} className="task-edit-input">
+              <option value="">Alle Mitglieder</option>
+              {subgroups.map((sg) => {
+                const sgMembers = Array.isArray(sg.members) ? sg.members : [];
+                return (
+                  <option key={sg.id} value={sg.id}>
+                    {sg.name} ({sgMembers.length} {sgMembers.length === 1 ? 'Person' : 'Personen'})
+                  </option>
+                );
+              })}
+            </select>
+            {subgroupId && (() => {
+              const sg = subgroups.find((s) => String(s.id) === String(subgroupId));
+              const sgMembers = Array.isArray(sg?.members) ? sg.members : [];
+              return sgMembers.length > 0 ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                  {sgMembers.map((m) => (
+                    <AvatarBadge key={m.user_id} name={m.name} color={m.avatar_color || '#007AFF'} avatarUrl={m.avatar_url} size={28} title={m.name} />
+                  ))}
+                  <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                    Nur diese {sgMembers.length} {sgMembers.length === 1 ? 'Person' : 'Personen'} sehen diesen Eintrag
+                  </span>
+                </div>
+              ) : null;
+            })()}
+          </div>
+        )}
+
         <div className="task-edit-field" style={{ marginBottom: 0 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}>
             <ThumbsUp size={14} style={{ color: '#1f8a47' }} />
@@ -1125,10 +1167,137 @@ function AddGroupTask({ groupId, onClose, onAdd }) {
   );
 }
 
-function GroupCategoryManager({ groupId }) {
-  const [categories, setCategories] = useState([]);
+// ============================================
+// Subgroup Manager
+// ============================================
+function SubgroupManager({ groupId, members, subgroups, onRefresh }) {
   const [name, setName] = useState('');
-  const [color, setColor] = useState('#8E8E93');
+  const [color, setColor] = useState('#007AFF');
+  const [selectedMembers, setSelectedMembers] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+
+  const toggleMember = (userId) => {
+    setSelectedMembers((prev) =>
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+    );
+  };
+
+  const handleCreate = async () => {
+    const trimmed = String(name || '').trim();
+    if (!trimmed || saving) return;
+    setSaving(true);
+    try {
+      await api.createGroupSubgroup(groupId, { name: trimmed, color, member_ids: selectedMembers });
+      setName('');
+      setColor('#007AFF');
+      setSelectedMembers([]);
+      setShowForm(false);
+      onRefresh();
+    } catch {
+      /* ignore */
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (subgroupId) => {
+    setDeletingId(subgroupId);
+    try {
+      await api.deleteGroupSubgroup(groupId, subgroupId);
+      onRefresh();
+    } catch {
+      /* ignore */
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const groupMembers = members.filter((m) => m.role !== 'owner');
+
+  return (
+    <div className="group-cat-manager">
+      <div className="group-cat-manager-header">
+        <h4>Untergruppen</h4>
+        <button className="group-cat-add-btn" onClick={() => setShowForm((v) => !v)}>
+          <Plus size={14} /> Neue Untergruppe
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="group-subgroup-form">
+          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+            <input
+              className="group-cat-input"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Name der Untergruppe"
+              style={{ flex: 1 }}
+            />
+            <input type="color" value={color} onChange={(e) => setColor(e.target.value)} style={{ width: 38, height: 38, border: 'none', borderRadius: 8, cursor: 'pointer', padding: 2 }} />
+          </div>
+          <div className="group-subgroup-member-picker">
+            <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>Mitglieder auswählen:</p>
+            {groupMembers.map((m) => (
+              <label key={m.user_id} className={`group-subgroup-member-row ${selectedMembers.includes(m.user_id) ? 'selected' : ''}`}>
+                <input
+                  type="checkbox"
+                  checked={selectedMembers.includes(m.user_id)}
+                  onChange={() => toggleMember(m.user_id)}
+                  style={{ display: 'none' }}
+                />
+                <AvatarBadge name={m.name} color={m.avatar_color || '#007AFF'} avatarUrl={m.avatar_url} size={28} />
+                <span className="group-subgroup-member-name">{m.name}</span>
+                <span className={`group-subgroup-check ${selectedMembers.includes(m.user_id) ? 'on' : ''}`}>
+                  {selectedMembers.includes(m.user_id) ? <Check size={12} /> : null}
+                </span>
+              </label>
+            ))}
+          </div>
+          <button
+            className="group-cat-save-btn"
+            onClick={handleCreate}
+            disabled={!name.trim() || saving}
+          >
+            {saving ? 'Erstellen...' : 'Untergruppe erstellen'}
+          </button>
+        </div>
+      )}
+
+      {subgroups.length === 0 && !showForm && (
+        <p className="group-cat-empty">Noch keine Untergruppen. Erstelle eine, um Sichtbarkeit einzuschränken.</p>
+      )}
+
+      {subgroups.map((sg) => {
+        const sgMembers = Array.isArray(sg.members) ? sg.members : [];
+        return (
+          <div key={sg.id} className="group-cat-item">
+            <span className="group-cat-dot" style={{ background: sg.color || '#007AFF' }} />
+            <div style={{ flex: 1 }}>
+              <span className="group-cat-name">{sg.name}</span>
+              <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+                {sgMembers.map((m) => (
+                  <AvatarBadge key={m.user_id} name={m.name} color={m.avatar_color || '#007AFF'} avatarUrl={m.avatar_url} size={22} title={m.name} />
+                ))}
+                {sgMembers.length === 0 && <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Keine Mitglieder</span>}
+              </div>
+            </div>
+            <button
+              className="group-cat-delete-btn"
+              onClick={() => handleDelete(sg.id)}
+              disabled={deletingId === sg.id}
+            >
+              <Trash2 size={13} />
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function GroupCategoryManager({ groupId }) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);

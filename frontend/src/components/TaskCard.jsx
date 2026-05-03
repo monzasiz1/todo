@@ -389,6 +389,20 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
             {task.group_category_name}
           </span>
         )}
+        {task.subgroup_id && Array.isArray(task.subgroup_members) && task.subgroup_members.length > 0 && (
+          <span className="task-subgroup-badge" title={`Untergruppe: ${task.subgroup_name || ''}`} style={{ background: task.subgroup_color ? `${task.subgroup_color}18` : 'rgba(88,86,214,0.08)', borderColor: task.subgroup_color ? `${task.subgroup_color}44` : 'rgba(88,86,214,0.2)' }}>
+            <Lock size={10} />
+            {task.subgroup_name && <span style={{ fontSize: 11, fontWeight: 600 }}>{task.subgroup_name}</span>}
+            <span className="task-subgroup-avatars">
+              {task.subgroup_members.slice(0, 4).map((m) => (
+                <AvatarBadge key={m.user_id} name={m.name} color={m.avatar_color || '#007AFF'} avatarUrl={m.avatar_url} size={18} title={m.name} />
+              ))}
+              {task.subgroup_members.length > 4 && (
+                <span style={{ fontSize: 10, color: 'var(--text-secondary)', marginLeft: 2 }}>+{task.subgroup_members.length - 4}</span>
+              )}
+            </span>
+          </span>
+        )}
         {task.recurrence_rule && (
           <span
             className="task-group-badge"

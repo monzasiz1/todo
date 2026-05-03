@@ -14028,6 +14028,19 @@ body.cal-is-dragging * {
   transform: translateY(-1px);
 }
 
+.group-readonly-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--hover);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px 12px;
+}
+
 /* --- Group Task List --- */
 .group-task-list {
   display: flex;
@@ -15022,6 +15035,83 @@ body.cal-is-dragging * {
   height: 5px;
   border-radius: 50%;
   flex-shrink: 0;
+}
+
+/* --- Subgroup badge on task card --- */
+.task-subgroup-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px 2px 5px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  margin-top: 3px;
+  color: var(--text-secondary);
+}
+.task-subgroup-avatars {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* --- Subgroup manager in settings --- */
+.group-subgroup-form {
+  background: var(--hover);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.group-subgroup-member-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.group-subgroup-member-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: background 0.15s, border-color 0.15s;
+}
+.group-subgroup-member-row:hover {
+  background: var(--bg-secondary);
+}
+.group-subgroup-member-row.selected {
+  background: rgba(0,122,255,0.08);
+  border-color: rgba(0,122,255,0.3);
+}
+.group-subgroup-member-name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+}
+.group-subgroup-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary);
+  color: transparent;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.group-subgroup-check.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
 }
 
 /* --- Calendar Group Category Pill (inside calendar event blocks) --- */

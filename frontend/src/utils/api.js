@@ -456,6 +456,18 @@ export const api = {
   deleteGroupCategory: (groupId, categoryId) =>
     request(`/groups/${groupId}/categories/${categoryId}`, { method: 'DELETE' }),
 
+  // Group Subgroups
+  getGroupSubgroups: (groupId) => request(`/groups/${groupId}/subgroups`),
+
+  createGroupSubgroup: (groupId, data) =>
+    request(`/groups/${groupId}/subgroups`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  deleteGroupSubgroup: (groupId, subgroupId) =>
+    request(`/groups/${groupId}/subgroups/${subgroupId}`, { method: 'DELETE' }),
+
   changeGroupMemberRole: (groupId, userId, role) =>
     request(`/groups/${groupId}/members/${userId}`, {
       method: 'PATCH',
