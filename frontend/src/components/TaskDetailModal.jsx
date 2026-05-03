@@ -15,7 +15,6 @@ import { de } from 'date-fns/locale';
 import TaskEditModal from './TaskEditModal';
 import TaskAttachments from './TaskAttachments';
 import AvatarBadge from './AvatarBadge';
-import { useFriendsStore } from '../store/friendsStore';
 
 const priorityConfig = {
   low: { label: 'Niedrig', color: 'var(--success)', icon: Flag },
@@ -28,7 +27,7 @@ const priorityConfig = {
 // pageMode=false (default) → renders as a modal popup (desktop)
 export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = false, hidePrivateShareInfo = false }) {
   const { toggleTask, deleteTask, fetchTasks, addToast } = useTaskStore();
-  const { friends, fetchFriends } = useFriendsStore();
+  const [friends, setFriends] = useState([]);
   const [showEdit, setShowEdit] = useState(false);
   const [showSharePanel, setShowSharePanel] = useState(false);
   const [shareVisibility, setShareVisibility] = useState('private');
@@ -175,7 +174,9 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     if (!showSharePanel) return;
     let mounted = true;
     setShareLoading(true);
-    fetchFriends();
+    api.getFriends()
+      .then((data) => { if (mounted) setFriends(Array.isArray(data) ? data : (data?.friends || [])); })
+      .catch(() => {});
     api.getPermissions(task.id)
       .then((data) => {
         if (!mounted) return;
@@ -194,7 +195,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       .catch(() => {})
       .finally(() => { if (mounted) setShareLoading(false); });
     return () => { mounted = false; };
-  }, [showSharePanel, task.id, fetchFriends]);
+  }, [showSharePanel, task.id]);
 
   useEffect(() => {
     if (!isGroupAdmin || !task?.group_id) return;
