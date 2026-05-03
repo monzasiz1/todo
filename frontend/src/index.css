@@ -6495,13 +6495,13 @@ body.cal-is-dragging * {
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Sticky-Wrapper: Header + Titel kleben gemeinsam oben */
+  /* Sticky-Wrapper: transparent, Inhalt scrollt durch */
   .task-detail-sticky-top {
     position: sticky;
     top: 0;
     z-index: 6;
-    background: var(--bg, #f2f2f7);
-    border-bottom: 1px solid var(--border);
+    background: transparent;
+    border-bottom: none;
   }
 
   .task-detail-header {
@@ -6911,13 +6911,13 @@ body.cal-is-dragging * {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Sticky-Wrapper im Vollbild-Scroll-Container */
+/* Sticky-Wrapper im Vollbild-Scroll-Container — transparent */
 .is-mobile-fullscreen .task-detail-sticky-top {
   position: sticky;
   top: 0 !important;
   z-index: 30;
-  background: var(--bg, #f2f2f7);
-  border-bottom: 1px solid var(--border);
+  background: transparent;
+  border-bottom: none;
 }
 
 .is-mobile-fullscreen .task-detail-header {
@@ -7104,12 +7104,19 @@ body.cal-is-dragging * {
   overflow: hidden;
 }
 .task-detail-sticky-title span {
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 600;
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  background: rgba(255, 255, 255, 0.52);
+  backdrop-filter: blur(14px) saturate(1.6);
+  -webkit-backdrop-filter: blur(14px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 12px;
+  padding: 5px 12px;
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.09);
 }
 .task-detail-sticky-title.visible {
   opacity: 1;
@@ -7121,24 +7128,27 @@ body.cal-is-dragging * {
 }
 
 .task-detail-close {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  border: none;
-  background: var(--bg);
-  color: var(--text-secondary);
+  border: 1.5px solid rgba(255, 255, 255, 0.38);
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(18px) saturate(1.8);
+  -webkit-backdrop-filter: blur(18px) saturate(1.8);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  color: var(--text);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: var(--transition);
+  transition: background 0.18s, box-shadow 0.18s;
   position: relative;
   z-index: 62;
   pointer-events: auto;
 }
 .task-detail-close:hover {
-  background: var(--border-strong);
-  color: var(--text);
+  background: rgba(255, 255, 255, 0.32);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 .task-detail-title-row {
@@ -11199,25 +11209,28 @@ body.cal-is-dragging * {
 }
 
 .task-detail-more-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  border: none;
-  background: var(--bg);
-  color: var(--text-secondary);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.38);
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(18px) saturate(1.8);
+  -webkit-backdrop-filter: blur(18px) saturate(1.8);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  color: var(--text);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.18s, box-shadow 0.18s;
   position: relative;
   z-index: 62;
   pointer-events: auto;
 }
 
 .task-detail-more-btn:hover {
-  background: var(--border-strong);
-  color: var(--text);
+  background: rgba(255, 255, 255, 0.32);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 .task-detail-more-menu {
@@ -17192,7 +17205,7 @@ body.cal-is-dragging * {
   }
 
   .is-mobile-fullscreen .task-detail-header .modal-pull-handle {
-    margin: 4px auto 4px;
+    margin: calc(env(safe-area-inset-top, 0px) + 8px) auto 4px;
   }
 
   .is-mobile-fullscreen.task-edit-modal > .modal-pull-handle {
