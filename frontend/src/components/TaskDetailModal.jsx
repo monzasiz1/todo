@@ -614,26 +614,6 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
               <ThumbsUp size={16} /><span>Abstimmung</span>
             </div>
             <div className="task-detail-vote-surface">
-              <div className="task-detail-vote-summary">
-                <div className={`task-detail-vote-summary-chip yes ${taskVotes.my_vote === 'yes' ? 'is-my-vote' : ''}`}>
-                  <ThumbsUp size={13} />
-                  <span>Zusagen</span>
-                  <strong>{voteYesCount}</strong>
-                </div>
-                <div className={`task-detail-vote-summary-chip no ${taskVotes.my_vote === 'no' ? 'is-my-vote' : ''}`}>
-                  <ThumbsDown size={13} />
-                  <span>Absagen</span>
-                  <strong>{voteNoCount}</strong>
-                </div>
-                {votePendingCount !== null && (
-                  <div className="task-detail-vote-summary-chip neutral">
-                    <Users size={13} />
-                    <span>Unbeantwortet</span>
-                    <strong>{votePendingCount}</strong>
-                  </div>
-                )}
-              </div>
-
               <div className="task-detail-vote-actions">
                 <button
                   type="button"
@@ -655,6 +635,13 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
                   <span>Absagen</span>
                   <span className="task-detail-vote-btn-count">{voteNoCount}</span>
                 </button>
+                {votePendingCount !== null && (
+                  <span className="task-detail-vote-muted-stat" title="Unbeantwortet">
+                    <Users size={13} />
+                    <span>Unbeantwortet</span>
+                    <strong>{votePendingCount}</strong>
+                  </span>
+                )}
               </div>
 
               <div className="task-detail-vote-attendees">
@@ -663,8 +650,9 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
                     type="button"
                     className="task-detail-vote-stack-btn task-detail-vote-stack-btn--yes"
                     onClick={() => setVotesOpen(votesOpen === 'yes' ? null : 'yes')}
+                    title={`Zusagen (${taskVotes.yes_users.length})`}
                   >
-                    <span className="task-detail-vote-stack-label"><ThumbsUp size={11} /> Zusagen</span>
+                    <ThumbsUp size={12} />
                     <span className="task-detail-vote-stack">
                       {taskVotes.yes_users.slice(0, 5).map((u, i) => (
                         <span key={`yes_${i}`} className="task-detail-vote-avatar-wrap" style={{ zIndex: 6 - i }}>
@@ -683,8 +671,9 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
                     type="button"
                     className="task-detail-vote-stack-btn task-detail-vote-stack-btn--no"
                     onClick={() => setVotesOpen(votesOpen === 'no' ? null : 'no')}
+                    title={`Absagen (${taskVotes.no_users.length})`}
                   >
-                    <span className="task-detail-vote-stack-label"><ThumbsDown size={11} /> Absagen</span>
+                    <ThumbsDown size={12} />
                     <span className="task-detail-vote-stack">
                       {taskVotes.no_users.slice(0, 5).map((u, i) => (
                         <span key={`no_${i}`} className="task-detail-vote-avatar-wrap" style={{ zIndex: 6 - i }}>
