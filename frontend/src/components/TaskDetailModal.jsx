@@ -833,8 +833,8 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
           </div>
         )}
 
-        {/* Teilen-Panel: nur für eigene Termine ohne Gruppe */}
-        {isEvent && canEdit && !task.group_id && (
+        {/* Teilen-Panel: für eigene Tasks/Termine (auch Gruppen) */}
+        {canEdit && task.is_owner !== false && (
           <div className="task-detail-section task-detail-collab">
             <button
               type="button"
