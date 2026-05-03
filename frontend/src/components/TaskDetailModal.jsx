@@ -263,7 +263,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     if (!task.group_id || sharingToChat) return;
     setSharingToChat(true);
     try {
-      await api.shareTaskToGroupChat(task.group_id, task.id);
+      await api.shareTaskToGroupChat(task.group_id, task.id, { withRsvp: task.enable_group_rsvp === true });
       addToast('📤 In den Gruppen-Chat geteilt');
     } catch (err) {
       addToast(err.message || 'Teilen fehlgeschlagen', 'error');

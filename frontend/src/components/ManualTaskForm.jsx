@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, Calendar, CalendarCheck, ChevronDown, Clock, Edit3, Eye, FileText, Flag, ListTodo, Lock, Plus, Repeat, Save, Tag, UserCheck, Users, UsersRound, Video, X } from 'lucide-react';
+import { Bell, Calendar, CalendarCheck, ChevronDown, Clock, Edit3, Eye, FileText, Flag, ListTodo, Lock, Plus, Repeat, Save, Tag, ThumbsUp, UserCheck, Users, UsersRound, Video, X } from 'lucide-react';
 import { useTaskStore } from '../store/taskStore';
 import { api } from '../utils/api';
 import AvatarBadge from './AvatarBadge';
@@ -99,6 +99,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
   const [groupId, setGroupId] = useState('');
   const [groupCategories, setGroupCategories] = useState([]);
   const [groupCategoryId, setGroupCategoryId] = useState('');
+  const [enableGroupRsvp, setEnableGroupRsvp] = useState(false);
   const [visibility, setVisibility] = useState('private');
   const [permissions, setPermissions] = useState([]);
   const [showSharing, setShowSharing] = useState(false);
@@ -146,6 +147,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
     setGroupId('');
     setGroupCategoryId('');
     setGroupCategories([]);
+    setEnableGroupRsvp(false);
     setVisibility('private');
     setPermissions([]);
     setShowSharing(false);
@@ -203,6 +205,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
         recurrence_end: recurrenceEnd || null,
         group_id: groupId || null,
         group_category_id: groupId ? (groupCategoryId || null) : null,
+        enable_group_rsvp: groupId ? enableGroupRsvp : false,
         visibility,
         permissions: visibility === 'selected_users'
           ? permissions.map((permission) => ({
@@ -590,6 +593,25 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
                       {cat.name}
                     </button>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {groupId && (
+              <div className="task-edit-field" style={{ marginBottom: 0 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}>
+                  <ThumbsUp size={14} style={{ color: '#1f8a47' }} />
+                  <span style={{ flex: 1 }}>Zu-/Absage im Gruppen-Chat aktivieren</span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={enableGroupRsvp}
+                    className={`manual-task-allday-btn${enableGroupRsvp ? ' on' : ''}`}
+                    onClick={() => setEnableGroupRsvp((v) => !v)}
+                  />
+                </label>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
+                  Wenn aktiviert, kann diese Gruppen-Aufgabe bzw. dieser Gruppen-Termin im Chat mit Zusagen/Absagen geteilt werden.
                 </div>
               </div>
             )}

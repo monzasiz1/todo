@@ -474,10 +474,10 @@ export const api = {
       body: JSON.stringify({ content }),
     }),
 
-  shareTaskToGroupChat: (groupId, taskId) =>
+  shareTaskToGroupChat: (groupId, taskId, options = {}) =>
     request(`/groups/${groupId}/messages/share-task`, {
       method: 'POST',
-      body: JSON.stringify({ task_id: taskId }),
+      body: JSON.stringify({ task_id: taskId, with_rsvp: options.withRsvp === true }),
     }),
 
   claimGroupEvent: (groupId, msgId, role = 'organizer') =>

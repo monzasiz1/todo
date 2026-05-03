@@ -6,7 +6,7 @@ import { useFriendsStore } from '../store/friendsStore';
 import { api } from '../utils/api';
 import {
   X, Calendar, CalendarCheck, Clock, Tag, Flag, FileText, Bell,
-  Save, Users, UserCheck, Lock, Eye, Edit3, Video,
+  Save, Users, UserCheck, Lock, Eye, Edit3, Video, ThumbsUp,
   ChevronDown, Sparkles, Loader2, AlertTriangle, UsersRound, Repeat, ListTodo
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
@@ -163,6 +163,7 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
   const [taskGroupId, setTaskGroupId] = useState(task.group_id || null);
   const [groupCategories, setGroupCategories] = useState([]);
   const [taskGroupCategoryId, setTaskGroupCategoryId] = useState(task.group_category_id || '');
+  const [enableGroupRsvp, setEnableGroupRsvp] = useState(task.enable_group_rsvp === true);
   const [showGroups, setShowGroups] = useState(!!task.group_id);
 
   const [saving, setSaving] = useState(false);
@@ -301,6 +302,7 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
         ((allDay ? null : (timeEnd || null)) !== (task.time_end ? task.time_end.substring(0, 5) : null)) ||
         priority !== (task.priority || 'medium') ||
         String(categoryId || '') !== String(task.category_id || '') ||
+        (enableGroupRsvp === true) !== (task.enable_group_rsvp === true) ||
         String(localToISO(reminderAt) || '') !== String(task.reminder_at || '') ||
         (recurrenceRule || null) !== (task.recurrence_rule || null) ||
         (recurrenceEnd || null) !== (task.recurrence_end ? task.recurrence_end.substring(0, 10) : null)
@@ -323,6 +325,7 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
         time_end: allDay ? null : (timeEnd || null),
         priority,
         category_id: categoryId || null,
+        enable_group_rsvp: enableGroupRsvp === true,
         reminder_at: localToISO(reminderAt),
         recurrence_rule: recurrenceRule || null,
         recurrence_interval: 1,
@@ -735,6 +738,22 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
                           {taskGroupId === g.id && <span style={{ marginLeft: 'auto', color: 'var(--primary)', fontSize: 12, fontWeight: 600 }}>✓</span>}
                         </div>
                       ))}
+
+                      {taskGroupId && (
+                        <div className="task-edit-field" style={{ marginBottom: 0 }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}>
+                            <ThumbsUp size={14} style={{ color: '#1f8a47' }} />
+                            <span style={{ flex: 1 }}>Zu-/Absage im Gruppen-Chat aktivieren</span>
+                            <button
+                              type="button"
+                              role="switch"
+                              aria-checked={enableGroupRsvp}
+                              className={`manual-task-allday-btn${enableGroupRsvp ? ' on' : ''}`}
+                              onClick={() => setEnableGroupRsvp((v) => !v)}
+                            />
+                          </label>
+                        </div>
+                      )}
 
                       {taskGroupId && (
                         <div className="task-edit-field" style={{ marginTop: 8, marginBottom: 0 }}>
