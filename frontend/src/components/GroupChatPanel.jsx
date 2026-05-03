@@ -4,11 +4,12 @@ import {
   X, ArrowLeft, Send, Pin, ChevronDown, ChevronUp,
   MessageCircle, Users, Sparkles, Check,
   Pencil, Trash2, Undo2, BarChart2, AlertTriangle,
-  CalendarCheck, UserCheck, ThumbsUp, ThumbsDown, MessageSquare
+  CalendarCheck, UserCheck, ThumbsUp, ThumbsDown, MessageSquare, Paperclip, Search
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useGroupStore } from '../store/groupStore';
 import { useAuthStore } from '../store/authStore';
+import { useTaskStore } from '../store/taskStore';
 import { api } from '../utils/api';
 import AvatarBadge from './AvatarBadge';
 
@@ -128,6 +129,7 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
   const isActive = open || pageMode;
   const { groups, fetchGroups } = useGroupStore();
   const { user } = useAuthStore();
+  const { tasks: allTasks } = useTaskStore();
 
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -152,6 +154,9 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
   const [claimingMsgId, setClaimingMsgId] = useState(null);
   const [rsvpMsgId, setRsvpMsgId] = useState(null);
   const [rsvpPopup, setRsvpPopup] = useState(null); // { msgId, type: 'yes'|'no' }
+  const [showTaskPicker, setShowTaskPicker] = useState(false);
+  const [taskPickerSearch, setTaskPickerSearch] = useState('');
+  const taskPickerRef = useRef(null);
   const [followUpMsgId, setFollowUpMsgId] = useState(null);
   const [dragShareActive, setDragShareActive] = useState(false);
   const [dragShareOver, setDragShareOver] = useState(false);
@@ -219,6 +224,27 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
     clearTimeout(conflictTimerRef.current);
     clearTimeout(dragSuccessTimerRef.current);
   }, []);
+
+  // Close task picker when clicking outside
+  useEffect(() => {
+    if (!showTaskPicker) return;
+    const handler = (e) => {
+      if (taskPickerRef.current && !taskPickerRef.current.contains(e.target)) {
+        setShowTaskPicker(false);
+        setTaskPickerSearch('');
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showTaskPicker]);
+
+  const filteredPickerTasks = useMemo(() => {
+    const q = taskPickerSearch.toLowerCase().trim();
+    return (allTasks || [])
+      .filter((t) => !t.deleted && !t.is_archived)
+      .filter((t) => !q || (t.title || '').toLowerCase().includes(q))
+      .slice(0, 30);
+  }, [allTasks, taskPickerSearch]);
 
   useEffect(() => {
     let mounted = true;
@@ -1286,7 +1312,53 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
                 </div>
 
                 {/* ── Input ── */}
-                <div className="gchat-input-row">
+                <div className="gchat-input-row" ref={taskPickerRef}>
+                  {/* Task-Picker Dropdown */}
+                  {showTaskPicker && (
+                    <div className="gchat-task-picker">
+                      <div className="gchat-task-picker-search">
+                        <Search size={13} />
+                        <input
+                          autoFocus
+                          placeholder="Aufgabe suchen…"
+                          value={taskPickerSearch}
+                          onChange={(e) => setTaskPickerSearch(e.target.value)}
+                          className="gchat-task-picker-input"
+                        />
+                      </div>
+                      <div className="gchat-task-picker-list">
+                        {filteredPickerTasks.length === 0 && (
+                          <div className="gchat-task-picker-empty">Keine Aufgaben gefunden</div>
+                        )}
+                        {filteredPickerTasks.map((t) => (
+                          <button
+                            key={t.id}
+                            className="gchat-task-picker-item"
+                            onClick={() => {
+                              setShowTaskPicker(false);
+                              setTaskPickerSearch('');
+                              shareDroppedTaskToChat(t.id);
+                            }}
+                          >
+                            <span className="gchat-task-picker-dot" style={{ background: t.color || '#4C7BD9' }} />
+                            <span className="gchat-task-picker-title">{t.title || '(ohne Titel)'}</span>
+                            {t.date && (
+                              <span className="gchat-task-picker-date">
+                                {new Date(t.date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <button
+                    className={`gchat-attach-btn${showTaskPicker ? ' active' : ''}`}
+                    title="Aufgabe teilen"
+                    onClick={() => { setShowTaskPicker((v) => !v); setTaskPickerSearch(''); }}
+                  >
+                    <Paperclip size={16} />
+                  </button>
                   <textarea
                     ref={inputRef}
                     className="gchat-input"
