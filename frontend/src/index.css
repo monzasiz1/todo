@@ -6915,7 +6915,7 @@ body.cal-is-dragging * {
 .is-mobile-fullscreen .task-detail-sticky-top {
   position: sticky;
   top: 0 !important;
-  right: 116px;
+  z-index: 30;
   background: transparent;
   border-bottom: none;
 }
@@ -6924,16 +6924,8 @@ body.cal-is-dragging * {
   position: static;
   padding-top: 0;
   /* Priority-Bar + safe-area + Platz für Buttons */
-  z-index: 40;
   min-height: calc(env(safe-area-inset-top, 0px) + 52px);
   background: transparent;
-}
-
-/* In TaskDetail fullscreen, keep top shadow in the scroll flow (same behavior as edit modal) */
-.is-mobile-fullscreen.task-detail-modal .task-detail-top-shadow {
-  position: sticky;
-  top: 0;
-  pointer-events: auto;
 }
 
 .is-mobile-fullscreen.task-edit-modal .task-edit-header {
@@ -6966,7 +6958,7 @@ body.cal-is-dragging * {
 
 .is-mobile-fullscreen .task-detail-sticky-title {
   top: calc(env(safe-area-inset-top, 0px) + 10px);
-  right: 112px;
+  right: 96px;
 }
 
 /* Kill nested scroll — the container above handles all scrolling */
@@ -7107,7 +7099,7 @@ body.cal-is-dragging * {
 .task-detail-sticky-title {
   position: absolute;
   left: 18px;
-  right: 116px;
+  right: 100px;
   top: 16px;
   height: 36px;
   display: flex;
@@ -7116,7 +7108,6 @@ body.cal-is-dragging * {
   pointer-events: none;
   transition: opacity 0.15s ease;
   overflow: hidden;
-  z-index: 40;
 }
 .task-detail-sticky-title span {
   font-size: 0.88rem;
@@ -7273,7 +7264,7 @@ body.cal-is-dragging * {
   isolation: isolate;
 }
 
-.task-detail-main.has-group-watermark > :not(.task-detail-group-watermark):not(.task-detail-top-shadow) {
+.task-detail-main.has-group-watermark > :not(.task-detail-group-watermark) {
   position: relative;
   z-index: 1;
 }
@@ -7281,9 +7272,6 @@ body.cal-is-dragging * {
 .task-detail-main.has-group-watermark > .task-detail-sticky-top {
   position: sticky;
   z-index: 30;
-}
-.task-detail-main.has-group-watermark > .task-detail-top-shadow {
-  z-index: 24;
 }
 
 .task-detail-group-watermark {
@@ -11298,7 +11286,7 @@ body.cal-is-dragging * {
   position: absolute;
   right: 16px;
   top: 16px;
-  z-index: 80;
+  z-index: 20;
   pointer-events: auto;
 }
 
