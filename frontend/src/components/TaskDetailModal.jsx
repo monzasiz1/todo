@@ -243,6 +243,13 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const priority = priorityConfig[task?.priority] || priorityConfig.medium;
   const PriorityIcon = priority.icon;
   const canEdit = task?.is_owner === false ? (task?.can_edit === true) : true;
+  // is_group_member: true = echtes Gruppenmitglied, false = extern per Permission geteilt
+  // undefined (groupStore-Task) → nicht explizit false → als Mitglied behandeln
+  const isGroupMember = task?.group_id
+    ? (task?.is_group_member !== false)
+    : false;
+  // Wer darf teilen: alle Gruppenmitglieder + Bearbeiter persönlicher Tasks
+  const canShare = task?.group_id ? isGroupMember : canEdit;
   const isShared = task?.visibility && task.visibility !== 'private';
   const showPrivateShareSection = isShared && !hidePrivateShareInfo;
   const isEvent = task?.type === 'event';
@@ -774,7 +781,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
           </div>
         </div>
 
-        {isMobile && task.group_id && task.enable_group_rsvp === true && renderVoteSection()}
+        {isMobile && task.group_id && task.enable_group_rsvp === true && isGroupMember && renderVoteSection()}
 
         <TaskAttachments taskId={task.id} canEdit={canEdit} />
 
@@ -798,8 +805,8 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       </div>
 
       <div className="task-detail-aside">
-        {/* ── Untergruppe: Eingeladene Mitglieder ── */}
-        {task.subgroup_id && Array.isArray(task.subgroup_members) && task.subgroup_members.length > 0 && (
+        {/* ── Untergruppe: nur für echte Gruppenmitglieder ── */}
+        {isGroupMember && task.subgroup_id && Array.isArray(task.subgroup_members) && task.subgroup_members.length > 0 && (
           <div className="task-detail-section task-detail-collab">
             <div className="task-detail-description-header">
               <span style={{ width: 12, height: 12, borderRadius: 3, background: task.subgroup_color || '#8E8E93', flexShrink: 0, display: 'inline-block' }} />
@@ -873,7 +880,8 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
                 <span className="task-detail-shared-count">{task.shared_with_users.length} Person{task.shared_with_users.length === 1 ? '' : 'en'}</span>
               </div>
             )}
-            {!task.is_owner && task.creator_name && (
+            {/* Gruppenkontext-Info nur für echte Mitglieder */}
+            {isGroupMember && !task.is_owner && task.creator_name && (
               <div className="task-detail-collab-info">
                 <AvatarBadge className="collab-avatar" name={task.creator_name} color={task.creator_color || '#007AFF'} avatarUrl={task.creator_avatar_url} size={22} />
                 <span className="task-detail-collab-info-text"><span className="task-detail-collab-label">Erstellt von</span><strong>{task.creator_name}</strong></span>
@@ -888,8 +896,8 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
           </div>
         )}
 
-        {/* Teilen-Panel: alle Nutzer mit Bearbeitungsrecht (Owner + Mitglieder mit canEdit) */}
-        {canEdit && (
+        {/* Teilen-Panel: alle Gruppenmitglieder + Bearbeiter bei persönlichen Tasks */}
+        {canShare && (
           <div className="task-detail-section task-detail-collab">
             <button
               type="button"
@@ -1017,7 +1025,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
           </div>
         )}
 
-        {!isMobile && task.group_id && task.enable_group_rsvp === true && renderVoteSection()}
+        {!isMobile && task.group_id && task.enable_group_rsvp === true && isGroupMember && renderVoteSection()}
 
         <div className="task-detail-section task-detail-comments-section">
           <div className="task-detail-description-header">
