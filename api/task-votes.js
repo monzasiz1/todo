@@ -93,6 +93,7 @@ async function loadVotes(pool, voteTaskId, occurrenceDate, userId) {
 
   const yesUsers = [];
   const noUsers = [];
+  const unansweredUsers = [];
   let myVote = null;
 
   for (const row of result.rows) {
@@ -114,16 +115,38 @@ async function loadVotes(pool, voteTaskId, occurrenceDate, userId) {
     [voteTaskId]
   );
 
+  const unansweredResult = await pool.query(
+    `SELECT u.name, u.avatar_color, u.avatar_url
+       FROM group_tasks gt
+       JOIN group_members gm ON gm.group_id = gt.group_id
+       JOIN users u ON u.id = gm.user_id
+       LEFT JOIN task_votes v
+         ON v.task_id = gt.task_id
+        AND v.user_id = gm.user_id
+        AND (($2::date IS NULL AND v.occurrence_date IS NULL) OR v.occurrence_date = $2::date)
+      WHERE gt.task_id = $1
+        AND v.id IS NULL
+      ORDER BY LOWER(COALESCE(u.name, '')) ASC, u.id ASC`,
+    [voteTaskId, occurrenceDate]
+  );
+
+  for (const row of unansweredResult.rows) {
+    unansweredUsers.push({
+      name: row.name,
+      avatar_color: row.avatar_color,
+      avatar_url: row.avatar_url,
+    });
+  }
+
   const memberCount = Number(memberResult.rows?.[0]?.member_count || 0);
-  const unansweredCount = memberCount > 0
-    ? Math.max(0, memberCount - yesUsers.length - noUsers.length)
-    : null;
+  const unansweredCount = memberCount > 0 ? unansweredUsers.length : null;
 
   return {
     yes_count: yesUsers.length,
     no_count: noUsers.length,
     yes_users: yesUsers,
     no_users: noUsers,
+    unanswered_users: unansweredUsers,
     my_vote: myVote,
     member_count: memberCount || null,
     unanswered_count: unansweredCount,
