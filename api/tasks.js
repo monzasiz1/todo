@@ -949,16 +949,105 @@ module.exports = async function handler(req, res) {
     try {
       const taskId = Number(segments[0]);
       if (!Number.isFinite(taskId)) return res.status(400).json({ error: 'Ungültige ID' });
-      const { rows } = await pool.query(
-        `SELECT t.*, c.name AS category_name, c.color AS category_color
-         FROM tasks t
-         LEFT JOIN categories c ON c.id = t.category_id
-         WHERE t.id = $1 AND t.user_id = $2
-         LIMIT 1`,
-        [taskId, user.id]
-      );
+
+      let rows = [];
+      try {
+        const result = await pool.query(
+          `SELECT t.*, c.name AS category_name, c.color AS category_color, c.icon as category_icon,
+             u.name as creator_name, u.avatar_color as creator_color, u.avatar_url as creator_avatar_url,
+             editor.name as last_editor_name,
+             CASE WHEN t.user_id = $2 THEN true ELSE false END as is_owner,
+             CASE
+               WHEN t.user_id = $2 THEN true
+               ELSE EXISTS (
+                 SELECT 1 FROM task_permissions tp_edit
+                 WHERE tp_edit.task_id = t.id AND tp_edit.user_id = $2 AND tp_edit.can_edit = true
+               )
+             END as can_edit,
+             g.group_id, g.group_name, g.group_color, g.group_image_url,
+             g.group_category_id, g.group_category_name, g.group_category_color,
+             g.subgroup_id, g.subgroup_name, g.subgroup_color,
+             COALESCE(g.subgroup_members, '[]'::json) as subgroup_members,
+             g.group_task_creator_name, g.group_task_creator_color, g.group_task_creator_avatar_url,
+             g.my_group_role,
+             (g.group_id IS NOT NULL) as is_group_member,
+             COALESCE((
+               SELECT json_agg(
+                 json_build_object('name', su.name, 'color', su.avatar_color, 'avatar_url', su.avatar_url)
+                 ORDER BY su.name
+               )
+               FROM task_permissions tp2
+               JOIN users su ON tp2.user_id = su.id
+               WHERE tp2.task_id = t.id AND tp2.can_view = true
+             ), '[]'::json) as shared_with_users
+           FROM tasks t
+           LEFT JOIN categories c ON c.id = t.category_id
+           LEFT JOIN users u ON u.id = t.user_id
+           LEFT JOIN users editor ON editor.id = t.last_edited_by
+           LEFT JOIN LATERAL (
+             SELECT gt.group_id,
+                    grp.name as group_name,
+                    grp.color as group_color,
+                    grp.image_url as group_image_url,
+                    gt.group_category_id,
+                    gc.name as group_category_name,
+                    gc.color as group_category_color,
+                    gt.subgroup_id,
+                    gs.name as subgroup_name,
+                    gs.color as subgroup_color,
+                    COALESCE((
+                      SELECT json_agg(json_build_object('user_id', u2.id, 'name', u2.name, 'avatar_color', u2.avatar_color, 'avatar_url', u2.avatar_url))
+                      FROM group_subgroup_members gsm2
+                      JOIN users u2 ON u2.id = gsm2.user_id
+                      WHERE gsm2.subgroup_id = gt.subgroup_id
+                    ), '[]'::json) as subgroup_members,
+                    gtc.name as group_task_creator_name,
+                    gtc.avatar_color as group_task_creator_color,
+                    gtc.avatar_url as group_task_creator_avatar_url,
+                    gm.role as my_group_role
+             FROM group_tasks gt
+             JOIN groups grp ON grp.id = gt.group_id
+             JOIN group_members gm ON gm.group_id = gt.group_id AND gm.user_id = $2
+             LEFT JOIN group_categories gc ON gc.id = gt.group_category_id
+             LEFT JOIN group_subgroups gs ON gs.id = gt.subgroup_id
+             LEFT JOIN group_subgroup_members gsm ON gsm.subgroup_id = gt.subgroup_id AND gsm.user_id = $2
+             LEFT JOIN users gtc ON gtc.id = gt.created_by
+             WHERE gt.task_id = t.id
+               AND (gt.subgroup_id IS NULL OR gm.role IN ('owner','admin') OR gsm.user_id IS NOT NULL)
+             ORDER BY (gt.subgroup_id IS NOT NULL) DESC, gt.group_id
+             LIMIT 1
+           ) g ON true
+           WHERE t.id = $1
+             AND (
+               t.user_id = $2
+               OR (t.visibility = 'shared' AND EXISTS (
+                 SELECT 1 FROM friends f WHERE f.status = 'accepted'
+                 AND ((f.user_id = t.user_id AND f.friend_id = $2) OR (f.user_id = $2 AND f.friend_id = t.user_id))
+               ))
+               OR (t.visibility = 'selected_users' AND EXISTS (
+                 SELECT 1 FROM task_permissions tp_view
+                 WHERE tp_view.task_id = t.id AND tp_view.user_id = $2 AND tp_view.can_view = true
+               ))
+               OR g.group_id IS NOT NULL
+             )
+           LIMIT 1`,
+          [taskId, user.id]
+        );
+        rows = result.rows || [];
+      } catch {
+        const fallback = await pool.query(
+          `SELECT t.*, c.name AS category_name, c.color AS category_color
+           FROM tasks t
+           LEFT JOIN categories c ON c.id = t.category_id
+           WHERE t.id = $1 AND t.user_id = $2
+           LIMIT 1`,
+          [taskId, user.id]
+        );
+        rows = fallback.rows || [];
+      }
+
       if (rows.length === 0) return res.status(404).json({ error: 'Nicht gefunden' });
-      return res.json(rows[0]);
+      return res.json(normalizeTaskRow(rows[0]));
     } catch (err) {
       console.error('Get task error:', err);
       return res.status(500).json({ error: 'Fehler' });
