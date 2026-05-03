@@ -4,7 +4,7 @@ import {
   X, ArrowLeft, Send, Pin, ChevronDown, ChevronUp,
   MessageCircle, Users, Sparkles, Check,
   Pencil, Trash2, Undo2, BarChart2, AlertTriangle,
-  CalendarCheck, UserCheck, ThumbsUp, MessageSquare
+  CalendarCheck, UserCheck, ThumbsUp, ThumbsDown, MessageSquare
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useGroupStore } from '../store/groupStore';
@@ -973,12 +973,22 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
                                   {isEnded ? 'Beendet' : (msg.responsible_user_id === user?.id ? 'Du uebernimmst' : 'Uebernehmen')}
                                 </button>
                                 <button
-                                  className={`gchat-shared-btn ${msg.my_rsvp === 'yes' ? 'active' : ''}`}
-                                  onClick={() => rsvpEvent(msg.id, 'yes')}
+                                  className={`gchat-shared-btn gchat-rsvp-yes-btn ${msg.my_rsvp === 'yes' ? 'active' : ''}`}
+                                  onClick={() => rsvpEvent(msg.id, msg.my_rsvp === 'yes' ? null : 'yes')}
                                   disabled={rsvpMsgId === msg.id || isEnded}
+                                  title="Zusagen"
                                 >
                                   <ThumbsUp size={12} />
                                   Zusagen ({msg.rsvp_yes_count || 0})
+                                </button>
+                                <button
+                                  className={`gchat-shared-btn gchat-rsvp-no-btn ${msg.my_rsvp === 'no' ? 'active' : ''}`}
+                                  onClick={() => rsvpEvent(msg.id, msg.my_rsvp === 'no' ? null : 'no')}
+                                  disabled={rsvpMsgId === msg.id || isEnded}
+                                  title="Absagen"
+                                >
+                                  <ThumbsDown size={12} />
+                                  Absagen ({msg.rsvp_no_count || 0})
                                 </button>
                                 <button
                                   className="gchat-shared-btn"
@@ -999,6 +1009,56 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
                                   </button>
                                 )}
                               </div>
+
+                              {/* RSVP-Teilnehmerliste */}
+                              {((msg.rsvp_yes_users?.length > 0) || (msg.rsvp_no_users?.length > 0)) && (
+                                <div className="gchat-rsvp-attendees">
+                                  {msg.rsvp_yes_users?.length > 0 && (
+                                    <div className="gchat-rsvp-attendees-group">
+                                      <span className="gchat-rsvp-attendees-label gchat-rsvp-attendees-label--yes">
+                                        <ThumbsUp size={11} /> Zusagen
+                                      </span>
+                                      <div className="gchat-rsvp-attendees-list">
+                                        {msg.rsvp_yes_users.map((u, i) => (
+                                          <span
+                                            key={i}
+                                            className="gchat-rsvp-avatar"
+                                            style={{ background: u.avatar_color || '#4C7BD9' }}
+                                            title={u.name}
+                                          >
+                                            {String(u.name || '?').charAt(0).toUpperCase()}
+                                          </span>
+                                        ))}
+                                        <span className="gchat-rsvp-names">
+                                          {msg.rsvp_yes_users.map(u => u.name).join(', ')}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
+                                  {msg.rsvp_no_users?.length > 0 && (
+                                    <div className="gchat-rsvp-attendees-group">
+                                      <span className="gchat-rsvp-attendees-label gchat-rsvp-attendees-label--no">
+                                        <ThumbsDown size={11} /> Absagen
+                                      </span>
+                                      <div className="gchat-rsvp-attendees-list">
+                                        {msg.rsvp_no_users.map((u, i) => (
+                                          <span
+                                            key={i}
+                                            className="gchat-rsvp-avatar gchat-rsvp-avatar--no"
+                                            style={{ background: u.avatar_color || '#8e8e93' }}
+                                            title={u.name}
+                                          >
+                                            {String(u.name || '?').charAt(0).toUpperCase()}
+                                          </span>
+                                        ))}
+                                        <span className="gchat-rsvp-names gchat-rsvp-names--no">
+                                          {msg.rsvp_no_users.map(u => u.name).join(', ')}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                               <div className="gchat-bubble-meta">
                                 <span className="gchat-time">{formatTime(msg.created_at)}</span>
                                 {isOwn && (

@@ -23767,6 +23767,105 @@ body.cal-is-dragging * {
   background: rgba(52, 199, 89, 0.14);
 }
 .gchat-shared-btn:disabled { opacity: 0.5; }
+
+/* RSVP Yes-Button */
+.gchat-rsvp-yes-btn {
+  border-color: rgba(52, 199, 89, 0.35);
+  color: #1f8a47;
+}
+.gchat-rsvp-yes-btn:hover:not(:disabled) {
+  background: rgba(52, 199, 89, 0.1);
+  border-color: rgba(52, 199, 89, 0.5);
+  color: #16753b;
+}
+.gchat-rsvp-yes-btn.active {
+  background: rgba(52, 199, 89, 0.14);
+  border-color: rgba(52, 199, 89, 0.5);
+  color: #16753b;
+}
+
+/* RSVP No-Button */
+.gchat-rsvp-no-btn {
+  border-color: rgba(255, 59, 48, 0.3);
+  color: #c0392b;
+}
+.gchat-rsvp-no-btn:hover:not(:disabled) {
+  background: rgba(255, 59, 48, 0.08);
+  border-color: rgba(255, 59, 48, 0.45);
+  color: #a93226;
+}
+.gchat-rsvp-no-btn.active {
+  background: rgba(255, 59, 48, 0.12);
+  border-color: rgba(255, 59, 48, 0.45);
+  color: #a93226;
+}
+
+/* RSVP Teilnehmerliste */
+.gchat-rsvp-attendees {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(0,0,0,0.07);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.gchat-rsvp-attendees-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gchat-rsvp-attendees-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.gchat-rsvp-attendees-label--yes {
+  color: #1f8a47;
+}
+.gchat-rsvp-attendees-label--no {
+  color: #c0392b;
+}
+
+.gchat-rsvp-attendees-list {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.gchat-rsvp-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+.gchat-rsvp-avatar--no {
+  opacity: 0.7;
+}
+
+.gchat-rsvp-names {
+  font-size: 12px;
+  font-weight: 500;
+  color: #3a4a60;
+}
+.gchat-rsvp-names--no {
+  color: #8e8e93;
+}
+
 .gchat-shared-event.own .gchat-shared-btn {
   border-color: var(--border-strong);
   color: var(--text-secondary);
