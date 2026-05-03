@@ -6833,6 +6833,7 @@ body.cal-is-dragging * {
 .task-detail-header {
   position: relative;
   padding: 0;
+  z-index: 30;
 }
 
 .task-detail-priority-bar {
@@ -6852,6 +6853,9 @@ body.cal-is-dragging * {
   justify-content: center;
   cursor: pointer;
   transition: var(--transition);
+  position: relative;
+  z-index: 62;
+  pointer-events: auto;
 }
 .task-detail-close:hover {
   background: var(--border-strong);
@@ -7358,6 +7362,17 @@ body.cal-is-dragging * {
   background: rgba(255, 59, 48, 0.14);
 }
 
+.task-detail-vote-stack-btn--pending {
+  color: #4a5568;
+  border-color: rgba(142, 142, 147, 0.34);
+  background: rgba(142, 142, 147, 0.1);
+}
+
+.task-detail-vote-stack-btn--pending:hover {
+  border-color: rgba(142, 142, 147, 0.5);
+  background: rgba(142, 142, 147, 0.16);
+}
+
 .task-detail-vote-stack-label {
   display: inline-flex;
   align-items: center;
@@ -7415,6 +7430,10 @@ body.cal-is-dragging * {
   background: rgba(255, 59, 48, 0.2);
 }
 
+.task-detail-vote-stack-btn--pending .task-detail-vote-count {
+  background: rgba(142, 142, 147, 0.22);
+}
+
 .task-detail-vote-popup {
   position: absolute;
   bottom: calc(100% + 10px);
@@ -7439,6 +7458,12 @@ body.cal-is-dragging * {
   background: rgba(255, 59, 48, 0.08);
   color: #c0392b;
   border-bottom: 1px solid rgba(255, 59, 48, 0.13);
+}
+
+.task-detail-vote-popup--pending .task-detail-vote-popup-head {
+  background: rgba(142, 142, 147, 0.12);
+  color: #4a5568;
+  border-bottom: 1px solid rgba(142, 142, 147, 0.2);
 }
 
 .task-detail-vote-popup-head {
@@ -10879,6 +10904,7 @@ body.cal-is-dragging * {
   right: 16px;
   top: 16px;
   z-index: 20;
+  pointer-events: auto;
 }
 
 .task-detail-more-btn {
@@ -10893,6 +10919,9 @@ body.cal-is-dragging * {
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
+  position: relative;
+  z-index: 62;
+  pointer-events: auto;
 }
 
 .task-detail-more-btn:hover {
@@ -10913,6 +10942,8 @@ body.cal-is-dragging * {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  z-index: 63;
+  pointer-events: auto;
 }
 
 .task-detail-more-item {
@@ -10924,6 +10955,23 @@ body.cal-is-dragging * {
   cursor: pointer;
   font-size: 0.86rem;
   color: var(--text);
+  pointer-events: auto;
+}
+
+@media (min-width: 900px) {
+  .task-detail-main {
+    position: relative;
+    z-index: 2;
+  }
+
+  .task-detail-aside {
+    position: relative;
+    z-index: 1;
+  }
+
+  .task-detail-header-actions {
+    z-index: 60;
+  }
 }
 
 .task-detail-more-item:hover {

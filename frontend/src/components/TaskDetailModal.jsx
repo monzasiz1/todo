@@ -33,7 +33,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState([]);
-  const [taskVotes, setTaskVotes] = useState({ yes_count: 0, no_count: 0, yes_users: [], no_users: [], my_vote: null, member_count: null, unanswered_count: null });
+  const [taskVotes, setTaskVotes] = useState({ yes_count: 0, no_count: 0, yes_users: [], no_users: [], unanswered_users: [], my_vote: null, member_count: null, unanswered_count: null });
   const [voting, setVoting] = useState(false);
   const [votesOpen, setVotesOpen] = useState(null);
   const menuRef = useRef(null);
@@ -181,7 +181,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
 
   useEffect(() => {
     if (!task?.id || task?.enable_group_rsvp !== true) {
-      setTaskVotes({ yes_count: 0, no_count: 0, yes_users: [], no_users: [], my_vote: null, member_count: null, unanswered_count: null });
+      setTaskVotes({ yes_count: 0, no_count: 0, yes_users: [], no_users: [], unanswered_users: [], my_vote: null, member_count: null, unanswered_count: null });
       setVotesOpen(null);
       return;
     }
@@ -192,13 +192,14 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
           no_count: Number(res?.no_count || 0),
           yes_users: Array.isArray(res?.yes_users) ? res.yes_users : [],
           no_users: Array.isArray(res?.no_users) ? res.no_users : [],
+          unanswered_users: Array.isArray(res?.unanswered_users) ? res.unanswered_users : [],
           my_vote: res?.my_vote || null,
           member_count: Number.isFinite(Number(res?.member_count)) ? Number(res.member_count) : null,
           unanswered_count: Number.isFinite(Number(res?.unanswered_count)) ? Number(res.unanswered_count) : null,
         });
       })
       .catch(() => {
-        setTaskVotes({ yes_count: 0, no_count: 0, yes_users: [], no_users: [], my_vote: null, member_count: null, unanswered_count: null });
+        setTaskVotes({ yes_count: 0, no_count: 0, yes_users: [], no_users: [], unanswered_users: [], my_vote: null, member_count: null, unanswered_count: null });
       });
   }, [task?.id, task?.enable_group_rsvp]);
 
@@ -317,6 +318,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
         no_count: Number(res?.no_count || 0),
         yes_users: Array.isArray(res?.yes_users) ? res.yes_users : [],
         no_users: Array.isArray(res?.no_users) ? res.no_users : [],
+        unanswered_users: Array.isArray(res?.unanswered_users) ? res.unanswered_users : [],
         my_vote: res?.my_vote || null,
         member_count: Number.isFinite(Number(res?.member_count)) ? Number(res.member_count) : null,
         unanswered_count: Number.isFinite(Number(res?.unanswered_count)) ? Number(res.unanswered_count) : null,
@@ -654,10 +656,10 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
                 {votePendingCount !== null && (
                   <button
                     type="button"
-                    className={`task-detail-vote-btn pending ${voteNeedsAction ? 'active' : ''}`}
-                    onClick={() => handleVote(null)}
+                    className={`task-detail-vote-btn pending ${votesOpen === 'pending' ? 'active' : ''}`}
+                    onClick={() => setVotesOpen(votesOpen === 'pending' ? null : 'pending')}
                     disabled={voting}
-                    title="Unbeantwortet (eigene Stimme entfernen)"
+                    title="Unbeantwortete anzeigen"
                   >
                     <Users size={13} />
                     <span>Unbeantwortet</span>
@@ -709,20 +711,44 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
                     <span className="task-detail-vote-count">{taskVotes.no_users.length}</span>
                   </button>
                 )}
+                {taskVotes.unanswered_users.length > 0 && (
+                  <button
+                    type="button"
+                    className="task-detail-vote-stack-btn task-detail-vote-stack-btn--pending"
+                    onClick={() => setVotesOpen(votesOpen === 'pending' ? null : 'pending')}
+                    title={`Unbeantwortet (${taskVotes.unanswered_users.length})`}
+                  >
+                    <Users size={12} />
+                    <span className="task-detail-vote-stack">
+                      {taskVotes.unanswered_users.slice(0, 5).map((u, i) => (
+                        <span key={`pending_${i}`} className="task-detail-vote-avatar-wrap" style={{ zIndex: 6 - i }}>
+                          <AvatarBadge name={u.name} color={u.avatar_color || '#8e8e93'} avatarUrl={u.avatar_url} size={22} />
+                        </span>
+                      ))}
+                      {taskVotes.unanswered_users.length > 5 && (
+                        <span className="task-detail-vote-avatar-wrap task-detail-vote-avatar-wrap--more">+{taskVotes.unanswered_users.length - 5}</span>
+                      )}
+                    </span>
+                    <span className="task-detail-vote-count">{taskVotes.unanswered_users.length}</span>
+                  </button>
+                )}
 
                 {votesOpen && (() => {
                   const isYes = votesOpen === 'yes';
-                  const users = isYes ? taskVotes.yes_users : taskVotes.no_users;
+                  const isNo = votesOpen === 'no';
+                  const users = isYes
+                    ? taskVotes.yes_users
+                    : (isNo ? taskVotes.no_users : taskVotes.unanswered_users);
                   return (
-                    <div className={`task-detail-vote-popup ${isYes ? 'task-detail-vote-popup--yes' : 'task-detail-vote-popup--no'}`}>
+                    <div className={`task-detail-vote-popup ${isYes ? 'task-detail-vote-popup--yes' : (isNo ? 'task-detail-vote-popup--no' : 'task-detail-vote-popup--pending')}`}>
                       <div className="task-detail-vote-popup-head">
-                        {isYes ? <ThumbsUp size={12} /> : <ThumbsDown size={12} />}
-                        <span>{isYes ? 'Zusagen' : 'Absagen'} ({users.length})</span>
+                        {isYes ? <ThumbsUp size={12} /> : (isNo ? <ThumbsDown size={12} /> : <Users size={12} />)}
+                        <span>{isYes ? 'Zusagen' : (isNo ? 'Absagen' : 'Unbeantwortet')} ({users.length})</span>
                         <button type="button" className="task-detail-vote-popup-close" onClick={() => setVotesOpen(null)}><X size={12} /></button>
                       </div>
                       <div className="task-detail-vote-popup-list">
                         {users.map((u, i) => (
-                          <div key={`${isYes ? 'py' : 'pn'}_${i}`} className="task-detail-vote-popup-row">
+                          <div key={`${isYes ? 'py' : (isNo ? 'pn' : 'pp')}_${i}`} className="task-detail-vote-popup-row">
                             <AvatarBadge name={u.name} color={u.avatar_color || (isYes ? '#4C7BD9' : '#8e8e93')} avatarUrl={u.avatar_url} size={24} />
                             <span className="task-detail-vote-popup-name">{u.name}</span>
                           </div>
