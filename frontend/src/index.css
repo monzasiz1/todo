@@ -6932,7 +6932,8 @@ body.cal-is-dragging * {
   position: sticky;
   top: 0;
   z-index: 6;
-  padding-top: 10px !important;
+  padding-top: 0 !important;
+  min-height: calc(env(safe-area-inset-top, 0px) + 52px);
   background: transparent !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -10387,7 +10388,7 @@ body.cal-is-dragging * {
 
 .is-mobile-fullscreen.task-edit-modal .task-edit-close {
   position: relative;
-  top: 2px;
+  top: 0;
 }
 
 .task-edit-add-btn {
