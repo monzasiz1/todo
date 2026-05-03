@@ -36,6 +36,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const [taskVotes, setTaskVotes] = useState({ yes_count: 0, no_count: 0, yes_users: [], no_users: [], unanswered_users: [], my_vote: null, member_count: null, unanswered_count: null });
   const [voting, setVoting] = useState(false);
   const [votesOpen, setVotesOpen] = useState(null);
+  const [mobileVoteOverlayOpen, setMobileVoteOverlayOpen] = useState(false);
   const menuRef = useRef(null);
   const emojiPickerRef = useRef(null);
   const swipeRef = useRef({ startY: 0, active: false });
@@ -183,6 +184,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     if (!task?.id || task?.enable_group_rsvp !== true) {
       setTaskVotes({ yes_count: 0, no_count: 0, yes_users: [], no_users: [], unanswered_users: [], my_vote: null, member_count: null, unanswered_count: null });
       setVotesOpen(null);
+      setMobileVoteOverlayOpen(false);
       return;
     }
     api.getTaskVotes(task.id)
@@ -202,6 +204,10 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
         setTaskVotes({ yes_count: 0, no_count: 0, yes_users: [], no_users: [], unanswered_users: [], my_vote: null, member_count: null, unanswered_count: null });
       });
   }, [task?.id, task?.enable_group_rsvp]);
+
+  useEffect(() => {
+    if (!isMobile) setMobileVoteOverlayOpen(false);
+  }, [isMobile]);
 
   useEffect(() => {
     const onClickOutside = (e) => {
@@ -425,6 +431,79 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
             {isOverdue && !isEvent && <span className="task-detail-status overdue">Überfällig</span>}
           </div>
         </div>
+
+        {isMobile && task.group_id && task.enable_group_rsvp === true && (
+          <div className="task-detail-vote-mobile-entry">
+            <button
+              type="button"
+              className={`task-detail-vote-mobile-open ${voteNeedsAction ? 'needs-action' : ''}`}
+              onClick={() => setMobileVoteOverlayOpen(true)}
+            >
+              <ThumbsUp size={14} />
+              <span>Abstimmung öffnen</span>
+              <span className="task-detail-vote-mobile-open-stats">{voteYesCount}/{voteNoCount}/{Math.max(0, Number(votePendingCount || 0))}</span>
+            </button>
+          </div>
+        )}
+
+        <AnimatePresence>
+          {isMobile && mobileVoteOverlayOpen && task.group_id && task.enable_group_rsvp === true && (
+            <>
+              <motion.button
+                type="button"
+                className="task-detail-vote-mobile-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setMobileVoteOverlayOpen(false)}
+                aria-label="Abstimmung schließen"
+              />
+              <motion.div
+                className="task-detail-vote-mobile-overlay"
+                initial={{ opacity: 0, y: -12, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -12, scale: 0.98 }}
+                transition={{ duration: 0.18 }}
+              >
+                <div className="task-detail-vote-mobile-head">
+                  <span>Gruppen-Abstimmung</span>
+                  <button type="button" onClick={() => setMobileVoteOverlayOpen(false)}><X size={14} /></button>
+                </div>
+                <div className="task-detail-vote-mobile-grid">
+                  <button
+                    type="button"
+                    className={`task-detail-vote-mobile-btn yes ${taskVotes.my_vote === 'yes' ? 'active' : ''}`}
+                    onClick={() => handleVote('yes')}
+                    disabled={voting}
+                  >
+                    <ThumbsUp size={14} /> Zusagen
+                    <strong>{voteYesCount}</strong>
+                  </button>
+                  <button
+                    type="button"
+                    className={`task-detail-vote-mobile-btn no ${taskVotes.my_vote === 'no' ? 'active' : ''}`}
+                    onClick={() => handleVote('no')}
+                    disabled={voting}
+                  >
+                    <ThumbsDown size={14} /> Absagen
+                    <strong>{voteNoCount}</strong>
+                  </button>
+                  {votePendingCount !== null && (
+                    <button
+                      type="button"
+                      className={`task-detail-vote-mobile-btn pending ${votesOpen === 'pending' ? 'active' : ''}`}
+                      onClick={() => setVotesOpen(votesOpen === 'pending' ? null : 'pending')}
+                      disabled={voting}
+                    >
+                      <Users size={14} /> Unbeantwortet
+                      <strong>{Math.max(0, Number(votePendingCount || 0))}</strong>
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
 
         {task.teams_join_url && (
           <div className="task-detail-section task-detail-teams-card">
