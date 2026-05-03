@@ -36,7 +36,6 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const [taskVotes, setTaskVotes] = useState({ yes_count: 0, no_count: 0, yes_users: [], no_users: [], unanswered_users: [], my_vote: null, member_count: null, unanswered_count: null });
   const [voting, setVoting] = useState(false);
   const [votesOpen, setVotesOpen] = useState(null);
-  const [mobileVoteOverlayOpen, setMobileVoteOverlayOpen] = useState(false);
   const menuRef = useRef(null);
   const emojiPickerRef = useRef(null);
   const swipeRef = useRef({ startY: 0, active: false });
@@ -184,7 +183,6 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     if (!task?.id || task?.enable_group_rsvp !== true) {
       setTaskVotes({ yes_count: 0, no_count: 0, yes_users: [], no_users: [], unanswered_users: [], my_vote: null, member_count: null, unanswered_count: null });
       setVotesOpen(null);
-      setMobileVoteOverlayOpen(false);
       return;
     }
     api.getTaskVotes(task.id)
@@ -204,10 +202,6 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
         setTaskVotes({ yes_count: 0, no_count: 0, yes_users: [], no_users: [], unanswered_users: [], my_vote: null, member_count: null, unanswered_count: null });
       });
   }, [task?.id, task?.enable_group_rsvp]);
-
-  useEffect(() => {
-    if (!isMobile) setMobileVoteOverlayOpen(false);
-  }, [isMobile]);
 
   useEffect(() => {
     const onClickOutside = (e) => {
@@ -366,8 +360,8 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
           )}
           <div className="task-detail-priority-bar" style={{ background: priority.color }} />
           {isMobile && <div className="modal-pull-handle" />}
-          <div className="task-detail-header-actions" ref={menuRef}>
-            <button className="task-detail-more-btn" onClick={() => setShowMenu((s) => !s)} title="Mehr" aria-label="Mehr">
+          <div className="task-detail-header-actions" ref={menuRef} style={{ zIndex: 200, pointerEvents: 'auto' }}>
+            <button className="task-detail-more-btn" onClick={() => setShowMenu((s) => !s)} title="Mehr" aria-label="Mehr" style={{ position: 'relative', zIndex: 201, pointerEvents: 'auto' }}>
               <MoreVertical size={18} />
             </button>
             {showMenu && (
@@ -409,7 +403,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
               </div>
             )}
             {!pageMode && (
-              <button className="task-detail-close" onClick={onClose}><X size={20} /></button>
+              <button className="task-detail-close" onClick={onClose} style={{ position: 'relative', zIndex: 201, pointerEvents: 'auto' }}><X size={20} /></button>
             )}
           </div>
         </div>
@@ -431,79 +425,6 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
             {isOverdue && !isEvent && <span className="task-detail-status overdue">Überfällig</span>}
           </div>
         </div>
-
-        {isMobile && task.group_id && task.enable_group_rsvp === true && (
-          <div className="task-detail-vote-mobile-entry">
-            <button
-              type="button"
-              className={`task-detail-vote-mobile-open ${voteNeedsAction ? 'needs-action' : ''}`}
-              onClick={() => setMobileVoteOverlayOpen(true)}
-            >
-              <ThumbsUp size={14} />
-              <span>Abstimmung öffnen</span>
-              <span className="task-detail-vote-mobile-open-stats">{voteYesCount}/{voteNoCount}/{Math.max(0, Number(votePendingCount || 0))}</span>
-            </button>
-          </div>
-        )}
-
-        <AnimatePresence>
-          {isMobile && mobileVoteOverlayOpen && task.group_id && task.enable_group_rsvp === true && (
-            <>
-              <motion.button
-                type="button"
-                className="task-detail-vote-mobile-backdrop"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setMobileVoteOverlayOpen(false)}
-                aria-label="Abstimmung schließen"
-              />
-              <motion.div
-                className="task-detail-vote-mobile-overlay"
-                initial={{ opacity: 0, y: -12, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -12, scale: 0.98 }}
-                transition={{ duration: 0.18 }}
-              >
-                <div className="task-detail-vote-mobile-head">
-                  <span>Gruppen-Abstimmung</span>
-                  <button type="button" onClick={() => setMobileVoteOverlayOpen(false)}><X size={14} /></button>
-                </div>
-                <div className="task-detail-vote-mobile-grid">
-                  <button
-                    type="button"
-                    className={`task-detail-vote-mobile-btn yes ${taskVotes.my_vote === 'yes' ? 'active' : ''}`}
-                    onClick={() => handleVote('yes')}
-                    disabled={voting}
-                  >
-                    <ThumbsUp size={14} /> Zusagen
-                    <strong>{voteYesCount}</strong>
-                  </button>
-                  <button
-                    type="button"
-                    className={`task-detail-vote-mobile-btn no ${taskVotes.my_vote === 'no' ? 'active' : ''}`}
-                    onClick={() => handleVote('no')}
-                    disabled={voting}
-                  >
-                    <ThumbsDown size={14} /> Absagen
-                    <strong>{voteNoCount}</strong>
-                  </button>
-                  {votePendingCount !== null && (
-                    <button
-                      type="button"
-                      className={`task-detail-vote-mobile-btn pending ${votesOpen === 'pending' ? 'active' : ''}`}
-                      onClick={() => setVotesOpen(votesOpen === 'pending' ? null : 'pending')}
-                      disabled={voting}
-                    >
-                      <Users size={14} /> Unbeantwortet
-                      <strong>{Math.max(0, Number(votePendingCount || 0))}</strong>
-                    </button>
-                  )}
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
 
         {task.teams_join_url && (
           <div className="task-detail-section task-detail-teams-card">
@@ -621,85 +542,6 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
               : <div className="task-detail-desc-line">Keine Details hinterlegt.</div>}
           </div>
         </div>
-
-        <TaskAttachments taskId={task.id} canEdit={canEdit} />
-
-        {task.created_at && (
-          <div className="task-detail-footer-info">
-            Erstellt am {format(parseISO(task.created_at), 'd. MMMM yyyy, HH:mm', { locale: de })} Uhr
-          </div>
-        )}
-        <div className="task-detail-actions">
-          {task.group_id && !(isEvent && isEventEnded) && (
-            <motion.button className="task-detail-btn edit" onClick={handleShareToGroupChat} whileTap={{ scale: 0.97 }} disabled={sharingToChat}>
-              <Share2 size={18} /> {sharingToChat ? 'Teile...' : 'In Chat teilen'}
-            </motion.button>
-          )}
-          {canEdit && !isEvent && (
-            <motion.button className={`task-detail-btn ${task.completed ? 'reopen' : 'complete'}`} onClick={handleToggle} whileTap={{ scale: 0.97 }}>
-              {task.completed ? <><Circle size={18} /> Wieder öffnen</> : <><CheckCircle2 size={18} /> Als erledigt markieren</>}
-            </motion.button>
-          )}
-        </div>
-      </div>
-
-      <div className="task-detail-aside">
-        {isShared && (
-          <div className="task-detail-section task-detail-collab task-detail-collab-shared">
-            <div className="task-detail-description-header">
-              {task.visibility === 'shared' ? <Users size={16} /> : <UserCheck size={16} />}
-              <span className="task-detail-collab-visibility">{task.visibility === 'shared' ? 'Mit allen Freunden geteilt' : 'Mit ausgewählten Personen geteilt'}</span>
-            </div>
-            {Array.isArray(task.shared_with_users) && task.shared_with_users.length > 0 && (
-              <div className="task-detail-shared-stack-wrap">
-                <div className="task-detail-shared-avatars">
-                  {task.shared_with_users.slice(0, 5).map((u, i) => (
-                    <span key={i} className="task-detail-shared-avatar" style={{ zIndex: 10 - i, marginLeft: i > 0 ? -10 : 0 }} title={u.name}>
-                      <AvatarBadge name={u.name} color={u.color || '#007AFF'} avatarUrl={u.avatar_url} size={30} />
-                    </span>
-                  ))}
-                  {task.shared_with_users.length > 5 && (
-                    <span className="task-detail-shared-overflow">+{task.shared_with_users.length - 5}</span>
-                  )}
-                </div>
-                <span className="task-detail-shared-count">{task.shared_with_users.length} Person{task.shared_with_users.length === 1 ? '' : 'en'}</span>
-              </div>
-            )}
-            {!task.is_owner && task.creator_name && (
-              <div className="task-detail-collab-info">
-                <AvatarBadge className="collab-avatar" name={task.creator_name} color={task.creator_color || '#007AFF'} avatarUrl={task.creator_avatar_url} size={22} />
-                <span className="task-detail-collab-info-text"><span className="task-detail-collab-label">Erstellt von</span><strong>{task.creator_name}</strong></span>
-              </div>
-            )}
-            {!canEdit && <div className="task-detail-collab-info readonly"><Eye size={14} /><span className="task-detail-collab-info-text"><span className="task-detail-collab-label">Zugriff</span>Du hast nur Leserechte</span></div>}
-            {task.last_editor_name && (
-              <div className="task-detail-collab-info">
-                <Edit3 size={14} /><span className="task-detail-collab-info-text"><span className="task-detail-collab-label">Zuletzt bearbeitet von</span><strong>{task.last_editor_name}</strong></span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {task.group_name && (
-          <div className="task-detail-section task-detail-collab">
-            <div className="task-detail-description-header">
-              <AvatarBadge name={task.group_name} color={task.group_color || '#5856D6'} avatarUrl={task.group_image_url} size={16} />
-              <span>Gruppe</span>
-            </div>
-            <div className="task-detail-group-badge" style={{ background: task.group_color ? `${task.group_color}15` : 'rgba(88,86,214,0.1)', borderLeft: `3px solid ${task.group_color || '#5856D6'}` }}>
-              <AvatarBadge name={task.group_name} color={task.group_color || '#5856D6'} avatarUrl={task.group_image_url} size={32} />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <span style={{ fontWeight: 600, fontSize: 14 }}>{task.group_name}</span>
-                {task.group_task_creator_name && (
-                  <span style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <AvatarBadge name={task.group_task_creator_name} color={task.group_task_creator_color || '#007AFF'} avatarUrl={task.group_task_creator_avatar_url} size={16} />
-                    Erstellt von {task.group_task_creator_name}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
 
         {task.group_id && task.enable_group_rsvp === true && (
           <div className={`task-detail-section task-detail-votes-section${voteNeedsAction ? ' vote-needs-action' : ''}`}>
@@ -836,6 +678,85 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
                     </div>
                   );
                 })()}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <TaskAttachments taskId={task.id} canEdit={canEdit} />
+
+        {task.created_at && (
+          <div className="task-detail-footer-info">
+            Erstellt am {format(parseISO(task.created_at), 'd. MMMM yyyy, HH:mm', { locale: de })} Uhr
+          </div>
+        )}
+        <div className="task-detail-actions">
+          {task.group_id && !(isEvent && isEventEnded) && (
+            <motion.button className="task-detail-btn edit" onClick={handleShareToGroupChat} whileTap={{ scale: 0.97 }} disabled={sharingToChat}>
+              <Share2 size={18} /> {sharingToChat ? 'Teile...' : 'In Chat teilen'}
+            </motion.button>
+          )}
+          {canEdit && !isEvent && (
+            <motion.button className={`task-detail-btn ${task.completed ? 'reopen' : 'complete'}`} onClick={handleToggle} whileTap={{ scale: 0.97 }}>
+              {task.completed ? <><Circle size={18} /> Wieder öffnen</> : <><CheckCircle2 size={18} /> Als erledigt markieren</>}
+            </motion.button>
+          )}
+        </div>
+      </div>
+
+      <div className="task-detail-aside">
+        {isShared && (
+          <div className="task-detail-section task-detail-collab task-detail-collab-shared">
+            <div className="task-detail-description-header">
+              {task.visibility === 'shared' ? <Users size={16} /> : <UserCheck size={16} />}
+              <span className="task-detail-collab-visibility">{task.visibility === 'shared' ? 'Mit allen Freunden geteilt' : 'Mit ausgewählten Personen geteilt'}</span>
+            </div>
+            {Array.isArray(task.shared_with_users) && task.shared_with_users.length > 0 && (
+              <div className="task-detail-shared-stack-wrap">
+                <div className="task-detail-shared-avatars">
+                  {task.shared_with_users.slice(0, 5).map((u, i) => (
+                    <span key={i} className="task-detail-shared-avatar" style={{ zIndex: 10 - i, marginLeft: i > 0 ? -10 : 0 }} title={u.name}>
+                      <AvatarBadge name={u.name} color={u.color || '#007AFF'} avatarUrl={u.avatar_url} size={30} />
+                    </span>
+                  ))}
+                  {task.shared_with_users.length > 5 && (
+                    <span className="task-detail-shared-overflow">+{task.shared_with_users.length - 5}</span>
+                  )}
+                </div>
+                <span className="task-detail-shared-count">{task.shared_with_users.length} Person{task.shared_with_users.length === 1 ? '' : 'en'}</span>
+              </div>
+            )}
+            {!task.is_owner && task.creator_name && (
+              <div className="task-detail-collab-info">
+                <AvatarBadge className="collab-avatar" name={task.creator_name} color={task.creator_color || '#007AFF'} avatarUrl={task.creator_avatar_url} size={22} />
+                <span className="task-detail-collab-info-text"><span className="task-detail-collab-label">Erstellt von</span><strong>{task.creator_name}</strong></span>
+              </div>
+            )}
+            {!canEdit && <div className="task-detail-collab-info readonly"><Eye size={14} /><span className="task-detail-collab-info-text"><span className="task-detail-collab-label">Zugriff</span>Du hast nur Leserechte</span></div>}
+            {task.last_editor_name && (
+              <div className="task-detail-collab-info">
+                <Edit3 size={14} /><span className="task-detail-collab-info-text"><span className="task-detail-collab-label">Zuletzt bearbeitet von</span><strong>{task.last_editor_name}</strong></span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {task.group_name && (
+          <div className="task-detail-section task-detail-collab">
+            <div className="task-detail-description-header">
+              <AvatarBadge name={task.group_name} color={task.group_color || '#5856D6'} avatarUrl={task.group_image_url} size={16} />
+              <span>Gruppe</span>
+            </div>
+            <div className="task-detail-group-badge" style={{ background: task.group_color ? `${task.group_color}15` : 'rgba(88,86,214,0.1)', borderLeft: `3px solid ${task.group_color || '#5856D6'}` }}>
+              <AvatarBadge name={task.group_name} color={task.group_color || '#5856D6'} avatarUrl={task.group_image_url} size={32} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontWeight: 600, fontSize: 14 }}>{task.group_name}</span>
+                {task.group_task_creator_name && (
+                  <span style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <AvatarBadge name={task.group_task_creator_name} color={task.group_task_creator_color || '#007AFF'} avatarUrl={task.group_task_creator_avatar_url} size={16} />
+                    Erstellt von {task.group_task_creator_name}
+                  </span>
+                )}
               </div>
             </div>
           </div>
