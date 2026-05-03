@@ -363,7 +363,13 @@ module.exports = async function handler(req, res) {
              FROM group_subgroup_members gsm2
              JOIN users u2 ON u2.id = gsm2.user_id
              WHERE gsm2.subgroup_id = gt.subgroup_id
-           ), '[]'::json) as subgroup_members
+           ), '[]'::json) as subgroup_members,
+           COALESCE((
+             SELECT json_agg(json_build_object('user_id', u3.id, 'name', u3.name, 'avatar_color', u3.avatar_color, 'avatar_url', u3.avatar_url))
+             FROM task_permissions tp
+             JOIN users u3 ON u3.id = tp.user_id
+             WHERE tp.task_id = t.id AND tp.can_view = true
+           ), '[]'::json) as shared_with_users
          FROM group_tasks gt
          JOIN tasks t ON t.id = gt.task_id
          LEFT JOIN categories c ON t.category_id = c.id
