@@ -343,6 +343,10 @@ function normalizeTaskRow(row) {
     group_category_id: row.group_category_id || null,
     group_category_name: row.group_category_name || null,
     group_category_color: row.group_category_color || null,
+    subgroup_id: row.subgroup_id || null,
+    subgroup_name: row.subgroup_name || null,
+    subgroup_color: row.subgroup_color || null,
+    subgroup_members: Array.isArray(row.subgroup_members) ? row.subgroup_members : [],
     group_task_creator_name: row.group_task_creator_name || null,
     group_task_creator_color: row.group_task_creator_color || null,
     group_task_creator_avatar_url: row.group_task_creator_avatar_url || null,
@@ -358,7 +362,7 @@ function normalizeTaskRows(rows) {
 
 function buildDashboardCacheKey(userId, completedFilter, limit, horizonDays, completedLookbackDays) {
   const completedScope = completedFilter === null ? 'all' : String(completedFilter);
-  return `dashboard:user:${userId}:${completedScope}:${limit}:h${horizonDays}:c${completedLookbackDays}`;
+  return `dashboard:v2:user:${userId}:${completedScope}:${limit}:h${horizonDays}:c${completedLookbackDays}`;
 }
 
 function buildDashboardOrderByClause() {
@@ -1305,6 +1309,10 @@ module.exports = async function handler(req, res) {
                     g.group_category_id,
                     g.group_category_name,
                     g.group_category_color,
+                    g.subgroup_id,
+                    g.subgroup_name,
+                    g.subgroup_color,
+                    COALESCE(g.subgroup_members, '[]'::json) AS subgroup_members,
                     g.my_group_role,
                     0::int AS attachment_count,
                     COALESCE(sh.shared_with_users, '[]'::json) AS shared_with_users
@@ -1320,12 +1328,22 @@ module.exports = async function handler(req, res) {
                       gt.group_category_id,
                       gc.name as group_category_name,
                       gc.color as group_category_color,
+                      gt.subgroup_id,
+                      gs.name as subgroup_name,
+                      gs.color as subgroup_color,
+                      COALESCE((
+                        SELECT json_agg(json_build_object('user_id', u2.id, 'name', u2.name, 'avatar_color', u2.avatar_color, 'avatar_url', u2.avatar_url))
+                        FROM group_subgroup_members gsm2
+                        JOIN users u2 ON u2.id = gsm2.user_id
+                        WHERE gsm2.subgroup_id = gt.subgroup_id
+                      ), '[]'::json) as subgroup_members,
                       (SELECT gm.role FROM group_members gm
                        WHERE gm.group_id = gt.group_id AND gm.user_id = $1
                        LIMIT 1) as my_group_role
                FROM group_tasks gt
                JOIN groups grp ON grp.id = gt.group_id
                LEFT JOIN group_categories gc ON gc.id = gt.group_category_id
+               LEFT JOIN group_subgroups gs ON gs.id = gt.subgroup_id
                WHERE gt.task_id = rt.id
                ORDER BY gt.group_id
                LIMIT 1
@@ -1389,6 +1407,10 @@ module.exports = async function handler(req, res) {
                     g.group_category_id,
                     g.group_category_name,
                     g.group_category_color,
+                    g.subgroup_id,
+                    g.subgroup_name,
+                    g.subgroup_color,
+                    COALESCE(g.subgroup_members, '[]'::json) AS subgroup_members,
                     0::int AS attachment_count,
                     '[]'::json AS shared_with_users,
                     true AS is_owner,
@@ -1408,10 +1430,20 @@ module.exports = async function handler(req, res) {
                       grp.image_url as group_image_url,
                       gt.group_category_id,
                       gc.name as group_category_name,
-                      gc.color as group_category_color
+                      gc.color as group_category_color,
+                      gt.subgroup_id,
+                      gs.name as subgroup_name,
+                      gs.color as subgroup_color,
+                      COALESCE((
+                        SELECT json_agg(json_build_object('user_id', u2.id, 'name', u2.name, 'avatar_color', u2.avatar_color, 'avatar_url', u2.avatar_url))
+                        FROM group_subgroup_members gsm2
+                        JOIN users u2 ON u2.id = gsm2.user_id
+                        WHERE gsm2.subgroup_id = gt.subgroup_id
+                      ), '[]'::json) as subgroup_members
                FROM group_tasks gt
                JOIN groups grp ON grp.id = gt.group_id
                LEFT JOIN group_categories gc ON gc.id = gt.group_category_id
+               LEFT JOIN group_subgroups gs ON gs.id = gt.subgroup_id
                WHERE gt.task_id = rt.id
                ORDER BY gt.group_id
                LIMIT 1
@@ -1454,6 +1486,8 @@ module.exports = async function handler(req, res) {
                       END as can_edit,
                       g.group_id, g.group_name, g.group_color, g.group_image_url,
                       g.group_category_id, g.group_category_name, g.group_category_color,
+                      g.subgroup_id, g.subgroup_name, g.subgroup_color,
+                      COALESCE(g.subgroup_members, '[]'::json) as subgroup_members,
                       g.group_task_creator_name, g.group_task_creator_color, g.group_task_creator_avatar_url,
                       0::int as attachment_count,
                       COALESCE((
@@ -1474,15 +1508,25 @@ module.exports = async function handler(req, res) {
                         grp.name as group_name,
                         grp.color as group_color,
                         grp.image_url as group_image_url,
-                   gt.group_category_id,
-                   gc.name as group_category_name,
-                   gc.color as group_category_color,
+                        gt.group_category_id,
+                        gc.name as group_category_name,
+                        gc.color as group_category_color,
+                        gt.subgroup_id,
+                        gs.name as subgroup_name,
+                        gs.color as subgroup_color,
+                        COALESCE((
+                          SELECT json_agg(json_build_object('user_id', u2.id, 'name', u2.name, 'avatar_color', u2.avatar_color, 'avatar_url', u2.avatar_url))
+                          FROM group_subgroup_members gsm2
+                          JOIN users u2 ON u2.id = gsm2.user_id
+                          WHERE gsm2.subgroup_id = gt.subgroup_id
+                        ), '[]'::json) as subgroup_members,
                         gtc.name as group_task_creator_name,
                         gtc.avatar_color as group_task_creator_color,
                         gtc.avatar_url as group_task_creator_avatar_url
                  FROM group_tasks gt
                  JOIN groups grp ON grp.id = gt.group_id
                  LEFT JOIN group_categories gc ON gc.id = gt.group_category_id
+                 LEFT JOIN group_subgroups gs ON gs.id = gt.subgroup_id
                  LEFT JOIN users gtc ON gtc.id = gt.created_by
                  WHERE gt.task_id = t.id
                  ORDER BY gt.group_id
@@ -1519,6 +1563,8 @@ module.exports = async function handler(req, res) {
                       true as can_edit,
                       g.group_id, g.group_name, g.group_color, g.group_image_url,
                       g.group_category_id, g.group_category_name, g.group_category_color,
+                      g.subgroup_id, g.subgroup_name, g.subgroup_color,
+                      COALESCE(g.subgroup_members, '[]'::json) as subgroup_members,
                       g.group_task_creator_name, g.group_task_creator_color, g.group_task_creator_avatar_url,
                       0::int as attachment_count,
                       '[]'::json as shared_with_users,
@@ -1531,15 +1577,25 @@ module.exports = async function handler(req, res) {
                         grp.name as group_name,
                         grp.color as group_color,
                         grp.image_url as group_image_url,
-                   gt.group_category_id,
-                   gc.name as group_category_name,
-                   gc.color as group_category_color,
+                        gt.group_category_id,
+                        gc.name as group_category_name,
+                        gc.color as group_category_color,
+                        gt.subgroup_id,
+                        gs.name as subgroup_name,
+                        gs.color as subgroup_color,
+                        COALESCE((
+                          SELECT json_agg(json_build_object('user_id', u2.id, 'name', u2.name, 'avatar_color', u2.avatar_color, 'avatar_url', u2.avatar_url))
+                          FROM group_subgroup_members gsm2
+                          JOIN users u2 ON u2.id = gsm2.user_id
+                          WHERE gsm2.subgroup_id = gt.subgroup_id
+                        ), '[]'::json) as subgroup_members,
                         gtc.name as group_task_creator_name,
                         gtc.avatar_color as group_task_creator_color,
                         gtc.avatar_url as group_task_creator_avatar_url
                  FROM group_tasks gt
                  JOIN groups grp ON grp.id = gt.group_id
                  LEFT JOIN group_categories gc ON gc.id = gt.group_category_id
+                 LEFT JOIN group_subgroups gs ON gs.id = gt.subgroup_id
                  LEFT JOIN users gtc ON gtc.id = gt.created_by
                  WHERE gt.task_id = t.id
                  ORDER BY gt.group_id
