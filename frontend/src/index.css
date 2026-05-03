@@ -6932,7 +6932,7 @@ body.cal-is-dragging * {
   position: sticky;
   top: 0;
   z-index: 6;
-  padding-top: max(20px, calc(env(safe-area-inset-top, 0px) + 10px)) !important;
+  padding-top: 10px !important;
   background: transparent !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
