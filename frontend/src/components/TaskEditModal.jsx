@@ -743,7 +743,7 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
                         <div className="task-edit-field" style={{ marginBottom: 0 }}>
                           <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}>
                             <ThumbsUp size={14} style={{ color: '#1f8a47' }} />
-                            <span style={{ flex: 1 }}>Zu-/Absage im Gruppen-Chat aktivieren</span>
+                            <span style={{ flex: 1 }}>Abstimmung (Zu-/Absage) aktivieren</span>
                             <button
                               type="button"
                               role="switch"
