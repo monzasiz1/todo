@@ -17332,7 +17332,7 @@ body.cal-is-dragging * {
   }
 
   .day-create-header {
-    padding: 12px 18px 14px;
+    padding: calc(env(safe-area-inset-top, 0px) + 12px) 18px 14px;
     border-radius: 0;
     position: sticky;
     top: 0;
