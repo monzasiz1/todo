@@ -472,7 +472,7 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
         {/* Top shadow for edit modal */}
         <div className={`task-detail-top-shadow${editScrollDarkened ? ' visible' : ''}`} aria-hidden="true" />
         {/* Header */}
-        <div className={`task-edit-header${editScrollDarkened ? ' scrolled' : ''}`} ref={editHeaderRef}>
+        <div className="task-edit-header" ref={editHeaderRef}>
           <h2 style={{ opacity: editTitleHidden ? 0 : 1, transition: 'opacity 0.15s ease', pointerEvents: 'none' }}>
             Aufgabe bearbeiten
           </h2>

@@ -138,8 +138,11 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     const check = () => {
       const titleRect = titleEl.getBoundingClientRect();
       const stickyRect = stickyEl.getBoundingClientRect();
-      setTitleHidden(titleRect.top < stickyRect.bottom);
-      setScrollDarkened(titleRect.top < stickyRect.bottom + 64);
+      const scrolled = titleRect.top < stickyRect.bottom;
+      // Show sticky title only when the full title row is behind the header
+      setTitleHidden(titleRect.bottom < stickyRect.bottom);
+      setScrollDarkened(scrolled);
+      setPullHandleHidden(scrolled);
     };
     const scrollEl =
       titleEl.closest('.is-mobile-fullscreen') ||
@@ -531,7 +534,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
               </button>
             )}
             <div className="task-detail-priority-bar" style={{ background: priority.color }} />
-            {isMobile && <div className="modal-pull-handle" />}
+            {isMobile && <div className={`modal-pull-handle${pullHandleHidden ? ' pull-handle-hidden' : ''}`} />}
             <div className={`task-detail-sticky-title${titleHidden ? ' visible' : ''}`}>
               <span>{task.title}</span>
             </div>
