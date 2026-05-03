@@ -6938,8 +6938,7 @@ body.cal-is-dragging * {
 
 .is-mobile-fullscreen .task-detail-priority-bar {
   border-radius: 0;
-  /* Priority-Bar füllt Notch-Bereich — dehnt sich von oben bis unter den Notch */
-  height: calc(4px + env(safe-area-inset-top, 0px));
+  /* 4px-Streifen ganz oben am Bildschirmrand (physischer Rand, unter Notch) */
 }
 
 .is-mobile-fullscreen .task-detail-title-row {
@@ -7198,9 +7197,10 @@ body.cal-is-dragging * {
   position: relative;
   z-index: 1;
 }
-/* sticky-top darf nicht auf relative gesetzt werden — das bricht position:sticky */
+/* sticky-top darf nicht auf relative gesetzt oder auf z-index:1 gesetzt werden */
 .task-detail-main.has-group-watermark > .task-detail-sticky-top {
   position: sticky;
+  z-index: 30;
 }
 
 .task-detail-group-watermark {
