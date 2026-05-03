@@ -35,6 +35,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const [sharePermissions, setSharePermissions] = useState([]);
   const [shareLoading, setShareLoading] = useState(false);
   const [shareSaving, setShareSaving] = useState(false);
+  const [showSubgroupList, setShowSubgroupList] = useState(false);
   const [sharingToChat, setSharingToChat] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
@@ -797,18 +798,72 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       </div>
 
       <div className="task-detail-aside">
+        {/* ── Untergruppe: Eingeladene Mitglieder ── */}
+        {task.subgroup_id && Array.isArray(task.subgroup_members) && task.subgroup_members.length > 0 && (
+          <div className="task-detail-section task-detail-collab">
+            <div className="task-detail-description-header">
+              <span style={{ width: 12, height: 12, borderRadius: 3, background: task.subgroup_color || '#8E8E93', flexShrink: 0, display: 'inline-block' }} />
+              <span>Untergruppe: <strong>{task.subgroup_name}</strong></span>
+            </div>
+            <button
+              type="button"
+              className="task-detail-shared-stack-wrap"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left', width: '100%' }}
+              onClick={() => setShowSubgroupList((s) => !s)}
+              title="Liste anzeigen"
+            >
+              <div className="task-detail-shared-avatars">
+                {task.subgroup_members.slice(0, 5).map((u, i) => (
+                  <span key={i} className="task-detail-shared-avatar" style={{ zIndex: 10 - i, marginLeft: i > 0 ? -10 : 0 }} title={u.name}>
+                    <AvatarBadge name={u.name} color={u.avatar_color || '#007AFF'} avatarUrl={u.avatar_url} size={30} />
+                  </span>
+                ))}
+                {task.subgroup_members.length > 5 && (
+                  <span className="task-detail-shared-overflow">+{task.subgroup_members.length - 5}</span>
+                )}
+              </div>
+              <span className="task-detail-shared-count">
+                {task.subgroup_members.length} Mitglied{task.subgroup_members.length === 1 ? '' : 'er'}
+                <ChevronDown size={13} style={{ marginLeft: 4, transform: showSubgroupList ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', verticalAlign: 'middle' }} />
+              </span>
+            </button>
+            <AnimatePresence>
+              {showSubgroupList && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  style={{ overflow: 'hidden' }}
+                >
+                  <div style={{ paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {task.subgroup_members.map((u, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <AvatarBadge name={u.name} color={u.avatar_color || '#007AFF'} avatarUrl={u.avatar_url} size={28} />
+                        <span style={{ fontSize: '0.88rem', fontWeight: 500, color: 'var(--text)' }}>{u.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+
+        {/* ── Privat geteilte Personen ── */}
         {showPrivateShareSection && (
           <div className="task-detail-section task-detail-collab task-detail-collab-shared">
             <div className="task-detail-description-header">
               {task.visibility === 'shared' ? <Users size={16} /> : <UserCheck size={16} />}
-              <span className="task-detail-collab-visibility">{task.visibility === 'shared' ? 'Mit allen Freunden geteilt' : 'Mit ausgewählten Personen geteilt'}</span>
+              <span className="task-detail-collab-visibility">
+                {task.visibility === 'shared' ? 'Mit allen Freunden geteilt' : 'Privat geteilt'}
+              </span>
             </div>
-            {Array.isArray(task.shared_with_users) && task.shared_with_users.length > 0 && (
+            {task.visibility === 'selected_users' && Array.isArray(task.shared_with_users) && task.shared_with_users.length > 0 && (
               <div className="task-detail-shared-stack-wrap">
                 <div className="task-detail-shared-avatars">
                   {task.shared_with_users.slice(0, 5).map((u, i) => (
                     <span key={i} className="task-detail-shared-avatar" style={{ zIndex: 10 - i, marginLeft: i > 0 ? -10 : 0 }} title={u.name}>
-                      <AvatarBadge name={u.name} color={u.color || '#007AFF'} avatarUrl={u.avatar_url} size={30} />
+                      <AvatarBadge name={u.name} color={u.color || u.avatar_color || '#007AFF'} avatarUrl={u.avatar_url} size={30} />
                     </span>
                   ))}
                   {task.shared_with_users.length > 5 && (
@@ -833,8 +888,8 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
           </div>
         )}
 
-        {/* Teilen-Panel: für eigene Tasks/Termine (auch Gruppen) */}
-        {canEdit && task.is_owner !== false && (
+        {/* Teilen-Panel: alle Nutzer mit Bearbeitungsrecht (Owner + Mitglieder mit canEdit) */}
+        {canEdit && (
           <div className="task-detail-section task-detail-collab">
             <button
               type="button"
