@@ -1377,7 +1377,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                           gridRow: slotOrder + 1,
                           width: spanWidth,
                           maxWidth: spanWidth ? 'none' : '100%',
-                          background: isHolidayTask ? 'rgba(217,44,44,0.12)' : ended ? 'rgba(142,142,147,0.12)' : categoryAccent ? `${categoryAccent}20` : t.group_id ? `${t.group_color || '#5856D6'}15` : 'var(--primary-bg)',
+                          background: isHolidayTask ? 'rgba(217,44,44,0.18)' : ended ? 'rgba(142,142,147,0.16)' : categoryAccent ? `${categoryAccent}38` : t.group_id ? `${t.group_color || '#5856D6'}30` : 'rgba(0, 122, 255, 0.20)',
                           color: isHolidayTask ? holidayColor : ended ? '#59606B' : categoryAccent || (t.group_id ? (t.group_color || '#5856D6') : 'var(--primary)'),
                           borderLeft: showBorderLeft ? `2px solid ${isHolidayTask ? holidayColor : (ended ? 'rgba(142,142,147,0.55)' : accentColor)}` : 'none',
                           cursor: isHolidayTask ? 'default' : (viewportState.isDesktop && !ended ? 'grab' : 'pointer'),
