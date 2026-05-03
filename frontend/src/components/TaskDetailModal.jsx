@@ -33,7 +33,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState([]);
-  const [taskVotes, setTaskVotes] = useState({ yes_count: 0, no_count: 0, yes_users: [], no_users: [], my_vote: null });
+  const [taskVotes, setTaskVotes] = useState({ yes_count: 0, no_count: 0, yes_users: [], no_users: [], my_vote: null, member_count: null, unanswered_count: null });
   const [voting, setVoting] = useState(false);
   const [votesOpen, setVotesOpen] = useState(null);
   const menuRef = useRef(null);
@@ -167,9 +167,10 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const isEventEnded = isEvent && !!eventEndAt && eventEndAt.getTime() < Date.now();
   const voteYesCount = Number(taskVotes.yes_count || 0);
   const voteNoCount = Number(taskVotes.no_count || 0);
-  const votePendingCount = Number.isFinite(Number(task?.vote_unanswered_count))
-    ? Math.max(0, Number(task.vote_unanswered_count))
-    : null;
+  const votePendingCount = Number.isFinite(Number(taskVotes?.unanswered_count))
+    ? Math.max(0, Number(taskVotes.unanswered_count))
+    : (Number.isFinite(Number(task?.vote_unanswered_count)) ? Math.max(0, Number(task.vote_unanswered_count)) : null);
+  const voteNeedsAction = taskVotes.my_vote !== 'yes' && taskVotes.my_vote !== 'no';
 
   useEffect(() => {
     if (!task?.id) { setComments([]); return; }
@@ -180,7 +181,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
 
   useEffect(() => {
     if (!task?.id || task?.enable_group_rsvp !== true) {
-      setTaskVotes({ yes_count: 0, no_count: 0, yes_users: [], no_users: [], my_vote: null });
+      setTaskVotes({ yes_count: 0, no_count: 0, yes_users: [], no_users: [], my_vote: null, member_count: null, unanswered_count: null });
       setVotesOpen(null);
       return;
     }
@@ -192,10 +193,12 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
           yes_users: Array.isArray(res?.yes_users) ? res.yes_users : [],
           no_users: Array.isArray(res?.no_users) ? res.no_users : [],
           my_vote: res?.my_vote || null,
+          member_count: Number.isFinite(Number(res?.member_count)) ? Number(res.member_count) : null,
+          unanswered_count: Number.isFinite(Number(res?.unanswered_count)) ? Number(res.unanswered_count) : null,
         });
       })
       .catch(() => {
-        setTaskVotes({ yes_count: 0, no_count: 0, yes_users: [], no_users: [], my_vote: null });
+        setTaskVotes({ yes_count: 0, no_count: 0, yes_users: [], no_users: [], my_vote: null, member_count: null, unanswered_count: null });
       });
   }, [task?.id, task?.enable_group_rsvp]);
 
@@ -315,6 +318,8 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
         yes_users: Array.isArray(res?.yes_users) ? res.yes_users : [],
         no_users: Array.isArray(res?.no_users) ? res.no_users : [],
         my_vote: res?.my_vote || null,
+        member_count: Number.isFinite(Number(res?.member_count)) ? Number(res.member_count) : null,
+        unanswered_count: Number.isFinite(Number(res?.unanswered_count)) ? Number(res.unanswered_count) : null,
       });
     } catch {
       addToast('Abstimmung konnte nicht gespeichert werden');
@@ -616,12 +621,16 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
         )}
 
         {task.group_id && task.enable_group_rsvp === true && (
-          <div className="task-detail-section task-detail-votes-section">
+          <div className={`task-detail-section task-detail-votes-section${voteNeedsAction ? ' vote-needs-action' : ''}`}>
             <div className="task-detail-description-header">
               <ThumbsUp size={16} /><span>Abstimmung</span>
             </div>
             <div className="task-detail-vote-surface">
-              <div className="task-detail-vote-actions">
+              {voteNeedsAction && (
+                <div className="task-detail-vote-cta">Bitte stimme jetzt ab, damit die Gruppe direkt planen kann.</div>
+              )}
+
+              <div className={`task-detail-vote-actions${voteNeedsAction ? ' is-unvoted' : ''}`}>
                 <button
                   type="button"
                   className={`task-detail-vote-btn yes ${taskVotes.my_vote === 'yes' ? 'active' : ''}`}
@@ -643,11 +652,17 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
                   <span className="task-detail-vote-btn-count">{voteNoCount}</span>
                 </button>
                 {votePendingCount !== null && (
-                  <span className="task-detail-vote-muted-stat" title="Unbeantwortet">
+                  <button
+                    type="button"
+                    className={`task-detail-vote-btn pending ${voteNeedsAction ? 'active' : ''}`}
+                    onClick={() => handleVote(null)}
+                    disabled={voting}
+                    title="Unbeantwortet (eigene Stimme entfernen)"
+                  >
                     <Users size={13} />
                     <span>Unbeantwortet</span>
-                    <strong>{votePendingCount}</strong>
-                  </span>
+                    <span className="task-detail-vote-btn-count">{votePendingCount}</span>
+                  </button>
                 )}
               </div>
 
