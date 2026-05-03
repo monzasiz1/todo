@@ -389,7 +389,7 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
             {task.group_category_name}
           </span>
         )}
-        {task.subgroup_id && (
+        {(task.subgroup_id || task.subgroup_name) && (
           <span className="task-subgroup-badge" title={`Untergruppe: ${task.subgroup_name || ''}`} style={{ background: task.subgroup_color ? `${task.subgroup_color}18` : 'rgba(88,86,214,0.08)', borderColor: task.subgroup_color ? `${task.subgroup_color}44` : 'rgba(88,86,214,0.2)' }}>
             <Lock size={10} />
             <span style={{ fontSize: 11, fontWeight: 600 }}>{task.subgroup_name || 'Untergruppe'}</span>
