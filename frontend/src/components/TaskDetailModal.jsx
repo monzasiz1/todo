@@ -834,24 +834,27 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       <div className="task-detail-aside">
         {/* ── Untergruppe: Anzeige für Mitglieder + Bearbeitung für Admins ── */}
         {isGroupMember && (task.subgroup_id || isGroupAdmin) && (
-          <div className="task-detail-section task-detail-collab">
+          <div className="task-detail-section task-detail-collab task-detail-subgroup-card">
             {/* Header */}
-            <div className="task-detail-description-header" style={{ justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div className="task-detail-description-header task-detail-subgroup-head">
+              <div className="task-detail-subgroup-head-left">
                 {task.subgroup_id && (
-                  <span style={{ width: 12, height: 12, borderRadius: 3, background: task.subgroup_color || '#8E8E93', flexShrink: 0, display: 'inline-block' }} />
+                  <span
+                    className="task-detail-subgroup-dot"
+                    style={{ '--subgroup-color': task.subgroup_color || '#8E8E93' }}
+                  />
                 )}
-                <span>
+                <span className="task-detail-subgroup-title">
                   {task.subgroup_id
-                    ? <><span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>Untergruppe: </span><strong>{task.subgroup_name}</strong></>
-                    : <span style={{ color: 'var(--text-secondary)' }}>Keine Untergruppe</span>}
+                    ? <><span className="task-detail-subgroup-label">Untergruppe: </span><strong>{task.subgroup_name}</strong></>
+                    : <span className="task-detail-subgroup-label">Keine Untergruppe</span>}
                 </span>
               </div>
               {isGroupAdmin && (
                 <button
                   type="button"
                   onClick={() => setShowSubgroupPicker((s) => !s)}
-                  style={{ fontSize: '0.78rem', color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, padding: 0, flexShrink: 0 }}
+                  className="task-detail-subgroup-action"
                 >
                   {task.subgroup_id ? 'Ändern' : '+ Zuweisen'}
                 </button>
@@ -861,30 +864,29 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
             {/* Admin: Untergruppe-Picker */}
             <AnimatePresence>
               {isGroupAdmin && showSubgroupPicker && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: 'hidden' }}>
-                  <div style={{ paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <motion.div className="task-detail-subgroup-picker-wrap" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
+                  <div className="task-detail-subgroup-picker">
                     {task.subgroup_id && (
-                      <button type="button" className="task-edit-shared-item addable"
-                        style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 10, cursor: 'pointer', padding: '6px 10px', textAlign: 'left' }}
+                      <button type="button" className="task-detail-subgroup-option is-clear"
                         disabled={subgroupSaving}
                         onClick={() => handleSubgroupChange(null)}>
-                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Keine Untergruppe</span>
+                        <span className="task-detail-subgroup-option-label">Keine Untergruppe</span>
                         <span className="task-edit-perm-btn" style={{ marginLeft: 'auto' }}>Entfernen</span>
                       </button>
                     )}
                     {groupSubgroups.map((sg) => (
                       <button key={sg.id} type="button"
-                        style={{ display: 'flex', alignItems: 'center', gap: 8, background: String(task.subgroup_id) === String(sg.id) ? 'var(--hover)' : 'none', border: '1px solid var(--border)', borderRadius: 10, cursor: 'pointer', padding: '6px 10px' }}
+                        className={`task-detail-subgroup-option ${String(task.subgroup_id) === String(sg.id) ? 'selected' : ''}`}
                         disabled={subgroupSaving || String(task.subgroup_id) === String(sg.id)}
                         onClick={() => handleSubgroupChange(sg.id)}>
-                        <span style={{ width: 10, height: 10, borderRadius: 2, background: sg.color || '#8E8E93', flexShrink: 0 }} />
-                        <span style={{ fontSize: '0.85rem', fontWeight: 500, flex: 1, textAlign: 'left' }}>{sg.name}</span>
-                        {Array.isArray(sg.members) && <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{sg.members.length} Mitgl.</span>}
+                        <span className="task-detail-subgroup-option-dot" style={{ '--subgroup-color': sg.color || '#8E8E93' }} />
+                        <span className="task-detail-subgroup-option-name">{sg.name}</span>
+                        {Array.isArray(sg.members) && <span className="task-detail-subgroup-option-meta">{sg.members.length} Mitgl.</span>}
                         {String(task.subgroup_id) !== String(sg.id) && <span className="task-edit-perm-btn add" style={{ marginLeft: 'auto', flexShrink: 0 }}>Auswählen</span>}
                       </button>
                     ))}
                     {groupSubgroups.length === 0 && (
-                      <span style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', padding: '4px 0' }}>Keine Untergruppen vorhanden</span>
+                      <span className="task-detail-subgroup-empty">Keine Untergruppen vorhanden</span>
                     )}
                   </div>
                 </motion.div>
@@ -895,7 +897,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
             {task.subgroup_id && Array.isArray(task.subgroup_members) && task.subgroup_members.length > 0 && (
               <>
                 <button type="button" className="task-detail-shared-stack-wrap"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left', width: '100%', marginTop: 8 }}
+                  style={{ background: 'none', border: 'none' }}
                   onClick={() => setShowSubgroupList((s) => !s)}>
                   <div className="task-detail-shared-avatars">
                     {task.subgroup_members.slice(0, 5).map((u, i) => (
@@ -907,17 +909,17 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
                   </div>
                   <span className="task-detail-shared-count">
                     {task.subgroup_members.length} Mitglied{task.subgroup_members.length === 1 ? '' : 'er'}
-                    <ChevronDown size={13} style={{ marginLeft: 4, transform: showSubgroupList ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', verticalAlign: 'middle' }} />
+                    <ChevronDown size={13} className={`task-detail-subgroup-chevron${showSubgroupList ? ' open' : ''}`} />
                   </span>
                 </button>
                 <AnimatePresence>
                   {showSubgroupList && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: 'hidden' }}>
-                      <div style={{ paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <motion.div className="task-detail-subgroup-list-wrap" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
+                      <div className="task-detail-subgroup-list">
                         {task.subgroup_members.map((u, i) => (
-                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div key={i} className="task-detail-subgroup-member-row">
                             <AvatarBadge name={u.name} color={u.avatar_color || '#007AFF'} avatarUrl={u.avatar_url} size={28} />
-                            <span style={{ fontSize: '0.88rem', fontWeight: 500, color: 'var(--text)' }}>{u.name}</span>
+                            <span className="task-detail-subgroup-member-name">{u.name}</span>
                           </div>
                         ))}
                       </div>
@@ -977,9 +979,9 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
               className="task-detail-sharing-toggle"
               onClick={() => setShowSharePanel((s) => !s)}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+              <div className="task-detail-sharing-toggle-left">
                 <Users size={15} />
-                <span style={{ fontWeight: 600, fontSize: '0.88rem' }}>Mit Personen teilen</span>
+                <span className="task-detail-sharing-toggle-title">Mit Personen teilen</span>
                 {sharePermissions.length > 0 && (
                   <span className="task-edit-sharing-count">{sharePermissions.length}</span>
                 )}
@@ -995,9 +997,9 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
                   style={{ overflow: 'hidden' }}
                 >
                   {shareLoading ? (
-                    <div style={{ padding: '12px 0', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Lädt…</div>
+                    <div className="task-detail-share-loading">Lädt…</div>
                   ) : (
-                    <div style={{ paddingTop: 12 }}>
+                    <div className="task-detail-share-panel">
                       {/* Sichtbarkeits-Pills: nur für Admins/Owner */}
                       {(isGroupAdmin || !task.group_id) && (
                         <div className="task-edit-visibility-pills">
@@ -1069,8 +1071,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
 
                       <motion.button
                         type="button"
-                        className="task-detail-btn edit"
-                        style={{ marginTop: 14, width: '100%' }}
+                        className="task-detail-btn edit task-detail-share-save-btn"
                         disabled={shareSaving}
                         onClick={handleSaveShare}
                         whileTap={{ scale: 0.97 }}
