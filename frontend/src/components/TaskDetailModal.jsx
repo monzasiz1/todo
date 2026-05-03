@@ -264,7 +264,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     setSharingToChat(true);
     try {
       await api.shareTaskToGroupChat(task.group_id, task.id);
-      addToast('📤 Termin wurde in den Gruppen-Chat geteilt');
+      addToast('📤 In den Gruppen-Chat geteilt');
     } catch (err) {
       addToast(err.message || 'Teilen fehlgeschlagen', 'error');
     } finally {
@@ -488,9 +488,9 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
           </div>
         )}
         <div className="task-detail-actions">
-          {isEvent && task.group_id && (
-            <motion.button className="task-detail-btn edit" onClick={handleShareToGroupChat} whileTap={{ scale: 0.97 }} disabled={sharingToChat || isEventEnded}>
-              <Share2 size={18} /> {isEventEnded ? 'Termin beendet' : (sharingToChat ? 'Teile...' : 'In Chat teilen')}
+          {task.group_id && !(isEvent && isEventEnded) && (
+            <motion.button className="task-detail-btn edit" onClick={handleShareToGroupChat} whileTap={{ scale: 0.97 }} disabled={sharingToChat}>
+              <Share2 size={18} /> {sharingToChat ? 'Teile...' : 'In Chat teilen'}
             </motion.button>
           )}
           {canEdit && !isEvent && (

@@ -74,7 +74,7 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
   // Beendete Termine sind nicht überfällig – nur offene Aufgaben (keine Events) werden rot markiert
   const isOverdue = task.date && !task.completed && isPast(parseISO(task.date)) && !isToday(parseISO(task.date)) && !isEventEnded;
   const canEdit = task.is_owner === false ? (task.can_edit === true) : true;
-  const canShareToChat = isEvent && !!task.group_id && !isEventEnded;
+  const canShareToChat = !!task.group_id && !(isEvent && isEventEnded);
   const shortTitle = String(task.title || 'Termin').slice(0, 32);
   const timeLabel = task.time ? `${String(task.time).slice(0, 5)} Uhr` : '';
   const hasGroupCategoryCombo = !!task.group_name && !!task.group_category_name;

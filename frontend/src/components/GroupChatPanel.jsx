@@ -242,9 +242,11 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
     const q = taskPickerSearch.toLowerCase().trim();
     return (allTasks || [])
       .filter((t) => !t.deleted && !t.is_archived)
+      // Datenschutz: nur Tasks dieser Gruppe ODER eigene gruppenlose Tasks
+      .filter((t) => !t.group_id || Number(t.group_id) === Number(selectedGroupId))
       .filter((t) => !q || (t.title || '').toLowerCase().includes(q))
       .slice(0, 30);
-  }, [allTasks, taskPickerSearch]);
+  }, [allTasks, taskPickerSearch, selectedGroupId]);
 
   useEffect(() => {
     let mounted = true;
