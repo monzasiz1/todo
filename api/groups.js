@@ -116,7 +116,7 @@ module.exports = async function handler(req, res) {
               u.name as sender_name, u.avatar_color as sender_color, u.avatar_url as sender_avatar,
               ru.name as responsible_name,
               t.title as linked_task_title, t.date as linked_task_date, t.time as linked_task_time,
-              t.time_end as linked_task_time_end, t.description as linked_task_description,
+              t.time_end as linked_task_time_end, t.description as linked_task_description, t.type as linked_task_type,
               (t.date + COALESCE(t.time_end, t.time, TIME '23:59')) as linked_task_ends_at,
               (COALESCE(t.date + COALESCE(t.time_end, t.time, TIME '23:59'), NOW() + INTERVAL '100 years') < NOW()) as linked_task_ended,
               (SELECT COUNT(*)::int FROM group_event_rsvps r WHERE r.message_id = m.id AND r.status = 'yes') as rsvp_yes_count,
@@ -790,7 +790,7 @@ module.exports = async function handler(req, res) {
                 u.name as sender_name, u.avatar_color as sender_color, u.avatar_url as sender_avatar,
                 ru.name as responsible_name,
                 t.title as linked_task_title, t.date as linked_task_date, t.time as linked_task_time,
-          t.time_end as linked_task_time_end, t.description as linked_task_description,
+          t.time_end as linked_task_time_end, t.description as linked_task_description, t.type as linked_task_type,
           (t.date + COALESCE(t.time_end, t.time, TIME '23:59')) as linked_task_ends_at,
           (COALESCE(t.date + COALESCE(t.time_end, t.time, TIME '23:59'), NOW() + INTERVAL '100 years') < NOW()) as linked_task_ended,
                 (SELECT COUNT(*)::int FROM group_event_rsvps r WHERE r.message_id = m.id AND r.status = 'yes') as rsvp_yes_count,
@@ -855,7 +855,7 @@ module.exports = async function handler(req, res) {
       const membership = await getMembership(groupId);
       if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
 
-      let { task_id } = req.body;
+      let { task_id, with_rsvp } = req.body;
       if (!task_id) return res.status(400).json({ error: 'task_id fehlt' });
 
       const virtual = parseVirtualId(task_id);
@@ -866,7 +866,7 @@ module.exports = async function handler(req, res) {
       }
 
       const taskResult = await pool.query(
-        `SELECT t.id, t.title, t.date, t.time, t.time_end, t.description, t.type,
+        `SELECT t.id, t.title, t.date, t.time, t.time_end, t.description, t.type, t.enable_group_rsvp,
                 gt.group_id
          FROM tasks t
          LEFT JOIN group_tasks gt ON gt.task_id = t.id AND gt.group_id = $2
@@ -881,12 +881,16 @@ module.exports = async function handler(req, res) {
         return res.status(403).json({ error: 'Dieser Termin gehoert nicht zu dieser Gruppe' });
       }
 
-      const content = task.title || 'Gruppen-Termin';
+      const isEventTask = String(task.type || '').toLowerCase() === 'event';
+      const messageType = isEventTask
+        ? 'group_event'
+        : ((with_rsvp === true || task.enable_group_rsvp === true) ? 'group_task_rsvp' : 'group_task');
+      const content = task.title || (messageType === 'group_event' ? 'Gruppen-Termin' : 'Gruppen-Aufgabe');
       const ins = await pool.query(
         `INSERT INTO group_messages (group_id, user_id, content, message_type, linked_task_id)
-         VALUES ($1, $2, $3, 'group_event', $4)
+         VALUES ($1, $2, $3, $4, $5)
          RETURNING id`,
-        [groupId, user.id, content, task.id]
+        [groupId, user.id, content, messageType, task.id]
       );
 
       await pool.query('UPDATE groups SET updated_at = NOW() WHERE id = $1', [groupId]);
@@ -975,11 +979,11 @@ module.exports = async function handler(req, res) {
                 (COALESCE(t.date + COALESCE(t.time_end, t.time, TIME '23:59'), NOW() + INTERVAL '100 years') < NOW()) as is_ended
          FROM group_messages m
          LEFT JOIN tasks t ON t.id = m.linked_task_id
-         WHERE m.id = $1 AND m.group_id = $2 AND m.message_type = 'group_event'
+         WHERE m.id = $1 AND m.group_id = $2 AND m.message_type IN ('group_event', 'group_task_rsvp')
          LIMIT 1`,
         [msgId, groupId]
       );
-      if (msgCheck.rows.length === 0) return res.status(404).json({ error: 'Termin-Nachricht nicht gefunden' });
+      if (msgCheck.rows.length === 0) return res.status(404).json({ error: 'Abstimmungs-Nachricht nicht gefunden' });
       if (msgCheck.rows[0].is_ended) {
         return res.status(400).json({ error: 'Termin ist bereits beendet' });
       }

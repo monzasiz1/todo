@@ -346,6 +346,7 @@ function normalizeTaskRow(row) {
     group_task_creator_name: row.group_task_creator_name || null,
     group_task_creator_color: row.group_task_creator_color || null,
     group_task_creator_avatar_url: row.group_task_creator_avatar_url || null,
+    enable_group_rsvp: row.enable_group_rsvp === true,
     is_owner: row.is_owner === undefined || row.is_owner === null ? true : row.is_owner === true,
     can_edit: row.can_edit === undefined || row.can_edit === null ? true : row.can_edit === true,
   };
@@ -803,7 +804,7 @@ module.exports = async function handler(req, res) {
     try {
       let taskId = segments[0];
       const { title, description, date, date_end, time, time_end, priority, category_id, reminder_at,
-              recurrence_rule, recurrence_interval, recurrence_end, type } = req.body;
+              recurrence_rule, recurrence_interval, recurrence_end, type, enable_group_rsvp } = req.body;
       const taskType = type === 'event' ? 'event' : (type === 'task' ? 'task' : undefined);
       
       console.log(`[API Update] User ${user.id} updating task ${taskId} with:`, {
@@ -833,31 +834,50 @@ module.exports = async function handler(req, res) {
       const hasRecurrenceInterval = Object.prototype.hasOwnProperty.call(req.body, 'recurrence_interval');
       const hasRecurrenceEnd = Object.prototype.hasOwnProperty.call(req.body, 'recurrence_end');
       const hasType = Object.prototype.hasOwnProperty.call(req.body, 'type');
+      const hasEnableGroupRsvp = Object.prototype.hasOwnProperty.call(req.body, 'enable_group_rsvp');
 
-      const result = await pool.query(
-        `UPDATE tasks SET
-         title = CASE WHEN $16 THEN $1 ELSE title END,
-         description = CASE WHEN $17 THEN $2 ELSE description END,
-         date = CASE WHEN $18 THEN $3 ELSE date END,
-         date_end = CASE WHEN $19 THEN $4 ELSE date_end END,
-         time = CASE WHEN $20 THEN $5 ELSE time END,
-         time_end = CASE WHEN $21 THEN $6 ELSE time_end END,
-         priority = CASE WHEN $22 THEN $7 ELSE priority END,
-         category_id = CASE WHEN $23 THEN $8 ELSE category_id END,
-         reminder_at = CASE WHEN $24 THEN $9 ELSE reminder_at END,
-         recurrence_rule = CASE WHEN $25 THEN $12 ELSE recurrence_rule END,
-         recurrence_interval = CASE WHEN $26 THEN COALESCE($13, 1) ELSE recurrence_interval END,
-         recurrence_end = CASE WHEN $27 THEN $14 ELSE recurrence_end END,
-         type = CASE WHEN $28 THEN COALESCE($15, type) ELSE type END,
-         updated_at = NOW(),
-         last_edited_by = $11
-         WHERE id = $10 AND user_id = $11
-         RETURNING *`,
-        [title, description, date, date_end || null, time, time_end || null, priority, category_id, reminder_at,
-         taskId, user.id, recurrence_rule || null, recurrence_interval || 1, recurrence_end || null, taskType || null,
-         hasTitle, hasDescription, hasDate, hasDateEnd, hasTime, hasTimeEnd, hasPriority, hasCategoryId,
-         hasReminderAt, hasRecurrenceRule, hasRecurrenceInterval, hasRecurrenceEnd, hasType]
-      );
+      const runUpdate = async () => {
+        const setClauses = [];
+        const values = [];
+        const addSet = (clause, value) => {
+          values.push(value);
+          setClauses.push(`${clause} = $${values.length}`);
+        };
+
+        if (hasTitle) addSet('title', title);
+        if (hasDescription) addSet('description', description);
+        if (hasDate) addSet('date', date);
+        if (hasDateEnd) addSet('date_end', date_end || null);
+        if (hasTime) addSet('time', time);
+        if (hasTimeEnd) addSet('time_end', time_end || null);
+        if (hasPriority) addSet('priority', priority);
+        if (hasCategoryId) addSet('category_id', category_id);
+        if (hasReminderAt) addSet('reminder_at', reminder_at);
+        if (hasRecurrenceRule) addSet('recurrence_rule', recurrence_rule || null);
+        if (hasRecurrenceInterval) addSet('recurrence_interval', recurrence_interval || 1);
+        if (hasRecurrenceEnd) addSet('recurrence_end', recurrence_end || null);
+        if (hasType) addSet('type', taskType || null);
+        if (hasEnableGroupRsvp) addSet('enable_group_rsvp', enable_group_rsvp === true);
+
+        setClauses.push('updated_at = NOW()');
+        values.push(user.id);
+        setClauses.push(`last_edited_by = $${values.length}`);
+
+        values.push(taskId);
+        values.push(user.id);
+        const whereTaskIdx = values.length - 1;
+        const whereUserIdx = values.length;
+
+        return pool.query(
+          `UPDATE tasks SET
+           ${setClauses.join(',\n         ')}
+           WHERE id = $${whereTaskIdx} AND user_id = $${whereUserIdx}
+           RETURNING *`,
+          values
+        );
+      };
+
+      const result = await runUpdate();
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Aufgabe nicht gefunden' });
       }
@@ -1429,7 +1449,7 @@ module.exports = async function handler(req, res) {
     try {
       const { title, description, date, date_end, time, time_end, priority, category_id, reminder_at,
               recurrence_rule, recurrence_interval, recurrence_end, group_id, group_category_id,
-              visibility, permissions, type } = req.body;
+              visibility, permissions, type, enable_group_rsvp } = req.body;
       if (!title) {
         return res.status(400).json({ error: 'Titel ist erforderlich' });
       }
@@ -1491,12 +1511,12 @@ module.exports = async function handler(req, res) {
 
       const result = await pool.query(
         `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order,
-        recurrence_rule, recurrence_interval, recurrence_end, visibility, type)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+        recurrence_rule, recurrence_interval, recurrence_end, visibility, type, enable_group_rsvp)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
          RETURNING *`,
         [user.id, title, description || null, date || null, date_end || null, time || null, time_end || null,
          priority || 'medium', category_id || null, reminder_at || null,
-        maxOrder.rows[0].next_order, recurrenceRule, recurrenceInterval, recurrenceEnd, finalVisibility, taskType]
+        maxOrder.rows[0].next_order, recurrenceRule, recurrenceInterval, recurrenceEnd, finalVisibility, taskType, enable_group_rsvp === true]
       );
 
       const firstTask = result.rows[0];
