@@ -47,6 +47,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const stickyTopRef = useRef(null);
   const [titleHidden, setTitleHidden] = useState(false);
   const [scrollDarkened, setScrollDarkened] = useState(false);
+  const [pullHandleHidden, setPullHandleHidden] = useState(false);
   const [isMobile, setIsMobile] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1024px)').matches
   );
