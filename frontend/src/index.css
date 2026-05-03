@@ -14279,6 +14279,124 @@ body.cal-is-dragging * {
   align-items: start;
 }
 
+/* ---- Group Category / Subgroup Manager card ---- */
+.group-cat-manager {
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border, rgba(0,0,0,0.08));
+  border-radius: 20px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+}
+.group-cat-manager-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+.group-cat-manager-header h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+.group-cat-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 13px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--primary-bg, rgba(0,122,255,0.1));
+  color: var(--primary, #007AFF);
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.group-cat-add-btn:hover {
+  background: rgba(0,122,255,0.18);
+}
+.group-cat-input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1.5px solid var(--border, rgba(0,0,0,0.1));
+  border-radius: 10px;
+  font-size: 14px;
+  background: var(--bg-secondary, #f5f5f7);
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.group-cat-input:focus {
+  border-color: var(--primary, #007AFF);
+}
+.group-cat-save-btn {
+  width: 100%;
+  padding: 10px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--primary, #007AFF);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.group-cat-save-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.group-cat-save-btn:not(:disabled):hover {
+  opacity: 0.88;
+}
+.group-cat-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--hover, rgba(0,0,0,0.03));
+  border: 1px solid var(--border, rgba(0,0,0,0.06));
+}
+.group-cat-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+.group-cat-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.group-cat-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary, #aaa);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.group-cat-delete-btn:hover {
+  background: rgba(255,59,48,0.1);
+  color: var(--danger, #FF3B30);
+}
+.group-cat-empty {
+  font-size: 13px;
+  color: var(--text-tertiary, #aaa);
+  text-align: center;
+  padding: 10px 0 4px;
+}
+
 /* Base card */
 .gs-card {
   background: #fff;

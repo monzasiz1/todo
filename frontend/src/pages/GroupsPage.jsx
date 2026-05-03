@@ -948,7 +948,9 @@ function GroupDetail({ groupId, onBack }) {
             </div>
           </div>
           <div className="group-settings-layout">
-            <SubgroupManager groupId={groupId} members={members} subgroups={subgroups} onRefresh={() => fetchGroup(groupId)} />
+            <div style={{ gridColumn: '1 / -1' }}>
+              <SubgroupManager groupId={groupId} members={members} subgroups={subgroups} onRefresh={() => fetchGroup(groupId)} />
+            </div>
             <GroupCategoryManager groupId={groupId} />
             <GroupSettings
               group={currentGroup}
@@ -1272,23 +1274,31 @@ function SubgroupManager({ groupId, members, subgroups, onRefresh }) {
       {subgroups.map((sg) => {
         const sgMembers = Array.isArray(sg.members) ? sg.members : [];
         return (
-          <div key={sg.id} className="group-cat-item">
-            <span className="group-cat-dot" style={{ background: sg.color || '#007AFF' }} />
-            <div style={{ flex: 1 }}>
+          <div key={sg.id} className="group-cat-item" style={{ alignItems: 'center' }}>
+            <span className="group-cat-dot" style={{ background: sg.color || '#007AFF', width: 12, height: 12, marginTop: 0, flexShrink: 0 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
               <span className="group-cat-name">{sg.name}</span>
-              <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                 {sgMembers.map((m) => (
-                  <AvatarBadge key={m.user_id} name={m.name} color={m.avatar_color || '#007AFF'} avatarUrl={m.avatar_url} size={22} title={m.name} />
+                  <AvatarBadge key={m.user_id} name={m.name} color={m.avatar_color || '#007AFF'} avatarUrl={m.avatar_url} size={26} title={m.name} />
                 ))}
-                {sgMembers.length === 0 && <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Keine Mitglieder</span>}
+                {sgMembers.length === 0 && (
+                  <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Alle Mitglieder</span>
+                )}
+                {sgMembers.length > 0 && (
+                  <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 4 }}>
+                    {sgMembers.length} {sgMembers.length === 1 ? 'Person' : 'Personen'}
+                  </span>
+                )}
               </div>
             </div>
             <button
               className="group-cat-delete-btn"
               onClick={() => handleDelete(sg.id)}
               disabled={deletingId === sg.id}
+              title="Untergruppe löschen"
             >
-              <Trash2 size={13} />
+              <Trash2 size={14} />
             </button>
           </div>
         );
