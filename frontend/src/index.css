@@ -6963,9 +6963,9 @@ body.cal-is-dragging * {
 }
 
 .is-mobile-fullscreen.task-edit-modal .task-edit-sticky-title {
-  top: 50%;
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
   right: 56px;
-  transform: translateY(-50%);
+  transform: none;
 }
 
 /* Kill nested scroll — the container above handles all scrolling */
@@ -10395,8 +10395,8 @@ body.cal-is-dragging * {
 .is-mobile-fullscreen.task-edit-modal .task-edit-close {
   position: absolute;
   right: 20px;
-  top: 50%;
-  transform: translateY(-50%);
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  transform: none;
 }
 
 .task-edit-add-btn {
