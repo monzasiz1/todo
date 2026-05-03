@@ -7279,7 +7279,7 @@ body.cal-is-dragging * {
   isolation: isolate;
 }
 
-.task-detail-main.has-group-watermark > :not(.task-detail-group-watermark) {
+.task-detail-main.has-group-watermark > :not(.task-detail-group-watermark):not(.task-detail-top-shadow) {
   position: relative;
   z-index: 1;
 }
@@ -7287,6 +7287,9 @@ body.cal-is-dragging * {
 .task-detail-main.has-group-watermark > .task-detail-sticky-top {
   position: sticky;
   z-index: 30;
+}
+.task-detail-main.has-group-watermark > .task-detail-top-shadow {
+  z-index: 24;
 }
 
 .task-detail-group-watermark {
