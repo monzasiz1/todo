@@ -6495,13 +6495,20 @@ body.cal-is-dragging * {
     -webkit-overflow-scrolling: touch;
   }
 
-  .task-detail-header {
+  /* Sticky-Wrapper: Header + Titel kleben gemeinsam oben */
+  .task-detail-sticky-top {
     position: sticky;
     top: 0;
     z-index: 6;
     background: var(--bg, #f2f2f7);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .task-detail-header {
+    position: static;
     padding-top: 14px;
     min-height: 56px;
+    background: transparent;
   }
 
   .task-detail-priority-bar {
@@ -6514,14 +6521,10 @@ body.cal-is-dragging * {
   }
 
   .task-detail-title-row {
-    padding: 14px 18px 12px;
+    padding: 12px 18px 14px;
     gap: 10px;
-    position: sticky;
-    top: 56px;
-    z-index: 5;
-    background: var(--card-solid, #fff);
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 4px;
+    margin-bottom: 0;
+    border-bottom: none;
   }
 
   .task-detail-title {
@@ -6906,13 +6909,19 @@ body.cal-is-dragging * {
   backface-visibility: hidden;
 }
 
-/* Sticky header inside the scroll container */
-.is-mobile-fullscreen .task-detail-header {
+/* Sticky-Wrapper im Vollbild-Scroll-Container */
+.is-mobile-fullscreen .task-detail-sticky-top {
   position: sticky;
   top: 0;
   z-index: 6;
-  padding-top: 0;
   background: var(--bg, #f2f2f7);
+  border-bottom: 1px solid var(--border);
+}
+
+.is-mobile-fullscreen .task-detail-header {
+  position: static;
+  padding-top: max(14px, calc(env(safe-area-inset-top, 0px) + 10px));
+  background: transparent;
 }
 
 .is-mobile-fullscreen.task-edit-modal .task-edit-header {
@@ -6928,13 +6937,8 @@ body.cal-is-dragging * {
 }
 
 .is-mobile-fullscreen .task-detail-title-row {
-  position: sticky;
-  top: 56px;
-  z-index: 5;
-  background: var(--bg, #f2f2f7);
-  border-bottom: 1px solid var(--border);
-  padding: 12px 18px 12px;
-  margin-bottom: 4px;
+  padding: 12px 18px 14px;
+  border-bottom: none;
 }
 
 .is-mobile-fullscreen .task-detail-header-actions {

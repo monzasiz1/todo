@@ -492,77 +492,79 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
             <img src={groupWatermarkUrl} alt="" loading="lazy" />
           </div>
         )}
-        <div className="task-detail-header">
-          {pageMode && (
-            <button className="task-detail-back-btn" onClick={onClose}>
-              <ArrowLeft size={18} />
-            </button>
-          )}
-          <div className="task-detail-priority-bar" style={{ background: priority.color }} />
-          {isMobile && <div className="modal-pull-handle" />}
-          <div className="task-detail-header-actions" ref={menuRef} style={{ zIndex: 200, pointerEvents: 'auto' }}>
-            <button className="task-detail-more-btn" onClick={() => setShowMenu((s) => !s)} title="Mehr" aria-label="Mehr" style={{ position: 'relative', zIndex: 201, pointerEvents: 'auto' }}>
-              <MoreVertical size={18} />
-            </button>
-            {showMenu && (
-              <div className="task-detail-more-menu">
-                {canEdit && (
-                  <button className="task-detail-more-item" onClick={() => { setShowMenu(false); setShowEdit(true); }}>
-                    Bearbeiten
-                  </button>
-                )}
-                <div className="task-detail-more-item-wrap">
-                  <button
-                    className="task-detail-more-item"
-                    onClick={() => setShowShareMenu((s) => !s)}
-                  >
-                    <Share2 size={14} style={{ marginRight: 6 }} />
-                    Teilen
-                  </button>
-                  {showShareMenu && (
-                    <div className="task-detail-share-submenu">
-                      {typeof navigator !== 'undefined' && navigator.share && (
-                        <button className="task-detail-more-item" onClick={() => handleShare('native')}>
-                          Systemdialog
+        <div className="task-detail-sticky-top">
+          <div className="task-detail-header">
+            {pageMode && (
+              <button className="task-detail-back-btn" onClick={onClose}>
+                <ArrowLeft size={18} />
+              </button>
+            )}
+            <div className="task-detail-priority-bar" style={{ background: priority.color }} />
+            {isMobile && <div className="modal-pull-handle" />}
+            <div className="task-detail-header-actions" ref={menuRef} style={{ zIndex: 200, pointerEvents: 'auto' }}>
+              <button className="task-detail-more-btn" onClick={() => setShowMenu((s) => !s)} title="Mehr" aria-label="Mehr" style={{ position: 'relative', zIndex: 201, pointerEvents: 'auto' }}>
+                <MoreVertical size={18} />
+              </button>
+              {showMenu && (
+                <div className="task-detail-more-menu">
+                  {canEdit && (
+                    <button className="task-detail-more-item" onClick={() => { setShowMenu(false); setShowEdit(true); }}>
+                      Bearbeiten
+                    </button>
+                  )}
+                  <div className="task-detail-more-item-wrap">
+                    <button
+                      className="task-detail-more-item"
+                      onClick={() => setShowShareMenu((s) => !s)}
+                    >
+                      <Share2 size={14} style={{ marginRight: 6 }} />
+                      Teilen
+                    </button>
+                    {showShareMenu && (
+                      <div className="task-detail-share-submenu">
+                        {typeof navigator !== 'undefined' && navigator.share && (
+                          <button className="task-detail-more-item" onClick={() => handleShare('native')}>
+                            Systemdialog
+                          </button>
+                        )}
+                        <button className="task-detail-more-item" onClick={() => handleShare('whatsapp')}>
+                          WhatsApp
                         </button>
-                      )}
-                      <button className="task-detail-more-item" onClick={() => handleShare('whatsapp')}>
-                        WhatsApp
-                      </button>
-                      <button className="task-detail-more-item" onClick={() => handleShare('copy')}>
-                        Link kopieren
-                      </button>
-                    </div>
+                        <button className="task-detail-more-item" onClick={() => handleShare('copy')}>
+                          Link kopieren
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {task.is_owner !== false && (
+                    <button className="task-detail-more-item danger" onClick={() => { setShowMenu(false); handleDelete(); }}>
+                      Löschen
+                    </button>
                   )}
                 </div>
-                {task.is_owner !== false && (
-                  <button className="task-detail-more-item danger" onClick={() => { setShowMenu(false); handleDelete(); }}>
-                    Löschen
-                  </button>
-                )}
-              </div>
-            )}
-            {!pageMode && (
-              <button className="task-detail-close" onClick={onClose} style={{ position: 'relative', zIndex: 201, pointerEvents: 'auto' }}><X size={20} /></button>
-            )}
+              )}
+              {!pageMode && (
+                <button className="task-detail-close" onClick={onClose} style={{ position: 'relative', zIndex: 201, pointerEvents: 'auto' }}><X size={20} /></button>
+              )}
+            </div>
           </div>
-        </div>
 
-        <div className="task-detail-title-row">
-          {isEvent ? (
-            <div className="task-detail-event-icon"><CalendarCheck size={28} /></div>
-          ) : (
-            <motion.div className={`task-detail-checkbox ${task.completed ? 'checked' : ''}`} onClick={handleToggle} whileTap={{ scale: 0.85 }}>
-              {task.completed ? <CheckCircle2 size={28} /> : <Circle size={28} />}
-            </motion.div>
-          )}
-          <div>
-            <h2 className={`task-detail-title ${task.completed && !isEvent ? 'completed' : ''}`}>{task.title}</h2>
-            {!isEvent && <span className="task-detail-status task">Aufgabe</span>}
-            {isEvent && <span className="task-detail-status event">Termin</span>}
-            {isEvent && isEventEnded && <span className="task-detail-status ended">Beendet</span>}
-            {!isEvent && task.completed && <span className="task-detail-status done">Erledigt</span>}
-            {isOverdue && !isEvent && <span className="task-detail-status overdue">Überfällig</span>}
+          <div className="task-detail-title-row">
+            {isEvent ? (
+              <div className="task-detail-event-icon"><CalendarCheck size={28} /></div>
+            ) : (
+              <motion.div className={`task-detail-checkbox ${task.completed ? 'checked' : ''}`} onClick={handleToggle} whileTap={{ scale: 0.85 }}>
+                {task.completed ? <CheckCircle2 size={28} /> : <Circle size={28} />}
+              </motion.div>
+            )}
+            <div>
+              <h2 className={`task-detail-title ${task.completed && !isEvent ? 'completed' : ''}`}>{task.title}</h2>
+              {!isEvent && <span className="task-detail-status task">Aufgabe</span>}
+              {isEvent && <span className="task-detail-status event">Termin</span>}
+              {isEvent && isEventEnded && <span className="task-detail-status ended">Beendet</span>}
+              {!isEvent && task.completed && <span className="task-detail-status done">Erledigt</span>}
+              {isOverdue && !isEvent && <span className="task-detail-status overdue">Überfällig</span>}
+            </div>
           </div>
         </div>
 
