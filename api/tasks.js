@@ -582,7 +582,14 @@ module.exports = async function handler(req, res) {
                  AND ((f.user_id = t.user_id AND f.friend_id = $1) OR (f.user_id = $1 AND f.friend_id = t.user_id))
                ))
                OR (t.visibility = 'selected_users' AND tp.can_view = true)
-               OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
+               OR EXISTS (
+                 SELECT 1
+                 FROM group_tasks gt2
+                 JOIN group_members gm ON gm.group_id = gt2.group_id AND gm.user_id = $1
+                 LEFT JOIN group_subgroup_members gsm ON gsm.subgroup_id = gt2.subgroup_id AND gsm.user_id = $1
+                 WHERE gt2.task_id = t.id
+                   AND (gt2.subgroup_id IS NULL OR gsm.user_id IS NOT NULL)
+               )
              ) AND (
                (t.date >= $2 AND t.date <= $3)
                OR (t.date_end IS NOT NULL AND t.date <= $3 AND t.date_end >= $2)
@@ -602,7 +609,14 @@ module.exports = async function handler(req, res) {
            LEFT JOIN group_categories gc ON gc.id = gt.group_category_id
            LEFT JOIN users gtc ON gtc.id = gt.created_by
            WHERE (t.user_id = $1
-             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1))
+             OR EXISTS (
+               SELECT 1
+               FROM group_tasks gt2
+               JOIN group_members gm ON gm.group_id = gt2.group_id AND gm.user_id = $1
+               LEFT JOIN group_subgroup_members gsm ON gsm.subgroup_id = gt2.subgroup_id AND gsm.user_id = $1
+               WHERE gt2.task_id = t.id
+                 AND (gt2.subgroup_id IS NULL OR gsm.user_id IS NOT NULL)
+             ))
              AND (
                (t.date >= $2 AND t.date <= $3)
                OR (t.date_end IS NOT NULL AND t.date <= $3 AND t.date_end >= $2)
@@ -670,7 +684,14 @@ module.exports = async function handler(req, res) {
                  AND ((f.user_id = t.user_id AND f.friend_id = $1) OR (f.user_id = $1 AND f.friend_id = t.user_id))
                ))
                OR (t.visibility = 'selected_users' AND tp.can_view = true)
-               OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
+               OR EXISTS (
+                 SELECT 1
+                 FROM group_tasks gt2
+                 JOIN group_members gm ON gm.group_id = gt2.group_id AND gm.user_id = $1
+                 LEFT JOIN group_subgroup_members gsm ON gsm.subgroup_id = gt2.subgroup_id AND gsm.user_id = $1
+                 WHERE gt2.task_id = t.id
+                   AND (gt2.subgroup_id IS NULL OR gsm.user_id IS NOT NULL)
+               )
              )
              AND t.recurrence_rule IS NOT NULL
              AND t.recurrence_parent_id IS NULL
@@ -688,7 +709,14 @@ module.exports = async function handler(req, res) {
              LEFT JOIN groups grp ON grp.id = gt.group_id
              LEFT JOIN group_categories gc ON gc.id = gt.group_category_id
              WHERE (t.user_id = $1
-               OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1))
+               OR EXISTS (
+                 SELECT 1
+                 FROM group_tasks gt2
+                 JOIN group_members gm ON gm.group_id = gt2.group_id AND gm.user_id = $1
+                 LEFT JOIN group_subgroup_members gsm ON gsm.subgroup_id = gt2.subgroup_id AND gsm.user_id = $1
+                 WHERE gt2.task_id = t.id
+                   AND (gt2.subgroup_id IS NULL OR gsm.user_id IS NOT NULL)
+               ))
              AND t.recurrence_rule IS NOT NULL
              AND t.recurrence_parent_id IS NULL
              AND t.date <= $3
@@ -801,8 +829,12 @@ module.exports = async function handler(req, res) {
                  SELECT 1 FROM task_permissions tp WHERE tp.task_id = t.id AND tp.user_id = $1 AND tp.can_view = true
                ))
                OR EXISTS (
-                 SELECT 1 FROM group_tasks gt JOIN group_members gm ON gm.group_id = gt.group_id 
-                 WHERE gt.task_id = t.id AND gm.user_id = $1
+                 SELECT 1
+                 FROM group_tasks gt
+                 JOIN group_members gm ON gm.group_id = gt.group_id AND gm.user_id = $1
+                 LEFT JOIN group_subgroup_members gsm ON gsm.subgroup_id = gt.subgroup_id AND gsm.user_id = $1
+                 WHERE gt.task_id = t.id
+                   AND (gt.subgroup_id IS NULL OR gsm.user_id IS NOT NULL)
                )
              )
            ORDER BY due_at ASC NULLS LAST`,
@@ -1082,7 +1114,14 @@ module.exports = async function handler(req, res) {
                AND ((f.user_id = t.user_id AND f.friend_id = $1) OR (f.user_id = $1 AND f.friend_id = t.user_id))
              ))
              OR (t.visibility = 'selected_users' AND tp.can_view = true)
-             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1))
+             OR EXISTS (
+               SELECT 1
+               FROM group_tasks gt2
+               JOIN group_members gm ON gm.group_id = gt2.group_id AND gm.user_id = $1
+               LEFT JOIN group_subgroup_members gsm ON gsm.subgroup_id = gt2.subgroup_id AND gsm.user_id = $1
+               WHERE gt2.task_id = t.id
+                 AND (gt2.subgroup_id IS NULL OR gsm.user_id IS NOT NULL)
+             ))
              AND t.type != 'event'`,
           [user.id]
         );
@@ -1095,7 +1134,14 @@ module.exports = async function handler(req, res) {
              COUNT(*) FILTER (WHERE t.completed = false AND t.priority IN ('urgent', 'high') AND t.type != 'event') as urgent_count
            FROM tasks t
            WHERE (t.user_id = $1
-             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1))
+             OR EXISTS (
+               SELECT 1
+               FROM group_tasks gt2
+               JOIN group_members gm ON gm.group_id = gt2.group_id AND gm.user_id = $1
+               LEFT JOIN group_subgroup_members gsm ON gsm.subgroup_id = gt2.subgroup_id AND gsm.user_id = $1
+               WHERE gt2.task_id = t.id
+                 AND (gt2.subgroup_id IS NULL OR gsm.user_id IS NOT NULL)
+             ))
              AND t.type != 'event'`,
           [user.id]
         );
@@ -1182,8 +1228,9 @@ module.exports = async function handler(req, res) {
 
                SELECT gt.task_id AS id
                FROM group_tasks gt
-               JOIN group_members gm ON gm.group_id = gt.group_id
-               WHERE gm.user_id = $1
+               JOIN group_members gm ON gm.group_id = gt.group_id AND gm.user_id = $1
+               LEFT JOIN group_subgroup_members gsm ON gsm.subgroup_id = gt.subgroup_id AND gsm.user_id = $1
+               WHERE (gt.subgroup_id IS NULL OR gsm.user_id IS NOT NULL)
              ),
              task_ids AS (
                SELECT DISTINCT id FROM visible_ids
@@ -1203,9 +1250,12 @@ module.exports = async function handler(req, res) {
                         )
                       END AS can_edit,
                       EXISTS (
-                        SELECT 1 FROM group_tasks gt2
-                        JOIN group_members gm2 ON gm2.group_id = gt2.group_id
-                        WHERE gt2.task_id = t.id AND gm2.user_id = $1
+                        SELECT 1
+                        FROM group_tasks gt2
+                        JOIN group_members gm2 ON gm2.group_id = gt2.group_id AND gm2.user_id = $1
+                        LEFT JOIN group_subgroup_members gsm2 ON gsm2.subgroup_id = gt2.subgroup_id AND gsm2.user_id = $1
+                        WHERE gt2.task_id = t.id
+                          AND (gt2.subgroup_id IS NULL OR gsm2.user_id IS NOT NULL)
                       ) AS is_group_member
                FROM task_ids ids
                JOIN tasks t ON t.id = ids.id
@@ -1300,8 +1350,9 @@ module.exports = async function handler(req, res) {
 
                SELECT gt.task_id AS id
                FROM group_tasks gt
-               JOIN group_members gm ON gm.group_id = gt.group_id
-               WHERE gm.user_id = $1
+               JOIN group_members gm ON gm.group_id = gt.group_id AND gm.user_id = $1
+               LEFT JOIN group_subgroup_members gsm ON gsm.subgroup_id = gt.subgroup_id AND gsm.user_id = $1
+               WHERE (gt.subgroup_id IS NULL OR gsm.user_id IS NOT NULL)
              ),
              uniq_ids AS (
                SELECT DISTINCT id FROM task_ids
@@ -1445,9 +1496,12 @@ module.exports = async function handler(req, res) {
                  ))
                  OR (t.visibility = 'selected_users' AND tp.can_view = true)
                  OR EXISTS (
-                   SELECT 1 FROM group_tasks gt2
-                   JOIN group_members gm ON gm.group_id = gt2.group_id
-                   WHERE gt2.task_id = t.id AND gm.user_id = $1
+                   SELECT 1
+                   FROM group_tasks gt2
+                   JOIN group_members gm ON gm.group_id = gt2.group_id AND gm.user_id = $1
+                   LEFT JOIN group_subgroup_members gsm ON gsm.subgroup_id = gt2.subgroup_id AND gsm.user_id = $1
+                   WHERE gt2.task_id = t.id
+                     AND (gt2.subgroup_id IS NULL OR gsm.user_id IS NOT NULL)
                  )
                )
                  AND t.recurrence_rule IS NOT NULL
@@ -1558,7 +1612,14 @@ module.exports = async function handler(req, res) {
                AND ((f.user_id = t.user_id AND f.friend_id = $1) OR (f.user_id = $1 AND f.friend_id = t.user_id))
              ))
              OR (t.visibility = 'selected_users' AND tp.can_view = true)
-             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
+             OR EXISTS (
+               SELECT 1
+               FROM group_tasks gt2
+               JOIN group_members gm ON gm.group_id = gt2.group_id AND gm.user_id = $1
+               LEFT JOIN group_subgroup_members gsm ON gsm.subgroup_id = gt2.subgroup_id AND gsm.user_id = $1
+               WHERE gt2.task_id = t.id
+                 AND (gt2.subgroup_id IS NULL OR gsm.user_id IS NOT NULL)
+             )
            ${completedClause}
            ORDER BY t.sort_order ASC, t.created_at DESC`,
           [user.id]
@@ -1576,7 +1637,14 @@ module.exports = async function handler(req, res) {
            LEFT JOIN group_categories gc ON gc.id = gt.group_category_id
            LEFT JOIN users gtc ON gtc.id = gt.created_by
            WHERE t.user_id = $1
-             OR EXISTS (SELECT 1 FROM group_tasks gt2 JOIN group_members gm ON gm.group_id = gt2.group_id WHERE gt2.task_id = t.id AND gm.user_id = $1)
+             OR EXISTS (
+               SELECT 1
+               FROM group_tasks gt2
+               JOIN group_members gm ON gm.group_id = gt2.group_id AND gm.user_id = $1
+               LEFT JOIN group_subgroup_members gsm ON gsm.subgroup_id = gt2.subgroup_id AND gsm.user_id = $1
+               WHERE gt2.task_id = t.id
+                 AND (gt2.subgroup_id IS NULL OR gsm.user_id IS NOT NULL)
+             )
            ${completedClause}
            ORDER BY t.sort_order ASC, t.created_at DESC`,
           [user.id]
