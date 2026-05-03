@@ -2201,67 +2201,65 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       onTouchEnd={handleSwipeTouchEnd}
     >
       <div className="calendar-header">
-        <div className="calendar-header-main">
-          <div className="cal-mp-wrap">
+        <div className="cal-mp-wrap">
+          <button
+            ref={triggerRef}
+            className="cal-mp-trigger"
+            onClick={() => { setPickerYear(getYear(currentDate)); setShowMonthPicker(v => !v); }}
+          >
+            <span style={{ textTransform: 'capitalize' }}>{headerText}</span>
+            <ChevronDown size={16} className={`cal-mp-chevron ${showMonthPicker ? 'open' : ''}`} />
+          </button>
+          <button
+            className={`calendar-fs-btn cal-settings-trigger ${showHolidaySettings ? 'active' : ''}`}
+            onClick={() => setShowHolidaySettings(v => !v)}
+            title="Feiertage & Kalendereinstellungen"
+          >
+            <Settings size={17} />
+          </button>
+        </div>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          {!isMobile && (
             <button
-              ref={triggerRef}
-              className="cal-mp-trigger"
-              onClick={() => { setPickerYear(getYear(currentDate)); setShowMonthPicker(v => !v); }}
+              className={`calendar-fs-btn ${isCalendarFullscreen ? 'active' : ''}`}
+              onClick={toggleCalendarFullscreen}
+              title={isCalendarFullscreen ? 'Vollbild beenden' : 'Kalender im Vollbild'}
             >
-              <span style={{ textTransform: 'capitalize' }}>{headerText}</span>
-              <ChevronDown size={16} className={`cal-mp-chevron ${showMonthPicker ? 'open' : ''}`} />
+              {isCalendarFullscreen ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
+            </button>
+          )}
+          <div className="calendar-view-toggle">
+            <button
+              className={`calendar-view-btn ${view === 'month' ? 'active' : ''}`}
+              onClick={() => setView('month')}
+            >
+              Monat
             </button>
             <button
-              className={`calendar-fs-btn cal-settings-trigger ${showHolidaySettings ? 'active' : ''}`}
-              onClick={() => setShowHolidaySettings(v => !v)}
-              title="Feiertage & Kalendereinstellungen"
+              className={`calendar-view-btn ${view === 'week' ? 'active' : ''}`}
+              onClick={() => setView('week')}
             >
-              <Settings size={17} />
+              Woche
             </button>
           </div>
-
-          <div className="calendar-header-actions">
-            {!isMobile && (
-              <button
-                className={`calendar-fs-btn ${isCalendarFullscreen ? 'active' : ''}`}
-                onClick={toggleCalendarFullscreen}
-                title={isCalendarFullscreen ? 'Vollbild beenden' : 'Kalender im Vollbild'}
-              >
-                {isCalendarFullscreen ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
-              </button>
-            )}
-            <div className="calendar-view-toggle">
-              <button
-                className={`calendar-view-btn ${view === 'month' ? 'active' : ''}`}
-                onClick={() => setView('month')}
-              >
-                Monat
-              </button>
-              <button
-                className={`calendar-view-btn ${view === 'week' ? 'active' : ''}`}
-                onClick={() => setView('week')}
-              >
-                Woche
-              </button>
-            </div>
-            <div className="calendar-nav">
-              <button className="calendar-nav-btn" onClick={() => navigate('prev')}>
-                <ChevronLeft size={20} />
-              </button>
-              <button
-                className="calendar-nav-btn calendar-nav-btn-today"
-                onClick={() => {
-                  const today = new Date();
-                  setCurrentDate(today);
-                  setSelectedDate(today);
-                }}
-              >
-                Heute
-              </button>
-              <button className="calendar-nav-btn" onClick={() => navigate('next')}>
-                <ChevronRight size={20} />
-              </button>
-            </div>
+          <div className="calendar-nav">
+            <button className="calendar-nav-btn" onClick={() => navigate('prev')}>
+              <ChevronLeft size={20} />
+            </button>
+            <button
+              className="calendar-nav-btn"
+              onClick={() => {
+                const today = new Date();
+                setCurrentDate(today);
+                setSelectedDate(today);
+              }}
+              style={{ fontSize: 12, fontWeight: 700, width: 'auto', padding: '0 12px' }}
+            >
+              Heute
+            </button>
+            <button className="calendar-nav-btn" onClick={() => navigate('next')}>
+              <ChevronRight size={20} />
+            </button>
           </div>
         </div>
 
