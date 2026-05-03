@@ -224,27 +224,34 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     }
 
     const scroller = modalScrollRef.current;
-
-    const readScrollTop = () => {
-      const modalTop = scroller?.scrollTop || 0;
-      if (modalTop > 0) return modalTop;
-      const docTop = document.documentElement?.scrollTop || 0;
-      const bodyTop = document.body?.scrollTop || 0;
-      const winTop = typeof window !== 'undefined' ? window.scrollY || 0 : 0;
-      return Math.max(docTop, bodyTop, winTop);
-    };
+    if (!scroller) return;
 
     const onScroll = () => {
-      const shouldShow = readScrollTop() > 92;
+      // Schwelle: ~160px
+      // Header (~56px) + Title-Row (~70px) + etwas Padding = ~160px
+      // Compact title zeigt sich, wenn großer Titel scrollt vorbei
+      let scrollTop = scroller.scrollTop || 0;
+      
+      // Fallback: wenn modal scrollTop = 0 aber window/document hat scroll, nutze das
+      if (scrollTop === 0) {
+        const docTop = document.documentElement?.scrollTop || 0;
+        const bodyTop = document.body?.scrollTop || 0;
+        const winTop = typeof window !== 'undefined' ? window.scrollY || 0 : 0;
+        scrollTop = Math.max(docTop, bodyTop, winTop);
+      }
+      
+      const shouldShow = scrollTop > 160;
       setShowCompactTitle((prev) => (prev === shouldShow ? prev : shouldShow));
     };
 
     onScroll();
-    scroller?.addEventListener('scroll', onScroll, { passive: true });
+    scroller.addEventListener('scroll', onScroll, { passive: true });
+    
+    // Fallback: listen to window scroll too, in case modal is not the scroll container
     window.addEventListener('scroll', onScroll, { passive: true });
 
     return () => {
-      scroller?.removeEventListener('scroll', onScroll);
+      scroller.removeEventListener('scroll', onScroll);
       window.removeEventListener('scroll', onScroll);
     };
   }, [isMobile, task?.id, task?.title]);
