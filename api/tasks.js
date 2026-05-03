@@ -1345,7 +1345,7 @@ module.exports = async function handler(req, res) {
                LEFT JOIN group_categories gc ON gc.id = gt.group_category_id
                LEFT JOIN group_subgroups gs ON gs.id = gt.subgroup_id
                WHERE gt.task_id = rt.id
-               ORDER BY gt.group_id
+               ORDER BY (gt.subgroup_id IS NOT NULL) DESC, gt.group_id
                LIMIT 1
              ) g ON true
              ORDER BY
@@ -1445,7 +1445,7 @@ module.exports = async function handler(req, res) {
                LEFT JOIN group_categories gc ON gc.id = gt.group_category_id
                LEFT JOIN group_subgroups gs ON gs.id = gt.subgroup_id
                WHERE gt.task_id = rt.id
-               ORDER BY gt.group_id
+               ORDER BY (gt.subgroup_id IS NOT NULL) DESC, gt.group_id
                LIMIT 1
              ) g ON true
              ORDER BY
@@ -1529,7 +1529,7 @@ module.exports = async function handler(req, res) {
                  LEFT JOIN group_subgroups gs ON gs.id = gt.subgroup_id
                  LEFT JOIN users gtc ON gtc.id = gt.created_by
                  WHERE gt.task_id = t.id
-                 ORDER BY gt.group_id
+                 ORDER BY (gt.subgroup_id IS NOT NULL) DESC, gt.group_id
                  LIMIT 1
                ) g ON true
                WHERE (
@@ -1598,7 +1598,7 @@ module.exports = async function handler(req, res) {
                  LEFT JOIN group_subgroups gs ON gs.id = gt.subgroup_id
                  LEFT JOIN users gtc ON gtc.id = gt.created_by
                  WHERE gt.task_id = t.id
-                 ORDER BY gt.group_id
+                 ORDER BY (gt.subgroup_id IS NOT NULL) DESC, gt.group_id
                  LIMIT 1
                ) g ON true
                WHERE t.user_id = $1
