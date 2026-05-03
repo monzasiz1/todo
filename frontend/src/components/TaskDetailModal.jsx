@@ -161,6 +161,8 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const canEdit = task?.is_owner === false ? (task?.can_edit === true) : true;
   const isShared = task?.visibility && task.visibility !== 'private';
   const isEvent = task?.type === 'event';
+  const groupWatermarkUrl = task?.group_image_url || task?.group_avatar_url || task?.group_photo_url || task?.group_logo_url || null;
+  const hasGroupWatermark = Boolean(task?.group_id && groupWatermarkUrl);
   const eventEndAt = isEvent ? getEventEndDate(task) : null;
   const isEventEnded = isEvent && !!eventEndAt && eventEndAt.getTime() < Date.now();
   const voteYesCount = Number(taskVotes.yes_count || 0);
@@ -337,7 +339,12 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      <div className="task-detail-main">
+      <div className={`task-detail-main${hasGroupWatermark ? ' has-group-watermark' : ''}`}>
+        {hasGroupWatermark && (
+          <div className="task-detail-group-watermark" aria-hidden="true">
+            <img src={groupWatermarkUrl} alt="" loading="lazy" />
+          </div>
+        )}
         <div className="task-detail-header">
           {pageMode && (
             <button className="task-detail-back-btn" onClick={onClose}>
