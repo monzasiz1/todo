@@ -588,7 +588,7 @@ module.exports = async function handler(req, res) {
                  JOIN group_members gm ON gm.group_id = gt2.group_id AND gm.user_id = $1
                  LEFT JOIN group_subgroup_members gsm ON gsm.subgroup_id = gt2.subgroup_id AND gsm.user_id = $1
                  WHERE gt2.task_id = t.id
-                   AND (gt2.subgroup_id IS NULL OR gsm.user_id IS NOT NULL)
+                   AND (gt2.subgroup_id IS NULL OR gm.role IN ('owner','admin') OR gsm.user_id IS NOT NULL)
                )
              ) AND (
                (t.date >= $2 AND t.date <= $3)
@@ -615,7 +615,7 @@ module.exports = async function handler(req, res) {
                JOIN group_members gm ON gm.group_id = gt2.group_id AND gm.user_id = $1
                LEFT JOIN group_subgroup_members gsm ON gsm.subgroup_id = gt2.subgroup_id AND gsm.user_id = $1
                WHERE gt2.task_id = t.id
-                 AND (gt2.subgroup_id IS NULL OR gsm.user_id IS NOT NULL)
+                 AND (gt2.subgroup_id IS NULL OR gm.role IN ('owner','admin') OR gsm.user_id IS NOT NULL)
              ))
              AND (
                (t.date >= $2 AND t.date <= $3)
@@ -690,7 +690,7 @@ module.exports = async function handler(req, res) {
                  JOIN group_members gm ON gm.group_id = gt2.group_id AND gm.user_id = $1
                  LEFT JOIN group_subgroup_members gsm ON gsm.subgroup_id = gt2.subgroup_id AND gsm.user_id = $1
                  WHERE gt2.task_id = t.id
-                   AND (gt2.subgroup_id IS NULL OR gsm.user_id IS NOT NULL)
+                   AND (gt2.subgroup_id IS NULL OR gm.role IN ('owner','admin') OR gsm.user_id IS NOT NULL)
                )
              )
              AND t.recurrence_rule IS NOT NULL
@@ -715,7 +715,7 @@ module.exports = async function handler(req, res) {
                  JOIN group_members gm ON gm.group_id = gt2.group_id AND gm.user_id = $1
                  LEFT JOIN group_subgroup_members gsm ON gsm.subgroup_id = gt2.subgroup_id AND gsm.user_id = $1
                  WHERE gt2.task_id = t.id
-                   AND (gt2.subgroup_id IS NULL OR gsm.user_id IS NOT NULL)
+                   AND (gt2.subgroup_id IS NULL OR gm.role IN ('owner','admin') OR gsm.user_id IS NOT NULL)
                ))
              AND t.recurrence_rule IS NOT NULL
              AND t.recurrence_parent_id IS NULL
@@ -834,7 +834,7 @@ module.exports = async function handler(req, res) {
                  JOIN group_members gm ON gm.group_id = gt.group_id AND gm.user_id = $1
                  LEFT JOIN group_subgroup_members gsm ON gsm.subgroup_id = gt.subgroup_id AND gsm.user_id = $1
                  WHERE gt.task_id = t.id
-                   AND (gt.subgroup_id IS NULL OR gsm.user_id IS NOT NULL)
+                   AND (gt.subgroup_id IS NULL OR gm.role IN ('owner','admin') OR gsm.user_id IS NOT NULL)
                )
              )
            ORDER BY due_at ASC NULLS LAST`,
@@ -1120,7 +1120,7 @@ module.exports = async function handler(req, res) {
                JOIN group_members gm ON gm.group_id = gt2.group_id AND gm.user_id = $1
                LEFT JOIN group_subgroup_members gsm ON gsm.subgroup_id = gt2.subgroup_id AND gsm.user_id = $1
                WHERE gt2.task_id = t.id
-                 AND (gt2.subgroup_id IS NULL OR gsm.user_id IS NOT NULL)
+                 AND (gt2.subgroup_id IS NULL OR gm.role IN ('owner','admin') OR gsm.user_id IS NOT NULL)
              ))
              AND t.type != 'event'`,
           [user.id]
@@ -1140,7 +1140,7 @@ module.exports = async function handler(req, res) {
                JOIN group_members gm ON gm.group_id = gt2.group_id AND gm.user_id = $1
                LEFT JOIN group_subgroup_members gsm ON gsm.subgroup_id = gt2.subgroup_id AND gsm.user_id = $1
                WHERE gt2.task_id = t.id
-                 AND (gt2.subgroup_id IS NULL OR gsm.user_id IS NOT NULL)
+                 AND (gt2.subgroup_id IS NULL OR gm.role IN ('owner','admin') OR gsm.user_id IS NOT NULL)
              ))
              AND t.type != 'event'`,
           [user.id]
@@ -1230,7 +1230,7 @@ module.exports = async function handler(req, res) {
                FROM group_tasks gt
                JOIN group_members gm ON gm.group_id = gt.group_id AND gm.user_id = $1
                LEFT JOIN group_subgroup_members gsm ON gsm.subgroup_id = gt.subgroup_id AND gsm.user_id = $1
-               WHERE (gt.subgroup_id IS NULL OR gsm.user_id IS NOT NULL)
+               WHERE (gt.subgroup_id IS NULL OR gm.role IN ('owner','admin') OR gsm.user_id IS NOT NULL)
              ),
              task_ids AS (
                SELECT DISTINCT id FROM visible_ids
@@ -1255,7 +1255,7 @@ module.exports = async function handler(req, res) {
                         JOIN group_members gm2 ON gm2.group_id = gt2.group_id AND gm2.user_id = $1
                         LEFT JOIN group_subgroup_members gsm2 ON gsm2.subgroup_id = gt2.subgroup_id AND gsm2.user_id = $1
                         WHERE gt2.task_id = t.id
-                          AND (gt2.subgroup_id IS NULL OR gsm2.user_id IS NOT NULL)
+                          AND (gt2.subgroup_id IS NULL OR gm2.role IN ('owner','admin') OR gsm2.user_id IS NOT NULL)
                       ) AS is_group_member
                FROM task_ids ids
                JOIN tasks t ON t.id = ids.id
@@ -1352,7 +1352,7 @@ module.exports = async function handler(req, res) {
                FROM group_tasks gt
                JOIN group_members gm ON gm.group_id = gt.group_id AND gm.user_id = $1
                LEFT JOIN group_subgroup_members gsm ON gsm.subgroup_id = gt.subgroup_id AND gsm.user_id = $1
-               WHERE (gt.subgroup_id IS NULL OR gsm.user_id IS NOT NULL)
+               WHERE (gt.subgroup_id IS NULL OR gm.role IN ('owner','admin') OR gsm.user_id IS NOT NULL)
              ),
              uniq_ids AS (
                SELECT DISTINCT id FROM task_ids
@@ -1501,7 +1501,7 @@ module.exports = async function handler(req, res) {
                    JOIN group_members gm ON gm.group_id = gt2.group_id AND gm.user_id = $1
                    LEFT JOIN group_subgroup_members gsm ON gsm.subgroup_id = gt2.subgroup_id AND gsm.user_id = $1
                    WHERE gt2.task_id = t.id
-                     AND (gt2.subgroup_id IS NULL OR gsm.user_id IS NOT NULL)
+                     AND (gt2.subgroup_id IS NULL OR gm.role IN ('owner','admin') OR gsm.user_id IS NOT NULL)
                  )
                )
                  AND t.recurrence_rule IS NOT NULL
@@ -1618,7 +1618,7 @@ module.exports = async function handler(req, res) {
                JOIN group_members gm ON gm.group_id = gt2.group_id AND gm.user_id = $1
                LEFT JOIN group_subgroup_members gsm ON gsm.subgroup_id = gt2.subgroup_id AND gsm.user_id = $1
                WHERE gt2.task_id = t.id
-                 AND (gt2.subgroup_id IS NULL OR gsm.user_id IS NOT NULL)
+                 AND (gt2.subgroup_id IS NULL OR gm.role IN ('owner','admin') OR gsm.user_id IS NOT NULL)
              )
            ${completedClause}
            ORDER BY t.sort_order ASC, t.created_at DESC`,
@@ -1643,7 +1643,7 @@ module.exports = async function handler(req, res) {
                JOIN group_members gm ON gm.group_id = gt2.group_id AND gm.user_id = $1
                LEFT JOIN group_subgroup_members gsm ON gsm.subgroup_id = gt2.subgroup_id AND gsm.user_id = $1
                WHERE gt2.task_id = t.id
-                 AND (gt2.subgroup_id IS NULL OR gsm.user_id IS NOT NULL)
+                 AND (gt2.subgroup_id IS NULL OR gm.role IN ('owner','admin') OR gsm.user_id IS NOT NULL)
              )
            ${completedClause}
            ORDER BY t.sort_order ASC, t.created_at DESC`,
