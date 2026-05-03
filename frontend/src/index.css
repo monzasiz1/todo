@@ -6499,7 +6499,7 @@ body.cal-is-dragging * {
   .task-detail-sticky-top {
     position: sticky;
     top: 0;
-    z-index: 6;
+    z-index: 40;
     background: transparent;
     border-bottom: none;
   }
@@ -10240,6 +10240,7 @@ body.cal-is-dragging * {
   border-bottom: none;
   flex-shrink: 0;
   position: relative;
+  z-index: 40;
   background: transparent;
 }
 .task-edit-header::after {
@@ -10280,6 +10281,8 @@ body.cal-is-dragging * {
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  z-index: 62;
   transition: background 0.18s, box-shadow 0.18s;
 }
 
@@ -11293,7 +11296,7 @@ body.cal-is-dragging * {
   position: absolute;
   right: 16px;
   top: 16px;
-  z-index: 20;
+  z-index: 62;
   pointer-events: auto;
 }
 
