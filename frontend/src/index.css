@@ -7264,7 +7264,7 @@ body.cal-is-dragging * {
   isolation: isolate;
 }
 
-.task-detail-main.has-group-watermark > :not(.task-detail-group-watermark) {
+.task-detail-main.has-group-watermark > :not(.task-detail-group-watermark):not(.task-detail-top-shadow) {
   position: relative;
   z-index: 1;
 }
