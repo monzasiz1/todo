@@ -291,14 +291,21 @@ export default function FocusTimer() {
     <>
       <button
         type="button"
-        className={`focus-timer-card${isRunning ? ' is-running' : ''}`}
+        className={`focus-timer-card${isRunning ? ' is-running' : ''}${isPaused ? ' is-paused' : ''}${showFinishOverlay ? ' is-finished' : ''}`}
         onClick={() => (isIdle ? setOpen(true) : null)}
         aria-label="Fokus-Timer"
       >
+        <span className="focus-timer-card-glow" aria-hidden="true" />
+        <span className="focus-timer-card-shimmer" aria-hidden="true" />
         <div className="focus-timer-ring-wrap" aria-hidden="true">
+          <span className="focus-timer-halo" />
+          <span className="focus-timer-shockwave focus-timer-shockwave-1" />
+          <span className="focus-timer-shockwave focus-timer-shockwave-2" />
+          <span className="focus-timer-shockwave focus-timer-shockwave-3" />
           <svg viewBox="0 0 100 100" className="focus-timer-ring">
             <circle cx="50" cy="50" r={RADIUS} stroke="rgba(255,255,255,0.12)" strokeWidth={STROKE} fill="none" />
             <circle
+              className="focus-timer-ring-progress"
               cx="50" cy="50" r={RADIUS}
               stroke="url(#ftGrad)"
               strokeWidth={STROKE}
