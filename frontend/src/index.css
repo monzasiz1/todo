@@ -10110,6 +10110,9 @@ body.cal-is-dragging * {
     display: grid;
     grid-template-columns: 72px repeat(7, minmax(0, 1fr));
     border-bottom: 1px solid #dfe3eb;
+    /* Reserve same width as time-wrap scrollbar so day columns align vertically */
+    padding-right: 10px;
+    background: #f8f9fc;
   }
 
   .desktop-week-left-head,
@@ -10236,6 +10239,23 @@ body.cal-is-dragging * {
     overflow-x: hidden;
     height: 100%;
     scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-gutter: stable;
+  }
+
+  .desktop-week-time-wrap::-webkit-scrollbar {
+    width: 10px;
+  }
+  .desktop-week-time-wrap::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .desktop-week-time-wrap::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.18);
+    border-radius: 5px;
+    border: 2px solid #f8f9fc;
+  }
+  .desktop-week-time-wrap::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.28);
   }
 
   .desktop-week-hours-col {
