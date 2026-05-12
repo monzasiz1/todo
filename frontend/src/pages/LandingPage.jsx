@@ -1035,7 +1035,7 @@ export default function LandingPage() {
                 Windows 10/11 (64-bit)
               </p>
               <a 
-                href="https://github.com/monzasiz1/todo/releases/latest/download/BeeQu-Setup-1.0.0.exe"
+                href="/api/download?platform=windows"
                 className="bq-btn bq-primary"
                 style={{ width: '100%', justifyContent: 'center' }}
               >
