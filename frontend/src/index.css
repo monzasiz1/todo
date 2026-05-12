@@ -1567,14 +1567,43 @@ input, textarea, select {
   padding: 14px 16px;
   background: none;
   border: none;
+  border-radius: 12px;
   cursor: pointer;
   color: var(--text-primary);
   font-family: inherit;
-  transition: background var(--transition);
+  position: relative;
+  overflow: hidden;
+  transition: background 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
+}
+
+.dash-section-header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.10), rgba(34, 211, 238, 0.08) 55%, rgba(168, 85, 247, 0.10));
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
 }
 
 .dash-section-header:hover {
-  background: var(--hover);
+  background: transparent;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px -10px rgba(99, 102, 241, 0.45);
+}
+
+.dash-section-header:hover::before {
+  opacity: 1;
+}
+
+.dash-section-header:active {
+  transform: translateY(0);
+}
+
+.dash-section-header > * {
+  position: relative;
+  z-index: 1;
 }
 
 .dash-section-left {
