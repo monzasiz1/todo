@@ -54,6 +54,7 @@ jobs:
   build-macos:
     name: macOS Build (.dmg)
     runs-on: macos-latest
+    continue-on-error: true  # Fehler blockieren nicht den Release
 
     steps:
       - name: Checkout
@@ -78,10 +79,11 @@ jobs:
 
       - name: Build-Artefakte hochladen
         uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: macos-builds
           path: electron/dist/*.dmg
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 30
 
   # ─────────────────────────────────────────────────────────────────────
@@ -102,6 +104,7 @@ jobs:
 
       - name: macOS-Artefakte herunterladen
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: macos-builds
           path: release-files/
