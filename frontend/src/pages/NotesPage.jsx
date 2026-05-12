@@ -1,7 +1,7 @@
 ﻿import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useDragControls } from 'framer-motion';
-import { Plus, ZoomIn, ZoomOut, X, CalendarDays, Pin, CheckSquare, Calendar, Check, Archive, RotateCcw, Trash2, LayoutGrid } from 'lucide-react';
+import { Plus, ZoomIn, ZoomOut, X, CalendarDays, Pin, CheckSquare, Calendar, Check, Archive, RotateCcw, Trash2, LayoutGrid, Link2, Unlink } from 'lucide-react';
 import { useOpenTask } from '../hooks/useOpenTask';
 import TaskDetailModal from '../components/TaskDetailModal';
 import { useNotesStore } from '../store/notesStore';
@@ -439,6 +439,7 @@ export default function NotesPage() {
     notes, createNote, updateNote, deleteNote, fetchNotes,
     completeNote, restoreArchivedNote, fetchArchivedNotes,
     archivedNotes, archivedLoading,
+    connections, fetchConnections, addConnection, removeConnection,
   } = useNotesStore();
   const { tasks, fetchTasks } = useTaskStore();
   const [showArchive, setShowArchive] = useState(false);
@@ -460,6 +461,12 @@ export default function NotesPage() {
   });
   const [selectedNoteIds, setSelectedNoteIds] = useState([]);
   const [showMobileHint, setShowMobileHint] = useState(false);
+
+  // Mindmap-Verbindungs-Workflow:
+  //   connectMode true → naechster Klick wird zur Quelle, der danach zum Ziel.
+  //   connectSourceId  → bereits ausgewaehlte Quelle (wartet auf zweiten Klick).
+  const [connectMode, setConnectMode] = useState(false);
+  const [connectSourceId, setConnectSourceId] = useState(null);
 
   const viewportRef = useRef(null);
   const boardRef = useRef(null);
@@ -491,12 +498,13 @@ export default function NotesPage() {
   useEffect(() => {
     fetchNotes();
     fetchTasks();
+    fetchConnections?.();
     if ('ontouchstart' in window && !localStorage.getItem('notes-mobile-hint-shown')) {
       setShowMobileHint(true);
       localStorage.setItem('notes-mobile-hint-shown', 'true');
       setTimeout(() => setShowMobileHint(false), 4000);
     }
-  }, [fetchNotes, fetchTasks]);
+  }, [fetchNotes, fetchTasks, fetchConnections]);
 
   // ── helpers ──────────────────────────────────────────────────────────────
   const clampPan = useCallback((x, y, s) => {
@@ -636,7 +644,69 @@ export default function NotesPage() {
 
   const handleSelectNote = useCallback((noteId) => {
     setSelectedNoteIds([noteId]);
+
+    // Im Connect-Mode wird der erste Klick zur Quelle, der zweite
+    // (auf eine andere Note) zum Ziel und legt eine Verbindung an.
+    if (!connectMode) return;
+    if (connectSourceId == null) {
+      setConnectSourceId(noteId);
+      return;
+    }
+    if (String(connectSourceId) === String(noteId)) {
+      setConnectSourceId(null);
+      return;
+    }
+    addConnection?.(connectSourceId, noteId).catch((err) => {
+      console.error('[NotesPage] addConnection failed:', err?.message || err);
+    });
+    setConnectSourceId(null);
+  }, [connectMode, connectSourceId, addConnection]);
+
+  const handleToggleConnectMode = useCallback(() => {
+    setConnectMode((prev) => {
+      if (prev) setConnectSourceId(null);
+      return !prev;
+    });
   }, []);
+
+  const handleRemoveConnection = useCallback((conn) => {
+    if (!conn) return;
+    if (!window.confirm('Diese Verbindung loeschen?')) return;
+    removeConnection?.(conn).catch((err) => {
+      console.error('[NotesPage] removeConnection failed:', err?.message || err);
+    });
+  }, [removeConnection]);
+
+  // Index Note-ID -> Note fuer schnelle Position-Lookups beim Linien-Render.
+  const notesById = useMemo(() => {
+    const map = new Map();
+    notes.forEach((n) => {
+      if (n && n.id != null) map.set(String(n.id), n);
+    });
+    return map;
+  }, [notes]);
+
+  // Connections fuer Render aufbereiten (nur Linien, deren beide Notes
+  // aktuell sichtbar sind — geteilte Verbindungen mit fehlender Note ueberspringen).
+  const renderableConnections = useMemo(() => {
+    const NOTE_HALF = 95; // Note ist ~190px breit -> Mittelpunkt-Offset
+    return (connections || [])
+      .map((c) => {
+        const a = notesById.get(String(c.note_id_1));
+        const b = notesById.get(String(c.note_id_2));
+        if (!a || !b) return null;
+        return {
+          id: c.id,
+          note_id_1: c.note_id_1,
+          note_id_2: c.note_id_2,
+          x1: (a.x || 100) + NOTE_HALF,
+          y1: (a.y || 100) + NOTE_HALF,
+          x2: (b.x || 100) + NOTE_HALF,
+          y2: (b.y || 100) + NOTE_HALF,
+        };
+      })
+      .filter(Boolean);
+  }, [connections, notesById]);
 
   // ── "fit all" button ──────────────────────────────────────────────────────
   const handleFitAll = useCallback(() => {
@@ -856,7 +926,7 @@ export default function NotesPage() {
   }
 
   return (
-    <div className="notes-board-container">
+    <div className={`notes-board-container ${connectMode ? 'connect-mode' : ''}`}>
       <div className="notes-board-header">
         <div className="board-title">
           <h1>
@@ -879,6 +949,16 @@ export default function NotesPage() {
               <ZoomOut size={14} /><ZoomIn size={14} />
             </button>
           )}
+          <button
+            className={`board-control-btn ${connectMode ? 'active' : ''}`}
+            onClick={handleToggleConnectMode}
+            title={connectMode
+              ? (connectSourceId ? 'Zweite Notiz waehlen … (Klick zum Abbrechen)' : 'Verbindungs-Modus beenden')
+              : 'Notizen verbinden (Mindmap)'}
+            aria-pressed={connectMode}
+          >
+            <Link2 size={16} />
+          </button>
           <button
             className="board-control-btn"
             onClick={() => setShowArchive(true)}
@@ -916,6 +996,34 @@ export default function NotesPage() {
           <div className="board-background" />
           <div className="cork-board-background" />
 
+          {/* Mindmap-Verbindungslinien zwischen Notes.
+              Liegt VOR den Notes (untere z-Ebene), reagiert nur auf
+              Klicks auf die Linie selbst (pointer-events: stroke). */}
+          {renderableConnections.length > 0 && (
+            <svg
+              className="notes-connections-layer"
+              width={BOARD_W}
+              height={BOARD_H}
+              viewBox={`0 0 ${BOARD_W} ${BOARD_H}`}
+              aria-hidden="true"
+            >
+              {renderableConnections.map((c) => (
+                <line
+                  key={c.id}
+                  className="connection-line"
+                  x1={c.x1}
+                  y1={c.y1}
+                  x2={c.x2}
+                  y2={c.y2}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemoveConnection(c);
+                  }}
+                />
+              ))}
+            </svg>
+          )}
+
           {notes.filter(note => note != null && note.id != null).map((note) => (
             <StickyNote
               key={note.id}
@@ -951,6 +1059,25 @@ export default function NotesPage() {
       {showMobileHint && (
         <div className="mobile-hint">
           💡 Mit einem Finger verschieben · Zwei Finger zum Zoomen
+        </div>
+      )}
+
+      {connectMode && (
+        <div className="connect-mode-hint" role="status">
+          <Link2 size={14} />
+          <span>
+            {connectSourceId
+              ? 'Zweite Notiz waehlen, um Verbindung zu erstellen.'
+              : 'Erste Notiz waehlen.'}
+          </span>
+          <button
+            type="button"
+            className="connect-mode-hint-close"
+            onClick={handleToggleConnectMode}
+            aria-label="Verbindungs-Modus beenden"
+          >
+            <X size={14} />
+          </button>
         </div>
       )}
 

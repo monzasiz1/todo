@@ -679,6 +679,31 @@ export const api = {
 
   getNoteConnections: (noteId) => request(`/notes?id=${encodeURIComponent(noteId)}&view=connections`),
 
+  // ── Mindmap-Verbindungen (separater Endpoint) ─────────────────────────
+  // Liefert alle Connections fuer den eingeloggten User auf einmal.
+  listNoteConnections: () => request('/note-connections'),
+
+  addNoteConnection: (noteId1, noteId2, relationshipType = 'related') =>
+    request('/note-connections', {
+      method: 'POST',
+      body: JSON.stringify({
+        note_id_1: noteId1,
+        note_id_2: noteId2,
+        relationship_type: relationshipType,
+      }),
+    }),
+
+  removeNoteConnection: (noteId1, noteId2) =>
+    request('/note-connections', {
+      method: 'DELETE',
+      body: JSON.stringify({ note_id_1: noteId1, note_id_2: noteId2 }),
+    }),
+
+  removeNoteConnectionById: (connectionId) =>
+    request(`/note-connections?id=${encodeURIComponent(connectionId)}`, {
+      method: 'DELETE',
+    }),
+
   // Canvas Texts
   getCanvasTexts: () => request('/canvas-texts'),
   upsertCanvasText: (entry) =>

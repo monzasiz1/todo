@@ -38,6 +38,10 @@ export const useNotesStore = create((set, get) => ({
   error: null,
   lastFetchAt: 0,
 
+  // Mindmap-Verbindungen zwischen Notes (note_connections-Tabelle)
+  connections: [],
+  connectionsLoading: false,
+
   // Fetch notes from backend
   fetchNotes: async (options = {}) => {
     const now = Date.now();
@@ -295,6 +299,75 @@ export const useNotesStore = create((set, get) => ({
       return data?.connections || [];
     } catch (err) {
       return [];
+    }
+  },
+
+  // ──────────────────────────────────────────────────────────────────────
+  // Mindmap-Verbindungen (alle Connections auf dem Board)
+  // ──────────────────────────────────────────────────────────────────────
+  fetchConnections: async () => {
+    set({ connectionsLoading: true });
+    try {
+      const data = await api.listNoteConnections?.();
+      const connections = Array.isArray(data?.connections) ? data.connections : [];
+      set({ connections, connectionsLoading: false });
+      return connections;
+    } catch (err) {
+      console.warn('[notesStore] fetchConnections failed:', err?.message || err);
+      set({ connectionsLoading: false });
+      return get().connections;
+    }
+  },
+
+  addConnection: async (noteId1, noteId2, relationshipType = 'related') => {
+    if (!noteId1 || !noteId2 || String(noteId1) === String(noteId2)) return null;
+    try {
+      const data = await api.addNoteConnection?.(noteId1, noteId2, relationshipType);
+      const conn = data?.connection;
+      if (!conn) return null;
+
+      set((s) => {
+        // Doppelte vermeiden
+        const exists = s.connections.some(
+          (c) =>
+            String(c.id) === String(conn.id) ||
+            (String(c.note_id_1) === String(conn.note_id_1) &&
+              String(c.note_id_2) === String(conn.note_id_2))
+        );
+        return exists ? s : { connections: [...s.connections, conn] };
+      });
+      return conn;
+    } catch (err) {
+      set({ error: err.message });
+      throw err;
+    }
+  },
+
+  removeConnection: async (connectionOrPair) => {
+    try {
+      // Akzeptiert: { id } | { note_id_1, note_id_2 } | Connection-Objekt
+      if (connectionOrPair?.id) {
+        await api.removeNoteConnectionById?.(connectionOrPair.id);
+      } else if (connectionOrPair?.note_id_1 && connectionOrPair?.note_id_2) {
+        await api.removeNoteConnection?.(connectionOrPair.note_id_1, connectionOrPair.note_id_2);
+      } else {
+        return false;
+      }
+
+      set((s) => ({
+        connections: s.connections.filter((c) => {
+          if (connectionOrPair?.id) return String(c.id) !== String(connectionOrPair.id);
+          const a = String(connectionOrPair.note_id_1);
+          const b = String(connectionOrPair.note_id_2);
+          const ca = String(c.note_id_1);
+          const cb = String(c.note_id_2);
+          return !((ca === a && cb === b) || (ca === b && cb === a));
+        }),
+      }));
+      return true;
+    } catch (err) {
+      set({ error: err.message });
+      throw err;
     }
   },
 
