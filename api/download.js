@@ -6,9 +6,9 @@ export default async function handler(req, res) {
 
   // GitHub Release URLs
   const downloads = {
-    windows: 'https://github.com/monzasiz1/todo/releases/latest/download/BeeQu-Setup-1.0.0.exe',
-    'windows-portable': 'https://github.com/monzasiz1/todo/releases/latest/download/BeeQu-1.0.0.exe',
-    macos: 'https://github.com/monzasiz1/todo/releases/latest/download/BeeQu-1.0.0.dmg',
+    windows: 'https://github.com/monzasiz1/todo/releases/download/v1.0.0/BeeQu-Setup-1.0.0.exe',
+    'windows-portable': 'https://github.com/monzasiz1/todo/releases/download/v1.0.0/BeeQu-1.0.0.exe',
+    macos: 'https://github.com/monzasiz1/todo/releases/download/v1.0.0/BeeQu-1.0.0.dmg',
   };
 
   const url = downloads[platform];
