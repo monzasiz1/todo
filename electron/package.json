@@ -19,7 +19,7 @@
     "appId": "de.beequ.app",
     "productName": "BeeQu",
     "copyright": "Copyright © 2026 BeeQu",
-    "icon": "icon",
+    "icon": "icon.png",
     "asar": true,
     "directories": {
       "output": "dist"
@@ -27,9 +27,7 @@
     "files": [
       "main.js",
       "preload.js",
-      "icon.png",
-      "icon.ico",
-      "icon.icns"
+      "icon.png"
     ],
     "win": {
       "target": [
@@ -42,7 +40,7 @@
           "arch": ["x64"]
         }
       ],
-      "icon": "icon.ico",
+      "icon": "icon.png",
       "publisherName": "BeeQu",
       "verifyUpdateCodeSignature": false
     },
@@ -53,7 +51,7 @@
           "arch": ["x64", "arm64"]
         }
       ],
-      "icon": "icon.icns",
+      "icon": "icon.png",
       "category": "public.app-category.productivity",
       "darkModeSupport": true,
       "hardenedRuntime": false,
@@ -64,10 +62,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "BeeQu",
-      "installerIcon": "icon.ico",
-      "uninstallerIcon": "icon.ico",
-      "installerHeaderIcon": "icon.ico"
+      "shortcutName": "BeeQu"
     },
     "dmg": {
       "title": "BeeQu Installer",
