@@ -1,5 +1,6 @@
 const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
+const { sendPushToUser } = require('./_lib/pushService');
 
 let schemaReady = false;
 async function ensureSchema(pool) {
@@ -41,6 +42,24 @@ module.exports = async function handler(req, res) {
 
   // GET /api/focus-timer -> aktiver (jüngster, nicht-gefeuerter) Timer
   if (req.method === 'GET') {
+    // Diagnose: ?test=fire schickt sofort einen Test-Push an den eingeloggten User
+    if ((req.query?.test || '').toString() === 'fire') {
+      try {
+        const sent = await sendPushToUser(
+          user.id,
+          {
+            title: 'Test-Push: Fokus-Timer',
+            body: 'Wenn du das siehst, funktioniert Push-Delivery aus dem Backend.',
+            url: '/',
+          },
+          'focus_timer'
+        );
+        return res.json({ ok: true, pushed: sent });
+      } catch (err) {
+        console.error('[focus-timer] test push failed:', err);
+        return res.status(500).json({ error: 'Test-Push fehlgeschlagen', details: err.message });
+      }
+    }
     try {
       const { rows } = await pool.query(
         `SELECT id, ends_at, duration_sec, label, fired, created_at

@@ -50,6 +50,61 @@ module.exports = async function handler(req, res) {
     return prefs[type] !== false;
   }
 
+  // ─── 0. Focus-Timer abgelaufen (LAEUFT ZUERST, damit ein langsamer
+  //         Reminder-Block keine zeitkritischen Pushes verzoegert) ───────
+  async function processFocusTimers() {
+    try {
+      const { rows: ftExists } = await pool.query(
+        `SELECT 1 FROM information_schema.tables
+         WHERE table_name = 'focus_timers' LIMIT 1`
+      );
+      if (ftExists.length === 0) return;
+
+      const { rows: dueTimers } = await pool.query(
+        `SELECT id, user_id, duration_sec, label, ends_at
+         FROM focus_timers
+         WHERE fired = FALSE AND ends_at <= NOW()
+         ORDER BY ends_at ASC
+         LIMIT 200`
+      );
+      console.log(`[cron] focus-timer: ${dueTimers.length} due timer(s) to process`);
+
+      for (const t of dueTimers) {
+        const { rowCount } = await pool.query(
+          `UPDATE focus_timers SET fired = TRUE WHERE id = $1 AND fired = FALSE`,
+          [t.id]
+        );
+        if (rowCount === 0) continue;
+
+        const minutes = Math.max(1, Math.round((t.duration_sec || 0) / 60));
+        const label = t.label && t.label.trim() ? t.label.trim() : null;
+        // Schlankes Payload + KEIN tag (iOS coalesciert sonst u.U. weg)
+        await sendPushToUser(
+          t.user_id,
+          {
+            title: 'Fokus-Timer abgelaufen',
+            body: label
+              ? `${label} – ${minutes} Min sind um. Gut gemacht!`
+              : `Deine ${minutes}-Minuten-Session ist vorbei. Gut gemacht!`,
+            url: '/',
+          },
+          'focus_timer'
+        );
+        console.log(`[cron] focus-timer push sent for user ${t.user_id}, timer ${t.id}`);
+        results.focusTimers++;
+      }
+
+      await pool
+        .query(`DELETE FROM focus_timers WHERE fired = TRUE AND ends_at < NOW() - INTERVAL '1 hour'`)
+        .catch(() => null);
+    } catch (focusErr) {
+      console.error('[cron] focus-timer block failed:', focusErr.message);
+    }
+  }
+
+  // ZUERST: zeitkritische Focus-Timer-Pushes verschicken
+  await processFocusTimers();
+
   try {
     // ─── 1. Termin-Erinnerungen ─────────────────────────────────────────────
     // Events: always 5h before start
@@ -228,56 +283,8 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    // ─── 5. Focus-Timer abgelaufen ─────────────────────────────────────────
-    // Tabelle wird beim ersten Aufruf von /api/focus-timer.js erzeugt; wir
-    // greifen nur zu, wenn sie existiert, sonst still ueberspringen.
-    try {
-      const { rows: ftExists } = await pool.query(
-        `SELECT 1 FROM information_schema.tables
-         WHERE table_name = 'focus_timers' LIMIT 1`
-      );
-      if (ftExists.length > 0) {
-        const { rows: dueTimers } = await pool.query(
-          `SELECT id, user_id, duration_sec, label, ends_at
-           FROM focus_timers
-           WHERE fired = FALSE AND ends_at <= NOW()
-           ORDER BY ends_at ASC
-           LIMIT 200`
-        );
-        for (const t of dueTimers) {
-          // Atomar als gefeuert markieren, sodass paralleler Cron-Run nicht doppelt sendet
-          const { rowCount } = await pool.query(
-            `UPDATE focus_timers SET fired = TRUE WHERE id = $1 AND fired = FALSE`,
-            [t.id]
-          );
-          if (rowCount === 0) continue;
-
-          const minutes = Math.max(1, Math.round((t.duration_sec || 0) / 60));
-          const label = t.label && t.label.trim() ? t.label.trim() : null;
-          await sendPushToUser(
-            t.user_id,
-            {
-              title: '⏰ Fokus-Timer abgelaufen',
-              body: label
-                ? `${label} - ${minutes} Min sind um. Gut gemacht!`
-                : `Deine ${minutes}-Minuten-Session ist vorbei. Gut gemacht!`,
-              tag: `focus-timer-${t.id}`,
-              url: '/',
-            },
-            'focus_timer'
-          );
-
-          results.focusTimers++;
-        }
-
-        // Aufraeumen: gefeuerte Eintraege > 1h alt loeschen (best-effort)
-        await pool
-          .query(`DELETE FROM focus_timers WHERE fired = TRUE AND ends_at < NOW() - INTERVAL '1 hour'`)
-          .catch(() => null);
-      }
-    } catch (focusErr) {
-      console.error('[cron] focus-timer block failed:', focusErr.message);
-    }
+    // ─── 5. Focus-Timer ────────────────────────────────────────────────────
+    // Bereits ZUERST oben ueber processFocusTimers() verarbeitet (zeitkritisch).
 
     return res.json({ success: true, results });
   } catch (err) {
