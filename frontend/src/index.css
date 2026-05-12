@@ -6324,7 +6324,13 @@ body.cal-is-dragging * {
   }
 
   .dashboard-page .dash-section-list {
-    padding: 0 12px 12px;
+    padding: 0 0 12px;
+  }
+
+  .dashboard-page .dash-section-list .task-card {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
   }
 
   .dashboard-page .smart-insights-head {
