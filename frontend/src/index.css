@@ -7546,7 +7546,6 @@ body.cal-is-dragging * {
   .task-detail-main {
     overflow-y: auto;
     overflow-x: hidden;
-    border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
     min-height: 0;
@@ -7559,14 +7558,18 @@ body.cal-is-dragging * {
     overflow-x: hidden;
     display: flex;
     flex-direction: column;
-    background: var(--bg);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--bg) 70%, var(--card-solid)), var(--bg));
+    border-left: 1px solid var(--border);
     min-height: 0;
     scrollbar-width: thin;
     scrollbar-color: rgba(0,0,0,0.12) transparent;
   }
 
   .task-detail-aside .task-detail-section {
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  }
+  .task-detail-aside .task-detail-section:last-child {
+    border-bottom: none;
   }
 
   .task-detail-comments-section {
@@ -7587,8 +7590,9 @@ body.cal-is-dragging * {
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--text-tertiary);
-    padding: 14px 18px 8px;
-    border-bottom: 1px solid var(--border);
+    padding: 16px 20px 10px;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+    margin-bottom: 0;
   }
 
   .task-detail-aside .task-detail-section {
@@ -7596,8 +7600,8 @@ body.cal-is-dragging * {
   }
 
   .task-detail-aside .task-detail-section > *:not(.task-detail-description-header) {
-    padding-left: 18px;
-    padding-right: 18px;
+    padding-left: 20px;
+    padding-right: 20px;
   }
 }
 
