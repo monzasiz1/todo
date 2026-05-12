@@ -1223,12 +1223,20 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
               </button>
             ))}
 
-            <AnimatePresence>
+            <AnimatePresence initial={false}>
               {showSharePanel && canManageShare && (
                 <motion.div className="shr-panel"
-                  initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22 }} style={{ overflow: 'hidden' }}>
-                  {shareLoading ? <div className="shr-loading">Lädt…</div> : (
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}>
+                  {shareLoading ? (
+                    <div className="shr-panel-inner shr-panel-skeleton">
+                      <div className="shr-skel shr-skel-tiles" />
+                      <div className="shr-skel shr-skel-line" />
+                      <div className="shr-skel shr-skel-line short" />
+                    </div>
+                  ) : (
                     <div className="shr-panel-inner">
 
                       {/* Sichtbarkeit: 3 Kacheln – nur für Besitzer */}

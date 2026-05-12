@@ -10979,6 +10979,23 @@ body.cal-is-dragging * {
   font-size: 12px;
 }
 
+.shr-panel-skeleton {
+  min-height: 168px;
+}
+.shr-skel {
+  border-radius: 10px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--bg) 80%, var(--card-solid)) 0%, color-mix(in srgb, var(--card-solid) 85%, var(--bg)) 50%, color-mix(in srgb, var(--bg) 80%, var(--card-solid)) 100%);
+  background-size: 200% 100%;
+  animation: shr-skel-shimmer 1.2s ease-in-out infinite;
+}
+.shr-skel-tiles { height: 64px; }
+.shr-skel-line  { height: 14px; }
+.shr-skel-line.short { width: 60%; }
+@keyframes shr-skel-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 .shr-panel-inner {
   padding: 14px 14px 14px;
   display: flex;
