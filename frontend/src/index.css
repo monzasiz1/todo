@@ -7207,10 +7207,6 @@ body.cal-is-dragging * {
     display: block;
   }
 
-  .sidebar-notif-row {
-    display: none;
-  }
-
   /* Hauptinhalt ohne Sidebar-Margin, kein Bottom-Nav-Abstand */
   .app-main {
     margin-left: 0 !important;
@@ -20128,7 +20124,9 @@ body.cal-is-dragging * {
 
 /* Portal-rendered dropdown needs no sidebar-specific overrides */
 
-@media (max-width: 768px) {
+/* Mobile + Tablet: Bell ist bereits im Top-Header (.mobile-header) →
+   in der ausklappbaren Sidebar ausblenden, sonst doppelt vorhanden. */
+@media (max-width: 1024px) {
   .sidebar-notif-row { display: none; }
 }
 
