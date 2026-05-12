@@ -4,6 +4,7 @@ import { useTaskStore } from '../store/taskStore';
 import AIInput from '../components/AIInput';
 import ManualTaskForm from '../components/ManualTaskForm';
 import TaskCard from '../components/TaskCard';
+import FocusTimer from '../components/FocusTimer';
 import { CheckCircle2, Circle, Clock, ChevronDown, CalendarDays, AlertTriangle, Target, Plus, X, ChevronsDown, Flame, Zap, TrendingUp, CheckCheck, Coffee, Sunset, Moon } from 'lucide-react';
 import { isToday, isTomorrow, isThisWeek, isPast, parseISO, format, startOfDay, compareAsc } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -661,6 +662,7 @@ export default function Dashboard() {
             <span className="smart-insights-meta">Woche: {weekCompletionRate}%</span>
           </div>
         </div>
+        <FocusTimer />
         <div className="smart-insights-list">
           {insights.map((item) => {
             const Icon = item.icon;
