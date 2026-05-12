@@ -29239,6 +29239,17 @@ body.focus-timer-modal-open .bottom-nav {
   inset: 0;
   width: 100%;
   height: 100%;
+  overflow: visible;
+}
+
+.focus-timer-pin-ring-progress {
+  transition: stroke-dashoffset 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: drop-shadow(0 0 3px rgba(34, 211, 238, 0.55));
+}
+
+.focus-timer-pin.is-paused .focus-timer-pin-ring-progress {
+  filter: drop-shadow(0 0 2px rgba(245, 158, 11, 0.45));
+  opacity: 0.85;
 }
 
 .focus-timer-pin-icon {

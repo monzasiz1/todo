@@ -40,7 +40,7 @@ export default function FocusTimerPin({ variant = 'desktop' }) {
     const id = window.setInterval(() => {
       setState(loadState());
       setNow(Date.now());
-    }, 1000);
+    }, 250);
     const onStorage = (e) => {
       if (e.key === LS_KEY) setState(loadState());
     };
@@ -96,17 +96,24 @@ export default function FocusTimerPin({ variant = 'desktop' }) {
     return Math.max(0, Math.round((state.endsAt - now) / 1000));
   }, [state, now]);
 
+  // Hochaufloesender Fortschritt (Millisekunden-genau) fuer eine
+  // butterweiche Ring-Animation entlang der Uhr.
   const progress = useMemo(() => {
     if (!state || !state.durationSec) return 0;
-    return 1 - Math.min(1, Math.max(0, remainingSec / state.durationSec));
-  }, [state, remainingSec]);
+    if (state.paused) {
+      const remMs = (state.remainingAtPauseSec || 0) * 1000;
+      return 1 - Math.min(1, Math.max(0, remMs / (state.durationSec * 1000)));
+    }
+    const remMs = state.endsAt - now;
+    return 1 - Math.min(1, Math.max(0, remMs / (state.durationSec * 1000)));
+  }, [state, now]);
 
   const isActive = !!state && (state.paused || remainingSec > 0);
   // Header variant ist immer sichtbar, wenn Timer aktiv ist; Desktop-Pin
   // versteckt sich, sobald die grosse Card im Viewport ist.
   const visible = isActive && (variant === 'header' || !cardVisible);
 
-  const RADIUS = 14;
+  const RADIUS = 15;
   const STROKE = 3;
   const C = 2 * Math.PI * RADIUS;
 
@@ -135,8 +142,9 @@ export default function FocusTimerPin({ variant = 'desktop' }) {
         >
           <span className="focus-timer-pin-ring">
             <svg viewBox="0 0 36 36" aria-hidden="true">
-              <circle cx="18" cy="18" r={RADIUS} fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth={STROKE} />
+              <circle cx="18" cy="18" r={RADIUS} fill="none" stroke="rgba(148,163,184,0.22)" strokeWidth={STROKE} />
               <circle
+                className="focus-timer-pin-ring-progress"
                 cx="18"
                 cy="18"
                 r={RADIUS}
