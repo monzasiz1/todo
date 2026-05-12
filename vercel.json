@@ -1,0 +1,61 @@
+{
+  "buildCommand": "npm install && cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/dist",
+  "installCommand": "npm install",
+  "functions": {
+    "api/auth.js": {
+      "includeFiles": "node_modules/{nodemailer,otplib}/**"
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/notifications",
+      "schedule": "*/1 * * * *"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
+    },
+    {
+      "source": "/manifest.json",
+      "headers": [
+        { "key": "Content-Type", "value": "application/manifest+json" }
+      ]
+    }
+  ],
+  "routes": [
+    { "src": "/api/auth/(.*)", "dest": "/api/auth.js?__path=$1" },
+    { "src": "/api/tasks/(.*)", "dest": "/api/tasks.js?__path=$1" },
+    { "src": "/api/ai/(.*)", "dest": "/api/ai.js?__path=$1" },
+    { "src": "/api/categories/(.*)", "dest": "/api/categories.js?__path=$1" },
+    { "src": "/api/friends/(.*)", "dest": "/api/friends.js?__path=$1" },
+    { "src": "/api/friends", "dest": "/api/friends.js?__path=" },
+    { "src": "/api/profile/(.*)", "dest": "/api/profile.js?__path=$1" },
+    { "src": "/api/profile", "dest": "/api/profile.js?__path=" },
+    { "src": "/api/permissions/(.*)", "dest": "/api/permissions.js?__path=$1" },
+    { "src": "/api/groups/(.*)", "dest": "/api/groups.js?__path=$1" },
+    { "src": "/api/groups", "dest": "/api/groups.js?__path=" },
+    { "src": "/api/notifications/(.*)", "dest": "/api/notifications.js?__path=$1" },
+    { "src": "/api/notifications", "dest": "/api/notifications.js?__path=" },
+    { "src": "/api/notes/(.*)", "dest": "/api/notes.js?__path=$1" },
+    { "src": "/api/notes", "dest": "/api/notes.js?__path=" },
+    { "src": "/api/canvas-texts/(.*)", "dest": "/api/canvas-texts.js?__path=$1" },
+    { "src": "/api/canvas-texts", "dest": "/api/canvas-texts.js?__path=" },
+    { "src": "/api/help/(.*)", "dest": "/api/help.js?__path=$1" },
+    { "src": "/api/attachments/(.*)", "dest": "/api/attachments.js?__path=$1" },
+    { "src": "/api/plans/(.*)", "dest": "/api/plans.js?__path=$1" },
+    { "src": "/api/plans", "dest": "/api/plans.js?__path=" },
+    { "src": "/api/teams/(.*)", "dest": "/api/teams.js?__path=$1" },
+    { "src": "/api/teams", "dest": "/api/teams.js?__path=" },
+    { "src": "/api/cron/notifications", "dest": "/api/cron/notifications.js" },
+    { "src": "/assets/(.*)", "dest": "/assets/$1" },
+    { "src": "/(.*\\.(js|css|map|json|ico|png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf))", "dest": "/$1" },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
+}

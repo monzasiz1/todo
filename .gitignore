@@ -1,0 +1,27 @@
+node_modules/
+.env
+.env.local
+dist/
+.vercel/
+*.log
+.DS_Store
+Thumbs.db
+
+# Electron Build-Outputs
+electron/dist/
+electron/node_modules/
+*.exe
+*.dmg
+*.msi
+*.deb
+*.rpm
+*.AppImage
+
+# Sensible Dateien
+*.key
+*.pem
+*.p12
+*.pfx
+.claude/
+.cursor/
+.vscode/

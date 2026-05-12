@@ -1,0 +1,7 @@
+SUPABASE SQL BEFEHLE:
+
+2FA ENTFERNEN:
+
+UPDATE users
+SET twofa_enabled = FALSE, twofa_secret = NULL
+WHERE email = 'm.altmayer@web.de';

@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thoughts Board - Interactive Notes Canvas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* CSS Variables - Design System */
+        :root {
+            --bg-primary: #f8f8f8;
+            --bg-secondary: #ffffff;
+            --card-bg: rgba(255, 255, 255, 0.7);
+            --card-border: rgba(255, 255, 255, 0.2);
+            --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --card-shadow-hover: 0 20px 40px rgba(0, 0, 0, 0.15);
+            --text-primary: #1a1a1a;
+            --text-secondary: #8a8a8a;
+            --text-tertiary: #4a4a4a;
+            --accent-high: #FF9500;
+            --accent-medium: #007AFF;
+            --accent-low: #c7c7cc;
+            --connection-line: rgba(229, 229, 234, 0.6);
+            --border-radius: 20px;
+            --transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-fast: 150ms;
+            --transition-normal: 200ms;
+            --transition-slow: 350ms;
+        }
+
+        /* Reset & Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-primary);
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 32px;
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            z-index: 100;
+            flex-shrink: 0;
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            color: var(--text-primary);
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-normal) var(--transition-timing);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-high), #FF7500);
+            color: white;
+            box-shadow: 0 4px 12px rgba(255, 149, 0, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 149, 0, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.5);
+            color: var(--text-primary);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.7);
+            transform: translateY(-1px);
+        }
+
+        /* Canvas */
+        .canvas {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+        }
+
+        .canvas-inner {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-origin: 0 0;
+            will-change: transform;
+        }
+
+        /* SVG for Connection Lines */
+        .connection-lines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        /* Note Card */
+        .note-card {
+            position: absolute;
+            width: 320px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            backdrop-filter: blur(20px);
+            box-shadow: var(--card-shadow);
+            cursor: grab;
+            transition: all var(--transition-normal) var(--transition-timing);
+            z-index: 10;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 140px;
+        }
+
+        .note-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--card-shadow-hover);
+        }
+
+        .note-card.dragging {
+            z-index: 50;
+            opacity: 0.95;
+            cursor: grabbing;
+        }
+
+        .note-card.high-priority {
+            border-color: rgba(255, 149, 0, 0.3);
+            box-shadow: 0 10px 30px rgba(255, 149, 0, 0.15), var(--card-shadow);
+        }
+
+        .note-card.high-priority:hover {
+            box-shadow: 0 10px 30px rgba(255, 149, 0, 0.25), var(--card-shadow-hover);
+        }
+
+        .note-card.medium-priority {
+            border-color: rgba(0, 122, 255, 0.2);
+            box-shadow: 0 10px 30px rgba(0, 122, 255, 0.1), var(--card-shadow);
+        }
+
+        .note-card.medium-priority:hover {
+            box-shadow: 0 10px 30px rgba(0, 122, 255, 0.15), var(--card-shadow-hover);
+        }
+
+        /* Card Content */
+        .card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            flex: 1;
+            word-break: break-word;
+            line-height: 1.3;
+        }
+
+        .card-importance {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .importance-high {
+            background: rgba(255, 149, 0, 0.15);
+            color: var(--accent-high);
+        }
+
+        .importance-medium {
+            background: rgba(0, 122, 255, 0.15);
+            color: var(--accent-medium);
+        }
+
+        .importance-low {
+            background: rgba(199, 199, 204, 0.15);
+            color: var(--accent-low);
+        }
+
+        .card-content {
+            flex: 1;
+            font-size: 14px;
+            font-weight: 400;
+            color: var(--text-tertiary);
+            line-height: 1.5;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            word-break: break-word;
+        }
+
+        .card-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-top: auto;
+            padding-top: 12px;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .card-date {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            letter-spacing: 0.3px;
+            opacity: 0.8;
+        }
+
+        .card-date.urgent {
+            animation: pulse-glow 2s ease-in-out infinite;
+            color: var(--accent-high);
+            font-weight: 600;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .card-action-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            border: none;
+            background: rgba(0, 0, 0, 0.05);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all var(--transition-fast) var(--transition-timing);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .card-action-btn:hover {
+            background: rgba(0, 0, 0, 0.1);
+            color: var(--text-primary);
+            transform: scale(1.1);
+        }
+
+        /* Empty State */
+        .empty-state {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .empty-state-text {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .empty-state-subtext {
+            font-size: 14px;
+            color: var(--text-secondary);
+            opacity: 0.7;
+        }
+
+        /* Modals */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0);
+            backdrop-filter: blur(0px);
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: all var(--transition-normal) var(--transition-timing);
+        }
+
+        .modal-overlay.active {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(5px);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            position: fixed;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--border-radius);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            z-index: 210;
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.9);
+            pointer-events: none;
+            transition: all var(--transition-slow) var(--transition-timing);
+        }
+
+        .modal.active {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+            pointer-events: auto;
+        }
+
+        /* Quick Create Modal */
+        .modal-quick-create {
+            top: 50%;
+            left: 50%;
+            width: 90%;
+            max-width: 420px;
+            padding: 32px;
+        }
+
+        .modal-header {
+            margin-bottom: 24px;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .modal-subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+            font-weight: 400;
+            color: var(--text-primary);
+            font-family: inherit;
+            transition: all var(--transition-fast) var(--transition-timing);
+        }
+
+        .form-input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.8);
+            border-color: var(--accent-medium);
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+        }
+
+        textarea.form-input {
+            resize: none;
+            min-height: 100px;
+        }
+
+        .importance-selector {
+            display: flex;
+            gap: 12px;
+        }
+
+        .importance-option {
+            flex: 1;
+            position: relative;
+        }
+
+        .importance-option input {
+            display: none;
+        }
+
+        .importance-option label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 16px 12px;
+            border: 2px solid var(--card-border);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            transition: all var(--transition-fast) var(--transition-timing);
+            font-size: 24px;
+        }
+
+        .importance-option input:checked + label {
+            border-color: currentColor;
+            background: rgba(255, 255, 255, 0.7);
+            transform: scale(1.05);
+        }
+
+        .importance-option.high input:checked + label {
+            color: var(--accent-high);
+            border-color: var(--accent-high);
+        }
+
+        .importance-option.medium input:checked + label {
+            color: var(--accent-medium);
+            border-color: var(--accent-medium);
+        }
+
+        .importance-option.low input:checked + label {
+            color: var(--accent-low);
+            border-color: var(--accent-low);
+        }
+
+        .importance-label {
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            color: var(--text-secondary);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 28px;
+        }
+
+        .btn-full {
+            flex: 1;
+            padding: 12px 16px;
+        }
+
+        .btn-cancel {
+            background: rgba(0, 0, 0, 0.05);
+            color: var(--text-primary);
+        }
+
+        .btn-cancel:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        /* Expand Modal */
+        .modal-expand {
+            top: 50%;
+            left: 50%;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 32px;
+        }
+
+        .modal-expand .modal-actions {
+            position: sticky;
+            bottom: 0;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            margin: 28px -32px -32px -32px;
+            padding: 20px 32px;
+            border-top: 1px solid var(--card-border);
+        }
+
+        .rich-text-toolbar {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .toolbar-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: none;
+            background: rgba(0, 0, 0, 0.05);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all var(--transition-fast) var(--transition-timing);
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .toolbar-btn:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .toolbar-btn.active {
+            background: var(--accent-medium);
+            color: white;
+        }
+
+        .date-picker-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        .date-input-wrapper {
+            flex: 1;
+        }
+
+        .date-input-wrapper input {
+            cursor: pointer;
+        }
+
+        /* Staggered Animation */
+        @keyframes cardEntry {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .note-card {
+            animation: cardEntry var(--transition-slow) var(--transition-timing);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header {
+                padding: 16px 16px;
+            }
+
+            .note-card {
+                width: 280px;
+            }
+
+            .modal-quick-create,
+            .modal-expand {
+                width: 95%;
+                padding: 24px;
+            }
+
+            .modal-expand .modal-actions {
+                margin: 24px -24px -24px -24px;
+                padding: 16px 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <h1 class="header-title">Thoughts</h1>
+        <div class="header-controls">
+            <button class="btn btn-secondary" id="btn-zoom-out" title="Zoom Out">−</button>
+            <button class="btn btn-secondary" id="btn-zoom-reset" title="Reset View">Reset</button>
+            <button class="btn btn-secondary" id="btn-zoom-in" title="Zoom In">+</button>
+            <button class="btn btn-primary" id="btn-new-note">
+                <span>✨</span>
+                <span>Neue Note</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Canvas -->
+    <div class="canvas" id="canvas">
+        <div class="canvas-inner" id="canvas-inner">
+            <svg class="connection-lines" id="connection-lines"></svg>
+            <div class="empty-state" id="empty-state">
+                <div class="empty-state-icon">📝</div>
+                <div class="empty-state-text">Keine Notizen yet</div>
+                <div class="empty-state-subtext">Klick auf „Neue Note" um zu starten</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal-overlay" id="modal-overlay"></div>
+
+    <!-- Quick Create Modal -->
+    <div class="modal modal-quick-create" id="modal-quick-create">
+        <div class="modal-header">
+            <h2 class="modal-title">Neue Note</h2>
+            <p class="modal-subtitle">Füge einen neuen Gedanken hinzu</p>
+        </div>
+        <form id="form-quick-create">
+            <div class="form-group">
+                <label class="form-label">Titel</label>
+                <input type="text" class="form-input" id="input-title" placeholder="Notiz-Titel..." maxlength="100" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Inhalt</label>
+                <textarea class="form-input" id="input-content" placeholder="Deine Gedanken hier..." maxlength="500"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Priorität</label>
+                <div class="importance-selector">
+                    <div class="importance-option high">
+                        <input type="radio" name="importance" id="importance-high" value="high">
+                        <label for="importance-high">
+                            <span>⭐</span>
+                            <span class="importance-label">Wichtig</span>
+                        </label>
+                    </div>
+                    <div class="importance-option medium">
+                        <input type="radio" name="importance" id="importance-medium" value="medium" checked>
+                        <label for="importance-medium">
+                            <span>●</span>
+                            <span class="importance-label">Normal</span>
+                        </label>
+                    </div>
+                    <div class="importance-option low">
+                        <input type="radio" name="importance" id="importance-low" value="low">
+                        <label for="importance-low">
+                            <span>−</span>
+                            <span class="importance-label">Niedrig</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Fälligkeitsdatum (optional)</label>
+                <input type="date" class="form-input" id="input-date">
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-cancel btn-full" id="btn-close-create">Abbrechen</button>
+                <button type="submit" class="btn btn-primary btn-full">Erstelle Note</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Expand Modal -->
+    <div class="modal modal-expand" id="modal-expand">
+        <div class="modal-header">
+            <h2 class="modal-title">Note bearbeiten</h2>
+        </div>
+        <form id="form-expand">
+            <div class="form-group">
+                <label class="form-label">Titel</label>
+                <input type="text" class="form-input" id="expand-title" placeholder="Notiz-Titel..." maxlength="100" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Inhalt</label>
+                <div class="rich-text-toolbar">
+                    <button type="button" class="toolbar-btn" id="btn-bold" title="Bold">B</button>
+                    <button type="button" class="toolbar-btn" id="btn-italic" title="Italic">I</button>
+                    <button type="button" class="toolbar-btn" id="btn-underline" title="Underline">U</button>
+                </div>
+                <textarea class="form-input" id="expand-content" placeholder="Deine Gedanken hier..." maxlength="2000" style="min-height: 150px;"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Priorität</label>
+                <div class="importance-selector">
+                    <div class="importance-option high">
+                        <input type="radio" name="expand-importance" id="expand-importance-high" value="high">
+                        <label for="expand-importance-high">
+                            <span>⭐</span>
+                            <span class="importance-label">Wichtig</span>
+                        </label>
+                    </div>
+                    <div class="importance-option medium">
+                        <input type="radio" name="expand-importance" id="expand-importance-medium" value="medium" checked>
+                        <label for="expand-importance-medium">
+                            <span>●</span>
+                            <span class="importance-label">Normal</span>
+                        </label>
+                    </div>
+                    <div class="importance-option low">
+                        <input type="radio" name="expand-importance" id="expand-importance-low" value="low">
+                        <label for="expand-importance-low">
+                            <span>−</span>
+                            <span class="importance-label">Niedrig</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Fälligkeitsdatum (optional)</label>
+                <input type="date" class="form-input" id="expand-date">
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-cancel btn-full" id="btn-close-expand">Abbrechen</button>
+                <button type="button" class="btn btn-cancel btn-full" id="btn-delete-note" style="color: #FF3B30;">Löschen</button>
+                <button type="submit" class="btn btn-primary btn-full">Speichern</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // ============================================
+        // STATE MANAGEMENT
+        // ============================================
+        const state = {
+            notes: [],
+            connections: [],
+            nextId: 1,
+            zoom: 1,
+            canvasOffsetX: 0,
+            canvasOffsetY: 0,
+            currentEditingId: null,
+            selectedNoteForConnection: null,
+        };
+
+        // ============================================
+        // DOM ELEMENTS
+        // ============================================
+        const elements = {
+            canvas: document.getElementById('canvas'),
+            canvasInner: document.getElementById('canvas-inner'),
+            connectionLines: document.getElementById('connection-lines'),
+            emptyState: document.getElementById('empty-state'),
+            modalOverlay: document.getElementById('modal-overlay'),
+            modalQuickCreate: document.getElementById('modal-quick-create'),
+            formQuickCreate: document.getElementById('form-quick-create'),
+            modalExpand: document.getElementById('modal-expand'),
+            formExpand: document.getElementById('form-expand'),
+            btnNewNote: document.getElementById('btn-new-note'),
+            btnCloseCreate: document.getElementById('btn-close-create'),
+            btnCloseExpand: document.getElementById('btn-close-expand'),
+            btnDeleteNote: document.getElementById('btn-delete-note'),
+            btnZoomIn: document.getElementById('btn-zoom-in'),
+            btnZoomOut: document.getElementById('btn-zoom-out'),
+            btnZoomReset: document.getElementById('btn-zoom-reset'),
+        };
+
+        // ============================================
+        // UTILITY FUNCTIONS
+        // ============================================
+        function generateId() {
+            return `note-${state.nextId++}`;
+        }
+
+        function getRandomPosition() {
+            return {
+                x: Math.random() * 600 - 300,
+                y: Math.random() * 400 - 200,
+            };
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return null;
+            const date = new Date(dateString);
+            return date.toLocaleDateString('de-DE', { month: 'short', day: 'numeric' });
+        }
+
+        function isDateUrgent(dateString) {
+            if (!dateString) return false;
+            const date = new Date(dateString);
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            return date <= tomorrow && date >= today;
+        }
+
+        function findNote(id) {
+            return state.notes.find(note => note.id === id);
+        }
+
+        function updateEmptyState() {
+            elements.emptyState.style.display = state.notes.length === 0 ? 'block' : 'none';
+        }
+
+        // ============================================
+        // MODAL MANAGEMENT
+        // ============================================
+        function openModal(modal) {
+            elements.modalOverlay.classList.add('active');
+            modal.classList.add('active');
+        }
+
+        function closeModal(modal) {
+            elements.modalOverlay.classList.remove('active');
+            modal.classList.remove('active');
+        }
+
+        function closeAllModals() {
+            closeModal(elements.modalQuickCreate);
+            closeModal(elements.modalExpand);
+        }
+
+        elements.modalOverlay.addEventListener('click', closeAllModals);
+
+        elements.btnNewNote.addEventListener('click', () => {
+            elements.formQuickCreate.reset();
+            document.getElementById('importance-medium').checked = true;
+            openModal(elements.modalQuickCreate);
+        });
+
+        elements.btnCloseCreate.addEventListener('click', closeAllModals);
+        elements.btnCloseExpand.addEventListener('click', closeAllModals);
+
+        // ============================================
+        // NOTE CARD RENDERING
+        // ============================================
+        function createNoteElement(noteData) {
+            const card = document.createElement('div');
+            card.className = `note-card ${noteData.importance}-priority`;
+            card.id = noteData.id;
+            card.style.left = noteData.x + 'px';
+            card.style.top = noteData.y + 'px';
+
+            const importanceIcons = {
+                high: '⭐',
+                medium: '●',
+                low: '−'
+            };
+
+            const dateDisplay = noteData.date ? formatDate(noteData.date) : '';
+            const isUrgent = isDateUrgent(noteData.date);
+
+            card.innerHTML = `
+                <div class="card-header">
+                    <div class="card-title">${escapeHtml(noteData.title)}</div>
+                    <div class="card-importance importance-${noteData.importance}">
+                        ${importanceIcons[noteData.importance]}
+                    </div>
+                </div>
+                <div class="card-content">${escapeHtml(noteData.content)}</div>
+                <div class="card-footer">
+                    ${dateDisplay ? `<div class="card-date ${isUrgent ? 'urgent' : ''}">${dateDisplay}</div>` : '<div></div>'}
+                    <div class="card-actions">
+                        <button class="card-action-btn card-btn-expand" title="Bearbeiten">✎</button>
+                        <button class="card-action-btn card-btn-connect" title="Verbinden">🔗</button>
+                        <button class="card-action-btn card-btn-share" title="Teilen">↗</button>
+                    </div>
+                </div>
+            `;
+
+            // Event listeners
+            card.addEventListener('mousedown', (e) => handleCardMouseDown(e, noteData.id));
+            card.querySelector('.card-btn-expand').addEventListener('click', (e) => {
+                e.stopPropagation();
+                openExpandModal(noteData.id);
+            });
+            card.querySelector('.card-btn-connect').addEventListener('click', (e) => {
+                e.stopPropagation();
+                console.log('Connect:', noteData.id);
+            });
+            card.querySelector('.card-btn-share').addEventListener('click', (e) => {
+                e.stopPropagation();
+                console.log('Share:', noteData.id);
+            });
+
+            return card;
+        }
+
+        function renderAllNotes() {
+            // Remove old cards
+            document.querySelectorAll('.note-card').forEach(card => card.remove());
+
+            // Add new cards
+            state.notes.forEach(note => {
+                const card = createNoteElement(note);
+                elements.canvasInner.appendChild(card);
+            });
+
+            updateEmptyState();
+            drawConnectionLines();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ============================================
+        // DRAG & DROP
+        // ============================================
+        let draggedCard = null;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let cardStartX = 0;
+        let cardStartY = 0;
+
+        function handleCardMouseDown(e, noteId) {
+            if (e.button !== 0) return; // Left click only
+
+            draggedCard = noteId;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+
+            const note = findNote(noteId);
+            cardStartX = note.x;
+            cardStartY = note.y;
+
+            const cardElement = document.getElementById(noteId);
+            cardElement.classList.add('dragging');
+
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+
+            e.preventDefault();
+        }
+
+        function handleMouseMove(e) {
+            if (!draggedCard) return;
+
+            const note = findNote(draggedCard);
+            const deltaX = e.clientX - dragStartX;
+            const deltaY = e.clientY - dragStartY;
+
+            note.x = cardStartX + deltaX;
+            note.y = cardStartY + deltaY;
+
+            const cardElement = document.getElementById(draggedCard);
+            cardElement.style.left = note.x + 'px';
+            cardElement.style.top = note.y + 'px';
+
+            drawConnectionLines();
+        }
+
+        function handleMouseUp() {
+            if (draggedCard) {
+                const cardElement = document.getElementById(draggedCard);
+                cardElement.classList.remove('dragging');
+                draggedCard = null;
+            }
+
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        }
+
+        // ============================================
+        // CONNECTION LINES (SVG)
+        // ============================================
+        function drawConnectionLines() {
+            const svg = elements.connectionLines;
+            svg.innerHTML = '';
+
+            state.connections.forEach(conn => {
+                const note1 = findNote(conn.from);
+                const note2 = findNote(conn.to);
+
+                if (!note1 || !note2) return;
+
+                // Calculate line endpoints (center of cards)
+                const x1 = note1.x + 160; // Half of 320px width
+                const y1 = note1.y + 70;
+                const x2 = note2.x + 160;
+                const y2 = note2.y + 70;
+
+                // Create curved line (bezier)
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                const controlX = (x1 + x2) / 2;
+                const controlY = (y1 + y2) / 2 + 50;
+
+                line.setAttribute('d', `M ${x1} ${y1} Q ${controlX} ${controlY} ${x2} ${y2}`);
+                line.setAttribute('stroke', 'var(--connection-line)');
+                line.setAttribute('stroke-width', '2');
+                line.setAttribute('fill', 'none');
+                line.setAttribute('stroke-linecap', 'round');
+
+                svg.appendChild(line);
+            });
+        }
+
+        // ============================================
+        // FORM HANDLING - QUICK CREATE
+        // ============================================
+        elements.formQuickCreate.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const title = document.getElementById('input-title').value.trim();
+            const content = document.getElementById('input-content').value.trim();
+            const importance = document.querySelector('input[name="importance"]:checked').value;
+            const date = document.getElementById('input-date').value;
+
+            if (!title) {
+                alert('Titel ist erforderlich');
+                return;
+            }
+
+            const pos = getRandomPosition();
+            const note = {
+                id: generateId(),
+                title,
+                content,
+                importance,
+                date,
+                x: pos.x,
+                y: pos.y,
+            };
+
+            state.notes.push(note);
+            renderAllNotes();
+            closeAllModals();
+        });
+
+        // ============================================
+        // EXPAND MODAL - EDIT NOTE
+        // ============================================
+        function openExpandModal(noteId) {
+            const note = findNote(noteId);
+            if (!note) return;
+
+            state.currentEditingId = noteId;
+
+            document.getElementById('expand-title').value = note.title;
+            document.getElementById('expand-content').value = note.content;
+            document.getElementById('expand-date').value = note.date || '';
+            document.querySelector(`input[name="expand-importance"][value="${note.importance}"]`).checked = true;
+
+            openModal(elements.modalExpand);
+        }
+
+        elements.formExpand.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const note = findNote(state.currentEditingId);
+            if (!note) return;
+
+            note.title = document.getElementById('expand-title').value.trim();
+            note.content = document.getElementById('expand-content').value.trim();
+            note.importance = document.querySelector('input[name="expand-importance"]:checked').value;
+            note.date = document.getElementById('expand-date').value;
+
+            renderAllNotes();
+            closeAllModals();
+        });
+
+        elements.btnDeleteNote.addEventListener('click', () => {
+            if (!confirm('Diese Note wirklich löschen?')) return;
+
+            state.notes = state.notes.filter(n => n.id !== state.currentEditingId);
+            renderAllNotes();
+            closeAllModals();
+        });
+
+        // ============================================
+        // ZOOM CONTROLS
+        // ============================================
+        elements.btnZoomIn.addEventListener('click', () => {
+            state.zoom = Math.min(state.zoom + 0.1, 2);
+            applyZoom();
+        });
+
+        elements.btnZoomOut.addEventListener('click', () => {
+            state.zoom = Math.max(state.zoom - 0.1, 0.5);
+            applyZoom();
+        });
+
+        elements.btnZoomReset.addEventListener('click', () => {
+            state.zoom = 1;
+            applyZoom();
+        });
+
+        function applyZoom() {
+            elements.canvasInner.style.transform = `scale(${state.zoom})`;
+        }
+
+        // ============================================
+        // RICH TEXT TOOLBAR (Placeholder)
+        // ============================================
+        document.getElementById('btn-bold').addEventListener('click', (e) => {
+            e.preventDefault();
+            e.target.classList.toggle('active');
+        });
+
+        document.getElementById('btn-italic').addEventListener('click', (e) => {
+            e.preventDefault();
+            e.target.classList.toggle('active');
+        });
+
+        document.getElementById('btn-underline').addEventListener('click', (e) => {
+            e.preventDefault();
+            e.target.classList.toggle('active');
+        });
+
+        // ============================================
+        // CANVAS MOUSE WHEEL ZOOM
+        // ============================================
+        elements.canvas.addEventListener('wheel', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -0.1 : 0.1;
+                state.zoom = Math.max(0.5, Math.min(2, state.zoom + delta));
+                applyZoom();
+            }
+        });
+
+        // ============================================
+        // INITIALIZATION - SAMPLE NOTES
+        // ============================================
+        function initializeSampleNotes() {
+            const samples = [
+                {
+                    title: 'Designsystem Update',
+                    content: 'Neue Farbpalette und Komponenten definieren',
+                    importance: 'high',
+                    date: null,
+                    x: -250,
+                    y: -150,
+                },
+                {
+                    title: 'Client Meeting Notizen',
+                    content: 'Anforderungen besprechen, Timeline erstellen',
+                    importance: 'high',
+                    date: new Date().toISOString().split('T')[0],
+                    x: 200,
+                    y: -100,
+                },
+                {
+                    title: 'Recherche: Glasmorphismus',
+                    content: 'Moderne UI-Trends und Best Practices',
+                    importance: 'medium',
+                    date: null,
+                    x: -100,
+                    y: 200,
+                },
+                {
+                    title: 'To-Do: SVG Animationen',
+                    content: 'Verbindungslinien zwischen Karten optimieren',
+                    importance: 'medium',
+                    date: null,
+                    x: 300,
+                    y: 150,
+                },
+                {
+                    title: 'Inspiration: Apple Cards',
+                    content: 'Hover-Effekte und Schattierungen studieren',
+                    importance: 'low',
+                    date: null,
+                    x: 50,
+                    y: -300,
+                },
+            ];
+
+            samples.forEach(sample => {
+                state.notes.push({
+                    id: generateId(),
+                    ...sample,
+                });
+            });
+
+            renderAllNotes();
+        }
+
+        // Initialize on load
+        initializeSampleNotes();
+    </script>
+</body>
+</html>

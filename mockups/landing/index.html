@@ -1,0 +1,2346 @@
+﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BeeQu — Smarter Planen. Besser Arbeiten.</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;0,14..32,900;1,14..32,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #05050A;
+      --bg-card: rgba(255,255,255,0.04);
+      --bg-card-hover: rgba(255,255,255,0.07);
+      --border: rgba(255,255,255,0.08);
+      --border-accent: rgba(0,122,255,0.35);
+      --blue: #007AFF;
+      --blue-light: #3A9FFF;
+      --purple: #5856D6;
+      --green: #30D158;
+      --orange: #FF9F0A;
+      --pink: #FF375F;
+      --text: #F5F5F7;
+      --text-2: rgba(245,245,247,0.65);
+      --text-3: rgba(245,245,247,0.38);
+      --radius: 20px;
+      --radius-lg: 28px;
+      --radius-xl: 40px;
+      --shadow-glow: 0 0 80px rgba(0,122,255,0.18);
+      --shadow-card: 0 8px 40px rgba(0,0,0,0.45);
+      --transition: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* ─── NOISE OVERLAY ─── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ─── GRADIENT ORBS ─── */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.2;
+      pointer-events: none;
+      z-index: 0;
+      animation: float 20s ease-in-out infinite;
+    }
+    .orb-1 { width: 700px; height: 700px; background: var(--blue); top: -200px; left: -150px; animation-delay: 0s; }
+    .orb-2 { width: 500px; height: 500px; background: var(--purple); top: 30%; right: -100px; animation-delay: -7s; }
+    .orb-3 { width: 400px; height: 400px; background: var(--blue); bottom: 10%; left: 20%; animation-delay: -14s; opacity: 0.12; }
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -40px) scale(1.05); }
+      66% { transform: translate(-20px, 30px) scale(0.97); }
+    }
+
+    /* ─── NAV ─── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      padding: 0 40px;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(5,5,10,0.7);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border-bottom: 1px solid var(--border);
+      transition: all 0.3s var(--transition);
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .nav-logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--blue) 0%, var(--purple) 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 4px 16px rgba(0,122,255,0.4);
+    }
+
+    .nav-logo-text {
+      font-size: 20px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.5px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 8px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-2);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 8px 16px;
+      border-radius: 10px;
+      transition: all 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+
+    .nav-cta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 22px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s var(--transition);
+      border: none;
+      white-space: nowrap;
+    }
+
+    .btn-ghost {
+      color: var(--text-2);
+      background: transparent;
+    }
+
+    .btn-ghost:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+
+    .btn-primary {
+      background: var(--blue);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(0,122,255,0.4);
+    }
+
+    .btn-primary:hover {
+      background: var(--blue-light);
+      box-shadow: 0 6px 28px rgba(0,122,255,0.55);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-lg {
+      padding: 16px 32px;
+      border-radius: 16px;
+      font-size: 16px;
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-outline:hover {
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.2);
+      transform: translateY(-1px);
+    }
+
+    /* ─── SECTIONS ─── */
+    section { position: relative; z-index: 1; }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 40px;
+    }
+
+    /* ─── HERO ─── */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 140px 40px 100px;
+      position: relative;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: rgba(0,122,255,0.12);
+      border: 1px solid rgba(0,122,255,0.3);
+      border-radius: 100px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--blue-light);
+      margin-bottom: 28px;
+      animation: fadeUp 0.6s var(--transition) both;
+    }
+
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--blue);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .hero-headline {
+      font-size: clamp(48px, 7vw, 88px);
+      font-weight: 900;
+      line-height: 1.05;
+      letter-spacing: -3px;
+      margin-bottom: 28px;
+      animation: fadeUp 0.6s 0.1s var(--transition) both;
+    }
+
+    .hero-headline .gradient-text {
+      background: linear-gradient(135deg, var(--blue) 0%, var(--purple) 50%, var(--blue-light) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      background-size: 200% 200%;
+      animation: gradient-shift 4s ease infinite;
+    }
+
+    @keyframes gradient-shift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .hero-sub {
+      font-size: clamp(18px, 2.5vw, 22px);
+      color: var(--text-2);
+      max-width: 620px;
+      line-height: 1.6;
+      margin-bottom: 48px;
+      animation: fadeUp 0.6s 0.2s var(--transition) both;
+      font-weight: 400;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      animation: fadeUp 0.6s 0.3s var(--transition) both;
+      margin-bottom: 80px;
+    }
+
+    .hero-stats {
+      display: flex;
+      gap: 48px;
+      animation: fadeUp 0.6s 0.4s var(--transition) both;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .hero-stat {
+      text-align: center;
+    }
+
+    .hero-stat-num {
+      font-size: 32px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.6) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -1px;
+    }
+
+    .hero-stat-label {
+      font-size: 13px;
+      color: var(--text-3);
+      font-weight: 500;
+      margin-top: 4px;
+    }
+
+    .hero-divider {
+      width: 1px;
+      height: 40px;
+      background: var(--border);
+      align-self: center;
+    }
+
+    /* ─── APP PREVIEW ─── */
+    .hero-preview {
+      width: 100%;
+      max-width: 1000px;
+      margin: 0 auto;
+      position: relative;
+      animation: fadeUp 0.8s 0.5s var(--transition) both;
+    }
+
+    .preview-glow {
+      position: absolute;
+      inset: -40px;
+      background: radial-gradient(ellipse at center, rgba(0,122,255,0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .preview-frame {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 28px;
+      backdrop-filter: blur(20px);
+      box-shadow: var(--shadow-card), 0 0 0 1px rgba(255,255,255,0.03);
+      overflow: hidden;
+    }
+
+    .preview-topbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .preview-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .dot-red { background: #FF5F57; }
+    .dot-yellow { background: #FFBD2E; }
+    .dot-green { background: #28CA41; }
+
+    .preview-title {
+      flex: 1;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-3);
+      font-weight: 500;
+    }
+
+    .preview-content {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 20px;
+      min-height: 340px;
+    }
+
+    .preview-sidebar {
+      background: rgba(255,255,255,0.03);
+      border-radius: var(--radius);
+      padding: 16px;
+      border: 1px solid var(--border);
+    }
+
+    .sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .sidebar-logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .sidebar-logo-text {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .sidebar-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      margin-bottom: 4px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-3);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .sidebar-nav-item.active {
+      background: rgba(0,122,255,0.15);
+      color: var(--blue-light);
+      border: 1px solid rgba(0,122,255,0.2);
+    }
+
+    .sidebar-icon { font-size: 16px; }
+
+    .preview-main {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .preview-ai-bar {
+      background: linear-gradient(135deg, rgba(0,122,255,0.12), rgba(88,86,214,0.12));
+      border: 1px solid rgba(0,122,255,0.25);
+      border-radius: 14px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .ai-bar-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .ai-bar-text {
+      flex: 1;
+    }
+
+    .ai-bar-label {
+      font-size: 11px;
+      color: var(--blue-light);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+    }
+
+    .ai-bar-input {
+      font-size: 14px;
+      color: var(--text-2);
+      font-style: italic;
+    }
+
+    .ai-bar-badge {
+      background: rgba(0,122,255,0.2);
+      border: 1px solid rgba(0,122,255,0.3);
+      color: var(--blue-light);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 100px;
+      white-space: nowrap;
+    }
+
+    .preview-tasks {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .task-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      transition: all 0.15s;
+    }
+
+    .task-item:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); }
+
+    .task-check {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+
+    .task-check.done {
+      background: var(--green);
+      border-color: var(--green);
+      color: #fff;
+    }
+
+    .task-check.todo { border-color: rgba(255,255,255,0.2); }
+
+    .task-text {
+      flex: 1;
+      font-size: 13px;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .task-item.done-task .task-text {
+      color: var(--text-3);
+      text-decoration: line-through;
+    }
+
+    .task-tag {
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 100px;
+      font-weight: 600;
+    }
+
+    .tag-blue { background: rgba(0,122,255,0.15); color: var(--blue-light); }
+    .tag-green { background: rgba(48,209,88,0.15); color: var(--green); }
+    .tag-orange { background: rgba(255,159,10,0.15); color: var(--orange); }
+    .tag-purple { background: rgba(88,86,214,0.15); color: #9B99FF; }
+
+    .task-time { font-size: 12px; color: var(--text-3); }
+
+    /* ─── SECTION HEADER ─── */
+    .section-header {
+      text-align: center;
+      margin-bottom: 72px;
+    }
+
+    .section-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-3);
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .section-title {
+      font-size: clamp(36px, 5vw, 56px);
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: 1.1;
+      margin-bottom: 20px;
+    }
+
+    .section-sub {
+      font-size: 18px;
+      color: var(--text-2);
+      max-width: 540px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* ─── FEATURES ─── */
+    .features {
+      padding: 120px 0;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 36px;
+      transition: all 0.3s var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, var(--accent-color, rgba(0,122,255,0.06)), transparent 60%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .feature-card:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(255,255,255,0.14);
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-card);
+    }
+
+    .feature-card:hover::before { opacity: 1; }
+
+    .feature-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      margin-bottom: 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .icon-blue { background: rgba(0,122,255,0.15); }
+    .icon-purple { background: rgba(88,86,214,0.15); }
+    .icon-green { background: rgba(48,209,88,0.15); }
+    .icon-orange { background: rgba(255,159,10,0.15); }
+    .icon-pink { background: rgba(255,55,95,0.15); }
+    .icon-cyan { background: rgba(50,215,226,0.15); }
+
+    .feature-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .feature-desc {
+      font-size: 15px;
+      color: var(--text-2);
+      line-height: 1.65;
+      position: relative;
+      z-index: 1;
+    }
+
+    .feature-card.featured {
+      grid-column: span 2;
+      background: linear-gradient(135deg, rgba(0,122,255,0.1), rgba(88,86,214,0.08));
+      border-color: rgba(0,122,255,0.25);
+    }
+
+    .feature-card.featured:hover {
+      border-color: rgba(0,122,255,0.4);
+      box-shadow: 0 20px 60px rgba(0,122,255,0.15);
+    }
+
+    .feature-tags {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .feature-tag {
+      font-size: 12px;
+      padding: 5px 12px;
+      border-radius: 100px;
+      font-weight: 600;
+    }
+
+    /* ─── AI SPOTLIGHT ─── */
+    .ai-section {
+      padding: 140px 0;
+      overflow: hidden;
+    }
+
+    .ai-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+    }
+
+    .ai-visual {
+      position: relative;
+    }
+
+    .ai-card {
+      background: linear-gradient(135deg, rgba(0,122,255,0.1), rgba(88,86,214,0.1));
+      border: 1px solid rgba(0,122,255,0.25);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ai-card::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -30%;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(88,86,214,0.2) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .ai-input-demo {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .ai-spark {
+      font-size: 20px;
+      animation: sparkle 2s ease-in-out infinite;
+    }
+
+    @keyframes sparkle {
+      0%, 100% { opacity: 1; transform: scale(1) rotate(0deg); }
+      50% { opacity: 0.7; transform: scale(1.2) rotate(10deg); }
+    }
+
+    .ai-input-text {
+      font-size: 15px;
+      color: var(--text);
+      font-style: italic;
+    }
+
+    .ai-arrow {
+      text-align: center;
+      font-size: 24px;
+      color: var(--blue);
+      margin: 16px 0;
+      animation: bounce 1.5s ease-in-out infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(4px); }
+    }
+
+    .ai-result {
+      background: rgba(48,209,88,0.08);
+      border: 1px solid rgba(48,209,88,0.2);
+      border-radius: 14px;
+      padding: 16px 20px;
+    }
+
+    .ai-result-label {
+      font-size: 11px;
+      color: var(--green);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+
+    .ai-result-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .ai-result-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .ai-result-key { color: var(--text-3); }
+    .ai-result-val { color: var(--text); font-weight: 600; }
+
+    .ai-content .section-title { text-align: left; }
+    .ai-content .section-sub { text-align: left; margin: 0; max-width: 460px; }
+
+    .ai-features-list {
+      margin-top: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .ai-feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .ai-feature-icon {
+      width: 40px;
+      height: 40px;
+      background: rgba(0,122,255,0.12);
+      border: 1px solid rgba(0,122,255,0.2);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .ai-feature-text strong {
+      display: block;
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .ai-feature-text span {
+      font-size: 14px;
+      color: var(--text-2);
+      line-height: 1.5;
+    }
+
+    /* ─── CALENDAR SECTION ─── */
+    .calendar-section {
+      padding: 140px 0;
+    }
+
+    .calendar-showcase {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 64px;
+    }
+
+    .cal-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      transition: all 0.3s var(--transition);
+    }
+
+    .cal-card:hover {
+      border-color: rgba(255,255,255,0.14);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-card);
+    }
+
+    .cal-card.full { grid-column: span 2; }
+
+    .cal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .cal-title {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .cal-nav {
+      display: flex;
+      gap: 8px;
+    }
+
+    .cal-btn {
+      width: 28px;
+      height: 28px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      cursor: pointer;
+      color: var(--text-2);
+    }
+
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+
+    .cal-day-name {
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-3);
+      font-weight: 600;
+      padding: 6px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .cal-day {
+      aspect-ratio: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-2);
+      cursor: pointer;
+      position: relative;
+      transition: all 0.15s;
+      gap: 2px;
+    }
+
+    .cal-day:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+
+    .cal-day.today {
+      background: var(--blue);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .cal-day.has-task::after {
+      content: '';
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--orange);
+      position: absolute;
+      bottom: 4px;
+    }
+
+    .cal-day.inactive { color: var(--text-3); opacity: 0.4; }
+
+    .upcoming-tasks {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .upcoming-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    .upcoming-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .upcoming-content { flex: 1; }
+    .upcoming-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+    .upcoming-date { font-size: 12px; color: var(--text-3); }
+    .upcoming-time { font-size: 12px; color: var(--text-3); font-weight: 500; }
+
+    /* ─── COLLABORATION ─── */
+    .collab-section {
+      padding: 140px 0;
+    }
+
+    .collab-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 24px;
+      margin-top: 64px;
+    }
+
+    .collab-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      transition: all 0.3s var(--transition);
+    }
+
+    .collab-card:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(255,255,255,0.14);
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-card);
+    }
+
+    .collab-card.wide { grid-column: span 2; }
+
+    .chat-preview {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .chat-msg {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .chat-msg.sent { flex-direction: row-reverse; }
+
+    .chat-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .chat-bubble {
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .chat-msg:not(.sent) .chat-bubble {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+      color: var(--text);
+    }
+
+    .chat-msg.sent .chat-bubble {
+      background: var(--blue);
+      border-bottom-right-radius: 4px;
+      color: #fff;
+    }
+
+    .members-preview {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .member-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .member-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+    }
+
+    .member-name { font-size: 13px; font-weight: 600; flex: 1; }
+
+    .member-role {
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 100px;
+      font-weight: 600;
+    }
+
+    .role-owner { background: rgba(255,159,10,0.15); color: var(--orange); }
+    .role-admin { background: rgba(0,122,255,0.15); color: var(--blue-light); }
+    .role-member { background: rgba(255,255,255,0.07); color: var(--text-3); }
+
+    .online-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+    }
+
+    /* ─── PRICING ─── */
+    .pricing {
+      padding: 140px 0;
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .price-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 36px;
+      transition: all 0.3s var(--transition);
+      position: relative;
+    }
+
+    .price-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-card);
+    }
+
+    .price-card.popular {
+      background: linear-gradient(160deg, rgba(0,122,255,0.12), rgba(88,86,214,0.08));
+      border-color: rgba(0,122,255,0.4);
+      transform: scale(1.04);
+    }
+
+    .price-card.popular:hover { transform: scale(1.04) translateY(-4px); }
+
+    .popular-badge {
+      position: absolute;
+      top: -1px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 20px;
+      border-radius: 0 0 12px 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .price-plan {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 16px;
+    }
+
+    .price-amount {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .price-currency { font-size: 22px; font-weight: 700; color: var(--text-2); }
+    .price-num { font-size: 56px; font-weight: 900; letter-spacing: -3px; line-height: 1; }
+    .price-period { font-size: 14px; color: var(--text-3); align-self: flex-end; margin-bottom: 6px; }
+
+    .price-desc {
+      font-size: 14px;
+      color: var(--text-2);
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }
+
+    .price-divider {
+      height: 1px;
+      background: var(--border);
+      margin-bottom: 24px;
+    }
+
+    .price-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .price-feature {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 14px;
+      color: var(--text-2);
+    }
+
+    .price-check {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgba(48,209,88,0.15);
+      border: 1px solid rgba(48,209,88,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: var(--green);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .price-x {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: var(--text-3);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .price-btn {
+      width: 100%;
+      justify-content: center;
+      padding: 14px;
+      border-radius: 14px;
+    }
+
+    .btn-popular {
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      color: #fff;
+      box-shadow: 0 4px 24px rgba(0,122,255,0.4);
+    }
+
+    .btn-popular:hover {
+      box-shadow: 0 6px 32px rgba(0,122,255,0.55);
+      transform: translateY(-1px);
+    }
+
+    /* ─── PWA SECTION ─── */
+    .pwa-section {
+      padding: 100px 0;
+    }
+
+    .pwa-card {
+      background: linear-gradient(135deg, rgba(88,86,214,0.12), rgba(0,122,255,0.08));
+      border: 1px solid rgba(88,86,214,0.3);
+      border-radius: var(--radius-xl);
+      padding: 80px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pwa-card::before {
+      content: '';
+      position: absolute;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(88,86,214,0.2) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .pwa-platforms {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin: 40px 0;
+    }
+
+    .pwa-platform {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 24px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: all 0.2s;
+    }
+
+    .pwa-platform:hover {
+      background: rgba(255,255,255,0.1);
+      color: var(--text);
+      transform: translateY(-2px);
+      border-color: rgba(255,255,255,0.2);
+    }
+
+    .pwa-platform span { font-size: 20px; }
+
+    /* ─── TESTIMONIALS ─── */
+    .testimonials {
+      padding: 120px 0;
+    }
+
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .testimonial-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      transition: all 0.3s var(--transition);
+    }
+
+    .testimonial-card:hover {
+      background: var(--bg-card-hover);
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-card);
+    }
+
+    .stars {
+      display: flex;
+      gap: 3px;
+      margin-bottom: 16px;
+      font-size: 16px;
+    }
+
+    .testimonial-text {
+      font-size: 15px;
+      color: var(--text-2);
+      line-height: 1.7;
+      margin-bottom: 24px;
+      font-style: italic;
+    }
+
+    .testimonial-author {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .author-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .author-name { font-size: 14px; font-weight: 700; }
+    .author-role { font-size: 12px; color: var(--text-3); }
+
+    /* ─── CTA ─── */
+    .cta-section {
+      padding: 140px 0;
+    }
+
+    .cta-card {
+      background: linear-gradient(135deg, rgba(0,122,255,0.15), rgba(88,86,214,0.1));
+      border: 1px solid rgba(0,122,255,0.3);
+      border-radius: var(--radius-xl);
+      padding: 100px 80px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-card::before {
+      content: '';
+      position: absolute;
+      bottom: -100px;
+      right: -100px;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(0,122,255,0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .cta-card::after {
+      content: '';
+      position: absolute;
+      top: -80px;
+      left: -80px;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(88,86,214,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .cta-card .section-title { position: relative; z-index: 1; }
+    .cta-card .section-sub { position: relative; z-index: 1; }
+
+    .cta-actions {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 40px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ─── FOOTER ─── */
+    footer {
+      padding: 60px 0 40px;
+      border-top: 1px solid var(--border);
+    }
+
+    .footer-inner {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 60px;
+      margin-bottom: 48px;
+    }
+
+    .footer-brand p {
+      font-size: 14px;
+      color: var(--text-3);
+      line-height: 1.6;
+      margin-top: 16px;
+      max-width: 260px;
+    }
+
+    .footer-col h4 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+    }
+
+    .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+
+    .footer-col a {
+      font-size: 14px;
+      color: var(--text-3);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-col a:hover { color: var(--text); }
+
+    .footer-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 28px;
+      border-top: 1px solid var(--border);
+    }
+
+    .footer-copy {
+      font-size: 13px;
+      color: var(--text-3);
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+    }
+
+    .footer-links a {
+      font-size: 13px;
+      color: var(--text-3);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--text); }
+
+    /* ─── ANIMATIONS ─── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(32px);
+      transition: opacity 0.6s var(--transition), transform 0.6s var(--transition);
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+    .reveal-delay-4 { transition-delay: 0.4s; }
+
+    /* ─── SCROLLBAR ─── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 100px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 900px) {
+      nav { padding: 0 20px; }
+      .nav-links { display: none; }
+      .container { padding: 0 20px; }
+      .hero { padding: 120px 20px 80px; }
+      .features-grid { grid-template-columns: 1fr; }
+      .feature-card.featured { grid-column: span 1; }
+      .ai-split { grid-template-columns: 1fr; gap: 40px; }
+      .calendar-showcase { grid-template-columns: 1fr; }
+      .cal-card.full { grid-column: span 1; }
+      .collab-grid { grid-template-columns: 1fr; }
+      .collab-card.wide { grid-column: span 1; }
+      .pricing-grid { grid-template-columns: 1fr; }
+      .price-card.popular { transform: scale(1); }
+      .testimonials-grid { grid-template-columns: 1fr; }
+      .pwa-card { padding: 48px 24px; }
+      .cta-card { padding: 60px 24px; }
+      .footer-inner { grid-template-columns: 1fr 1fr; gap: 40px; }
+      .footer-brand { grid-column: span 2; }
+      .hero-stats { gap: 28px; }
+      .hero-divider { display: none; }
+    }
+
+    @media (max-width: 600px) {
+      .hero-headline { letter-spacing: -2px; }
+      .preview-content { grid-template-columns: 1fr; }
+      .preview-sidebar { display: none; }
+      .footer-inner { grid-template-columns: 1fr; }
+      .footer-brand { grid-column: span 1; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Background Orbs -->
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<!-- ─── NAVIGATION ─── -->
+<nav>
+  <a href="#" class="nav-logo">
+    <div class="nav-logo-icon">✦</div>
+    <span class="nav-logo-text">BeeQu</span>
+  </a>
+
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#ai">KI-Assistent</a></li>
+    <li><a href="#calendar">Kalender</a></li>
+    <li><a href="#collaboration">Teams</a></li>
+    <li><a href="#pricing">Preise</a></li>
+  </ul>
+
+  <div class="nav-cta">
+    <a href="#" class="btn btn-ghost">Anmelden</a>
+    <a href="#" class="btn btn-primary">Kostenlos starten</a>
+  </div>
+</nav>
+
+<!-- ─── HERO ─── -->
+<section class="hero">
+  <div class="badge">
+    <span class="badge-dot"></span>
+    Jetzt verfügbar — KI-gestützte Aufgabenverwaltung
+  </div>
+
+  <h1 class="hero-headline">
+    Dein smartes<br>
+    <span class="gradient-text">Produktivitäts&shy;zentrum.</span>
+  </h1>
+
+  <p class="hero-sub">
+    Aufgaben, Kalender und Teamarbeit — alles in einer App. Mit KI, die deine Texteingabe versteht und Aufgaben automatisch anlegt.
+  </p>
+
+  <div class="hero-actions">
+    <a href="#" class="btn btn-primary btn-lg">
+      ✦ Kostenlos starten
+    </a>
+    <a href="#features" class="btn btn-outline btn-lg">
+      Features entdecken
+    </a>
+  </div>
+
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <div class="hero-stat-num">3-in-1</div>
+      <div class="hero-stat-label">Tasks, Kalender & Teams</div>
+    </div>
+    <div class="hero-divider"></div>
+    <div class="hero-stat">
+      <div class="hero-stat-num">KI</div>
+      <div class="hero-stat-label">Natürlichsprachige Eingabe</div>
+    </div>
+    <div class="hero-divider"></div>
+    <div class="hero-stat">
+      <div class="hero-stat-num">0€</div>
+      <div class="hero-stat-label">Kostenloser Einstieg</div>
+    </div>
+    <div class="hero-divider"></div>
+    <div class="hero-stat">
+      <div class="hero-stat-num">PWA</div>
+      <div class="hero-stat-label">Auf jedem Gerät</div>
+    </div>
+  </div>
+
+  <!-- App Preview -->
+  <div class="hero-preview" style="margin-top: 80px;">
+    <div class="preview-glow"></div>
+    <div class="preview-frame">
+      <div class="preview-topbar">
+        <div class="preview-dot dot-red"></div>
+        <div class="preview-dot dot-yellow"></div>
+        <div class="preview-dot dot-green"></div>
+        <div class="preview-title">beequ.app — Dashboard</div>
+      </div>
+      <div class="preview-content">
+        <div class="preview-sidebar">
+          <div class="sidebar-logo">
+            <div class="sidebar-logo-icon">✦</div>
+            <span class="sidebar-logo-text">BeeQu</span>
+          </div>
+          <div class="sidebar-nav-item active">
+            <span class="sidebar-icon">⊞</span> Dashboard
+          </div>
+          <div class="sidebar-nav-item">
+            <span class="sidebar-icon">◷</span> Kalender
+          </div>
+          <div class="sidebar-nav-item">
+            <span class="sidebar-icon">✎</span> Notizen
+          </div>
+          <div class="sidebar-nav-item">
+            <span class="sidebar-icon">◈</span> Gruppen
+          </div>
+          <div class="sidebar-nav-item">
+            <span class="sidebar-icon">◉</span> Profil
+          </div>
+        </div>
+        <div class="preview-main">
+          <div class="preview-ai-bar">
+            <div class="ai-bar-icon">✦</div>
+            <div class="ai-bar-text">
+              <div class="ai-bar-label">KI-Eingabe</div>
+              <div class="ai-bar-input">"Freitag Meeting mit Team um 14:00, hohe Priorität"</div>
+            </div>
+            <div class="ai-bar-badge">✓ Erkannt</div>
+          </div>
+          <div class="preview-tasks">
+            <div class="task-item done-task">
+              <div class="task-check done">✓</div>
+              <span class="task-text">Design Review vorbereiten</span>
+              <span class="task-tag tag-purple">Design</span>
+              <span class="task-time">09:00</span>
+            </div>
+            <div class="task-item">
+              <div class="task-check todo"></div>
+              <span class="task-text">Projektplan aktualisieren</span>
+              <span class="task-tag tag-blue">Arbeit</span>
+              <span class="task-time">11:30</span>
+            </div>
+            <div class="task-item">
+              <div class="task-check todo"></div>
+              <span class="task-text">Meeting mit Team</span>
+              <span class="task-tag tag-orange">Wichtig</span>
+              <span class="task-time">14:00</span>
+            </div>
+            <div class="task-item">
+              <div class="task-check todo"></div>
+              <span class="task-text">Wochenbericht einreichen</span>
+              <span class="task-tag tag-green">Erledigen</span>
+              <span class="task-time">17:00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── FEATURES ─── -->
+<section class="features" id="features">
+  <div class="container">
+    <div class="section-header reveal">
+      <div class="section-badge">⊞ Funktionen</div>
+      <h2 class="section-title">Alles was du brauchst,<br>in einem Ort.</h2>
+      <p class="section-sub">Keine drei verschiedenen Apps mehr. BeeQu vereint Aufgabenverwaltung, Kalender und Teamkommunikation nahtlos.</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card featured reveal" style="--accent-color: rgba(0,122,255,0.1);">
+        <div class="feature-icon icon-blue">✦</div>
+        <h3 class="feature-title">KI-Assistent für natürliche Sprache</h3>
+        <p class="feature-desc">Tippe einfach "Morgen Arzt um 10 Uhr" und BeeQu erstellt automatisch die Aufgabe — mit Datum, Uhrzeit, Kategorie und Priorität. Kein manuelles Ausfüllen mehr.</p>
+        <div class="feature-tags">
+          <span class="feature-tag tag-blue">200 KI-Aufrufe/Monat (Pro)</span>
+          <span class="feature-tag tag-purple">1000 KI-Aufrufe/Monat (Team)</span>
+        </div>
+      </div>
+
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon icon-purple">◷</div>
+        <h3 class="feature-title">Intelligenter Kalender</h3>
+        <p class="feature-desc">Monats- und Wochenansicht mit direkter Aufgabenintegration. Plane deinen Tag im Überblick, nie wieder Termine vergessen.</p>
+      </div>
+
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon icon-green">↺</div>
+        <h3 class="feature-title">Wiederkehrende Aufgaben</h3>
+        <p class="feature-desc">Täglich, wöchentlich, monatlich — Aufgaben die sich wiederholen legt BeeQu automatisch an. Du fokussierst dich aufs Tun.</p>
+      </div>
+
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon icon-orange">◈</div>
+        <h3 class="feature-title">Gruppen & Teamarbeit</h3>
+        <p class="feature-desc">Erstelle Gruppen, lade Mitglieder ein und verwaltet Aufgaben gemeinsam. Mit Rollen (Owner, Admin, Member) und eigenem Gruppen-Chat.</p>
+      </div>
+
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon icon-cyan">💬</div>
+        <h3 class="feature-title">Echtzeit-Gruppen-Chat</h3>
+        <p class="feature-desc">Kommuniziere direkt in deinen Gruppen — mit Dateianhängen, sofortigen Benachrichtigungen und nahtloser Aufgabenverknüpfung.</p>
+      </div>
+
+      <div class="feature-card reveal reveal-delay-3">
+        <div class="feature-icon icon-pink">📎</div>
+        <h3 class="feature-title">Dateianhänge</h3>
+        <p class="feature-desc">Hänge Dokumente, Bilder und Dateien direkt an Aufgaben an — bis zu 4 MB pro Datei. Alles an einem Ort, nichts geht verloren.</p>
+      </div>
+
+      <div class="feature-card reveal reveal-delay-3">
+        <div class="feature-icon icon-green">📊</div>
+        <h3 class="feature-title">Statistiken & Einblicke</h3>
+        <p class="feature-desc">Verfolge deine Produktivität mit detaillierten Auswertungen. Wie viele Aufgaben hast du erledigt? Wann bist du am produktivsten?</p>
+      </div>
+
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon icon-blue">🔔</div>
+        <h3 class="feature-title">Smarte Erinnerungen</h3>
+        <p class="feature-desc">Desktop- und App-Benachrichtigungen die dich genau dann erinnern, wenn eine Aufgabe fällig wird. Nie wieder etwas vergessen.</p>
+      </div>
+
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon icon-purple">✎</div>
+        <h3 class="feature-title">Notizen & Board</h3>
+        <p class="feature-desc">Kanban-ähnliches Notizen-Board für schnelle Gedanken, Ideen und Brainstorming — immer griffbereit neben deinen Aufgaben.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── AI SECTION ─── -->
+<section class="ai-section" id="ai">
+  <div class="container">
+    <div class="ai-split">
+      <div class="ai-visual reveal">
+        <div class="ai-card">
+          <div style="font-size: 12px; color: var(--blue-light); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 20px;">⚡ KI verarbeitet deine Eingabe</div>
+
+          <div class="ai-input-demo">
+            <span class="ai-spark">✦</span>
+            <span class="ai-input-text">"Freitag Einkaufen um 17:30 nicht vergessen, niedrige Priorität"</span>
+          </div>
+
+          <div class="ai-arrow">↓</div>
+
+          <div class="ai-result">
+            <div class="ai-result-label">✓ Aufgabe erstellt</div>
+            <div class="ai-result-grid">
+              <div class="ai-result-item">
+                <span class="ai-result-key">Titel</span>
+              </div>
+              <div class="ai-result-item">
+                <span class="ai-result-val">Einkaufen</span>
+              </div>
+              <div class="ai-result-item">
+                <span class="ai-result-key">Datum</span>
+              </div>
+              <div class="ai-result-item">
+                <span class="ai-result-val">Freitag</span>
+              </div>
+              <div class="ai-result-item">
+                <span class="ai-result-key">Uhrzeit</span>
+              </div>
+              <div class="ai-result-item">
+                <span class="ai-result-val">17:30</span>
+              </div>
+              <div class="ai-result-item">
+                <span class="ai-result-key">Kategorie</span>
+              </div>
+              <div class="ai-result-item">
+                <span class="ai-result-val">Einkaufen</span>
+              </div>
+              <div class="ai-result-item">
+                <span class="ai-result-key">Priorität</span>
+              </div>
+              <div class="ai-result-item">
+                <span class="ai-result-val">Niedrig</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 20px; padding: 14px 16px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 20px;">🎙</span>
+            <div>
+              <div style="font-size: 12px; color: var(--text-3); font-weight: 600; margin-bottom: 2px;">Funktioniert auch mit</div>
+              <div style="font-size: 13px; color: var(--text-2);">Deutsch, Englisch &amp; mehr Sprachen</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ai-content reveal reveal-delay-1">
+        <div class="section-badge" style="display: inline-flex; margin-bottom: 20px;">✦ KI-Assistent</div>
+        <h2 class="section-title" style="text-align: left;">Aufgaben anlegen<br>so natürlich wie<br><span class="gradient-text">Sprechen.</span></h2>
+        <p class="section-sub" style="text-align: left; margin: 0; max-width: 440px; margin-top: 20px;">Vergiss komplizierte Formulare. Schreib einfach was du vorhast — BeeQu's KI erkennt automatisch alle Details und erstellt die perfekte Aufgabe.</p>
+
+        <div class="ai-features-list">
+          <div class="ai-feature-item">
+            <div class="ai-feature-icon">📅</div>
+            <div class="ai-feature-text">
+              <strong>Datum & Uhrzeit erkennen</strong>
+              <span>"morgen", "nächsten Montag", "um 14:00" — alles wird richtig interpretiert.</span>
+            </div>
+          </div>
+          <div class="ai-feature-item">
+            <div class="ai-feature-icon">🏷️</div>
+            <div class="ai-feature-text">
+              <strong>Kategorien & Priorität</strong>
+              <span>BeeQu ordnet Aufgaben automatisch der richtigen Kategorie zu und erkennt Prioritäten.</span>
+            </div>
+          </div>
+          <div class="ai-feature-item">
+            <div class="ai-feature-icon">⚡</div>
+            <div class="ai-feature-text">
+              <strong>Sofort fertig</strong>
+              <span>Kein Klicken durch Formulare mehr. Ein Satz und die Aufgabe ist angelegt.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── CALENDAR SECTION ─── -->
+<section class="calendar-section" id="calendar">
+  <div class="container">
+    <div class="section-header reveal">
+      <div class="section-badge">◷ Kalender</div>
+      <h2 class="section-title">Dein Tag im<br>perfekten Überblick.</h2>
+      <p class="section-sub">Alle Aufgaben und Termine in einer klaren Kalenderansicht. Monat, Woche — du entscheidest wie du planst.</p>
+    </div>
+
+    <div class="calendar-showcase">
+      <div class="cal-card reveal">
+        <div class="cal-header">
+          <span class="cal-title">April 2026</span>
+          <div class="cal-nav">
+            <div class="cal-btn">‹</div>
+            <div class="cal-btn">›</div>
+          </div>
+        </div>
+        <div class="cal-grid">
+          <div class="cal-day-name">Mo</div><div class="cal-day-name">Di</div><div class="cal-day-name">Mi</div>
+          <div class="cal-day-name">Do</div><div class="cal-day-name">Fr</div><div class="cal-day-name">Sa</div><div class="cal-day-name">So</div>
+
+          <div class="cal-day inactive">31</div>
+          <div class="cal-day">1</div><div class="cal-day has-task">2</div><div class="cal-day">3</div>
+          <div class="cal-day has-task">4</div><div class="cal-day">5</div><div class="cal-day">6</div>
+          <div class="cal-day">7</div><div class="cal-day has-task">8</div><div class="cal-day">9</div>
+          <div class="cal-day">10</div><div class="cal-day has-task">11</div><div class="cal-day">12</div><div class="cal-day">13</div>
+          <div class="cal-day">14</div><div class="cal-day">15</div><div class="cal-day has-task">16</div>
+          <div class="cal-day">17</div><div class="cal-day">18</div><div class="cal-day">19</div><div class="cal-day">20</div>
+          <div class="cal-day">21</div><div class="cal-day has-task">22</div><div class="cal-day">23</div>
+          <div class="cal-day">24</div><div class="cal-day has-task">25</div><div class="cal-day">26</div><div class="cal-day today">27</div>
+          <div class="cal-day">28</div><div class="cal-day">29</div><div class="cal-day">30</div>
+          <div class="cal-day inactive">1</div><div class="cal-day inactive">2</div><div class="cal-day inactive">3</div><div class="cal-day inactive">4</div>
+        </div>
+      </div>
+
+      <div class="cal-card reveal reveal-delay-1">
+        <div class="cal-header">
+          <span class="cal-title">Heute — 27. April</span>
+          <span class="task-tag tag-blue" style="font-size:12px;">4 Aufgaben</span>
+        </div>
+        <div class="upcoming-tasks">
+          <div class="upcoming-item">
+            <div class="upcoming-dot" style="background: var(--blue);"></div>
+            <div class="upcoming-content">
+              <div class="upcoming-title">Team-Meeting</div>
+              <div class="upcoming-date">Heute, 27. April</div>
+            </div>
+            <div class="upcoming-time">09:00</div>
+          </div>
+          <div class="upcoming-item">
+            <div class="upcoming-dot" style="background: var(--orange);"></div>
+            <div class="upcoming-content">
+              <div class="upcoming-title">Projektabgabe</div>
+              <div class="upcoming-date">Heute, 27. April</div>
+            </div>
+            <div class="upcoming-time">12:00</div>
+          </div>
+          <div class="upcoming-item">
+            <div class="upcoming-dot" style="background: var(--purple);"></div>
+            <div class="upcoming-content">
+              <div class="upcoming-title">Design Review</div>
+              <div class="upcoming-date">Heute, 27. April</div>
+            </div>
+            <div class="upcoming-time">14:30</div>
+          </div>
+          <div class="upcoming-item">
+            <div class="upcoming-dot" style="background: var(--green);"></div>
+            <div class="upcoming-content">
+              <div class="upcoming-title">Sport</div>
+              <div class="upcoming-date">Heute, 27. April</div>
+            </div>
+            <div class="upcoming-time">18:00</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── COLLABORATION SECTION ─── -->
+<section class="collab-section" id="collaboration">
+  <div class="container">
+    <div class="section-header reveal">
+      <div class="section-badge">◈ Teams</div>
+      <h2 class="section-title">Zusammen mehr<br>erreichen.</h2>
+      <p class="section-sub">Erstelle Gruppen, teile Aufgaben und kommuniziere in Echtzeit — alles ohne die App zu verlassen.</p>
+    </div>
+
+    <div class="collab-grid">
+      <div class="collab-card wide reveal">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+          <div class="feature-icon icon-cyan" style="margin-bottom: 0; width: 44px; height: 44px; font-size: 22px;">💬</div>
+          <div>
+            <h3 class="feature-title" style="margin-bottom: 4px;">Gruppen-Chat in Echtzeit</h3>
+            <p style="font-size: 13px; color: var(--text-3);">Direkt in der App, ohne externe Tools</p>
+          </div>
+        </div>
+        <div class="chat-preview">
+          <div class="chat-msg">
+            <div class="chat-avatar" style="background: rgba(88,86,214,0.2);">👩</div>
+            <div class="chat-bubble">Habe die Aufgaben für Sprint 3 aktualisiert! Bitte prüfen.</div>
+          </div>
+          <div class="chat-msg sent">
+            <div class="chat-avatar" style="background: rgba(0,122,255,0.2);">👨</div>
+            <div class="chat-bubble">Alles klar, schaue ich mir gleich an 👍</div>
+          </div>
+          <div class="chat-msg">
+            <div class="chat-avatar" style="background: rgba(48,209,88,0.2);">🧑</div>
+            <div class="chat-bubble">Ich hab noch eine Datei angehängt — Design_V3.pdf 📎</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="collab-card reveal reveal-delay-1">
+        <div class="feature-icon icon-orange" style="margin-bottom: 16px;">👥</div>
+        <h3 class="feature-title">Rollen & Berechtigungen</h3>
+        <p class="feature-desc" style="margin-bottom: 16px;">Volle Kontrolle: Wer darf was sehen und bearbeiten.</p>
+        <div class="members-preview">
+          <div class="member-item">
+            <div class="member-avatar" style="background: rgba(255,159,10,0.15);">👩‍💼</div>
+            <span class="member-name">Anna K.</span>
+            <div class="online-dot"></div>
+            <span class="member-role role-owner">Owner</span>
+          </div>
+          <div class="member-item">
+            <div class="member-avatar" style="background: rgba(0,122,255,0.15);">👨‍💻</div>
+            <span class="member-name">Max S.</span>
+            <div class="online-dot"></div>
+            <span class="member-role role-admin">Admin</span>
+          </div>
+          <div class="member-item">
+            <div class="member-avatar" style="background: rgba(255,255,255,0.05);">🧑‍🎨</div>
+            <span class="member-name">Lisa M.</span>
+            <span class="member-role role-member">Member</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="collab-card reveal reveal-delay-1" style="background: linear-gradient(135deg, rgba(0,122,255,0.08), rgba(88,86,214,0.06)); border-color: rgba(0,122,255,0.2);">
+        <div class="feature-icon icon-blue" style="margin-bottom: 16px;">🔗</div>
+        <h3 class="feature-title">Einfach beitreten</h3>
+        <p class="feature-desc" style="margin-bottom: 24px;">Teile einen Einladungs-Code und jeder kann sofort der Gruppe beitreten — kein kompliziertes Setup.</p>
+        <div style="background: rgba(0,122,255,0.1); border: 1px dashed rgba(0,122,255,0.3); border-radius: 14px; padding: 16px; text-align: center;">
+          <div style="font-size: 11px; color: var(--blue-light); font-weight: 700; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Einladungs-Code</div>
+          <div style="font-size: 24px; font-weight: 900; letter-spacing: 4px; color: var(--text);">TAS-K7X</div>
+        </div>
+      </div>
+
+      <div class="collab-card wide reveal reveal-delay-2">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+          <div style="text-align: center; padding: 24px; background: rgba(0,122,255,0.06); border: 1px solid rgba(0,122,255,0.15); border-radius: 16px;">
+            <div style="font-size: 36px; font-weight: 900; color: var(--blue); margin-bottom: 8px;">3</div>
+            <div style="font-size: 13px; color: var(--text-2); font-weight: 500;">Gruppen<br><span style="color: var(--text-3); font-size: 12px;">(Pro Plan)</span></div>
+          </div>
+          <div style="text-align: center; padding: 24px; background: rgba(88,86,214,0.06); border: 1px solid rgba(88,86,214,0.15); border-radius: 16px;">
+            <div style="font-size: 36px; font-weight: 900; color: #9B99FF; margin-bottom: 8px;">∞</div>
+            <div style="font-size: 13px; color: var(--text-2); font-weight: 500;">Gruppen<br><span style="color: var(--text-3); font-size: 12px;">(Team Plan)</span></div>
+          </div>
+          <div style="text-align: center; padding: 24px; background: rgba(48,209,88,0.06); border: 1px solid rgba(48,209,88,0.15); border-radius: 16px;">
+            <div style="font-size: 36px; font-weight: 900; color: var(--green); margin-bottom: 8px;">4MB</div>
+            <div style="font-size: 13px; color: var(--text-2); font-weight: 500;">Dateianhänge<br><span style="color: var(--text-3); font-size: 12px;">pro Datei</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── PRICING ─── -->
+<section class="pricing" id="pricing">
+  <div class="container">
+    <div class="section-header reveal">
+      <div class="section-badge">💎 Preise</div>
+      <h2 class="section-title">Einfach und<br>transparent.</h2>
+      <p class="section-sub">Starte kostenlos und upgrade wenn du bereit bist. Keine versteckten Kosten, jederzeit kündbar.</p>
+    </div>
+
+    <div class="pricing-grid">
+      <!-- Free -->
+      <div class="price-card reveal">
+        <div class="price-plan">Free</div>
+        <div class="price-amount">
+          <span class="price-currency">€</span>
+          <span class="price-num">0</span>
+          <span class="price-period">/ Monat</span>
+        </div>
+        <p class="price-desc">Perfekt zum Einstieg. Keine Kreditkarte nötig.</p>
+        <div class="price-divider"></div>
+        <ul class="price-features">
+          <li class="price-feature"><span class="price-check">✓</span> 50 Aufgaben</li>
+          <li class="price-feature"><span class="price-check">✓</span> 3 Kategorien</li>
+          <li class="price-feature"><span class="price-check">✓</span> Kalenderansicht</li>
+          <li class="price-feature"><span class="price-check">✓</span> Dashboard & Profil</li>
+          <li class="price-feature"><span class="price-x">✕</span> <span style="opacity:0.4">KI-Eingabe</span></li>
+          <li class="price-feature"><span class="price-x">✕</span> <span style="opacity:0.4">Gruppen</span></li>
+          <li class="price-feature"><span class="price-x">✕</span> <span style="opacity:0.4">Dateianhänge</span></li>
+        </ul>
+        <a href="#" class="btn btn-outline price-btn">Kostenlos starten</a>
+      </div>
+
+      <!-- Pro -->
+      <div class="price-card popular reveal reveal-delay-1">
+        <div class="popular-badge">⭐ Beliebteste Wahl</div>
+        <div class="price-plan">Pro</div>
+        <div class="price-amount">
+          <span class="price-currency">€</span>
+          <span class="price-num">4<span style="font-size:32px; letter-spacing:-1px;">.99</span></span>
+          <span class="price-period">/ Monat</span>
+        </div>
+        <p class="price-desc">Für Profis die mehr brauchen. Alle KI-Features inklusive.</p>
+        <div class="price-divider"></div>
+        <ul class="price-features">
+          <li class="price-feature"><span class="price-check">✓</span> <strong>Unbegrenzte</strong> Aufgaben</li>
+          <li class="price-feature"><span class="price-check">✓</span> <strong>200 KI-Aufrufe</strong>/Monat</li>
+          <li class="price-feature"><span class="price-check">✓</span> <strong>3 Gruppen</strong> mit Chat</li>
+          <li class="price-feature"><span class="price-check">✓</span> Dateianhänge (4 MB)</li>
+          <li class="price-feature"><span class="price-check">✓</span> Wiederkehrende Aufgaben</li>
+          <li class="price-feature"><span class="price-check">✓</span> Statistiken & Insights</li>
+          <li class="price-feature"><span class="price-check">✓</span> Kalender-Sync</li>
+        </ul>
+        <a href="#" class="btn btn-popular price-btn">Pro testen</a>
+      </div>
+
+      <!-- Team -->
+      <div class="price-card reveal reveal-delay-2">
+        <div class="price-plan">Team</div>
+        <div class="price-amount">
+          <span class="price-currency">€</span>
+          <span class="price-num">9<span style="font-size:32px; letter-spacing:-1px;">.99</span></span>
+          <span class="price-period">/ Nutzer / Monat</span>
+        </div>
+        <p class="price-desc">Für ganze Teams. Alles unlimitiert, Priority Support.</p>
+        <div class="price-divider"></div>
+        <ul class="price-features">
+          <li class="price-feature"><span class="price-check">✓</span> Alles aus Pro</li>
+          <li class="price-feature"><span class="price-check">✓</span> <strong>1000 KI-Aufrufe</strong>/Monat</li>
+          <li class="price-feature"><span class="price-check">✓</span> <strong>Unbegrenzte</strong> Gruppen</li>
+          <li class="price-feature"><span class="price-check">✓</span> Priority Support</li>
+          <li class="price-feature"><span class="price-check">✓</span> Microsoft Teams Sync</li>
+          <li class="price-feature"><span class="price-check">✓</span> Erweiterte Analytik</li>
+          <li class="price-feature"><span class="price-check">✓</span> API-Zugang</li>
+        </ul>
+        <a href="#" class="btn btn-outline price-btn">Team starten</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── PWA SECTION ─── -->
+<section class="pwa-section">
+  <div class="container">
+    <div class="pwa-card reveal">
+      <div class="section-badge" style="display: inline-flex; margin-bottom: 24px;">📱 Überall verfügbar</div>
+      <h2 class="section-title">Installier es wie eine<br>native App.</h2>
+      <p class="section-sub" style="margin: 16px auto 0;">BeeQu ist eine Progressive Web App — einmal installiert läuft es auf jedem Gerät wie eine echte App. Auch offline.</p>
+
+      <div class="pwa-platforms">
+        <div class="pwa-platform"><span>🍎</span> iOS / iPhone</div>
+        <div class="pwa-platform"><span>🤖</span> Android</div>
+        <div class="pwa-platform"><span>🖥️</span> Mac / Windows</div>
+        <div class="pwa-platform"><span>🌐</span> Im Browser</div>
+      </div>
+
+      <div style="display: flex; gap: 24px; justify-content: center; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text-2);">
+          <span style="font-size: 20px; color: var(--green);">✓</span> Offline-Modus
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text-2);">
+          <span style="font-size: 20px; color: var(--green);">✓</span> Push-Benachrichtigungen
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text-2);">
+          <span style="font-size: 20px; color: var(--green);">✓</span> Home Screen Icon
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text-2);">
+          <span style="font-size: 20px; color: var(--green);">✓</span> Kein App Store nötig
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── TESTIMONIALS ─── -->
+<section class="testimonials">
+  <div class="container">
+    <div class="section-header reveal">
+      <div class="section-badge">💬 Stimmen</div>
+      <h2 class="section-title">Was unsere Nutzer sagen.</h2>
+    </div>
+
+    <div class="testimonials-grid">
+      <div class="testimonial-card reveal">
+        <div class="stars">⭐⭐⭐⭐⭐</div>
+        <p class="testimonial-text">"Die KI-Eingabe hat mein Leben verändert. Ich schreibe einfach was ich vorhabe und alles wird automatisch eingetragen. Kein Fummelei mehr mit Feldern!"</p>
+        <div class="testimonial-author">
+          <div class="author-avatar" style="background: rgba(0,122,255,0.15);">👩‍💼</div>
+          <div>
+            <div class="author-name">Sarah M.</div>
+            <div class="author-role">Projektmanagerin</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="testimonial-card reveal reveal-delay-1">
+        <div class="stars">⭐⭐⭐⭐⭐</div>
+        <p class="testimonial-text">"Endlich eine App die alle Tools vereint. Kein Wechseln mehr zwischen Kalender, To-Do und Chat. Das Team liebt BeeQu — wir sind deutlich produktiver."</p>
+        <div class="testimonial-author">
+          <div class="author-avatar" style="background: rgba(88,86,214,0.15);">👨‍💻</div>
+          <div>
+            <div class="author-name">Thomas B.</div>
+            <div class="author-role">Startup-Gründer</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="testimonial-card reveal reveal-delay-2">
+        <div class="stars">⭐⭐⭐⭐⭐</div>
+        <p class="testimonial-text">"Das Design ist einfach wunderschön. Apple-like, clean und intuitiv. Man findet sofort alles und der Einstieg war in Minuten erledigt."</p>
+        <div class="testimonial-author">
+          <div class="author-avatar" style="background: rgba(48,209,88,0.15);">🧑‍🎨</div>
+          <div>
+            <div class="author-name">Jana K.</div>
+            <div class="author-role">UX Designerin</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── CTA ─── -->
+<section class="cta-section">
+  <div class="container">
+    <div class="cta-card reveal">
+      <div class="section-badge" style="display: inline-flex; margin-bottom: 28px; position: relative; z-index: 1;">✦ Jetzt loslegen</div>
+      <h2 class="section-title">Bereit produktiver<br>zu werden?</h2>
+      <p class="section-sub" style="margin-top: 20px;">Kostenlos starten, keine Kreditkarte nötig. Upgrade jederzeit wenn du mehr brauchst.</p>
+      <div class="cta-actions">
+        <a href="#" class="btn btn-primary btn-lg">✦ Kostenlos registrieren</a>
+        <a href="#pricing" class="btn btn-outline btn-lg">Preise vergleichen</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── FOOTER ─── -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <a href="#" class="nav-logo" style="margin-bottom: 0;">
+          <div class="nav-logo-icon">✦</div>
+          <span class="nav-logo-text">BeeQu</span>
+        </a>
+        <p>Smarter planen. Besser arbeiten. Mit KI-gestützter Aufgabenverwaltung, Kalender und Teamarbeit — alles in einer App. BeeQu gehört zu BeeTwice Solution.</p>
+      </div>
+
+      <div class="footer-col">
+        <h4>Produkt</h4>
+        <ul>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#ai">KI-Assistent</a></li>
+          <li><a href="#pricing">Preise</a></li>
+          <li><a href="#">PWA installieren</a></li>
+          <li><a href="#">Changelog</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Unternehmen</h4>
+        <ul>
+          <li><a href="#">Über uns</a></li>
+          <li><a href="#">Blog</a></li>
+          <li><a href="#">Kontakt</a></li>
+          <li><a href="#">Presse</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Rechtliches</h4>
+        <ul>
+          <li><a href="#">Datenschutz</a></li>
+          <li><a href="#">AGB</a></li>
+          <li><a href="#">Impressum</a></li>
+          <li><a href="#">Cookies</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span class="footer-copy">© 2026 BeeQu. Alle Rechte vorbehalten.</span>
+      <div class="footer-links">
+        <a href="#">Twitter</a>
+        <a href="#">LinkedIn</a>
+        <a href="#">Instagram</a>
+        <a href="#">GitHub</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // ─── SCROLL REVEAL ───
+  const revealEls = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+  revealEls.forEach(el => observer.observe(el));
+
+  // ─── NAV SCROLL EFFECT ───
+  const nav = document.querySelector('nav');
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 50) {
+      nav.style.background = 'rgba(5,5,10,0.92)';
+    } else {
+      nav.style.background = 'rgba(5,5,10,0.7)';
+    }
+  });
+
+  // ─── SMOOTH ANCHOR SCROLL ───
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', (e) => {
+      const target = document.querySelector(anchor.getAttribute('href'));
+      if (target) {
+        e.preventDefault();
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+
+  // ─── AI INPUT ANIMATION ───
+  const aiInputTexts = [
+    '"Freitag Meeting um 14:00, hohe Priorität"',
+    '"Morgen Einkaufen um 17:30"',
+    '"Montag Sportstudio 19:00"',
+    '"Nächste Woche Zahnarzt, Mittwoch 10 Uhr"',
+    '"Projektabgabe Donnerstag, dringend!"',
+  ];
+
+  const aiInputEl = document.querySelector('.ai-bar-input');
+  if (aiInputEl) {
+    let idx = 0;
+    setInterval(() => {
+      idx = (idx + 1) % aiInputTexts.length;
+      aiInputEl.style.opacity = '0';
+      setTimeout(() => {
+        aiInputEl.textContent = aiInputTexts[idx];
+        aiInputEl.style.opacity = '1';
+      }, 300);
+    }, 3500);
+    aiInputEl.style.transition = 'opacity 0.3s ease';
+  }
+
+  // ─── COUNTER ANIMATION ───
+  function animateCounter(el, target, suffix = '') {
+    let current = 0;
+    const duration = 1500;
+    const step = target / (duration / 16);
+    const timer = setInterval(() => {
+      current = Math.min(current + step, target);
+      el.textContent = Math.floor(current) + suffix;
+      if (current >= target) clearInterval(timer);
+    }, 16);
+  }
+</script>
+</body>
+</html>
+

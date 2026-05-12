@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Solid blue background -->
+  <rect width="512" height="512" rx="110" fill="#007AFF"/>
+
+  <!-- Bold checkmark — clean, centered -->
+  <path d="M128 272 L220 364 L384 168"
+        fill="none"
+        stroke="white"
+        stroke-width="58"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+
+  <!-- Bee — sits at top of checkmark's rising stroke, simple and readable -->
+  <!-- Left wing -->
+  <ellipse cx="204" cy="148" rx="44" ry="22"
+           fill="white" opacity="0.92"
+           transform="rotate(-30 204 148)"/>
+  <!-- Right wing -->
+  <ellipse cx="268" cy="138" rx="44" ry="22"
+           fill="white" opacity="0.92"
+           transform="rotate(30 268 138)"/>
+  <!-- Bee body (small oval over the checkmark's top point) -->
+  <ellipse cx="236" cy="172" rx="18" ry="26"
+           fill="white"/>
+  <!-- Bee head -->
+  <circle cx="236" cy="142" r="14"
+          fill="white"/>
+  <!-- Bee stripes -->
+  <rect x="220" y="166" width="32" height="7" rx="3.5" fill="#007AFF" opacity="0.45"/>
+  <rect x="220" y="178" width="32" height="7" rx="3.5" fill="#007AFF" opacity="0.45"/>
+</svg>
