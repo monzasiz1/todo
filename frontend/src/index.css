@@ -28560,6 +28560,73 @@ body.cal-is-dragging * {
   cursor: not-allowed;
 }
 
+/* Drag-Handle (nur Mobile sichtbar) */
+.focus-timer-drag-handle { display: none; }
+
+/* Bottom-Sheet auf Mobile: Vollbild von unten, Swipe-to-close */
+@media (max-width: 768px) {
+  .focus-timer-modal-overlay {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+  .focus-timer-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 20px 20px 0 0 !important;
+    padding: 8px 18px calc(24px + env(safe-area-inset-bottom)) !important;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+    box-shadow: 0 -12px 40px rgba(15, 23, 42, 0.25);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .focus-timer-drag-handle {
+    display: block;
+    width: 44px;
+    height: 5px;
+    border-radius: 999px;
+    background: var(--border, rgba(0, 0, 0, 0.18));
+    margin: 6px auto 10px;
+    flex-shrink: 0;
+    cursor: grab;
+  }
+  .focus-timer-drag-handle:active { cursor: grabbing; }
+  .focus-timer-modal-head { margin-bottom: 10px; }
+  .focus-timer-modal-title h3 { font-size: 18px; }
+  .focus-timer-hint { font-size: 14px; margin-bottom: 18px; }
+  .focus-timer-presets {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .focus-timer-preset {
+    min-height: 72px;
+    font-size: 20px;
+    border-radius: 14px;
+  }
+  .focus-timer-preset span { font-size: 11px; }
+  .focus-timer-custom { margin-bottom: 16px; }
+  .focus-timer-custom input,
+  .focus-timer-label-row input { padding: 12px; font-size: 16px; }
+  .focus-timer-start {
+    min-height: 54px;
+    font-size: 16px;
+    margin-top: auto;
+  }
+}
+
+/* BottomNav verstecken, wenn Picker offen */
+.bottom-nav { transition: transform 0.25s ease, opacity 0.2s ease; }
+body.focus-timer-modal-open .bottom-nav {
+  transform: translateY(120%);
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* Mobile */
 @media (max-width: 600px) {
   .focus-timer-card {
@@ -28568,10 +28635,6 @@ body.cal-is-dragging * {
   }
   .focus-timer-ring-wrap { width: 46px; height: 46px; flex-basis: 46px; }
   .focus-timer-time { font-size: 11px; }
-  .focus-timer-modal {
-    border-radius: 16px;
-    padding: 16px;
-  }
   .focus-timer-presets {
     grid-template-columns: repeat(3, 1fr);
   }

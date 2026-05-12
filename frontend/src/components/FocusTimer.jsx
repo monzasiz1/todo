@@ -181,6 +181,13 @@ export default function FocusTimer() {
     return () => window.clearTimeout(id);
   }, [showFinishOverlay, closeFinishOverlay]);
 
+  // Body-class toggeln, damit BottomNav versteckt wird, wenn Picker offen ist
+  useEffect(() => {
+    if (!open) return undefined;
+    document.body.classList.add('focus-timer-modal-open');
+    return () => document.body.classList.remove('focus-timer-modal-open');
+  }, [open]);
+
   const ensurePushSubscribed = useCallback(async () => {
     try {
       if (typeof Notification === 'undefined') return;
@@ -350,12 +357,20 @@ export default function FocusTimer() {
           >
             <motion.div
               className="focus-timer-modal"
-              initial={{ scale: 0.92, opacity: 0, y: 16 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 8 }}
-              transition={{ duration: 0.2 }}
+              initial={{ y: '100%', opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: '100%', opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 0.6 }}
+              dragDirectionLock
+              onDragEnd={(_, info) => {
+                if (info.offset.y > 120 || info.velocity.y > 600) setOpen(false);
+              }}
               onClick={(e) => e.stopPropagation()}
             >
+              <div className="focus-timer-drag-handle" aria-hidden="true" />
               <div className="focus-timer-modal-head">
                 <div className="focus-timer-modal-title">
                   <Timer size={18} />
