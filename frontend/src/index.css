@@ -8238,6 +8238,8 @@ body.cal-is-dragging * {
 }
 
 .task-detail-votes-section {
+  margin-top: 16px;
+  border-radius: 16px;
   border: 1px solid color-mix(in srgb, var(--primary) 16%, var(--border));
   background:
     radial-gradient(220px 88px at 8% -35%, rgba(76, 123, 217, 0.14), transparent 72%),
