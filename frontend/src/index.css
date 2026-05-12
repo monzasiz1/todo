@@ -1972,67 +1972,87 @@ input, textarea, select {
 .filter-bar {
   display: flex;
   align-items: center;
-  gap: 0;
+  gap: 6px;
   margin-bottom: 16px;
-  background: var(--card-solid);
+  background: linear-gradient(180deg, var(--card-solid), color-mix(in srgb, var(--card-solid) 92%, transparent));
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.5);
   overflow: hidden;
-  padding: 5px 8px;
-  flex-wrap: wrap;
+  padding: 6px;
+  flex-wrap: nowrap;
 }
 
 .filter-btn {
-  padding: 5px 12px;
-  border-radius: 6px;
-  border: none;
+  padding: 7px 13px;
+  border-radius: 10px;
+  border: 1px solid transparent;
   background: transparent;
   color: var(--text-secondary);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.13s, color 0.13s;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, transform 0.15s ease;
   white-space: nowrap;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
 }
 
 .filter-btn:hover {
-  background: var(--bg);
-  color: var(--text);
+  background: rgba(34, 211, 238, 0.08);
+  color: #0e7490;
+  border-color: rgba(34, 211, 238, 0.18);
 }
 
 .filter-btn.active {
-  background: var(--primary);
+  background: linear-gradient(135deg, #22d3ee, #3b82f6);
   color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px -4px rgba(34, 211, 238, 0.55);
+}
+
+.filter-btn:active {
+  transform: scale(0.97);
 }
 
 .filter-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--dot-color, currentColor);
   flex-shrink: 0;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--dot-color, currentColor) 25%, transparent);
+}
+
+.filter-btn.active .filter-dot {
+  background: #fff;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35);
 }
 
 .filter-search {
   flex: 1;
-  min-width: 120px;
-  padding: 5px 10px 5px 30px;
-  border: none;
-  border-left: 1px solid var(--border);
-  border-radius: 0;
-  background: transparent;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='%23AEAEB2' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E");
+  min-width: 0;
+  padding: 7px 12px 7px 32px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background-color: color-mix(in srgb, var(--bg) 70%, transparent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: 9px center;
+  background-position: 10px center;
   color: var(--text);
   font-size: 13px;
   font-family: inherit;
   outline: none;
   margin-left: 4px;
+  transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.filter-search:focus {
+  background-color: var(--card-solid);
+  border-color: rgba(34, 211, 238, 0.45);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.15);
 }
 
 .filter-search::placeholder {
@@ -2079,12 +2099,15 @@ input, textarea, select {
   }
 
   .filter-bar {
-    gap: 6px;
+    gap: 4px;
+    padding: 5px;
+    border-radius: 12px;
   }
 
   .filter-btn {
-    padding: 5px 10px;
+    padding: 6px 10px;
     font-size: 12px;
+    border-radius: 8px;
   }
 }
 
@@ -6212,9 +6235,9 @@ body.cal-is-dragging * {
     flex-wrap: nowrap;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    margin-bottom: 16px;
-    gap: 6px;
-    padding-bottom: 4px;
+    margin-bottom: 12px;
+    gap: 5px;
+    padding: 5px;
   }
 
   .filter-bar::-webkit-scrollbar {
@@ -6224,13 +6247,15 @@ body.cal-is-dragging * {
   .filter-btn {
     white-space: nowrap;
     flex-shrink: 0;
-    padding: 8px 14px;
-    font-size: 13px;
+    padding: 7px 12px;
+    font-size: 12.5px;
+    border-radius: 9px;
   }
 
   .filter-search {
-    min-width: 140px;
-    font-size: 14px;
+    min-width: 130px;
+    font-size: 13px;
+    padding: 7px 10px 7px 30px;
   }
 
   /* ── Dashboard Mobile: app-like full width without wasted side gutters ── */
@@ -6255,7 +6280,6 @@ body.cal-is-dragging * {
   }
 
   .dashboard-page > .smart-insights,
-  .dashboard-page > .filter-bar,
   .dashboard-page > .dash-section,
   .dashboard-page > .empty-state {
     margin-left: 0;
@@ -6272,11 +6296,9 @@ body.cal-is-dragging * {
   }
 
   .dashboard-page > .filter-bar {
-    padding: 8px 16px 10px;
-    margin-bottom: 10px;
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-    border-radius: 0;
+    padding: 6px;
+    margin: 0 12px 10px;
+    border-radius: 12px;
   }
 
   .dashboard-page > .dash-section,
