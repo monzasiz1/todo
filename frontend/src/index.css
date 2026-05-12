@@ -1468,19 +1468,86 @@ input, textarea, select {
 
 .manual-task-form-panel {
   margin-top: 0;
-  padding: 18px;
-  border: 1px solid var(--border);
+  padding: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
   border-top: none;
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-  background: var(--card-solid);
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, #6366f1 4%, #f8fafc) 0%,
+      #f1f5f9 100%);
   box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  /* Prevent any child from blowing out the panel width on iOS */
+  gap: 10px;
   width: 100%;
   box-sizing: border-box;
   overflow-x: hidden;
+}
+
+/* Each field becomes a card-like block for clearer section overview */
+.manual-task-form-panel > .task-edit-field,
+.manual-task-form-panel > .task-edit-row,
+.manual-task-form-panel > .task-edit-sharing {
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 12px;
+  padding: 12px 14px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.manual-task-form-panel > .task-edit-field:hover,
+.manual-task-form-panel > .task-edit-row:hover {
+  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: 0 6px 18px -10px rgba(99, 102, 241, 0.35);
+}
+
+.manual-task-form-panel > .task-edit-field:focus-within,
+.manual-task-form-panel > .task-edit-row:focus-within {
+  border-color: rgba(34, 211, 238, 0.55);
+  box-shadow:
+    0 0 0 3px rgba(34, 211, 238, 0.12),
+    0 6px 18px -10px rgba(34, 211, 238, 0.4);
+}
+
+.manual-task-form-panel > .task-edit-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.manual-task-form-panel > .task-edit-row > .task-edit-field {
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+}
+
+.manual-task-form-panel > .task-edit-row > .task-edit-field:hover,
+.manual-task-form-panel > .task-edit-row > .task-edit-field:focus-within {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.manual-task-form-panel .task-edit-field label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 2px;
+}
+
+.manual-task-form-panel .task-edit-input {
+  background: #ffffff;
+  border: 1.5px solid rgba(148, 163, 184, 0.28);
+  border-radius: 9px;
+}
+
+.manual-task-form-panel .task-edit-input:focus {
+  border-color: #22d3ee;
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.12);
 }
 
 /* ========== TASK LIST ========== */
