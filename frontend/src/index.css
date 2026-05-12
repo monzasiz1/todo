@@ -1567,13 +1567,13 @@ input, textarea, select {
   padding: 14px 16px;
   background: none;
   border: none;
-  border-radius: 12px;
+  border-radius: 14px;
   cursor: pointer;
   color: var(--text-primary);
   font-family: inherit;
   position: relative;
   overflow: hidden;
-  transition: background 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
+  transition: background 0.3s ease, transform 0.25s cubic-bezier(.2,.8,.2,1), box-shadow 0.3s ease;
 }
 
 .dash-section-header::before {
@@ -1581,20 +1581,53 @@ input, textarea, select {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.10), rgba(34, 211, 238, 0.08) 55%, rgba(168, 85, 247, 0.10));
+  background:
+    radial-gradient(120% 140% at 0% 50%, rgba(34, 211, 238, 0.28), transparent 55%),
+    radial-gradient(120% 140% at 100% 50%, rgba(110, 231, 183, 0.22), transparent 55%),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.18), rgba(59, 130, 246, 0.14));
   opacity: 0;
-  transition: opacity 0.25s ease;
+  transform: scale(0.98);
+  transition: opacity 0.28s ease, transform 0.35s cubic-bezier(.2,.8,.2,1);
+  pointer-events: none;
+}
+
+.dash-section-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 18%;
+  bottom: 18%;
+  width: 3px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #22d3ee, #3b82f6);
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform 0.3s cubic-bezier(.2,.8,.2,1);
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.55);
   pointer-events: none;
 }
 
 .dash-section-header:hover {
   background: transparent;
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px -10px rgba(99, 102, 241, 0.45);
+  box-shadow: 0 10px 24px -16px rgba(34, 211, 238, 0.6);
 }
 
 .dash-section-header:hover::before {
   opacity: 1;
+  transform: scale(1);
+}
+
+.dash-section-header:hover::after {
+  transform: scaleY(1);
+}
+
+.dash-section-header:hover .dash-section-title {
+  color: #0e7490;
+}
+
+.dash-section-header:hover .dash-section-chevron {
+  color: #22d3ee;
 }
 
 .dash-section-header:active {
