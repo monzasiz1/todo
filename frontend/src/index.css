@@ -27913,3 +27913,154 @@ body.cal-is-dragging * {
     font-size: 15px;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * CALENDAR — Tablet-Optimierung (769–1024px, Portrait/Landscape iPad uvm.)
+ *
+ * Probleme vorher:
+ *   • Header (Datum + Monat/Woche + Filter-Chips) zog ~150px vertikalen Raum
+ *   • Calendar-Grid hatte feste min-height pro Zelle (110px) ? 660px Gesamt
+ *   • Rest des Viewports blieb leer (~30–40% weiße Fläche unten)
+ *   • Mehrtägige Events drückten Single-Day-Tasks visuell in andere Zeilen,
+ *     weil Cell-Höhe zu klein für 4 Lanes + Multi-Day-Bar war.
+ *
+ * Lösung:
+ *   • .calendar-page-wrap füllt sichtbaren Bereich (flex-column, vh-basiert)
+ *   • .calendar-header kompakter (weniger Padding, kleinere Schrift)
+ *   • .calendar-grid flext den Rest, Zellen wachsen mit `auto-rows: 1fr`
+ *   • Min-Cell-Height angepasst, sodass 4 Tasks + Multi-Day-Bar Platz haben
+ * --------------------------------------------------------------------------- */
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* Wrapper füllt verfügbaren Bereich unter Header/Sidebar.
+     56 = Top-Bar, 90 = Bottom-Nav-Bereich auf Tablet. */
+  .app-main:has(.calendar-page-wrap) {
+    padding-bottom: 0;
+    padding-top: 12px;
+    min-height: calc(100vh - 56px);
+    min-height: calc(100dvh - 56px);
+  }
+
+  .calendar-page-wrap {
+    display: flex;
+    flex-direction: column;
+    /* Voller verfügbarer Raum minus Top-Bar (~56) und Bottom-Nav (~90 inkl. Safe-Area) */
+    min-height: calc(100dvh - 56px - 90px);
+    height: calc(100dvh - 56px - 90px);
+    overflow: hidden;
+  }
+
+  .calendar-page-wrap .page-header {
+    /* Page-Header (Seitentitel) ausblenden — der Calendar-eigene Header
+       reicht und spart wertvolle Vertikal-Hoehe. */
+    display: none;
+  }
+
+  .calendar-page-wrap .calendar-wrapper {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+  }
+
+  /* Header kompakter */
+  .calendar-page-wrap .calendar-header {
+    flex-shrink: 0;
+  }
+
+  .calendar-page-wrap .cal-header-row1 {
+    padding: 8px 16px 6px;
+  }
+
+  .calendar-page-wrap .cal-header-row2 {
+    padding: 6px 16px 8px;
+    padding-top: 6px;
+  }
+
+  .calendar-page-wrap .calendar-header h3,
+  .calendar-page-wrap .cal-mp-trigger {
+    font-size: 16px;
+    line-height: 1.2;
+  }
+
+  /* Grid flext zum Boden, Zeilen waxen zu gleichen Anteilen */
+  .calendar-page-wrap .calendar-grid {
+    flex: 1 1 auto;
+    min-height: 0;
+    grid-auto-rows: 1fr;
+    overflow-y: auto;
+  }
+
+  /* Zellen: mehr Hoehe als Desktop-Tablet (vorher 110px),
+     damit 4 Tasks + Multi-Day-Bar nebeneinander Platz haben. */
+  .calendar-page-wrap .calendar-day {
+    min-height: 96px !important;
+    padding: 6px 6px 8px;
+  }
+
+  .calendar-page-wrap .calendar-day-tasks {
+    gap: 2px;
+    margin-top: 3px;
+  }
+
+  .calendar-page-wrap .calendar-day-task {
+    font-size: 0.68rem;
+    padding: 2px 5px;
+    line-height: 1.25;
+    border-radius: 3px;
+    min-height: 16px;
+  }
+
+  .calendar-page-wrap .calendar-day-number {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+  }
+
+  .calendar-page-wrap .calendar-day-header {
+    padding: 6px 8px;
+    font-size: 10px;
+  }
+
+  /* Multi-Day-Bars: explizit hoehere z-index sicherstellen, sodass
+     sie ueber leere Zellen aber UNTER Single-Day-Tasks der Folgezeilen
+     liegen. Slot-Order via gridRow bleibt erhalten. */
+  .calendar-page-wrap .calendar-day-task.multi-day-start,
+  .calendar-page-wrap .calendar-day-task.multi-day-middle,
+  .calendar-page-wrap .calendar-day-task.multi-day-end,
+  .calendar-page-wrap .calendar-day-task.multi-day-single {
+    line-height: 1.2;
+    min-height: 16px;
+  }
+
+  /* "+N more"-Indikator etwas kompakter */
+  .calendar-page-wrap .calendar-day-more {
+    font-size: 0.62rem;
+    padding-left: 2px;
+  }
+
+  /* Filter-Chips Reihe: bei wenig Platz nicht ausufern */
+  .calendar-page-wrap .cal-header-row2 {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .calendar-page-wrap .cal-header-row2::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Schmale Tablets im Portrait (768–860px): zusätzlich Header in 2 Zeilen
+   kompakter halten, sonst kommt das Filter-Panel zu nah am Datum. */
+@media (min-width: 769px) and (max-width: 860px) {
+  .calendar-page-wrap .calendar-header h3,
+  .calendar-page-wrap .cal-mp-trigger {
+    font-size: 15px;
+  }
+
+  .calendar-page-wrap .calendar-day {
+    min-height: 84px !important;
+  }
+}
