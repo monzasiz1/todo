@@ -45,17 +45,13 @@
       "verifyUpdateCodeSignature": false
     },
     "mac": {
-      "target": [
-        {
-          "target": "dmg",
-          "arch": ["x64", "arm64"]
-        }
-      ],
+      "target": "dmg",
       "icon": "icon.png",
       "category": "public.app-category.productivity",
       "darkModeSupport": true,
       "hardenedRuntime": false,
-      "gatekeeperAssess": false
+      "gatekeeperAssess": false,
+      "type": "distribution"
     },
     "nsis": {
       "oneClick": false,
