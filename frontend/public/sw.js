@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = 'beequ-v6';
+﻿const CACHE_NAME = 'beequ-v7';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -87,7 +87,7 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME).then(async (cache) => {
       await cache.addAll(STATIC_ASSETS);
       await warmAppShell(cache);
-    })
+    }).catch(() => {})
   );
   self.skipWaiting();
 });
@@ -97,11 +97,11 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then(async (keys) => {
       await Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key).catch(() => {}))
       );
       const cache = await caches.open(CACHE_NAME);
       await warmAppShell(cache);
-    })
+    }).catch(() => {})
   );
   self.clients.claim();
 });
@@ -123,7 +123,7 @@ self.addEventListener('fetch', (event) => {
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request, { cache: 'no-store' }).catch(async () => {
-        const shell = await caches.match('/');
+        const shell = await caches.match('/').catch(() => null);
         return shell || offlineHtmlResponse();
       })
     );
@@ -142,12 +142,12 @@ self.addEventListener('fetch', (event) => {
           }
           if (response && response.status === 200 && response.type === 'basic') {
             const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone)).catch(() => {});
           }
           return response;
         })
         .catch(async () => {
-          const cached = await caches.match(request, { ignoreSearch: true });
+          const cached = await caches.match(request, { ignoreSearch: true }).catch(() => null);
           if (cached) return cached;
           if (request.destination === 'script') return offlineScriptResponse();
           return offlineStyleResponse();
@@ -158,11 +158,11 @@ self.addEventListener('fetch', (event) => {
 
   // Static assets: stale-while-revalidate
   event.respondWith(
-    caches.match(request).then((cached) => {
+    caches.match(request).catch(() => null).then((cached) => {
       const fetchPromise = fetch(request).then((response) => {
         if (response && response.status === 200 && response.type === 'basic') {
           const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone)).catch(() => {});
         }
         return response;
       }).catch(() => cached || offlineFallbackResponse());
@@ -210,12 +210,12 @@ async function saveAuthToken(token) {
     const db = await openAuthIDB();
     const tx = db.transaction(IDB_STORE, 'readwrite');
     tx.objectStore(IDB_STORE).put(token, 'token');
-    return new Promise((res, rej) => {
+    return new Promise((res) => {
       tx.oncomplete = () => res();
-      tx.onerror = () => rej(tx.error);
+      tx.onerror = () => res();
     });
-  } catch (e) {
-    console.error('[SW] saveAuthToken failed:', e);
+  } catch {
+    /* storage unavailable (private mode, quota, etc.) — silent */
   }
 }
 
