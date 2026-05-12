@@ -41,7 +41,7 @@ module.exports = async function handler(req, res) {
   }
 
   const pool = getPool();
-  const results = { reminders: 0, dailySummary: 0, engagement: 0, team: 0 };
+  const results = { reminders: 0, dailySummary: 0, engagement: 0, team: 0, focusTimers: 0 };
 
   // Helper: check if user has a notification type enabled
   async function isTypeEnabled(userId, type) {
@@ -226,6 +226,57 @@ module.exports = async function handler(req, res) {
           results.team++;
         }
       }
+    }
+
+    // ─── 5. Focus-Timer abgelaufen ─────────────────────────────────────────
+    // Tabelle wird beim ersten Aufruf von /api/focus-timer.js erzeugt; wir
+    // greifen nur zu, wenn sie existiert, sonst still ueberspringen.
+    try {
+      const { rows: ftExists } = await pool.query(
+        `SELECT 1 FROM information_schema.tables
+         WHERE table_name = 'focus_timers' LIMIT 1`
+      );
+      if (ftExists.length > 0) {
+        const { rows: dueTimers } = await pool.query(
+          `SELECT id, user_id, duration_sec, label, ends_at
+           FROM focus_timers
+           WHERE fired = FALSE AND ends_at <= NOW()
+           ORDER BY ends_at ASC
+           LIMIT 200`
+        );
+        for (const t of dueTimers) {
+          // Atomar als gefeuert markieren, sodass paralleler Cron-Run nicht doppelt sendet
+          const { rowCount } = await pool.query(
+            `UPDATE focus_timers SET fired = TRUE WHERE id = $1 AND fired = FALSE`,
+            [t.id]
+          );
+          if (rowCount === 0) continue;
+
+          const minutes = Math.max(1, Math.round((t.duration_sec || 0) / 60));
+          const label = t.label && t.label.trim() ? t.label.trim() : null;
+          await sendPushToUser(
+            t.user_id,
+            {
+              title: '⏰ Fokus-Timer abgelaufen',
+              body: label
+                ? `${label} - ${minutes} Min sind um. Gut gemacht!`
+                : `Deine ${minutes}-Minuten-Session ist vorbei. Gut gemacht!`,
+              tag: `focus-timer-${t.id}`,
+              url: '/',
+            },
+            'focus_timer'
+          );
+
+          results.focusTimers++;
+        }
+
+        // Aufraeumen: gefeuerte Eintraege > 1h alt loeschen (best-effort)
+        await pool
+          .query(`DELETE FROM focus_timers WHERE fired = TRUE AND ends_at < NOW() - INTERVAL '1 hour'`)
+          .catch(() => null);
+      }
+    } catch (focusErr) {
+      console.error('[cron] focus-timer block failed:', focusErr.message);
     }
 
     return res.json({ success: true, results });

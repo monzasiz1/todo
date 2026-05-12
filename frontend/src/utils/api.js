@@ -283,6 +283,12 @@ export const api = {
   updateNotificationPrefs: (prefs) =>
     request('/notifications/prefs', { method: 'PUT', body: JSON.stringify({ prefs }) }),
 
+  // Focus Timer (server-side scheduled push)
+  getFocusTimer: () => request('/focus-timer'),
+  startFocusTimer: (payload) =>
+    request('/focus-timer', { method: 'POST', body: JSON.stringify(payload) }),
+  cancelFocusTimer: () => request('/focus-timer', { method: 'DELETE' }),
+
   // AI
   parseInput: (input) =>
     request('/ai/parse', {

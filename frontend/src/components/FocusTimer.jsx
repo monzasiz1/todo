@@ -1,23 +1,24 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Timer, Play, Pause, RotateCcw, X, Bell } from 'lucide-react';
+import { Timer, Play, Pause, RotateCcw, X, Bell, Sparkles } from 'lucide-react';
+import { api } from '../utils/api';
+import { useNotificationStore } from '../store/notificationStore';
 
 /**
  * Fokus-Timer Widget
  * ──────────────────
- * Klickbare Karte auf dem Dashboard. Beim Klick oeffnet sich ein Modal mit
- * Voreinstellungen (5/10/15/25/45 min oder eigene Eingabe) + Start-Button.
- * Laeuft der Timer, zeigt die Karte den verbleibenden Wert + animierten
- * SVG-Ring an. Bei Ablauf:
- *   - Browser-Notification (falls erlaubt)
- *   - Vibration (Mobil, falls verfuegbar)
- *   - Audio-Ping
- *   - Visueller Toast/Badge auf der Karte
+ * Card auf dem Dashboard. Klick öffnet Dauer-Picker, Start registriert den
+ * Timer ZUSÄTZLICH auf dem Server (POST /api/focus-timer). Damit feuert
+ * der Vercel-Cron eine echte Web-Push-Notification, selbst wenn die App
+ * gerade nicht offen ist.
  *
- * Persistenz: end-timestamp + duration in localStorage, sodass der Timer
- * Tab-Wechsel und Reloads ueberlebt.
+ * Sicherheits-Layers für die Benachrichtigung:
+ *  1. Server-Push via cron + pushService (App geschlossen → Notification)
+ *  2. Foreground-Notification + Audio + Vibration (App offen)
+ *  3. Großes Finish-Overlay mit Konfetti-Bursts und Glow-Pulse (App offen)
+ *  4. localStorage merkt sich endsAt → Reload-/Tab-resistent
  */
-const LS_KEY = 'beequ.focusTimer.v1';
+const LS_KEY = 'beequ.focusTimer.v2';
 const PRESETS = [5, 10, 15, 25, 45];
 
 function loadState() {
@@ -45,44 +46,93 @@ function formatMMSS(seconds) {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-function playPing() {
+function playFinishSound() {
   try {
     const Ctx = window.AudioContext || window.webkitAudioContext;
     if (!Ctx) return;
     const ctx = new Ctx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.value = 880;
-    gain.gain.value = 0.0001;
-    osc.connect(gain).connect(ctx.destination);
-    osc.start();
-    gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.03);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.1);
-    osc.stop(ctx.currentTime + 1.2);
+    const now = ctx.currentTime;
+    const notes = [
+      { f: 523.25, t: now,        d: 0.18 },
+      { f: 659.25, t: now + 0.20, d: 0.18 },
+      { f: 783.99, t: now + 0.40, d: 0.40 },
+    ];
+    notes.forEach(({ f, t, d }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = f;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.25, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + d + 0.05);
+    });
     setTimeout(() => ctx.close(), 1500);
   } catch { /* ignore */ }
 }
 
+const CONFETTI = Array.from({ length: 36 }).map((_, i) => {
+  const angle = (i / 36) * Math.PI * 2;
+  const dist = 160 + Math.random() * 140;
+  return {
+    id: i,
+    x: Math.cos(angle) * dist,
+    y: Math.sin(angle) * dist,
+    rot: Math.random() * 720 - 360,
+    delay: Math.random() * 0.18,
+    color: [
+      '#ff6b8a', '#ff9a5a', '#ffd166', '#06d6a0', '#118ab2', '#7b61ff', '#ff8fab',
+    ][i % 7],
+  };
+});
+
 export default function FocusTimer() {
+  const subscribePush = useNotificationStore((s) => s.subscribe);
+  const subscribed    = useNotificationStore((s) => s.subscribed);
+
   const [open, setOpen] = useState(false);
   const [customMin, setCustomMin] = useState(25);
+  const [label, setLabel] = useState('');
   const [now, setNow] = useState(() => Date.now());
-  const [state, setState] = useState(() => loadState()); // { endsAt, durationSec, paused?, remainingAtPauseSec? }
-  const [finishedFlash, setFinishedFlash] = useState(false);
+  const [state, setState] = useState(() => loadState());
+  const [showFinishOverlay, setShowFinishOverlay] = useState(false);
   const firedRef = useRef(false);
 
-  // Tick every second
+  // Re-hydrate from server (other devices / fresh tab)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await api.getFocusTimer();
+        if (cancelled || !data?.timer) return;
+        const endsAt = new Date(data.timer.ends_at).getTime();
+        if (!Number.isFinite(endsAt) || endsAt <= Date.now() - 60_000) return;
+        setState((prev) => {
+          if (!prev || Math.abs(prev.endsAt - endsAt) > 2000) {
+            return {
+              endsAt,
+              durationSec: data.timer.duration_sec,
+              paused: false,
+              serverId: data.timer.id,
+              label: data.timer.label || '',
+            };
+          }
+          return prev;
+        });
+      } catch { /* offline / no auth */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   useEffect(() => {
     if (!state) return undefined;
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, [state]);
 
-  // Persist
-  useEffect(() => {
-    saveState(state);
-  }, [state]);
+  useEffect(() => { saveState(state); }, [state]);
 
   const remainingSec = useMemo(() => {
     if (!state) return 0;
@@ -102,51 +152,84 @@ export default function FocusTimer() {
     if (remainingSec > 0) return;
     if (firedRef.current) return;
     firedRef.current = true;
-    setFinishedFlash(true);
-    playPing();
-    try {
-      if ('vibrate' in navigator) navigator.vibrate([200, 100, 200, 100, 400]);
-    } catch { /* ignore */ }
+    setShowFinishOverlay(true);
+    playFinishSound();
+    try { if ('vibrate' in navigator) navigator.vibrate([220, 90, 220, 90, 480]); } catch { /* ignore */ }
     try {
       if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
         new Notification('Fokus-Timer abgelaufen', {
-          body: `Deine ${state.durationSec / 60}-Minuten-Session ist vorbei.`,
-          icon: '/icons/icon.png',
+          body: state.label
+            ? `${state.label} - ${Math.round(state.durationSec / 60)} Minuten geschafft!`
+            : `Deine ${Math.round(state.durationSec / 60)}-Minuten-Session ist vorbei.`,
+          icon: '/icons/icon-192.png',
           tag: 'beequ-focus-timer',
         });
       }
     } catch { /* ignore */ }
-    // Auto-clear after a short while so the card resets
-    const id = window.setTimeout(() => {
-      setFinishedFlash(false);
-      setState(null);
-      firedRef.current = false;
-    }, 8000);
-    return () => window.clearTimeout(id);
   }, [remainingSec, state]);
 
-  const requestNotifPermission = useCallback(async () => {
+  const closeFinishOverlay = useCallback(() => {
+    setShowFinishOverlay(false);
+    setState(null);
+    firedRef.current = false;
+  }, []);
+
+  // Auto-close nach 12s
+  useEffect(() => {
+    if (!showFinishOverlay) return undefined;
+    const id = window.setTimeout(closeFinishOverlay, 12000);
+    return () => window.clearTimeout(id);
+  }, [showFinishOverlay, closeFinishOverlay]);
+
+  const ensurePushSubscribed = useCallback(async () => {
     try {
       if (typeof Notification === 'undefined') return;
       if (Notification.permission === 'default') {
         await Notification.requestPermission();
       }
+      if (Notification.permission !== 'granted') return;
+      if (!subscribed) {
+        await subscribePush();
+      }
     } catch { /* ignore */ }
-  }, []);
+  }, [subscribePush, subscribed]);
 
-  const startTimer = useCallback((minutes) => {
+  const startTimer = useCallback(async (minutes) => {
     if (!minutes || minutes <= 0) return;
     const durationSec = Math.round(minutes * 60);
     firedRef.current = false;
-    setFinishedFlash(false);
+    setShowFinishOverlay(false);
+
     setState({
       endsAt: Date.now() + durationSec * 1000,
       durationSec,
       paused: false,
+      label: label.trim() || '',
     });
     setOpen(false);
-    requestNotifPermission();
-  }, [requestNotifPermission]);
+
+    await ensurePushSubscribed();
+
+    try {
+      const result = await api.startFocusTimer({
+        durationSec,
+        label: label.trim() || null,
+      });
+      if (result?.timer) {
+        const serverEndsAt = new Date(result.timer.ends_at).getTime();
+        setState((prev) => ({
+          ...(prev || {}),
+          endsAt: Number.isFinite(serverEndsAt) ? serverEndsAt : prev?.endsAt,
+          durationSec: result.timer.duration_sec,
+          paused: false,
+          serverId: result.timer.id,
+          label: result.timer.label || '',
+        }));
+      }
+    } catch (err) {
+      console.warn('[FocusTimer] Server-Registrierung fehlgeschlagen:', err?.message);
+    }
+  }, [label, ensurePushSubscribed]);
 
   const pauseTimer = useCallback(() => {
     setState((prev) => {
@@ -154,27 +237,45 @@ export default function FocusTimer() {
       const remaining = Math.max(0, Math.round((prev.endsAt - Date.now()) / 1000));
       return { ...prev, paused: true, remainingAtPauseSec: remaining };
     });
+    api.cancelFocusTimer().catch(() => null);
   }, []);
 
-  const resumeTimer = useCallback(() => {
+  const resumeTimer = useCallback(async () => {
+    let nextDuration = 0;
+    let nextLabel = '';
     setState((prev) => {
       if (!prev || !prev.paused) return prev;
       const rem = prev.remainingAtPauseSec || 0;
+      nextDuration = rem;
+      nextLabel = prev.label || '';
       return { ...prev, paused: false, endsAt: Date.now() + rem * 1000, remainingAtPauseSec: undefined };
     });
+    if (nextDuration > 0) {
+      try {
+        const result = await api.startFocusTimer({ durationSec: nextDuration, label: nextLabel || null });
+        if (result?.timer) {
+          const serverEndsAt = new Date(result.timer.ends_at).getTime();
+          setState((prev) => ({
+            ...(prev || {}),
+            endsAt: Number.isFinite(serverEndsAt) ? serverEndsAt : prev?.endsAt,
+            serverId: result.timer.id,
+          }));
+        }
+      } catch { /* ignore */ }
+    }
   }, []);
 
   const resetTimer = useCallback(() => {
     setState(null);
     firedRef.current = false;
-    setFinishedFlash(false);
+    setShowFinishOverlay(false);
+    api.cancelFocusTimer().catch(() => null);
   }, []);
 
   const isRunning = !!state && !state.paused && remainingSec > 0;
-  const isPaused = !!state && state.paused;
-  const isIdle = !state;
+  const isPaused  = !!state && state.paused;
+  const isIdle    = !state;
 
-  // ── SVG ring geometry
   const RADIUS = 46;
   const STROKE = 6;
   const C = 2 * Math.PI * RADIUS;
@@ -183,18 +284,13 @@ export default function FocusTimer() {
     <>
       <button
         type="button"
-        className={`focus-timer-card${finishedFlash ? ' is-finished' : ''}${isRunning ? ' is-running' : ''}`}
+        className={`focus-timer-card${isRunning ? ' is-running' : ''}`}
         onClick={() => (isIdle ? setOpen(true) : null)}
         aria-label="Fokus-Timer"
       >
         <div className="focus-timer-ring-wrap" aria-hidden="true">
           <svg viewBox="0 0 100 100" className="focus-timer-ring">
-            <circle
-              cx="50" cy="50" r={RADIUS}
-              stroke="rgba(255,255,255,0.12)"
-              strokeWidth={STROKE}
-              fill="none"
-            />
+            <circle cx="50" cy="50" r={RADIUS} stroke="rgba(255,255,255,0.12)" strokeWidth={STROKE} fill="none" />
             <circle
               cx="50" cy="50" r={RADIUS}
               stroke="url(#ftGrad)"
@@ -214,19 +310,14 @@ export default function FocusTimer() {
             </defs>
           </svg>
           <div className="focus-timer-ring-label">
-            {isIdle ? (
-              <Timer size={22} />
-            ) : (
-              <span className="focus-timer-time">{formatMMSS(remainingSec)}</span>
-            )}
+            {isIdle ? <Timer size={22} /> : <span className="focus-timer-time">{formatMMSS(remainingSec)}</span>}
           </div>
         </div>
         <div className="focus-timer-body">
-          <strong>Fokus-Timer</strong>
-          {isIdle && <span>Klick zum Starten · 5–45 min</span>}
+          <strong>Fokus-Timer{state?.label ? ` · ${state.label}` : ''}</strong>
+          {isIdle    && <span>Klick zum Starten · 5–45 min</span>}
           {isRunning && <span>Läuft — bleib dran 💪</span>}
-          {isPaused && <span>Pausiert</span>}
-          {finishedFlash && <span className="focus-timer-done"><Bell size={12} /> Zeit ist um!</span>}
+          {isPaused  && <span>Pausiert</span>}
         </div>
         {!isIdle && (
           <div className="focus-timer-actions" onClick={(e) => e.stopPropagation()}>
@@ -247,6 +338,7 @@ export default function FocusTimer() {
         )}
       </button>
 
+      {/* Picker-Modal */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -274,7 +366,8 @@ export default function FocusTimer() {
                 </button>
               </div>
               <p className="focus-timer-hint">
-                Wähle eine Dauer. Wir melden uns mit einer Benachrichtigung, sobald die Zeit um ist.
+                Wähle eine Dauer. Du bekommst eine Push-Benachrichtigung, sobald die Zeit um ist —
+                auch wenn die App geschlossen ist.
               </p>
               <div className="focus-timer-presets">
                 {PRESETS.map((m) => (
@@ -303,6 +396,17 @@ export default function FocusTimer() {
                   }}
                 />
               </div>
+              <div className="focus-timer-custom focus-timer-label-row">
+                <label htmlFor="ft-label-input">Label (optional)</label>
+                <input
+                  id="ft-label-input"
+                  type="text"
+                  maxLength={60}
+                  placeholder="z.B. Lernen, Sport, Tiefenarbeit…"
+                  value={label}
+                  onChange={(e) => setLabel(e.target.value)}
+                />
+              </div>
               <button
                 type="button"
                 className="focus-timer-start"
@@ -310,6 +414,78 @@ export default function FocusTimer() {
                 disabled={!customMin || customMin <= 0}
               >
                 <Play size={16} /> {customMin} min starten
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Finish-Overlay (groß, animiert) */}
+      <AnimatePresence>
+        {showFinishOverlay && (
+          <motion.div
+            className="focus-finish-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            onClick={closeFinishOverlay}
+          >
+            <div className="focus-finish-bg-pulse" aria-hidden="true" />
+            <motion.div
+              className="focus-finish-card"
+              initial={{ scale: 0.6, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="focus-finish-confetti" aria-hidden="true">
+                {CONFETTI.map((c) => (
+                  <motion.span
+                    key={c.id}
+                    className="focus-finish-confetti-piece"
+                    style={{ background: c.color }}
+                    initial={{ x: 0, y: 0, rotate: 0, opacity: 0 }}
+                    animate={{
+                      x: c.x,
+                      y: c.y,
+                      rotate: c.rot,
+                      opacity: [0, 1, 1, 0],
+                    }}
+                    transition={{
+                      duration: 1.6,
+                      delay: c.delay,
+                      ease: 'easeOut',
+                      times: [0, 0.1, 0.7, 1],
+                    }}
+                  />
+                ))}
+              </div>
+
+              <motion.div
+                className="focus-finish-ring"
+                initial={{ scale: 0.7, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.05, duration: 0.4 }}
+              >
+                <Bell size={48} />
+              </motion.div>
+
+              <h2 className="focus-finish-title">Zeit ist um!</h2>
+              <p className="focus-finish-sub">
+                {state?.durationSec
+                  ? `Du hast ${Math.max(1, Math.round(state.durationSec / 60))} Minuten fokussiert gearbeitet.`
+                  : 'Deine Fokus-Session ist vorbei.'}
+              </p>
+              {state?.label && (
+                <p className="focus-finish-label">
+                  <Sparkles size={14} /> {state.label}
+                </p>
+              )}
+
+              <button type="button" className="focus-finish-cta" onClick={closeFinishOverlay}>
+                Weiter machen
               </button>
             </motion.div>
           </motion.div>
