@@ -5,7 +5,7 @@ import {
   AlertCircle, ArrowRight, ArrowUp, BarChart2, Bell, CalendarDays,
   Check, CheckCircle2, ChevronDown, Clock, FileText, Flag,
   Key, Layers3, LayoutDashboard, ListTodo, Mail, Paperclip, Repeat,
-  Sparkles, Tag, Target, UsersRound, User, X, Zap,
+  Sparkles, Tag, Target, UsersRound, User, X, Zap, Download,
 } from 'lucide-react';
 import { PLANS } from '../lib/plans';
 import { useAuthStore } from '../store/authStore';
@@ -394,12 +394,35 @@ export default function LandingPage() {
             <button onClick={() => setShowLogin(true)} className="bq-btn bq-ghost bq-btn-lg">
               Anmelden
             </button>
+            <a 
+              href="https://github.com/monzasiz1/todo/releases/latest" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="bq-btn bq-ghost bq-btn-lg"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Download size={17} /> Desktop App
+            </a>
           </motion.div>
 
           <motion.div className="bq-hero-trust" variants={fadeUp}>
-            {['Keine Kreditkarte', 'Free Plan inklusive', 'Installierbar als App'].map(t => (
-              <span key={t}><Check size={13} strokeWidth={3} />{t}</span>
-            ))}
+            <span><Check size={13} strokeWidth={3} />Keine Kreditkarte</span>
+            <span><Check size={13} strokeWidth={3} />Free Plan inklusive</span>
+            <a 
+              href="https://github.com/monzasiz1/todo/releases/latest" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '4px',
+                textDecoration: 'none',
+                color: 'inherit',
+                cursor: 'pointer'
+              }}
+            >
+              <Download size={13} strokeWidth={3} />Desktop App (.exe)
+            </a>
           </motion.div>
         </motion.div>
 
