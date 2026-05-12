@@ -348,6 +348,7 @@ export default function LandingPage() {
             <a href="#features">Features</a>
             <a href="#ai">KI-Eingabe</a>
             <a href="#pricing">Preise</a>
+            <a href="#downloads">Downloads</a>
           </div>
           <div className="bq-nav-actions">
             <button onClick={() => setShowLogin(true)}    className="bq-btn bq-ghost">Anmelden</button>
@@ -967,6 +968,172 @@ export default function LandingPage() {
             <button onClick={() => setShowLogin(true)} className="bq-btn bq-cta-ghost bq-btn-lg">
               Anmelden
             </button>
+          </motion.div>
+        </motion.div>
+      </section>
+
+      {/* ══════════ DOWNLOADS ══════════ */}
+      <section className="bq-section" id="downloads" style={{ background: 'linear-gradient(180deg, #f5f8ff 0%, #ffffff 100%)', paddingTop: '80px', paddingBottom: '80px' }}>
+        <motion.div
+          className="bq-container"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.3 }}
+          variants={{ visible: { transition: { staggerChildren: 0.12 } } }}
+        >
+          <motion.div style={{ textAlign: 'center', marginBottom: '48px' }} variants={fadeUp}>
+            <h2 className="bq-section-h2" style={{ marginBottom: '12px' }}>
+              <Download size={32} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '12px', color: '#007AFF' }} />
+              Desktop App
+            </h2>
+            <p className="bq-section-sub" style={{ maxWidth: '600px', margin: '0 auto' }}>
+              Nutze BeeQu als native Desktop-Anwendung für Windows und macOS. 
+              Schneller Start, offline verfügbar, automatische Updates.
+            </p>
+          </motion.div>
+
+          <motion.div 
+            style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+              gap: '24px',
+              maxWidth: '800px',
+              margin: '0 auto'
+            }}
+            variants={fadeUp}
+          >
+            {/* Windows */}
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              padding: '32px',
+              border: '1px solid rgba(0, 122, 255, 0.15)',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+              textAlign: 'center'
+            }}>
+              <div style={{ 
+                width: '64px', 
+                height: '64px', 
+                margin: '0 auto 20px',
+                background: 'linear-gradient(135deg, #0078D4 0%, #0063B1 100%)',
+                borderRadius: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '32px',
+                color: 'white',
+                fontWeight: 'bold'
+              }}>
+                <svg viewBox="0 0 24 24" width="36" height="36" fill="currentColor">
+                  <path d="M0,0 L10,0 L10,10 L0,10 Z M11,0 L24,0 L24,13 L11,13 Z M0,11 L10,11 L10,24 L0,24 Z M11,14 L24,14 L24,24 L11,24 Z"/>
+                </svg>
+              </div>
+              <h3 style={{ fontSize: '1.3rem', fontWeight: '700', marginBottom: '8px', color: '#0c1d36' }}>
+                Windows
+              </h3>
+              <p style={{ fontSize: '0.92rem', color: '#6b7c95', marginBottom: '20px' }}>
+                Windows 10/11 (64-bit)
+              </p>
+              <a 
+                href="https://github.com/monzasiz1/todo/releases/latest/download/BeeQu-Setup-1.0.0.exe"
+                className="bq-btn bq-primary"
+                style={{ width: '100%', justifyContent: 'center' }}
+              >
+                <Download size={16} /> Installer (.exe)
+              </a>
+              <a 
+                href="https://github.com/monzasiz1/todo/releases/latest"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ 
+                  display: 'block',
+                  marginTop: '12px',
+                  fontSize: '0.85rem',
+                  color: '#007AFF',
+                  textDecoration: 'none'
+                }}
+              >
+                Portable Version →
+              </a>
+            </div>
+
+            {/* macOS */}
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              padding: '32px',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+              textAlign: 'center'
+            }}>
+              <div style={{ 
+                width: '64px', 
+                height: '64px', 
+                margin: '0 auto 20px',
+                background: 'linear-gradient(135deg, #000000 0%, #333333 100%)',
+                borderRadius: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '36px',
+                color: 'white'
+              }}>
+                
+              </div>
+              <h3 style={{ fontSize: '1.3rem', fontWeight: '700', marginBottom: '8px', color: '#0c1d36' }}>
+                macOS
+              </h3>
+              <p style={{ fontSize: '0.92rem', color: '#6b7c95', marginBottom: '20px' }}>
+                Intel + Apple Silicon
+              </p>
+              <button 
+                disabled
+                className="bq-btn"
+                style={{ 
+                  width: '100%', 
+                  justifyContent: 'center',
+                  opacity: 0.5,
+                  cursor: 'not-allowed',
+                  background: '#e5e7eb',
+                  color: '#6b7c95'
+                }}
+              >
+                In Kürze verfügbar
+              </button>
+              <a 
+                href="https://github.com/monzasiz1/todo/releases"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ 
+                  display: 'block',
+                  marginTop: '12px',
+                  fontSize: '0.85rem',
+                  color: '#6b7c95',
+                  textDecoration: 'none'
+                }}
+              >
+                Build-Status anzeigen →
+              </a>
+            </div>
+          </motion.div>
+
+          <motion.div 
+            style={{ 
+              marginTop: '40px',
+              padding: '20px',
+              background: 'rgba(0, 122, 255, 0.05)',
+              borderRadius: '12px',
+              border: '1px solid rgba(0, 122, 255, 0.1)',
+              textAlign: 'center'
+            }}
+            variants={fadeUp}
+          >
+            <p style={{ fontSize: '0.9rem', color: '#6b7c95', margin: 0 }}>
+              <Check size={16} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '6px', color: '#34C759' }} />
+              Keine Anmeldung für Download erforderlich &nbsp;•&nbsp; 
+              <Check size={16} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '6px', color: '#34C759' }} />
+              Open Source auf <a href="https://github.com/monzasiz1/todo" target="_blank" rel="noopener noreferrer" style={{ color: '#007AFF', textDecoration: 'none' }}>GitHub</a>
+            </p>
           </motion.div>
         </motion.div>
       </section>
