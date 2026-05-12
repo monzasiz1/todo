@@ -9,6 +9,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Menu, X, MessageCircle } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import ReminderChecker from './ReminderChecker';
+import FocusTimerPin from './FocusTimerPin';
 import HelpChat from './HelpChat';
 import { lockScroll, unlockScroll } from '../utils/scrollLock';
 import { useGroupStore } from '../store/groupStore';
@@ -168,6 +169,9 @@ export default function Layout() {
 
       {/* Client-side Reminder Checker */}
       <ReminderChecker />
+
+      {/* Schwebender Fokus-Timer-Pin (sichtbar beim Seitenwechsel / Scroll) */}
+      <FocusTimerPin />
 
       {/* Help Chat */}
       <HelpChat hideFab={chatOpen} />

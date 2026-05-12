@@ -29167,3 +29167,135 @@ body.focus-timer-modal-open .bottom-nav {
   gap: 6px;
 }
 .focus-timer-label-row label { text-align: left; }
+
+/* ===== Fokus-Timer Pin (schwebende Mini-Anzeige) ===== */
+.focus-timer-pin {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 1200;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px 8px 8px;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: 999px;
+  background:
+    linear-gradient(135deg, rgba(34, 211, 238, 0.10), transparent 55%),
+    linear-gradient(180deg, color-mix(in srgb, var(--card-solid) 88%, transparent), color-mix(in srgb, var(--bg) 70%, transparent));
+  backdrop-filter: blur(16px) saturate(1.5);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  box-shadow:
+    0 14px 32px -14px rgba(15, 23, 42, 0.45),
+    0 4px 10px -4px rgba(15, 23, 42, 0.18),
+    0 0 0 1px rgba(34, 211, 238, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  color: var(--text);
+  font: inherit;
+  transition: transform 0.18s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.focus-timer-pin:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 18px 38px -14px rgba(15, 23, 42, 0.5),
+    0 6px 14px -4px rgba(15, 23, 42, 0.2),
+    0 0 0 1px rgba(34, 211, 238, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.focus-timer-pin:active { transform: translateY(0) scale(0.97); }
+
+.focus-timer-pin-ring {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.focus-timer-pin-ring svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.focus-timer-pin-icon {
+  position: relative;
+  color: #67e8f9;
+  filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.5));
+}
+
+.focus-timer-pin-body {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.1;
+  min-width: 0;
+}
+
+.focus-timer-pin-time {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  color: var(--text);
+}
+
+.focus-timer-pin-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  max-width: 110px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.focus-timer-pin.is-paused .focus-timer-pin-label { color: #f59e0b; }
+
+/* Pulsierender Aurora-Ring auessen, nur waehrend laufend */
+.focus-timer-pin-pulse {
+  position: absolute;
+  inset: -2px;
+  border-radius: 999px;
+  pointer-events: none;
+  background: conic-gradient(from 0deg, rgba(34, 211, 238, 0.35), rgba(99, 102, 241, 0.35), rgba(168, 85, 247, 0.35), rgba(34, 211, 238, 0.35));
+  filter: blur(8px);
+  opacity: 0;
+  z-index: -1;
+  animation: focus-timer-pin-pulse 2.4s ease-in-out infinite;
+}
+
+.focus-timer-pin.is-running .focus-timer-pin-pulse { opacity: 0.55; }
+.focus-timer-pin.is-paused .focus-timer-pin-pulse { opacity: 0.18; animation: none; }
+
+@keyframes focus-timer-pin-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.04); }
+}
+
+/* Mobile: oberhalb der BottomNav schweben, kompakter */
+@media (max-width: 768px) {
+  .focus-timer-pin {
+    right: 12px;
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    padding: 6px 12px 6px 6px;
+    gap: 8px;
+    border-radius: 999px;
+  }
+  .focus-timer-pin-ring { width: 28px; height: 28px; }
+  .focus-timer-pin-time { font-size: 12.5px; }
+  .focus-timer-pin-label { font-size: 9.5px; max-width: 90px; }
+}
+
+@media (max-width: 420px) {
+  .focus-timer-pin-label { display: none; }
+}
