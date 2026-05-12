@@ -1972,66 +1972,56 @@ input, textarea, select {
 .filter-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   margin-bottom: 16px;
-  padding: 0;
-  background: transparent;
-  border: none;
-  box-shadow: none;
+  padding: 6px;
+  background:
+    linear-gradient(135deg, rgba(34, 211, 238, 0.06), transparent 50%),
+    linear-gradient(180deg, color-mix(in srgb, var(--card-solid) 85%, transparent), color-mix(in srgb, var(--bg) 60%, transparent));
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: 16px;
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
   flex-wrap: nowrap;
 }
 
-/* Segmented control track */
-.filter-bar > .filter-btn:first-of-type {
-  border-top-left-radius: 11px;
-  border-bottom-left-radius: 11px;
-}
-.filter-bar > .filter-btn:last-of-type {
-  border-top-right-radius: 11px;
-  border-bottom-right-radius: 11px;
-}
-
-.filter-bar::before {
-  content: none;
-}
-
-/* Wrap filter buttons in a track look via a pseudo on the group.
-   Since the JSX renders them flat, we style them as one connected segmented control. */
 .filter-btn {
   position: relative;
   padding: 8px 14px;
-  border-radius: 0;
-  border: 1px solid var(--border);
-  border-right: none;
-  background: var(--card-solid);
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
   color: var(--text-secondary);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease, z-index 0s;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.12s ease;
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   flex-shrink: 0;
-  z-index: 1;
-}
-
-.filter-btn:last-of-type {
-  border-right: 1px solid var(--border);
 }
 
 .filter-btn:hover {
-  background: color-mix(in srgb, var(--card-solid) 70%, var(--bg));
+  background: rgba(255, 255, 255, 0.55);
   color: var(--text);
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
 }
 
 .filter-btn.active {
-  background: linear-gradient(180deg, #0e1428, #0a1020);
-  color: #fff;
-  border-color: #0a1020;
-  box-shadow: 0 6px 14px -8px rgba(15, 23, 42, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  z-index: 2;
+  background: linear-gradient(180deg, #ffffff, color-mix(in srgb, var(--card-solid) 90%, var(--bg)));
+  color: var(--text);
+  border-color: rgba(255, 255, 255, 0.85);
+  box-shadow:
+    0 4px 10px -4px rgba(15, 23, 42, 0.18),
+    0 1px 2px rgba(15, 23, 42, 0.06),
+    inset 0 0 0 1px rgba(34, 211, 238, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .filter-btn:active {
@@ -2039,39 +2029,47 @@ input, textarea, select {
 }
 
 .filter-dot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: var(--dot-color, currentColor);
   flex-shrink: 0;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--dot-color, currentColor) 22%, transparent);
 }
 
 .filter-btn.active .filter-dot {
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.18);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--dot-color, currentColor) 28%, transparent),
+    0 0 6px color-mix(in srgb, var(--dot-color, currentColor) 60%, transparent);
 }
 
 .filter-search {
   flex: 1;
   min-width: 0;
-  padding: 9px 14px 9px 34px;
-  border: 1px solid var(--border);
-  border-radius: 11px;
-  background-color: var(--card-solid);
+  padding: 8px 14px 8px 32px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background-color: rgba(255, 255, 255, 0.5);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: 12px center;
+  background-position: 10px center;
   color: var(--text);
   font-size: 13px;
   font-weight: 500;
   font-family: inherit;
   outline: none;
   margin-left: 0;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.filter-search:hover {
+  background-color: rgba(255, 255, 255, 0.7);
 }
 
 .filter-search:focus {
-  border-color: #0a1020;
-  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.10);
+  background-color: #fff;
+  border-color: rgba(34, 211, 238, 0.4);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.15);
 }
 
 .filter-search::placeholder {
@@ -6248,9 +6246,10 @@ body.cal-is-dragging * {
   /* Filter Bar */
   .filter-bar {
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 5px;
     margin-bottom: 12px;
-    padding: 0;
+    padding: 5px;
+    border-radius: 14px;
   }
 
   .filter-bar > .filter-btn {
@@ -6259,14 +6258,16 @@ body.cal-is-dragging * {
     justify-content: center;
     padding: 8px 8px;
     font-size: 12.5px;
+    border-radius: 9px;
   }
 
   .filter-search {
     flex: 1 1 100%;
     order: 99;
     font-size: 13.5px;
-    padding: 10px 14px 10px 36px;
-    background-position: 13px center;
+    padding: 9px 14px 9px 34px;
+    background-position: 12px center;
+    border-radius: 9px;
   }
 
   /* ── Dashboard Mobile: app-like full width without wasted side gutters ── */
