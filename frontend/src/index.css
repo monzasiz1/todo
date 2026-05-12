@@ -8180,6 +8180,20 @@ body.cal-is-dragging * {
   color: var(--text);
 }
 
+@media (max-width: 480px) {
+  .task-detail-item-value {
+    font-size: 0.78rem;
+    line-height: 1.25;
+    word-break: break-word;
+  }
+}
+
+@media (max-width: 360px) {
+  .task-detail-item-value {
+    font-size: 0.72rem;
+  }
+}
+
 .task-detail-time-range {
   display: flex;
   align-items: center;
