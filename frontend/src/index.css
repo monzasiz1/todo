@@ -29312,13 +29312,13 @@ body.focus-timer-modal-open .bottom-nav {
   .focus-timer-pin-label { font-size: 9.5px; max-width: 90px; }
 }
 
-/* Mobile: Desktop-Pin verstecken (Header-Pin uebernimmt) */
-@media (max-width: 768px) {
+/* Mobile + Tablet: Desktop-Pin verstecken (Header-Pin uebernimmt) */
+@media (max-width: 1024px) {
   .focus-timer-pin--desktop { display: none !important; }
 }
 
 /* Desktop-Variante: oben rechts neben Header-Buttons */
-@media (min-width: 769px) {
+@media (min-width: 1025px) {
   .focus-timer-pin--desktop {
     right: 22px;
     bottom: auto;
