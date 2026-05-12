@@ -813,7 +813,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       });
     });
     return () => cancelAnimationFrame(raf);
-  }, [view, wkHState, viewportState.isWideDesktopCalendar, isMobile]);
+  }, [view, wkHState, viewportState.isWideDesktopCalendar, viewportState.isDesktop]);
 
   const isMobile = !viewportState.isDesktop;
 
