@@ -35,8 +35,8 @@ import {
 import { de } from 'date-fns/locale';
 
 // â”€â”€ Desktop week-view grid constants (shared by renderer + drag handler) â”€â”€
-const WK_START = 6;    // first visible hour
-const WK_END   = 24;   // last visible hour (midnight)
+const WK_START = 0;    // first visible hour (midnight)
+const WK_END   = 24;   // last visible hour (next midnight)
 const WK_H     = 64;   // px per hour
 const MOBILE_BREAKPOINT = 768;
 const CALENDAR_DESKTOP_BREAKPOINT = 1180;
@@ -1022,7 +1022,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     dragTaskRef.current = task;
     let moved = false;
     let swipeDay = 0; // -1 = prev, 0 = same, +1 = next
-    const endH = 23;
+    const endH = 24;
     const cardRect = e.currentTarget.getBoundingClientRect();
     const clickOffsetY = e.clientY - cardRect.top;
     const startX = e.clientX;
@@ -1110,7 +1110,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     
     dragTaskRef.current = task;
     let moved = false;
-    const hourH = 40; const startH = 7; const endH = 23;
+    const hourH = 40; const startH = 0; const endH = 24;
     const colEl = mobileWeekColRefs.current[colIdx];
     if (!colEl) return;
     
@@ -1271,7 +1271,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     e.stopPropagation();
     e.preventDefault();
     wasDragging.current = true;
-    const endH = 23;
+    const endH = 24;
     resizeInfoRef.current = null;
 
     const onMove = throttle((ev) => {
@@ -1842,7 +1842,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const renderMobileWeekView = () => {
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
     const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-    const mwStartH = 6; const mwEndH = 24; const mwHourH = 44;
+    const mwStartH = 0; const mwEndH = 24; const mwHourH = 44;
     const mwTotalH = (mwEndH - mwStartH) * mwHourH + 24;
     const mwHours = Array.from({ length: mwEndH - mwStartH }, (_, i) => mwStartH + i);
 
