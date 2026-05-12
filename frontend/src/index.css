@@ -27983,10 +27983,14 @@ body.cal-is-dragging * {
     line-height: 1.2;
   }
 
-  /* Grid flext zum Boden, Zeilen waxen zu gleichen Anteilen */
+  /* Grid flext zum Boden, Zeilen waxen zu gleichen Anteilen.
+     WICHTIG: erste Zeile (Wochentags-Header "MO DI MI ...") bleibt
+     auto-hoch, sonst frisst sie mit grid-auto-rows:1fr ein Siebtel
+     der Gesamthoehe und es entsteht eine grosse Luecke. */
   .calendar-page-wrap .calendar-grid {
     flex: 1 1 auto;
     min-height: 0;
+    grid-template-rows: auto;
     grid-auto-rows: 1fr;
     overflow-y: auto;
   }
