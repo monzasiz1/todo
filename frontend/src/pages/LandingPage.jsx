@@ -396,9 +396,7 @@ export default function LandingPage() {
               Anmelden
             </button>
             <a 
-              href="https://github.com/monzasiz1/todo/releases/latest" 
-              target="_blank" 
-              rel="noopener noreferrer"
+              href="/api/download?platform=windows"
               className="bq-btn bq-ghost bq-btn-lg"
               style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
             >
@@ -410,9 +408,7 @@ export default function LandingPage() {
             <span><Check size={13} strokeWidth={3} />Keine Kreditkarte</span>
             <span><Check size={13} strokeWidth={3} />Free Plan inklusive</span>
             <a 
-              href="https://github.com/monzasiz1/todo/releases/latest" 
-              target="_blank" 
-              rel="noopener noreferrer"
+              href="/api/download?platform=windows"
               style={{ 
                 display: 'inline-flex', 
                 alignItems: 'center', 
@@ -1042,7 +1038,7 @@ export default function LandingPage() {
                 <Download size={16} /> Installer (.exe)
               </a>
               <a 
-                href="https://github.com/monzasiz1/todo/releases/latest"
+                href="/api/download?platform=windows-portable"
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ 
