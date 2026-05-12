@@ -10821,24 +10821,52 @@ body.cal-is-dragging * {
 
 /* ── Teilen (neu) ── */
 .shr-wrap {
-  margin: 0 16px 14px;
+  margin: 14px 16px 14px;
 }
 
 /* Kompakte Status-Zeile */
 .shr-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 11px 14px;
-  background: var(--card-solid);
+  padding: 12px 14px 12px 18px;
+  background:
+    linear-gradient(135deg, rgba(34, 211, 238, 0.06), transparent 45%),
+    linear-gradient(180deg, var(--card-solid), color-mix(in srgb, var(--card-solid) 92%, var(--bg)));
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   cursor: pointer;
   font-family: inherit;
   text-align: left;
-  transition: border-color 0.15s, background 0.15s;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  overflow: hidden;
+  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.2s ease, transform 0.15s ease;
 }
+
+.shr-row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 10%;
+  bottom: 10%;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(180deg, var(--shr-accent, #22d3ee), color-mix(in srgb, var(--shr-accent, #22d3ee) 50%, #3b82f6));
+  opacity: 0.85;
+}
+
+.shr-row:hover {
+  border-color: color-mix(in srgb, var(--border) 50%, var(--text-tertiary));
+  box-shadow: 0 6px 16px -10px rgba(15, 23, 42, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transform: translateY(-1px);
+}
+
+/* Variants for left accent based on dot color */
+.shr-row:has(.shr-row-vis-dot.private)        { --shr-accent: #8E8E93; }
+.shr-row:has(.shr-row-vis-dot.shared)         { --shr-accent: #007AFF; }
+.shr-row:has(.shr-row-vis-dot.selected_users) { --shr-accent: #34C759; }
 
 /* Nicht-Besitzer: reine Anzeige, kein Klick */
 .shr-row.shr-row-readonly {
@@ -10846,25 +10874,30 @@ body.cal-is-dragging * {
   pointer-events: none;
 }
 .shr-row.shr-row-readonly:hover {
-  background: var(--card-solid);
+  transform: none;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.45);
   border-color: var(--border);
 }
 
 .shr-row.open {
-  border-radius: 12px 12px 0 0;
+  border-radius: 14px 14px 0 0;
   border-bottom-color: transparent;
-  background: rgba(0,122,255,0.04);
+  background:
+    linear-gradient(135deg, rgba(34, 211, 238, 0.10), transparent 50%),
+    linear-gradient(180deg, var(--card-solid), color-mix(in srgb, var(--card-solid) 88%, var(--bg)));
+  transform: none;
 }
 
 .shr-row-vis-dot {
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   flex-shrink: 0;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 10%, transparent);
 }
-.shr-row-vis-dot.private { background: #8E8E93; }
-.shr-row-vis-dot.shared { background: #007AFF; }
-.shr-row-vis-dot.selected_users { background: #34C759; }
+.shr-row-vis-dot.private        { background: #8E8E93; color: #8E8E93; box-shadow: 0 0 0 3px rgba(142, 142, 147, 0.18); }
+.shr-row-vis-dot.shared         { background: #007AFF; color: #007AFF; box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.18); }
+.shr-row-vis-dot.selected_users { background: #34C759; color: #34C759; box-shadow: 0 0 0 3px rgba(52, 199, 89, 0.20); }
 
 .shr-row-main {
   display: flex;
