@@ -28776,7 +28776,7 @@ body.cal-is-dragging * {
     min-height: 100dvh;
     max-height: 100dvh;
     border-radius: 20px 20px 0 0 !important;
-    padding: 8px 18px calc(24px + env(safe-area-inset-bottom)) !important;
+    padding: 8px 18px calc(96px + env(safe-area-inset-bottom)) !important;
     overflow-y: auto;
     overscroll-behavior: contain;
     touch-action: pan-y;
@@ -28817,6 +28817,9 @@ body.cal-is-dragging * {
     min-height: 54px;
     font-size: 16px;
     margin-top: auto;
+    margin-bottom: 16px;
+    position: relative;
+    z-index: 2;
   }
 }
 
