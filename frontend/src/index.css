@@ -27915,23 +27915,23 @@ body.cal-is-dragging * {
 }
 
 /* ---------------------------------------------------------------------------
- * CALENDAR — Tablet-Optimierung (769–1024px, Portrait/Landscape iPad uvm.)
+ * CALENDAR ï¿½ Tablet-Optimierung (769ï¿½1024px, Portrait/Landscape iPad uvm.)
  *
  * Probleme vorher:
- *   • Header (Datum + Monat/Woche + Filter-Chips) zog ~150px vertikalen Raum
- *   • Calendar-Grid hatte feste min-height pro Zelle (110px) ? 660px Gesamt
- *   • Rest des Viewports blieb leer (~30–40% weiße Fläche unten)
- *   • Mehrtägige Events drückten Single-Day-Tasks visuell in andere Zeilen,
- *     weil Cell-Höhe zu klein für 4 Lanes + Multi-Day-Bar war.
+ *   ï¿½ Header (Datum + Monat/Woche + Filter-Chips) zog ~150px vertikalen Raum
+ *   ï¿½ Calendar-Grid hatte feste min-height pro Zelle (110px) ? 660px Gesamt
+ *   ï¿½ Rest des Viewports blieb leer (~30ï¿½40% weiï¿½e Flï¿½che unten)
+ *   ï¿½ Mehrtï¿½gige Events drï¿½ckten Single-Day-Tasks visuell in andere Zeilen,
+ *     weil Cell-Hï¿½he zu klein fï¿½r 4 Lanes + Multi-Day-Bar war.
  *
- * Lösung:
- *   • .calendar-page-wrap füllt sichtbaren Bereich (flex-column, vh-basiert)
- *   • .calendar-header kompakter (weniger Padding, kleinere Schrift)
- *   • .calendar-grid flext den Rest, Zellen wachsen mit `auto-rows: 1fr`
- *   • Min-Cell-Height angepasst, sodass 4 Tasks + Multi-Day-Bar Platz haben
+ * Lï¿½sung:
+ *   ï¿½ .calendar-page-wrap fï¿½llt sichtbaren Bereich (flex-column, vh-basiert)
+ *   ï¿½ .calendar-header kompakter (weniger Padding, kleinere Schrift)
+ *   ï¿½ .calendar-grid flext den Rest, Zellen wachsen mit `auto-rows: 1fr`
+ *   ï¿½ Min-Cell-Height angepasst, sodass 4 Tasks + Multi-Day-Bar Platz haben
  * --------------------------------------------------------------------------- */
 @media (min-width: 769px) and (max-width: 1024px) {
-  /* Wrapper füllt verfügbaren Bereich unter Header/Sidebar.
+  /* Wrapper fï¿½llt verfï¿½gbaren Bereich unter Header/Sidebar.
      56 = Top-Bar, 90 = Bottom-Nav-Bereich auf Tablet. */
   .app-main:has(.calendar-page-wrap) {
     padding-bottom: 0;
@@ -27943,14 +27943,14 @@ body.cal-is-dragging * {
   .calendar-page-wrap {
     display: flex;
     flex-direction: column;
-    /* Voller verfügbarer Raum minus Top-Bar (~56) und Bottom-Nav (~90 inkl. Safe-Area) */
+    /* Voller verfï¿½gbarer Raum minus Top-Bar (~56) und Bottom-Nav (~90 inkl. Safe-Area) */
     min-height: calc(100dvh - 56px - 90px);
     height: calc(100dvh - 56px - 90px);
     overflow: hidden;
   }
 
   .calendar-page-wrap .page-header {
-    /* Page-Header (Seitentitel) ausblenden — der Calendar-eigene Header
+    /* Page-Header (Seitentitel) ausblenden ï¿½ der Calendar-eigene Header
        reicht und spart wertvolle Vertikal-Hoehe. */
     display: none;
   }
@@ -28052,7 +28052,7 @@ body.cal-is-dragging * {
   }
 }
 
-/* Schmale Tablets im Portrait (768–860px): zusätzlich Header in 2 Zeilen
+/* Schmale Tablets im Portrait (768ï¿½860px): zusï¿½tzlich Header in 2 Zeilen
    kompakter halten, sonst kommt das Filter-Panel zu nah am Datum. */
 @media (min-width: 769px) and (max-width: 860px) {
   .calendar-page-wrap .calendar-header h3,
@@ -28062,5 +28062,84 @@ body.cal-is-dragging * {
 
   .calendar-page-wrap .calendar-day {
     min-height: 84px !important;
+  }
+}
+/* ===========================================================================
+ * CALENDAR - Tablet Filter-Chips strikt einzeilig (Fix v2)
+ *
+ * Problem: `.calendar-own-include-list` hat `flex-wrap: wrap`, wodurch die
+ * "Einblenden"-Chips auf Tablets in 2-3 Zeilen umbrechen und der Header
+ * dadurch ~140px hoch wird. Auf 1024px-Tablets verbleibt fuer das Grid dann
+ * nur ein schmaler Streifen.
+ *
+ * Fix: cal-header-row2 + alle Kinder strikt nowrap + horizontal scrollbar.
+ * Greift fuer alle Tablets/kleinen Notebooks bis 1180px (gleiche Breakpoint-
+ * Grenze wie CALENDAR_DESKTOP_BREAKPOINT in Calendar.jsx).
+ * ===========================================================================*/
+@media (min-width: 769px) and (max-width: 1180px) {
+  /* Reihe 2 (Kalender-Switch + Einblenden-Chips) bleibt eine Zeile */
+  .calendar-page-wrap .cal-header-row2,
+  .calendar-wrapper .cal-header-row2 {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 10px;
+    align-items: center;
+    padding-top: 6px;
+    padding-bottom: 8px;
+  }
+  .calendar-page-wrap .cal-header-row2::-webkit-scrollbar,
+  .calendar-wrapper .cal-header-row2::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Einblenden-Sektion: nur so breit wie noetig, scrollt horizontal */
+  .calendar-page-wrap .calendar-own-include-row,
+  .calendar-wrapper .calendar-own-include-row {
+    flex: 0 1 auto !important;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-left: 10px;
+    margin-left: 8px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .calendar-page-wrap .calendar-own-include-row::-webkit-scrollbar,
+  .calendar-wrapper .calendar-own-include-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Chips: nicht mehr umbrechen */
+  .calendar-page-wrap .calendar-own-include-list,
+  .calendar-wrapper .calendar-own-include-list {
+    flex-wrap: nowrap !important;
+    gap: 6px;
+  }
+
+  .calendar-page-wrap .calendar-own-include-chip,
+  .calendar-wrapper .calendar-own-include-chip {
+    flex: 0 0 auto;
+    height: 26px;
+    font-size: 11.5px;
+    padding: 0 8px 0 6px;
+    gap: 4px;
+    white-space: nowrap;
+  }
+
+  .calendar-page-wrap .calendar-own-include-label,
+  .calendar-wrapper .calendar-own-include-label {
+    font-size: 11px;
+    white-space: nowrap;
+    flex: 0 0 auto;
+  }
+
+  /* Auch die linke Kalender-Switch-Reihe darf nicht umbrechen */
+  .calendar-page-wrap .calendar-source-switch,
+  .calendar-wrapper .calendar-source-switch {
+    flex-wrap: nowrap !important;
+    flex: 0 0 auto;
   }
 }
