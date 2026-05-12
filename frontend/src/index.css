@@ -28913,23 +28913,34 @@ body.cal-is-dragging * {
   }
 }
 
-/* Bottom-Sheet auf Mobile: Vollbild von unten, Swipe-to-close */
+/* Bottom-Sheet auf Mobile: Vollbild, unter Notch / Safe-Area, ohne Status-Bar-Overlap */
 @media (max-width: 768px) {
   .focus-timer-modal-overlay {
     padding: 0 !important;
-    align-items: flex-end !important;
+    align-items: stretch !important;
+    justify-content: stretch !important;
   }
   .focus-timer-modal {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
     min-height: 100dvh;
     max-height: 100dvh;
-    border-radius: 20px 20px 0 0 !important;
-    padding: 8px 18px calc(96px + env(safe-area-inset-bottom)) !important;
+    border-radius: 0 !important;
+    border: none !important;
+    padding:
+      calc(env(safe-area-inset-top, 0px) + 8px)
+      18px
+      calc(env(safe-area-inset-bottom, 0px) + 24px)
+      18px !important;
     overflow-y: auto;
     overscroll-behavior: contain;
     touch-action: pan-y;
-    box-shadow: 0 -12px 40px rgba(15, 23, 42, 0.25);
+    box-shadow: none;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -28940,7 +28951,7 @@ body.cal-is-dragging * {
     height: 5px;
     border-radius: 999px;
     background: var(--border, rgba(0, 0, 0, 0.18));
-    margin: 6px auto 10px;
+    margin: 4px auto 12px;
     flex-shrink: 0;
     cursor: grab;
   }
@@ -28966,7 +28977,7 @@ body.cal-is-dragging * {
     min-height: 54px;
     font-size: 16px;
     margin-top: auto;
-    margin-bottom: 16px;
+    margin-bottom: 0;
     position: relative;
     z-index: 2;
   }
