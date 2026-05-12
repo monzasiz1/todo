@@ -29,7 +29,7 @@ function formatMMSS(seconds) {
  * Erscheint, sobald der grosse Timer-Card NICHT mehr im Viewport ist
  * (z.B. nach Seitenwechsel oder Scroll). Klick fuehrt zurueck zum Dashboard.
  */
-export default function FocusTimerPin() {
+export default function FocusTimerPin({ variant = 'desktop' }) {
   const navigate = useNavigate();
   const [state, setState] = useState(() => loadState());
   const [now, setNow] = useState(() => Date.now());
@@ -102,7 +102,9 @@ export default function FocusTimerPin() {
   }, [state, remainingSec]);
 
   const isActive = !!state && (state.paused || remainingSec > 0);
-  const visible = isActive && !cardVisible;
+  // Header variant ist immer sichtbar, wenn Timer aktiv ist; Desktop-Pin
+  // versteckt sich, sobald die grosse Card im Viewport ist.
+  const visible = isActive && (variant === 'header' || !cardVisible);
 
   const RADIUS = 14;
   const STROKE = 3;
@@ -123,7 +125,7 @@ export default function FocusTimerPin() {
       {visible && (
         <motion.button
           type="button"
-          className={`focus-timer-pin ${state?.paused ? 'is-paused' : 'is-running'}`}
+          className={`focus-timer-pin focus-timer-pin--${variant} ${state?.paused ? 'is-paused' : 'is-running'}`}
           onClick={handleClick}
           initial={{ opacity: 0, y: 16, scale: 0.9 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}

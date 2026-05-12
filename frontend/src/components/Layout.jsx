@@ -110,6 +110,9 @@ export default function Layout() {
             {/* entfernt: BeeTwice Solution */}
           </div>
         </div>
+        <div className="mobile-header-center">
+          <FocusTimerPin variant="header" />
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <NotificationBell />
           <button
@@ -171,7 +174,7 @@ export default function Layout() {
       <ReminderChecker />
 
       {/* Schwebender Fokus-Timer-Pin (sichtbar beim Seitenwechsel / Scroll) */}
-      <FocusTimerPin />
+      <FocusTimerPin variant="desktop" />
 
       {/* Help Chat */}
       <HelpChat hideFab={chatOpen} />

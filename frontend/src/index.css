@@ -29308,6 +29308,66 @@ body.focus-timer-modal-open .bottom-nav {
   .focus-timer-pin-label { font-size: 9.5px; max-width: 90px; }
 }
 
+/* Mobile: Desktop-Pin verstecken (Header-Pin uebernimmt) */
+@media (max-width: 768px) {
+  .focus-timer-pin--desktop { display: none !important; }
+}
+
+/* Desktop-Variante: oben rechts neben Header-Buttons */
+@media (min-width: 769px) {
+  .focus-timer-pin--desktop {
+    right: 22px;
+    bottom: auto;
+    top: 18px;
+    z-index: 1100;
+  }
+}
+
+/* Header-Variante: inline im mobile-header zentriert */
+.mobile-header-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-width: 0;
+  padding: 0 8px;
+}
+
+.focus-timer-pin--header {
+  position: static !important;
+  right: auto !important;
+  bottom: auto !important;
+  top: auto !important;
+  padding: 4px 10px 4px 4px;
+  gap: 7px;
+  border-radius: 999px;
+  box-shadow:
+    0 6px 14px -8px rgba(15, 23, 42, 0.35),
+    0 0 0 1px rgba(34, 211, 238, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  max-width: 100%;
+}
+.focus-timer-pin--header:hover {
+  transform: translateY(-1px);
+}
+.focus-timer-pin--header .focus-timer-pin-ring {
+  width: 24px;
+  height: 24px;
+}
+.focus-timer-pin--header .focus-timer-pin-time {
+  font-size: 12px;
+}
+.focus-timer-pin--header .focus-timer-pin-label {
+  font-size: 9px;
+  max-width: 80px;
+  letter-spacing: 0.05em;
+}
+
+/* Auf sehr schmalen Telefonen Label im Header weglassen */
+@media (max-width: 380px) {
+  .focus-timer-pin--header .focus-timer-pin-label { display: none; }
+}
+
 @media (max-width: 420px) {
   .focus-timer-pin-label { display: none; }
 }
