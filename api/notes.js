@@ -17,6 +17,18 @@ function isUuid(value) {
   );
 }
 
+// Akzeptiert sowohl UUIDs (Legacy-Schema) als auch positive INTEGER-IDs
+// (aktuelles SERIAL-Schema). Wird ueberall genutzt, wo eine Note-ID aus dem
+// Request validiert werden muss — die DB-Queries vergleichen anschliessend
+// per ::text/= und funktionieren mit beiden Typen.
+function isValidNoteIdString(value) {
+  if (value === null || value === undefined) return false;
+  const s = String(value).trim();
+  if (!s) return false;
+  if (isUuid(s)) return true;
+  return /^[0-9]+$/.test(s) && Number(s) > 0;
+}
+
 function isMissingPositionColumnError(error) {
   if (!error) return false;
   const msg = String(error.message || '').toLowerCase();
@@ -662,7 +674,7 @@ module.exports = async function handler(req, res) {
     const isRootAction = segments.length === 0 && req.method === 'POST' && !!rootAction && !!noteId;
     const isRootConnectionsView = segments.length === 0 && req.method === 'GET' && requestedView === 'connections' && !!noteId;
 
-    if (!noteId || !isUuid(noteId)) {
+    if (!noteId || !isValidNoteIdString(noteId)) {
       return res.status(404).json({ error: 'Route nicht gefunden' });
     }
 
@@ -1090,7 +1102,7 @@ module.exports = async function handler(req, res) {
       const otherNoteId = req.body?.other_note_id || req.body?.note_id;
       const relationshipType = req.body?.relationship_type || 'related';
 
-      if (!isUuid(otherNoteId) || otherNoteId === noteId) {
+      if (!isValidNoteIdString(otherNoteId) || String(otherNoteId) === String(noteId)) {
         return res.status(400).json({ error: 'Ungueltige Ziel-Note' });
       }
 
@@ -1147,7 +1159,7 @@ module.exports = async function handler(req, res) {
 
       const otherNoteId = req.body?.other_note_id || req.body?.note_id;
 
-      if (!isUuid(otherNoteId) || otherNoteId === noteId) {
+      if (!isValidNoteIdString(otherNoteId) || String(otherNoteId) === String(noteId)) {
         return res.status(400).json({ error: 'Ungueltige Ziel-Note' });
       }
 
