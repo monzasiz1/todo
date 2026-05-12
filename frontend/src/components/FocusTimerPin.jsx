@@ -113,8 +113,8 @@ export default function FocusTimerPin({ variant = 'desktop' }) {
   // versteckt sich, sobald die grosse Card im Viewport ist.
   const visible = isActive && (variant === 'header' || !cardVisible);
 
-  const RADIUS = 15;
-  const STROKE = 3;
+  const RADIUS = 14;
+  const STROKE = 4;
   const C = 2 * Math.PI * RADIUS;
 
   const handleClick = () => {
@@ -164,7 +164,7 @@ export default function FocusTimerPin({ variant = 'desktop' }) {
                 </linearGradient>
               </defs>
             </svg>
-            <Timer size={12} className="focus-timer-pin-icon" />
+            <Timer size={10} className="focus-timer-pin-icon" strokeWidth={2.4} />
           </span>
           <span className="focus-timer-pin-body">
             <span className="focus-timer-pin-time">{formatMMSS(remainingSec)}</span>

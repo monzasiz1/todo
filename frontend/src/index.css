@@ -29254,8 +29254,16 @@ body.focus-timer-modal-open .bottom-nav {
 
 .focus-timer-pin-icon {
   position: relative;
+  z-index: 2;
   color: #67e8f9;
-  filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.5));
+  filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.55));
+  opacity: 0.95;
+}
+
+/* Im kompakten Header-Ring (24px) Icon noch kleiner halten, damit Ring frei laeuft */
+.focus-timer-pin--header .focus-timer-pin-icon {
+  width: 9px;
+  height: 9px;
 }
 
 .focus-timer-pin-body {
