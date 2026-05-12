@@ -1565,6 +1565,7 @@ input, textarea, select {
   justify-content: space-between;
   width: 100%;
   padding: 14px 16px;
+  margin-bottom: 6px;
   background: none;
   border: none;
   border-radius: 12px;
