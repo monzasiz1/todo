@@ -10755,14 +10755,30 @@ body.cal-is-dragging * {
 
 /* ── Mit dir geteilt – Karte für Nicht-Besitzer ── */
 .shared-with-me-card {
-  margin: 0 16px 14px;
+  position: relative;
+  margin: 14px 16px 14px;
   border-radius: 14px;
-  background: color-mix(in srgb, #007AFF 7%, var(--card-solid));
-  border: 1.5px solid color-mix(in srgb, #007AFF 22%, var(--border));
-  padding: 11px 14px 10px;
+  background:
+    linear-gradient(135deg, rgba(0, 122, 255, 0.10), transparent 50%),
+    linear-gradient(180deg, var(--card-solid), color-mix(in srgb, var(--card-solid) 92%, var(--bg)));
+  border: 1px solid color-mix(in srgb, #007AFF 22%, var(--border));
+  padding: 12px 14px 12px 18px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  overflow: hidden;
+}
+.shared-with-me-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 10%;
+  bottom: 10%;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(180deg, #22d3ee, #007AFF);
+  opacity: 0.9;
 }
 .shared-with-me-header {
   display: flex;
