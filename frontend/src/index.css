@@ -1567,59 +1567,16 @@ input, textarea, select {
   padding: 14px 16px;
   background: none;
   border: none;
-  border-radius: 14px;
+  border-radius: 12px;
   cursor: pointer;
   color: var(--text-primary);
   font-family: inherit;
   position: relative;
-  overflow: hidden;
-  transition: background 0.3s ease, transform 0.25s cubic-bezier(.2,.8,.2,1), box-shadow 0.3s ease;
-}
-
-.dash-section-header::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background:
-    radial-gradient(120% 140% at 0% 50%, rgba(34, 211, 238, 0.28), transparent 55%),
-    radial-gradient(120% 140% at 100% 50%, rgba(110, 231, 183, 0.22), transparent 55%),
-    linear-gradient(90deg, rgba(34, 211, 238, 0.18), rgba(59, 130, 246, 0.14));
-  opacity: 0;
-  transform: scale(0.98);
-  transition: opacity 0.28s ease, transform 0.35s cubic-bezier(.2,.8,.2,1);
-  pointer-events: none;
-}
-
-.dash-section-header::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 18%;
-  bottom: 18%;
-  width: 3px;
-  border-radius: 4px;
-  background: linear-gradient(180deg, #22d3ee, #3b82f6);
-  transform: scaleY(0);
-  transform-origin: center;
-  transition: transform 0.3s cubic-bezier(.2,.8,.2,1);
-  box-shadow: 0 0 12px rgba(34, 211, 238, 0.55);
-  pointer-events: none;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
 .dash-section-header:hover {
-  background: transparent;
-  transform: translateY(-1px);
-  box-shadow: 0 10px 24px -16px rgba(34, 211, 238, 0.6);
-}
-
-.dash-section-header:hover::before {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.dash-section-header:hover::after {
-  transform: scaleY(1);
+  background: rgba(34, 211, 238, 0.08);
 }
 
 .dash-section-header:hover .dash-section-title {
@@ -1627,16 +1584,11 @@ input, textarea, select {
 }
 
 .dash-section-header:hover .dash-section-chevron {
-  color: #22d3ee;
+  color: #0891b2;
 }
 
 .dash-section-header:active {
-  transform: translateY(0);
-}
-
-.dash-section-header > * {
-  position: relative;
-  z-index: 1;
+  background: rgba(34, 211, 238, 0.14);
 }
 
 .dash-section-left {
