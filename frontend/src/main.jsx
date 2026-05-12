@@ -4,6 +4,31 @@ import App from './App';
 import './index.css';
 import { purgeAuthQueueEntries } from './utils/offlineQueue';
 
+// ── Silence known harmless rejections from browser internals & extensions ──
+// These come from CacheStorage glitches (private mode, quota) or third-party
+// extensions (MetaMask, reload helpers) and have no impact on the app.
+const NOISE_PATTERNS = [
+  /Failed to execute 'open' on 'CacheStorage'/i,
+  /Failed to connect to MetaMask/i,
+  /MetaMask extension not found/i,
+  /Could not establish connection\. Receiving end does not exist/i,
+  /Internal error/i,
+];
+
+window.addEventListener('unhandledrejection', (event) => {
+  const msg = String(event?.reason?.message || event?.reason || '');
+  if (NOISE_PATTERNS.some((re) => re.test(msg))) {
+    event.preventDefault();
+  }
+});
+
+window.addEventListener('error', (event) => {
+  const msg = String(event?.message || event?.error?.message || '');
+  if (NOISE_PATTERNS.some((re) => re.test(msg))) {
+    event.preventDefault();
+  }
+});
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />
