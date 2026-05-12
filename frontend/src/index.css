@@ -27932,20 +27932,33 @@ body.cal-is-dragging * {
  * --------------------------------------------------------------------------- */
 @media (min-width: 769px) and (max-width: 1024px) {
   /* Wrapper f�llt verf�gbaren Bereich unter Header/Sidebar.
-     56 = Top-Bar, 90 = Bottom-Nav-Bereich auf Tablet. */
+     Auf Tablets gilt das "Mobile Layout": .mobile-header ist FIXED und 56px
+     hoch (siehe oben). .app-main brauchte deshalb padding-top von 72px,
+     damit der Inhalt nicht hinter dem Top-Bar verschwindet. Wir behalten
+     hier mind. 60px (56 Top-Bar + kleiner Atemraum) und lassen unten 12px
+     Luft vor der Bottom-Nav. */
   .app-main:has(.calendar-page-wrap) {
-    padding-bottom: 0;
-    padding-top: 12px;
-    min-height: calc(100vh - 56px);
-    min-height: calc(100dvh - 56px);
+    padding-top: calc(60px + env(safe-area-inset-top, 0px));
+    padding-bottom: 12px;
+    padding-left: 12px;
+    padding-right: 12px;
+    min-height: 100vh;
+    min-height: 100dvh;
+    box-sizing: border-box;
   }
 
   .calendar-page-wrap {
     display: flex;
     flex-direction: column;
-    /* Voller verf�gbarer Raum minus Top-Bar (~56) und Bottom-Nav (~90 inkl. Safe-Area) */
-    min-height: calc(100dvh - 56px - 90px);
-    height: calc(100dvh - 56px - 90px);
+    /* Voller verf�gbarer Raum:
+         100dvh
+         - 60px Top-Bar-Bereich (.mobile-header + Luft)
+         - 90px Bottom-Nav-Bereich
+         - 12px Luft zur Bottom-Nav (padding-bottom auf .app-main)
+         - safe-areas top/bottom (Notch / Home-Indicator)
+       Ergebnis: passt ohne Scroll vollstaendig in den Viewport. */
+    min-height: calc(100dvh - 60px - 90px - 12px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    height: calc(100dvh - 60px - 90px - 12px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
     overflow: hidden;
   }
 
