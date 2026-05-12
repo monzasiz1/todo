@@ -921,11 +921,10 @@ export default function NotesPage() {
     };
   }, [onTouchStart, onTouchMove, onTouchEnd]);
 
-  // ── Desktop-Mausrad: Pan + Zoom (wie Figma/Miro) ───────────────────────────
-  //   plain wheel       → vertikal pannen
-  //   shift + wheel     → horizontal pannen
-  //   ctrl/cmd + wheel  → zoom auf Cursor-Position
-  // passive: false, weil wir preventDefault brauchen (sonst scrollt die Seite).
+  // ── Desktop-Mausrad: nur Pan, kein Zoom ────────────────────────────────────
+  //   plain wheel      → vertikal pannen
+  //   shift + wheel    → horizontal pannen
+  //   Zoom passiert ausschliesslich ueber die +/- Buttons in der Toolbar.
   const onWheel = useCallback((e) => {
     const target = e.target;
     if (
@@ -937,30 +936,6 @@ export default function NotesPage() {
     e.preventDefault();
     userInteractedRef.current = true;
 
-    if (e.ctrlKey || e.metaKey) {
-      const vp = viewportRef.current;
-      if (!vp) return;
-      const rect = vp.getBoundingClientRect();
-      const cx = e.clientX - rect.left;
-      const cy = e.clientY - rect.top;
-      const prev = scaleRef.current;
-      const factor = Math.exp(-e.deltaY * 0.0015); // sanftes geometrisches Zoomen
-      const next = Math.min(MAX_SCALE, Math.max(MIN_SCALE, prev * factor));
-      if (next === prev) return;
-      const p = panRef.current;
-      const canvasX = (cx - p.x) / prev;
-      const canvasY = (cy - p.y) / prev;
-      const np = clampPan(cx - canvasX * next, cy - canvasY * next, next);
-      setScale(next);
-      setPan(np);
-      scaleRef.current = next;
-      panRef.current = np;
-      applyTransform(next, np);
-      return;
-    }
-
-    // Pan: deltaX nutzen wir 1:1 (Trackpads liefern es), bei shift+wheel
-    // wird vertikale Bewegung auf horizontale Achse umgelenkt.
     const dx = e.shiftKey ? -e.deltaY : -e.deltaX;
     const dy = e.shiftKey ? 0 : -e.deltaY;
     if (dx === 0 && dy === 0) return;
