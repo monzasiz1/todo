@@ -10228,8 +10228,10 @@ body.cal-is-dragging * {
   .desktop-week-time-wrap {
     display: grid;
     grid-template-columns: 72px 1fr;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     height: 100%;
+    scroll-behavior: smooth;
   }
 
   .desktop-week-hours-col {

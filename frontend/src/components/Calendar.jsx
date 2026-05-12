@@ -300,6 +300,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const mobileWeekColRefs = useRef({});
   const desktopWeekColsRef = useRef(null);
   const desktopWeekWrapRef = useRef(null);
+  const mobileWeekScrollRef = useRef(null);
   const calendarWrapperRef = useRef(null);
   const resizeInfoRef = useRef(null);
   const wkHRef = useRef(WK_H); // dynamic hour height, updated by ResizeObserver
@@ -773,8 +774,10 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     const recalc = throttle(() => {
       const h = wrap.clientHeight;
       if (h > 0) {
-        const newH = Math.max(28, Math.floor((h - 28) / (WK_END - WK_START)));
-        if (Math.abs(wkHRef.current - newH) > 1) { // Only update if significant change
+        // Use fixed hour height for professional appearance (like Google/Apple Calendar).
+        // Container scrolls vertically instead of cramming all 24 hours into view.
+        const newH = WK_H;
+        if (Math.abs(wkHRef.current - newH) > 1) {
           wkHRef.current = newH;
           setWkHState(newH);
         }
@@ -789,6 +792,28 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       observer.disconnect();
     };
   }, [viewportState.isWideDesktopCalendar]);
+
+  // â”€â”€ Auto-scroll week views to current hour (like Google/Apple Calendar) â”€â”€
+  useEffect(() => {
+    if (view !== 'week') return;
+    // Target ~1h before current hour for context, clamped to 0
+    const now = new Date();
+    const targetHour = Math.max(WK_START, now.getHours() - 1);
+    const offset = (targetHour - WK_START) * wkHRef.current;
+
+    const scrollTargets = [desktopWeekWrapRef.current, mobileWeekScrollRef.current];
+    // Delay one frame so layout has settled before scrolling
+    const raf = requestAnimationFrame(() => {
+      scrollTargets.forEach((el) => {
+        if (el && typeof el.scrollTo === 'function') {
+          el.scrollTo({ top: offset, behavior: 'auto' });
+        } else if (el) {
+          el.scrollTop = offset;
+        }
+      });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [view, wkHState, viewportState.isWideDesktopCalendar, isMobile]);
 
   const isMobile = !viewportState.isDesktop;
 
@@ -1967,7 +1992,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
         })()}
 
         {/* scrollable time grid */}
-        <div className="mobile-week-grid-scroll">
+        <div className="mobile-week-grid-scroll" ref={mobileWeekScrollRef}>
           {/* hour labels */}
           <div className="mobile-week-grid-hours" style={{ height: `${mwTotalH}px` }}>
             {mwHours.map((h) => (
