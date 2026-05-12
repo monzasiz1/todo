@@ -100,30 +100,20 @@ export default function TaskAttachments({ taskId, canEdit = true, compact = fals
     );
   }
 
-  // In read-only mode, don't render a temporary loading placeholder.
+  // In read-only mode, don't render anything until we know there are attachments.
   // Otherwise the section appears briefly and then vanishes (layout jump).
+  if (loading && !canEdit) return null;
   const shouldRenderSection = canEdit || attachments.length > 0;
   if (!shouldRenderSection) return null;
 
   return (
-    <div className="task-attachments" style={loading && canEdit ? { minHeight: 88 } : undefined}>
+    <div className="task-attachments">
       <div className="task-attachments-header">
         <Paperclip size={14} />
         <span>Dateien</span>
-        <span className="task-attachments-count">{loading ? '.../10' : `${attachments.length}/10`}</span>
+        <span className="task-attachments-count">{attachments.length}/10</span>
       </div>
 
-      {loading && attachments.length === 0 && (
-        <div className="task-attachment-item" style={{ opacity: 0.8 }}>
-          <div className="task-attachment-icon">
-            <Loader2 size={16} className="spin" />
-          </div>
-          <div className="task-attachment-info">
-            <span className="task-attachment-name">Dateien werden geladen...</span>
-            <span className="task-attachment-meta">Bitte kurz warten</span>
-          </div>
-        </div>
-      )}
 
       {/* File List */}
       <AnimatePresence>
