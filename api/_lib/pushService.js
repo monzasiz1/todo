@@ -27,6 +27,11 @@ if (VAPID_PUBLIC && VAPID_PRIVATE) {
  * @param {string|null} taskId - optional related task
  * @param {string|null} groupId - optional related group
  */
+// Push-Typen, für die wir 'high' Urgency setzen → iOS/APNs liefert
+// sofort statt zu batchen. Sonst kann der Timer/Reminder erst beim
+// nächsten App-Öffnen ankommen.
+const HIGH_URGENCY_TYPES = new Set(['focus_timer', 'reminder', 'reminder_seen']);
+
 async function sendPushToUser(userId, payload, type, taskId = null, groupId = null) {
   const pool = getPool();
 
@@ -68,6 +73,12 @@ async function sendPushToUser(userId, payload, type, taskId = null, groupId = nu
     tag: payload.tag || `${type}-${Date.now()}`,
   });
 
+  // Zeit-kritische Pushes mit 'high' Urgency senden → APNs/FCM
+  // liefern sofort statt im üblichen Batch-Intervall.
+  const pushOptions = HIGH_URGENCY_TYPES.has(type)
+    ? { urgency: 'high', TTL: 60 * 60 } // 1h TTL für zeitkritische
+    : { urgency: 'normal', TTL: 24 * 60 * 60 };
+
   let sent = 0;
   for (const sub of subs) {
     const pushSub = {
@@ -75,9 +86,9 @@ async function sendPushToUser(userId, payload, type, taskId = null, groupId = nu
       keys: { p256dh: sub.keys_p256dh, auth: sub.keys_auth },
     };
     try {
-      await webpush.sendNotification(pushSub, notifPayload);
+      await webpush.sendNotification(pushSub, notifPayload, pushOptions);
       sent++;
-      console.log(`[pushService] Push sent to subscription ${sub.id} for user ${userId}`);
+      console.log(`[pushService] Push sent to subscription ${sub.id} for user ${userId} (urgency=${pushOptions.urgency})`);
     } catch (err) {
       console.error(`[pushService] Push failed for sub ${sub.id}:`, err.statusCode, err.message);
       if (err.statusCode === 404 || err.statusCode === 410) {

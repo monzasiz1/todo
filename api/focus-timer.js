@@ -13,9 +13,13 @@ async function ensureSchema(pool) {
       label TEXT,
       fired BOOLEAN NOT NULL DEFAULT FALSE,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
-    CREATE INDEX IF NOT EXISTS idx_focus_timers_user ON focus_timers(user_id);
-    CREATE INDEX IF NOT EXISTS idx_focus_timers_due  ON focus_timers(ends_at) WHERE fired = FALSE;
+    )
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_focus_timers_user ON focus_timers(user_id)
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_focus_timers_due ON focus_timers(ends_at) WHERE fired = FALSE
   `);
   schemaReady = true;
 }
@@ -69,11 +73,15 @@ module.exports = async function handler(req, res) {
         [user.id]
       );
 
+      // ends_at clientseitig berechnen — vermeidet Postgres-Typfehler beim
+      // String-Konkat von Integer ($2 || ' seconds' funktioniert nicht ohne Cast).
+      const endsAt = new Date(Date.now() + durationSec * 1000);
+
       const { rows } = await pool.query(
         `INSERT INTO focus_timers (user_id, ends_at, duration_sec, label)
-         VALUES ($1, NOW() + ($2 || ' seconds')::interval, $2, $3)
+         VALUES ($1, $2, $3, $4)
          RETURNING id, ends_at, duration_sec, label, fired, created_at`,
-        [user.id, durationSec, label]
+        [user.id, endsAt, durationSec, label]
       );
       return res.json({ timer: rows[0] });
     } catch (err) {
