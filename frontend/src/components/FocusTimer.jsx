@@ -318,8 +318,9 @@ export default function FocusTimer() {
             />
             <defs>
               <linearGradient id="ftGrad" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="#ff6b8a" />
-                <stop offset="100%" stopColor="#ff9a5a" />
+                <stop offset="0%" stopColor="#22d3ee" />
+                <stop offset="50%" stopColor="#6366f1" />
+                <stop offset="100%" stopColor="#a855f7" />
               </linearGradient>
             </defs>
           </svg>
