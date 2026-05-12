@@ -28899,6 +28899,18 @@ body.cal-is-dragging * {
 /* Drag-Handle (nur Mobile sichtbar) */
 .focus-timer-drag-handle { display: none; }
 
+/* Mobile: Focus-Timer-Card spans full edge-to-edge width on dashboard */
+@media (max-width: 768px) {
+  .smart-insights > .focus-timer-card {
+    margin-left: -16px;
+    margin-right: -16px;
+    width: calc(100% + 32px);
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+}
+
 /* Bottom-Sheet auf Mobile: Vollbild von unten, Swipe-to-close */
 @media (max-width: 768px) {
   .focus-timer-modal-overlay {
