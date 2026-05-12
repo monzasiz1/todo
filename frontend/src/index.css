@@ -7509,8 +7509,10 @@ body.cal-is-dragging * {
     justify-content: flex-end;
   }
 
-  /* Jedes Modal-Kind (card) wird zur vollen Seite */
-  .modal-overlay > *:not(.task-detail-modal) {
+  /* Jedes Modal-Kind (card) wird zur vollen Seite.
+     Ausnahmen: task-detail-modal (eigene Fullscreen-Logik) und
+     focus-timer-modal (eigene Edge-to-Edge-Regeln inkl. Notch). */
+  .modal-overlay > *:not(.task-detail-modal):not(.focus-timer-modal) {
     position: fixed !important;
     top: env(safe-area-inset-top, 0px) !important;
     left: 0 !important;
