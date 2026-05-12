@@ -802,7 +802,7 @@ export default function Dashboard() {
                     transition={{ duration: 0.24, ease: 'easeInOut' }}
                   >
                     {visibleTasks.map((task, i) => (
-                      <TaskCard key={task.id} task={task} index={i} showDashboardDateTile />
+                      <TaskCard key={task.id} task={task} index={i} showDashboardDateTile disableLayout />
                     ))}
                     {group.tasks.length > INITIAL_GROUP_VISIBLE && (
                       <button className={`dash-section-expander ${isExpanded ? 'expanded' : ''}`} onClick={() => toggleExpandedInSection(group.key, group.tasks.length)}>
@@ -861,7 +861,7 @@ export default function Dashboard() {
                 transition={{ duration: 0.2 }}
               >
                 {completedTasks.map((task, i) => (
-                  <TaskCard key={task.id} task={task} index={i} showDashboardDateTile />
+                  <TaskCard key={task.id} task={task} index={i} showDashboardDateTile disableLayout />
                 ))}
               </motion.div>
             )}
