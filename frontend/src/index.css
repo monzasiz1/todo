@@ -1572,23 +1572,40 @@ input, textarea, select {
   color: var(--text-primary);
   font-family: inherit;
   position: relative;
-  transition: background 0.2s ease, color 0.2s ease;
+  overflow: hidden;
+  transition: background 0.22s ease, box-shadow 0.22s ease;
+}
+
+.dash-section-header::after {
+  content: '';
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 6px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, #0a1020, transparent);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.28s cubic-bezier(.2,.8,.2,1);
+  pointer-events: none;
 }
 
 .dash-section-header:hover {
-  background: rgba(34, 211, 238, 0.08);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--card-solid) 96%, transparent), color-mix(in srgb, var(--bg) 92%, transparent));
+  box-shadow: inset 0 0 0 1px var(--border);
 }
 
-.dash-section-header:hover .dash-section-title {
-  color: #0e7490;
+.dash-section-header:hover::after {
+  transform: scaleX(1);
 }
 
 .dash-section-header:hover .dash-section-chevron {
-  color: #0891b2;
+  color: var(--text);
 }
 
 .dash-section-header:active {
-  background: rgba(34, 211, 238, 0.14);
+  background: var(--bg);
 }
 
 .dash-section-left {
