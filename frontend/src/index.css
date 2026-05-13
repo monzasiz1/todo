@@ -16279,7 +16279,22 @@ body.cal-is-dragging * {
 .group-task-list {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   gap: 8px;
+  width: 100%;
+}
+
+/* In Gruppen sollen alle Task-Karten (insb. Event-Karten) immer die
+   volle Breite einnehmen – verhindert, dass Flex-Kinder durch interne
+   Inhalte (z. B. kompakte Event-Header) auf shrink-to-fit kollabieren. */
+.group-task-list > .task-card,
+.group-task-list .task-card.event,
+.group-task-list .task-card.todo {
+  width: 100%;
+  max-width: 100%;
+  flex: 1 1 100%;
+  align-self: stretch;
+  box-sizing: border-box;
 }
 
 /* --- Dashboard section expander --- */
