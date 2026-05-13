@@ -29,6 +29,14 @@
       crossorigin
       fetchpriority="high"
     />
+    <!-- LCP-Bild: Splash-Logo wird per React gerendert. Vorladen sorgt dafuer,
+         dass der Browser das Bild bereits parallel zum JS-Bootstrap holt. -->
+    <link
+      rel="preload"
+      as="image"
+      href="/icons/icon.png"
+      fetchpriority="high"
+    />
     <title>BeeQu</title>
   </head>
   <body>
