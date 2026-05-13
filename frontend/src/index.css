@@ -1504,10 +1504,10 @@ input, textarea, select {
 
 .manual-task-form-panel > .task-edit-field:focus-within,
 .manual-task-form-panel > .task-edit-row:focus-within {
-  border-color: rgba(34, 211, 238, 0.55);
+  border-color: rgba(99, 102, 241, 0.5);
   box-shadow:
-    0 0 0 3px rgba(34, 211, 238, 0.12),
-    0 6px 18px -10px rgba(34, 211, 238, 0.4);
+    0 0 0 3px rgba(99, 102, 241, 0.12),
+    0 6px 18px -10px rgba(99, 102, 241, 0.4);
 }
 
 .manual-task-form-panel > .task-edit-row {
@@ -1546,8 +1546,8 @@ input, textarea, select {
 }
 
 .manual-task-form-panel .task-edit-input:focus {
-  border-color: #22d3ee;
-  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.12);
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
 }
 
 /* ========== TASK LIST ========== */
