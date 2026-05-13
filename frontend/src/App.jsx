@@ -1,25 +1,29 @@
-import React, { useEffect, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import { useTaskStore } from './store/taskStore';
 import AppLaunchSplash from './components/AppLaunchSplash';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
-import CalendarPage from './pages/CalendarPage';
 import Login from './pages/Login';
-import PasswordChangeConfirmed from './pages/PasswordChangeConfirmed';
-import Register from './pages/Register';
-import LandingPage from './pages/LandingPage';
-import ProfilePage from './pages/ProfilePage';
-import GroupsPage from './pages/GroupsPage';
-import PricingPage from './pages/PricingPage';
-import NotesPage from './pages/NotesPage';
-import TaskDetailPage from './pages/TaskDetailPage';
-import ChatPage from './pages/ChatPage';
-import TermsPage from './pages/TermsPage';
-import PrivacyPage from './pages/PrivacyPage';
 import InstallPrompt from './components/InstallPrompt';
 import OfflineBanner from './components/OfflineBanner';
+
+// Route-Level Code-Splitting: rarely-used / heavy Seiten werden erst beim
+// Aufruf nachgeladen. Reduziert das initiale JS+CSS-Bundle signifikant
+// (Lighthouse: ~140 KB nicht genutztes JS, ~72 KB nicht genutztes CSS).
+const CalendarPage = lazy(() => import('./pages/CalendarPage'));
+const NotesPage = lazy(() => import('./pages/NotesPage'));
+const GroupsPage = lazy(() => import('./pages/GroupsPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const PricingPage = lazy(() => import('./pages/PricingPage'));
+const TaskDetailPage = lazy(() => import('./pages/TaskDetailPage'));
+const ChatPage = lazy(() => import('./pages/ChatPage'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
+const Register = lazy(() => import('./pages/Register'));
+const PasswordChangeConfirmed = lazy(() => import('./pages/PasswordChangeConfirmed'));
+const TermsPage = lazy(() => import('./pages/TermsPage'));
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 
 function ProtectedRoute({ children }) {
   const { token } = useAuthStore();
@@ -117,14 +121,14 @@ export default function App() {
         <OfflineBanner />
         <Routes>
           {/* Root zeigt LandingPage */}
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/landing" element={<LandingPage />} />
-          <Route path="/agb" element={<TermsPage />} />
-          <Route path="/datenschutz" element={<PrivacyPage />} />
+          <Route path="/" element={<Suspense fallback={null}><LandingPage /></Suspense>} />
+          <Route path="/landing" element={<Suspense fallback={null}><LandingPage /></Suspense>} />
+          <Route path="/agb" element={<Suspense fallback={null}><TermsPage /></Suspense>} />
+          <Route path="/datenschutz" element={<Suspense fallback={null}><PrivacyPage /></Suspense>} />
           <Route path="/app/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/login" element={<Navigate to="/app/login" replace />} />
-          <Route path="/confirm-password-change" element={<PasswordChangeConfirmed />} />
-          <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+          <Route path="/confirm-password-change" element={<Suspense fallback={null}><PasswordChangeConfirmed /></Suspense>} />
+          <Route path="/register" element={<PublicRoute><Suspense fallback={null}><Register /></Suspense></PublicRoute>} />
           <Route
             path="/app"
             element={
@@ -134,13 +138,13 @@ export default function App() {
             }
           >
             <Route index element={<Dashboard />} />
-            <Route path="calendar" element={<CalendarPage />} />
-            <Route path="notes" element={<NotesPage />} />
-            <Route path="groups" element={<GroupsPage />} />
-            <Route path="profile" element={<ProfilePage />} />
-            <Route path="pricing" element={<PricingPage />} />
-            <Route path="tasks/:taskId" element={<TaskDetailPage />} />
-            <Route path="chat" element={<ChatPage />} />
+            <Route path="calendar" element={<Suspense fallback={null}><CalendarPage /></Suspense>} />
+            <Route path="notes" element={<Suspense fallback={null}><NotesPage /></Suspense>} />
+            <Route path="groups" element={<Suspense fallback={null}><GroupsPage /></Suspense>} />
+            <Route path="profile" element={<Suspense fallback={null}><ProfilePage /></Suspense>} />
+            <Route path="pricing" element={<Suspense fallback={null}><PricingPage /></Suspense>} />
+            <Route path="tasks/:taskId" element={<Suspense fallback={null}><TaskDetailPage /></Suspense>} />
+            <Route path="chat" element={<Suspense fallback={null}><ChatPage /></Suspense>} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
