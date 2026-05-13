@@ -16300,6 +16300,17 @@ body.cal-is-dragging * {
   align-items: stretch;
   gap: 8px;
   width: 100%;
+  /* Override .dash-section-list padding (0 12px 12px), damit die Karten
+     wie im Dashboard echte volle Breite haben. .group-tab-content hat
+     selbst keinen Innen-Inset, sodass die Karten flush am Rand sitzen. */
+  padding: 0 !important;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+/* Past/Completed-Sektion in Gruppen ebenfalls auf volle Breite */
+.group-task-list.dash-section-completed {
+  padding: 0 !important;
 }
 
 /* In Gruppen sollen alle Task-Karten (insb. Event-Karten) immer die
