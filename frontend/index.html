@@ -30,11 +30,12 @@
       fetchpriority="high"
     />
     <!-- LCP-Bild: Splash-Logo wird per React gerendert. Vorladen sorgt dafuer,
-         dass der Browser das Bild bereits parallel zum JS-Bootstrap holt. -->
+         dass der Browser das Bild bereits parallel zum JS-Bootstrap holt.
+         Eigene 144x144-Variante (~47 KB) statt 192x192 icon.png (79 KB). -->
     <link
       rel="preload"
       as="image"
-      href="/icons/icon.png"
+      href="/icons/icon-splash.png"
       fetchpriority="high"
     />
     <title>BeeQu</title>

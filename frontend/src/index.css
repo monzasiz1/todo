@@ -4347,6 +4347,8 @@ body.cal-is-dragging * {
   margin-bottom: 24px;
   flex-wrap: wrap;
   align-items: center;
+  /* Reserviere Hoehe, damit der spaeter dazukommende Inhalt keinen CLS verursacht. */
+  min-height: 44px;
 }
 
 .filter-btn {

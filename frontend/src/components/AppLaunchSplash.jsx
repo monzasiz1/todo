@@ -61,9 +61,10 @@ export default function AppLaunchSplash({ visible }) {
               <rect className="lsp-trace-run"  x="3" y="3" width="94" height="94" rx="24" pathLength="100" />
               <rect className="lsp-trace-dot"  x="3" y="3" width="94" height="94" rx="24" pathLength="100" />
             </svg>
-            {/* LCP-Bild: high priority + sync decoding spart laut Lighthouse ~120 ms */}
+            {/* LCP-Bild: high priority + sync decoding spart laut Lighthouse ~120 ms.
+                Eigene 144x144-Variante (~47 KB) statt 192x192 icon.png (79 KB). */}
             <img
-              src="/icons/icon.png"
+              src="/icons/icon-splash.png"
               alt="BeeQu"
               className="lsp-logo-img"
               fetchpriority="high"
