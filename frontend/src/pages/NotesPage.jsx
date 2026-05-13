@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from 'react';
+﻿import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useDragControls } from 'framer-motion';
 import { Plus, ZoomIn, ZoomOut, X, CalendarDays, Pin, CheckSquare, Calendar, Check, Archive, RotateCcw, Trash2, LayoutGrid, Link2, Unlink } from 'lucide-react';
@@ -17,7 +17,7 @@ const NOTE_COLORS = [
   { name: 'Lila', bg: '#E8DAEF', border: '#BB8FCE', shadow: '#8E44AD' },
 ];
 
-function StickyNote({ note, onUpdate, onDelete, onComplete, onPositionChange, isSelected, onSelect, tasks = [], onOpenTask, boardScaleRef }) {
+function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange, isSelected, onSelect, tasks = [], onOpenTask, boardScaleRef }) {
   const [isEditing, setIsEditing] = useState(false);
   const [content, setContent] = useState(note.content || '');
   const [isDragging, setIsDragging] = useState(false);
@@ -78,6 +78,10 @@ function StickyNote({ note, onUpdate, onDelete, onComplete, onPositionChange, is
     setIsEditing(false);
   }, [content, note.content, note.id, onUpdate, noteColor.name]);
 
+  // rAF-throttled drag — never thrash layout, single style write per frame
+  const rafIdRef = useRef(0);
+  const pendingPosRef = useRef(null);
+
   const handlePointerDown = useCallback((e) => {
     if (
       e.target.closest('.note-content') ||
@@ -85,19 +89,20 @@ function StickyNote({ note, onUpdate, onDelete, onComplete, onPositionChange, is
       e.target.closest('.note-linked-tasks') ||
       e.target.closest('.task-picker-overlay')
     ) return;
-    
-    // Support both mouse and touch
+
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    
+
     setIsDragging(true);
     onSelect(note.id);
-    
+
     dragStartPos.current = {
-      noteX: note.x || 100,
-      noteY: note.y || 100,
+      noteX: note.x ?? 100,
+      noteY: note.y ?? 100,
       startX: clientX,
-      startY: clientY
+      startY: clientY,
+      lastX: note.x ?? 100,
+      lastY: note.y ?? 100,
     };
 
     e.preventDefault();
@@ -105,35 +110,43 @@ function StickyNote({ note, onUpdate, onDelete, onComplete, onPositionChange, is
 
   const handlePointerMove = useCallback((e) => {
     if (!isDragging) return;
-    
+
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    
-    const deltaX = clientX - dragStartPos.current.startX;
-    const deltaY = clientY - dragStartPos.current.startY;
-    
+
+    // Pointer-Delta in Screen-Pixeln, dann durch Board-Scale teilen,
+    // damit das Notizblatt unter dem Finger bleibt, auch wenn rein-/rausgezoomt.
+    const zoom = boardScaleRef?.current ?? 1;
+    const deltaX = (clientX - dragStartPos.current.startX) / zoom;
+    const deltaY = (clientY - dragStartPos.current.startY) / zoom;
+
     const newX = Math.max(0, dragStartPos.current.noteX + deltaX);
     const newY = Math.max(0, dragStartPos.current.noteY + deltaY);
-    
-    if (noteRef.current) {
-      noteRef.current.style.left = `${newX}px`;
-      noteRef.current.style.top = `${newY}px`;
-    }
-  }, [isDragging]);
+
+    pendingPosRef.current = { x: newX, y: newY };
+    if (rafIdRef.current) return;
+    rafIdRef.current = requestAnimationFrame(() => {
+      rafIdRef.current = 0;
+      const pos = pendingPosRef.current;
+      if (!pos || !noteRef.current) return;
+      noteRef.current.style.left = `${pos.x}px`;
+      noteRef.current.style.top = `${pos.y}px`;
+      dragStartPos.current.lastX = pos.x;
+      dragStartPos.current.lastY = pos.y;
+    });
+  }, [isDragging, boardScaleRef]);
 
   const handlePointerUp = useCallback(() => {
     if (!isDragging) return;
-    
-    const rect = noteRef.current.getBoundingClientRect();
-    const boardRect = noteRef.current.closest('.notes-board').getBoundingClientRect();
-    const zoomFactor = boardScaleRef?.current ?? 1;
-    
-    const newX = (rect.left - boardRect.left) / zoomFactor;
-    const newY = (rect.top - boardRect.top) / zoomFactor;
-    
-    onPositionChange(note.id, Math.max(0, newX), Math.max(0, newY));
+    if (rafIdRef.current) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = 0;
+    }
+    const x = Math.max(0, dragStartPos.current.lastX ?? (note.x ?? 100));
+    const y = Math.max(0, dragStartPos.current.lastY ?? (note.y ?? 100));
+    onPositionChange(note.id, x, y);
     setIsDragging(false);
-  }, [isDragging, note.id, onPositionChange]);
+  }, [isDragging, note.id, note.x, note.y, onPositionChange]);
 
   useEffect(() => {
     if (isDragging) {
@@ -165,17 +178,15 @@ function StickyNote({ note, onUpdate, onDelete, onComplete, onPositionChange, is
     await onUpdate(note.id, { linked_task_id: null });
   }, [note.id, onUpdate]);
 
-  const getRandomRotation = () => {
+  // Stable rotation seeded from note.id — kein Wechsel bei Re-Mount,
+  // kein Flash nach dem ersten Paint (nicht mehr in useEffect).
+  const rotation = useMemo(() => {
+    const id = String(note?.id ?? '');
+    let h = 0;
+    for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
     const rotations = [-3, -2, -1, 0, 1, 2, 3];
-    return rotations[Math.floor(Math.random() * rotations.length)];
-  };
-
-  useEffect(() => {
-    if (noteRef.current) {
-      const rotation = getRandomRotation();
-      noteRef.current.style.transform = `rotate(${rotation}deg)`;
-    }
-  }, []);
+    return rotations[Math.abs(h) % rotations.length];
+  }, [note?.id]);
 
   useEffect(() => {
     setContent(actualContent);
@@ -188,13 +199,14 @@ function StickyNote({ note, onUpdate, onDelete, onComplete, onPositionChange, is
       data-variant={variantIndex}
       style={{
         position: 'absolute',
-        left: note.x || 100,
-        top: note.y || 100,
+        left: note.x ?? 100,
+        top: note.y ?? 100,
         // Vollflächige Note-Farbe ohne Transparenz — Kork darf nicht durchscheinen.
         backgroundColor: noteColor.bg,
         boxShadow: `2px 4px 8px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255,255,255,0.28)`,
         borderColor: noteColor.border,
         zIndex: isSelected ? 15 : isDragging ? 20 : 1,
+        transform: `translateZ(0) rotate(${rotation}deg)`,
       }}
       onMouseDown={handlePointerDown}
       onTouchStart={handlePointerDown}>
@@ -428,6 +440,22 @@ function StickyNote({ note, onUpdate, onDelete, onComplete, onPositionChange, is
   );
 }
 
+// Memoisierter Export: nur re-rendern, wenn sich relevante Props aendern.
+// Pan/Zoom des Boards aendern KEINE dieser Props mehr -> keine Note re-rendert
+// waehrend man das Canvas verschiebt/zoomt.
+const StickyNote = memo(StickyNoteImpl, (prev, next) => (
+  prev.note === next.note &&
+  prev.isSelected === next.isSelected &&
+  prev.tasks === next.tasks &&
+  prev.onUpdate === next.onUpdate &&
+  prev.onDelete === next.onDelete &&
+  prev.onComplete === next.onComplete &&
+  prev.onPositionChange === next.onPositionChange &&
+  prev.onSelect === next.onSelect &&
+  prev.onOpenTask === next.onOpenTask &&
+  prev.boardScaleRef === next.boardScaleRef
+));
+
 const BOARD_W = 3200;
 const BOARD_H = 2400;
 const MIN_SCALE = 0.3;
@@ -494,6 +522,25 @@ export default function NotesPage() {
   const panRef = useRef(pan);
   useEffect(() => { scaleRef.current = scale; }, [scale]);
   useEffect(() => { panRef.current = pan; }, [pan]);
+
+  // rAF-throttle fuer pan/pinch — verhindert Layout-Thrash bei 60fps Pointer-Events
+  const rafPanRef = useRef(0);
+  const pendingTransformRef = useRef(null);
+  const wheelSyncRef = useRef(0);
+  const scheduleTransform = useCallback(() => {
+    if (rafPanRef.current) return;
+    rafPanRef.current = requestAnimationFrame(() => {
+      rafPanRef.current = 0;
+      const t = pendingTransformRef.current;
+      if (!t || !boardRef.current) return;
+      boardRef.current.style.transform = `translate(${t.p.x}px,${t.p.y}px) scale(${t.s})`;
+    });
+  }, []);
+  // Sync React-State mit aktuellem ref-Stand (nur am Interaktions-Ende aufrufen).
+  const commitInteractionState = useCallback(() => {
+    setScale(scaleRef.current);
+    setPan(panRef.current);
+  }, []);
 
   useEffect(() => {
     fetchNotes();
@@ -828,17 +875,25 @@ export default function NotesPage() {
     const dx = e.clientX - interactionRef.current.lastPointer.x;
     const dy = e.clientY - interactionRef.current.lastPointer.y;
     interactionRef.current.lastPointer = { x: e.clientX, y: e.clientY };
-    setPan(prev => {
-      const np = clampPan(prev.x + dx, prev.y + dy, scaleRef.current);
-      applyTransform(scaleRef.current, np);
-      panRef.current = np;
-      return np;
-    });
-  }, [clampPan, applyTransform]);
+    const np = clampPan(panRef.current.x + dx, panRef.current.y + dy, scaleRef.current);
+    panRef.current = np;
+    pendingTransformRef.current = { s: scaleRef.current, p: np };
+    scheduleTransform();
+  }, [clampPan, scheduleTransform]);
 
   const onViewportPointerUp = useCallback(() => {
+    if (!interactionRef.current.isPanning) return;
     interactionRef.current.isPanning = false;
-  }, []);
+    if (rafPanRef.current) {
+      cancelAnimationFrame(rafPanRef.current);
+      rafPanRef.current = 0;
+      if (pendingTransformRef.current && boardRef.current) {
+        const t = pendingTransformRef.current;
+        boardRef.current.style.transform = `translate(${t.p.x}px,${t.p.y}px) scale(${t.s})`;
+      }
+    }
+    commitInteractionState();
+  }, [commitInteractionState]);
 
   // ── touch events (pan + pinch) ────────────────────────────────────────────
   const onTouchStart = useCallback((e) => {
@@ -883,30 +938,39 @@ export default function NotesPage() {
       const panDx = mid.x - ir.pinchMid.x;
       const panDy = mid.y - ir.pinchMid.y;
       const np = clampPan(mid.x - canvasX * ns + panDx, mid.y - canvasY * ns + panDy, ns);
-      setScale(ns);
-      setPan(np);
       scaleRef.current = ns;
       panRef.current = np;
-      applyTransform(ns, np);
+      pendingTransformRef.current = { s: ns, p: np };
+      scheduleTransform();
     } else if (ir.isPanning && e.touches.length === 1) {
       e.preventDefault();
       const dx = e.touches[0].clientX - ir.lastPointer.x;
       const dy = e.touches[0].clientY - ir.lastPointer.y;
       ir.lastPointer = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      setPan(prev => {
-        const np = clampPan(prev.x + dx, prev.y + dy, scaleRef.current);
-        applyTransform(scaleRef.current, np);
-        panRef.current = np;
-        return np;
-      });
+      const np = clampPan(panRef.current.x + dx, panRef.current.y + dy, scaleRef.current);
+      panRef.current = np;
+      pendingTransformRef.current = { s: scaleRef.current, p: np };
+      scheduleTransform();
     }
-  }, [clampPan, applyTransform]);
+  }, [clampPan, scheduleTransform]);
 
   const onTouchEnd = useCallback((e) => {
     const ir = interactionRef.current;
+    const wasInteracting = ir.isPinching || ir.isPanning;
     if (e.touches.length < 2) ir.isPinching = false;
     if (e.touches.length === 0) ir.isPanning = false;
-  }, []);
+    if (wasInteracting && e.touches.length === 0) {
+      if (rafPanRef.current) {
+        cancelAnimationFrame(rafPanRef.current);
+        rafPanRef.current = 0;
+        if (pendingTransformRef.current && boardRef.current) {
+          const t = pendingTransformRef.current;
+          boardRef.current.style.transform = `translate(${t.p.x}px,${t.p.y}px) scale(${t.s})`;
+        }
+      }
+      commitInteractionState();
+    }
+  }, [commitInteractionState]);
 
   useEffect(() => {
     const vp = viewportRef.current;
@@ -939,13 +1003,17 @@ export default function NotesPage() {
     const dx = e.shiftKey ? -e.deltaY : -e.deltaX;
     const dy = e.shiftKey ? 0 : -e.deltaY;
     if (dx === 0 && dy === 0) return;
-    setPan(prev => {
-      const np = clampPan(prev.x + dx, prev.y + dy, scaleRef.current);
-      applyTransform(scaleRef.current, np);
-      panRef.current = np;
-      return np;
-    });
-  }, [clampPan, applyTransform]);
+    const np = clampPan(panRef.current.x + dx, panRef.current.y + dy, scaleRef.current);
+    panRef.current = np;
+    pendingTransformRef.current = { s: scaleRef.current, p: np };
+    scheduleTransform();
+    // Defer state sync to idle — Wheel-Events können sehr dicht kommen
+    if (wheelSyncRef.current) clearTimeout(wheelSyncRef.current);
+    wheelSyncRef.current = setTimeout(() => {
+      wheelSyncRef.current = 0;
+      commitInteractionState();
+    }, 120);
+  }, [clampPan, scheduleTransform, commitInteractionState]);
 
   useEffect(() => {
     const vp = viewportRef.current;
