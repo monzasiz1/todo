@@ -7707,8 +7707,9 @@ body.cal-is-dragging * {
   /* Jedes Modal-Kind (card) wird zur vollen Seite.
      Ausnahmen: task-detail-modal (eigene Fullscreen-Logik),
      focus-timer-modal (eigene Edge-to-Edge-Regeln inkl. Notch),
-     task-edit-modal (eigene Edge-to-Edge-Regeln). */
-  .modal-overlay > *:not(.task-detail-modal):not(.focus-timer-modal):not(.task-edit-modal) {
+     task-edit-modal (eigene Edge-to-Edge-Regeln),
+     dt-choice-sheet (eigene Edge-to-Edge-Regeln). */
+  .modal-overlay > *:not(.task-detail-modal):not(.focus-timer-modal):not(.task-edit-modal):not(.dt-choice-sheet) {
     position: fixed !important;
     top: env(safe-area-inset-top, 0px) !important;
     left: 0 !important;
@@ -28592,28 +28593,58 @@ body.cal-is-dragging * {
 }
 
 /* ── Mobile: Bottom-Sheet ── */
+/* === Mobile (<= 1024px): true fullscreen so no grey gap above/below === */
 @media (max-width: 1024px) {
   .dt-choice-overlay {
-    align-items: flex-end !important;
-    justify-content: center !important;
+    align-items: stretch !important;
+    justify-content: stretch !important;
     padding: 0 !important;
+    background: rgba(0, 0, 0, 0.55) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    /* Above BottomNav (10100) and most modals */
+    z-index: 10300 !important;
   }
 
   .dt-choice-overlay > .dt-choice-sheet {
-    width: 100% !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
     max-width: none !important;
-    max-height: 88vh !important;
-    border-radius: 24px 24px 0 0 !important;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    box-shadow: 0 -16px 48px rgba(10, 20, 50, 0.25);
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+    padding-bottom: 0 !important;
+    box-shadow: none !important;
+    background: var(--card-solid) !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
 
+  .dt-choice-handle { display: none; }
+
   .dt-choice-header {
-    padding-top: 10px;
+    flex-shrink: 0;
+    padding-top: max(18px, calc(env(safe-area-inset-top, 0px) + 14px));
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-bottom: 12px;
+    background: var(--card-solid);
   }
 
   .dt-choice-title {
-    font-size: 17px;
+    font-size: 19px;
+  }
+
+  .dt-choice-actions {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 8px 16px 16px;
   }
 
   .dt-choice-btn {
@@ -28622,6 +28653,11 @@ body.cal-is-dragging * {
 
   .dt-choice-btn-label {
     font-size: 15px;
+  }
+
+  .dt-choice-cancel {
+    flex-shrink: 0;
+    margin: 0 16px calc(16px + env(safe-area-inset-bottom, 0px));
   }
 }
 
