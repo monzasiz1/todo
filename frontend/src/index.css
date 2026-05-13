@@ -7273,6 +7273,18 @@ body.cal-is-dragging * {
     -webkit-overflow-scrolling: touch;
   }
 
+  .task-detail-aside {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Stabile Reihenfolge im Aside (mobile): Gruppen-Karte oberhalb der
+     Share-Sektion, damit das spaetere Erscheinen der Share-Sektion
+     keinen Layout-Sprung verursacht. */
+  .task-detail-aside .shared-with-me-card { order: -3; }
+  .task-detail-aside .task-detail-group-subgroup-card { order: -2; }
+  .task-detail-aside .shr-wrap { order: -1; }
+
   .task-detail-sticky-top {
     position: sticky;
     top: 0;
@@ -7776,6 +7788,14 @@ body.cal-is-dragging * {
     border-radius: 14px;
     overflow: hidden;
   }
+
+  /* Stabile Reihenfolge: Gruppen-Karte oberhalb der Share-Sektion.
+     Verhindert Layout-Sprung, wenn die Share-Sektion (haengt an
+     `my_group_role`, das aus dem Background-Refresh nachgeladen wird)
+     erst spaeter im Lifecycle gerendert wird. */
+  .task-detail-aside .shared-with-me-card { order: -3; }
+  .task-detail-aside .task-detail-group-subgroup-card { order: -2; }
+  .task-detail-aside .shr-wrap { order: -1; }
 
   .task-detail-aside .task-detail-section {
     border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
