@@ -522,6 +522,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
                     <Plus size={14} style={{ transform: 'rotate(45deg)' }} />
                   </div>
                   <span className="task-edit-friend-name">Keine Gruppe</span>
+                  {!groupId && <span style={{ marginLeft: 'auto', color: 'var(--primary)', fontSize: 12, fontWeight: 600 }}>✓</span>}
                 </div>
                 {groups.map((group) => (
                   <div
@@ -538,6 +539,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
                     />
                     <span className="task-edit-friend-name">{group.name}</span>
                     <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{group.member_count} Mitglieder</span>
+                    {String(groupId) === String(group.id) && <span style={{ marginLeft: 'auto', color: 'var(--primary)', fontSize: 12, fontWeight: 600 }}>✓</span>}
                   </div>
                 ))}
                 {groups.length === 0 && (
