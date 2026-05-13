@@ -1039,8 +1039,12 @@ module.exports = async function handler(req, res) {
   // GET /api/tasks/:id
   if (segments.length === 1 && segments[0] !== 'range' && segments[0] !== 'reorder' && segments[0] !== 'summary' && segments[0] !== 'dashboard' && req.method === 'GET') {
     try {
-      const taskId = Number(segments[0]);
-      if (!Number.isFinite(taskId)) return res.status(400).json({ error: 'Ungültige ID' });
+      const rawId = segments[0];
+      // Virtuelle Recurrence-Occurrence (v_{parentId}_{date}) → Vorlage laden
+      // und Occurrence synthesieren, statt 404 zu liefern.
+      const virtual = parseVirtualId(rawId);
+      const lookupId = virtual ? Number(virtual.parentId) : Number(rawId);
+      if (!Number.isFinite(lookupId)) return res.status(400).json({ error: 'Ungültige ID' });
 
       const dismissalsEnabled = await getDismissalsEnabled(pool);
       const dismissalFilterUser2 = dismissalsEnabled
@@ -1143,7 +1147,7 @@ module.exports = async function handler(req, res) {
                OR g.group_id IS NOT NULL
              )
            LIMIT 1`,
-          [taskId, user.id]
+          [lookupId, user.id]
         );
         rows = result.rows || [];
       } catch {
@@ -1153,12 +1157,46 @@ module.exports = async function handler(req, res) {
            LEFT JOIN categories c ON c.id = t.category_id
            WHERE t.id = $1 AND t.user_id = $2
            LIMIT 1`,
-          [taskId, user.id]
+          [lookupId, user.id]
         );
         rows = fallback.rows || [];
       }
 
       if (rows.length === 0) return res.status(404).json({ error: 'Nicht gefunden' });
+
+      // Virtuelle Occurrence: aus Vorlage synthesieren (Datum + virtuelle ID).
+      if (virtual) {
+        const tpl = rows[0];
+        if (!tpl.recurrence_rule) {
+          return res.status(404).json({ error: 'Nicht gefunden' });
+        }
+        const occDate = virtual.date;
+        const tplDateStr = tpl.date instanceof Date
+          ? tpl.date.toISOString().split('T')[0]
+          : String(tpl.date).substring(0, 10);
+        const tplEndStr = tpl.date_end
+          ? (tpl.date_end instanceof Date
+              ? tpl.date_end.toISOString().split('T')[0]
+              : String(tpl.date_end).substring(0, 10))
+          : null;
+        const spanDays = tplEndStr
+          ? Math.max(0, Math.round(
+              (new Date(tplEndStr + 'T00:00:00') -
+               new Date(tplDateStr + 'T00:00:00')) / 86400000
+            ))
+          : 0;
+        const synthesized = {
+          ...tpl,
+          id: rawId,
+          date: occDate,
+          date_end: spanDays > 0 ? shiftDate(occDate, spanDays) : null,
+          completed: false,
+          is_virtual: true,
+          recurrence_parent_id: tpl.id,
+        };
+        return res.json(normalizeTaskRow(synthesized));
+      }
+
       return res.json(normalizeTaskRow(rows[0]));
     } catch (err) {
       console.error('Get task error:', err);
