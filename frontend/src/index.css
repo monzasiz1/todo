@@ -7243,6 +7243,107 @@ body.cal-is-dragging * {
   }
 }
 
+/* ============================================
+   TASK DETAIL MODAL — Tablet bridge (769px - 1024px)
+   The modal renders is-mobile-fullscreen at <=1024px (JS),
+   but the per-section styling above lives in @media <=768px.
+   Re-apply those rules for tablets so layout stays consistent.
+   ============================================ */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .task-detail-overlay {
+    padding: 0 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: transparent !important;
+  }
+
+  .task-detail-main,
+  .task-detail-aside {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .task-detail-sticky-top {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    background: transparent;
+    border-bottom: none;
+  }
+
+  .task-detail-header {
+    position: static;
+    padding-top: 14px;
+    min-height: 56px;
+    background: transparent;
+  }
+
+  .task-detail-priority-bar {
+    border-radius: 0;
+  }
+
+  .task-detail-header-actions {
+    top: 14px;
+    right: 16px;
+  }
+
+  .task-detail-sticky-title {
+    top: 14px;
+    right: 96px;
+  }
+
+  .task-detail-title-row {
+    padding: 14px 22px 16px;
+    gap: 10px;
+    margin-bottom: 0;
+    border-bottom: none;
+  }
+
+  .task-detail-title {
+    font-size: 1.25rem;
+  }
+
+  .task-detail-section {
+    padding: 14px 22px 0;
+  }
+
+  .task-detail-grid {
+    grid-template-columns: repeat(2, 1fr);
+    margin: 16px 22px;
+  }
+
+  .task-detail-item {
+    padding: 12px 14px;
+  }
+
+  .task-detail-actions {
+    padding: 16px 22px 24px;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .task-detail-btn {
+    padding: 14px 16px;
+  }
+
+  .task-detail-btn.delete {
+    flex: 1;
+  }
+
+  .task-detail-close {
+    width: 36px;
+    height: 36px;
+  }
+
+  .task-detail-collab {
+    padding: 12px;
+  }
+
+  .task-detail-collab-info {
+    font-size: 12px;
+  }
+}
+
 /* --- Phone small (< 380px) --- */
 @media (max-width: 380px) {
   .app-main {
