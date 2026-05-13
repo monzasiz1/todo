@@ -488,6 +488,7 @@ export default function NotesPage() {
     };
   });
   const [selectedNoteIds, setSelectedNoteIds] = useState([]);
+  const [selectedConnectionId, setSelectedConnectionId] = useState(null);
   const [showMobileHint, setShowMobileHint] = useState(false);
 
   // Mindmap-Verbindungs-Workflow:
@@ -718,7 +719,7 @@ export default function NotesPage() {
 
   const handleRemoveConnection = useCallback((conn) => {
     if (!conn) return;
-    if (!window.confirm('Diese Verbindung loeschen?')) return;
+    setSelectedConnectionId(null);
     removeConnection?.(conn).catch((err) => {
       console.error('[NotesPage] removeConnection failed:', err?.message || err);
     });
@@ -1091,6 +1092,7 @@ export default function NotesPage() {
           onClick={(e) => {
             if (e.target === boardRef.current || e.target.classList.contains('board-background') || e.target.classList.contains('cork-board-background')) {
               setSelectedNoteIds([]);
+              setSelectedConnectionId(null);
             }
           }}
         >
@@ -1106,22 +1108,50 @@ export default function NotesPage() {
               width={BOARD_W}
               height={BOARD_H}
               viewBox={`0 0 ${BOARD_W} ${BOARD_H}`}
-              aria-hidden="true"
             >
-              {renderableConnections.map((c) => (
-                <line
-                  key={c.id}
-                  className="connection-line"
-                  x1={c.x1}
-                  y1={c.y1}
-                  x2={c.x2}
-                  y2={c.y2}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRemoveConnection(c);
-                  }}
-                />
-              ))}
+              {renderableConnections.map((c) => {
+                const isSel = String(selectedConnectionId) === String(c.id);
+                const mx = (c.x1 + c.x2) / 2;
+                const my = (c.y1 + c.y2) / 2;
+                const onLineClick = (e) => {
+                  e.stopPropagation();
+                  setSelectedConnectionId((prev) => (String(prev) === String(c.id) ? prev : c.id));
+                };
+                return (
+                  <g key={c.id} className={`connection-group${isSel ? ' is-selected' : ''}`}>
+                    {/* Unsichtbare Hitbox: breit genug fuer Touch */}
+                    <line
+                      className="connection-hitbox"
+                      x1={c.x1} y1={c.y1} x2={c.x2} y2={c.y2}
+                      onClick={onLineClick}
+                      onPointerDown={(e) => e.stopPropagation()}
+                    />
+                    {/* Sichtbare Linie */}
+                    <line
+                      className="connection-line"
+                      x1={c.x1} y1={c.y1} x2={c.x2} y2={c.y2}
+                      onClick={onLineClick}
+                      onPointerDown={(e) => e.stopPropagation()}
+                    />
+                    {/* Loesch-Button erscheint nur bei Selektion */}
+                    {isSel && (
+                      <g
+                        className="connection-delete-btn"
+                        transform={`translate(${mx} ${my})`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveConnection(c);
+                        }}
+                        onPointerDown={(e) => e.stopPropagation()}
+                      >
+                        <circle r="14" />
+                        <line x1="-5" y1="-5" x2="5" y2="5" />
+                        <line x1="-5" y1="5" x2="5" y2="-5" />
+                      </g>
+                    )}
+                  </g>
+                );
+              })}
             </svg>
           )}
 

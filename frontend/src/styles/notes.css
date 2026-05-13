@@ -1230,7 +1230,7 @@
 }
 /* ---------------------------------------------------------------------------
  * Mindmap-Verbindungen zwischen Notes
- * SVG-Layer liegt unter den Sticky-Notes, Linien sind klickbar (löschen).
+ * SVG-Layer liegt unter den Sticky-Notes, Linien sind klickbar (lï¿½schen).
  * --------------------------------------------------------------------------- */
 .notes-connections-layer {
   position: absolute;
@@ -1238,7 +1238,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  /* Container ohne Pointer — nur die Linien selbst fangen Klicks. */
+  /* Container ohne Pointer ï¿½ nur die Linien selbst fangen Klicks. */
   pointer-events: none;
   z-index: 1;
   overflow: visible;
@@ -1249,17 +1249,58 @@
   stroke-width: 3;
   stroke-linecap: round;
   fill: none;
-  /* Nur die gezeichnete Linie (nicht der Bounding-Box-Bereich) ist klickbar. */
-  pointer-events: stroke;
-  cursor: pointer;
+  /* Hitbox uebernimmt das Klicken; sichtbare Linie ist nur Anzeige. */
+  pointer-events: none;
   transition: stroke 0.15s ease, stroke-width 0.15s ease;
   /* leichte Schattenwirkung damit Linie auf Kork lesbar ist */
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
 }
 
-.notes-connections-layer .connection-line:hover {
+/* Breite, unsichtbare Hitbox fuer Touch-Geraete (Hover gibt es dort
+   praktisch nicht; user soll mit einem Tap die Linie selektieren). */
+.notes-connections-layer .connection-hitbox {
+  stroke: transparent;
+  stroke-width: 22;
+  stroke-linecap: round;
+  fill: none;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
+/* Desktop-Hover: gleiches Visual wie Selektion. */
+@media (hover: hover) {
+  .notes-connections-layer .connection-group:hover .connection-line {
+    stroke: #FF3B30;
+    stroke-width: 4;
+  }
+}
+
+/* Selektion: Linie rot + Loesch-Button sichtbar. */
+.notes-connections-layer .connection-group.is-selected .connection-line {
   stroke: #FF3B30;
   stroke-width: 4;
+}
+
+.notes-connections-layer .connection-delete-btn {
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.notes-connections-layer .connection-delete-btn circle {
+  fill: #FF3B30;
+  stroke: #fff;
+  stroke-width: 2;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+}
+
+.notes-connections-layer .connection-delete-btn line {
+  stroke: #fff;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.notes-connections-layer .connection-delete-btn:active circle {
+  fill: #d32f24;
 }
 
 /* -- Connect-Mode: globaler Cursor + Source-Hervorhebung ----------------- */
@@ -1289,7 +1330,7 @@
   background: #0070e0;
 }
 
-/* -- Hint-Banner unten zentriert während Connect-Mode aktiv ist ---------- */
+/* -- Hint-Banner unten zentriert wï¿½hrend Connect-Mode aktiv ist ---------- */
 .connect-mode-hint {
   position: absolute;
   bottom: 24px;
