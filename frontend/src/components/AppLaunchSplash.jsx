@@ -61,7 +61,16 @@ export default function AppLaunchSplash({ visible }) {
               <rect className="lsp-trace-run"  x="3" y="3" width="94" height="94" rx="24" pathLength="100" />
               <rect className="lsp-trace-dot"  x="3" y="3" width="94" height="94" rx="24" pathLength="100" />
             </svg>
-            <img src="/icons/icon.png" alt="BeeQu" className="lsp-logo-img" />
+            {/* LCP-Bild: high priority + sync decoding spart laut Lighthouse ~120 ms */}
+            <img
+              src="/icons/icon.png"
+              alt="BeeQu"
+              className="lsp-logo-img"
+              fetchpriority="high"
+              decoding="sync"
+              width="106"
+              height="106"
+            />
           </div>
         </div>
 
