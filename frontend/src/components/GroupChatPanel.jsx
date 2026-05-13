@@ -295,8 +295,16 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
         clearTimeout(dragSuccessTimerRef.current);
         dragSuccessTimerRef.current = setTimeout(() => setDragShareSuccess(false), 700);
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      // 403 = Aufgabe gehoert nicht zu dieser Gruppe; 404 = Aufgabe weg.
+      // User braucht klare Rueckmeldung statt stillem Schlucken.
+      const status = err?.status;
+      const msg = status === 403
+        ? 'Diese Aufgabe ist keiner Gruppe zugeordnet oder gehoert zu einer anderen Gruppe. Weise sie zuerst dieser Gruppe zu.'
+        : status === 404
+          ? 'Aufgabe nicht gefunden.'
+          : (err?.message || 'Teilen fehlgeschlagen');
+      try { useTaskStore.getState().addToast(msg, 'error'); } catch {}
     } finally {
       setSharingDroppedTask(false);
     }
