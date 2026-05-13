@@ -45,7 +45,7 @@ function calcNextDate(currentDate, rule, interval) {
       d.setDate(d.getDate() + 7 * interval);
       break;
     case 'biweekly':
-      d.setDate(d.getDate() + 14);
+      d.setDate(d.getDate() + 14 * interval);
       break;
     case 'monthly':
       d.setMonth(d.getMonth() + interval);
@@ -108,8 +108,21 @@ function expandRecurringTemplate(template, rangeStart, rangeEnd) {
 
     if (!templateDate) return [];
 
-    const effectiveEnd = template.recurrence_end
-      ? (template.recurrence_end < rangeEnd ? template.recurrence_end : rangeEnd)
+    // Normalize recurrence_end: pg liefert DATE-Spalten als JS-Date-Objekt
+    // zurueck. Ein direkter Vergleich `Date < "YYYY-MM-DD"` wuerde die Date
+    // via toString() ("Wed Apr 05 2026 ...") gegen eine ISO-Zahlenkette
+    // vergleichen → immer false → das Enddatum der Wiederholung wuerde
+    // komplett ignoriert. Deshalb erst auf ISO-String normalisieren.
+    const recurrenceEndStr = template.recurrence_end
+      ? (typeof template.recurrence_end === 'string'
+          ? template.recurrence_end.substring(0, 10)
+          : template.recurrence_end instanceof Date
+            ? template.recurrence_end.toISOString().split('T')[0]
+            : String(template.recurrence_end).substring(0, 10))
+      : null;
+
+    const effectiveEnd = recurrenceEndStr
+      ? (recurrenceEndStr < rangeEnd ? recurrenceEndStr : rangeEnd)
       : rangeEnd;
 
     if (templateDate > rangeEnd || effectiveEnd < rangeStart) return [];
