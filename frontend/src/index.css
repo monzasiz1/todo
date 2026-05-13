@@ -7765,6 +7765,16 @@ body.cal-is-dragging * {
     min-height: 0;
     scrollbar-width: thin;
     scrollbar-color: rgba(0,0,0,0.12) transparent;
+    /* Kleiner Atemraum nach oben, damit die erste Karte (Gruppen-Header,
+       Sichtbarkeit etc.) nicht in die abgerundete Ecke der Modal-Hülle
+       läuft und visuell oben abgeschnitten wirkt. */
+    padding-top: 14px;
+  }
+
+  .task-detail-aside > .task-detail-section:first-child {
+    margin: 0 14px;
+    border-radius: 14px;
+    overflow: hidden;
   }
 
   .task-detail-aside .task-detail-section {
