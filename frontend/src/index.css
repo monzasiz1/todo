@@ -11593,9 +11593,13 @@ body.cal-is-dragging * {
 }
 
 /* ── Kombinierte Gruppe + Untergruppe Karte ── */
-.task-detail-group-subgroup-card {
+/* Doppelklassen-Selektor (.task-detail-collab.task-detail-group-subgroup-card)
+   damit spaetere `.task-detail-collab`-Overrides in tablet/mobile Media
+   Queries die Gruppen-Farbe nicht ueberstimmen koennen. */
+.task-detail-collab.task-detail-group-subgroup-card {
   background: color-mix(in srgb, var(--group-color, #5856D6) 6%, var(--card));
   border: 1.5px solid color-mix(in srgb, var(--group-color, #5856D6) 22%, transparent);
+  border-radius: 14px;
   padding: 0;
   overflow: hidden;
 }
