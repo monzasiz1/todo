@@ -32,7 +32,7 @@ function writeSeenReminderMap(map) {
  * 3. Synct NotificationBell mit Server-Log
  */
 export default function ReminderChecker() {
-  const { addToast } = useTaskStore();
+  const addToast = useTaskStore((s) => s.addToast);
   const { fetchLog, addLocalNotification } = useNotificationStore();
   const firedRef = useRef(new Set()); // Track already-fired reminders
   const seenMapRef = useRef(readSeenReminderMap());

@@ -18,7 +18,10 @@ function normalizeToastMessage(message) {
 }
 
 export default function FeedbackToast() {
-  const { toasts, removeToast } = useTaskStore();
+  // Selektiv abonnieren: FeedbackToast ist global gemounted und darf
+  // nicht bei jeder Task-Aenderung neu rendern.
+  const toasts = useTaskStore((s) => s.toasts);
+  const removeToast = useTaskStore((s) => s.removeToast);
   const [fromTop, setFromTop] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1060 : false));
 
   useEffect(() => {

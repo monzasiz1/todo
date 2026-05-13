@@ -47,7 +47,11 @@ function parseVirtualTaskId(taskId) {
 }
 
 export default function TaskEditModal({ task, onClose, onSaved }) {
-  const { updateTask, fetchTasks, categories, fetchCategories, addToast } = useTaskStore();
+  const updateTask = useTaskStore((s) => s.updateTask);
+  const fetchTasks = useTaskStore((s) => s.fetchTasks);
+  const categories = useTaskStore((s) => s.categories);
+  const fetchCategories = useTaskStore((s) => s.fetchCategories);
+  const addToast = useTaskStore((s) => s.addToast);
   const { friends, fetchFriends } = useFriendsStore();
   const swipeRef = useRef({ startY: 0, active: false });
   const pullRafRef = useRef(null);

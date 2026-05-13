@@ -18,7 +18,11 @@ export default function AIInput({ onTaskCreated }) {
   const debounceRef = useRef(null);
   const attachFileRef = useRef(null);
   const attachTaskRef = useRef(null);
-  const { aiCreateTask, aiParseOnly, addToast, fetchTasks } = useTaskStore();
+  // Selektiv: nur Actions abonnieren, sonst rendert AIInput bei jedem Task-Update neu.
+  const aiCreateTask = useTaskStore((s) => s.aiCreateTask);
+  const aiParseOnly = useTaskStore((s) => s.aiParseOnly);
+  const addToast = useTaskStore((s) => s.addToast);
+  const fetchTasks = useTaskStore((s) => s.fetchTasks);
   const { can } = usePlan();
 
   // Debounced preview

@@ -79,7 +79,9 @@ function InlineCatCreate({ onSave, onCancel }) {
 }
 
 export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embedded = false, onCancel }) {
-  const { createTask, categories, fetchCategories } = useTaskStore();
+  const createTask = useTaskStore((s) => s.createTask);
+  const categories = useTaskStore((s) => s.categories);
+  const fetchCategories = useTaskStore((s) => s.fetchCategories);
   const { friends, fetchFriends } = useFriendsStore();
   const [isOpen, setIsOpen] = useState(embedded);
   const [taskType, setTaskType] = useState('task');

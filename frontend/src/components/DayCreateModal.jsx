@@ -58,7 +58,8 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
   const pullNextRef = useRef(0);
   const pullOffsetRef = useRef(0);
   const [pullOffset, setPullOffset] = useState(0);
-  const { aiCreateTask, aiParseOnly } = useTaskStore();
+  const aiCreateTask = useTaskStore((s) => s.aiCreateTask);
+  const aiParseOnly = useTaskStore((s) => s.aiParseOnly);
   // detected once — used for animation variant
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
 

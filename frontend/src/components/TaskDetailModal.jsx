@@ -65,7 +65,10 @@ function WheelCol({ items, initialValue, onChange }) {
 // pageMode=true → renders as a scrollable page (mobile/tablet)
 // pageMode=false (default) → renders as a modal popup (desktop)
 export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = false, hidePrivateShareInfo = false }) {
-  const { toggleTask, deleteTask, fetchTasks, addToast } = useTaskStore();
+  const toggleTask = useTaskStore((s) => s.toggleTask);
+  const deleteTask = useTaskStore((s) => s.deleteTask);
+  const fetchTasks = useTaskStore((s) => s.fetchTasks);
+  const addToast = useTaskStore((s) => s.addToast);
   const [friends, setFriends] = useState([]);
   const [freshSender, setFreshSender] = useState(null); // cached-Task-unabhängige Sender-Daten
   const [showEdit, setShowEdit] = useState(false);

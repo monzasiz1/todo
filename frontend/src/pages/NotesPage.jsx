@@ -469,7 +469,8 @@ export default function NotesPage() {
     archivedNotes, archivedLoading,
     connections, fetchConnections, addConnection, removeConnection,
   } = useNotesStore();
-  const { tasks, fetchTasks } = useTaskStore();
+  const tasks = useTaskStore((s) => s.tasks);
+  const fetchTasks = useTaskStore((s) => s.fetchTasks);
   const [showArchive, setShowArchive] = useState(false);
 
   const [scale, setScale] = useState(1);

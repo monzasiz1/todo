@@ -7,7 +7,7 @@ import TaskDetailModal from '../components/TaskDetailModal';
 export default function TaskDetailPage() {
   const { taskId } = useParams();
   const navigate = useNavigate();
-  const { tasks } = useTaskStore();
+  const tasks = useTaskStore((s) => s.tasks);
   const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(true);
 

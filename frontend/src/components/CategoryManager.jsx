@@ -104,7 +104,10 @@ function CategoryForm({ initial, onSave, onCancel }) {
 }
 
 export default function CategoryManager({ onClose }) {
-  const { categories, createCategory, updateCategory, deleteCategory } = useTaskStore();
+  const categories = useTaskStore((s) => s.categories);
+  const createCategory = useTaskStore((s) => s.createCategory);
+  const updateCategory = useTaskStore((s) => s.updateCategory);
+  const deleteCategory = useTaskStore((s) => s.deleteCategory);
   const [mode, setMode] = useState('list'); // 'list' | 'create' | 'edit'
   const [editCat, setEditCat] = useState(null);
 

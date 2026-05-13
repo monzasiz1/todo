@@ -12,7 +12,11 @@ import AvatarBadge from './AvatarBadge';
 import DeleteTaskChoiceModal from './DeleteTaskChoiceModal';
 
 function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = false, showSharedInfo = true }) {
-  const { toggleTask, deleteTask } = useTaskStore();
+  // Selektiv abonnieren: Actions sind stabil und aendern sich nie -
+  // ohne Selector wuerde jeder Store-Change (z.B. anderer Task) ein
+  // Re-Render aller TaskCards triggern und das memo() wirkungslos machen.
+  const toggleTask = useTaskStore((s) => s.toggleTask);
+  const deleteTask = useTaskStore((s) => s.deleteTask);
   const { detailTask, openTask, closeTask } = useOpenTask();
   const [nowTs, setNowTs] = useState(Date.now());
   const shouldAnimate = index < 10 && !disableLayout;

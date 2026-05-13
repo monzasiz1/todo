@@ -129,7 +129,7 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
   const isActive = open || pageMode;
   const { groups, fetchGroups } = useGroupStore();
   const { user } = useAuthStore();
-  const { tasks: allTasks } = useTaskStore();
+  const allTasks = useTaskStore((s) => s.tasks);
 
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [messages, setMessages] = useState([]);

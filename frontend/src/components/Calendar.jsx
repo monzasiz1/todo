@@ -309,7 +309,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
 
   const triggerRef = useRef(null);
   const dropdownRef = useRef(null);
-  const { tasks: storeTasks, updateTask } = useTaskStore();
+  const storeTasks = useTaskStore((s) => s.tasks);
+  const updateTask = useTaskStore((s) => s.updateTask);
   const tasks = Array.isArray(tasksProp) ? tasksProp : storeTasks;
   const currentUser = useMemo(() => {
     try {

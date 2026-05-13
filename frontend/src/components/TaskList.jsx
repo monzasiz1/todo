@@ -2,11 +2,24 @@ import { useTaskStore } from '../store/taskStore';
 import TaskCard from './TaskCard';
 import { AnimatePresence, Reorder } from 'framer-motion';
 import { ClipboardList } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 export default function TaskList() {
-  const { getFilteredTasks, reorderTasks, filter, setFilter, clearFilters } = useTaskStore();
-  const tasks = getFilteredTasks();
+  // Tasks + Filter einzeln abonnieren, dann lokal filtern.
+  // getFilteredTasks() als Selector waere instabil (neue Array-Identitaet
+  // bei jedem Aufruf -> Zustand triggert immer einen Re-Render).
+  const allTasks = useTaskStore((s) => s.tasks);
+  const filter = useTaskStore((s) => s.filter);
+  const reorderTasks = useTaskStore((s) => s.reorderTasks);
+  const setFilter = useTaskStore((s) => s.setFilter);
+  const clearFilters = useTaskStore((s) => s.clearFilters);
+  const tasks = useMemo(() => allTasks.filter((t) => {
+    if (filter.category && t.category_id !== filter.category) return false;
+    if (filter.priority && t.priority !== filter.priority) return false;
+    if (filter.completed !== null && t.completed !== filter.completed) return false;
+    if (filter.search && !t.title.toLowerCase().includes(filter.search.toLowerCase())) return false;
+    return true;
+  }), [allTasks, filter]);
   const [showCompleted, setShowCompleted] = useState(false);
 
   const activeTasks = tasks.filter((t) => !t.completed);

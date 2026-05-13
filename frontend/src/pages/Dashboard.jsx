@@ -359,7 +359,11 @@ function DashboardLoadingState() {
 }
 
 export default function Dashboard() {
-  const { tasks, fetchTasks, filter, setFilter, loading } = useTaskStore();
+  const tasks = useTaskStore((s) => s.tasks);
+  const fetchTasks = useTaskStore((s) => s.fetchTasks);
+  const filter = useTaskStore((s) => s.filter);
+  const setFilter = useTaskStore((s) => s.setFilter);
+  const loading = useTaskStore((s) => s.loading);
   const { limit, atLimit } = usePlan();
   const [showCompleted, setShowCompleted] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState({ today: false, week: true, later: true, past_events: true });

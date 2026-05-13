@@ -22,7 +22,13 @@ import { usePlan } from '../hooks/usePlan';
 
 export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }) {
   const { user, logout } = useAuthStore();
-  const { categories, fetchCategories, tasks, filter, setFilter, clearFilters } = useTaskStore();
+  // Selektiv abonnieren - Sidebar ist immer im Layout aktiv.
+  const categories = useTaskStore((s) => s.categories);
+  const tasks = useTaskStore((s) => s.tasks);
+  const filter = useTaskStore((s) => s.filter);
+  const fetchCategories = useTaskStore((s) => s.fetchCategories);
+  const setFilter = useTaskStore((s) => s.setFilter);
+  const clearFilters = useTaskStore((s) => s.clearFilters);
   const { pending, fetchFriends } = useFriendsStore();
   const { planId } = usePlan();
   const [showFriends, setShowFriends] = useState(false);

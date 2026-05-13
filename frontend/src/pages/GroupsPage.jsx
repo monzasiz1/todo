@@ -560,7 +560,7 @@ function JoinGroup({ onBack, onJoin }) {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [joining, setJoining] = useState(false);
-  const { addToast } = useTaskStore();
+  const addToast = useTaskStore((s) => s.addToast);
 
   const handleJoin = async (e) => {
     e.preventDefault();
@@ -630,7 +630,9 @@ function GroupDetail({ groupId, onBack }) {
     fetchGroup, addGroupTask, changeMemberRole, removeMember, deleteGroup, updateGroup,
   } = useGroupStore();
   const { user } = useAuthStore();
-  const { addToast, fetchTasks, restoreDismissedTask } = useTaskStore();
+  const addToast = useTaskStore((s) => s.addToast);
+  const fetchTasks = useTaskStore((s) => s.fetchTasks);
+  const restoreDismissedTask = useTaskStore((s) => s.restoreDismissedTask);
   const [tab, setTab] = useState('tasks'); // 'tasks' | 'members' | 'settings'
   const [showAddTask, setShowAddTask] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -1532,7 +1534,7 @@ function SearchGroups({ onBack }) {
   const [searched, setSearched] = useState(false);
   const [requestMsg, setRequestMsg] = useState({});
   const [sending, setSending] = useState({});
-  const { addToast } = useTaskStore();
+  const addToast = useTaskStore((s) => s.addToast);
 
   const doSearch = async () => {
     const q = query.trim();

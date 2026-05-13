@@ -30,7 +30,7 @@ export default function TaskAttachments({ taskId, canEdit = true, compact = fals
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const fileRef = useRef(null);
-  const { addToast } = useTaskStore();
+  const addToast = useTaskStore((s) => s.addToast);
 
   useEffect(() => {
     if (taskId) loadAttachments();
