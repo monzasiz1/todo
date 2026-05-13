@@ -2,17 +2,19 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import FeedbackToast from './FeedbackToast';
 import BottomNav from './BottomNav';
-import DayCreateModal from './DayCreateModal';
-import GroupChatPanel from './GroupChatPanel';
 import { AnimatePresence } from 'framer-motion';
-import { useState, useRef, useEffect } from 'react';
+import { lazy, Suspense, useState, useRef, useEffect } from 'react';
 import { Menu, X, MessageCircle } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import ReminderChecker from './ReminderChecker';
 import FocusTimerPin from './FocusTimerPin';
-import HelpChat from './HelpChat';
 import { lockScroll, unlockScroll } from '../utils/scrollLock';
 import { useGroupStore } from '../store/groupStore';
+
+// On-Demand: erst beim Oeffnen laden, reduziert initiales App-Bundle.
+const DayCreateModal = lazy(() => import('./DayCreateModal'));
+const GroupChatPanel = lazy(() => import('./GroupChatPanel'));
+const HelpChat = lazy(() => import('./HelpChat'));
 
 export default function Layout() {
   const location = useLocation();
@@ -21,6 +23,10 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  // Sobald der Chat einmal geoeffnet wurde, bleibt das Panel gemountet -
+  // so spielt der Exit-Animation-Cycle korrekt und der Lazy-Import laed
+  // erst beim ersten Klick.
+  const [chatEverOpened, setChatEverOpened] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [dragGhost, setDragGhost] = useState(null);
   const aiInputRef = useRef(null);
@@ -62,6 +68,7 @@ export default function Layout() {
     const onDragStart = (e) => {
       if (window.matchMedia('(min-width: 1025px)').matches) {
         setChatOpen(true);
+        setChatEverOpened(true);
       } else {
         navigate('/app/chat');
       }
@@ -117,7 +124,7 @@ export default function Layout() {
           <NotificationBell />
           <button
             className="gchat-mobile-trigger"
-            onClick={() => window.matchMedia('(min-width: 1025px)').matches ? setChatOpen(true) : navigate('/app/chat')}
+            onClick={() => window.matchMedia('(min-width: 1025px)').matches ? (setChatOpen(true), setChatEverOpened(true)) : navigate('/app/chat')}
             title="Gruppen-Chat"
           >
             <MessageCircle size={20} />
@@ -158,12 +165,14 @@ export default function Layout() {
       {/* Universal Quick-Add — DayCreateModal für heute */}
       <AnimatePresence>
         {showQuickAdd && (
-          <DayCreateModal
-            date={new Date()}
-            tasks={[]}
-            onClose={() => setShowQuickAdd(false)}
-            onTaskCreated={() => setShowQuickAdd(false)}
-          />
+          <Suspense fallback={null}>
+            <DayCreateModal
+              date={new Date()}
+              tasks={[]}
+              onClose={() => setShowQuickAdd(false)}
+              onTaskCreated={() => setShowQuickAdd(false)}
+            />
+          </Suspense>
         )}
       </AnimatePresence>
 
@@ -177,16 +186,22 @@ export default function Layout() {
       <FocusTimerPin variant="desktop" />
 
       {/* Help Chat */}
-      <HelpChat hideFab={chatOpen} />
+      <Suspense fallback={null}>
+        <HelpChat hideFab={chatOpen} />
+      </Suspense>
 
-      {/* Group Chat Panel (desktop) */}
-      <GroupChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />
+      {/* Group Chat Panel (desktop) — erst mounten wenn jemals geoeffnet */}
+      {chatEverOpened && (
+        <Suspense fallback={null}>
+          <GroupChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />
+        </Suspense>
+      )}
 
       {/* Group Chat FAB — desktop: toggles panel; mobile/tablet: navigates to /app/chat */}
       {!chatOpen && location.pathname !== '/app/chat' && (
         <button
           className="gchat-fab"
-          onClick={() => window.matchMedia('(min-width: 1025px)').matches ? setChatOpen(true) : navigate('/app/chat')}
+          onClick={() => window.matchMedia('(min-width: 1025px)').matches ? (setChatOpen(true), setChatEverOpened(true)) : navigate('/app/chat')}
           title="Gruppen-Chat öffnen"
         >
           <MessageCircle size={22} />

@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTaskStore } from '../store/taskStore';
 import { useGroupStore } from '../store/groupStore';
@@ -13,7 +13,8 @@ import {
 } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
-import TaskEditModal from './TaskEditModal';
+// TaskEditModal nur on-demand: oeffnet sich erst per Edit-Klick.
+const TaskEditModal = lazy(() => import('./TaskEditModal'));
 import TaskAttachments from './TaskAttachments';
 import AvatarBadge from './AvatarBadge';
 import DeleteTaskChoiceModal from './DeleteTaskChoiceModal';
@@ -1507,15 +1508,17 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   );
 
   const editPortal = showEdit && createPortal(
-    <TaskEditModal
-      task={task}
-      onClose={() => setShowEdit(false)}
-      onSaved={(updatedTask) => {
-        fetchTasks({ dashboard: 'true', limit: '300', horizon_days: '42', completed_lookback_days: '30' }, { force: true });
-        onUpdated?.(updatedTask);
-        onClose();
-      }}
-    />,
+    <Suspense fallback={null}>
+      <TaskEditModal
+        task={task}
+        onClose={() => setShowEdit(false)}
+        onSaved={(updatedTask) => {
+          fetchTasks({ dashboard: 'true', limit: '300', horizon_days: '42', completed_lookback_days: '30' }, { force: true });
+          onUpdated?.(updatedTask);
+          onClose();
+        }}
+      />
+    </Suspense>,
     document.body
   );
 

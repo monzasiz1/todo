@@ -1,9 +1,11 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, memo, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useTaskStore } from '../store/taskStore';
 import { useGroupStore } from '../store/groupStore';
 import { useOpenTask } from '../hooks/useOpenTask';
-import TaskDetailModal from './TaskDetailModal';
+// TaskDetailModal ist gross und nur sichtbar, wenn der User eine Karte
+// oeffnet - lazy ausgliedern, um das Initial-Bundle zu verkleinern.
+const TaskDetailModal = lazy(() => import('./TaskDetailModal'));
 import { Check, Trash2, Clock, Calendar, CalendarCheck, GripVertical, Lock, Users, UserCheck, Repeat, Paperclip, Video, Circle, ThumbsDown } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -545,12 +547,14 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
     />
 
     {detailTask && (
-      <TaskDetailModal
-        task={detailTask}
-        onClose={closeTask}
-        onUpdated={closeTask}
-        hidePrivateShareInfo={!showSharedInfo}
-      />
+      <Suspense fallback={null}>
+        <TaskDetailModal
+          task={detailTask}
+          onClose={closeTask}
+          onUpdated={closeTask}
+          hidePrivateShareInfo={!showSharedInfo}
+        />
+      </Suspense>
     )}
     </>
   );
