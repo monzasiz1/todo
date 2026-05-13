@@ -10380,10 +10380,7 @@ body.cal-is-dragging * {
   .desktop-week-all-day-cell {
     min-height: 34px;
     border-right: 1px solid #e3e7ef;
-    padding: 4px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+    padding: 0;
     overflow: visible;
     position: relative;
   }
@@ -10396,12 +10393,11 @@ body.cal-is-dragging * {
     border: none;
     border-radius: 4px;
     color: #fff;
+    height: 20px;
     min-height: 20px;
     display: flex;
     align-items: center;
-    width: 100%;
     box-sizing: border-box;
-    flex-shrink: 0;
     font-size: 11px;
     font-weight: 600;
     padding: 4px 6px;

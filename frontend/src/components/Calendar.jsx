@@ -1587,11 +1587,12 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
           <div className="desktop-week-all-day-row">
             <div className="desktop-week-left-label">all-day</div>
             {(() => {
-              // Build segments for multi-day events like in month view
+              // Build segments for ALL all-day events (single- and multi-day) so
+              // they share the same lane system and stack cleanly per cell.
               const weekStartStr = format(days[0], 'yyyy-MM-dd');
               const weekEndStr = format(days[6], 'yyyy-MM-dd');
               const allDayTasks = filteredTasks.filter((t) => isAllDayTask(t) && t?.date);
-              
+
               const segments = allDayTasks
                 .filter((t) => {
                   const startStr = String(t.date).slice(0, 10);
@@ -1607,9 +1608,15 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   const startIdx = Math.max(0, Math.min(6, differenceInCalendarDays(new Date(`${segStartStr}T00:00:00`), days[0])));
                   const endIdx = Math.max(startIdx, Math.min(6, differenceInCalendarDays(new Date(`${segEndStr}T00:00:00`), days[0])));
                   return { task: t, startIdx, endIdx, span: endIdx - startIdx + 1, isMultiDay };
+                })
+                // Multi-day zuerst → bekommen niedrigere Lanes und liegen oben
+                .sort((a, b) => {
+                  if (a.isMultiDay !== b.isMultiDay) return a.isMultiDay ? -1 : 1;
+                  if (a.startIdx !== b.startIdx) return a.startIdx - b.startIdx;
+                  return b.span - a.span;
                 });
-                
-              // Assign lanes to avoid overlaps
+
+              // Lane-Vergabe: pro Lane merkt sich `laneEnds` den letzten belegten dayIdx.
               const laneEnds = [];
               const segmentWithLane = segments.map((seg) => {
                 let lane = laneEnds.findIndex((endIdx) => endIdx < seg.startIdx);
@@ -1621,37 +1628,61 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                 }
                 return { ...seg, lane };
               });
-              
+
+              const MAX_LANES = 3;
+              const LANE_HEIGHT = 22; // px (event 20px min-height + 2px gap)
+
               return days.map((d, dayIdx) => {
-                const dayStr = format(d, 'yyyy-MM-dd');
-                const daySegments = segmentWithLane
-                  .filter((seg) => seg.startIdx === dayIdx) // Only render at start day
-                  .sort((a, b) => a.lane - b.lane)
-                  .slice(0, 3);
-                
-                const regularTasks = getTasksForDate(d)
-                  .filter((t) => isAllDayTask(t) && !segmentWithLane.some((seg) => seg.task.id === t.id))
-                  .slice(0, 3 - daySegments.length);
-                
-                const totalTasks = getTasksForDate(d).filter((t) => isAllDayTask(t));
-                
+                // Segmente, die genau heute starten → werden in dieser Zelle gerendert
+                const startingHere = segmentWithLane
+                  .filter((seg) => seg.startIdx === dayIdx && seg.lane < MAX_LANES);
+
+                // Wie viele Lanes laufen heute UEBER diese Zelle hinweg (Multi-Day von früher)?
+                // Wird gebraucht, damit die Zellenhöhe stimmt UND der "+N weitere"-Hinweis
+                // korrekt zählt.
+                const lanesCoveringToday = segmentWithLane
+                  .filter((seg) => seg.startIdx <= dayIdx && seg.endIdx >= dayIdx)
+                  .map((seg) => seg.lane);
+                const maxLaneToday = lanesCoveringToday.length
+                  ? Math.max(...lanesCoveringToday)
+                  : -1;
+                const visibleLaneCount = Math.min(MAX_LANES, maxLaneToday + 1);
+                const hiddenCount = Math.max(0, (maxLaneToday + 1) - MAX_LANES);
+
+                const cellMinHeight = Math.max(34, visibleLaneCount * LANE_HEIGHT + 8);
+
                 return (
-                  <div key={`allday-${d.toISOString()}`} className="desktop-week-all-day-cell" data-caldate={format(d, 'yyyy-MM-dd')}>
-                    {daySegments.map((seg) => {
+                  <div
+                    key={`allday-${d.toISOString()}`}
+                    className="desktop-week-all-day-cell"
+                    data-caldate={format(d, 'yyyy-MM-dd')}
+                    style={{ minHeight: `${cellMinHeight}px` }}
+                  >
+                    {startingHere.map((seg) => {
                       const t = seg.task;
                       const ended = isEventEnded(t, nowTs);
                       const doneOrOld = t.completed || ended;
-                      const spanWidth = seg.span > 1 ? `calc(${seg.span * 100}% + ${(seg.span - 1) * 8}px)` : undefined;
-                      
+                      const spanWidth = seg.span > 1
+                        ? `calc(${seg.span * 100}% + ${(seg.span - 1) * 8}px)`
+                        : 'calc(100% - 8px)';
+                      const topPx = 4 + seg.lane * LANE_HEIGHT;
+
+                      const spanClass = seg.isMultiDay
+                        ? (seg.span === 1 ? 'allday-span-single' : 'allday-span-start')
+                        : '';
+
                       return (
                         <button
                           key={t.id}
-                          className={`desktop-week-all-day-event ${seg.isMultiDay ? (seg.span === 1 ? 'allday-span-single' : 'allday-span-start') : ''}${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${t.completed ? ' completed' : ''}`}
-                          style={{ 
+                          className={`desktop-week-all-day-event ${spanClass}${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${t.completed ? ' completed' : ''}`}
+                          style={{
                             background: doneOrOld ? 'rgba(142,142,147,0.4)' : (t.category_color || t.group_category_color || t.group_color || '#4C7BD9'),
+                            position: 'absolute',
+                            top: `${topPx}px`,
+                            left: '4px',
                             width: spanWidth,
-                            maxWidth: spanWidth ? 'none' : '100%',
-                            zIndex: spanWidth ? 4 : undefined
+                            maxWidth: 'none',
+                            zIndex: seg.span > 1 ? 4 : 3,
                           }}
                           onClick={(e) => { e.stopPropagation(); openCalendarEntry(t); }}
                         >
@@ -1661,24 +1692,18 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         </button>
                       );
                     })}
-                    {regularTasks.map((t) => {
-                      const ended = isEventEnded(t, nowTs);
-                      const doneOrOld = t.completed || ended;
-                      return (
-                        <button
-                          key={t.id}
-                          className={`desktop-week-all-day-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${t.completed ? ' completed' : ''}`}
-                          style={{ background: doneOrOld ? 'rgba(142,142,147,0.4)' : (t.category_color || t.group_category_color || t.group_color || '#4C7BD9') }}
-                          onClick={(e) => { e.stopPropagation(); openCalendarEntry(t); }}
-                        >
-                          {t.teams_join_url && <Video size={11} className="calendar-inline-teams-icon" />}
-                          <span className={doneOrOld ? 'cal-allday-strike' : ''}>{t.title}{isHolidayEntry(t) && ' (Feiertag)'}</span>
-                          {ended && !t.completed && <span style={{ opacity: 0.75, marginLeft: 3 }}>· beendet</span>}
-                        </button>
-                      );
-                    })}
-                    {totalTasks.length > 3 && (
-                      <div className="desktop-week-allday-more">+{totalTasks.length - 3} weitere</div>
+                    {hiddenCount > 0 && (
+                      <div
+                        className="desktop-week-allday-more"
+                        style={{
+                          position: 'absolute',
+                          left: 4,
+                          right: 4,
+                          top: `${4 + MAX_LANES * LANE_HEIGHT}px`,
+                        }}
+                      >
+                        +{hiddenCount} weitere
+                      </div>
                     )}
                   </div>
                 );
