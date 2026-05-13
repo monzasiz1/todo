@@ -1488,7 +1488,9 @@ input, textarea, select {
 /* Each field becomes a card-like block for clearer section overview */
 .manual-task-form-panel > .task-edit-field,
 .manual-task-form-panel > .task-edit-row,
-.manual-task-form-panel > .task-edit-sharing {
+.manual-task-form-panel > .task-edit-sharing,
+.manual-task-form-panel > .task-type-toggle,
+.manual-task-form-panel > .manual-task-allday-toggle {
   background: rgba(255, 255, 255, 0.86);
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 12px;
@@ -1497,17 +1499,25 @@ input, textarea, select {
 }
 
 .manual-task-form-panel > .task-edit-field:hover,
-.manual-task-form-panel > .task-edit-row:hover {
+.manual-task-form-panel > .task-edit-row:hover,
+.manual-task-form-panel > .task-edit-sharing:hover,
+.manual-task-form-panel > .manual-task-allday-toggle:hover {
   border-color: rgba(99, 102, 241, 0.3);
   box-shadow: 0 6px 18px -10px rgba(99, 102, 241, 0.35);
 }
 
 .manual-task-form-panel > .task-edit-field:focus-within,
-.manual-task-form-panel > .task-edit-row:focus-within {
+.manual-task-form-panel > .task-edit-row:focus-within,
+.manual-task-form-panel > .task-edit-sharing:focus-within {
   border-color: rgba(99, 102, 241, 0.5);
   box-shadow:
     0 0 0 3px rgba(99, 102, 241, 0.12),
     0 6px 18px -10px rgba(99, 102, 241, 0.4);
+}
+
+/* Type-toggle keeps inner padding subtle */
+.manual-task-form-panel > .task-type-toggle {
+  padding: 6px;
 }
 
 .manual-task-form-panel > .task-edit-row {
