@@ -7594,9 +7594,10 @@ body.cal-is-dragging * {
   }
 
   /* Jedes Modal-Kind (card) wird zur vollen Seite.
-     Ausnahmen: task-detail-modal (eigene Fullscreen-Logik) und
-     focus-timer-modal (eigene Edge-to-Edge-Regeln inkl. Notch). */
-  .modal-overlay > *:not(.task-detail-modal):not(.focus-timer-modal) {
+     Ausnahmen: task-detail-modal (eigene Fullscreen-Logik),
+     focus-timer-modal (eigene Edge-to-Edge-Regeln inkl. Notch),
+     task-edit-modal (eigene Edge-to-Edge-Regeln). */
+  .modal-overlay > *:not(.task-detail-modal):not(.focus-timer-modal):not(.task-edit-modal) {
     position: fixed !important;
     top: env(safe-area-inset-top, 0px) !important;
     left: 0 !important;
@@ -13287,13 +13288,16 @@ body.cal-is-dragging * {
     left: 0 !important;
     right: 0 !important;
     bottom: 0 !important;
-    width: 100% !important;
+    width: 100vw !important;
     max-width: none !important;
-    height: auto !important;
+    height: 100vh !important;
+    height: 100dvh !important;
     max-height: none !important;
     border-radius: 0 !important;
     box-shadow: none !important;
     background: var(--card-solid) !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
 
   .task-edit-header {
@@ -13302,7 +13306,7 @@ body.cal-is-dragging * {
     top: 0;
     z-index: 6;
     background: var(--card-solid);
-    padding-top: max(20px, calc(env(safe-area-inset-top, 0px) + 10px));
+    padding-top: max(14px, calc(env(safe-area-inset-top, 0px) + 8px));
   }
 
   .task-edit-body {
@@ -13310,7 +13314,13 @@ body.cal-is-dragging * {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: 16px;
+  }
+
+  .task-edit-footer {
+    flex-shrink: 0;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    background: var(--card-solid);
   }
 
   .task-edit-row {
