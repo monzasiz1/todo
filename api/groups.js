@@ -12,7 +12,8 @@ const PLAN_LIMITS = {
 async function getUserPlan(pool, userId) {
   try {
     const r = await pool.query('SELECT plan FROM users WHERE id = $1', [userId]);
-    const plan = r.rows[0]?.plan;
+    const raw = r.rows[0]?.plan;
+    const plan = typeof raw === 'string' ? raw.trim().toLowerCase() : raw;
     return PLAN_LIMITS[plan] ? plan : 'free';
   } catch {
     return 'free';
@@ -343,7 +344,7 @@ module.exports = async function handler(req, res) {
       );
       const enriched = result.rows.map((row) => ({
         ...row,
-        chat_available: row.owner_plan === 'team',
+        chat_available: String(row.owner_plan || '').trim().toLowerCase() === 'team',
       }));
       return res.json({ groups: enriched });
     } catch (err) {
