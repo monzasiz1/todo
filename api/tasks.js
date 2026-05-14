@@ -34,62 +34,124 @@ function formatReminderDateForLog(value) {
   }).format(reminderDate);
 }
 
+// ─── Timezone-sichere Datums-Helfer ────────────────────────────────────────
+// WICHTIG: Alle Recurrence-Berechnungen laufen rein über YYYY-MM-DD Strings
+// und UTC-Arithmetik. `new Date('YYYY-MM-DD')` parst als UTC-Mitternacht,
+// `setDate`/`getDate` nutzen Local-Time → bei Vercel-UTC kein Problem, aber
+// bei lokalem Dev (Europe/Berlin) entstehen Off-by-One-Bugs. Lösung:
+// nur UTC-Methoden und String-Parsing verwenden.
+
+function parseYMD(value) {
+  if (!value) return null;
+  let str;
+  if (value instanceof Date) {
+    if (isNaN(value.getTime())) return null;
+    str = value.toISOString().slice(0, 10);
+  } else {
+    str = String(value).slice(0, 10);
+  }
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(str);
+  if (!match) return null;
+  const y = Number(match[1]);
+  const m = Number(match[2]);
+  const d = Number(match[3]);
+  if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return null;
+  if (m < 1 || m > 12 || d < 1 || d > 31) return null;
+  return { y, m, d };
+}
+
+function formatYMD(y, m, d) {
+  return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
+function daysInMonth(y, m) {
+  // m is 1-indexed. Day 0 of next month = last day of this month.
+  return new Date(Date.UTC(y, m, 0)).getUTCDate();
+}
+
+function addDaysYMD(ymd, days) {
+  const d = new Date(Date.UTC(ymd.y, ymd.m - 1, ymd.d));
+  d.setUTCDate(d.getUTCDate() + (Number(days) || 0));
+  return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate() };
+}
+
+function addMonthsYMD(ymd, months) {
+  let y = ymd.y;
+  let m = ymd.m + (Number(months) || 0);
+  while (m > 12) { m -= 12; y += 1; }
+  while (m < 1)  { m += 12; y -= 1; }
+  // Tag auf letzten Tag des Zielmonats clampen (kein Rollover Jan31 → Mär3).
+  const d = Math.min(ymd.d, daysInMonth(y, m));
+  return { y, m, d };
+}
+
 function calcNextDate(currentDate, rule, interval) {
-  if (!currentDate) return null;
-  const d = new Date(currentDate);
+  if (!currentDate || !rule) return null;
+  const i = Math.max(1, Number(interval) || 1);
+  const ymd = parseYMD(currentDate);
+  if (!ymd) return null;
+
   switch (rule) {
-    case 'daily':
-      d.setDate(d.getDate() + interval);
-      break;
-    case 'weekly':
-      d.setDate(d.getDate() + 7 * interval);
-      break;
-    case 'biweekly':
-      d.setDate(d.getDate() + 14 * interval);
-      break;
-    case 'monthly':
-      d.setMonth(d.getMonth() + interval);
-      break;
-    case 'yearly':
-      d.setFullYear(d.getFullYear() + interval);
-      break;
+    case 'daily': {
+      const r = addDaysYMD(ymd, i);
+      return formatYMD(r.y, r.m, r.d);
+    }
+    case 'weekly': {
+      const r = addDaysYMD(ymd, 7 * i);
+      return formatYMD(r.y, r.m, r.d);
+    }
+    case 'biweekly': {
+      const r = addDaysYMD(ymd, 14 * i);
+      return formatYMD(r.y, r.m, r.d);
+    }
+    case 'monthly': {
+      const r = addMonthsYMD(ymd, i);
+      return formatYMD(r.y, r.m, r.d);
+    }
+    case 'yearly': {
+      const y = ymd.y + i;
+      // Feb 29 → Feb 28 in Nicht-Schaltjahren.
+      const d = Math.min(ymd.d, daysInMonth(y, ymd.m));
+      return formatYMD(y, ymd.m, d);
+    }
     case 'weekdays': {
-      // Next weekday (Mon-Fri)
-      let next = new Date(d);
-      do {
-        next.setDate(next.getDate() + 1);
-      } while (next.getDay() === 0 || next.getDay() === 6);
-      return next.toISOString().split('T')[0];
+      // Genau einen Werktag (Mo–Fr) nach `currentDate`. `interval` wird
+      // hier bewusst ignoriert (entspricht bisherigem Verhalten).
+      let cur = addDaysYMD(ymd, 1);
+      let guard = 0;
+      while (guard < 10) {
+        const dow = new Date(Date.UTC(cur.y, cur.m - 1, cur.d)).getUTCDay();
+        if (dow !== 0 && dow !== 6) break;
+        cur = addDaysYMD(cur, 1);
+        guard++;
+      }
+      return formatYMD(cur.y, cur.m, cur.d);
     }
     default:
       return null;
   }
-  return d.toISOString().split('T')[0];
 }
 
+// Behalten für Aufrufer, die ein JS-Date wollen (auf Mitternacht lokal).
 function toDateOnly(value) {
-  if (!value) return null;
-  if (value instanceof Date) {
-    if (isNaN(value.getTime())) return null;
-    const iso = value.toISOString().split('T')[0];
-    return new Date(iso + 'T00:00:00');
-  }
-  const str = String(value).substring(0, 10);
-  const d = new Date(str + 'T00:00:00');
-  if (isNaN(d.getTime())) return null;
-  return d;
+  const ymd = parseYMD(value);
+  if (!ymd) return null;
+  // Anchor auf local-midnight, damit getDate/getMonth in Aufruferlogik passen.
+  return new Date(ymd.y, ymd.m - 1, ymd.d, 0, 0, 0, 0);
 }
 
 function formatDateOnly(dateObj) {
-  if (!dateObj || isNaN(dateObj.getTime())) return null;
-  return dateObj.toISOString().split('T')[0];
+  if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) return null;
+  // Wichtig: getFullYear/getMonth/getDate (local), NICHT toISOString (UTC) —
+  // sonst kippt das Datum bei west-of-UTC Zeitzonen um einen Tag.
+  return formatYMD(dateObj.getFullYear(), dateObj.getMonth() + 1, dateObj.getDate());
 }
 
 function shiftDate(dateValue, days) {
-  const d = toDateOnly(dateValue);
-  if (!d) return null;
-  d.setDate(d.getDate() + days);
-  return formatDateOnly(d);
+  const ymd = parseYMD(dateValue);
+  if (!ymd) return null;
+  const r = addDaysYMD(ymd, Number(days) || 0);
+  return formatYMD(r.y, r.m, r.d);
 }
 
 // ─── Virtual Recurrence ────────────────────────────────────────────────────
@@ -102,65 +164,69 @@ function expandRecurringTemplate(template, rangeStart, rangeEnd) {
   if (!template || !template.recurrence_rule || !template.date) return [];
 
   try {
-    const templateDate = typeof template.date === 'string'
-      ? template.date.substring(0, 10)
-      : template.date.toISOString?.()?.split('T')[0] || null;
+    // 1. Range-Grenzen normalisieren (Caller darf Date, ISO-String,
+    //    YYYY-MM-DD oder sogar volle ISO mit Zeit übergeben).
+    const startYmd = parseYMD(rangeStart);
+    const endYmd   = parseYMD(rangeEnd);
+    if (!startYmd || !endYmd) {
+      console.warn('[expandRecurringTemplate] ungültige Range:', { rangeStart, rangeEnd });
+      return [];
+    }
+    const startStr = formatYMD(startYmd.y, startYmd.m, startYmd.d);
+    const endStr   = formatYMD(endYmd.y, endYmd.m, endYmd.d);
 
-    if (!templateDate) return [];
+    const templateYmd = parseYMD(template.date);
+    if (!templateYmd) {
+      console.warn(`[expandRecurringTemplate] template ${template.id}: ungültiges date`, template.date);
+      return [];
+    }
+    const templateDate = formatYMD(templateYmd.y, templateYmd.m, templateYmd.d);
 
-    // Normalize recurrence_end: pg liefert DATE-Spalten als JS-Date-Objekt
-    // zurueck. Ein direkter Vergleich `Date < "YYYY-MM-DD"` wuerde die Date
-    // via toString() ("Wed Apr 05 2026 ...") gegen eine ISO-Zahlenkette
-    // vergleichen → immer false → das Enddatum der Wiederholung wuerde
-    // komplett ignoriert. Deshalb erst auf ISO-String normalisieren.
-    const recurrenceEndStr = template.recurrence_end
-      ? (typeof template.recurrence_end === 'string'
-          ? template.recurrence_end.substring(0, 10)
-          : template.recurrence_end instanceof Date
-            ? template.recurrence_end.toISOString().split('T')[0]
-            : String(template.recurrence_end).substring(0, 10))
+    // recurrence_end normalisieren (pg liefert DATE als JS-Date → string-Compare wuerde schiefgehen).
+    const recurrenceEndYmd = template.recurrence_end ? parseYMD(template.recurrence_end) : null;
+    const recurrenceEndStr = recurrenceEndYmd
+      ? formatYMD(recurrenceEndYmd.y, recurrenceEndYmd.m, recurrenceEndYmd.d)
       : null;
 
-    const effectiveEnd = recurrenceEndStr
-      ? (recurrenceEndStr < rangeEnd ? recurrenceEndStr : rangeEnd)
-      : rangeEnd;
+    const effectiveEnd = recurrenceEndStr && recurrenceEndStr < endStr
+      ? recurrenceEndStr
+      : endStr;
 
-    if (templateDate > rangeEnd || effectiveEnd < rangeStart) return [];
+    if (templateDate > endStr || effectiveEnd < startStr) return [];
 
-    // Start from the first virtual occurrence (one step after template date)
-    let cursor = calcNextDate(templateDate, template.recurrence_rule, template.recurrence_interval || 1);
-    if (!cursor) return [];
+    const interval = Math.max(1, Number(template.recurrence_interval) || 1);
 
-    // Fast-forward to first occurrence within range (max 10000 steps safety)
+    // Start from the first virtual occurrence (one step after template date).
+    let cursor = calcNextDate(templateDate, template.recurrence_rule, interval);
+    if (!cursor) {
+      console.warn(`[expandRecurringTemplate] template ${template.id}: calcNextDate liefert null`,
+        { rule: template.recurrence_rule, interval, templateDate });
+      return [];
+    }
+
+    // Fast-forward bis erstmals >= startStr.
     let guard = 0;
-    while (cursor < rangeStart && guard < 10000) {
-      const next = calcNextDate(cursor, template.recurrence_rule, template.recurrence_interval || 1);
+    while (cursor < startStr && guard < 10000) {
+      const next = calcNextDate(cursor, template.recurrence_rule, interval);
       if (!next || next <= cursor) break;
       cursor = next;
       guard++;
     }
 
-    // Calculate multi-day span offset
-    // Safely convert date_end to string (may be Date object, string, or null from DB)
-    const dateEndSafe = template.date_end
-      ? (typeof template.date_end === 'string'
-          ? template.date_end.substring(0, 10)
-          : template.date_end instanceof Date
-            ? template.date_end.toISOString().split('T')[0]
-            : String(template.date_end).split('T')[0])
-      : null;
-    const spanDays = (dateEndSafe && templateDate)
-      ? Math.max(0, Math.round(
-          (new Date(dateEndSafe + 'T00:00:00') -
-           new Date(templateDate + 'T00:00:00')) / 86400000
-        ))
-      : 0;
+    // Multi-day span offset (tz-sicher über UTC-Diff).
+    const dateEndYmd = template.date_end ? parseYMD(template.date_end) : null;
+    let spanDays = 0;
+    if (dateEndYmd) {
+      const a = Date.UTC(templateYmd.y, templateYmd.m - 1, templateYmd.d);
+      const b = Date.UTC(dateEndYmd.y,  dateEndYmd.m - 1,  dateEndYmd.d);
+      spanDays = Math.max(0, Math.round((b - a) / 86400000));
+    }
 
-    // Collect occurrences within [rangeStart, effectiveEnd]
+    // Collect occurrences within [startStr, effectiveEnd].
     const result = [];
     guard = 0;
     while (cursor && cursor <= effectiveEnd && guard < 1000) {
-      if (cursor >= rangeStart) {
+      if (cursor >= startStr) {
         result.push({
           ...template,
           id: `v_${template.id}_${cursor}`,
@@ -171,7 +237,7 @@ function expandRecurringTemplate(template, rangeStart, rangeEnd) {
           recurrence_parent_id: template.id,
         });
       }
-      const next = calcNextDate(cursor, template.recurrence_rule, template.recurrence_interval || 1);
+      const next = calcNextDate(cursor, template.recurrence_rule, interval);
       if (!next || next <= cursor) break;
       cursor = next;
       guard++;
