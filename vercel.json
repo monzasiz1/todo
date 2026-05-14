@@ -5,6 +5,9 @@
   "functions": {
     "api/auth.js": {
       "includeFiles": "node_modules/{nodemailer,otplib}/**"
+    },
+    "api/billing.js": {
+      "includeFiles": "node_modules/stripe/**"
     }
   },
   "crons": [
@@ -50,6 +53,8 @@
     { "src": "/api/attachments/(.*)", "dest": "/api/attachments.js?__path=$1" },
     { "src": "/api/plans/(.*)", "dest": "/api/plans.js?__path=$1" },
     { "src": "/api/plans", "dest": "/api/plans.js?__path=" },
+    { "src": "/api/billing/(.*)", "dest": "/api/billing.js?__path=$1" },
+    { "src": "/api/billing", "dest": "/api/billing.js?__path=" },
     { "src": "/api/teams/(.*)", "dest": "/api/teams.js?__path=$1" },
     { "src": "/api/teams", "dest": "/api/teams.js?__path=" },
     { "src": "/api/focus-timer", "dest": "/api/focus-timer.js" },

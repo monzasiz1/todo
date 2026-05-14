@@ -17,6 +17,7 @@ const NotesPage = lazy(() => import('./pages/NotesPage'));
 const GroupsPage = lazy(() => import('./pages/GroupsPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const PricingPage = lazy(() => import('./pages/PricingPage'));
+const UpgradeResultPage = lazy(() => import('./pages/UpgradeResultPage'));
 const TaskDetailPage = lazy(() => import('./pages/TaskDetailPage'));
 const ChatPage = lazy(() => import('./pages/ChatPage'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
@@ -177,6 +178,8 @@ export default function App() {
             <Route path="groups" element={<Suspense fallback={null}><GroupsPage /></Suspense>} />
             <Route path="profile" element={<Suspense fallback={null}><ProfilePage /></Suspense>} />
             <Route path="pricing" element={<Suspense fallback={null}><PricingPage /></Suspense>} />
+            <Route path="upgrade/success" element={<Suspense fallback={null}><UpgradeResultPage mode="success" /></Suspense>} />
+            <Route path="upgrade/cancel" element={<Suspense fallback={null}><UpgradeResultPage mode="cancel" /></Suspense>} />
             <Route path="tasks/:taskId" element={<Suspense fallback={null}><TaskDetailPage /></Suspense>} />
             <Route path="chat" element={<Suspense fallback={null}><ChatPage /></Suspense>} />
           </Route>

@@ -571,6 +571,22 @@ export const api = {
       body: JSON.stringify({ plan }),
     }),
 
+  // Stripe Billing
+  /** Erstellt eine Stripe-Checkout-Session und liefert die Redirect-URL. */
+  createCheckoutSession: (plan, interval = 'month') =>
+    request('/billing/checkout', {
+      method: 'POST',
+      body: JSON.stringify({ plan, interval }),
+    }),
+
+  /** URL zum Stripe-Customer-Portal (Abos verwalten, kuendigen, Rechnungen). */
+  getBillingPortalUrl: () =>
+    request('/billing/portal', { method: 'POST' }),
+
+  /** Status einer Checkout-Session abfragen (fuer Success-Page). */
+  getCheckoutSession: (sessionId) =>
+    request(`/billing/session?id=${encodeURIComponent(sessionId)}`),
+
   // Comments
   getComments: (taskId) =>
     request(`/comments?taskId=${taskId}`),

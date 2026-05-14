@@ -13,6 +13,12 @@ const PLAN_HIGHLIGHTS = {
   team: ['Alles in Pro', 'Unbegrenzte Gruppen', '1.000 KI-Abfragen/Monat', 'Admin-Panel', 'Prioritäts-Support'],
 };
 
+// Preise je Plan & Intervall (Anzeige – die echten Preise liegen in Stripe).
+const PRICING = {
+  pro:  { month: { amount: '4,99 €',  suffix: '/Monat' }, year: { amount: '49,99 €', suffix: '/Jahr', hint: '~ 4,17 €/Mon · 2 Monate gratis' } },
+  team: { month: { amount: '9,99 €',  suffix: '/Monat/Nutzer' }, year: { amount: '99,99 €', suffix: '/Jahr/Nutzer', hint: '~ 8,33 €/Mon · 2 Monate gratis' } },
+};
+
 /**
  * UpgradeModal
  *
@@ -24,8 +30,9 @@ const PLAN_HIGHLIGHTS = {
  */
 export default function UpgradeModal({ onClose, feature, recommendPlan = 'pro' }) {
   const [loading, setLoading] = useState(null);
-  const [success, setSuccess] = useState(null);
-  const { user, setUser } = useAuthStore();
+  const [errorMsg, setErrorMsg] = useState(null);
+  const [interval, setInterval] = useState('month'); // 'month' | 'year'
+  const { user } = useAuthStore();
 
   const featureLabels = {
     ai: 'KI-Eingabe',
@@ -38,18 +45,40 @@ export default function UpgradeModal({ onClose, feature, recommendPlan = 'pro' }
 
   const handleUpgrade = async (planId) => {
     setLoading(planId);
+    setErrorMsg(null);
     try {
-      await api.upgradePlan(planId);
-      // Update local user object so usePlan() reacts immediately
-      if (user) setUser({ ...user, plan: planId });
-      setSuccess(planId);
-      setTimeout(() => onClose(), 1400);
+      const { url } = await api.createCheckoutSession(planId, interval);
+      if (!url) throw new Error('Keine Checkout-URL erhalten');
+      // Vor dem Redirect merken, damit die Success-Page weiss, was bestellt wurde.
+      try {
+        sessionStorage.setItem('bq:pendingUpgrade', JSON.stringify({
+          plan: planId, interval, ts: Date.now(),
+        }));
+      } catch { /* ignore */ }
+      window.location.assign(url);
     } catch (err) {
       console.error(err);
-    } finally {
+      setErrorMsg(err?.message || 'Checkout konnte nicht gestartet werden');
       setLoading(null);
     }
   };
+
+  const handleManage = async () => {
+    setLoading('portal');
+    setErrorMsg(null);
+    try {
+      const { url } = await api.getBillingPortalUrl();
+      if (!url) throw new Error('Keine Portal-URL erhalten');
+      window.location.assign(url);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg(err?.message || 'Portal konnte nicht geoeffnet werden');
+      setLoading(null);
+    }
+  };
+
+  const currentPlan = user?.plan || 'free';
+  const hasPaidPlan = currentPlan === 'pro' || currentPlan === 'team';
 
   return createPortal(
     <AnimatePresence>
@@ -87,14 +116,38 @@ export default function UpgradeModal({ onClose, feature, recommendPlan = 'pro' }
             </p>
           </div>
 
+          {/* Monat/Jahr-Toggle */}
+          <div className="upgrade-interval-toggle" role="tablist" aria-label="Abrechnungsintervall">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={interval === 'month'}
+              className={`upgrade-interval-btn ${interval === 'month' ? 'active' : ''}`}
+              onClick={() => setInterval('month')}
+            >
+              Monatlich
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={interval === 'year'}
+              className={`upgrade-interval-btn ${interval === 'year' ? 'active' : ''}`}
+              onClick={() => setInterval('year')}
+            >
+              Jährlich
+              <span className="upgrade-interval-save">−17%</span>
+            </button>
+          </div>
+
           {/* Plan cards */}
           <div className="upgrade-plans-grid">
             {(['pro', 'team']).map((planId) => {
               const plan = PLANS[planId];
               const Icon = PLAN_ICONS[planId];
               const isRecommended = planId === recommendPlan;
-              const isDone = success === planId;
               const isLoading = loading === planId;
+              const price = PRICING[planId]?.[interval];
+              const isCurrent = currentPlan === planId;
 
               return (
                 <div
@@ -111,7 +164,13 @@ export default function UpgradeModal({ onClose, feature, recommendPlan = 'pro' }
                     </div>
                     <div>
                       <div className="upgrade-plan-name">{plan.label}</div>
-                      <div className="upgrade-plan-price">{plan.priceLabel}</div>
+                      <div className="upgrade-plan-price">
+                        <strong>{price?.amount}</strong>
+                        <span className="upgrade-plan-price-suffix">{price?.suffix}</span>
+                      </div>
+                      {price?.hint && (
+                        <div className="upgrade-plan-price-hint">{price.hint}</div>
+                      )}
                     </div>
                   </div>
 
@@ -125,19 +184,38 @@ export default function UpgradeModal({ onClose, feature, recommendPlan = 'pro' }
                   </ul>
 
                   <button
-                    className={`upgrade-plan-btn ${isRecommended ? 'primary' : 'secondary'} ${isDone ? 'done' : ''}`}
+                    className={`upgrade-plan-btn ${isRecommended ? 'primary' : 'secondary'}`}
                     onClick={() => handleUpgrade(planId)}
-                    disabled={isLoading || isDone}
+                    disabled={!!loading || isCurrent}
                   >
-                    {isDone ? 'Aktiviert' : isLoading ? 'Wird aktiviert…' : `${plan.label} wählen`}
+                    {isCurrent
+                      ? 'Aktueller Plan'
+                      : isLoading
+                        ? 'Wird gestartet…'
+                        : `${plan.label} wählen`}
                   </button>
                 </div>
               );
             })}
           </div>
 
+          {errorMsg && (
+            <div className="upgrade-modal-error" role="alert">{errorMsg}</div>
+          )}
+
+          {hasPaidPlan && (
+            <button
+              type="button"
+              className="upgrade-modal-manage"
+              onClick={handleManage}
+              disabled={loading === 'portal'}
+            >
+              {loading === 'portal' ? 'Wird geöffnet…' : 'Abo verwalten / kündigen'}
+            </button>
+          )}
+
           <p className="upgrade-modal-footer">
-            Jederzeit kündbar · Keine versteckten Kosten
+            Sichere Zahlung über Stripe · Jederzeit kündbar
           </p>
         </motion.div>
       </motion.div>

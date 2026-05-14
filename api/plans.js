@@ -50,7 +50,9 @@ module.exports = async function handler(req, res) {
     return res.json({ plan: row.plan ?? 'free', expires_at: row.plan_expires_at ?? null });
   }
 
-  // ── POST /api/plans/upgrade  (dev/test – swap for Stripe webhook in prod) ──
+  // ── POST /api/plans/upgrade ────────────────────────────────────────────
+  // Produktiv: bezahlte Plaene laufen ueber Stripe (POST /api/billing/checkout).
+  // Dieser Endpoint erlaubt nur noch das freiwillige Downgrade auf "free".
   if (req.method === 'POST' && action === 'upgrade') {
     const user = verifyToken(req);
     if (!user) return res.status(401).json({ error: 'Nicht autorisiert' });
@@ -60,21 +62,25 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'Ungültiger Plan' });
     }
 
+    if (plan !== 'free') {
+      return res.status(402).json({
+        error: 'Bezahlte Plaene werden ueber Stripe abgerechnet.',
+        checkout: '/api/billing/checkout',
+      });
+    }
+
     const pool = getPool();
-
-    // Calculate expiry: free = null, paid = +1 month
-    const expiresAt = plan === 'free'
-      ? null
-      : new Date(Date.now() + 31 * 24 * 60 * 60 * 1000);
-
     await pool.query(
       `UPDATE users
-         SET plan = $1, plan_expires_at = $2, plan_updated_at = NOW()
-       WHERE id = $3`,
-      [plan, expiresAt, user.id]
+         SET plan = 'free',
+             plan_interval = NULL,
+             plan_expires_at = NULL,
+             plan_updated_at = NOW()
+       WHERE id = $1`,
+      [user.id]
     );
 
-    return res.json({ ok: true, plan, expires_at: expiresAt });
+    return res.json({ ok: true, plan: 'free', expires_at: null });
   }
 
   return res.status(404).json({ error: 'Nicht gefunden' });
