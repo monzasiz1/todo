@@ -18,4 +18,9 @@ contextBridge.exposeInMainWorld('electronApp', {
   checkForUpdates: () => ipcRenderer.invoke('desktop-updates:check'),
   installUpdate: () => ipcRenderer.invoke('desktop-updates:install'),
   getUpdateState: () => ipcRenderer.invoke('desktop-updates:state'),
+  onUpdateStateChanged: (cb) => {
+    const handler = (_e, data) => cb(data);
+    ipcRenderer.on('desktop-updates:state-changed', handler);
+    return () => ipcRenderer.removeListener('desktop-updates:state-changed', handler);
+  },
 });

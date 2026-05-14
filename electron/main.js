@@ -17,6 +17,13 @@ let updateState = 'idle'; // 'idle' | 'checking' | 'available' | 'downloading' |
 let updateProgress = 0;
 let updateUserInitiated = false;
 
+function broadcastUpdateState() {
+  const payload = { state: updateState, progress: updateProgress, version: app.getVersion() };
+  BrowserWindow.getAllWindows().forEach((w) => {
+    try { w.webContents.send('desktop-updates:state-changed', payload); } catch {}
+  });
+}
+
 // ─── Produktions-URL ─────────────────────────────────────────────────────────
 // Die Desktop-App öffnet niemals die Landing-Page, sondern direkt den Login.
 const APP_URL = 'https://beequ.de';
@@ -132,7 +139,10 @@ function createWindow() {
     backgroundColor: '#030812',
     show: false,
     paintWhenInitiallyHidden: true,
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
+    titleBarOverlay: process.platform === 'win32'
+      ? { color: '#030812', symbolColor: '#aad4ff', height: 40 }
+      : false,
     autoHideMenuBar: process.platform !== 'darwin',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -249,11 +259,13 @@ function setupAutoUpdater() {
   autoUpdater.on('checking-for-update', () => {
     updateState = 'checking';
     refreshTrayMenu();
+    broadcastUpdateState();
   });
 
   autoUpdater.on('update-available', (info) => {
     updateState = 'available';
     refreshTrayMenu();
+    broadcastUpdateState();
     if (updateUserInitiated && mainWindow) {
       dialog.showMessageBox(mainWindow, {
         type: 'info',
@@ -268,6 +280,7 @@ function setupAutoUpdater() {
   autoUpdater.on('update-not-available', () => {
     updateState = 'none';
     refreshTrayMenu();
+    broadcastUpdateState();
     if (updateUserInitiated && mainWindow) {
       dialog.showMessageBox(mainWindow, {
         type: 'info',
@@ -283,11 +296,13 @@ function setupAutoUpdater() {
     updateState = 'downloading';
     updateProgress = Math.round(p.percent || 0);
     refreshTrayMenu();
+    broadcastUpdateState();
   });
 
   autoUpdater.on('update-downloaded', (info) => {
     updateState = 'ready';
     refreshTrayMenu();
+    broadcastUpdateState();
     if (!mainWindow) return;
     dialog
       .showMessageBox(mainWindow, {
@@ -311,6 +326,7 @@ function setupAutoUpdater() {
   autoUpdater.on('error', (err) => {
     updateState = 'error';
     refreshTrayMenu();
+    broadcastUpdateState();
     console.error('AutoUpdater-Fehler:', err);
     if (updateUserInitiated && mainWindow) {
       dialog.showMessageBox(mainWindow, {

@@ -4,6 +4,19 @@ import App from './App';
 import './index.css';
 import { purgeAuthQueueEntries } from './utils/offlineQueue';
 
+// Markiere Body als Electron-Desktop-App, damit CSS den Platz fuer die
+// Custom-Titlebar reservieren kann und Plattform-spezifische Anpassungen
+// (z.B. native macOS-Traffic-Lights) greifen.
+try {
+  if (typeof window !== 'undefined' && window.electronApp) {
+    document.body.classList.add('is-electron');
+    const plat = window.electronApp.platform;
+    if (plat === 'darwin') document.body.classList.add('is-mac');
+    else if (plat === 'win32') document.body.classList.add('is-win');
+    else document.body.classList.add('is-linux');
+  }
+} catch {}
+
 // ── Silence known harmless rejections from browser internals & extensions ──
 // These come from CacheStorage glitches (private mode, quota) or third-party
 // extensions (MetaMask, reload helpers) and have no impact on the app.

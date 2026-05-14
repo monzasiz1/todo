@@ -27065,3 +27065,125 @@ body.focus-timer-modal-open .bottom-nav {
 @media (max-width: 420px) {
   .focus-timer-pin-label { display: none; }
 }
+
+/* === Desktop Titlebar (Electron only) ============================== */
+.desktop-titlebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 12px 0 12px;
+  background: linear-gradient(180deg, #050d1f 0%, #030812 100%);
+  border-bottom: 1px solid rgba(170, 212, 255, 0.08);
+  -webkit-app-region: drag;
+  user-select: none;
+  font-size: 12px;
+  color: #cfe1ff;
+}
+body.is-electron { padding-top: 40px; }
+body.is-electron .mobile-header { top: 40px; }
+body.is-electron .sidebar,
+body.is-electron .gchat-panel { top: 40px; }
+body.is-electron.is-mac .desktop-titlebar { padding-left: 84px; }
+body.is-electron.is-win .desktop-titlebar { padding-right: 148px; }
+
+.desktop-titlebar-left,
+.desktop-titlebar-right,
+.desktop-titlebar-center {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  -webkit-app-region: no-drag;
+}
+.desktop-titlebar-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  gap: 8px;
+  pointer-events: none;
+  -webkit-app-region: drag;
+}
+.desktop-titlebar-brand {
+  font-weight: 700;
+  color: #ffd95e;
+  letter-spacing: 0.4px;
+}
+.desktop-titlebar-sep {
+  color: rgba(207, 225, 255, 0.35);
+}
+.desktop-titlebar-title {
+  font-weight: 600;
+  color: #f0f6ff;
+}
+.desktop-titlebar-navbtn,
+.desktop-titlebar-iconbtn,
+.desktop-titlebar-update {
+  -webkit-app-region: no-drag;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(170, 212, 255, 0.10);
+  color: #cfe1ff;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.desktop-titlebar-navbtn { width: 28px; justify-content: center; padding: 0; }
+.desktop-titlebar-navbtn:hover:not(:disabled),
+.desktop-titlebar-iconbtn:hover,
+.desktop-titlebar-update:hover:not(:disabled) {
+  background: rgba(170, 212, 255, 0.10);
+  border-color: rgba(170, 212, 255, 0.22);
+  color: #ffffff;
+}
+.desktop-titlebar-navbtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.desktop-titlebar-iconbtn-label {
+  font-weight: 500;
+}
+.desktop-titlebar-update.is-available {
+  background: rgba(255, 217, 94, 0.14);
+  border-color: rgba(255, 217, 94, 0.45);
+  color: #ffd95e;
+}
+.desktop-titlebar-update.is-progress {
+  background: rgba(120, 180, 255, 0.14);
+  border-color: rgba(120, 180, 255, 0.45);
+  color: #aad4ff;
+}
+.desktop-titlebar-update.is-ready {
+  background: rgba(76, 217, 100, 0.18);
+  border-color: rgba(76, 217, 100, 0.55);
+  color: #b5f5b9;
+  animation: desktop-titlebar-pulse 1.8s ease-in-out infinite;
+}
+.desktop-titlebar-update.is-idle {
+  width: 28px;
+  justify-content: center;
+  padding: 0;
+  color: rgba(207, 225, 255, 0.55);
+}
+@keyframes desktop-titlebar-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(76, 217, 100, 0.35); }
+  50% { box-shadow: 0 0 0 6px rgba(76, 217, 100, 0); }
+}
+.desktop-titlebar-spin { animation: desktop-titlebar-spin 1s linear infinite; }
+@keyframes desktop-titlebar-spin {
+  to { transform: rotate(360deg); }
+}
+@media (max-width: 640px) {
+  .desktop-titlebar-iconbtn-label,
+  .desktop-titlebar-update span { display: none; }
+}
