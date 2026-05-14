@@ -103,15 +103,15 @@ export default function DesktopTitleBar() {
     if (busy) return;
     setBusy(true);
     try {
-      if (update.state === 'ready') {
-        await window.electronApp.installUpdate?.();
-      } else {
-        await window.electronApp.checkForUpdates?.();
-      }
+      // installUpdate erledigt jetzt alles in einem Rutsch:
+      // pruefen → downloaden → installieren → neustarten.
+      // Der State 'downloading' wird kurz angezeigt und endet im automatischen
+      // Restart sobald der Download fertig ist.
+      await window.electronApp.installUpdate?.();
     } finally {
       setBusy(false);
     }
-  }, [busy, update.state]);
+  }, [busy]);
 
   if (!isElectron) return null;
 

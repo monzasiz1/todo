@@ -59,7 +59,7 @@ const defaultSettings = {
   startMinimized: false,
   minimizeToTray: true,
   closeToTray: true,
-  autoUpdate: true,
+  autoUpdate: false,
 };
 function loadSettings() {
   try {
@@ -268,12 +268,16 @@ function notifyTrayBalloon() {
 }
 
 // ─── Auto-Updater (electron-updater + GitHub Releases) ───────────────────────
+let installAfterDownload = false; // true, wenn das Update nach Download-Ende
+                                  // automatisch installiert werden soll.
 function setupAutoUpdater() {
   // In Dev-Modus (kein gepacktes App-Bundle) gibt es keine Updates
   if (!app.isPackaged) return;
 
-  autoUpdater.autoDownload = true;            // sobald Update verfügbar → herunterladen
-  autoUpdater.autoInstallOnAppQuit = true;    // beim Beenden installieren (Discord-Verhalten)
+  // autoDownload haengt davon ab, ob "automatisch updaten" aktiviert ist.
+  // Default = false → User-Click loest Download+Install in einem Schritt aus.
+  autoUpdater.autoDownload = !!settings.autoUpdate;
+  autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.allowPrerelease = false;
 
   autoUpdater.on('checking-for-update', () => {
@@ -286,15 +290,7 @@ function setupAutoUpdater() {
     updateState = 'available';
     refreshTrayMenu();
     broadcastUpdateState();
-    if (updateUserInitiated && mainWindow) {
-      dialog.showMessageBox(mainWindow, {
-        type: 'info',
-        title: 'Update verfügbar',
-        message: `Version ${info.version} wird im Hintergrund heruntergeladen.`,
-        detail: 'Du kannst weiterarbeiten. Das Update wird beim nächsten Neustart automatisch installiert.',
-        buttons: ['OK'],
-      }).catch(() => {});
-    }
+    // Kein Dialog — Titlebar-Badge zeigt den Status.
   });
 
   autoUpdater.on('update-not-available', () => {
@@ -310,6 +306,7 @@ function setupAutoUpdater() {
       }).catch(() => {});
     }
     updateUserInitiated = false;
+    installAfterDownload = false;
   });
 
   autoUpdater.on('download-progress', (p) => {
@@ -323,9 +320,15 @@ function setupAutoUpdater() {
     updateState = 'ready';
     refreshTrayMenu();
     broadcastUpdateState();
-    // Kein Bestaetigungs-Dialog mehr. Das Update ist heruntergeladen und
-    // wird sofort installiert wenn der User auf die Update-Anzeige klickt
-    // (siehe IPC 'desktop-updates:install') oder beim naechsten App-Quit.
+    // Wenn der User den Vorgang ausgeloest hat (Klick auf Update-Badge),
+    // installieren wir sofort silent und starten neu — kein zweiter Klick noetig.
+    if (installAfterDownload) {
+      installAfterDownload = false;
+      isQuitting = true;
+      setTimeout(() => {
+        try { autoUpdater.quitAndInstall(true, true); } catch (e) { console.error(e); }
+      }, 300);
+    }
   });
 
   autoUpdater.on('error', (err) => {
@@ -333,6 +336,7 @@ function setupAutoUpdater() {
     refreshTrayMenu();
     broadcastUpdateState();
     console.error('AutoUpdater-Fehler:', err);
+    installAfterDownload = false;
     if (updateUserInitiated && mainWindow) {
       dialog.showMessageBox(mainWindow, {
         type: 'warning',
@@ -348,8 +352,11 @@ function setupAutoUpdater() {
 
 function checkForUpdates(userInitiated = false) {
   if (!app.isPackaged) return;
-  if (!settings.autoUpdate && !userInitiated) return;
   updateUserInitiated = userInitiated;
+  // Periodische Pruefung laeuft immer (damit die Titlebar 'Update verfuegbar'
+  // anzeigen kann). Nur das automatische Herunterladen wird durch die
+  // Einstellung 'autoUpdate' gesteuert.
+  autoUpdater.autoDownload = userInitiated ? true : !!settings.autoUpdate;
   autoUpdater.checkForUpdates().catch((err) => {
     console.error('checkForUpdates Fehler:', err);
   });
@@ -453,9 +460,19 @@ function createTray() {
         click: () => {
           if (updateState === 'ready') {
             isQuitting = true;
-            // Silent + force restart — kein Installer-Fenster.
             autoUpdater.quitAndInstall(true, true);
+          } else if (updateState === 'available') {
+            // Download anstossen und nach Abschluss automatisch installieren.
+            installAfterDownload = true;
+            updateUserInitiated = true;
+            try {
+              autoUpdater.autoDownload = true;
+              autoUpdater.downloadUpdate().catch(() => {});
+            } catch {}
           } else {
+            // Idle / none / error: pruefen + automatisch durchziehen.
+            installAfterDownload = true;
+            autoUpdater.autoDownload = true;
             checkForUpdates(true);
           }
         },
@@ -515,13 +532,31 @@ app.whenReady().then(() => {
     return { state: updateState, version: app.getVersion() };
   });
   ipcMain.handle('desktop-updates:install', () => {
+    // Bereits heruntergeladen → sofort silent installieren
     if (updateState === 'ready') {
       isQuitting = true;
-      // Silent + force restart — NSIS-Installer laeuft ohne GUI.
       autoUpdater.quitAndInstall(true, true);
       return true;
     }
-    return false;
+    // Update ist gefunden, aber noch nicht (komplett) geladen
+    // → Download anstossen und nach Abschluss automatisch installieren.
+    if (updateState === 'available' || updateState === 'downloading') {
+      installAfterDownload = true;
+      updateUserInitiated = true;
+      try {
+        autoUpdater.autoDownload = true;
+        autoUpdater.downloadUpdate().catch(() => {});
+      } catch {}
+      return true;
+    }
+    // Idle / none / error → erst pruefen, dann automatisch alles durchziehen.
+    installAfterDownload = true;
+    updateUserInitiated = true;
+    try {
+      autoUpdater.autoDownload = true;
+      checkForUpdates(true);
+    } catch {}
+    return true;
   });
   ipcMain.handle('desktop-updates:state', () => ({
     state: updateState,
