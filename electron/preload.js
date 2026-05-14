@@ -23,4 +23,10 @@ contextBridge.exposeInMainWorld('electronApp', {
     ipcRenderer.on('desktop-updates:state-changed', handler);
     return () => ipcRenderer.removeListener('desktop-updates:state-changed', handler);
   },
+  // Navigation: Tray sendet "geh zu Route", Renderer (React Router) reagiert
+  onNavigate: (cb) => {
+    const handler = (_e, path) => cb(path);
+    ipcRenderer.on('desktop-nav:goto', handler);
+    return () => ipcRenderer.removeListener('desktop-nav:goto', handler);
+  },
 });

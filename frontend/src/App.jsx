@@ -54,6 +54,24 @@ function StandaloneRedirector() {
       navigate('/app/login', { replace: true });
     }
   }, [location, navigate]);
+
+  // Electron-Tray-Navigation: Wenn der User im Tray-Menue z.B. "Kalender"
+  // klickt, sendet der Hauptprozess uns die Zielroute.
+  React.useEffect(() => {
+    if (typeof window === 'undefined' || !window.electronApp?.onNavigate) return undefined;
+    const off = window.electronApp.onNavigate((targetPath) => {
+      if (!targetPath || typeof targetPath !== 'string') return;
+      // Nicht navigieren wenn nicht eingeloggt — Login-Screen bleibt.
+      const token = useAuthStore.getState().token;
+      if (!token && targetPath.startsWith('/app') && targetPath !== '/app/login') {
+        navigate('/app/login', { replace: true });
+        return;
+      }
+      navigate(targetPath);
+    });
+    return () => { if (typeof off === 'function') off(); };
+  }, [navigate]);
+
   return null;
 }
 

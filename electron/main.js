@@ -426,6 +426,20 @@ function createTray() {
     }, 50);
   };
 
+  // Tray-Schnellzugriff: Fenster zeigen + auf die gewuenschte Route navigieren.
+  const navigateTo = (path) => {
+    showWindow();
+    const send = () => {
+      try { mainWindow && mainWindow.webContents.send('desktop-nav:goto', path); } catch {}
+    };
+    // Falls die Seite noch nicht geladen ist, warten wir kurz.
+    if (mainWindow && mainWindow.webContents.isLoading()) {
+      mainWindow.webContents.once('did-finish-load', () => setTimeout(send, 120));
+    } else {
+      setTimeout(send, 50);
+    }
+  };
+
   const updateMenu = () => {
     const updateLabel = (() => {
       switch (updateState) {
@@ -440,8 +454,74 @@ function createTray() {
     })();
 
     const contextMenu = Menu.buildFromTemplate([
-      { label: 'BeeQu öffnen', click: showWindow },
+      // ── Header ────────────────────────────────────────────────────────────
+      {
+        label: `BeeQu  ·  v${app.getVersion()}`,
+        enabled: false,
+      },
       { type: 'separator' },
+
+      // ── Hauptaktion ───────────────────────────────────────────────────────
+      {
+        label: 'Fenster öffnen',
+        click: showWindow,
+      },
+
+      { type: 'separator' },
+
+      // ── Schnellzugriff ────────────────────────────────────────────────────
+      { label: 'Schnellzugriff', enabled: false },
+      {
+        label: 'Dashboard',
+        accelerator: 'Alt+1',
+        click: () => navigateTo('/app'),
+      },
+      {
+        label: 'Kalender',
+        accelerator: 'Alt+2',
+        click: () => navigateTo('/app/calendar'),
+      },
+      {
+        label: 'Notizen',
+        accelerator: 'Alt+3',
+        click: () => navigateTo('/app/notes'),
+      },
+      {
+        label: 'Gruppen',
+        accelerator: 'Alt+4',
+        click: () => navigateTo('/app/groups'),
+      },
+      {
+        label: 'Chat',
+        accelerator: 'Alt+5',
+        click: () => navigateTo('/app/chat'),
+      },
+      {
+        label: 'Profil',
+        click: () => navigateTo('/app/profile'),
+      },
+
+      { type: 'separator' },
+
+      // ── Verhalten ─────────────────────────────────────────────────────────
+      { label: 'Verhalten', enabled: false },
+      {
+        label: 'Beim Schließen in Tray minimieren',
+        type: 'checkbox',
+        checked: !!settings.closeToTray,
+        click: (item) => updateSettings({ closeToTray: item.checked }),
+      },
+      {
+        label: 'Beim Minimieren in Tray ablegen',
+        type: 'checkbox',
+        checked: !!settings.minimizeToTray,
+        click: (item) => updateSettings({ minimizeToTray: item.checked }),
+      },
+
+      { type: 'separator' },
+
+      // ── Autostart ────────────────────────────────────────────────────────
+      { label: 'Autostart', enabled: false },
       {
         label: 'Mit Windows starten',
         type: 'checkbox',
@@ -455,55 +535,48 @@ function createTray() {
         enabled: !!settings.autoLaunch,
         click: (item) => updateSettings({ startMinimized: item.checked }),
       },
+
       { type: 'separator' },
+
+      // ── Updates ──────────────────────────────────────────────────────────
       {
-        label: 'Schließen minimiert in Tray',
-        type: 'checkbox',
-        checked: !!settings.closeToTray,
-        click: (item) => updateSettings({ closeToTray: item.checked }),
+        label: 'Updates',
+        submenu: [
+          {
+            label: 'Automatisch nach Updates suchen',
+            type: 'checkbox',
+            checked: !!settings.autoUpdate,
+            click: (item) => updateSettings({ autoUpdate: item.checked }),
+          },
+          { type: 'separator' },
+          {
+            label: updateLabel,
+            enabled: updateState !== 'checking' && updateState !== 'downloading',
+            click: () => {
+              if (updateState === 'ready') {
+                performInstallNow();
+              } else if (updateState === 'available') {
+                installAfterDownload = true;
+                updateUserInitiated = true;
+                try {
+                  autoUpdater.autoDownload = true;
+                  autoUpdater.downloadUpdate().catch(() => {});
+                } catch {}
+              } else {
+                installAfterDownload = true;
+                autoUpdater.autoDownload = true;
+                checkForUpdates(true);
+              }
+            },
+          },
+        ],
       },
-      {
-        label: 'Minimieren in Tray',
-        type: 'checkbox',
-        checked: !!settings.minimizeToTray,
-        click: (item) => updateSettings({ minimizeToTray: item.checked }),
-      },
+
       { type: 'separator' },
+
+      // ── Beenden ──────────────────────────────────────────────────────────
       {
-        label: 'Automatisch nach Updates suchen',
-        type: 'checkbox',
-        checked: !!settings.autoUpdate,
-        click: (item) => updateSettings({ autoUpdate: item.checked }),
-      },
-      {
-        label: updateLabel,
-        enabled: updateState !== 'checking' && updateState !== 'downloading',
-        click: () => {
-          if (updateState === 'ready') {
-            performInstallNow();
-          } else if (updateState === 'available') {
-            // Download anstossen und nach Abschluss automatisch installieren.
-            installAfterDownload = true;
-            updateUserInitiated = true;
-            try {
-              autoUpdater.autoDownload = true;
-              autoUpdater.downloadUpdate().catch(() => {});
-            } catch {}
-          } else {
-            // Idle / none / error: pruefen + automatisch durchziehen.
-            installAfterDownload = true;
-            autoUpdater.autoDownload = true;
-            checkForUpdates(true);
-          }
-        },
-      },
-      {
-        label: `Version ${app.getVersion()}`,
-        enabled: false,
-      },
-      { type: 'separator' },
-      {
-        label: 'Beenden',
+        label: 'BeeQu beenden',
         click: () => {
           isQuitting = true;
           app.quit();
