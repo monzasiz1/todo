@@ -124,8 +124,9 @@ export default function GroupsPage() {
     setView('detail');
   };
 
-  // Gate: free users cannot use groups at all
-  if (!can('groups')) {
+  // Gate: nur wenn der Plan gar keine Gruppen erlaubt (alte Free-Variante / Fallback).
+  // Mit aktuellem Free-Plan (1 Gruppe) wird der Limit-Check beim Erstellen geprueft.
+  if (!can('groups') || limit('groups') === 0) {
     return (
       <div>
         {showUpgrade && (
@@ -153,6 +154,9 @@ export default function GroupsPage() {
 
   return (
     <div>
+      {showUpgrade && (
+        <UpgradeModal feature="groups" onClose={() => setShowUpgrade(false)} />
+      )}
       <AnimatePresence mode="wait">
         {view === 'list' && (
           <GroupList
@@ -160,7 +164,14 @@ export default function GroupsPage() {
             groups={groups}
             loading={loading}
             onOpenGroup={openGroup}
-            onCreateClick={() => setView('create')}
+            onCreateClick={() => {
+              const max = limit('groups');
+              if (Number.isFinite(max) && groups.length >= max) {
+                setShowUpgrade(true);
+                return;
+              }
+              setView('create');
+            }}
             onJoinClick={() => setView('join')}
             onSearchGroupsClick={() => setView('search-groups')}
           />

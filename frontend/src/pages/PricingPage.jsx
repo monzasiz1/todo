@@ -58,8 +58,11 @@ const FEATURE_ROWS = [
   { key: 'tasks',           label: 'Aufgaben',                type: 'limit' },
   { key: 'categories',      label: 'Kategorien',              type: 'limit' },
   { key: 'aiCalls',         label: 'KI-Anfragen / Monat',     type: 'limit' },
+  { key: 'groups',          label: 'Gruppen',                 type: 'limit' },
+  { key: 'groupMembers',    label: 'Mitglieder pro Gruppe',   type: 'limit' },
+  { key: 'teamChat',        label: 'Team-Chat & geteilte Aufgaben', type: 'feature' },
+  { key: 'groupAdmin',      label: 'Rollen, Rechte & Admin',  type: 'feature' },
   { key: 'recurringTasks',  label: 'Wiederkehrende Aufgaben', type: 'feature' },
-  { key: 'groups',          label: 'Gruppen & Teams',         type: 'feature' },
   { key: 'attachments',     label: 'Anhänge',                 type: 'feature' },
   { key: 'calendarSync',    label: 'Kalender-Sync',           type: 'feature' },
   { key: 'statistics',      label: 'Statistiken',             type: 'feature' },
@@ -68,8 +71,8 @@ const FEATURE_ROWS = [
 
 const FREE_PAIN_POINTS = [
   { icon: Sparkles, label: 'Nur 5 KI-Anfragen pro Monat' },
-  { icon: Zap,      label: 'Max. 30 Aufgaben gleichzeitig' },
-  { icon: AlertCircle, label: 'Keine Gruppen, Anhänge oder Statistiken' },
+  { icon: Zap,      label: 'Max. 30 Aufgaben & 2 Kategorien' },
+  { icon: AlertCircle, label: '1 Gruppe mit max. 3 Mitgliedern · kein Team-Chat' },
 ];
 
 function formatLimit(value) {

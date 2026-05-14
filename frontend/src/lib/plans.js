@@ -19,13 +19,16 @@ export const PLANS = {
     limits: {
       tasks: 30,          // reicht zum Reinschnuppern, geht aktiv zuegig voll
       categories: 2,      // 2 Kategorien zwingen zur Organisation -> spuerbar
-      groups: 0,
+      groups: 1,          // 1 Gruppe zum Reinschnuppern (z.B. WG/Familie testen)
+      groupMembers: 3,    // max 3 Mitglieder pro Gruppe
       aiCalls: 5,         // Geschmacksprobe der KI -> stiftet Wunsch
       notes: 10,
     },
     features: {
       ai: true,           // KI ist aktiv, aber stark limitiert (siehe aiCalls)
-      groups: false,
+      groups: true,       // 1 Gruppe nutzbar, aber stark begrenzt
+      teamChat: false,
+      groupAdmin: false,
       recurringTasks: false,
       calendarSync: false,
       attachments: false,
@@ -46,13 +49,16 @@ export const PLANS = {
     limits: {
       tasks: Infinity,
       categories: Infinity,
-      groups: 3,
+      groups: 2,           // Pro = Einzelnutzer-Power, Gruppen klar gedrosselt
+      groupMembers: 5,
       aiCalls: 200,
       notes: Infinity,
     },
     features: {
       ai: true,
       groups: true,
+      teamChat: false,     // Team-Chat ist Team-exklusiv
+      groupAdmin: false,   // Rollen/Rechte ist Team-exklusiv
       recurringTasks: true,
       calendarSync: true,
       attachments: true,
@@ -74,12 +80,15 @@ export const PLANS = {
       tasks: Infinity,
       categories: Infinity,
       groups: Infinity,
+      groupMembers: Infinity,
       aiCalls: 1000,
       notes: Infinity,
     },
     features: {
       ai: true,
       groups: true,
+      teamChat: true,        // Team-exklusiv
+      groupAdmin: true,      // Rollen, Rechte, Admin-Tools
       recurringTasks: true,
       calendarSync: true,
       attachments: true,

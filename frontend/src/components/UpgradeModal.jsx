@@ -8,9 +8,9 @@ import { useAuthStore } from '../store/authStore';
 
 const PLAN_ICONS = { free: Zap, pro: Sparkles, team: Users };
 const PLAN_HIGHLIGHTS = {
-  free: ['Bis zu 30 Aufgaben', '2 Kategorien', 'Nur 5 KI-Anfragen / Monat'],
-  pro:  ['Unbegrenzte Aufgaben & Kategorien', '200 KI-Anfragen / Monat', 'Bis zu 3 Gruppen', 'Wiederkehrende Aufgaben', 'Kalender-Sync · Anhänge · Statistiken'],
-  team: ['Alles aus Pro', 'Unbegrenzte Gruppen', '1.000 KI-Anfragen / Monat', 'Geteilte Aufgaben & Chats', 'Prioritäts-Support'],
+  free: ['Bis zu 30 Aufgaben', '2 Kategorien', '1 Gruppe · max. 3 Mitglieder', 'Nur 5 KI-Anfragen / Monat'],
+  pro:  ['Unbegrenzte Aufgaben & Kategorien', '200 KI-Anfragen / Monat', '2 Gruppen · bis 5 Mitglieder', 'Wiederkehrende Aufgaben', 'Kalender-Sync · Anhänge · Statistiken'],
+  team: ['Alles aus Pro', 'Unbegrenzte Gruppen & Mitglieder', 'Team-Chat & geteilte Aufgaben', 'Rollen, Rechte & Admin-Tools', '1.000 KI-Anfragen / Monat', 'Prioritäts-Support'],
 };
 
 // Preise je Plan & Intervall (Anzeige – die echten Preise liegen in Stripe).
