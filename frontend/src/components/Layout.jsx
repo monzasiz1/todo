@@ -15,7 +15,6 @@ import { useGroupStore } from '../store/groupStore';
 const DayCreateModal = lazy(() => import('./DayCreateModal'));
 const GroupChatPanel = lazy(() => import('./GroupChatPanel'));
 const HelpChat = lazy(() => import('./HelpChat'));
-const DesktopTitleBar = lazy(() => import('./DesktopTitleBar'));
 
 export default function Layout() {
   const location = useLocation();
@@ -109,11 +108,6 @@ export default function Layout() {
 
   return (
     <div className={`app-layout ${sidebarOpen ? 'sidebar-active' : ''}`}>
-      {/* Custom Titlebar (nur in der Electron-Desktop-App) */}
-      <Suspense fallback={null}>
-        <DesktopTitleBar />
-      </Suspense>
-
       {/* Mobile Header */}
       <div className="mobile-header">
         <div className="mobile-header-logo">

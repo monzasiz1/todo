@@ -1,6 +1,6 @@
 {
   "name": "beequ-desktop",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "BeeQu – Dein intelligenter Planer",
   "main": "main.js",
   "private": true,

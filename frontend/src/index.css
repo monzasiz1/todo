@@ -27086,7 +27086,7 @@ body.focus-timer-modal-open .bottom-nav {
   font-size: 12px;
   color: #cfe1ff;
 }
-body.is-electron { padding-top: 40px; }
+body.is-electron { padding-top: 40px; background-color: #030812; }
 body.is-electron .mobile-header { top: 40px; }
 body.is-electron .app-sidebar,
 body.is-electron .sidebar,

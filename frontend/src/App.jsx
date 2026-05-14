@@ -24,6 +24,7 @@ const Register = lazy(() => import('./pages/Register'));
 const PasswordChangeConfirmed = lazy(() => import('./pages/PasswordChangeConfirmed'));
 const TermsPage = lazy(() => import('./pages/TermsPage'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
+const DesktopTitleBar = lazy(() => import('./components/DesktopTitleBar'));
 
 function ProtectedRoute({ children }) {
   const { token } = useAuthStore();
@@ -123,6 +124,9 @@ export default function App() {
     <>
       <BrowserRouter>
         <StandaloneRedirector />
+        <Suspense fallback={null}>
+          <DesktopTitleBar />
+        </Suspense>
         <InstallPrompt />
         <OfflineBanner />
         <Routes>

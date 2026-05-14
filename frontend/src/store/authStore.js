@@ -250,7 +250,8 @@ export const useAuthStore = create((set) => ({
     set({ user: null, token: null });
     const isPwa = window.matchMedia('(display-mode: standalone)').matches
       || window.navigator.standalone === true;
-    window.location.href = isPwa ? '/app/login' : '/';
+    const isElectron = typeof window !== 'undefined' && !!window.electronApp;
+    window.location.href = (isPwa || isElectron) ? '/app/login' : '/';
   },
 
   setUser: (user) => {
