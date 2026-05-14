@@ -99,6 +99,10 @@ body {
   pointer-events: none;
 }
 
+/* In Electron: Splash darf nicht über die Titlebar greifen, sonst ist Drag
+   und Min/Max/Close blockiert während des Splashs. */
+body.is-electron .launch-splash { top: 40px; }
+
 /* --- Background --- */
 .lsp-bg {
   position: absolute;
@@ -27072,7 +27076,9 @@ body.focus-timer-modal-open .bottom-nav {
   left: 0;
   right: 0;
   height: 40px;
-  z-index: 9000;
+  /* Muss über AppLaunchSplash (z-index 20000) liegen, damit das Fenster
+     auch während des Splashs per Drag verschoben werden kann. */
+  z-index: 30000;
   display: flex;
   align-items: center;
   justify-content: space-between;

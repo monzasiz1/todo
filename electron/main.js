@@ -35,19 +35,11 @@ if (process.platform === 'win32') {
 }
 
 // ─── Performance-Switches (müssen VOR app.ready laufen) ─────────────────────
-// Verhindert Chromium-Hintergrund-Drosselung von Renderer-Prozessen, was die
-// App beim Wiederfokussieren träge wirken ließ. Spart außerdem ein paar
-// teure GPU-Features, die wir nicht brauchen.
+// Nur die bewaehrten Drosselungs-Abschalter — keine aggressiven GPU-Flags,
+// die auf manchen Windows-Treibern Stutter erzeugen.
 app.commandLine.appendSwitch('disable-renderer-backgrounding');
 app.commandLine.appendSwitch('disable-background-timer-throttling');
 app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
-app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion,HardwareMediaKeyHandling');
-// Schnelleres Window-Erscheinen + GPU-Beschleunigung erzwingen
-app.commandLine.appendSwitch('enable-zero-copy');
-app.commandLine.appendSwitch('enable-gpu-rasterization');
-app.commandLine.appendSwitch('enable-accelerated-2d-canvas');
-app.commandLine.appendSwitch('ignore-gpu-blocklist');
-app.commandLine.appendSwitch('enable-features', 'CanvasOopRasterization,VaapiVideoDecoder');
 
 // ─── Launch-Flags ────────────────────────────────────────────────────────────
 const launchArgs = process.argv.slice(1);
@@ -167,38 +159,15 @@ function createWindow() {
     Menu.setApplicationMenu(null);
   }
 
-  // Sofortiger lokaler Pre-Splash: nur dunkler Vollbild-Hintergrund. Der echte
-  // animierte Splash (AppLaunchSplash) wird direkt von der Web-App gerendert,
-  // sobald sie geladen ist — damit Desktop & Mobile exakt gleich aussehen.
-  const splashHtml = encodeURIComponent(
-    `<!doctype html><html><head><meta charset="utf-8"><title>BeeQu</title>` +
-    `<style>html,body{margin:0;height:100%;` +
-    `background:radial-gradient(ellipse at 50% 35%, #0e1f42 0%, #070e20 55%, #030812 100%);` +
-    `overflow:hidden}</style></head><body></body></html>`
-  );
-  const splashUrl = 'data:text/html;charset=utf-8,' + splashHtml;
-
-  // Wir laden zuerst den Splash und zeigen das Fenster, sobald der Splash
-  // gerendert ist (kein weißer Frame). Erst dann starten wir das Laden der
-  // echten App, ebenfalls im selben Fenster.
-  let appLoadStarted = false;
-  const startLoadingApp = () => {
-    if (appLoadStarted) return;
-    appLoadStarted = true;
-    win.loadURL(APP_START_URL).catch(() => {});
-  };
-
+  // Kein eigener Pre-Splash mehr. Das Fenster bleibt 'show:false', lädt im
+  // Hintergrund (paintWhenInitiallyHidden:true) und wird erst sichtbar, sobald
+  // die Seite bereit ist. Der animierte AppLaunchSplash der App selbst
+  // übernimmt dann die Splash-Anzeige.
   if (!startedHidden) {
-    win.loadURL(splashUrl).then(() => {
-      try { if (!win.isVisible()) win.show(); } catch {}
-      try { win.webContents.invalidate(); } catch {}
-      // Erst nach kurzem Settle-Tick die echte App laden, damit der Splash
-      // wenigstens einen Frame gerendert wird (statt direkt überschrieben).
-      setTimeout(startLoadingApp, 120);
-    }).catch(() => startLoadingApp());
+    win.loadURL(APP_START_URL).catch(() => {});
   } else {
-    // Im Tray-Start-Modus brauchen wir den Splash nicht zu zeigen.
-    startLoadingApp();
+    // Tray-Start: lädt im Hintergrund, ohne dass das Fenster auftaucht.
+    win.loadURL(APP_START_URL).catch(() => {});
   }
 
   // Verhindere, dass Chromium den Renderer einfriert/throttled,
