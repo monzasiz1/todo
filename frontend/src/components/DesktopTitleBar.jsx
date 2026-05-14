@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -47,22 +47,35 @@ export default function DesktopTitleBar() {
   const [update, setUpdate] = useState({ state: 'idle', progress: 0, version: '' });
   const [busy, setBusy] = useState(false);
 
-  // History-Status (rein clientseitig - es gibt keine API fuer canGoForward,
-  // wir verfolgen das selbst ueber popstate/length).
+  // Eigenes History-Tracking: React-Router gibt uns leider nicht zuverlaessig
+  // canGoBack/canGoForward. Wir merken uns einen Index in einem Stack.
+  // - Neue Navigation (PUSH/REPLACE): cut forward + append.
+  // - Back/Forward Click: nur Index aendern, navigate(-1)/navigate(1) macht den Rest.
+  const stackRef = useRef([location.pathname + location.search]);
+  const indexRef = useRef(0);
+  const internalNavRef = useRef(false); // true wenn wir gerade selbst back/forward ausloesen
+
   useEffect(() => {
-    if (!isElectron) return undefined;
-    const update = () => {
-      // length nimmt zu wenn man navigiert; back ist immer moeglich wenn length > 1
-      setHistoryState((prev) => ({
-        canBack: window.history.length > 1,
-        // forward koennen wir nicht zuverlaessig ermitteln - bleibt heuristisch
-        canForward: prev.canForward,
-      }));
-    };
-    update();
-    window.addEventListener('popstate', update);
-    return () => window.removeEventListener('popstate', update);
-  }, [isElectron]);
+    if (!isElectron) return;
+    const fullPath = location.pathname + location.search;
+    if (internalNavRef.current) {
+      // wir kommen hier rein, weil unser eigener Back/Forward-Klick navigiert hat
+      internalNavRef.current = false;
+    } else {
+      // normale push-Navigation -> Forward-Stack abschneiden, neuen Eintrag anhaengen
+      const nextStack = stackRef.current.slice(0, indexRef.current + 1);
+      // Doppelter Eintrag in Folge? Dann nicht neu anhaengen.
+      if (nextStack[nextStack.length - 1] !== fullPath) {
+        nextStack.push(fullPath);
+      }
+      stackRef.current = nextStack;
+      indexRef.current = nextStack.length - 1;
+    }
+    setHistoryState({
+      canBack: indexRef.current > 0,
+      canForward: indexRef.current < stackRef.current.length - 1,
+    });
+  }, [location.pathname, location.search, isElectron]);
 
   // Aktuellen Update-Status laden + abonnieren
   useEffect(() => {
@@ -83,14 +96,25 @@ export default function DesktopTitleBar() {
   const title = useMemo(() => getTitleForPath(location.pathname), [location.pathname]);
 
   const handleBack = useCallback(() => {
-    if (window.history.length > 1) {
-      navigate(-1);
-      setHistoryState((p) => ({ ...p, canForward: true }));
-    }
+    if (indexRef.current <= 0) return;
+    internalNavRef.current = true;
+    indexRef.current -= 1;
+    setHistoryState({
+      canBack: indexRef.current > 0,
+      canForward: indexRef.current < stackRef.current.length - 1,
+    });
+    try { navigate(-1); } catch { window.history.back(); }
   }, [navigate]);
 
   const handleForward = useCallback(() => {
-    navigate(1);
+    if (indexRef.current >= stackRef.current.length - 1) return;
+    internalNavRef.current = true;
+    indexRef.current += 1;
+    setHistoryState({
+      canBack: indexRef.current > 0,
+      canForward: indexRef.current < stackRef.current.length - 1,
+    });
+    try { navigate(1); } catch { window.history.forward(); }
   }, [navigate]);
 
   const handleHelp = useCallback(() => {
@@ -189,11 +213,15 @@ export default function DesktopTitleBar() {
         <button
           className="desktop-titlebar-navbtn"
           onClick={handleForward}
+          disabled={!historyState.canForward}
           title="Vor"
           aria-label="Vor"
         >
           <ArrowRight size={16} />
         </button>
+      </div>
+
+      <div className="desktop-titlebar-center" aria-hidden={false}>
         <span className="desktop-titlebar-title">{title}</span>
       </div>
 

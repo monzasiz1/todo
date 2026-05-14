@@ -42,8 +42,12 @@ app.commandLine.appendSwitch('disable-renderer-backgrounding');
 app.commandLine.appendSwitch('disable-background-timer-throttling');
 app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
 app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion,HardwareMediaKeyHandling');
-// Schnelleres Window-Erscheinen: kein Frame-Throttling beim Boot
+// Schnelleres Window-Erscheinen + GPU-Beschleunigung erzwingen
 app.commandLine.appendSwitch('enable-zero-copy');
+app.commandLine.appendSwitch('enable-gpu-rasterization');
+app.commandLine.appendSwitch('enable-accelerated-2d-canvas');
+app.commandLine.appendSwitch('ignore-gpu-blocklist');
+app.commandLine.appendSwitch('enable-features', 'CanvasOopRasterization,VaapiVideoDecoder');
 
 // ─── Launch-Flags ────────────────────────────────────────────────────────────
 const launchArgs = process.argv.slice(1);
@@ -164,23 +168,48 @@ function createWindow() {
   }
 
   // Sofortiger lokaler Splash, damit der User nicht 1–3 s nichts sieht.
-  // Wird automatisch durch loadURL() ersetzt, sobald die Web-App geöffnet ist.
+  // Bleibt sichtbar bis die echte Web-App geladen UND gerendert ist.
   const splashHtml = encodeURIComponent(
     `<!doctype html><html><head><meta charset="utf-8"><title>BeeQu</title>` +
     `<style>html,body{margin:0;height:100%;background:#030812;color:#aad4ff;` +
-    `font-family:-apple-system,Segoe UI,Roboto,sans-serif;display:grid;place-items:center}` +
-    `.l{width:40px;height:40px;border:3px solid rgba(170,212,255,.18);border-top-color:#3aa6ff;` +
-    `border-radius:50%;animation:s 1s linear infinite}` +
+    `font-family:-apple-system,Segoe UI,Roboto,sans-serif;display:grid;place-items:center;overflow:hidden}` +
+    `.wrap{text-align:center;animation:fade .5s ease}` +
+    `.logo{font-size:34px;font-weight:800;letter-spacing:.5px;color:#ffd95e;margin-bottom:18px}` +
+    `.logo span{color:#aad4ff}` +
+    `.l{width:44px;height:44px;border:3px solid rgba(170,212,255,.18);border-top-color:#3aa6ff;` +
+    `border-radius:50%;animation:s 1s linear infinite;margin:0 auto}` +
     `@keyframes s{to{transform:rotate(360deg)}}` +
-    `.t{margin-top:14px;font-size:13px;opacity:.55;letter-spacing:.04em}</style></head>` +
-    `<body><div><div class="l"></div><div class="t">BeeQu wird geladen …</div></div></body></html>`
+    `@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}` +
+    `.t{margin-top:18px;font-size:13px;opacity:.6;letter-spacing:.05em}` +
+    `.sub{margin-top:6px;font-size:11px;opacity:.35}</style></head>` +
+    `<body><div class="wrap"><div class="logo">Bee<span>Qu</span></div>` +
+    `<div class="l"></div><div class="t">BeeQu wird geladen …</div>` +
+    `<div class="sub">Daten werden vorbereitet</div></div></body></html>`
   );
+  const splashUrl = 'data:text/html;charset=utf-8,' + splashHtml;
+
+  // Wir laden zuerst den Splash und zeigen das Fenster, sobald der Splash
+  // gerendert ist (kein weißer Frame). Erst dann starten wir das Laden der
+  // echten App, ebenfalls im selben Fenster.
+  let appLoadStarted = false;
+  const startLoadingApp = () => {
+    if (appLoadStarted) return;
+    appLoadStarted = true;
+    win.loadURL(APP_START_URL).catch(() => {});
+  };
+
   if (!startedHidden) {
-    win.loadURL('data:text/html;charset=utf-8,' + splashHtml).catch(() => {});
-    win.show();
+    win.loadURL(splashUrl).then(() => {
+      try { if (!win.isVisible()) win.show(); } catch {}
+      try { win.webContents.invalidate(); } catch {}
+      // Erst nach kurzem Settle-Tick die echte App laden, damit der Splash
+      // wenigstens einen Frame gerendert wird (statt direkt überschrieben).
+      setTimeout(startLoadingApp, 120);
+    }).catch(() => startLoadingApp());
+  } else {
+    // Im Tray-Start-Modus brauchen wir den Splash nicht zu zeigen.
+    startLoadingApp();
   }
-  // Direkt im Anschluss die Web-App laden (überschreibt den Splash sobald bereit)
-  setImmediate(() => win.loadURL(APP_START_URL).catch(() => {}));
 
   // Verhindere, dass Chromium den Renderer einfriert/throttled,
   // waehrend das Fenster im Tray versteckt ist. Das ist die Hauptursache
@@ -190,15 +219,12 @@ function createWindow() {
 
   // Nach jedem show() einen Repaint erzwingen — Chromium markiert versteckte
   // Fenster als occluded und liefert sonst keinen Frame bis zu einer Interaktion.
+  // Wichtig: NUR bei show/restore (nach Tray-Hide). Nicht bei focus, sonst
+  // entsteht ein voller Repaint bei jedem Window-Focus -> spuerbares Stottern.
   win.on('show', () => {
-    try { win.webContents.setBackgroundThrottling(false); } catch {}
     try { win.webContents.invalidate(); } catch {}
   });
   win.on('restore', () => {
-    try { win.webContents.setBackgroundThrottling(false); } catch {}
-    try { win.webContents.invalidate(); } catch {}
-  });
-  win.on('focus', () => {
     try { win.webContents.invalidate(); } catch {}
   });
 
