@@ -323,24 +323,9 @@ function setupAutoUpdater() {
     updateState = 'ready';
     refreshTrayMenu();
     broadcastUpdateState();
-    if (!mainWindow) return;
-    dialog
-      .showMessageBox(mainWindow, {
-        type: 'info',
-        title: 'Update bereit',
-        message: `BeeQu ${info.version} ist installationsbereit.`,
-        detail: 'Soll die Anwendung neu gestartet werden, um das Update zu installieren?',
-        buttons: ['Jetzt neu starten', 'Später'],
-        defaultId: 0,
-        cancelId: 1,
-      })
-      .then((res) => {
-        if (res.response === 0) {
-          isQuitting = true;
-          autoUpdater.quitAndInstall();
-        }
-      })
-      .catch(() => {});
+    // Kein Bestaetigungs-Dialog mehr. Das Update ist heruntergeladen und
+    // wird sofort installiert wenn der User auf die Update-Anzeige klickt
+    // (siehe IPC 'desktop-updates:install') oder beim naechsten App-Quit.
   });
 
   autoUpdater.on('error', (err) => {
@@ -468,7 +453,8 @@ function createTray() {
         click: () => {
           if (updateState === 'ready') {
             isQuitting = true;
-            autoUpdater.quitAndInstall();
+            // Silent + force restart — kein Installer-Fenster.
+            autoUpdater.quitAndInstall(true, true);
           } else {
             checkForUpdates(true);
           }
@@ -531,7 +517,8 @@ app.whenReady().then(() => {
   ipcMain.handle('desktop-updates:install', () => {
     if (updateState === 'ready') {
       isQuitting = true;
-      autoUpdater.quitAndInstall();
+      // Silent + force restart — NSIS-Installer laeuft ohne GUI.
+      autoUpdater.quitAndInstall(true, true);
       return true;
     }
     return false;

@@ -1,6 +1,6 @@
 {
   "name": "beequ-desktop",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "BeeQu – Dein intelligenter Planer",
   "main": "main.js",
   "private": true,
@@ -68,11 +68,14 @@
       "type": "distribution"
     },
     "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "BeeQu"
+      "shortcutName": "BeeQu",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false
     },
     "dmg": {
       "title": "BeeQu Installer",
