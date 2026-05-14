@@ -58,7 +58,7 @@ const FEATURE_ROWS = [
   { key: 'tasks',           label: 'Aufgaben',                type: 'limit' },
   { key: 'categories',      label: 'Kategorien',              type: 'limit' },
   { key: 'aiCalls',         label: 'KI-Anfragen / Monat',     type: 'limit' },
-  { key: 'groups',          label: 'Gruppen',                 type: 'limit' },
+  { key: 'groups',          label: 'Eigene Gruppen',          type: 'limit' },
   { key: 'groupMembers',    label: 'Mitglieder pro Gruppe',   type: 'limit' },
   { key: 'teamChat',        label: 'Team-Chat & geteilte Aufgaben', type: 'feature' },
   { key: 'groupAdmin',      label: 'Rollen, Rechte & Admin',  type: 'feature' },

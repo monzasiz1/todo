@@ -166,7 +166,10 @@ export default function GroupsPage() {
             onOpenGroup={openGroup}
             onCreateClick={() => {
               const max = limit('groups');
-              if (Number.isFinite(max) && groups.length >= max) {
+              // Nur selbst erstellte (owner) Gruppen zaehlen aufs Limit -
+              // Einladungen/Mitgliedschaften sind unbegrenzt.
+              const ownedCount = groups.filter((g) => g.role === 'owner').length;
+              if (Number.isFinite(max) && ownedCount >= max) {
                 setShowUpgrade(true);
                 return;
               }
