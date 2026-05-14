@@ -19,6 +19,33 @@ async function getUserPlan(pool, userId) {
   }
 }
 
+// Team-Chat ist exklusiv fuer Gruppen, deren Owner einen Team-Plan hat.
+// Liefert { ok, ownerPlan } oder antwortet selbst mit 403 wenn nicht erlaubt.
+async function assertChatAvailable(pool, res, groupId) {
+  try {
+    const r = await pool.query('SELECT created_by FROM groups WHERE id = $1', [groupId]);
+    const ownerId = r.rows[0]?.created_by;
+    if (!ownerId) {
+      res.status(404).json({ error: 'Gruppe nicht gefunden' });
+      return false;
+    }
+    const ownerPlan = await getUserPlan(pool, ownerId);
+    if (ownerPlan !== 'team') {
+      res.status(403).json({
+        error: 'plan_limit_team_chat',
+        message: 'Team-Chat ist exklusiv fuer Team-Gruppen. Der Gruppen-Owner braucht ein Team-Abo, damit der Chat fuer alle Mitglieder freigeschaltet ist.',
+        plan: ownerPlan,
+      });
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('assertChatAvailable error:', err);
+    res.status(500).json({ error: 'Chat-Pruefung fehlgeschlagen' });
+    return false;
+  }
+}
+
 function parseVirtualId(id) {
   if (typeof id !== 'string' || !id.startsWith('v_')) return null;
   const parts = id.split('_');
@@ -307,13 +334,18 @@ module.exports = async function handler(req, res) {
       const result = await pool.query(
         `SELECT g.*, gm.role,
           (SELECT COUNT(*) FROM group_members WHERE group_id = g.id) as member_count,
+          (SELECT plan FROM users WHERE id = g.created_by) as owner_plan,
           ${taskCountExpr}
          FROM groups g
          JOIN group_members gm ON gm.group_id = g.id AND gm.user_id = $1
          ORDER BY ${orderExpr}`,
         [user.id]
       );
-      return res.json({ groups: result.rows });
+      const enriched = result.rows.map((row) => ({
+        ...row,
+        chat_available: row.owner_plan === 'team',
+      }));
+      return res.json({ groups: enriched });
     } catch (err) {
       console.error('List groups error:', err);
       // Fail-open for partial/missing schema in production:
@@ -544,7 +576,10 @@ module.exports = async function handler(req, res) {
       } catch { /* table may not exist yet */ }
 
       return res.json({
-        group: groupResult.rows[0],
+        group: {
+          ...groupResult.rows[0],
+          chat_available: (await getUserPlan(pool, groupResult.rows[0].created_by)) === 'team',
+        },
         members: membersResult.rows,
         tasks: tasksResult.rows,
         myRole: membership.role,
@@ -1150,6 +1185,9 @@ module.exports = async function handler(req, res) {
       const membership = await getMembership(groupId);
       if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
 
+      // Plan-Gate: Chat nur in Team-Gruppen verfuegbar
+      if (!(await assertChatAvailable(pool, res, groupId))) return;
+
       const result = await pool.query(
         `SELECT m.id, m.group_id, m.user_id, m.content, m.is_pinned, m.pinned_at, m.created_at,
                 m.edited_at, m.is_poll, m.poll_options, m.message_type, m.linked_task_id,
@@ -1222,6 +1260,9 @@ module.exports = async function handler(req, res) {
       const membership = await getMembership(groupId);
       if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
 
+      // Plan-Gate: Chat nur in Team-Gruppen verfuegbar
+      if (!(await assertChatAvailable(pool, res, groupId))) return;
+
       let { task_id } = req.body;
       if (!task_id) return res.status(400).json({ error: 'task_id fehlt' });
 
@@ -1291,6 +1332,9 @@ module.exports = async function handler(req, res) {
       const membership = await getMembership(groupId);
       if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
 
+      // Plan-Gate: Chat nur in Team-Gruppen verfuegbar
+      if (!(await assertChatAvailable(pool, res, groupId))) return;
+
       const role = String(req.body?.role || 'organizer').toLowerCase();
       const allowed = ['organizer', 'participant', 'watcher'];
       const finalRole = allowed.includes(role) ? role : 'organizer';
@@ -1335,6 +1379,9 @@ module.exports = async function handler(req, res) {
       const membership = await getMembership(groupId);
       if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
 
+      // Plan-Gate: Chat nur in Team-Gruppen verfuegbar
+      if (!(await assertChatAvailable(pool, res, groupId))) return;
+
       const status = String(req.body?.status || 'yes').toLowerCase();
       const allowed = ['yes', 'maybe', 'no'];
       if (!allowed.includes(status)) return res.status(400).json({ error: 'Ungueltiger RSVP-Status' });
@@ -1377,6 +1424,9 @@ module.exports = async function handler(req, res) {
       const groupId = segments[0];
       const membership = await getMembership(groupId);
       if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
+
+      // Plan-Gate: Chat nur in Team-Gruppen verfuegbar
+      if (!(await assertChatAvailable(pool, res, groupId))) return;
 
       const { question, options } = req.body;
       if (!question || typeof question !== 'string' || !question.trim()) {
@@ -1465,6 +1515,9 @@ module.exports = async function handler(req, res) {
       const groupId = segments[0];
       const membership = await getMembership(groupId);
       if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
+
+      // Plan-Gate: Chat nur in Team-Gruppen verfuegbar
+      if (!(await assertChatAvailable(pool, res, groupId))) return;
 
       const { content } = req.body;
       if (!content || !content.trim()) return res.status(400).json({ error: 'Nachricht darf nicht leer sein' });

@@ -27615,3 +27615,56 @@ body.is-electron.is-mac .desktop-titlebar-center {
   text-decoration: none;
 }
 .pricing-climate-link:hover { text-decoration: underline; }
+/* ── Group Chat: Team-Plan Lock ────────────────────────────────── */
+.gchat-locked {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px 24px;
+  margin: 24px auto;
+  max-width: 360px;
+  background: linear-gradient(135deg, rgba(76, 123, 217, 0.08), rgba(118, 185, 119, 0.08));
+  border: 1px solid rgba(76, 123, 217, 0.18);
+  border-radius: 16px;
+}
+.gchat-locked-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: #4C7BD9;
+  background: rgba(76, 123, 217, 0.12);
+  border-radius: 999px;
+  margin-bottom: 12px;
+}
+.gchat-locked h4 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary, #111);
+}
+.gchat-locked p {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary, #555);
+}
+.gchat-locked-cta {
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  background: #4C7BD9;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.gchat-locked-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(76, 123, 217, 0.3);
+}

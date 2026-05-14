@@ -727,6 +727,7 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages, showPastEvents, nowTs]);
   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
+  const chatLocked = !!selectedGroup && selectedGroup.chat_available === false;
 
   // ── Render ─────────────────────────────────────────────────────────────────
   const panelContent = (
@@ -893,12 +894,28 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
 
                 {/* ── Messages ── */}
                 <div className="gchat-messages">
-                  {loadingMsgs && messages.length === 0 && (
+                  {chatLocked && (
+                    <div className="gchat-locked">
+                      <div className="gchat-locked-badge">Team-Feature</div>
+                      <h4>Chat ist nur in Team-Gruppen verfügbar</h4>
+                      <p>
+                        Der Eigentümer dieser Gruppe benötigt den <strong>Team-Plan</strong>,
+                        damit alle Mitglieder im Chat schreiben können.
+                      </p>
+                      <button
+                        className="gchat-locked-cta"
+                        onClick={() => navigate('/pricing')}
+                      >
+                        Plan ansehen
+                      </button>
+                    </div>
+                  )}
+                  {!chatLocked && loadingMsgs && messages.length === 0 && (
                     <div className="gchat-loading">
                       <div className="gchat-spinner" />
                     </div>
                   )}
-                  {!loadingMsgs && messages.length === 0 && (
+                  {!chatLocked && !loadingMsgs && messages.length === 0 && (
                     <div className="gchat-no-messages">
                       <MessageCircle size={28} />
                       <p>Noch keine Nachrichten</p>
@@ -906,7 +923,7 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
                     </div>
                   )}
 
-                  {visibleMessages.map((msg, idx) => {
+                  {!chatLocked && visibleMessages.map((msg, idx) => {
                     const isOwn = msg.user_id === user?.id;
                     const isLinkedEvent = String(msg.linked_task_type || '').toLowerCase() === 'event';
                     const isEventMsg = msg.message_type === 'group_event' && (isLinkedEvent || !msg.linked_task_type);
@@ -1410,22 +1427,24 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
                     className={`gchat-attach-btn${showTaskPicker ? ' active' : ''}`}
                     title="Aufgabe teilen"
                     onClick={() => { setShowTaskPicker((v) => !v); setTaskPickerSearch(''); }}
+                    disabled={chatLocked}
                   >
                     <Paperclip size={16} />
                   </button>
                   <textarea
                     ref={inputRef}
                     className="gchat-input"
-                    placeholder="Nachricht schreiben…"
+                    placeholder={chatLocked ? 'Chat erfordert Team-Plan' : 'Nachricht schreiben…'}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
                     rows={1}
+                    disabled={chatLocked}
                   />
                   <button
                     className="gchat-send-btn"
                     onClick={() => sendMessage()}
-                    disabled={!input.trim() || sending}
+                    disabled={chatLocked || !input.trim() || sending}
                   >
                     {sending ? (
                       <div className="gchat-spinner-inline" />
