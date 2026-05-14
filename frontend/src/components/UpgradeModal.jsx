@@ -8,15 +8,21 @@ import { useAuthStore } from '../store/authStore';
 
 const PLAN_ICONS = { free: Zap, pro: Sparkles, team: Users };
 const PLAN_HIGHLIGHTS = {
-  free: ['Bis zu 50 Aufgaben', '3 Kategorien', 'Keine KI'],
-  pro:  ['Unbegrenzte Aufgaben', 'KI-Eingabe inklusive', 'Bis zu 3 Gruppen', 'Wiederkehrende Aufgaben', 'Statistiken & Kalender'],
-  team: ['Alles in Pro', 'Unbegrenzte Gruppen', '1.000 KI-Abfragen/Monat', 'Admin-Panel', 'Prioritäts-Support'],
+  free: ['Bis zu 30 Aufgaben', '2 Kategorien', 'Nur 5 KI-Anfragen / Monat'],
+  pro:  ['Unbegrenzte Aufgaben & Kategorien', '200 KI-Anfragen / Monat', 'Bis zu 3 Gruppen', 'Wiederkehrende Aufgaben', 'Kalender-Sync · Anhänge · Statistiken'],
+  team: ['Alles aus Pro', 'Unbegrenzte Gruppen', '1.000 KI-Anfragen / Monat', 'Geteilte Aufgaben & Chats', 'Prioritäts-Support'],
 };
 
 // Preise je Plan & Intervall (Anzeige – die echten Preise liegen in Stripe).
 const PRICING = {
-  pro:  { month: { amount: '4,99 €',  suffix: '/Monat' }, year: { amount: '49,99 €', suffix: '/Jahr', hint: '~ 4,17 €/Mon · 2 Monate gratis' } },
-  team: { month: { amount: '9,99 €',  suffix: '/Monat/Nutzer' }, year: { amount: '99,99 €', suffix: '/Jahr/Nutzer', hint: '~ 8,33 €/Mon · 2 Monate gratis' } },
+  pro:  {
+    month: { amount: '4,99 €',  suffix: '/Monat' },
+    year:  { amount: '49,99 €', suffix: '/Jahr', hint: '≈ 4,17 €/Mon · 2 Monate gratis' },
+  },
+  team: {
+    month: { amount: '9,99 €',  suffix: '/Monat/Nutzer' },
+    year:  { amount: '99,99 €', suffix: '/Jahr/Nutzer', hint: '≈ 8,33 €/Mon · 2 Monate gratis' },
+  },
 };
 
 /**
