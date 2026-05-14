@@ -1,6 +1,6 @@
 'use strict';
 
-const { app, BrowserWindow, Tray, shell, Menu, ipcMain, dialog, nativeTheme } = require('electron');
+const { app, BrowserWindow, Tray, shell, Menu, ipcMain, dialog, nativeTheme, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
@@ -413,6 +413,24 @@ function createTray() {
 // ─── App-Lifecycle ────────────────────────────────────────────────────────────
 app.whenReady().then(() => {
   applyAutoLaunch();
+
+  // Einmaliger Cache-Reset pro App-Version — sorgt nach Updates dafür,
+  // dass veraltete Service-Worker-/HTTP-Caches die UI nicht blockieren.
+  try {
+    const currentVersion = app.getVersion();
+    if (settings.lastCacheResetVersion !== currentVersion) {
+      const ses = session.defaultSession;
+      Promise.allSettled([
+        ses.clearCache(),
+        ses.clearStorageData({ storages: ['serviceworkers', 'shadercache', 'cachestorage'] })
+      ]).finally(() => {
+        settings.lastCacheResetVersion = currentVersion;
+        saveSettings(settings);
+      });
+    }
+  } catch (e) {
+    console.warn('[cache-reset]', e?.message || e);
+  }
 
   // IPC: Desktop-Einstellungen vom Renderer (Profil-Seite)
   ipcMain.handle('desktop-settings:get', () => ({ ...settings }));
