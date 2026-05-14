@@ -296,6 +296,46 @@ function notifyTrayBalloon() {
 // ─── Auto-Updater (electron-updater + GitHub Releases) ───────────────────────
 let installAfterDownload = false; // true, wenn das Update nach Download-Ende
                                   // automatisch installiert werden soll.
+
+// Sauberes Herunterfahren vor dem Installer.
+// Wenn wir das nicht machen, laufen Tray-Prozess + Renderer noch waehrend NSIS
+// die alten Dateien loeschen will -> Fehler "Die alten Anwendungsdateien
+// konnten nicht deinstalliert werden" (NSIS-Code 2).
+function performInstallNow() {
+  isQuitting = true;
+  installAfterDownload = false;
+  try {
+    // Tray-Icon freigeben (haelt sonst den Hauptprozess am Leben)
+    if (tray) { try { tray.destroy(); } catch {} tray = null; }
+  } catch {}
+  try {
+    // close-Handler haengen alle vom mainWindow ab und verhindern sonst das Quit
+    if (mainWindow) {
+      mainWindow.removeAllListeners('close');
+      mainWindow.removeAllListeners('minimize');
+      try { mainWindow.hide(); } catch {}
+    }
+  } catch {}
+  // Alle Fenster destroyen (nicht nur close), damit kein Hide-Handler greift
+  try {
+    BrowserWindow.getAllWindows().forEach((w) => {
+      try { w.removeAllListeners('close'); } catch {}
+      try { w.destroy(); } catch {}
+    });
+  } catch {}
+  // Etwas Luft geben, damit OS die Datei-Handles freigibt, dann installieren.
+  setTimeout(() => {
+    try {
+      // (isSilent=true, isForceRunAfter=true)
+      autoUpdater.quitAndInstall(true, true);
+    } catch (e) {
+      console.error('quitAndInstall fehlgeschlagen:', e);
+      // Fallback: hart beenden, damit der naechste Start die Update-Datei nutzt
+      app.exit(0);
+    }
+  }, 600);
+}
+
 function setupAutoUpdater() {
   // In Dev-Modus (kein gepacktes App-Bundle) gibt es keine Updates
   if (!app.isPackaged) return;
@@ -349,11 +389,7 @@ function setupAutoUpdater() {
     // Wenn der User den Vorgang ausgeloest hat (Klick auf Update-Badge),
     // installieren wir sofort silent und starten neu — kein zweiter Klick noetig.
     if (installAfterDownload) {
-      installAfterDownload = false;
-      isQuitting = true;
-      setTimeout(() => {
-        try { autoUpdater.quitAndInstall(true, true); } catch (e) { console.error(e); }
-      }, 300);
+      performInstallNow();
     }
   });
 
@@ -485,8 +521,7 @@ function createTray() {
         enabled: updateState !== 'checking' && updateState !== 'downloading',
         click: () => {
           if (updateState === 'ready') {
-            isQuitting = true;
-            autoUpdater.quitAndInstall(true, true);
+            performInstallNow();
           } else if (updateState === 'available') {
             // Download anstossen und nach Abschluss automatisch installieren.
             installAfterDownload = true;
@@ -560,8 +595,7 @@ app.whenReady().then(() => {
   ipcMain.handle('desktop-updates:install', () => {
     // Bereits heruntergeladen → sofort silent installieren
     if (updateState === 'ready') {
-      isQuitting = true;
-      autoUpdater.quitAndInstall(true, true);
+      performInstallNow();
       return true;
     }
     // Update ist gefunden, aber noch nicht (komplett) geladen
