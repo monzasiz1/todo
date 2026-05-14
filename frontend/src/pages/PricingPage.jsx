@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Check, ArrowLeft, Sparkles, Zap, AlertCircle, Settings } from 'lucide-react';
+import { Check, ArrowLeft, Sparkles, Zap, AlertCircle, Settings, Leaf, TreeDeciduous, Wind } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { PLANS } from '../lib/plans';
 import { usePlan } from '../hooks/usePlan';
@@ -9,10 +9,50 @@ import { api } from '../utils/api';
 const PLAN_COLORS = { free: '#8E8E93', pro: '#007AFF', team: '#5856D6' };
 
 const PLAN_BANNERS = {
-  free:  { gradient: 'linear-gradient(135deg, #E5E5EA 0%, #D1D1D6 100%)', icon: '✓', iconBg: '#fff', iconColor: '#34C759', textColor: '#1c1c1e', subColor: '#6e6e73' },
-  pro:   { gradient: 'linear-gradient(135deg, #0A84FF 0%, #5E5CE6 100%)', icon: '✦', iconBg: 'rgba(255,255,255,0.2)', iconColor: '#fff', textColor: '#fff', subColor: 'rgba(255,255,255,0.75)' },
-  team:  { gradient: 'linear-gradient(135deg, #5856D6 0%, #AF52DE 100%)', icon: '⚡', iconBg: 'rgba(255,255,255,0.2)', iconColor: '#fff', textColor: '#fff', subColor: 'rgba(255,255,255,0.75)' },
+  free:  { gradient: 'linear-gradient(135deg, #E5E5EA 0%, #D1D1D6 100%)', icon: '✓', iconBg: '#fff', iconColor: '#34C759', textColor: '#1c1c1e', subColor: '#6e6e73', pattern: 'dots' },
+  pro:   { gradient: 'linear-gradient(135deg, #0A84FF 0%, #5E5CE6 100%)', icon: '✦', iconBg: 'rgba(255,255,255,0.2)', iconColor: '#fff', textColor: '#fff', subColor: 'rgba(255,255,255,0.85)', pattern: 'waves' },
+  team:  { gradient: 'linear-gradient(135deg, #5856D6 0%, #AF52DE 100%)', icon: '⚡', iconBg: 'rgba(255,255,255,0.2)', iconColor: '#fff', textColor: '#fff', subColor: 'rgba(255,255,255,0.85)', pattern: 'rays' },
 };
+
+function BannerPattern({ type }) {
+  if (type === 'waves') {
+    return (
+      <svg className="pricing-banner-pattern" viewBox="0 0 400 140" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0,90 Q100,40 200,70 T400,60 L400,140 L0,140 Z" fill="rgba(255,255,255,0.08)" />
+        <path d="M0,110 Q120,70 240,95 T400,85 L400,140 L0,140 Z" fill="rgba(255,255,255,0.10)" />
+        <circle cx="340" cy="30" r="38" fill="rgba(255,255,255,0.08)" />
+        <circle cx="370" cy="50" r="14" fill="rgba(255,255,255,0.12)" />
+      </svg>
+    );
+  }
+  if (type === 'rays') {
+    return (
+      <svg className="pricing-banner-pattern" viewBox="0 0 400 140" preserveAspectRatio="none" aria-hidden="true">
+        <g opacity="0.18" stroke="#fff" strokeWidth="1.2" fill="none">
+          <path d="M380,0 L240,140" />
+          <path d="M380,30 L260,140" />
+          <path d="M380,60 L300,140" />
+          <path d="M380,90 L340,140" />
+        </g>
+        <circle cx="350" cy="40" r="46" fill="rgba(255,255,255,0.10)" />
+        <circle cx="350" cy="40" r="22" fill="rgba(255,255,255,0.16)" />
+        <polygon points="60,30 70,50 90,55 75,68 80,90 60,80 40,90 45,68 30,55 50,50" fill="rgba(255,255,255,0.18)" />
+      </svg>
+    );
+  }
+  // dots
+  return (
+    <svg className="pricing-banner-pattern" viewBox="0 0 400 140" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <pattern id="dotgrid" x="0" y="0" width="18" height="18" patternUnits="userSpaceOnUse">
+          <circle cx="2" cy="2" r="1.5" fill="rgba(60,60,67,0.18)" />
+        </pattern>
+      </defs>
+      <rect width="400" height="140" fill="url(#dotgrid)" />
+      <circle cx="340" cy="40" r="44" fill="rgba(255,255,255,0.45)" />
+    </svg>
+  );
+}
 
 const FEATURE_ROWS = [
   { key: 'tasks',           label: 'Aufgaben',                type: 'limit' },
@@ -167,6 +207,7 @@ export default function PricingPage() {
               {isCurrent && <div className="pricing-current-label">Dein Plan</div>}
 
               <div className="pricing-card-banner" style={{ background: banner.gradient }}>
+                <BannerPattern type={banner.pattern} />
                 <div className="pricing-card-banner-icon" style={{ background: banner.iconBg, color: banner.iconColor }}>
                   {banner.icon}
                 </div>
@@ -181,6 +222,12 @@ export default function PricingPage() {
                     </div>
                   )}
                 </div>
+                {p.id !== 'free' && (
+                  <div className="pricing-climate-badge" title="1% deines Abos geht an CO₂-Entfernung via Stripe Climate">
+                    <Leaf size={11} />
+                    <span>1% CO₂</span>
+                  </div>
+                )}
               </div>
 
               <ul className="pricing-features-list">
@@ -270,6 +317,86 @@ export default function PricingPage() {
       {errorMsg && (
         <div className="pricing-error" role="alert">{errorMsg}</div>
       )}
+
+      <motion.div
+        className="pricing-climate-section"
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay: 0.3 }}
+      >
+        <div className="pricing-climate-hero" aria-hidden="true">
+          <svg viewBox="0 0 240 120" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#7FD8B6" />
+                <stop offset="100%" stopColor="#4BB48A" />
+              </linearGradient>
+            </defs>
+            <rect width="240" height="120" fill="url(#skyGrad)" />
+            <circle cx="200" cy="32" r="18" fill="#FFF6C9" opacity="0.85" />
+            <path d="M0,90 Q60,70 120,80 T240,82 L240,120 L0,120 Z" fill="#2E8B6B" opacity="0.85" />
+            <path d="M0,100 Q70,86 140,94 T240,96 L240,120 L0,120 Z" fill="#1F6B52" />
+            <g fill="#1F6B52">
+              <circle cx="40" cy="80" r="14" />
+              <circle cx="55" cy="74" r="12" />
+              <circle cx="32" cy="72" r="11" />
+              <rect x="42" y="86" width="5" height="14" fill="#3E2A1A" />
+            </g>
+            <g fill="#2E8B6B">
+              <circle cx="170" cy="78" r="11" />
+              <circle cx="182" cy="74" r="10" />
+              <circle cx="162" cy="72" r="9" />
+              <rect x="170" y="82" width="4" height="12" fill="#3E2A1A" />
+            </g>
+          </svg>
+          <div className="pricing-climate-stripe">
+            <span>powered by</span>
+            <strong>Stripe Climate</strong>
+          </div>
+        </div>
+        <div className="pricing-climate-body">
+          <div className="pricing-climate-title">
+            <Leaf size={18} />
+            <h3>Du arbeitest – wir helfen dem Klima.</h3>
+          </div>
+          <p className="pricing-climate-text">
+            <strong>1&nbsp;%</strong> von jedem zahlenden Abo fließt automatisch in <strong>Stripe Climate</strong>
+            – zertifizierte Verfahren zur Entfernung von CO₂ aus der Atmosphäre.
+            Du musst nichts extra tun: Wenn du dein Abo nutzt, leistest du einen Beitrag.
+          </p>
+          <div className="pricing-climate-stats">
+            <div className="pricing-climate-stat">
+              <TreeDeciduous size={18} />
+              <div>
+                <div className="pricing-climate-stat-num">1 %</div>
+                <div className="pricing-climate-stat-lbl">deines Abos für CO₂-Entfernung</div>
+              </div>
+            </div>
+            <div className="pricing-climate-stat">
+              <Wind size={18} />
+              <div>
+                <div className="pricing-climate-stat-num">100 %</div>
+                <div className="pricing-climate-stat-lbl">zertifiziert &amp; transparent</div>
+              </div>
+            </div>
+            <div className="pricing-climate-stat">
+              <Leaf size={18} />
+              <div>
+                <div className="pricing-climate-stat-num">0 €</div>
+                <div className="pricing-climate-stat-lbl">Aufpreis für dich</div>
+              </div>
+            </div>
+          </div>
+          <a
+            className="pricing-climate-link"
+            href="https://stripe.com/climate"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Mehr über Stripe Climate erfahren →
+          </a>
+        </div>
+      </motion.div>
 
       <p className="pricing-disclaimer">
         Sichere Zahlung über Stripe · Alle Preise inkl. MwSt. · Jederzeit kündbar.
