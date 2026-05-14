@@ -43,6 +43,12 @@ function StandaloneRedirector() {
   // Prüfe nur auf Root-Route und Standalone-Modus
   React.useEffect(() => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    const isElectron = typeof window !== 'undefined' && !!window.electronApp;
+    // Landing-Page in Electron komplett überspringen.
+    if (isElectron && (location.pathname === '/' || location.pathname === '/landing')) {
+      navigate('/app/login', { replace: true });
+      return;
+    }
     if (isStandalone && location.pathname === '/') {
       navigate('/app/login', { replace: true });
     }

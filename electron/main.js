@@ -1,10 +1,105 @@
 'use strict';
 
-const { app, BrowserWindow, shell, Menu, nativeTheme } = require('electron');
+const { app, BrowserWindow, Tray, shell, Menu, ipcMain, dialog, nativeTheme } = require('electron');
 const path = require('path');
+const fs = require('fs');
+const { autoUpdater } = require('electron-updater');
+
+// ─── Globale Referenzen ──────────────────────────────────────────────────────
+let mainWindow = null;
+let tray = null;
+let isQuitting = false;
+let trayBalloonShown = false;
+let refreshTrayMenu = () => {};
+
+// Update-State für Tray-Menü
+let updateState = 'idle'; // 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'none' | 'error'
+let updateProgress = 0;
+let updateUserInitiated = false;
 
 // ─── Produktions-URL ─────────────────────────────────────────────────────────
+// Die Desktop-App öffnet niemals die Landing-Page, sondern direkt den Login.
 const APP_URL = 'https://beequ.de';
+const APP_START_URL = 'https://beequ.de/app/login';
+
+// Windows-Taskbar/Notifications: konsistente App-ID
+if (process.platform === 'win32') {
+  app.setAppUserModelId('de.beequ.app');
+}
+
+// ─── Launch-Flags ────────────────────────────────────────────────────────────
+const launchArgs = process.argv.slice(1);
+const startedHidden =
+  launchArgs.includes('--hidden') ||
+  launchArgs.includes('--start-minimized') ||
+  (app.getLoginItemSettings && app.getLoginItemSettings().wasOpenedAsHidden);
+
+// ─── Persistente Einstellungen ───────────────────────────────────────────────
+const SETTINGS_PATH = path.join(app.getPath('userData'), 'desktop-settings.json');
+const defaultSettings = {
+  autoLaunch: false,
+  startMinimized: false,
+  minimizeToTray: true,
+  closeToTray: true,
+  autoUpdate: true,
+};
+function loadSettings() {
+  try {
+    const raw = fs.readFileSync(SETTINGS_PATH, 'utf8');
+    return { ...defaultSettings, ...JSON.parse(raw) };
+  } catch {
+    return { ...defaultSettings };
+  }
+}
+function saveSettings(s) {
+  try {
+    fs.mkdirSync(path.dirname(SETTINGS_PATH), { recursive: true });
+    fs.writeFileSync(SETTINGS_PATH, JSON.stringify(s, null, 2), 'utf8');
+  } catch (err) {
+    console.error('Settings konnten nicht gespeichert werden:', err);
+  }
+}
+let settings = loadSettings();
+
+function applyAutoLaunch() {
+  if (process.platform === 'darwin' || process.platform === 'win32') {
+    app.setLoginItemSettings({
+      openAtLogin: !!settings.autoLaunch,
+      openAsHidden: !!settings.startMinimized,
+      args: settings.startMinimized ? ['--hidden'] : [],
+    });
+  }
+}
+
+function broadcastSettings() {
+  BrowserWindow.getAllWindows().forEach((w) => {
+    try { w.webContents.send('desktop-settings:changed', { ...settings }); } catch {}
+  });
+}
+
+function updateSettings(partial) {
+  if (!partial || typeof partial !== 'object') return { ...settings };
+  const allowed = ['autoLaunch', 'startMinimized', 'minimizeToTray', 'closeToTray', 'autoUpdate'];
+  let changedAutoLaunch = false;
+  for (const key of allowed) {
+    if (key in partial) {
+      const next = !!partial[key];
+      if (settings[key] !== next) {
+        if (key === 'autoLaunch' || key === 'startMinimized') changedAutoLaunch = true;
+        settings[key] = next;
+      }
+    }
+  }
+  if (!settings.autoLaunch && settings.startMinimized) {
+    settings.startMinimized = false;
+    changedAutoLaunch = true;
+  }
+  saveSettings(settings);
+  if (changedAutoLaunch) applyAutoLaunch();
+  refreshTrayMenu();
+  broadcastSettings();
+  return { ...settings };
+}
 
 // ─── Single-Instance Lock ─────────────────────────────────────────────────────
 const gotLock = app.requestSingleInstanceLock();
@@ -25,30 +120,27 @@ function createWindow() {
     title: 'BeeQu',
     backgroundColor: '#030812',
     show: false,
-    // macOS: Ampel-Buttons beibehalten
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     autoHideMenuBar: process.platform !== 'darwin',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
-      // Kein lokaler Dateizugriff nötig
       webSecurity: true,
       allowRunningInsecureContent: false,
     },
   });
 
-  // Eigenes Menü (nur macOS braucht es für Tastenkürzel wie Cmd+C/V)
   if (process.platform === 'darwin') {
     buildMacMenu();
   } else {
     Menu.setApplicationMenu(null);
   }
 
-  // Splash-Hintergrundfarbe bis Seite geladen
-  win.loadURL(APP_URL);
+  win.loadURL(APP_START_URL);
 
   win.once('ready-to-show', () => {
+    if (startedHidden) return; // Beim Autostart in den Tray starten
     win.show();
     win.focus();
   });
@@ -63,16 +155,13 @@ function createWindow() {
     );
   });
 
-  // Externe Links im System-Browser öffnen, nicht im App-Fenster
+  // Externe Links im System-Browser öffnen
   win.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith(APP_URL)) {
-      return { action: 'allow' };
-    }
+    if (url.startsWith(APP_URL)) return { action: 'allow' };
     shell.openExternal(url);
     return { action: 'deny' };
   });
 
-  // Navigation auf externe Seiten abfangen
   win.webContents.on('will-navigate', (event, url) => {
     if (!url.startsWith(APP_URL)) {
       event.preventDefault();
@@ -80,34 +169,310 @@ function createWindow() {
     }
   });
 
+  // Close → in Tray minimieren
+  win.on('close', (event) => {
+    if (!isQuitting && settings.closeToTray && process.platform !== 'darwin') {
+      event.preventDefault();
+      win.hide();
+      notifyTrayBalloon();
+    }
+  });
+
+  // Minimieren → in Tray
+  win.on('minimize', (event) => {
+    if (settings.minimizeToTray && process.platform !== 'darwin') {
+      event.preventDefault();
+      win.hide();
+      notifyTrayBalloon();
+    }
+  });
+
   return win;
+}
+
+function notifyTrayBalloon() {
+  if (trayBalloonShown || !tray || process.platform !== 'win32') return;
+  trayBalloonShown = true;
+  try {
+    tray.displayBalloon({
+      title: 'BeeQu läuft weiter',
+      content: 'BeeQu ist weiterhin im Hintergrund aktiv. Über das Tray-Symbol unten rechts kannst du es jederzeit öffnen.',
+      iconType: 'info',
+    });
+  } catch {
+    // ignorieren
+  }
+}
+
+// ─── Auto-Updater (electron-updater + GitHub Releases) ───────────────────────
+function setupAutoUpdater() {
+  // In Dev-Modus (kein gepacktes App-Bundle) gibt es keine Updates
+  if (!app.isPackaged) return;
+
+  autoUpdater.autoDownload = true;            // sobald Update verfügbar → herunterladen
+  autoUpdater.autoInstallOnAppQuit = true;    // beim Beenden installieren (Discord-Verhalten)
+  autoUpdater.allowPrerelease = false;
+
+  autoUpdater.on('checking-for-update', () => {
+    updateState = 'checking';
+    refreshTrayMenu();
+  });
+
+  autoUpdater.on('update-available', (info) => {
+    updateState = 'available';
+    refreshTrayMenu();
+    if (updateUserInitiated && mainWindow) {
+      dialog.showMessageBox(mainWindow, {
+        type: 'info',
+        title: 'Update verfügbar',
+        message: `Version ${info.version} wird im Hintergrund heruntergeladen.`,
+        detail: 'Du kannst weiterarbeiten. Das Update wird beim nächsten Neustart automatisch installiert.',
+        buttons: ['OK'],
+      }).catch(() => {});
+    }
+  });
+
+  autoUpdater.on('update-not-available', () => {
+    updateState = 'none';
+    refreshTrayMenu();
+    if (updateUserInitiated && mainWindow) {
+      dialog.showMessageBox(mainWindow, {
+        type: 'info',
+        title: 'Kein Update verfügbar',
+        message: 'Du nutzt bereits die neueste Version von BeeQu.',
+        buttons: ['OK'],
+      }).catch(() => {});
+    }
+    updateUserInitiated = false;
+  });
+
+  autoUpdater.on('download-progress', (p) => {
+    updateState = 'downloading';
+    updateProgress = Math.round(p.percent || 0);
+    refreshTrayMenu();
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    updateState = 'ready';
+    refreshTrayMenu();
+    if (!mainWindow) return;
+    dialog
+      .showMessageBox(mainWindow, {
+        type: 'info',
+        title: 'Update bereit',
+        message: `BeeQu ${info.version} ist installationsbereit.`,
+        detail: 'Soll die Anwendung neu gestartet werden, um das Update zu installieren?',
+        buttons: ['Jetzt neu starten', 'Später'],
+        defaultId: 0,
+        cancelId: 1,
+      })
+      .then((res) => {
+        if (res.response === 0) {
+          isQuitting = true;
+          autoUpdater.quitAndInstall();
+        }
+      })
+      .catch(() => {});
+  });
+
+  autoUpdater.on('error', (err) => {
+    updateState = 'error';
+    refreshTrayMenu();
+    console.error('AutoUpdater-Fehler:', err);
+    if (updateUserInitiated && mainWindow) {
+      dialog.showMessageBox(mainWindow, {
+        type: 'warning',
+        title: 'Update-Prüfung fehlgeschlagen',
+        message: 'Updates konnten gerade nicht geprüft werden.',
+        detail: String(err && err.message ? err.message : err),
+        buttons: ['OK'],
+      }).catch(() => {});
+    }
+    updateUserInitiated = false;
+  });
+}
+
+function checkForUpdates(userInitiated = false) {
+  if (!app.isPackaged) return;
+  if (!settings.autoUpdate && !userInitiated) return;
+  updateUserInitiated = userInitiated;
+  autoUpdater.checkForUpdates().catch((err) => {
+    console.error('checkForUpdates Fehler:', err);
+  });
+}
+
+// ─── System-Tray ─────────────────────────────────────────────────────────────
+function createTray() {
+  if (tray) return tray;
+
+  try {
+    tray = new Tray(path.join(__dirname, 'icon.png'));
+  } catch (err) {
+    console.error('Tray-Icon konnte nicht geladen werden:', err);
+    return null;
+  }
+
+  tray.setToolTip('BeeQu');
+
+  const showWindow = () => {
+    if (!mainWindow) {
+      mainWindow = createWindow();
+      return;
+    }
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    if (!mainWindow.isVisible()) mainWindow.show();
+    mainWindow.focus();
+  };
+
+  const updateMenu = () => {
+    const updateLabel = (() => {
+      switch (updateState) {
+        case 'checking':    return 'Prüfe auf Updates…';
+        case 'available':   return 'Update wird heruntergeladen…';
+        case 'downloading': return `Update wird heruntergeladen (${updateProgress}%)`;
+        case 'ready':       return 'Update bereit – jetzt neu starten';
+        case 'none':        return 'Auf neueste Version (manuell prüfen)';
+        case 'error':       return 'Update-Prüfung fehlgeschlagen';
+        default:            return 'Nach Updates suchen';
+      }
+    })();
+
+    const contextMenu = Menu.buildFromTemplate([
+      { label: 'BeeQu öffnen', click: showWindow },
+      { type: 'separator' },
+      {
+        label: 'Mit Windows starten',
+        type: 'checkbox',
+        checked: !!settings.autoLaunch,
+        click: (item) => updateSettings({ autoLaunch: item.checked }),
+      },
+      {
+        label: 'Beim Autostart minimiert starten',
+        type: 'checkbox',
+        checked: !!settings.startMinimized,
+        enabled: !!settings.autoLaunch,
+        click: (item) => updateSettings({ startMinimized: item.checked }),
+      },
+      { type: 'separator' },
+      {
+        label: 'Schließen minimiert in Tray',
+        type: 'checkbox',
+        checked: !!settings.closeToTray,
+        click: (item) => updateSettings({ closeToTray: item.checked }),
+      },
+      {
+        label: 'Minimieren in Tray',
+        type: 'checkbox',
+        checked: !!settings.minimizeToTray,
+        click: (item) => updateSettings({ minimizeToTray: item.checked }),
+      },
+      { type: 'separator' },
+      {
+        label: 'Automatisch nach Updates suchen',
+        type: 'checkbox',
+        checked: !!settings.autoUpdate,
+        click: (item) => updateSettings({ autoUpdate: item.checked }),
+      },
+      {
+        label: updateLabel,
+        enabled: updateState !== 'checking' && updateState !== 'downloading',
+        click: () => {
+          if (updateState === 'ready') {
+            isQuitting = true;
+            autoUpdater.quitAndInstall();
+          } else {
+            checkForUpdates(true);
+          }
+        },
+      },
+      {
+        label: `Version ${app.getVersion()}`,
+        enabled: false,
+      },
+      { type: 'separator' },
+      {
+        label: 'Beenden',
+        click: () => {
+          isQuitting = true;
+          app.quit();
+        },
+      },
+    ]);
+    tray.setContextMenu(contextMenu);
+  };
+
+  updateMenu();
+  refreshTrayMenu = updateMenu;
+
+  tray.on('click', showWindow);
+  tray.on('double-click', showWindow);
+
+  return tray;
 }
 
 // ─── App-Lifecycle ────────────────────────────────────────────────────────────
 app.whenReady().then(() => {
-  createWindow();
+  applyAutoLaunch();
 
-  // macOS: Dock-Klick öffnet neues Fenster wenn keines offen
+  // IPC: Desktop-Einstellungen vom Renderer (Profil-Seite)
+  ipcMain.handle('desktop-settings:get', () => ({ ...settings }));
+  ipcMain.handle('desktop-settings:set', (_e, partial) => updateSettings(partial));
+  ipcMain.handle('desktop-updates:check', () => {
+    checkForUpdates(true);
+    return { state: updateState, version: app.getVersion() };
+  });
+  ipcMain.handle('desktop-updates:install', () => {
+    if (updateState === 'ready') {
+      isQuitting = true;
+      autoUpdater.quitAndInstall();
+      return true;
+    }
+    return false;
+  });
+  ipcMain.handle('desktop-updates:state', () => ({
+    state: updateState,
+    progress: updateProgress,
+    version: app.getVersion(),
+  }));
+
+  mainWindow = createWindow();
+  if (process.platform !== 'darwin') {
+    createTray();
+  }
+
+  setupAutoUpdater();
+  // Erste Update-Prüfung nach kurzer Verzögerung, danach alle 4 Stunden
+  setTimeout(() => checkForUpdates(false), 8000);
+  setInterval(() => checkForUpdates(false), 4 * 60 * 60 * 1000);
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+      mainWindow = createWindow();
+    } else if (mainWindow && !mainWindow.isVisible()) {
+      mainWindow.show();
     }
   });
 });
 
-// Zweite Instanz → bestehendes Fenster nach vorne
 app.on('second-instance', () => {
   const wins = BrowserWindow.getAllWindows();
   if (wins.length > 0) {
-    if (wins[0].isMinimized()) wins[0].restore();
-    wins[0].focus();
+    const w = wins[0];
+    if (!w.isVisible()) w.show();
+    if (w.isMinimized()) w.restore();
+    w.focus();
   }
 });
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
+app.on('window-all-closed', (event) => {
+  if (process.platform === 'darwin') return;
+  if (!isQuitting) {
+    event.preventDefault();
   }
+});
+
+app.on('before-quit', () => {
+  isQuitting = true;
 });
 
 // ─── macOS Menü ───────────────────────────────────────────────────────────────

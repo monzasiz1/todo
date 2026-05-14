@@ -7,7 +7,8 @@ import {
   Camera, User, Mail, Lock, Shield, ShieldCheck, ShieldOff, Palette, Download,
   Trash2, Check, X, ChevronRight, AlertTriangle, Flame,
   Target, Calendar, CheckCircle2, Clock, TrendingUp,
-  Award, Star, Edit3, Eye, EyeOff, ArrowLeft, MessageCircleQuestion, Video, QrCode
+  Award, Star, Edit3, Eye, EyeOff, ArrowLeft, MessageCircleQuestion, Video, QrCode,
+  Monitor, Power, Minimize2, RefreshCw
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -88,6 +89,45 @@ export default function ProfilePage() {
   // Teams
   const [teamsConnected, setTeamsConnected] = useState(null);
   const [teamsConnecting, setTeamsConnecting] = useState(false);
+
+  // Desktop-App (nur in Electron sichtbar)
+  const isDesktopApp = typeof window !== 'undefined' && !!window.electronApp && typeof window.electronApp.getSettings === 'function';
+  const [desktopSettings, setDesktopSettings] = useState(null);
+  const [updateState, setUpdateState] = useState({ state: 'idle', progress: 0, version: '' });
+  useEffect(() => {
+    if (!isDesktopApp) return;
+    let unsubscribe = null;
+    window.electronApp.getSettings().then(setDesktopSettings).catch(() => {});
+    if (typeof window.electronApp.getUpdateState === 'function') {
+      window.electronApp.getUpdateState().then(setUpdateState).catch(() => {});
+    }
+    if (typeof window.electronApp.onSettingsChanged === 'function') {
+      unsubscribe = window.electronApp.onSettingsChanged(setDesktopSettings);
+    }
+    return () => { if (unsubscribe) unsubscribe(); };
+  }, [isDesktopApp]);
+  const updateDesktopSetting = async (key, value) => {
+    if (!isDesktopApp) return;
+    try {
+      const next = await window.electronApp.setSettings({ [key]: value });
+      setDesktopSettings(next);
+    } catch (err) {
+      console.error('Desktop-Einstellung konnte nicht gespeichert werden:', err);
+    }
+  };
+  const checkForUpdatesNow = async () => {
+    if (!isDesktopApp || typeof window.electronApp.checkForUpdates !== 'function') return;
+    try {
+      const res = await window.electronApp.checkForUpdates();
+      setUpdateState((s) => ({ ...s, ...res }));
+    } catch (err) {
+      console.error('Update-Prüfung fehlgeschlagen:', err);
+    }
+  };
+  const installUpdateNow = async () => {
+    if (!isDesktopApp || typeof window.electronApp.installUpdate !== 'function') return;
+    try { await window.electronApp.installUpdate(); } catch {}
+  };
 
   // Feedback
   const [toast, setToast] = useState(null);
@@ -753,6 +793,106 @@ export default function ProfilePage() {
             )}
           </div>
         </div>
+
+        {/* Desktop-App (nur in Electron) */}
+        {isDesktopApp && desktopSettings && (
+          <div className="pv2-card">
+            <div className="pv2-section-head"><Monitor size={15} /><span>Desktop-App</span></div>
+
+            <label className="pv2-row" style={{ cursor: 'pointer' }}>
+              <div className="pv2-row-icon" style={{ background: 'rgba(0,122,255,0.1)', color: '#007AFF' }}><Power size={16} /></div>
+              <div className="pv2-row-body">
+                <span className="pv2-row-title">Mit Windows starten</span>
+                <span className="pv2-row-sub">BeeQu wird beim Hochfahren automatisch gestartet</span>
+              </div>
+              <input
+                type="checkbox"
+                className="pv2-switch"
+                checked={!!desktopSettings.autoLaunch}
+                onChange={(e) => updateDesktopSetting('autoLaunch', e.target.checked)}
+              />
+            </label>
+
+            <label className="pv2-row" style={{ cursor: desktopSettings.autoLaunch ? 'pointer' : 'not-allowed', opacity: desktopSettings.autoLaunch ? 1 : 0.5 }}>
+              <div className="pv2-row-icon" style={{ background: 'rgba(88,86,214,0.1)', color: '#5856D6' }}><Minimize2 size={16} /></div>
+              <div className="pv2-row-body">
+                <span className="pv2-row-title">Beim Autostart minimiert starten</span>
+                <span className="pv2-row-sub">App startet versteckt im Tray, kein Fenster wird geöffnet</span>
+              </div>
+              <input
+                type="checkbox"
+                className="pv2-switch"
+                checked={!!desktopSettings.startMinimized}
+                disabled={!desktopSettings.autoLaunch}
+                onChange={(e) => updateDesktopSetting('startMinimized', e.target.checked)}
+              />
+            </label>
+
+            <label className="pv2-row" style={{ cursor: 'pointer' }}>
+              <div className="pv2-row-icon" style={{ background: 'rgba(255,149,0,0.1)', color: '#FF9500' }}><X size={16} /></div>
+              <div className="pv2-row-body">
+                <span className="pv2-row-title">Schließen minimiert in Tray</span>
+                <span className="pv2-row-sub">Beim Klick auf ✕ läuft BeeQu im Hintergrund weiter</span>
+              </div>
+              <input
+                type="checkbox"
+                className="pv2-switch"
+                checked={!!desktopSettings.closeToTray}
+                onChange={(e) => updateDesktopSetting('closeToTray', e.target.checked)}
+              />
+            </label>
+
+            <label className="pv2-row" style={{ cursor: 'pointer' }}>
+              <div className="pv2-row-icon" style={{ background: 'rgba(52,199,89,0.1)', color: '#34C759' }}><Minimize2 size={16} /></div>
+              <div className="pv2-row-body">
+                <span className="pv2-row-title">Minimieren in Tray</span>
+                <span className="pv2-row-sub">Minimize-Button blendet das Fenster in den Tray aus</span>
+              </div>
+              <input
+                type="checkbox"
+                className="pv2-switch"
+                checked={!!desktopSettings.minimizeToTray}
+                onChange={(e) => updateDesktopSetting('minimizeToTray', e.target.checked)}
+              />
+            </label>
+
+            <label className="pv2-row" style={{ cursor: 'pointer' }}>
+              <div className="pv2-row-icon" style={{ background: 'rgba(0,199,190,0.1)', color: '#00C7BE' }}><RefreshCw size={16} /></div>
+              <div className="pv2-row-body">
+                <span className="pv2-row-title">Automatisch nach Updates suchen</span>
+                <span className="pv2-row-sub">Neue Versionen werden im Hintergrund geladen und beim nächsten Start installiert</span>
+              </div>
+              <input
+                type="checkbox"
+                className="pv2-switch"
+                checked={!!desktopSettings.autoUpdate}
+                onChange={(e) => updateDesktopSetting('autoUpdate', e.target.checked)}
+              />
+            </label>
+
+            <button
+              className="pv2-row"
+              onClick={updateState.state === 'ready' ? installUpdateNow : checkForUpdatesNow}
+              disabled={updateState.state === 'checking' || updateState.state === 'downloading'}
+            >
+              <div className="pv2-row-icon" style={{ background: 'rgba(0,122,255,0.1)', color: '#007AFF' }}><RefreshCw size={16} /></div>
+              <div className="pv2-row-body">
+                <span className="pv2-row-title">
+                  {updateState.state === 'ready' ? 'Update jetzt installieren'
+                    : updateState.state === 'checking' ? 'Prüfe auf Updates…'
+                    : updateState.state === 'downloading' ? `Wird heruntergeladen (${updateState.progress || 0}%)`
+                    : 'Jetzt nach Updates suchen'}
+                </span>
+                <span className="pv2-row-sub">
+                  Version {updateState.version || '–'}
+                  {updateState.state === 'none' ? ' · Du nutzt die neueste Version' : ''}
+                  {updateState.state === 'error' ? ' · Prüfung fehlgeschlagen' : ''}
+                </span>
+              </div>
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        )}
 
         {/* Account */}
         <div className="pv2-card">

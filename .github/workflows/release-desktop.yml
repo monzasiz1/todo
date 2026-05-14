@@ -1,0 +1,40 @@
+name: Release Desktop App
+
+# Triggert bei Push eines Tags wie v1.0.0 oder manuell aus der UI
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest]
+        # Für macOS-Builds zusätzlich: macos-latest (benötigt Apple-Cert für Signierung)
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: electron/package-lock.json
+
+      - name: Install dependencies
+        working-directory: electron
+        run: npm ci
+
+      - name: Build & Publish Electron App
+        working-directory: electron
+        env:
+          # GITHUB_TOKEN wird automatisch bereitgestellt und reicht für eigene Repos.
+          # Für ein separates Release-Repo: stattdessen GH_TOKEN als Repo-Secret setzen.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run release

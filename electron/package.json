@@ -1,6 +1,6 @@
 {
   "name": "beequ-desktop",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "BeeQu – Dein intelligenter Planer",
   "main": "main.js",
   "private": true,
@@ -13,7 +13,9 @@
     "build:win": "electron-builder --win --x64",
     "build:win:all": "electron-builder --win --x64 --ia32",
     "build:mac": "electron-builder --mac --x64 --arm64",
-    "build:all": "electron-builder --win --mac --x64"
+    "build:all": "electron-builder --win --mac --x64",
+    "release": "electron-builder --win --x64 --publish always",
+    "release:draft": "electron-builder --win --x64 --publish onTagOrDraft"
   },
   "build": {
     "appId": "de.beequ.app",
@@ -24,6 +26,14 @@
     "directories": {
       "output": "dist"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "monzasiz1",
+        "repo": "todo",
+        "releaseType": "release"
+      }
+    ],
     "files": [
       "main.js",
       "preload.js",
@@ -33,11 +43,15 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "icon.png",
@@ -64,14 +78,28 @@
       "title": "BeeQu Installer",
       "backgroundColor": "#030812",
       "contents": [
-        { "x": 130, "y": 220 },
-        { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
       ],
-      "window": { "width": 540, "height": 380 }
+      "window": {
+        "width": 540,
+        "height": 380
+      }
     }
   },
   "devDependencies": {
     "electron": "^31.7.7",
     "electron-builder": "^25.1.8"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.3"
   }
 }

@@ -21169,6 +21169,39 @@ body.cal-is-dragging * {
 .pv2-chevron { color: var(--text-tertiary); transition: transform 0.2s; flex-shrink: 0; }
 .pv2-chevron.open { transform: rotate(90deg); }
 
+/* ── Switch / Toggle (iOS-Style) ── */
+.pv2-switch {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 44px;
+  height: 26px;
+  border-radius: 999px;
+  background: rgba(120,120,128,0.32);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+  margin: 0;
+  outline: none;
+  border: none;
+}
+.pv2-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.1);
+  transition: transform 0.22s ease;
+}
+.pv2-switch:checked { background: #34C759; }
+.pv2-switch:checked::after { transform: translateX(18px); }
+.pv2-switch:disabled { opacity: 0.5; cursor: not-allowed; }
+.pv2-switch:focus-visible { box-shadow: 0 0 0 3px rgba(0,122,255,0.25); }
+
 /* â”€â”€ Expand panels â”€â”€ */
 .pv2-expand { overflow: hidden; }
 .pv2-form-inner {

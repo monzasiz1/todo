@@ -187,9 +187,11 @@ export default function Register() {
   return (
     <div className="bq-auth-page">
 
-      <Link to="/landing" className="bq-auth-back">
-        ← Zurück zur Startseite
-      </Link>
+      {!(typeof window !== 'undefined' && window.electronApp) && (
+        <Link to="/landing" className="bq-auth-back">
+          ← Zurück zur Startseite
+        </Link>
+      )}
 
       <div className="bq-auth-form-panel">
         <motion.div
