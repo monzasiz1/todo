@@ -182,6 +182,26 @@ function createWindow() {
   // Direkt im Anschluss die Web-App laden (überschreibt den Splash sobald bereit)
   setImmediate(() => win.loadURL(APP_START_URL).catch(() => {}));
 
+  // Verhindere, dass Chromium den Renderer einfriert/throttled,
+  // waehrend das Fenster im Tray versteckt ist. Das ist die Hauptursache
+  // fuer den "white screen + nichts klickbar"-Effekt nach Tray-Restore.
+  try { win.webContents.setBackgroundThrottling(false); } catch {}
+  try { win.webContents.setFrameRate(60); } catch {}
+
+  // Nach jedem show() einen Repaint erzwingen — Chromium markiert versteckte
+  // Fenster als occluded und liefert sonst keinen Frame bis zu einer Interaktion.
+  win.on('show', () => {
+    try { win.webContents.setBackgroundThrottling(false); } catch {}
+    try { win.webContents.invalidate(); } catch {}
+  });
+  win.on('restore', () => {
+    try { win.webContents.setBackgroundThrottling(false); } catch {}
+    try { win.webContents.invalidate(); } catch {}
+  });
+  win.on('focus', () => {
+    try { win.webContents.invalidate(); } catch {}
+  });
+
   win.once('ready-to-show', () => {
     if (startedHidden) return; // Beim Autostart in den Tray starten
     if (!win.isVisible()) win.show();
@@ -368,9 +388,29 @@ function createTray() {
       mainWindow = createWindow();
       return;
     }
+    try { mainWindow.webContents.setBackgroundThrottling(false); } catch {}
     if (mainWindow.isMinimized()) mainWindow.restore();
-    if (!mainWindow.isVisible()) mainWindow.show();
+    // showInactive zuerst, damit Chromium den Compositor reaktiviert,
+    // bevor wir das Fenster nach vorne holen — vermeidet weisse Frames.
+    if (!mainWindow.isVisible()) {
+      try { mainWindow.showInactive(); } catch { mainWindow.show(); }
+    }
+    try { mainWindow.moveTop(); } catch {}
+    mainWindow.show();
+    // Windows-Workaround: erzwingt korrekte Foreground-Aktivierung,
+    // sonst bleibt das Fenster manchmal "tot" (sichtbar, aber nicht klickbar).
+    if (process.platform === 'win32') {
+      try {
+        mainWindow.setAlwaysOnTop(true);
+        mainWindow.setAlwaysOnTop(false);
+      } catch {}
+    }
     mainWindow.focus();
+    try { mainWindow.webContents.invalidate(); } catch {}
+    // Zweiter Repaint nach naechstem Frame fuer GPU-Compositor.
+    setTimeout(() => {
+      try { mainWindow && mainWindow.webContents.invalidate(); } catch {}
+    }, 50);
   };
 
   const updateMenu = () => {
