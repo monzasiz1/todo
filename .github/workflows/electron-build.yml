@@ -1,10 +1,9 @@
-name: Build Desktop App
+name: Build Desktop App (manuell, ohne Auto-Update)
 
+# Hinweis: Releases laufen über release-desktop.yml (electron-builder --publish).
+# Dieser Workflow ist nur noch manuell für Test-Builds nutzbar.
 on:
-  push:
-    tags:
-      - 'v*'          # Trigger bei: git tag v1.0.0 && git push --tags
-  workflow_dispatch:  # Manuell auslösbar über GitHub UI
+  workflow_dispatch:
 
 permissions:
   contents: write   # Für GitHub Releases
