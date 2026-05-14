@@ -134,6 +134,26 @@ export default function App() {
     };
   }, []);
 
+  // Plan-Sync: nach Login (oder Reload mit Token) den aktuellen Plan vom Server holen,
+  // damit limit()-Checks nicht auf veraltetem localStorage-Plan basieren.
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { api } = await import('./utils/api');
+        const me = await api.getMyPlan();
+        if (cancelled || !me?.plan) return;
+        const store = useAuthStore.getState();
+        const cur = store.user;
+        if (cur && cur.plan !== me.plan && typeof store.setUser === 'function') {
+          store.setUser({ ...cur, plan: me.plan });
+        }
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, [token]);
+
   const waitForInitialDashboard =
     isInitialDashboardRoute &&
     !!token &&

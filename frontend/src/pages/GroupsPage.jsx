@@ -181,8 +181,18 @@ export default function GroupsPage() {
             key="create"
             onBack={() => setView('list')}
             onCreate={async (data) => {
-              await createGroup(data);
-              setView('list');
+              try {
+                await createGroup(data);
+                setView('list');
+              } catch (err) {
+                const code = err?.data?.error || err?.body?.error || err?.error;
+                if (code === 'plan_limit_groups' || /plan_limit/.test(String(err?.message))) {
+                  setView('list');
+                  setShowUpgrade(true);
+                  return;
+                }
+                throw err;
+              }
             }}
           />
         )}

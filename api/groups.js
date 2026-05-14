@@ -2,6 +2,23 @@ const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
 const { sendPushToUser } = require('./_lib/pushService');
 
+// Server-side spiegel der Plan-Limits (muss mit frontend/src/lib/plans.js sync sein)
+const PLAN_LIMITS = {
+  free: { groups: 1, groupMembers: 3 },
+  pro:  { groups: 2, groupMembers: 5 },
+  team: { groups: Infinity, groupMembers: Infinity },
+};
+
+async function getUserPlan(pool, userId) {
+  try {
+    const r = await pool.query('SELECT plan FROM users WHERE id = $1', [userId]);
+    const plan = r.rows[0]?.plan;
+    return PLAN_LIMITS[plan] ? plan : 'free';
+  } catch {
+    return 'free';
+  }
+}
+
 function parseVirtualId(id) {
   if (typeof id !== 'string' || !id.startsWith('v_')) return null;
   const parts = id.split('_');
@@ -222,6 +239,26 @@ module.exports = async function handler(req, res) {
       const { name, description, color, icon, image_url } = req.body;
       if (!name || !name.trim()) return res.status(400).json({ error: 'Gruppenname erforderlich' });
 
+      // Plan-Limit: maximale Anzahl selbst erstellter Gruppen
+      const planId = await getUserPlan(pool, user.id);
+      const maxGroups = PLAN_LIMITS[planId].groups;
+      if (Number.isFinite(maxGroups)) {
+        const cnt = await pool.query(
+          'SELECT COUNT(*)::int AS n FROM groups WHERE created_by = $1',
+          [user.id]
+        );
+        const owned = cnt.rows[0]?.n ?? 0;
+        if (owned >= maxGroups) {
+          return res.status(403).json({
+            error: 'plan_limit_groups',
+            message: `Dein ${planId === 'free' ? 'Free' : 'Pro'}-Plan erlaubt maximal ${maxGroups} ${maxGroups === 1 ? 'Gruppe' : 'Gruppen'}. Upgrade auf ${planId === 'free' ? 'Pro oder Team' : 'Team'} fuer mehr.`,
+            limit: maxGroups,
+            current: owned,
+            plan: planId,
+          });
+        }
+      }
+
       const inviteCode = generateInviteCode();
       const { is_public } = req.body;
       const result = await pool.query(
@@ -316,6 +353,26 @@ module.exports = async function handler(req, res) {
       );
       if (existing.rows.length > 0) {
         return res.status(400).json({ error: 'Du bist bereits Mitglied dieser Gruppe' });
+      }
+
+      // Plan-Limit: Mitgliederzahl ist durch den Plan des Gruppen-Owners begrenzt
+      const ownerPlan = await getUserPlan(pool, group.created_by);
+      const maxMembers = PLAN_LIMITS[ownerPlan].groupMembers;
+      if (Number.isFinite(maxMembers)) {
+        const cnt = await pool.query(
+          'SELECT COUNT(*)::int AS n FROM group_members WHERE group_id = $1',
+          [group.id]
+        );
+        const current = cnt.rows[0]?.n ?? 0;
+        if (current >= maxMembers) {
+          return res.status(403).json({
+            error: 'plan_limit_members',
+            message: `Diese Gruppe hat das Mitglieder-Limit erreicht (${maxMembers}). Der Gruppen-Owner braucht ein Upgrade.`,
+            limit: maxMembers,
+            current,
+            plan: ownerPlan,
+          });
+        }
       }
 
       await pool.query(
