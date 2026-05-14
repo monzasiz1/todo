@@ -27,6 +27,17 @@ if (process.platform === 'win32') {
   app.setAppUserModelId('de.beequ.app');
 }
 
+// ─── Performance-Switches (müssen VOR app.ready laufen) ─────────────────────
+// Verhindert Chromium-Hintergrund-Drosselung von Renderer-Prozessen, was die
+// App beim Wiederfokussieren träge wirken ließ. Spart außerdem ein paar
+// teure GPU-Features, die wir nicht brauchen.
+app.commandLine.appendSwitch('disable-renderer-backgrounding');
+app.commandLine.appendSwitch('disable-background-timer-throttling');
+app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion,HardwareMediaKeyHandling');
+// Schnelleres Window-Erscheinen: kein Frame-Throttling beim Boot
+app.commandLine.appendSwitch('enable-zero-copy');
+
 // ─── Launch-Flags ────────────────────────────────────────────────────────────
 const launchArgs = process.argv.slice(1);
 const startedHidden =
@@ -120,6 +131,7 @@ function createWindow() {
     title: 'BeeQu',
     backgroundColor: '#030812',
     show: false,
+    paintWhenInitiallyHidden: true,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     autoHideMenuBar: process.platform !== 'darwin',
     webPreferences: {
@@ -128,6 +140,10 @@ function createWindow() {
       contextIsolation: true,
       webSecurity: true,
       allowRunningInsecureContent: false,
+      backgroundThrottling: false,
+      spellcheck: false,
+      v8CacheOptions: 'code',
+      enableBlinkFeatures: '',
     },
   });
 
@@ -137,11 +153,28 @@ function createWindow() {
     Menu.setApplicationMenu(null);
   }
 
-  win.loadURL(APP_START_URL);
+  // Sofortiger lokaler Splash, damit der User nicht 1–3 s nichts sieht.
+  // Wird automatisch durch loadURL() ersetzt, sobald die Web-App geöffnet ist.
+  const splashHtml = encodeURIComponent(
+    `<!doctype html><html><head><meta charset="utf-8"><title>BeeQu</title>` +
+    `<style>html,body{margin:0;height:100%;background:#030812;color:#aad4ff;` +
+    `font-family:-apple-system,Segoe UI,Roboto,sans-serif;display:grid;place-items:center}` +
+    `.l{width:40px;height:40px;border:3px solid rgba(170,212,255,.18);border-top-color:#3aa6ff;` +
+    `border-radius:50%;animation:s 1s linear infinite}` +
+    `@keyframes s{to{transform:rotate(360deg)}}` +
+    `.t{margin-top:14px;font-size:13px;opacity:.55;letter-spacing:.04em}</style></head>` +
+    `<body><div><div class="l"></div><div class="t">BeeQu wird geladen …</div></div></body></html>`
+  );
+  if (!startedHidden) {
+    win.loadURL('data:text/html;charset=utf-8,' + splashHtml).catch(() => {});
+    win.show();
+  }
+  // Direkt im Anschluss die Web-App laden (überschreibt den Splash sobald bereit)
+  setImmediate(() => win.loadURL(APP_START_URL).catch(() => {}));
 
   win.once('ready-to-show', () => {
     if (startedHidden) return; // Beim Autostart in den Tray starten
-    win.show();
+    if (!win.isVisible()) win.show();
     win.focus();
   });
 
