@@ -21927,8 +21927,7 @@ body.cal-is-dragging * {
 
 /* switch link */
 .bq-auth-switch {
-  background: rgba(0,122,255,0.08);
-  color: var(--bq-blue);
+  background: transparent;
   gap: 8px;
   justify-content: center;
   font-size: 0.9rem;
