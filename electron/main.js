@@ -167,24 +167,14 @@ function createWindow() {
     Menu.setApplicationMenu(null);
   }
 
-  // Sofortiger lokaler Splash, damit der User nicht 1–3 s nichts sieht.
-  // Bleibt sichtbar bis die echte Web-App geladen UND gerendert ist.
+  // Sofortiger lokaler Pre-Splash: nur dunkler Vollbild-Hintergrund. Der echte
+  // animierte Splash (AppLaunchSplash) wird direkt von der Web-App gerendert,
+  // sobald sie geladen ist — damit Desktop & Mobile exakt gleich aussehen.
   const splashHtml = encodeURIComponent(
     `<!doctype html><html><head><meta charset="utf-8"><title>BeeQu</title>` +
-    `<style>html,body{margin:0;height:100%;background:#030812;color:#aad4ff;` +
-    `font-family:-apple-system,Segoe UI,Roboto,sans-serif;display:grid;place-items:center;overflow:hidden}` +
-    `.wrap{text-align:center;animation:fade .5s ease}` +
-    `.logo{font-size:34px;font-weight:800;letter-spacing:.5px;color:#ffd95e;margin-bottom:18px}` +
-    `.logo span{color:#aad4ff}` +
-    `.l{width:44px;height:44px;border:3px solid rgba(170,212,255,.18);border-top-color:#3aa6ff;` +
-    `border-radius:50%;animation:s 1s linear infinite;margin:0 auto}` +
-    `@keyframes s{to{transform:rotate(360deg)}}` +
-    `@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}` +
-    `.t{margin-top:18px;font-size:13px;opacity:.6;letter-spacing:.05em}` +
-    `.sub{margin-top:6px;font-size:11px;opacity:.35}</style></head>` +
-    `<body><div class="wrap"><div class="logo">Bee<span>Qu</span></div>` +
-    `<div class="l"></div><div class="t">BeeQu wird geladen …</div>` +
-    `<div class="sub">Daten werden vorbereitet</div></div></body></html>`
+    `<style>html,body{margin:0;height:100%;` +
+    `background:radial-gradient(ellipse at 50% 35%, #0e1f42 0%, #070e20 55%, #030812 100%);` +
+    `overflow:hidden}</style></head><body></body></html>`
   );
   const splashUrl = 'data:text/html;charset=utf-8,' + splashHtml;
 

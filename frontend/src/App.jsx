@@ -65,6 +65,10 @@ export default function App() {
   const [splashHardStop, setSplashHardStop] = useState(false);
   const isInitialDashboardRoute =
     typeof window !== 'undefined' && /^\/app\/?$/.test(window.location.pathname);
+  // In der Desktop-App soll der Splash auch beim Cold-Start auf /app/login
+  // erscheinen — sonst wirkt das Fenster nach dem nativen Vor-Splash schwarz.
+  const isElectronColdStart =
+    typeof window !== 'undefined' && !!window.electronApp;
 
   useEffect(() => {
     let minDurationReached = false;
@@ -118,7 +122,9 @@ export default function App() {
     tasksCount === 0 &&
     !splashHardStop;
 
-  const showLaunchSplash = isInitialDashboardRoute && (!baseSplashReady || waitForInitialDashboard);
+  const showLaunchSplash =
+    (isInitialDashboardRoute || isElectronColdStart) &&
+    (!baseSplashReady || waitForInitialDashboard);
 
   return (
     <>
