@@ -194,11 +194,6 @@ export default function DesktopTitleBar() {
         >
           <ArrowRight size={16} />
         </button>
-      </div>
-
-      <div className="desktop-titlebar-center">
-        <span className="desktop-titlebar-brand">BeeQu</span>
-        <span className="desktop-titlebar-sep">/</span>
         <span className="desktop-titlebar-title">{title}</span>
       </div>
 

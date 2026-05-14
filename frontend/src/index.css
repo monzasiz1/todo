@@ -27088,8 +27088,12 @@ body.focus-timer-modal-open .bottom-nav {
 }
 body.is-electron { padding-top: 40px; }
 body.is-electron .mobile-header { top: 40px; }
+body.is-electron .app-sidebar,
 body.is-electron .sidebar,
-body.is-electron .gchat-panel { top: 40px; }
+body.is-electron .gchat-panel,
+body.is-electron .gchat-side {
+  top: 40px;
+}
 body.is-electron.is-mac .desktop-titlebar { padding-left: 84px; }
 body.is-electron.is-win .desktop-titlebar { padding-right: 148px; }
 
@@ -27120,6 +27124,11 @@ body.is-electron.is-win .desktop-titlebar { padding-right: 148px; }
 .desktop-titlebar-title {
   font-weight: 600;
   color: #f0f6ff;
+  margin-left: 8px;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .desktop-titlebar-navbtn,
 .desktop-titlebar-iconbtn,
