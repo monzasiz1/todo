@@ -813,7 +813,11 @@ html[data-theme="dark"] .calendar-day-tasks {
 
 /* Calendar-Header: Trennlinie zwischen Mai-Header und Mein/Familie-Tabs entfernen */
 html[data-theme="dark"] .cal-header-row2 {
-  border-top-color: transparent;
+  border-top: none !important;
+  box-shadow: none;
+}
+html[data-theme="dark"] .calendar-header {
+  border-bottom-color: transparent;
 }
 
 /* Bottom-Nav: aktiver/Hover-State im Dark Mode (weg von hellem Weiß-Backdrop) */
