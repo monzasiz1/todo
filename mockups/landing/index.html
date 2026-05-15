@@ -1262,6 +1262,218 @@
       transform: translateY(-1px);
     }
 
+    .price-year-hint {
+      font-size: 13px;
+      color: var(--text-3);
+      margin: -4px 0 16px;
+      letter-spacing: 0.2px;
+    }
+    .price-year-hint strong { color: var(--text-2); font-weight: 600; }
+
+    /* ─── STRIPE CLIMATE ─── */
+    .climate-card {
+      position: relative;
+      margin-top: 72px;
+      padding: 56px 56px 48px;
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      background:
+        radial-gradient(120% 140% at 0% 0%, rgba(48,209,88,0.18), transparent 55%),
+        radial-gradient(110% 130% at 100% 100%, rgba(10,170,120,0.16), transparent 60%),
+        linear-gradient(160deg, rgba(48,209,88,0.10), rgba(20,90,60,0.06));
+      border: 1px solid rgba(48,209,88,0.28);
+      box-shadow:
+        0 24px 80px rgba(0,0,0,0.45),
+        inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+
+    .climate-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.18) 100%),
+        repeating-linear-gradient(135deg, rgba(255,255,255,0.018) 0 2px, transparent 2px 6px);
+      mix-blend-mode: overlay;
+      opacity: 0.5;
+    }
+
+    .climate-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      opacity: 0.55;
+      animation: float 22s ease-in-out infinite;
+    }
+    .climate-orb-1 {
+      width: 360px; height: 360px;
+      background: radial-gradient(circle, #30D158 0%, transparent 65%);
+      top: -120px; left: -100px;
+    }
+    .climate-orb-2 {
+      width: 320px; height: 320px;
+      background: radial-gradient(circle, #0EA570 0%, transparent 65%);
+      bottom: -140px; right: -80px;
+      animation-delay: -10s;
+    }
+
+    .climate-leaf {
+      position: absolute;
+      font-size: 28px;
+      opacity: 0.18;
+      pointer-events: none;
+      animation: leafDrift 14s ease-in-out infinite;
+      filter: drop-shadow(0 4px 12px rgba(48,209,88,0.4));
+    }
+    .climate-leaf-1 { top: 32px; right: 56px; font-size: 42px; animation-delay: 0s; }
+    .climate-leaf-2 { bottom: 28px; left: 64px; font-size: 32px; animation-delay: -5s; }
+    .climate-leaf-3 { top: 50%; left: 38%; font-size: 22px; animation-delay: -9s; opacity: 0.12; }
+
+    @keyframes leafDrift {
+      0%, 100% { transform: translate(0, 0) rotate(-8deg); }
+      50%      { transform: translate(6px, -10px) rotate(8deg); }
+    }
+
+    .climate-content {
+      position: relative;
+      z-index: 1;
+      max-width: 880px;
+    }
+
+    .climate-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: rgba(48,209,88,0.12);
+      border: 1px solid rgba(48,209,88,0.35);
+      color: #7BE49A;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      margin-bottom: 24px;
+      backdrop-filter: blur(8px);
+    }
+
+    .climate-pulse {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 0 rgba(48,209,88,0.7);
+      animation: climatePulse 2.2s ease-out infinite;
+    }
+    @keyframes climatePulse {
+      0%   { box-shadow: 0 0 0 0 rgba(48,209,88,0.55); }
+      70%  { box-shadow: 0 0 0 12px rgba(48,209,88,0); }
+      100% { box-shadow: 0 0 0 0 rgba(48,209,88,0); }
+    }
+
+    .climate-title {
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: clamp(32px, 4.2vw, 52px);
+      font-weight: 900;
+      line-height: 1.05;
+      letter-spacing: -1.2px;
+      color: #F5F5F7;
+      margin: 0 0 18px;
+    }
+
+    .climate-percent {
+      background: linear-gradient(135deg, #B7F5C9 0%, #30D158 45%, #0EA570 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-size: clamp(56px, 7vw, 96px);
+      letter-spacing: -3px;
+      text-shadow: 0 0 60px rgba(48,209,88,0.25);
+    }
+
+    .climate-sub {
+      font-size: 16px;
+      line-height: 1.65;
+      color: rgba(245,245,247,0.78);
+      max-width: 720px;
+      margin: 0 0 32px;
+    }
+
+    .climate-link {
+      color: #7BE49A;
+      text-decoration: none;
+      border-bottom: 1px dashed rgba(123,228,154,0.5);
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .climate-link:hover {
+      color: #B7F5C9;
+      border-bottom-color: #B7F5C9;
+    }
+
+    .climate-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin: 0 0 28px;
+    }
+
+    .climate-stat {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 18px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(48,209,88,0.18);
+      backdrop-filter: blur(10px);
+      transition: transform 0.25s, border-color 0.25s, background 0.25s;
+    }
+    .climate-stat:hover {
+      transform: translateY(-2px);
+      border-color: rgba(48,209,88,0.45);
+      background: rgba(48,209,88,0.06);
+    }
+
+    .climate-stat-icon {
+      width: 44px; height: 44px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      border-radius: 12px;
+      background: rgba(48,209,88,0.12);
+      border: 1px solid rgba(48,209,88,0.25);
+      flex-shrink: 0;
+    }
+
+    .climate-stat-num {
+      font-size: 18px;
+      font-weight: 800;
+      color: #F5F5F7;
+      letter-spacing: -0.3px;
+      line-height: 1.1;
+    }
+    .climate-stat-label {
+      font-size: 12.5px;
+      color: var(--text-3);
+      margin-top: 2px;
+    }
+
+    .climate-foot {
+      font-size: 13px;
+      color: var(--text-3);
+      margin: 0;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 768px) {
+      .climate-card { padding: 36px 24px 32px; margin-top: 48px; }
+      .climate-stats { grid-template-columns: 1fr; }
+      .climate-leaf-1 { font-size: 28px; right: 18px; top: 18px; }
+      .climate-leaf-2 { display: none; }
+    }
+
     /* ─── PWA SECTION ─── */
     .pwa-section {
       padding: 100px 0;
@@ -2058,16 +2270,16 @@
           <span class="price-num">0</span>
           <span class="price-period">/ Monat</span>
         </div>
-        <p class="price-desc">Perfekt zum Einstieg. Keine Kreditkarte nötig.</p>
+        <p class="price-desc">Zum Ausprobieren. Keine Kreditkarte nötig.</p>
         <div class="price-divider"></div>
         <ul class="price-features">
-          <li class="price-feature"><span class="price-check">✓</span> 50 Aufgaben</li>
-          <li class="price-feature"><span class="price-check">✓</span> 3 Kategorien</li>
-          <li class="price-feature"><span class="price-check">✓</span> Kalenderansicht</li>
-          <li class="price-feature"><span class="price-check">✓</span> Dashboard & Profil</li>
-          <li class="price-feature"><span class="price-x">✕</span> <span style="opacity:0.4">KI-Eingabe</span></li>
-          <li class="price-feature"><span class="price-x">✕</span> <span style="opacity:0.4">Gruppen</span></li>
-          <li class="price-feature"><span class="price-x">✕</span> <span style="opacity:0.4">Dateianhänge</span></li>
+          <li class="price-feature"><span class="price-check">✓</span> <strong>30</strong> Aufgaben</li>
+          <li class="price-feature"><span class="price-check">✓</span> <strong>2</strong> Kategorien</li>
+          <li class="price-feature"><span class="price-check">✓</span> <strong>1 Gruppe</strong> · max. 3 Mitglieder</li>
+          <li class="price-feature"><span class="price-check">✓</span> Beitritt zu Gruppen unbegrenzt</li>
+          <li class="price-feature"><span class="price-check">✓</span> <strong>5 KI-Anfragen</strong> / Monat</li>
+          <li class="price-feature"><span class="price-check">✓</span> Kalender, Dashboard & Profil</li>
+          <li class="price-feature"><span class="price-x">✕</span> <span style="opacity:0.4">Anhänge, Sync, Statistiken</span></li>
         </ul>
         <a href="#" class="btn btn-outline price-btn">Kostenlos starten</a>
       </div>
@@ -2078,21 +2290,22 @@
         <div class="price-plan">Pro</div>
         <div class="price-amount">
           <span class="price-currency">€</span>
-          <span class="price-num">4<span style="font-size:32px; letter-spacing:-1px;">.99</span></span>
+          <span class="price-num">4<span style="font-size:32px; letter-spacing:-1px;">,99</span></span>
           <span class="price-period">/ Monat</span>
         </div>
-        <p class="price-desc">Für Profis die mehr brauchen. Alle KI-Features inklusive.</p>
+        <div class="price-year-hint">oder <strong>49,99&nbsp;€&nbsp;/&nbsp;Jahr</strong> · 2 Monate gratis</div>
+        <p class="price-desc">Für Vielnutzer. Alle Power-Features ohne Limits.</p>
         <div class="price-divider"></div>
         <ul class="price-features">
-          <li class="price-feature"><span class="price-check">✓</span> <strong>Unbegrenzte</strong> Aufgaben</li>
-          <li class="price-feature"><span class="price-check">✓</span> <strong>200 KI-Aufrufe</strong>/Monat</li>
-          <li class="price-feature"><span class="price-check">✓</span> <strong>3 Gruppen</strong> mit Chat</li>
-          <li class="price-feature"><span class="price-check">✓</span> Dateianhänge (4 MB)</li>
+          <li class="price-feature"><span class="price-check">✓</span> <strong>Unbegrenzte</strong> Aufgaben & Kategorien</li>
+          <li class="price-feature"><span class="price-check">✓</span> <strong>200 KI-Anfragen</strong> / Monat</li>
+          <li class="price-feature"><span class="price-check">✓</span> <strong>2 eigene Gruppen</strong> · bis 5 Mitglieder</li>
           <li class="price-feature"><span class="price-check">✓</span> Wiederkehrende Aufgaben</li>
+          <li class="price-feature"><span class="price-check">✓</span> Dateianhänge (4 MB)</li>
+          <li class="price-feature"><span class="price-check">✓</span> Kalender-Sync (ICS)</li>
           <li class="price-feature"><span class="price-check">✓</span> Statistiken & Insights</li>
-          <li class="price-feature"><span class="price-check">✓</span> Kalender-Sync</li>
         </ul>
-        <a href="#" class="btn btn-popular price-btn">Pro testen</a>
+        <a href="#" class="btn btn-popular price-btn">Pro starten</a>
       </div>
 
       <!-- Team -->
@@ -2100,21 +2313,82 @@
         <div class="price-plan">Team</div>
         <div class="price-amount">
           <span class="price-currency">€</span>
-          <span class="price-num">9<span style="font-size:32px; letter-spacing:-1px;">.99</span></span>
+          <span class="price-num">9<span style="font-size:32px; letter-spacing:-1px;">,99</span></span>
           <span class="price-period">/ Nutzer / Monat</span>
         </div>
-        <p class="price-desc">Für ganze Teams. Alles unlimitiert, Priority Support.</p>
+        <div class="price-year-hint">oder <strong>99,99&nbsp;€&nbsp;/&nbsp;Jahr/Nutzer</strong> · 2 Monate gratis</div>
+        <p class="price-desc">Für Teams & Familien. Echte Zusammenarbeit.</p>
         <div class="price-divider"></div>
         <ul class="price-features">
           <li class="price-feature"><span class="price-check">✓</span> Alles aus Pro</li>
-          <li class="price-feature"><span class="price-check">✓</span> <strong>1000 KI-Aufrufe</strong>/Monat</li>
-          <li class="price-feature"><span class="price-check">✓</span> <strong>Unbegrenzte</strong> Gruppen</li>
-          <li class="price-feature"><span class="price-check">✓</span> Priority Support</li>
-          <li class="price-feature"><span class="price-check">✓</span> Microsoft Teams Sync</li>
-          <li class="price-feature"><span class="price-check">✓</span> Erweiterte Analytik</li>
-          <li class="price-feature"><span class="price-check">✓</span> API-Zugang</li>
+          <li class="price-feature"><span class="price-check">✓</span> <strong>Unbegrenzte</strong> eigene Gruppen & Mitglieder</li>
+          <li class="price-feature"><span class="price-check">✓</span> <strong>Team-Chat</strong> & geteilte Aufgaben</li>
+          <li class="price-feature"><span class="price-check">✓</span> Rollen, Rechte & Admin-Tools</li>
+          <li class="price-feature"><span class="price-check">✓</span> <strong>1.000 KI-Anfragen</strong> / Monat</li>
+          <li class="price-feature"><span class="price-check">✓</span> Prioritäts-Support</li>
         </ul>
         <a href="#" class="btn btn-outline price-btn">Team starten</a>
+      </div>
+    </div>
+
+    <!-- ─── STRIPE CLIMATE ─── -->
+    <div class="climate-card reveal">
+      <div class="climate-orb climate-orb-1"></div>
+      <div class="climate-orb climate-orb-2"></div>
+
+      <div class="climate-leaf climate-leaf-1">🌿</div>
+      <div class="climate-leaf climate-leaf-2">🍃</div>
+      <div class="climate-leaf climate-leaf-3">🌱</div>
+
+      <div class="climate-content">
+        <div class="climate-badge">
+          <span class="climate-pulse"></span>
+          <span>Stripe Climate · Mitglied</span>
+        </div>
+
+        <h3 class="climate-title">
+          <span class="climate-percent">1%</span>
+          <span>jedes Abos für unseren Planeten.</span>
+        </h3>
+
+        <p class="climate-sub">
+          Wir spenden automatisch <strong>1% jedes Pro- und Team-Abos</strong> an
+          <a href="https://stripe.com/climate" target="_blank" rel="noopener noreferrer" class="climate-link">Stripe&nbsp;Climate</a> —
+          eine Initiative, die <strong>nachweisbar CO₂ aus der Atmosphäre entfernt</strong>.
+          Kein Greenwashing, sondern direkte Förderung der nächsten Generation
+          von Climate-Tech: Direct-Air-Capture, Pflanzenkohle, mineralische Bindung
+          und Ozean-Verfahren.
+        </p>
+
+        <div class="climate-stats">
+          <div class="climate-stat">
+            <div class="climate-stat-icon">🌍</div>
+            <div class="climate-stat-text">
+              <div class="climate-stat-num">1%</div>
+              <div class="climate-stat-label">jedes bezahlten Abos</div>
+            </div>
+          </div>
+          <div class="climate-stat">
+            <div class="climate-stat-icon">🌬️</div>
+            <div class="climate-stat-text">
+              <div class="climate-stat-num">CO₂</div>
+              <div class="climate-stat-label">nachweisbar entfernt</div>
+            </div>
+          </div>
+          <div class="climate-stat">
+            <div class="climate-stat-icon">⚡</div>
+            <div class="climate-stat-text">
+              <div class="climate-stat-num">Auto.</div>
+              <div class="climate-stat-label">ohne Aufpreis für dich</div>
+            </div>
+          </div>
+        </div>
+
+        <p class="climate-foot">
+          Du bezahlst den normalen Preis — der Klimabeitrag geht aus unserer
+          Marge. Mehr erfahren auf
+          <a href="https://stripe.com/climate" target="_blank" rel="noopener noreferrer" class="climate-link">stripe.com/climate</a>.
+        </p>
       </div>
     </div>
   </div>
