@@ -29724,9 +29724,9 @@ body.is-electron.is-mac .desktop-titlebar-center {
   position: fixed;
   inset: 0;
   z-index: 10500; /* über BottomNav (1000) UND TaskDetailModal-Fullscreen (10200) */
-  background: rgba(15, 17, 22, 0.55);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  /* Hintergrund weiß bis in die Notch-Area, damit kein dunkler Streifen
+     oberhalb des Sheets zu sehen ist. Blur entfernt, da Sheet vollflächig ist. */
+  background: var(--surface, #fff);
   display: flex;
   align-items: stretch;
   justify-content: center;
@@ -29748,10 +29748,10 @@ body.is-electron.is-mac .desktop-titlebar-center {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  height: 100vh;
-  height: 100dvh;
-  max-height: 100vh;
-  max-height: 100dvh;
+  /* Flex-Stretch des Overlays füllt vollen physischen Viewport (inkl. Notch);
+     min-height stellt sicher, dass auch ohne Stretch keine Lücke entsteht. */
+  flex: 1 1 auto;
+  min-height: 100%;
   overflow-y: auto;
   overscroll-behavior: contain;
   /* GPU-Layer für sauberen Swipe-Drag */
