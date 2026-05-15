@@ -484,6 +484,12 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
               {formatTime(task.time)}{task.time_end ? ` – ${formatTime(task.time_end)}` : ''}
             </span>
           )}
+          {!task.time && task.date && (
+            <span className="task-meta-item" style={isEventEnded ? { color: 'var(--text-tertiary)' } : {}}>
+              <Clock size={14} />
+              Ganztägig
+            </span>
+          )}
           {task.category_name && !isSharedGroupTask && (
             <span
               className="task-category-badge"
