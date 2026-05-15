@@ -819,6 +819,14 @@ html[data-theme="dark"] .cal-header-row2 {
 html[data-theme="dark"] .calendar-header {
   border-bottom-color: transparent;
 }
+/* Mobile-Page wrap überschreibt mit hartkodiertem #fff + #eef0f5 — neutralisieren */
+html[data-theme="dark"] .calendar-page-wrap .calendar-header {
+  background: transparent !important;
+  border-bottom: none !important;
+}
+html[data-theme="dark"] .calendar-page-wrap .calendar-grid {
+  background: transparent !important;
+}
 
 /* Bottom-Nav: aktiver/Hover-State im Dark Mode (weg von hellem Weiß-Backdrop) */
 html[data-theme="dark"] .bottom-nav-item.active {
