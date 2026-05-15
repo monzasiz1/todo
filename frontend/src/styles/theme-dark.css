@@ -289,12 +289,15 @@ html[data-theme="dark"] .theme-toggle-btn.active {
    ════════════════════════════════════════════════════════════════════ */
 
 /* ── App-Shell ──────────────────────────────────────────────────────── */
-/* Wichtig: nur konkret bekannte Shell-Klassen einfärben — KEINE breiten
-   Attribut-Selektoren wie [class*="sidebar-"], da diese auch Overlays
-   (z. B. .sidebar-overlay) und Komponenten-interne Klassen treffen und
-   so unbeabsichtigt das Layout brechen. */
+/* .bottom-nav ist nur Container fuer zwei Glas-Pillen + FAB → muss transparent bleiben.
+   Background liegt auf .bottom-nav-group (siehe unten). */
 html[data-theme="dark"] .app-sidebar,
-html[data-theme="dark"] .app-main,
+html[data-theme="dark"] .sidebar,
+html[data-theme="dark"] [class*="sidebar-"],
+html[data-theme="dark"] .layout,
+html[data-theme="dark"] .layout-main,
+html[data-theme="dark"] .topbar,
+html[data-theme="dark"] .top-bar,
 html[data-theme="dark"] .desktop-titlebar {
   background: var(--bg-elevated);
   color: var(--text);
@@ -304,21 +307,6 @@ html[data-theme="dark"] .bottom-nav {
   background: transparent;
   border: none;
   box-shadow: none;
-}
-
-/* Safety-Net: auf Mobile verhindern dass ein einzelnes Overflow-Element
-   die ganze Seite horizontal verschiebt (Profil-Karten "ragen rechts raus"). */
-@media (max-width: 768px) {
-  html[data-theme="dark"],
-  html[data-theme="dark"] body {
-    overflow-x: hidden;
-    max-width: 100vw;
-  }
-  html[data-theme="dark"] .app-main,
-  html[data-theme="dark"] .app-content-shell {
-    overflow-x: hidden;
-    max-width: 100%;
-  }
 }
 
 /* ── Desktop-/Tablet-Kalender (>=768px hat hartkodierte hellblaue Töne) ── */
@@ -955,8 +943,18 @@ html[data-theme="dark"] .mobile-week-grid-hour-label {
   color: var(--text-tertiary);
 }
 
-/* Bottom-Nav-Items (Container .bottom-nav-group existiert in BottomNav.jsx
-   nicht — keine Pill-Hintergründe rendern). */
+/* Bottom-Nav: dunkle Glas-Pillen (Light-Mode-Look gespiegelt, Blur erhalten) */
+html[data-theme="dark"] .bottom-nav-group {
+  background: linear-gradient(160deg, rgba(34, 42, 60, 0.78), rgba(22, 28, 42, 0.72));
+  border: 1.5px solid rgba(120, 145, 190, 0.28);
+  backdrop-filter: blur(34px) saturate(1.4) brightness(1.05);
+  -webkit-backdrop-filter: blur(34px) saturate(1.4) brightness(1.05);
+  box-shadow:
+    0 10px 32px rgba(0, 0, 0, 0.45),
+    0 2px 8px rgba(0, 0, 0, 0.30),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.04);
+}
 html[data-theme="dark"] .bottom-nav-item {
   color: var(--text-secondary);
 }
