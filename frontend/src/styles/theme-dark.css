@@ -532,10 +532,10 @@ html[data-theme="dark"] .dash-section-list .task-card,
 html[data-theme="dark"] .dash-section-list .task-card.todo {
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.04),
-    rgba(255, 255, 255, 0.015)
+    rgba(77, 163, 255, 0.18),
+    rgba(77, 163, 255, 0.05) 55%
   );
-  border-color: var(--border);
+  border-color: rgba(77, 163, 255, 0.28);
   color: var(--text);
 }
 html[data-theme="dark"] .dash-section-list .task-card.event {
@@ -569,8 +569,12 @@ html[data-theme="dark"] .task-card.ended-event:not(.completed) {
 /* Datum-Pill (links an der Task-Karte) */
 html[data-theme="dark"] .dash-section-list .task-dashboard-date,
 html[data-theme="dark"] .dash-section-list .task-dashboard-date.todo {
-  background: linear-gradient(180deg, #20283b, #161c2c);
-  border-color: var(--border);
+  background: linear-gradient(
+    180deg,
+    rgba(77, 163, 255, 0.18),
+    rgba(77, 163, 255, 0.06)
+  );
+  border-color: rgba(77, 163, 255, 0.3);
   color: var(--text);
 }
 html[data-theme="dark"] .dash-section-list .task-dashboard-date.event {
