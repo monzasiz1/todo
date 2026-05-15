@@ -35,6 +35,8 @@ html[data-theme="dark"] {
   --border:         rgba(255, 255, 255, 0.08);
   --border-strong:  rgba(255, 255, 255, 0.16);
 
+  --card-inner:     rgba(255, 255, 255, 0.04);
+
   --success:        #30D158;
   --warning:        #FFB340;
   --danger:         #FF453A;
@@ -585,6 +587,32 @@ html[data-theme="dark"] .task-edit-close {
 }
 html[data-theme="dark"] .task-edit-close:hover {
   background: rgba(255, 255, 255, 0.16);
+}
+
+/* ── Task Detail: Group / Subgroup Card ────────────────────────────── */
+html[data-theme="dark"] .task-detail-collab.task-detail-group-subgroup-card {
+  background: color-mix(in srgb, var(--group-color, #5856D6) 14%, var(--card-solid));
+  border-color: color-mix(in srgb, var(--group-color, #5856D6) 35%, var(--border));
+}
+html[data-theme="dark"] .task-detail-subgroup-row {
+  background: color-mix(in srgb, var(--group-color, #5856D6) 10%, var(--surface-2));
+  border-top-color: color-mix(in srgb, var(--group-color, #5856D6) 28%, var(--border));
+}
+html[data-theme="dark"] .task-detail-subgroup-card {
+  background: color-mix(in srgb, #4DA3FF 10%, var(--surface-2));
+}
+html[data-theme="dark"] .task-detail-subgroup-option {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text);
+}
+html[data-theme="dark"] .task-detail-subgroup-action {
+  background: rgba(77, 163, 255, 0.16);
+  border-color: rgba(77, 163, 255, 0.32);
+  color: var(--primary);
+}
+html[data-theme="dark"] .task-detail-subgroup-action:hover {
+  background: rgba(77, 163, 255, 0.26);
 }
 
 /* ── Auth Screens ───────────────────────────────────────────────────── */
