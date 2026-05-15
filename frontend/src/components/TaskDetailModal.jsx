@@ -1150,20 +1150,17 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
           </div>
         </div>
 
-        {task.location && task.location.trim() && (
-          <AnimatePresence>
-            {showMapChoice && createPortal(
-              <>
-                <div className="task-detail-mapchoice-backdrop" onClick={() => setShowMapChoice(false)} />
-                <motion.div
-                  className="task-detail-mapchoice"
-                  role="menu"
-                  style={mapChoicePos ? { position: 'fixed', top: mapChoicePos.top, right: mapChoicePos.right } : undefined}
-                  initial={{ opacity: 0, y: -6, scale: 0.96 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -6, scale: 0.96 }}
-                  transition={{ duration: 0.14 }}
-                >
+        {task.location && task.location.trim() && showMapChoice && createPortal(
+          <>
+            <div className="task-detail-mapchoice-backdrop" onClick={() => setShowMapChoice(false)} />
+            <motion.div
+              className="task-detail-mapchoice"
+              role="menu"
+              style={mapChoicePos ? { position: 'fixed', top: mapChoicePos.top, right: mapChoicePos.right } : undefined}
+              initial={{ opacity: 0, y: -6, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.14 }}
+            >
                   <div className="task-detail-mapchoice-title">Öffnen mit</div>
                   <a
                     className="task-detail-mapchoice-item"
@@ -1195,11 +1192,9 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
                     </span>
                     <ExternalLink size={13} />
                   </a>
-                </motion.div>
-              </>,
-              document.body
-            )}
-          </AnimatePresence>
+            </motion.div>
+          </>,
+          document.body
         )}
 
         {isMobile && task.group_id && task.enable_group_rsvp === true && isGroupMember && renderVoteSection()}

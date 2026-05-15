@@ -29541,3 +29541,8 @@ body.is-electron.is-mac .desktop-titlebar-center {
   color: #EE0979 !important;
   opacity: 0.85;
 }
+
+/* Ort: volle Breite wenn allein in der letzten Reihe des Grids */
+.task-detail-grid > .task-detail-item--location:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
