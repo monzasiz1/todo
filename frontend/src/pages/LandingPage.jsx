@@ -6,6 +6,7 @@ import {
   Check, CheckCircle2, ChevronDown, Clock, FileText, Flag,
   Key, Layers3, LayoutDashboard, ListTodo, Mail, Paperclip, Repeat,
   Sparkles, Tag, Target, UsersRound, User, X, Zap, Download,
+  Leaf, Timer, MessageSquare, FolderKanban, MoveDiagonal, Smartphone,
 } from 'lucide-react';
 import { PLANS } from '../lib/plans';
 import { useAuthStore } from '../store/authStore';
@@ -42,14 +43,18 @@ function getPlanBullets(plan) {
 }
 
 const bentoFeatures = [
-  { icon: Sparkles,   color: '#007AFF', bg: 'rgba(0,122,255,0.1)',   title: 'KI-Texteingabe',         desc: '"Meeting Freitag 14 Uhr" — BeeQu erkennt Datum, Zeit und Priorität automatisch.', plan: 'Pro & Team', wide: true },
-  { icon: CalendarDays,color:'#5856D6', bg: 'rgba(88,86,214,0.1)',   title: 'Kalender',               desc: 'Monats- & Wochenansicht mit direkter Aufgabenintegration.', plan: 'Alle Pläne' },
-  { icon: UsersRound, color: '#34C759', bg: 'rgba(52,199,89,0.1)',   title: 'Gruppen & Chat',         desc: 'Teams, Rollen, Echtzeit-Chat und gemeinsame Aufgaben.', plan: 'Pro & Team' },
-  { icon: Repeat,     color: '#FF9500', bg: 'rgba(255,149,0,0.1)',   title: 'Wiederholungen',         desc: 'Täglich, wöchentlich, monatlich — einmal anlegen, immer vorhanden.', plan: 'Pro & Team' },
-  { icon: BarChart2,  color: '#FF375F', bg: 'rgba(255,55,95,0.1)',   title: 'Statistiken',            desc: 'Erledigte Aufgaben, Kategorien, Wochenquote — alles auf einen Blick.', plan: 'Pro & Team' },
-  { icon: Paperclip,  color: '#FF9500', bg: 'rgba(255,149,0,0.1)',   title: 'Dateianhänge',           desc: 'Dokumente und Bilder direkt an Aufgaben anhängen — bis 4 MB.', plan: 'Pro & Team' },
-  { icon: Bell,       color: '#5856D6', bg: 'rgba(88,86,214,0.1)',   title: 'Erinnerungen',           desc: 'Push-Benachrichtigungen, die dich genau rechtzeitig erinnern.', plan: 'Alle Pläne' },
-  { icon: FileText,   color: '#007AFF', bg: 'rgba(0,122,255,0.1)',   title: 'Notizen-Board',          desc: 'Kanban-Board für schnelle Gedanken — immer griffbereit.', plan: 'Alle Pläne' },
+  { icon: Sparkles,    color: '#007AFF', bg: 'rgba(0,122,255,0.1)',   title: 'KI-Texteingabe',         desc: '"Sprint-Review Freitag 10 Uhr, hohe Prio" — BeeQu erkennt Titel, Datum, Uhrzeit, Kategorie und Priorität automatisch.', plan: 'Pro & Team', wide: true },
+  { icon: CalendarDays,color: '#5856D6', bg: 'rgba(88,86,214,0.1)',   title: 'Ultra-Kalender',         desc: 'Wochen- & Monatsansicht. Drag & Drop direkt im Raster, Termine verschieben mit einem Wisch.',                                plan: 'Alle Pläne' },
+  { icon: MessageSquare,color:'#34C759', bg: 'rgba(52,199,89,0.1)',   title: 'Team-Chat mit Events',  desc: 'Echtzeit-Chat in Gruppen, mit eingebetteten Terminen, Reaktionen, Abstimmungen und Anhängen.',                              plan: 'Team' },
+  { icon: FolderKanban,color: '#FF9500', bg: 'rgba(255,149,0,0.1)',   title: 'Gruppen-Projekt-Board', desc: 'Geteilte Aufgaben, Fortschritts-Balken und Status-Spalten — der ganzen Gruppe immer sichtbar.',                              plan: 'Pro & Team' },
+  { icon: Repeat,      color: '#FF375F', bg: 'rgba(255,55,95,0.1)',   title: 'Wiederkehrende Tasks',  desc: 'Täglich, wöchentlich, monatlich, jährlich oder benutzerdefiniert — einmal anlegen, läuft von allein.',                       plan: 'Pro & Team' },
+  { icon: Timer,       color: '#AF52DE', bg: 'rgba(175,82,222,0.1)',  title: 'Focus-Timer',           desc: 'Pomodoro-Sessions mit Push-Benachrichtigung am Ende. Läuft auch im Hintergrund weiter.',                                       plan: 'Alle Pläne' },
+  { icon: FileText,    color: '#00C7BE', bg: 'rgba(0,199,190,0.1)',   title: 'Notizen-Board',         desc: 'Sticky-Notes mit Drag & Drop auf einem freien Board. Verbindungen, Farben, Verknüpfung zu Aufgaben.',                          plan: 'Alle Pläne' },
+  { icon: BarChart2,   color: '#FF9500', bg: 'rgba(255,149,0,0.1)',   title: 'Statistiken & Insights',desc: 'Wochenquote, erledigte Aufgaben pro Kategorie, produktivste Tage — alles auf einen Blick im Dashboard.',                       plan: 'Pro & Team' },
+  { icon: Paperclip,   color: '#FF3B30', bg: 'rgba(255,59,48,0.1)',   title: 'Dateianhänge',          desc: 'Dokumente, Bilder, PDFs direkt an Aufgaben heften — bis 4 MB pro Datei, in Sekunden geladen.',                                  plan: 'Pro & Team' },
+  { icon: Bell,        color: '#5856D6', bg: 'rgba(88,86,214,0.1)',   title: 'Smarte Erinnerungen',   desc: 'Push-Benachrichtigungen genau dann, wenn es zählt. Funktioniert auch offline & im Hintergrund.',                                plan: 'Alle Pläne' },
+  { icon: MoveDiagonal,color: '#007AFF', bg: 'rgba(0,122,255,0.1)',   title: 'ICS-Kalender-Sync',     desc: 'Exportiere deinen BeeQu-Kalender als ICS-Feed — abonnierbar in Apple, Google & Outlook.',                                       plan: 'Pro & Team' },
+  { icon: Smartphone,  color: '#34C759', bg: 'rgba(52,199,89,0.1)',   title: 'PWA — überall installierbar', desc: 'iOS, Android, macOS, Windows. Offline-fähig, Push, Home-Screen-Icon. Kein App-Store nötig.',                              plan: 'Alle Pläne' },
 ];
 
 const mockTasks = [
@@ -175,6 +180,7 @@ export default function LandingPage() {
   const [verifyError,   setVerifyError]   = useState('');
   const verifyRefs = [useRef(null),useRef(null),useRef(null),useRef(null),useRef(null),useRef(null)];
   const [aiIdx, setAiIdx] = useState(0);
+  const [pricingInterval, setPricingInterval] = useState('month'); // 'month' | 'year'
   const [mockFilter, setMockFilter] = useState('all');
   const [mockCollapsed, setMockCollapsed] = useState({ today: false, later: false });
   const [mockSearchOpen, setMockSearchOpen] = useState(false);
@@ -737,11 +743,13 @@ export default function LandingPage() {
       <div className="bq-strip">
         <div className="bq-strip-inner">
           {[
-            { icon: Zap,         text: 'KI versteht natürliche Sprache' },
-            { icon: CalendarDays,text: 'Tasks direkt im Kalender' },
-            { icon: UsersRound,  text: 'Echtzeit-Gruppen-Chat' },
-            { icon: Layers3,     text: 'Tasks · Kalender · Teams in einer App' },
-            { icon: Bell,        text: 'Smarte Push-Erinnerungen' },
+            { icon: Sparkles,    text: 'KI versteht natürliche Sprache' },
+            { icon: CalendarDays,text: 'Drag & Drop im Kalender' },
+            { icon: MessageSquare,text:'Team-Chat mit Events' },
+            { icon: FolderKanban,text: 'Geteilte Projekt-Boards' },
+            { icon: Timer,       text: 'Focus-Timer & Pomodoro' },
+            { icon: Bell,        text: 'Push-Erinnerungen' },
+            { icon: Leaf,        text: '1 % für Stripe Climate' },
           ].map(({ icon: Icon, text }, i) => (
             <motion.div
               key={text} className="bq-strip-item"
@@ -901,7 +909,13 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════ PRICING ══════════ */}
-      <section className="bq-section" id="pricing">
+      <section className="bq-section bq-pricing-section" id="pricing">
+        <div className="bq-pricing-bg" aria-hidden>
+          <div className="bq-pricing-aurora bq-pricing-aurora-1" />
+          <div className="bq-pricing-aurora bq-pricing-aurora-2" />
+          <div className="bq-pricing-aurora bq-pricing-aurora-3" />
+          <div className="bq-pricing-grid-lines" />
+        </div>
         <div className="bq-container">
           <motion.div
             className="bq-section-head"
@@ -909,113 +923,174 @@ export default function LandingPage() {
             variants={fadeUp}
           >
             <span className="bq-label">Preise</span>
-            <h2>Einfach und transparent.<br /><span className="bq-h2-muted">Keine Überraschungen.</span></h2>
-            <p>Starte mit Free und upgrade wenn du bereit bist — jederzeit kündbar, keine versteckten Kosten.</p>
+            <h2>Wähle deinen Plan.<br /><span className="bq-h2-muted">Jederzeit kündbar.</span></h2>
+            <p>Starte kostenlos. Upgrade nur, wenn du wirklich mehr brauchst — keine versteckten Kosten.</p>
+          </motion.div>
+
+          {/* Interval Toggle */}
+          <motion.div
+            className="bq-price-toggle"
+            initial="hidden" whileInView="visible" viewport={{ once: true }}
+            variants={fadeUp}
+            role="tablist" aria-label="Abrechnungsintervall"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={pricingInterval === 'month'}
+              className={`bq-price-toggle-btn${pricingInterval === 'month' ? ' is-active' : ''}`}
+              onClick={() => setPricingInterval('month')}
+            >
+              Monatlich
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={pricingInterval === 'year'}
+              className={`bq-price-toggle-btn${pricingInterval === 'year' ? ' is-active' : ''}`}
+              onClick={() => setPricingInterval('year')}
+            >
+              Jährlich
+              <span className="bq-price-toggle-save">−17 %</span>
+            </button>
           </motion.div>
 
           <div className="bq-pricing-grid">
-            {orderedPlans.map((plan, i) => (
-              <motion.div
-                key={plan.id}
-                className={`bq-price-card${plan.id === 'pro' ? ' featured' : ''}`}
-                initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-40px' }}
-                custom={i} variants={fadeUp}
-              >
-                {plan.id === 'pro' && <div className="bq-price-badge">⭐ Beliebteste Wahl</div>}
-                <div className="bq-price-top">
-                  <span className="bq-price-plan" style={{ color: planAccents[plan.id] }}>{plan.label}</span>
-                  <div className="bq-price-amount">{plan.priceLabel}</div>
-                  {plan.id !== 'free' && (
-                    <div className="bq-price-year">
-                      oder <strong>{plan.priceLabelYear}</strong> · 2 Monate gratis
-                    </div>
-                  )}
-                </div>
-                <div className="bq-price-line" />
-                <ul className="bq-price-list">
-                  {getPlanBullets(plan).map((b) => (
-                    <li key={b}>
-                      <CheckCircle2 size={15} />
-                      <span>{b}</span>
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  onClick={() => setShowRegister(true)}
-                  className={`bq-btn bq-btn-lg bq-btn-full ${plan.id === 'pro' ? 'bq-primary' : 'bq-outline'}`}
+            {orderedPlans.map((plan, i) => {
+              const isPaid = plan.id !== 'free';
+              const priceLabel = !isPaid
+                ? plan.priceLabel
+                : pricingInterval === 'year'
+                  ? plan.priceLabelYear
+                  : plan.priceLabel;
+              const subPrice = !isPaid
+                ? null
+                : pricingInterval === 'year'
+                  ? `entspricht ${plan.yearlyMonthly.toFixed(2).replace('.', ',')} €/Monat`
+                  : `oder ${plan.priceLabelYear} · 2 Monate gratis`;
+              return (
+                <motion.div
+                  key={plan.id}
+                  className={`bq-price-card${plan.id === 'pro' ? ' featured' : ''}`}
+                  initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-40px' }}
+                  custom={i} variants={fadeUp}
                 >
-                  {plan.id === 'free' ? 'Kostenlos starten' : 'Freischalten'}
-                </button>
-              </motion.div>
-            ))}
+                  {plan.id === 'pro' && <div className="bq-price-glow" aria-hidden />}
+                  {plan.id === 'pro' && <div className="bq-price-badge">⭐ Beliebteste Wahl</div>}
+                  <div className="bq-price-top">
+                    <span className="bq-price-plan" style={{ color: planAccents[plan.id] }}>{plan.label}</span>
+                    <div className="bq-price-amount">{priceLabel}</div>
+                    {subPrice && <div className="bq-price-year">{subPrice}</div>}
+                  </div>
+                  <div className="bq-price-line" />
+                  <ul className="bq-price-list">
+                    {getPlanBullets(plan).map((b) => (
+                      <li key={b}>
+                        <CheckCircle2 size={15} />
+                        <span>{b}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    onClick={() => setShowRegister(true)}
+                    className={`bq-btn bq-btn-lg bq-btn-full ${plan.id === 'pro' ? 'bq-primary' : 'bq-outline'}`}
+                  >
+                    {plan.id === 'free' ? 'Kostenlos starten' : 'Freischalten'}
+                  </button>
+                </motion.div>
+              );
+            })}
           </div>
 
-          {/* ── Stripe Climate ── */}
           <motion.div
-            className="bq-climate-card"
-            initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-60px' }}
+            className="bq-price-trust"
+            initial="hidden" whileInView="visible" viewport={{ once: true }}
             variants={fadeUp}
           >
-            <div className="bq-climate-orb bq-climate-orb-1" aria-hidden />
-            <div className="bq-climate-orb bq-climate-orb-2" aria-hidden />
-            <span className="bq-climate-leaf bq-climate-leaf-1" aria-hidden>🌿</span>
-            <span className="bq-climate-leaf bq-climate-leaf-2" aria-hidden>🍃</span>
-            <span className="bq-climate-leaf bq-climate-leaf-3" aria-hidden>🌱</span>
+            <span><Check size={14} /> Jederzeit kündbar</span>
+            <span><Check size={14} /> Sichere Zahlung via Stripe</span>
+            <span><Check size={14} /> Keine versteckten Kosten</span>
+            <span><Check size={14} /> Kein Account-Lock-in — Daten-Export jederzeit</span>
+          </motion.div>
+        </div>
+      </section>
 
-            <div className="bq-climate-content">
-              <div className="bq-climate-badge">
-                <span className="bq-climate-pulse" aria-hidden />
-                <span>Stripe Climate · Mitglied</span>
+      {/* ══════════ CLIMATE (eigene Section) ══════════ */}
+      <section className="bq-climate-section" id="climate">
+        <div className="bq-climate-bg" aria-hidden>
+          <div className="bq-climate-aurora bq-climate-aurora-1" />
+          <div className="bq-climate-aurora bq-climate-aurora-2" />
+          <div className="bq-climate-aurora bq-climate-aurora-3" />
+          <div className="bq-climate-grain" />
+        </div>
+        <div className="bq-container">
+          <motion.div
+            className="bq-climate-hero"
+            initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-60px' }}
+            variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
+          >
+            <motion.span className="bq-climate-eyebrow" variants={fadeUp}>
+              <span className="bq-climate-pulse" aria-hidden />
+              <Leaf size={14} />
+              <span>Stripe Climate · Mitglied</span>
+            </motion.span>
+
+            <motion.h2 className="bq-climate-headline" variants={fadeUp}>
+              <span className="bq-climate-mega">1 %</span>
+              <span className="bq-climate-headline-text">
+                jedes Abos für<br />unseren Planeten.
+              </span>
+            </motion.h2>
+
+            <motion.p className="bq-climate-lead" variants={fadeUp}>
+              Wir spenden automatisch <strong>1 % jedes Pro- und Team-Abos</strong> an{' '}
+              <a href="https://stripe.com/climate" target="_blank" rel="noopener noreferrer" className="bq-climate-link">
+                Stripe&nbsp;Climate
+              </a>{' '}
+              — eine Initiative, die <strong>nachweisbar CO₂ aus der Atmosphäre entfernt</strong>.
+              Kein Greenwashing, sondern direkte Förderung der nächsten Generation von Climate-Tech.
+            </motion.p>
+
+            <motion.div className="bq-climate-stats" variants={fadeUp}>
+              <div className="bq-climate-stat">
+                <div className="bq-climate-stat-icon">🌍</div>
+                <div className="bq-climate-stat-num">1 %</div>
+                <div className="bq-climate-stat-label">jedes bezahlten Abos</div>
               </div>
-
-              <h3 className="bq-climate-title">
-                <span className="bq-climate-percent">1%</span>
-                <span>jedes Abos für unseren Planeten.</span>
-              </h3>
-
-              <p className="bq-climate-sub">
-                Wir spenden automatisch <strong>1 % jedes Pro- und Team-Abos</strong> an{' '}
-                <a href="https://stripe.com/climate" target="_blank" rel="noopener noreferrer" className="bq-climate-link">
-                  Stripe&nbsp;Climate
-                </a>{' '}
-                — eine Initiative, die <strong>nachweisbar CO₂ aus der Atmosphäre entfernt</strong>.
-                Kein Greenwashing, sondern direkte Förderung der nächsten Generation von
-                Climate-Tech: Direct-Air-Capture, Pflanzenkohle, mineralische Bindung und
-                Ozean-Verfahren.
-              </p>
-
-              <div className="bq-climate-stats">
-                <div className="bq-climate-stat">
-                  <div className="bq-climate-stat-icon">🌍</div>
-                  <div>
-                    <div className="bq-climate-stat-num">1 %</div>
-                    <div className="bq-climate-stat-label">jedes bezahlten Abos</div>
-                  </div>
-                </div>
-                <div className="bq-climate-stat">
-                  <div className="bq-climate-stat-icon">🌬️</div>
-                  <div>
-                    <div className="bq-climate-stat-num">CO₂</div>
-                    <div className="bq-climate-stat-label">nachweisbar entfernt</div>
-                  </div>
-                </div>
-                <div className="bq-climate-stat">
-                  <div className="bq-climate-stat-icon">⚡</div>
-                  <div>
-                    <div className="bq-climate-stat-num">Automatisch</div>
-                    <div className="bq-climate-stat-label">ohne Aufpreis für dich</div>
-                  </div>
-                </div>
+              <div className="bq-climate-stat">
+                <div className="bq-climate-stat-icon">🌬️</div>
+                <div className="bq-climate-stat-num">CO₂</div>
+                <div className="bq-climate-stat-label">nachweisbar entfernt</div>
               </div>
+              <div className="bq-climate-stat">
+                <div className="bq-climate-stat-icon">⚡</div>
+                <div className="bq-climate-stat-num">Automatisch</div>
+                <div className="bq-climate-stat-label">ohne Aufpreis für dich</div>
+              </div>
+              <div className="bq-climate-stat">
+                <div className="bq-climate-stat-icon">🔬</div>
+                <div className="bq-climate-stat-num">Verifiziert</div>
+                <div className="bq-climate-stat-label">durch unabhängige Partner</div>
+              </div>
+            </motion.div>
 
-              <p className="bq-climate-foot">
-                Du bezahlst den normalen Preis — der Klimabeitrag kommt aus unserer Marge.
-                Mehr erfahren auf{' '}
-                <a href="https://stripe.com/climate" target="_blank" rel="noopener noreferrer" className="bq-climate-link">
-                  stripe.com/climate
-                </a>.
-              </p>
-            </div>
+            <motion.div className="bq-climate-tech" variants={fadeUp}>
+              <span>Direct&nbsp;Air&nbsp;Capture</span>
+              <span>·</span>
+              <span>Pflanzenkohle</span>
+              <span>·</span>
+              <span>Mineralische Bindung</span>
+              <span>·</span>
+              <span>Ozean-Verfahren</span>
+            </motion.div>
+
+            <motion.p className="bq-climate-foot" variants={fadeUp}>
+              Du bezahlst den normalen Preis — der Klimabeitrag kommt aus unserer Marge.
+              Mehr erfahren auf{' '}
+              <a href="https://stripe.com/climate" target="_blank" rel="noopener noreferrer" className="bq-climate-link">
+                stripe.com/climate
+              </a>.
+            </motion.p>
           </motion.div>
         </div>
       </section>
