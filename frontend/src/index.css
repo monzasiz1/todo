@@ -29770,6 +29770,24 @@ body.is-electron.is-mac .desktop-titlebar-center {
   .share-sheet-handle { background: rgba(235, 235, 245, 0.32); }
 }
 
+/* Desktop / Tablet ab 720px: kein Bottom-Sheet sondern zentriertes Modal */
+@media (min-width: 720px) {
+  .share-sheet-overlay {
+    align-items: center;
+    padding: 24px;
+  }
+  .share-sheet {
+    width: min(460px, 100%);
+    max-width: 460px;
+    max-height: min(86dvh, 720px);
+    border-radius: 18px;
+    padding: 18px 22px 22px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
+  }
+  /* Desktop hat keinen Swipe-Drag → Handle ausblenden */
+  .share-sheet-handle { display: none; }
+}
+
 .share-sheet-head {
   display: flex;
   align-items: center;
