@@ -815,8 +815,27 @@ function GroupDetail({ groupId, onBack }) {
     () => groupTasks.filter((t) => !dismissedIdSet.has(String(t.id))),
     [groupTasks, dismissedIdSet]
   );
-  const activeTasks = useMemo(() => visibleGroupTasks.filter((t) => !t.completed && !isEventEnded(t)), [visibleGroupTasks]);
-  const pastTasks = useMemo(() => visibleGroupTasks.filter((t) => t.completed || isEventEnded(t)), [visibleGroupTasks]);
+  // Aktive Aufgaben: nach naechstem Datum/Zeit aufsteigend ("Naechste zuerst")
+  // Vergangene/Erledigte: nach Datum absteigend (Neueste zuerst)
+  const sortAsc = (a, b) => {
+    const da = String(a.date || '9999-12-31');
+    const db = String(b.date || '9999-12-31');
+    if (da !== db) return da < db ? -1 : 1;
+    const ta = String(a.time || '99:99');
+    const tb = String(b.time || '99:99');
+    if (ta !== tb) return ta < tb ? -1 : 1;
+    const pri = { urgent: 0, high: 1, medium: 2, low: 3 };
+    return (pri[a.priority] ?? 2) - (pri[b.priority] ?? 2);
+  };
+  const sortDesc = (a, b) => -sortAsc(a, b);
+  const activeTasks = useMemo(
+    () => visibleGroupTasks.filter((t) => !t.completed && !isEventEnded(t)).slice().sort(sortAsc),
+    [visibleGroupTasks]
+  );
+  const pastTasks = useMemo(
+    () => visibleGroupTasks.filter((t) => t.completed || isEventEnded(t)).slice().sort(sortDesc),
+    [visibleGroupTasks]
+  );
   const categoryOptions = useMemo(() => {
     const map = new Map();
     groupTasks.forEach((task) => {
