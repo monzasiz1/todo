@@ -8131,6 +8131,29 @@ body.cal-is-dragging * {
   padding: 14px 16px;
   background: var(--card-solid);
   position: relative;
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.task-detail-item > div { min-width: 0; }
+.task-detail-item .task-detail-item-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.task-detail-item .task-detail-time-range {
+  flex-wrap: wrap;
+  row-gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+}
+.task-detail-item .task-detail-time-chip {
+  flex: 0 0 auto;
+}
+/* Wenn ein Item allein in der letzten Reihe steht: volle Breite (gleiche Optik) */
+.task-detail-grid > *:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
 }
 
 /* Editierbare Datum/Uhrzeit Items */
