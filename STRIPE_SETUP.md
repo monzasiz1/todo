@@ -31,6 +31,9 @@ Im Stripe-Dashboard → *Developers → Webhooks → Add endpoint*:
   - `customer.subscription.deleted`
   - `invoice.paid`
 
+
+
+
 Nach dem Anlegen den **Signing secret** kopieren (`whsec_...`).
 
 ## 3. Vercel-Environment-Variablen

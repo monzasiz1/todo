@@ -12,6 +12,7 @@ import { de } from 'date-fns/locale';
 import SharedTaskBadge from './SharedTaskBadge';
 import AvatarBadge from './AvatarBadge';
 import DeleteTaskChoiceModal from './DeleteTaskChoiceModal';
+const ShareTaskSheet = lazy(() => import('./ShareTaskSheet'));
 
 function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = false, showSharedInfo = true }) {
   // Selektiv abonnieren: Actions sind stabil und aendern sich nie -
@@ -34,6 +35,7 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
   const [swipeX, setSwipeX] = useState(0);
   const [swipeOpen, setSwipeOpen] = useState(false);
   const swipeStateRef = useRef({ startX: 0, startY: 0, startOffset: 0, isSwipe: false, decided: false });
+  const [shareOpen, setShareOpen] = useState(false);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return null;
@@ -333,17 +335,10 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
     }
     openTask(task);
   };
-  const handleSwipeShare = async (e) => {
+  const handleSwipeShare = (e) => {
     e.stopPropagation();
     closeSwipe();
-    const shareText = `${shortTitle}${timeLabel ? ` · ${timeLabel}` : ''}`;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: shortTitle, text: shareText });
-      } else if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(shareText);
-      }
-    } catch (_) { /* user cancelled */ }
+    setShareOpen(true);
   };
   const handleSwipeEdit = (e) => {
     e.stopPropagation();
@@ -669,6 +664,16 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
           onClose={closeTask}
           onUpdated={closeTask}
           hidePrivateShareInfo={!showSharedInfo}
+        />
+      </Suspense>
+    )}
+
+    {shareOpen && (
+      <Suspense fallback={null}>
+        <ShareTaskSheet
+          task={task}
+          open={shareOpen}
+          onClose={() => setShareOpen(false)}
         />
       </Suspense>
     )}
