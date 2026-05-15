@@ -937,6 +937,33 @@ html[data-theme="dark"] .desktop-week-day-col {
 html[data-theme="dark"] .desktop-week-day-col.today {
   background: rgba(77, 163, 255, 0.08);
 }
+/* Header- und All-Day-Reihen (oberer weisser Streifen) */
+html[data-theme="dark"] .desktop-week-main {
+  background: var(--bg-elevated);
+}
+html[data-theme="dark"] .desktop-week-days-row,
+html[data-theme="dark"] .desktop-week-all-day-row {
+  background: var(--surface);
+  border-bottom-color: var(--border);
+}
+html[data-theme="dark"] .desktop-week-left-head,
+html[data-theme="dark"] .desktop-week-left-label {
+  background: var(--surface);
+  border-right-color: var(--border);
+  color: var(--text-tertiary);
+}
+html[data-theme="dark"] .desktop-week-day-head {
+  background: var(--surface);
+  border-right-color: var(--border);
+  color: var(--text-secondary);
+}
+html[data-theme="dark"] .desktop-week-day-head.today {
+  background: rgba(77, 163, 255, 0.12);
+  color: var(--primary);
+}
+html[data-theme="dark"] .desktop-week-all-day-cell {
+  border-right-color: var(--border);
+}
 /* Sidebar-Logo Titel */
 html[data-theme="dark"] .sidebar-logo h1 {
   color: var(--text);
