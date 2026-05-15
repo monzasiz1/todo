@@ -29579,8 +29579,8 @@ body.is-electron.is-mac .desktop-titlebar-center {
   grid-column: 1 / -1;
 }
 
-/* Mobile: kleiner Trash-Button auf der Karte entfaellt – Loeschen erfolgt per Swipe */
-@media (max-width: 768px) {
+/* Mobile/Tablet (Touch): kleiner Trash-Button auf der Karte entfaellt – Loeschen erfolgt per Swipe */
+@media (hover: none) and (pointer: coarse) {
   .task-card .task-actions { display: none; }
 }
 
@@ -29658,8 +29658,8 @@ body.is-electron.is-mac .desktop-titlebar-center {
 .task-swipe-action.share  { background: #3A82F6; }
 .task-swipe-action.delete { background: #E5484D; }
 
-/* Auf Desktop: keine Swipe-Aktionen und kein Hinweis */
-@media (min-width: 769px) {
+/* Nur Desktop (Hover/Maus): keine Swipe-Aktionen, kein Hint */
+@media (hover: hover) and (pointer: fine) {
   .task-card-swipe-actions { display: none; }
   .task-card-swipe-wrap { overflow: visible; }
   .task-card-swipe-wrap::after { display: none; }
