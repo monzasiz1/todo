@@ -6,7 +6,7 @@ import { useOpenTask } from '../hooks/useOpenTask';
 // TaskDetailModal ist gross und nur sichtbar, wenn der User eine Karte
 // oeffnet - lazy ausgliedern, um das Initial-Bundle zu verkleinern.
 const TaskDetailModal = lazy(() => import('./TaskDetailModal'));
-import { Check, Trash2, Clock, Calendar, CalendarCheck, GripVertical, Lock, Users, UserCheck, Repeat, Paperclip, Video, Circle, ThumbsDown, MapPin, Pencil, Share2 } from 'lucide-react';
+import { Check, Trash2, Clock, Calendar, CalendarCheck, GripVertical, Lock, Users, UserCheck, Repeat, Paperclip, Video, Circle, ThumbsDown, MapPin, Pencil, Share2, ChevronLeft } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
 import SharedTaskBadge from './SharedTaskBadge';
@@ -356,7 +356,8 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
 
   return (
     <>
-    <div className={`task-card-swipe-wrap${swipeOpen ? ' open' : ''}`}>
+    <div className={`task-card-swipe-wrap${swipeOpen ? ' open' : ''}${!swipeOpen && swipeX < -4 ? ' swiping' : ''}`}>
+      <span className="task-card-swipe-hint" aria-hidden="true"><ChevronLeft size={14} /></span>
       <div className="task-card-swipe-actions" aria-hidden={!swipeOpen}>
         <button type="button" className="task-swipe-action edit" onClick={handleSwipeEdit} aria-label="Bearbeiten">
           <Pencil size={18} />

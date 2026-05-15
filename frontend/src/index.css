@@ -29584,6 +29584,7 @@ body.is-electron.is-mac .desktop-titlebar-center {
   position: relative;
   border-radius: 16px;
   isolation: isolate;
+  overflow: hidden; /* Aktionen verstecken bis gewischt wird */
 }
 .task-card-swipe-wrap .task-card {
   position: relative;
@@ -29601,8 +29602,38 @@ body.is-electron.is-mac .desktop-titlebar-center {
   padding: 4px 4px 4px 0;
   z-index: 1;
   pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
 }
+.task-card-swipe-wrap.swiping .task-card-swipe-actions,
+.task-card-swipe-wrap.open .task-card-swipe-actions { opacity: 1; }
 .task-card-swipe-wrap.open .task-card-swipe-actions { pointer-events: auto; }
+
+/* Kleiner Swipe-Hinweis (Chevron) am rechten Kartenrand - nur Mobile */
+.task-card-swipe-hint {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 28px;
+  border-radius: 8px;
+  color: rgba(142, 142, 147, 0.65);
+  background: rgba(142, 142, 147, 0.10);
+  pointer-events: none;
+  animation: swipeHintPulse 2.4s ease-in-out infinite;
+}
+.task-card-swipe-wrap.swiping .task-card-swipe-hint,
+.task-card-swipe-wrap.open .task-card-swipe-hint { opacity: 0; animation: none; }
+@keyframes swipeHintPulse {
+  0%, 100% { transform: translateY(-50%) translateX(0); opacity: 0.55; }
+  50%      { transform: translateY(-50%) translateX(-4px); opacity: 1; }
+}
+
 .task-swipe-action {
   flex: 0 0 62px;
   display: flex;
@@ -29631,4 +29662,12 @@ body.is-electron.is-mac .desktop-titlebar-center {
 /* Auf Desktop: keine Swipe-Aktionen anzeigen */
 @media (min-width: 769px) {
   .task-card-swipe-actions { display: none; }
+  .task-card-swipe-hint { display: none; }
+  .task-card-swipe-wrap { overflow: visible; } /* Desktop: kein Clipping */
+}
+
+/* Schmale Screens: Buttons kompakter, damit Loeschen nicht ueberschiesst */
+@media (max-width: 380px) {
+  .task-swipe-action { flex: 0 0 54px; font-size: 9.5px; padding: 6px 3px; }
+  .task-card-swipe-actions { gap: 3px; padding: 3px 3px 3px 0; }
 }
