@@ -6,7 +6,7 @@ import { useOpenTask } from '../hooks/useOpenTask';
 // TaskDetailModal ist gross und nur sichtbar, wenn der User eine Karte
 // oeffnet - lazy ausgliedern, um das Initial-Bundle zu verkleinern.
 const TaskDetailModal = lazy(() => import('./TaskDetailModal'));
-import { Check, Trash2, Clock, Calendar, CalendarCheck, GripVertical, Lock, Users, UserCheck, Repeat, Paperclip, Video, Circle, ThumbsDown } from 'lucide-react';
+import { Check, Trash2, Clock, Calendar, CalendarCheck, GripVertical, Lock, Users, UserCheck, Repeat, Paperclip, Video, Circle, ThumbsDown, MapPin } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
 import SharedTaskBadge from './SharedTaskBadge';
@@ -499,6 +499,11 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
             <span className="task-meta-item" style={{ color: 'var(--text-tertiary)' }}>
               <Paperclip size={12} />
               {task.attachment_count}
+            </span>
+          )}
+          {task.location && String(task.location).trim() && (
+            <span className="task-meta-item task-meta-location" title={String(task.location).trim()}>
+              <MapPin size={12} />
             </span>
           )}
           {task.group_id && task.enable_group_rsvp === true && (

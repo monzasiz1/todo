@@ -29484,3 +29484,18 @@ body.is-electron.is-mac .desktop-titlebar-center {
   .task-detail-location-hint { color: #FF8FB5; background: rgba(255, 107, 107, 0.16); }
   .task-detail-location-chevron { color: #FF8FB5; }
 }
+
+/* Location indicator in TaskCard meta row */
+.task-meta-item.task-meta-location {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(255,107,107,0.16) 0%, rgba(238,9,121,0.16) 100%);
+  color: #EE0979;
+  border: 1px solid rgba(238, 9, 121, 0.20);
+}
+.task-meta-item.task-meta-location svg { display: block; }
