@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -93,6 +93,60 @@ export default function ShareTaskSheet({ task, open, onClose }) {
   const [copied, setCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [canNativeShare, setCanNativeShare] = useState(false);
+
+  // Swipe-down-to-close
+  const sheetRef = useRef(null);
+  const dragRef = useRef({ active: false, startY: 0, lastY: 0 });
+  const [dragY, setDragY] = useState(0);
+  const [dragging, setDragging] = useState(false);
+
+  const handleTouchStart = (e) => {
+    // Nur starten, wenn am oberen Rand gescrollt
+    const el = sheetRef.current;
+    if (!el) return;
+    if (el.scrollTop > 0) return;
+    const t = e.touches?.[0];
+    if (!t) return;
+    dragRef.current = { active: true, startY: t.clientY, lastY: t.clientY };
+  };
+  const handleTouchMove = (e) => {
+    if (!dragRef.current.active) return;
+    const t = e.touches?.[0];
+    if (!t) return;
+    const dy = t.clientY - dragRef.current.startY;
+    if (dy <= 0) {
+      // Wenn nach oben gezogen wird, drag abbrechen (normales Scrollen)
+      if (dragY !== 0) setDragY(0);
+      if (dragging) setDragging(false);
+      return;
+    }
+    if (!dragging) setDragging(true);
+    // leichte Dämpfung
+    const damped = dy < 240 ? dy : 240 + (dy - 240) * 0.35;
+    dragRef.current.lastY = t.clientY;
+    setDragY(damped);
+  };
+  const handleTouchEnd = () => {
+    if (!dragRef.current.active) return;
+    const total = dragRef.current.lastY - dragRef.current.startY;
+    dragRef.current.active = false;
+    setDragging(false);
+    if (total > 120) {
+      onClose?.();
+      // Reset für nächstes Öffnen
+      setTimeout(() => setDragY(0), 240);
+    } else {
+      setDragY(0);
+    }
+  };
+
+  useEffect(() => {
+    if (!open) {
+      setDragY(0);
+      setDragging(false);
+      dragRef.current.active = false;
+    }
+  }, [open]);
 
   useEffect(() => {
     setCanNativeShare(typeof navigator !== 'undefined' && typeof navigator.share === 'function');
@@ -225,12 +279,20 @@ export default function ShareTaskSheet({ task, open, onClose }) {
           onClick={onClose}
         >
           <motion.div
+            ref={sheetRef}
             className="share-sheet"
-            initial={{ opacity: 0, scale: 0.96, y: 16 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 16 }}
-            transition={{ type: 'spring', damping: 28, stiffness: 320, mass: 0.8 }}
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: dragY }}
+            exit={{ opacity: 0, y: '100%' }}
+            transition={dragging
+              ? { duration: 0 }
+              : { type: 'spring', damping: 30, stiffness: 320, mass: 0.8 }
+            }
             onClick={(e) => e.stopPropagation()}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchEnd}
             role="dialog"
             aria-modal="true"
             aria-label="Aufgabe teilen"

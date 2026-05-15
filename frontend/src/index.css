@@ -29718,7 +29718,7 @@ body.is-electron.is-mac .desktop-titlebar-center {
 
 
 /* ============================================================
-   Share Task Modal (Vollbild-Modal zum Teilen einer Aufgabe)
+   Share Task Modal (Vollbild auf ALLEN Devices, inkl. Notch/Safe-Areas)
    ============================================================ */
 .share-sheet-overlay {
   position: fixed;
@@ -29734,13 +29734,16 @@ body.is-electron.is-mac .desktop-titlebar-center {
 }
 
 .share-sheet {
-  width: 100%;
-  max-width: none;
+  width: 100vw;
+  max-width: 100vw;
   background: var(--surface, #fff);
   color: var(--text, #1c1c1e);
   border-radius: 0;
-  padding: 12px 18px calc(22px + env(safe-area-inset-bottom, 0px));
-  padding-top: calc(12px + env(safe-area-inset-top, 0px));
+  /* Padding inkl. Safe-Areas: Inhalt bleibt lesbar trotz Vollbild über Notch */
+  padding: calc(12px + env(safe-area-inset-top, 0px))
+           calc(18px + env(safe-area-inset-right, 0px))
+           calc(22px + env(safe-area-inset-bottom, 0px))
+           calc(18px + env(safe-area-inset-left, 0px));
   box-shadow: none;
   display: flex;
   flex-direction: column;
@@ -29751,26 +29754,22 @@ body.is-electron.is-mac .desktop-titlebar-center {
   max-height: 100dvh;
   overflow-y: auto;
   overscroll-behavior: contain;
-}
-
-/* Desktop: zentriertes Modal mit Card-Look */
-@media (min-width: 720px) {
-  .share-sheet-overlay {
-    align-items: center;
-    padding: 32px;
-  }
-  .share-sheet {
-    border-radius: 22px;
-    max-width: 560px;
-    height: auto;
-    max-height: 88vh;
-    padding: 18px 22px 22px;
-    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35), 0 10px 30px rgba(0, 0, 0, 0.2);
-  }
+  /* GPU-Layer für sauberen Swipe-Drag */
+  will-change: transform;
+  touch-action: pan-y;
 }
 
 .share-sheet-handle {
-  display: none; /* Full-Screen-Modal: kein Handle nötig */
+  display: block;
+  width: 44px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(60, 60, 67, 0.28);
+  margin: 0 auto 6px;
+  flex-shrink: 0;
+}
+@media (prefers-color-scheme: dark) {
+  .share-sheet-handle { background: rgba(235, 235, 245, 0.32); }
 }
 
 .share-sheet-head {
