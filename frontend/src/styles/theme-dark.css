@@ -632,6 +632,36 @@ html[data-theme="dark"] .task-detail-subgroup-action:hover {
   background: rgba(77, 163, 255, 0.26);
 }
 
+/* ── Share Wrap (Sichtbarkeit / externes Teilen) ─────────────────────── */
+html[data-theme="dark"] .shr-row,
+html[data-theme="dark"] .shr-row.shr-row-readonly:hover {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+html[data-theme="dark"] .shr-row:hover {
+  box-shadow: 0 6px 16px -10px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+html[data-theme="dark"] .shr-vis-tile {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text);
+}
+html[data-theme="dark"] .shr-vis-tile:hover {
+  background: var(--hover);
+  border-color: var(--border-strong);
+}
+html[data-theme="dark"] .shr-vis-tile-icon {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+}
+html[data-theme="dark"] .shr-perm-row {
+  background: var(--surface-2);
+}
+html[data-theme="dark"] .shr-external-note {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+
 /* ── Auth Screens ───────────────────────────────────────────────────── */
 html[data-theme="dark"] .bq-auth-close:hover {
   background: rgba(255, 255, 255, 0.08);

@@ -1332,7 +1332,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
 
                       {/* Info für Gruppenaufgaben-Sharing */}
                       {isGroupTaskSharingExternally && (
-                        <div style={{ fontSize: '11px', color: '#8E8E93', backgroundColor: '#F2F2F7', padding: '8px 12px', borderRadius: '6px', marginBottom: '12px' }}>
+                        <div className="shr-external-note">
                           Externe Nutzer erhalten eine schreibgeschützte Kopie dieses Gruppe-Termins. Der Zugriff ist auf Leseberechtigung beschränkt.
                         </div>
                       )}
