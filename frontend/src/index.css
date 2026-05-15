@@ -29499,3 +29499,45 @@ body.is-electron.is-mac .desktop-titlebar-center {
   border: 1px solid rgba(238, 9, 121, 0.20);
 }
 .task-meta-item.task-meta-location svg { display: block; }
+
+/* Location als Grid-Item innerhalb .task-detail-grid */
+.task-detail-item--location {
+  background:
+    linear-gradient(135deg, rgba(255,107,107,0.10) 0%, rgba(238,9,121,0.08) 100%),
+    var(--surface, #fff);
+  border: 1px solid rgba(238, 9, 121, 0.22) !important;
+  position: relative;
+  overflow: hidden;
+}
+.task-detail-item--location::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, #FF6B6B 0%, #EE0979 100%);
+  border-radius: 3px 0 0 3px;
+}
+.task-detail-item--location .task-detail-item-icon {
+  background: linear-gradient(135deg, #FF6B6B 0%, #EE0979 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 3px 10px rgba(238, 9, 121, 0.30), inset 0 1px 0 rgba(255,255,255,0.20);
+}
+.task-detail-item--location .task-detail-item-label {
+  color: #EE0979;
+  font-weight: 700;
+}
+.task-detail-item-value--location {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  display: block;
+}
+.task-detail-item--location:hover {
+  box-shadow: 0 4px 14px rgba(238, 9, 121, 0.18);
+  transform: translateY(-1px);
+}
+.task-detail-item--location .task-detail-item-edit-hint {
+  color: #EE0979 !important;
+  opacity: 0.85;
+}
