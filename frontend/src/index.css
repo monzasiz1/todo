@@ -21382,6 +21382,241 @@ body.cal-is-dragging * {
   .bq-cta { padding: 80px 24px; }
 }
 
+/* ═══════════════════════════════════════════════════════════
+   MOBILE POLISH (≤ 820px) — innovative, touch-first
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 820px) {
+  /* Nav: kompakter, kein Login-Text (nur Register als Highlight) */
+  .bq-nav { height: 58px; }
+  .bq-nav-inner { padding: 0 16px; gap: 8px; }
+  .bq-nav .bq-brand { font-size: 0.95rem; }
+  .bq-nav .bq-brand-icon { width: 26px; height: 26px; }
+  .bq-nav-actions .bq-btn { min-height: 38px; padding: 0 14px; font-size: 0.82rem; }
+  .bq-nav-actions .bq-ghost { padding: 0 12px; }
+
+  /* Container: weniger Padding */
+  .bq-container,
+  .bq-nav-inner,
+  .bq-strip-inner { width: min(100%, calc(100% - 28px)); }
+
+  /* Section spacing */
+  .bq-section { padding: 64px 0; }
+  .bq-section-head h2 { font-size: clamp(28px, 7.2vw, 40px) !important; line-height: 1.08; }
+  .bq-section-head p { font-size: 0.95rem; line-height: 1.55; }
+  .bq-section-head { margin-bottom: 36px; }
+  .bq-label { font-size: 0.72rem; }
+
+  /* Page-aurora: reduzieren für Performance */
+  .bq-page-orb { filter: blur(90px); opacity: 0.22 !important; }
+  .bq-page-orb-4 { display: none; }
+  .bq-page-noise { display: none; }
+
+  /* Hero: knackiger */
+  .bq-hero { padding-top: 110px; min-height: auto; padding-bottom: 40px; }
+  .bq-hero-h1 { font-size: clamp(36px, 9.5vw, 56px) !important; line-height: 1.02; letter-spacing: -0.045em; }
+  .bq-hero-sub { font-size: 1rem; line-height: 1.55; }
+  .bq-hero-bottom-fade { height: 100px; }
+
+  /* Hero CTA row stackt */
+  .bq-hero-cta { flex-direction: column; gap: 10px; width: 100%; }
+  .bq-hero-cta .bq-btn { width: 100%; min-height: 52px; font-size: 1rem; }
+
+  /* Bento: full-width cards mit kompakteren padding */
+  .bq-bento { grid-template-columns: 1fr !important; gap: 14px; }
+  .bq-bento-card { padding: 22px 20px; border-radius: 22px; }
+  .bq-bento-card.wide { grid-column: span 1; }
+  .bq-bento-card h3 { font-size: 1.05rem; }
+  .bq-bento-card p { font-size: 0.86rem; line-height: 1.5; }
+  .bq-bento-icon { width: 44px; height: 44px; }
+
+  /* Pricing: sticky Toggle oben + side-by-side scrollbar */
+  .bq-pricing-section { padding: 56px 0; }
+  .bq-pricing-aurora { filter: blur(80px); opacity: 0.32 !important; }
+  .bq-pricing-aurora-3 { display: none; }
+  .bq-pricing-grid-lines { background-size: 32px 32px; opacity: 0.4; }
+  .bq-price-toggle {
+    margin: 0 auto 24px;
+    padding: 4px;
+    position: sticky;
+    top: 70px;
+    z-index: 5;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+  .bq-price-toggle-btn { padding: 9px 16px; font-size: 0.84rem; }
+  .bq-price-toggle-save { font-size: 0.65rem; padding: 2px 6px; }
+
+  .bq-pricing-grid {
+    grid-template-columns: 1fr !important;
+    max-width: 440px !important;
+    margin: 0 auto !important;
+    gap: 16px;
+  }
+  .bq-price-card {
+    padding: 28px 22px;
+    border-radius: 22px;
+  }
+  .bq-price-card.featured { order: -1; }
+  .bq-price-card.featured::before,
+  .bq-price-card .bq-price-glow { opacity: 0.35; }
+  .bq-price-amount { font-size: 1.5rem !important; }
+  .bq-price-row { font-size: 0.84rem; padding: 7px 0; gap: 8px; }
+  .bq-price-row-value { font-size: 0.78rem; padding: 2px 7px; }
+  .bq-price-card .bq-btn { min-height: 48px; }
+
+  .bq-price-trust { gap: 10px 18px; font-size: 0.8rem; margin-top: 24px; }
+
+  /* Climate: Mega-1% richtig skalieren */
+  .bq-climate-section { padding: 80px 18px; }
+  .bq-climate-eyebrow { padding: 7px 14px; font-size: 0.7rem; margin-bottom: 22px; }
+  .bq-climate-headline {
+    gap: 12px;
+    margin-bottom: 22px;
+    flex-direction: column;
+    align-items: center;
+  }
+  .bq-climate-mega {
+    font-size: clamp(110px, 38vw, 180px);
+    line-height: 0.88;
+  }
+  .bq-climate-headline-text {
+    text-align: center;
+    font-size: clamp(22px, 5.8vw, 32px);
+    line-height: 1.1;
+  }
+  .bq-climate-lead { font-size: 1rem; line-height: 1.6; margin-bottom: 32px; }
+  .bq-climate-stats {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px;
+    margin-bottom: 26px;
+  }
+  .bq-climate-stat { padding: 16px 12px; border-radius: 14px; }
+  .bq-climate-stat-icon { font-size: 26px; margin-bottom: 6px; }
+  .bq-climate-stat-num { font-size: 1.15rem; }
+  .bq-climate-stat-label { font-size: 0.72rem; margin-top: 4px; }
+  .bq-climate-tech { font-size: 0.76rem; gap: 6px 10px; }
+  .bq-climate-tech span:not([class]) { padding: 4px 10px; }
+  .bq-climate-aurora { filter: blur(80px); }
+  .bq-climate-aurora-3 { display: none; }
+
+  /* CTA */
+  .bq-cta { padding: 70px 24px !important; }
+  .bq-cta-h2 { font-size: clamp(30px, 8vw, 44px) !important; line-height: 1.1; }
+  .bq-cta-inner { gap: 18px; }
+
+  /* Divider waves kompakter */
+  .bq-divider { height: 50px; margin-top: -50px; }
+  .bq-divider-flip { margin-top: 0; margin-bottom: -50px; }
+
+  /* AI / Features sub-bg dezenter */
+  .bq-features-section::before,
+  .bq-section-alt::before { animation-duration: 36s; opacity: 0.7; }
+
+  /* Strip: horizontal scroll snap = innovativ */
+  .bq-strip-inner {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 6px;
+    margin: 0 -14px;
+    padding-left: 14px;
+    padding-right: 14px;
+    scrollbar-width: none;
+  }
+  .bq-strip-inner::-webkit-scrollbar { display: none; }
+  .bq-strip-inner > * {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+
+  /* Tap-Targets generell größer */
+  .bq-btn { min-height: 46px; }
+  .bq-btn-lg { min-height: 54px; }
+
+  /* Downloads section */
+  #downloads { padding-top: 56px !important; padding-bottom: 56px !important; }
+}
+
+/* ─── Sehr kleine Phones (≤ 380px) ─── */
+@media (max-width: 380px) {
+  .bq-container,
+  .bq-nav-inner,
+  .bq-strip-inner { width: min(100%, calc(100% - 20px)); }
+  .bq-hero-h1 { font-size: clamp(30px, 9vw, 42px) !important; }
+  .bq-climate-mega { font-size: clamp(96px, 40vw, 150px); }
+  .bq-climate-stats { grid-template-columns: 1fr !important; }
+  .bq-price-card { padding: 24px 18px; }
+  .bq-price-toggle-btn { padding: 8px 12px; font-size: 0.78rem; }
+  .bq-price-toggle-save { display: none; }
+  .bq-nav-actions .bq-ghost { display: none; } /* nur "Loslegen" Button */
+}
+
+/* ─── Mobile sticky bottom CTA (innovativ, app-like) ─── */
+.bq-mobile-cta-bar {
+  display: none;
+}
+@media (max-width: 820px) {
+  .bq-mobile-cta-bar {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px 10px 16px;
+    background: rgba(10,12,20,0.78);
+    backdrop-filter: blur(22px) saturate(180%);
+    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 18px;
+    box-shadow:
+      0 16px 50px rgba(0,0,0,0.40),
+      inset 0 1px 0 rgba(255,255,255,0.08);
+    color: #fff;
+    transform: translateY(120%);
+    opacity: 0;
+    transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.45s;
+    pointer-events: none;
+  }
+  .bq-mobile-cta-bar.is-visible {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .bq-mobile-cta-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    line-height: 1.2;
+  }
+  .bq-mobile-cta-title {
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.01em;
+  }
+  .bq-mobile-cta-sub {
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.62);
+  }
+  .bq-mobile-cta-bar .bq-btn {
+    min-height: 42px;
+    padding: 0 16px;
+    font-size: 0.85rem;
+    border-radius: 12px;
+  }
+  /* Wenn Bar sichtbar → unten mehr Platz lassen, damit Inhalt nicht verdeckt */
+  body.bq-has-mobile-cta { padding-bottom: 0; }
+  .bq-mobile-cta-spacer { height: 80px; }
+}
+
 /* â”€â”€ Login 2FA back button â”€â”€ */
 .bq-auth-back-btn {
   display: inline-flex;

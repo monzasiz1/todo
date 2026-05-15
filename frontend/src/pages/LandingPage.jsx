@@ -191,6 +191,7 @@ export default function LandingPage() {
   const verifyRefs = [useRef(null),useRef(null),useRef(null),useRef(null),useRef(null),useRef(null)];
   const [aiIdx, setAiIdx] = useState(0);
   const [pricingInterval, setPricingInterval] = useState('month'); // 'month' | 'year'
+  const [mobileCtaVisible, setMobileCtaVisible] = useState(false);
   const [mockFilter, setMockFilter] = useState('all');
   const [mockCollapsed, setMockCollapsed] = useState({ today: false, later: false });
   const [mockSearchOpen, setMockSearchOpen] = useState(false);
@@ -333,6 +334,8 @@ export default function LandingPage() {
       const rect = hero.getBoundingClientRect();
       const progress = Math.min(1, Math.max(0, (-rect.top) / Math.max(1, rect.height * 0.65)));
       hero.style.setProperty('--bq-hero-scroll', progress.toFixed(3));
+      // Mobile sticky CTA: zeige nachdem Hero zu ~60 % gescrollt wurde
+      setMobileCtaVisible(progress >= 0.55);
     };
 
     const onLeave = () => {
@@ -365,6 +368,26 @@ export default function LandingPage() {
         <div className="bq-page-orb bq-page-orb-3" />
         <div className="bq-page-orb bq-page-orb-4" />
         <div className="bq-page-noise" />
+      </div>
+
+      {/* ══════════ MOBILE STICKY CTA (innovativ, nur ≤ 820px) ══════════ */}
+      <div
+        className={`bq-mobile-cta-bar${mobileCtaVisible ? ' is-visible' : ''}`}
+        role="region"
+        aria-label="Schnellstart"
+        aria-hidden={!mobileCtaVisible}
+      >
+        <div className="bq-mobile-cta-text">
+          <span className="bq-mobile-cta-title">BeeQu — alles drin.</span>
+          <span className="bq-mobile-cta-sub">Kostenlos starten · keine Karte nötig</span>
+        </div>
+        <button
+          type="button"
+          className="bq-btn bq-primary"
+          onClick={() => setShowRegister(true)}
+        >
+          Loslegen
+        </button>
       </div>
 
       {/* ══════════ NAV ══════════ */}
