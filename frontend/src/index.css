@@ -29578,10 +29578,12 @@ body.is-electron.is-mac .desktop-titlebar-center {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   z-index: 260;
-  display: flex; align-items: center; justify-content: center;
+  display: flex; align-items: flex-start; justify-content: center;
   padding: 20px;
-  padding-top: max(20px, env(safe-area-inset-top, 0px));
+  /* iPhone-Notch: Modal klar unter die Dynamic Island / Notch ziehen */
+  padding-top: calc(env(safe-area-inset-top, 0px) + 24px);
   padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
 }
 .data-export-modal {
   width: min(520px, 100%);
