@@ -29359,3 +29359,90 @@ body.is-electron.is-mac .desktop-titlebar-center {
   .task-detail-mapchoice-logo { width: 36px; height: 36px; border-radius: 11px; }
   .task-detail-mapchoice-name { font-size: 15px; }
 }
+
+/* Compact Location row - collapsible */
+.task-detail-location-compact {
+  margin: 10px 0 6px;
+  border-radius: 12px;
+  background: var(--surface-2, rgba(120,120,128,0.08));
+  overflow: hidden;
+  transition: background 0.18s ease;
+}
+.task-detail-location-compact.open {
+  background: var(--surface-2, rgba(120,120,128,0.10));
+}
+.task-detail-location-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text-primary, #1c1c1e);
+  font: inherit;
+}
+.task-detail-location-row:hover { background: rgba(0,0,0,0.03); }
+.task-detail-location-pin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: linear-gradient(135deg, #FF6B6B 0%, #EE0979 100%);
+  color: #fff;
+  flex: 0 0 auto;
+  box-shadow: 0 2px 6px rgba(238, 9, 121, 0.30);
+}
+.task-detail-location-text-compact {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-primary, #1c1c1e);
+}
+.task-detail-location-chevron {
+  color: var(--text-secondary, #8E8E93);
+  transition: transform 0.22s ease;
+  flex: 0 0 auto;
+}
+.task-detail-location-chevron.open { transform: rotate(180deg); }
+.task-detail-location-body {
+  padding: 0 10px 10px;
+}
+.task-detail-location-compact .task-detail-location-map {
+  margin: 4px 0 8px;
+  border-radius: 10px;
+  overflow: hidden;
+  height: 160px;
+  border: 1px solid rgba(0,0,0,0.06);
+}
+.task-detail-location-compact .task-detail-location-map iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+.task-detail-location-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 600px) {
+  .task-detail-location-compact .task-detail-location-map { height: 140px; }
+  .task-detail-location-text-compact { font-size: 13px; }
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .task-detail-location-compact { background: rgba(255,255,255,0.06); }
+  .task-detail-location-compact.open { background: rgba(255,255,255,0.08); }
+  .task-detail-location-row:hover { background: rgba(255,255,255,0.04); }
+}
