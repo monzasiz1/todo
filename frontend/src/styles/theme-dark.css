@@ -309,6 +309,75 @@ html[data-theme="dark"] .bottom-nav {
   box-shadow: none;
 }
 
+/* ── Desktop-/Tablet-Kalender (>=768px hat hartkodierte hellblaue Töne) ── */
+html[data-theme="dark"] .calendar-wrapper {
+  background: var(--card-solid) !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45) !important;
+}
+html[data-theme="dark"] .calendar-wrapper .calendar-header {
+  background: var(--surface) !important;
+  border-bottom-color: var(--border) !important;
+}
+html[data-theme="dark"] .calendar-wrapper .calendar-day-header {
+  background: var(--surface) !important;
+  color: var(--text-tertiary);
+  border-bottom-color: var(--border);
+}
+html[data-theme="dark"] .cal-mp-trigger {
+  color: var(--text) !important;
+}
+/* Desktop-Sidebar links (Kalenderquellen) */
+html[data-theme="dark"] .desktop-calendar-sidebar {
+  background: linear-gradient(180deg, var(--bg-elevated) 0%, var(--surface) 100%) !important;
+  border-right-color: var(--border) !important;
+}
+html[data-theme="dark"] .desktop-calendar-sidebar-title {
+  color: var(--text) !important;
+}
+html[data-theme="dark"] .desktop-sidebar-all-toggle {
+  background: var(--surface-2) !important;
+  border-color: var(--border) !important;
+  color: var(--text-secondary) !important;
+}
+html[data-theme="dark"] .desktop-sidebar-all-toggle:hover {
+  background: rgba(77, 163, 255, 0.10) !important;
+  border-color: rgba(77, 163, 255, 0.32) !important;
+}
+html[data-theme="dark"] .desktop-sidebar-all-toggle.all-active {
+  background: rgba(77, 163, 255, 0.16) !important;
+  border-color: rgba(77, 163, 255, 0.42) !important;
+  color: var(--primary) !important;
+}
+html[data-theme="dark"] .desktop-sidebar-section-toggle {
+  color: var(--text-tertiary) !important;
+}
+html[data-theme="dark"] .desktop-sidebar-section-toggle:hover {
+  color: var(--text-secondary) !important;
+}
+html[data-theme="dark"] .desktop-calendar-source-item {
+  background: var(--surface-2) !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+  box-shadow: none !important;
+}
+html[data-theme="dark"] .desktop-calendar-source-item:hover {
+  background: rgba(77, 163, 255, 0.08) !important;
+  border-color: rgba(77, 163, 255, 0.28) !important;
+  box-shadow: none !important;
+}
+html[data-theme="dark"] .desktop-calendar-source-item.active {
+  background: rgba(77, 163, 255, 0.12) !important;
+  border-color: rgba(77, 163, 255, 0.32) !important;
+}
+html[data-theme="dark"] .desktop-calendar-source-item.inactive {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-color: var(--border) !important;
+}
+html[data-theme="dark"] .desktop-calendar-source-item.inactive:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
 /* ── Kalender ───────────────────────────────────────────────────────── */
 html[data-theme="dark"] .calendar-header,
 html[data-theme="dark"] .calendar-grid,
