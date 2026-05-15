@@ -10,6 +10,7 @@ import {
   MessageCircle,
   Send,
   CalendarPlus,
+  Link as LinkIcon,
   CalendarDays,
   Clock,
   MapPin,
@@ -90,6 +91,7 @@ function buildShareText(task) {
 
 export default function ShareTaskSheet({ task, open, onClose }) {
   const [copied, setCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const [canNativeShare, setCanNativeShare] = useState(false);
 
   useEffect(() => {
@@ -97,7 +99,7 @@ export default function ShareTaskSheet({ task, open, onClose }) {
   }, []);
 
   useEffect(() => {
-    if (!open) setCopied(false);
+    if (!open) { setCopied(false); setLinkCopied(false); }
   }, [open]);
 
   // Escape schliesst Sheet
@@ -110,6 +112,15 @@ export default function ShareTaskSheet({ task, open, onClose }) {
 
   const shareText = useMemo(() => (task ? buildShareText(task) : ''), [task]);
   const subject = useMemo(() => (task?.title ? `Aufgabe: ${task.title}` : 'Aufgabe geteilt'), [task]);
+  const shareLink = useMemo(() => {
+    if (!task?.id) return '';
+    try {
+      const origin = typeof window !== 'undefined' && window.location?.origin ? window.location.origin : 'https://beequ.app';
+      return `${origin}/?task=${task.id}`;
+    } catch (_) {
+      return `https://beequ.app/?task=${task.id}`;
+    }
+  }, [task]);
 
   if (!task) return null;
 
@@ -140,9 +151,27 @@ export default function ShareTaskSheet({ task, open, onClose }) {
     } catch (_) { /* noop */ }
   };
 
+  const doCopyLink = async () => {
+    if (!shareLink) return;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareLink);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = shareLink;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 1600);
+    } catch (_) { /* noop */ }
+  };
+
   const doNativeShare = async () => {
     try {
-      await navigator.share({ title: task.title || 'Aufgabe', text: shareText });
+      await navigator.share({ title: task.title || 'Aufgabe', text: shareText, url: shareLink || undefined });
     } catch (_) { /* user cancelled */ }
   };
 
@@ -150,10 +179,12 @@ export default function ShareTaskSheet({ task, open, onClose }) {
     try { window.open(url, '_blank', 'noopener,noreferrer'); } catch (_) { /* noop */ }
   };
 
-  const doWhatsApp = () => openExternal(`https://wa.me/?text=${encodeURIComponent(shareText)}`);
-  const doTelegram = () => openExternal(`https://t.me/share/url?url=${encodeURIComponent('https://beequ.app')}&text=${encodeURIComponent(shareText)}`);
+  const waText = shareLink ? `${shareText}\n\n${shareLink}` : shareText;
+  const doWhatsApp = () => openExternal(`https://wa.me/?text=${encodeURIComponent(waText)}`);
+  const doTelegram = () => openExternal(`https://t.me/share/url?url=${encodeURIComponent(shareLink || 'https://beequ.app')}&text=${encodeURIComponent(shareText)}`);
   const doMail = () => {
-    const href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(shareText)}`;
+    const body = shareLink ? `${shareText}\n\n${shareLink}` : shareText;
+    const href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.location.href = href;
   };
 
@@ -178,6 +209,7 @@ export default function ShareTaskSheet({ task, open, onClose }) {
     { key: 'telegram', icon: Send, label: 'Telegram', hint: 'Chat öffnen', tone: 'telegram', onClick: doTelegram },
     { key: 'mail', icon: Mail, label: 'E-Mail', hint: 'Als E-Mail senden', tone: 'mail', onClick: doMail },
     { key: 'ics', icon: CalendarPlus, label: 'Kalender', hint: '.ics herunterladen', tone: 'calendar', onClick: doIcs },
+    shareLink && { key: 'link', icon: linkCopied ? Check : LinkIcon, label: linkCopied ? 'Link kopiert!' : 'Link kopieren', hint: 'Direkt-Link', tone: linkCopied ? 'success' : 'link', onClick: doCopyLink },
     { key: 'copy', icon: copied ? Check : Copy, label: copied ? 'Kopiert!' : 'Text kopieren', hint: 'In Zwischenablage', tone: copied ? 'success' : 'neutral', onClick: doCopy },
   ].filter(Boolean);
 
@@ -194,10 +226,10 @@ export default function ShareTaskSheet({ task, open, onClose }) {
         >
           <motion.div
             className="share-sheet"
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 32, stiffness: 320, mass: 0.9 }}
+            initial={{ opacity: 0, scale: 0.96, y: 16 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 16 }}
+            transition={{ type: 'spring', damping: 28, stiffness: 320, mass: 0.8 }}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"

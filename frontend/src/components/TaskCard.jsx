@@ -34,7 +34,9 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
   const SWIPE_ACTIONS_WIDTH = 156; // Spurbreite der floating Icon-Chips
   const [swipeX, setSwipeX] = useState(0);
   const [swipeOpen, setSwipeOpen] = useState(false);
-  const swipeStateRef = useRef({ startX: 0, startY: 0, startOffset: 0, isSwipe: false, decided: false });
+  const [swipeArmed, setSwipeArmed] = useState(false); // Apple-Style: voll durchgezogen → sofort löschen
+  const swipeStateRef = useRef({ startX: 0, startY: 0, startOffset: 0, isSwipe: false, decided: false, wrapWidth: 0, armed: false });
+  const swipeWrapRef = useRef(null);
   const [shareOpen, setShareOpen] = useState(false);
 
   const formatDate = (dateStr) => {
@@ -240,12 +242,15 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
     if (t) {
       touchDragRef.current.startX = t.clientX;
       touchDragRef.current.startY = t.clientY;
+      const wrapW = swipeWrapRef.current ? swipeWrapRef.current.getBoundingClientRect().width : 320;
       swipeStateRef.current = {
         startX: t.clientX,
         startY: t.clientY,
         startOffset: swipeX,
         isSwipe: false,
         decided: false,
+        wrapWidth: wrapW,
+        armed: false,
       };
     }
     if (!canShareToChat) return;
@@ -277,8 +282,21 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
     if (swipeStateRef.current.isSwipe) {
       e.preventDefault?.();
       const next = swipeStateRef.current.startOffset + dx;
-      const clamped = Math.max(-SWIPE_ACTIONS_WIDTH - 24, Math.min(30, next));
+      const wrapW = swipeStateRef.current.wrapWidth || 320;
+      // Erlaubt voll durchzuziehen bis fast komplett aus dem Bildschirm
+      const clamped = Math.max(-wrapW, Math.min(30, next));
       setSwipeX(clamped);
+      // Apple-Style: bei ≥ 60% Spurbreite "armed" → visuelle Bestätigung, dass Löschen ausgelöst wird
+      const commitDist = Math.max(220, wrapW * 0.6);
+      const nowArmed = -clamped >= commitDist;
+      if (nowArmed !== swipeStateRef.current.armed) {
+        swipeStateRef.current.armed = nowArmed;
+        setSwipeArmed(nowArmed);
+        // Haptisches Feedback (sofern verfügbar) genau am Schwellenübergang
+        if (nowArmed && typeof navigator !== 'undefined' && navigator.vibrate) {
+          try { navigator.vibrate(12); } catch (_) { /* noop */ }
+        }
+      }
       return;
     }
 
@@ -307,6 +325,24 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
     }
     // Swipe-Geste abschliessen
     if (swipeStateRef.current.isSwipe) {
+      const wrapW = swipeStateRef.current.wrapWidth || 320;
+      // Apple-Style: voll durchgezogen → sofort löschen
+      if (swipeStateRef.current.armed) {
+        // Karte ganz raus animieren, dann Delete triggern
+        setSwipeX(-wrapW);
+        setSwipeOpen(false);
+        swipeStateRef.current.isSwipe = false;
+        setTimeout(() => {
+          handleDeleteClick();
+          // Zurücksetzen für den Fall, dass der User im Choice-Modal abbricht
+          setTimeout(() => {
+            setSwipeArmed(false);
+            swipeStateRef.current.armed = false;
+            setSwipeX(0);
+          }, 220);
+        }, 200);
+        return;
+      }
       // Breite an Viewport anpassen (muss zu CSS unten passen)
       const targetWidth = (typeof window !== 'undefined' && window.innerWidth <= 380) ? 140 : SWIPE_ACTIONS_WIDTH;
       const threshold = targetWidth / 2.4;
@@ -317,6 +353,8 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
         setSwipeX(0);
         setSwipeOpen(false);
       }
+      setSwipeArmed(false);
+      swipeStateRef.current.armed = false;
       swipeStateRef.current.isSwipe = false;
       return;
     }
@@ -353,7 +391,20 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
 
   return (
     <>
-    <div className={`task-card-swipe-wrap${swipeOpen ? ' open' : ''}${!swipeOpen && swipeX < -4 ? ' swiping' : ''}`}>
+    <div
+      ref={swipeWrapRef}
+      className={`task-card-swipe-wrap${swipeOpen ? ' open' : ''}${!swipeOpen && swipeX < -4 ? ' swiping' : ''}${swipeArmed ? ' armed' : ''}`}
+    >
+      <div
+        className="task-card-swipe-commit"
+        aria-hidden="true"
+        style={{ width: `${Math.max(0, -swipeX)}px` }}
+      >
+        <span className="task-card-swipe-commit-inner">
+          <Trash2 size={22} />
+          <span className="task-card-swipe-commit-label">Löschen</span>
+        </span>
+      </div>
       <div
         className="task-card-swipe-track"
         style={{ transform: `translate3d(${swipeX}px, 0, 0)` }}

@@ -15,6 +15,7 @@ import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
 // TaskEditModal nur on-demand: oeffnet sich erst per Edit-Klick.
 const TaskEditModal = lazy(() => import('./TaskEditModal'));
+const ShareTaskSheet = lazy(() => import('./ShareTaskSheet'));
 import TaskAttachments from './TaskAttachments';
 import AvatarBadge from './AvatarBadge';
 import DeleteTaskChoiceModal from './DeleteTaskChoiceModal';
@@ -93,6 +94,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const [sharingToChat, setSharingToChat] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [shareSheetOpen, setShareSheetOpen] = useState(false);
   const [showMapChoice, setShowMapChoice] = useState(false);
   const [mapChoicePos, setMapChoicePos] = useState(null);
   const mapBtnRef = useRef(null);
@@ -873,26 +875,11 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
                   <div className="task-detail-more-item-wrap">
                     <button
                       className="task-detail-more-item"
-                      onClick={() => setShowShareMenu((s) => !s)}
+                      onClick={() => { setShowMenu(false); setShowShareMenu(false); setShareSheetOpen(true); }}
                     >
                       <Share2 size={14} style={{ marginRight: 6 }} />
-                      Teilen
+                      Teilen…
                     </button>
-                    {showShareMenu && (
-                      <div className="task-detail-share-submenu">
-                        {typeof navigator !== 'undefined' && navigator.share && (
-                          <button className="task-detail-more-item" onClick={() => handleShare('native')}>
-                            Systemdialog
-                          </button>
-                        )}
-                        <button className="task-detail-more-item" onClick={() => handleShare('whatsapp')}>
-                          WhatsApp
-                        </button>
-                        <button className="task-detail-more-item" onClick={() => handleShare('copy')}>
-                          Link kopieren
-                        </button>
-                      </div>
-                    )}
                   </div>
                   {(isOwnerResolved || isGroupAdminTask) ? (
                     <button className="task-detail-more-item danger" onClick={() => { setShowMenu(false); handleDelete(); }}>
@@ -1615,8 +1602,19 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     />
   );
 
+  const sharePortal = shareSheetOpen && createPortal(
+    <Suspense fallback={null}>
+      <ShareTaskSheet
+        task={task}
+        open={shareSheetOpen}
+        onClose={() => setShareSheetOpen(false)}
+      />
+    </Suspense>,
+    document.body
+  );
+
   if (pageMode) {
-    return <>{content}{editPortal}{deleteChoicePortal}</>;
+    return <>{content}{editPortal}{deleteChoicePortal}{sharePortal}</>;
   }
 
   // Mobile/tablet: render directly into body — no overlay wrapper
@@ -1630,6 +1628,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
         )}
         {editPortal}
         {deleteChoicePortal}
+        {sharePortal}
       </>
     );
   }
@@ -1650,6 +1649,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       </AnimatePresence>
       {editPortal}
       {deleteChoicePortal}
+      {sharePortal}
     </>
   );
 }
