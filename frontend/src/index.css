@@ -6192,6 +6192,7 @@ body.cal-is-dragging * {
     padding-top: calc(72px + env(safe-area-inset-top, 0px));
     padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px));
     max-width: 100%;
+    overflow-x: hidden;
   }
 
   .app-content-shell {
@@ -22307,7 +22308,12 @@ body.cal-is-dragging * {
     grid-template-columns: 1fr;
     padding: 16px;
     gap: 0;
+    overflow-x: hidden;
+    max-width: 100%;
   }
+  .pv2-left,
+  .pv2-right { min-width: 0; }
+  .pv2-card { max-width: 100%; }
   .pv2-stats-grid { grid-template-columns: repeat(2, 1fr); }
   .pv2-ring-wrap { flex-direction: column; align-items: flex-start; }
   .pv2-card { margin-bottom: 12px; }
