@@ -19172,8 +19172,7 @@ body.cal-is-dragging * {
 /* Sections rendern über dem globalen Aurora-Layer */
 .bq > nav,
 .bq > section,
-.bq > footer,
-.bq > .bq-auth-overlay { position: relative; z-index: 1; }
+.bq > footer { position: relative; z-index: 1; }
 
 /* Light sections lassen Page-Aurora durchscheinen */
 .bq-section { background: transparent; }
