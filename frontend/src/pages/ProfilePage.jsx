@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, useRef } from 'react';
 import Confetti from '../components/Confetti';
+import DataExportModal from '../components/DataExportModal';
 import { useAuthStore } from '../store/authStore';
 import { api } from '../utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -388,21 +389,8 @@ export default function ProfilePage() {
     }
   };
 
-  const exportData = async () => {
-    try {
-      const data = await api.exportProfile();
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `beequ-export-${format(new Date(), 'yyyy-MM-dd')}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast('Daten exportiert');
-    } catch (err) {
-      showToast(err.message, 'error');
-    }
-  };
+  const [showExportModal, setShowExportModal] = useState(false);
+  const exportData = () => setShowExportModal(true);
 
   const saveVisibility = async (val) => {
     setVisibility(val);
@@ -899,7 +887,7 @@ export default function ProfilePage() {
           <div className="pv2-section-head"><Download size={15} /><span>Konto</span></div>
           <button className="pv2-row" onClick={exportData}>
             <div className="pv2-row-icon" style={{ background: 'rgba(0,199,190,0.1)', color: '#00C7BE' }}><Download size={16} /></div>
-            <div className="pv2-row-body"><span className="pv2-row-title">Daten exportieren</span><span className="pv2-row-sub">Alle Aufgaben als JSON</span></div>
+            <div className="pv2-row-body"><span className="pv2-row-title">Daten exportieren</span><span className="pv2-row-sub">JSON, CSV oder ICS (Kalender)</span></div>
             <ChevronRight size={16} />
           </button>
           <button className="pv2-row" onClick={() => window.dispatchEvent(new Event('open-help-chat'))}>
@@ -1527,7 +1515,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <div className="profile-action-title">Daten exportieren</div>
-              <div className="profile-action-subtitle">Alle Aufgaben als JSON herunterladen</div>
+              <div className="profile-action-subtitle">JSON, CSV oder ICS – Format frei wählbar</div>
             </div>
           </div>
           <ChevronRight size={18} />
@@ -1615,6 +1603,11 @@ export default function ProfilePage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <DataExportModal
+        open={showExportModal}
+        onClose={() => setShowExportModal(false)}
+      />
     </div>
   );
 }
