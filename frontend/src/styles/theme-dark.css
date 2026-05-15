@@ -827,6 +827,10 @@ html[data-theme="dark"] .calendar-page-wrap .calendar-header {
 html[data-theme="dark"] .calendar-page-wrap .calendar-grid {
   background: transparent !important;
 }
+/* Mobile Source-Switchbar hat hartkodiertes border-top: 1px solid #eef0f5 */
+html[data-theme="dark"] .calendar-source-switchbar {
+  border-top-color: transparent !important;
+}
 
 /* Bottom-Nav: aktiver/Hover-State im Dark Mode (weg von hellem Weiß-Backdrop) */
 html[data-theme="dark"] .bottom-nav-item.active {
