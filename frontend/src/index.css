@@ -29926,92 +29926,61 @@ body.is-electron.is-mac .desktop-titlebar-center {
 
 
 /* ============================================================
-   Apple-Style Full-Swipe-to-Delete
+   Full-Swipe-to-Delete: Stretching Delete-Chip (Apple-Style ohne
+   großflächigen roten Hintergrund). Der Delete-Button wächst mit
+   --task-overpull in die Länge, der Rest der Karte bleibt unberührt.
    ============================================================ */
-.task-card-swipe-commit {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 0;
-  border-radius: 16px;
-  background: linear-gradient(90deg, #FF6B6F 0%, #E5484D 60%, #C5343A 100%);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding-right: 22px;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 0;
-  box-shadow: inset 1px 0 0 rgba(0, 0, 0, 0.08);
-  transition: background-color 0.18s ease, filter 0.18s ease;
-}
+.task-card-swipe-commit { display: none !important; }
 .task-card-swipe-wrap .task-card-swipe-track { position: relative; z-index: 1; }
 
-.task-card-swipe-commit-inner {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  font-weight: 700;
-  font-size: 14px;
-  letter-spacing: 0.1px;
-  white-space: nowrap;
-  opacity: 0;
-  transform: translateX(8px) scale(0.92);
-  transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18));
+/* Actions-Track erweitert sich um die Overpull-Distanz, damit der
+   Delete-Chip rechts Platz hat, sich auszudehnen. */
+.task-card-swipe-wrap .task-card-swipe-actions {
+  flex: 0 0 calc(156px + var(--task-overpull, 0px));
+  transition: flex-basis 340ms cubic-bezier(0.22, 1, 0.36, 1);
 }
-.task-card-swipe-commit-label {
-  opacity: 0;
-  max-width: 0;
-  overflow: hidden;
-  transition: opacity 0.18s ease, max-width 0.22s ease;
+.task-card-swipe-wrap.swiping .task-card-swipe-actions {
+  transition: none;
 }
 
-/* Ab ~ Spurbreite sichtbar */
-.task-card-swipe-wrap.swiping .task-card-swipe-commit-inner,
-.task-card-swipe-wrap.open .task-card-swipe-commit-inner {
-  opacity: 1;
-  transform: translateX(0) scale(1);
+/* Delete-Chip selbst wächst von Kreis (42px) zu Pille — andere Chips
+   bleiben unverändert. */
+.task-card-swipe-wrap .task-swipe-action.delete {
+  width: calc(42px + var(--task-overpull, 0px));
+  border-radius: 9999px;
+  justify-content: flex-end;
+  padding: 0 12px 0 14px;
+  transition:
+    width 340ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 220ms ease,
+    box-shadow 0.2s ease,
+    filter 0.15s ease,
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+.task-card-swipe-wrap.swiping .task-swipe-action.delete {
+  transition:
+    transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 220ms ease,
+    box-shadow 0.2s ease,
+    filter 0.15s ease,
+    background-color 0.18s ease,
+    color 0.18s ease;
 }
 
-/* "Armed" = User hat die Schwelle \u00fcberschritten \u2192 wird beim Loslassen gel\u00f6scht */
-.task-card-swipe-wrap.armed .task-card-swipe-commit {
+/* Armed: Chip wird kräftig rot, weißes Icon — kein Hintergrund-Bleed. */
+.task-card-swipe-wrap.armed .task-swipe-action.delete {
   background: linear-gradient(90deg, #FF3B30 0%, #D70015 100%);
-  filter: brightness(1.05);
+  border-color: rgba(199, 0, 12, 0.35);
+  color: #fff;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.10),
+    0 10px 24px rgba(229, 72, 77, 0.35);
 }
-.task-card-swipe-wrap.armed .task-card-swipe-commit-inner {
-  transform: translateX(0) scale(1.08);
-}
-.task-card-swipe-wrap.armed .task-card-swipe-commit-label {
-  opacity: 1;
-  max-width: 80px;
-}
-
-/* Wenn armed, die floating Action-Chips ausblenden (nur Delete-Layer zeigt sich) */
-.task-card-swipe-wrap.armed .task-card-swipe-actions {
-  opacity: 0;
-  transition: opacity 0.14s ease;
-  pointer-events: none;
-}
-
-/* Snap-back / commit-Animation: wenn nicht aktiv gewischt wird, animiert die Commit-Breite weich mit */
-.task-card-swipe-wrap:not(.swiping) .task-card-swipe-commit {
-  transition: width 340ms cubic-bezier(0.22, 1, 0.36, 1), background-color 0.18s ease, filter 0.18s ease;
-}
-
-/* Dark Mode bleibt im Grunde gleich, leicht satter */
 @media (prefers-color-scheme: dark) {
-  .task-card-swipe-commit {
-    background: linear-gradient(90deg, #FF5A5F 0%, #D7333A 60%, #A8252B 100%);
-  }
-  .task-card-swipe-wrap.armed .task-card-swipe-commit {
+  .task-card-swipe-wrap.armed .task-swipe-action.delete {
     background: linear-gradient(90deg, #FF453A 0%, #C0000C 100%);
+    color: #fff;
   }
-}
-
-/* Desktop: kein Commit-Layer n\u00f6tig */
-@media (hover: hover) and (pointer: fine) {
-  .task-card-swipe-commit { display: none; }
 }

@@ -394,17 +394,8 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
     <div
       ref={swipeWrapRef}
       className={`task-card-swipe-wrap${swipeOpen ? ' open' : ''}${!swipeOpen && swipeX < -4 ? ' swiping' : ''}${swipeArmed ? ' armed' : ''}`}
+      style={{ '--task-overpull': `${Math.max(0, -swipeX - SWIPE_ACTIONS_WIDTH)}px` }}
     >
-      <div
-        className="task-card-swipe-commit"
-        aria-hidden="true"
-        style={{ width: `${Math.max(0, -swipeX)}px` }}
-      >
-        <span className="task-card-swipe-commit-inner">
-          <Trash2 size={22} />
-          <span className="task-card-swipe-commit-label">Löschen</span>
-        </span>
-      </div>
       <div
         className="task-card-swipe-track"
         style={{ transform: `translate3d(${swipeX}px, 0, 0)` }}
