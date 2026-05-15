@@ -807,6 +807,25 @@ export default function LandingPage() {
 
       {/* ══════════ BENTO FEATURES ══════════ */}
       <section className="bq-section bq-features-section" id="features">
+        {/* Honeycomb-Pattern (passt zum Bee-Branding) */}
+        <div className="bq-honeycomb" aria-hidden>
+          <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="bq-hex-pattern" x="0" y="0" width="56" height="96" patternUnits="userSpaceOnUse">
+                <path d="M28 4 L52 18 L52 46 L28 60 L4 46 L4 18 Z" fill="none" stroke="rgba(0,122,255,0.13)" strokeWidth="1" />
+                <path d="M0 52 L24 66 L24 94 L0 108 L-24 94 L-24 66 Z" fill="none" stroke="rgba(88,86,214,0.12)" strokeWidth="1" />
+                <path d="M56 52 L80 66 L80 94 L56 108 L32 94 L32 66 Z" fill="none" stroke="rgba(88,86,214,0.12)" strokeWidth="1" />
+              </pattern>
+              <radialGradient id="bq-hex-fade" cx="50%" cy="40%" r="70%">
+                <stop offset="0%" stopColor="#ffffff" stopOpacity="0" />
+                <stop offset="75%" stopColor="#ffffff" stopOpacity="0" />
+                <stop offset="100%" stopColor="#ffffff" stopOpacity="1" />
+              </radialGradient>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#bq-hex-pattern)" />
+            <rect width="100%" height="100%" fill="url(#bq-hex-fade)" />
+          </svg>
+        </div>
         <div className="bq-container">
           <div className="bq-features-orb bq-features-orb-a" aria-hidden />
           <div className="bq-features-orb bq-features-orb-b" aria-hidden />
@@ -829,6 +848,7 @@ export default function LandingPage() {
                 initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-40px' }}
                 custom={i % 4} variants={fadeUp}
               >
+                <span className="bq-shine" aria-hidden />
                 <div className="bq-bento-icon" style={{ color, background: bg }}>
                   <Icon size={22} />
                 </div>
@@ -841,8 +861,16 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* divider: features (light) → AI (greige) */}
+      <div className="bq-divider bq-divider-to-ai" aria-hidden>
+        <svg viewBox="0 0 1440 80" preserveAspectRatio="none">
+          <path d="M0,0 C220,70 460,20 720,42 C980,64 1220,18 1440,55 L1440,80 L0,80 Z" fill="#F4F1EB" />
+        </svg>
+        <div className="bq-divider-sparkle" />
+      </div>
+
       {/* ══════════ AI SPOTLIGHT ══════════ */}
-      <section className="bq-section bq-section-alt" id="ai">
+      <section className="bq-section bq-section-alt bq-section-ai" id="ai">
         <div className="bq-container">
           <div className="bq-ai-split">
 
@@ -949,6 +977,14 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* divider: AI (greige) → Pricing (white) */}
+      <div className="bq-divider bq-divider-to-pricing" aria-hidden>
+        <svg viewBox="0 0 1440 80" preserveAspectRatio="none">
+          <path d="M0,80 C240,30 480,70 720,45 C960,18 1200,58 1440,28 L1440,80 Z" fill="#FFFFFF" />
+        </svg>
+        <div className="bq-divider-glow" />
+      </div>
 
       {/* ══════════ PRICING ══════════ */}
       <section className="bq-section bq-pricing-section" id="pricing">
