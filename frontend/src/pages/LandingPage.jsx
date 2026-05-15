@@ -169,6 +169,278 @@ const fadeIn = {
   visible: (i = 0) => ({ opacity: 1, transition: { delay: i * 0.06, duration: 0.4 } }),
 };
 
+/* ─────────────── interactive feature showcase ─────────────── */
+
+function FeatureDemo({ feature }) {
+  const { title, color, bg, icon: Icon } = feature;
+  const accent = { color, background: bg };
+
+  // Mini-Demo-Komposition je Feature (kein voller Mockup, nur ausdrucksstarke Andeutung)
+  if (title === 'KI-Texteingabe') {
+    return (
+      <div className="bq-demo-card">
+        <div className="bq-demo-input" style={{ borderColor: color, background: bg }}>
+          <Sparkles size={16} style={{ color }} />
+          <span className="bq-demo-typing">„Sprint-Review Freitag 10 Uhr, hohe Prio"</span>
+        </div>
+        <div className="bq-demo-chips">
+          <span className="bq-demo-chip" style={accent}>Freitag</span>
+          <span className="bq-demo-chip" style={accent}>10:00</span>
+          <span className="bq-demo-chip" style={accent}>Produkt</span>
+          <span className="bq-demo-chip" style={accent}>Hoch</span>
+        </div>
+      </div>
+    );
+  }
+  if (title === 'Ultra-Kalender') {
+    return (
+      <div className="bq-demo-card">
+        <div className="bq-demo-cal-head">Mai 2026</div>
+        <div className="bq-demo-cal">
+          {['M','D','M','D','F','S','S'].map((d) => <div key={d} className="bq-demo-cal-h">{d}</div>)}
+          {Array.from({ length: 21 }).map((_, i) => {
+            const day = i + 1;
+            const has = [2,4,7,11,13,16].includes(day);
+            const today = day === 10;
+            return (
+              <div key={i} className={`bq-demo-cal-c${has?' has':''}${today?' today':''}`}
+                   style={today ? { background: bg, color, borderColor: color } : undefined}>
+                {day}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+  if (title === 'Team-Chat mit Events') {
+    return (
+      <div className="bq-demo-card">
+        <div className="bq-demo-msg"><span className="bq-demo-avatar" style={{ background: color }}>M</span><span>„Termin verschoben auf 14:00 ✓"</span></div>
+        <div className="bq-demo-msg bq-demo-msg-event" style={{ borderColor: color, background: bg }}>
+          <CalendarDays size={14} style={{ color }} /> <strong>Sprint-Review</strong> · Fr 10:00
+        </div>
+        <div className="bq-demo-msg"><span className="bq-demo-avatar" style={{ background: '#FF9500' }}>J</span><span className="bq-demo-typing">tippt</span></div>
+      </div>
+    );
+  }
+  if (title === 'Gruppen-Projekt-Board') {
+    return (
+      <div className="bq-demo-card">
+        <div className="bq-demo-row">
+          <strong>Marketing Team</strong>
+          <div className="bq-demo-avatars">
+            <span className="bq-demo-avatar" style={{ background: '#FF9500' }}>A</span>
+            <span className="bq-demo-avatar" style={{ background: '#5856D6' }}>M</span>
+            <span className="bq-demo-avatar" style={{ background: '#34C759' }}>J</span>
+            <span className="bq-demo-avatar bq-demo-avatar-mute">+4</span>
+          </div>
+        </div>
+        <div className="bq-demo-progress"><i style={{ background: color, width: '68%' }} /></div>
+        <div className="bq-demo-meta"><span>12 / 18 Tasks</span><span style={{ color }}>+3 diese Woche</span></div>
+      </div>
+    );
+  }
+  if (title === 'Wiederkehrende Tasks') {
+    return (
+      <div className="bq-demo-card">
+        <div className="bq-demo-row"><Repeat size={14} style={{ color }} /> Sport <span className="bq-demo-chip" style={accent}>Mo · Mi · Fr</span></div>
+        <div className="bq-demo-row"><Repeat size={14} style={{ color }} /> Standup <span className="bq-demo-chip" style={accent}>Täglich 09:00</span></div>
+        <div className="bq-demo-row"><Repeat size={14} style={{ color }} /> Monatsbericht <span className="bq-demo-chip" style={accent}>Letzter Tag</span></div>
+      </div>
+    );
+  }
+  if (title === 'Focus-Timer') {
+    return (
+      <div className="bq-demo-card bq-demo-center">
+        <div className="bq-demo-ring" style={{ '--bq-ring-color': color }}>
+          <svg viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(0,0,0,0.06)" strokeWidth="6" />
+            <circle cx="50" cy="50" r="44" fill="none" stroke={color} strokeWidth="6"
+                    strokeDasharray="276" strokeDashoffset="92" strokeLinecap="round"
+                    transform="rotate(-90 50 50)" />
+          </svg>
+          <div className="bq-demo-ring-text"><strong>17:42</strong><span>Fokus</span></div>
+        </div>
+      </div>
+    );
+  }
+  if (title === 'Notizen-Board') {
+    return (
+      <div className="bq-demo-board">
+        <div className="bq-demo-sticky" style={{ background: '#FFF6C8' }}>Newsletter Q3<br /><small>Idee</small></div>
+        <div className="bq-demo-sticky" style={{ background: '#D5F0FF' }}>Launch-Plan<br /><small>In Arbeit</small></div>
+        <div className="bq-demo-sticky" style={{ background: '#DCFCE7' }}>Recherche<br /><small>Fertig</small></div>
+        <svg className="bq-demo-board-lines" viewBox="0 0 300 140" aria-hidden>
+          <path d="M70 30 C 110 50, 130 60, 160 70" stroke={color} strokeWidth="1.5" fill="none" strokeDasharray="3 3" />
+        </svg>
+      </div>
+    );
+  }
+  if (title === 'Statistiken & Insights') {
+    return (
+      <div className="bq-demo-card">
+        <div className="bq-demo-meta"><span>Diese Woche</span><span style={{ color: '#34C759' }}>+18 %</span></div>
+        <div className="bq-demo-chart">
+          {[0.45,0.7,0.55,0.82,0.65,0.95,0.6].map((v, i) => (
+            <i key={i} style={{ height: `${v*100}%`, background: `linear-gradient(180deg, ${color}, ${color}33)` }} />
+          ))}
+        </div>
+        <div className="bq-demo-meta"><span>Erledigt: <strong style={{ color }}>47</strong></span><span>Streak: <strong style={{ color }}>12 T.</strong></span></div>
+      </div>
+    );
+  }
+  if (title === 'Dateianhänge') {
+    return (
+      <div className="bq-demo-card">
+        <div className="bq-demo-file"><span className="bq-demo-file-ico" style={accent}>📄</span><div><div>Briefing-Q2.pdf</div><small>2,4 MB</small></div></div>
+        <div className="bq-demo-file"><span className="bq-demo-file-ico" style={accent}>🖼</span><div><div>moodboard.jpg</div><small>1,1 MB</small></div></div>
+      </div>
+    );
+  }
+  if (title === 'Smarte Erinnerungen') {
+    return (
+      <div className="bq-demo-card bq-demo-center">
+        <div className="bq-demo-bell" style={{ background: bg, borderColor: color, color }}>
+          <Bell size={28} />
+        </div>
+        <div className="bq-demo-toast">
+          <small>in 15 Min · Push</small>
+          <div>Meeting mit Team</div>
+        </div>
+      </div>
+    );
+  }
+  if (title === 'ICS-Kalender-Sync') {
+    return (
+      <div className="bq-demo-card">
+        <div className="bq-demo-row"><MoveDiagonal size={14} style={{ color }} /> beequ.ics <span className="bq-demo-chip" style={accent}>abonnierbar</span></div>
+        <div className="bq-demo-row" style={{ opacity: 0.85 }}>📅 Apple Kalender</div>
+        <div className="bq-demo-row" style={{ opacity: 0.85 }}>📅 Google Calendar</div>
+        <div className="bq-demo-row" style={{ opacity: 0.85 }}>📅 Outlook</div>
+      </div>
+    );
+  }
+  if (title === 'PWA — überall installierbar') {
+    return (
+      <div className="bq-demo-card bq-demo-center">
+        <div className="bq-demo-devices">
+          <Smartphone size={36} style={{ color }} />
+          <LayoutDashboard size={44} style={{ color: '#5856D6' }} />
+          <Layers3 size={32} style={{ color: '#FF9500' }} />
+        </div>
+        <div className="bq-demo-meta" style={{ justifyContent: 'center', gap: 14 }}>
+          <span>iOS</span><span>Android</span><span>macOS</span><span>Windows</span>
+        </div>
+      </div>
+    );
+  }
+  // Fallback
+  return (
+    <div className="bq-demo-card bq-demo-center">
+      <div className="bq-demo-bell" style={{ background: bg, borderColor: color, color }}>
+        <Icon size={28} />
+      </div>
+    </div>
+  );
+}
+
+function FeatureShowcase({ features }) {
+  const [active, setActive] = useState(0);
+  const item = features[active];
+  const stageRef = useRef(null);
+
+  const handleMove = (e) => {
+    const el = stageRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    el.style.setProperty('--mx', `${((e.clientX - r.left) / r.width) * 100}%`);
+    el.style.setProperty('--my', `${((e.clientY - r.top) / r.height) * 100}%`);
+  };
+  const handleLeave = () => {
+    const el = stageRef.current;
+    if (!el) return;
+    el.style.setProperty('--mx', '50%');
+    el.style.setProperty('--my', '50%');
+  };
+
+  return (
+    <div
+      className="bq-showcase"
+      style={{
+        '--bq-card-accent': item.color,
+        '--bq-card-tint': item.bg,
+      }}
+    >
+      <div className="bq-showcase-list" role="tablist" aria-label="Features">
+        <motion.span
+          className="bq-showcase-pill"
+          aria-hidden
+          animate={{ y: active * 60 }}
+          transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+        />
+        {features.map((f, i) => {
+          const Icon = f.icon;
+          const isActive = i === active;
+          return (
+            <button
+              key={f.title}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              className={`bq-showcase-item${isActive ? ' active' : ''}`}
+              style={{ '--bq-card-accent': f.color, '--bq-card-tint': f.bg }}
+              onMouseEnter={() => setActive(i)}
+              onFocus={() => setActive(i)}
+              onClick={() => setActive(i)}
+            >
+              <span className="bq-showcase-item-icon"><Icon size={16} /></span>
+              <span className="bq-showcase-item-text">
+                <span className="bq-showcase-item-title">{f.title}</span>
+                <span className="bq-showcase-item-plan">{f.plan}</span>
+              </span>
+              <span className="bq-showcase-item-arrow"><ArrowRight size={14} /></span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div
+        className="bq-showcase-stage"
+        ref={stageRef}
+        onMouseMove={handleMove}
+        onMouseLeave={handleLeave}
+      >
+        <div className="bq-showcase-stage-grid" aria-hidden />
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={item.title}
+            className="bq-showcase-slide"
+            initial={{ opacity: 0, y: 16, scale: 0.985 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.99 }}
+            transition={{ duration: 0.42, ease }}
+          >
+            <div className="bq-showcase-slide-head">
+              <span className="bq-showcase-tag" style={{ color: item.color, background: item.bg, borderColor: item.color }}>
+                <item.icon size={14} /> {item.plan}
+              </span>
+              <span className="bq-showcase-counter">{String(active + 1).padStart(2, '0')} / {String(features.length).padStart(2, '0')}</span>
+            </div>
+            <h3 className="bq-showcase-headline">
+              {item.title}
+            </h3>
+            <p className="bq-showcase-copy">{item.desc}</p>
+            <div className="bq-showcase-visual">
+              <FeatureDemo feature={item} />
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
 /* ─────────────── component ─────────────── */
 
 export default function LandingPage() {
@@ -813,7 +1085,7 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* ══════════ BENTO FEATURES ══════════ */}
+      {/* ══════════ INTERACTIVE FEATURE SHOWCASE ══════════ */}
       <section className="bq-section bq-features-section" id="features">
         {/* Honeycomb-Pattern (passt zum Bee-Branding) */}
         <div className="bq-honeycomb" aria-hidden>
@@ -847,25 +1119,7 @@ export default function LandingPage() {
             <p>Keine drei verschiedenen Tools mehr. BeeQu vereint Aufgabenverwaltung, Kalender und Teamarbeit — mit KI als Herzstück.</p>
           </motion.div>
 
-          <div className="bq-bento">
-            {bentoFeatures.map(({ icon: Icon, color, bg, title, desc, plan, wide }, i) => (
-              <motion.div
-                key={title}
-                className={`bq-bento-card${wide ? ' wide' : ''}`}
-                style={{ '--bq-card-accent': color, '--bq-card-tint': bg }}
-                initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-40px' }}
-                custom={i % 4} variants={fadeUp}
-              >
-                <span className="bq-shine" aria-hidden />
-                <div className="bq-bento-icon" style={{ color, background: bg }}>
-                  <Icon size={22} />
-                </div>
-                <div className="bq-bento-plan" style={{ color, background: bg }}>{plan}</div>
-                <h3>{title}</h3>
-                <p>{desc}</p>
-              </motion.div>
-            ))}
-          </div>
+          <FeatureShowcase features={bentoFeatures} />
         </div>
       </section>
 

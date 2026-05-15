@@ -598,45 +598,7 @@
       line-height: 1.6;
     }
 
-    /* ─── FEATURES ─── */
-    .features {
-      padding: 120px 0;
-    }
-
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 24px;
-    }
-
-    .feature-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 36px;
-      transition: all 0.3s var(--transition);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .feature-card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, var(--accent-color, rgba(0,122,255,0.06)), transparent 60%);
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-
-    .feature-card:hover {
-      background: var(--bg-card-hover);
-      border-color: rgba(255,255,255,0.14);
-      transform: translateY(-4px);
-      box-shadow: var(--shadow-card);
-    }
-
-    .feature-card:hover::before { opacity: 1; }
-
+    /* ─── shared icon utility (used in other sections too) ─── */
     .feature-icon {
       width: 56px;
       height: 56px;
@@ -649,56 +611,542 @@
       position: relative;
       z-index: 1;
     }
-
-    .icon-blue { background: rgba(0,122,255,0.15); }
+    .icon-blue   { background: rgba(0,122,255,0.15); }
     .icon-purple { background: rgba(88,86,214,0.15); }
-    .icon-green { background: rgba(48,209,88,0.15); }
+    .icon-green  { background: rgba(48,209,88,0.15); }
     .icon-orange { background: rgba(255,159,10,0.15); }
-    .icon-pink { background: rgba(255,55,95,0.15); }
-    .icon-cyan { background: rgba(50,215,226,0.15); }
+    .icon-pink   { background: rgba(255,55,95,0.15); }
+    .icon-cyan   { background: rgba(50,215,226,0.15); }
 
-    .feature-title {
-      font-size: 20px;
-      font-weight: 700;
-      margin-bottom: 12px;
-      letter-spacing: -0.5px;
+    /* ─── FEATURES (Interactive Spotlight Showcase) ─── */
+    .features {
+      padding: 120px 0;
       position: relative;
-      z-index: 1;
     }
 
-    .feature-desc {
+    .features::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 20%;
+      width: 720px;
+      height: 720px;
+      transform: translateX(-50%);
+      background: radial-gradient(circle, var(--accent-glow, rgba(0,122,255,0.18)) 0%, transparent 60%);
+      filter: blur(80px);
+      opacity: 0.55;
+      pointer-events: none;
+      transition: background 0.8s ease;
+      z-index: 0;
+    }
+
+    .features .container { position: relative; z-index: 1; }
+
+    .feature-showcase {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 32px;
+      margin-top: 56px;
+      align-items: stretch;
+    }
+
+    /* ── Linke Liste ── */
+    .feature-list {
+      position: relative;
+      isolation: isolate;
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 10px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    .feature-pill {
+      position: absolute;
+      top: 0;
+      left: 10px;
+      right: 10px;
+      height: 72px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, var(--accent-color, rgba(0,122,255,0.18)), rgba(255,255,255,0.04));
+      border: 1px solid var(--accent-border, rgba(0,122,255,0.4));
+      box-shadow: 0 8px 28px var(--accent-shadow, rgba(0,122,255,0.25)), inset 0 1px 0 rgba(255,255,255,0.08);
+      transform: translateY(0);
+      transition: transform 0.55s cubic-bezier(0.65, 0, 0.35, 1),
+                  background 0.4s ease,
+                  border-color 0.4s ease,
+                  box-shadow 0.4s ease;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .feature-item {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 18px;
+      height: 72px;
+      border-radius: 16px;
+      cursor: pointer;
+      transition: color 0.3s ease;
+      color: var(--text-2);
+    }
+
+    .feature-item:hover { color: var(--text); }
+
+    .feature-item.active {
+      color: var(--text);
+    }
+
+    .feature-item .fi-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      flex-shrink: 0;
+      transition: all 0.35s ease;
+    }
+
+    .feature-item.active .fi-icon {
+      background: var(--accent-color, rgba(0,122,255,0.22));
+      border-color: var(--accent-border, rgba(0,122,255,0.45));
+      transform: scale(1.05);
+    }
+
+    .feature-item .fi-text {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .feature-item .fi-title {
+      font-size: 14.5px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+    }
+
+    .feature-item .fi-sub {
+      font-size: 12px;
+      color: var(--text-3);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 230px;
+    }
+
+    .feature-item .fi-arrow {
+      margin-left: auto;
+      opacity: 0;
+      transform: translateX(-4px);
+      transition: all 0.3s ease;
+      color: var(--text-2);
+      font-size: 16px;
+    }
+
+    .feature-item.active .fi-arrow {
+      opacity: 1;
+      transform: translateX(0);
+      color: var(--text);
+    }
+
+    /* ── Rechtes Demo-Panel ── */
+    .feature-stage {
+      position: relative;
+      min-height: 540px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      background:
+        radial-gradient(600px circle at var(--mx, 50%) var(--my, 50%), var(--accent-glow, rgba(0,122,255,0.16)), transparent 55%),
+        linear-gradient(160deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015));
+      overflow: hidden;
+      padding: 40px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      transition: border-color 0.5s ease;
+    }
+
+    .feature-stage::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(135deg, var(--accent-border, rgba(0,122,255,0.5)), transparent 50%);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+              mask-composite: exclude;
+      opacity: 0.6;
+      pointer-events: none;
+      transition: background 0.6s ease;
+    }
+
+    .stage-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
+      -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
+      pointer-events: none;
+    }
+
+    .stage-slides {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      min-height: 460px;
+    }
+
+    .stage-slide {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transform: translateY(14px) scale(0.985);
+      transition: opacity 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+                  transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .stage-slide.active {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .stage-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .stage-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 100px;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      background: var(--accent-color, rgba(0,122,255,0.15));
+      border: 1px solid var(--accent-border, rgba(0,122,255,0.35));
+      color: var(--text);
+    }
+
+    .stage-counter {
+      font-size: 12px;
+      color: var(--text-3);
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .stage-headline {
+      font-size: clamp(26px, 2.6vw, 34px);
+      font-weight: 800;
+      letter-spacing: -0.8px;
+      line-height: 1.15;
+      max-width: 520px;
+    }
+
+    .stage-headline .gradient-text {
+      background: linear-gradient(135deg, var(--accent-strong, #3A9FFF), #FFFFFF);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .stage-copy {
       font-size: 15px;
       color: var(--text-2);
-      line-height: 1.65;
+      line-height: 1.6;
+      max-width: 520px;
+    }
+
+    .stage-visual {
+      margin-top: auto;
       position: relative;
-      z-index: 1;
-    }
-
-    .feature-card.featured {
-      grid-column: span 2;
-      background: linear-gradient(135deg, rgba(0,122,255,0.1), rgba(88,86,214,0.08));
-      border-color: rgba(0,122,255,0.25);
-    }
-
-    .feature-card.featured:hover {
-      border-color: rgba(0,122,255,0.4);
-      box-shadow: 0 20px 60px rgba(0,122,255,0.15);
-    }
-
-    .feature-tags {
+      flex: 1;
       display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-top: 20px;
-      position: relative;
-      z-index: 1;
+      align-items: flex-end;
+      justify-content: flex-end;
+      min-height: 220px;
     }
 
-    .feature-tag {
-      font-size: 12px;
-      padding: 5px 12px;
+    /* Demo-Visuals (kleine Mockups je Feature) */
+    .demo-card {
+      background: rgba(10,10,16,0.7);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+      backdrop-filter: blur(12px);
+      min-width: 320px;
+    }
+
+    .demo-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .demo-row:last-child { margin-bottom: 0; }
+
+    .demo-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .demo-chip {
+      margin-left: auto;
+      font-size: 10.5px;
+      padding: 3px 9px;
       border-radius: 100px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    .demo-input {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: rgba(0,122,255,0.08);
+      border: 1px solid rgba(0,122,255,0.3);
+      font-size: 13.5px;
+      color: var(--text);
+      font-style: italic;
+      box-shadow: 0 0 0 4px rgba(0,122,255,0.08);
+    }
+
+    .demo-typing::after {
+      content: '|';
+      animation: blink 1s infinite;
+      color: var(--blue-light);
+      font-style: normal;
+      margin-left: 2px;
+    }
+
+    @keyframes blink { 50% { opacity: 0; } }
+
+    .demo-cal {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+    }
+
+    .demo-cal-cell {
+      aspect-ratio: 1;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.05);
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      color: var(--text-3);
+      position: relative;
       font-weight: 600;
+    }
+
+    .demo-cal-cell.has::after {
+      content: '';
+      position: absolute;
+      bottom: 4px; left: 50%;
+      transform: translateX(-50%);
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: var(--accent-strong, #3A9FFF);
+    }
+
+    .demo-cal-cell.today {
+      background: var(--accent-color, rgba(0,122,255,0.2));
+      border-color: var(--accent-border, rgba(0,122,255,0.5));
+      color: var(--text);
+    }
+
+    .demo-avatars {
+      display: flex;
+      align-items: center;
+    }
+    .demo-avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      border: 2px solid rgba(10,10,16,0.9);
+      margin-left: -8px;
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: white;
+    }
+    .demo-avatar:first-child { margin-left: 0; }
+
+    .demo-bar {
+      height: 8px;
+      border-radius: 100px;
+      background: rgba(255,255,255,0.06);
+      overflow: hidden;
+      position: relative;
+    }
+    .demo-bar > i {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      background: linear-gradient(90deg, var(--accent-strong, #3A9FFF), var(--accent-soft, #5856D6));
+      border-radius: inherit;
+      animation: barfill 2.2s ease-in-out infinite;
+    }
+    @keyframes barfill {
+      0%, 100% { width: 30%; }
+      50% { width: 85%; }
+    }
+
+    .demo-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      height: 90px;
+      padding-top: 8px;
+    }
+    .demo-chart > i {
+      flex: 1;
+      background: linear-gradient(180deg, var(--accent-strong, #3A9FFF), transparent);
+      border-radius: 6px 6px 0 0;
+      opacity: 0.85;
+      animation: bargrow 2.8s ease-in-out infinite;
+    }
+    @keyframes bargrow {
+      0%, 100% { transform: scaleY(0.5); transform-origin: bottom; }
+      50%      { transform: scaleY(1);   transform-origin: bottom; }
+    }
+    .demo-chart > i:nth-child(2) { animation-delay: 0.15s; }
+    .demo-chart > i:nth-child(3) { animation-delay: 0.3s; }
+    .demo-chart > i:nth-child(4) { animation-delay: 0.45s; }
+    .demo-chart > i:nth-child(5) { animation-delay: 0.6s; }
+    .demo-chart > i:nth-child(6) { animation-delay: 0.75s; }
+    .demo-chart > i:nth-child(7) { animation-delay: 0.9s; }
+
+    .demo-bell {
+      position: relative;
+      width: 80px; height: 80px;
+      border-radius: 24px;
+      display: grid; place-items: center;
+      font-size: 38px;
+      background: var(--accent-color, rgba(0,122,255,0.18));
+      border: 1px solid var(--accent-border, rgba(0,122,255,0.4));
+      animation: shake 2.4s ease-in-out infinite;
+    }
+    @keyframes shake {
+      0%, 92%, 100% { transform: rotate(0); }
+      94% { transform: rotate(-12deg); }
+      96% { transform: rotate(10deg); }
+      98% { transform: rotate(-6deg); }
+    }
+    .demo-bell::after {
+      content: '';
+      position: absolute; inset: -8px;
+      border-radius: inherit;
+      border: 1px solid var(--accent-border, rgba(0,122,255,0.4));
+      animation: ping 2.4s ease-out infinite;
+    }
+    @keyframes ping {
+      0% { transform: scale(1); opacity: 0.8; }
+      100% { transform: scale(1.4); opacity: 0; }
+    }
+
+    .demo-kanban {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .demo-col {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 10px;
+      min-height: 130px;
+    }
+    .demo-col h6 {
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-3);
+      margin-bottom: 8px;
+    }
+    .demo-note {
+      background: rgba(255,255,255,0.06);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 11.5px;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+
+    .demo-attach {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 13px;
+    }
+    .demo-attach .file-ico {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      display: grid; place-items: center;
+      background: var(--accent-color);
+      border: 1px solid var(--accent-border);
+      font-size: 16px;
+    }
+
+    .demo-meta {
+      display: flex;
+      gap: 14px;
+      margin-top: 12px;
+      font-size: 11.5px;
+      color: var(--text-3);
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+    .demo-meta b { color: var(--accent-strong, var(--blue-light)); font-weight: 700; }
+
+    @media (max-width: 1024px) {
+      .feature-showcase { grid-template-columns: 1fr; }
+      .feature-stage { min-height: 560px; }
+    }
+    @media (max-width: 640px) {
+      .feature-stage { padding: 24px; min-height: auto; }
+      .stage-slide { position: relative; opacity: 1; transform: none; pointer-events: auto; }
+      .stage-slide:not(.active) { display: none; }
+      .demo-card { min-width: 0; width: 100%; }
+      .stage-headline { font-size: 22px; }
+      .feature-item .fi-sub { display: none; }
     }
 
     /* ─── AI SPOTLIGHT ─── */
@@ -1927,63 +2375,294 @@
       <p class="section-sub">Keine drei verschiedenen Apps mehr. BeeQu vereint Aufgabenverwaltung, Kalender und Teamkommunikation nahtlos.</p>
     </div>
 
-    <div class="features-grid">
-      <div class="feature-card featured reveal" style="--accent-color: rgba(0,122,255,0.1);">
-        <div class="feature-icon icon-blue">✦</div>
-        <h3 class="feature-title">KI-Assistent für natürliche Sprache</h3>
-        <p class="feature-desc">Tippe einfach "Morgen Arzt um 10 Uhr" und BeeQu erstellt automatisch die Aufgabe — mit Datum, Uhrzeit, Kategorie und Priorität. Kein manuelles Ausfüllen mehr.</p>
-        <div class="feature-tags">
-          <span class="feature-tag tag-blue">200 KI-Aufrufe/Monat (Pro)</span>
-          <span class="feature-tag tag-purple">1000 KI-Aufrufe/Monat (Team)</span>
+    <div class="feature-showcase reveal" id="featureShowcase">
+      <!-- Linke Liste -->
+      <div class="feature-list" id="featureList">
+        <span class="feature-pill" id="featurePill"></span>
+
+        <div class="feature-item active" data-feature="ai"
+             data-color="rgba(0,122,255,0.22)" data-border="rgba(0,122,255,0.5)"
+             data-glow="rgba(0,122,255,0.22)" data-strong="#3A9FFF" data-soft="#5856D6">
+          <div class="fi-icon">✦</div>
+          <div class="fi-text">
+            <span class="fi-title">KI-Assistent</span>
+            <span class="fi-sub">Aufgaben per natürlicher Sprache</span>
+          </div>
+          <span class="fi-arrow">→</span>
+        </div>
+
+        <div class="feature-item" data-feature="calendar"
+             data-color="rgba(88,86,214,0.22)" data-border="rgba(88,86,214,0.5)"
+             data-glow="rgba(88,86,214,0.22)" data-strong="#8B89FF" data-soft="#5856D6">
+          <div class="fi-icon">◷</div>
+          <div class="fi-text">
+            <span class="fi-title">Intelligenter Kalender</span>
+            <span class="fi-sub">Monats- und Wochenansicht</span>
+          </div>
+          <span class="fi-arrow">→</span>
+        </div>
+
+        <div class="feature-item" data-feature="recurring"
+             data-color="rgba(48,209,88,0.22)" data-border="rgba(48,209,88,0.5)"
+             data-glow="rgba(48,209,88,0.22)" data-strong="#5BE584" data-soft="#30D158">
+          <div class="fi-icon">↺</div>
+          <div class="fi-text">
+            <span class="fi-title">Wiederkehrende Aufgaben</span>
+            <span class="fi-sub">Automatisch täglich, wöchentlich, monatlich</span>
+          </div>
+          <span class="fi-arrow">→</span>
+        </div>
+
+        <div class="feature-item" data-feature="groups"
+             data-color="rgba(255,159,10,0.22)" data-border="rgba(255,159,10,0.5)"
+             data-glow="rgba(255,159,10,0.22)" data-strong="#FFB73D" data-soft="#FF9F0A">
+          <div class="fi-icon">◈</div>
+          <div class="fi-text">
+            <span class="fi-title">Gruppen & Teamarbeit</span>
+            <span class="fi-sub">Rollen, Mitglieder & Berechtigungen</span>
+          </div>
+          <span class="fi-arrow">→</span>
+        </div>
+
+        <div class="feature-item" data-feature="chat"
+             data-color="rgba(50,215,226,0.22)" data-border="rgba(50,215,226,0.5)"
+             data-glow="rgba(50,215,226,0.22)" data-strong="#5BE3EC" data-soft="#32D7E2">
+          <div class="fi-icon">💬</div>
+          <div class="fi-text">
+            <span class="fi-title">Echtzeit-Gruppen-Chat</span>
+            <span class="fi-sub">Nachrichten, Dateien, Benachrichtigungen</span>
+          </div>
+          <span class="fi-arrow">→</span>
+        </div>
+
+        <div class="feature-item" data-feature="attach"
+             data-color="rgba(255,55,95,0.22)" data-border="rgba(255,55,95,0.5)"
+             data-glow="rgba(255,55,95,0.22)" data-strong="#FF6386" data-soft="#FF375F">
+          <div class="fi-icon">📎</div>
+          <div class="fi-text">
+            <span class="fi-title">Dateianhänge</span>
+            <span class="fi-sub">Dokumente, Bilder & Dateien bis 4&nbsp;MB</span>
+          </div>
+          <span class="fi-arrow">→</span>
+        </div>
+
+        <div class="feature-item" data-feature="stats"
+             data-color="rgba(48,209,88,0.22)" data-border="rgba(48,209,88,0.5)"
+             data-glow="rgba(48,209,88,0.22)" data-strong="#5BE584" data-soft="#30D158">
+          <div class="fi-icon">📊</div>
+          <div class="fi-text">
+            <span class="fi-title">Statistiken & Einblicke</span>
+            <span class="fi-sub">Produktivität messbar machen</span>
+          </div>
+          <span class="fi-arrow">→</span>
+        </div>
+
+        <div class="feature-item" data-feature="reminders"
+             data-color="rgba(0,122,255,0.22)" data-border="rgba(0,122,255,0.5)"
+             data-glow="rgba(0,122,255,0.22)" data-strong="#3A9FFF" data-soft="#007AFF">
+          <div class="fi-icon">🔔</div>
+          <div class="fi-text">
+            <span class="fi-title">Smarte Erinnerungen</span>
+            <span class="fi-sub">Desktop- und Push-Benachrichtigungen</span>
+          </div>
+          <span class="fi-arrow">→</span>
+        </div>
+
+        <div class="feature-item" data-feature="notes"
+             data-color="rgba(88,86,214,0.22)" data-border="rgba(88,86,214,0.5)"
+             data-glow="rgba(88,86,214,0.22)" data-strong="#8B89FF" data-soft="#5856D6">
+          <div class="fi-icon">✎</div>
+          <div class="fi-text">
+            <span class="fi-title">Notizen & Board</span>
+            <span class="fi-sub">Kanban für Ideen & Gedanken</span>
+          </div>
+          <span class="fi-arrow">→</span>
         </div>
       </div>
 
-      <div class="feature-card reveal reveal-delay-1">
-        <div class="feature-icon icon-purple">◷</div>
-        <h3 class="feature-title">Intelligenter Kalender</h3>
-        <p class="feature-desc">Monats- und Wochenansicht mit direkter Aufgabenintegration. Plane deinen Tag im Überblick, nie wieder Termine vergessen.</p>
-      </div>
+      <!-- Rechtes Demo-Panel -->
+      <div class="feature-stage" id="featureStage">
+        <div class="stage-grid"></div>
+        <div class="stage-slides">
 
-      <div class="feature-card reveal reveal-delay-1">
-        <div class="feature-icon icon-green">↺</div>
-        <h3 class="feature-title">Wiederkehrende Aufgaben</h3>
-        <p class="feature-desc">Täglich, wöchentlich, monatlich — Aufgaben die sich wiederholen legt BeeQu automatisch an. Du fokussierst dich aufs Tun.</p>
-      </div>
+          <!-- 1 KI -->
+          <div class="stage-slide active" data-slide="ai">
+            <div class="stage-header">
+              <span class="stage-tag">✦ KI-Assistent</span>
+              <span class="stage-counter">01 / 09</span>
+            </div>
+            <h3 class="stage-headline">Tippe einen Satz —<br><span class="gradient-text">erhalte eine fertige Aufgabe.</span></h3>
+            <p class="stage-copy">Schreib „Morgen Arzt um 10 Uhr" — BeeQu erkennt Datum, Uhrzeit, Kategorie und Priorität. Funktioniert in mehreren Sprachen.</p>
+            <div class="stage-visual">
+              <div class="demo-card" style="width:100%">
+                <div class="demo-input demo-typing">"Freitag Einkaufen um 17:30 nicht vergessen"</div>
+                <div class="demo-meta"><span>Erkannt:</span> <b>Freitag · 17:30 · Einkaufen · Niedrig</b></div>
+              </div>
+            </div>
+          </div>
 
-      <div class="feature-card reveal reveal-delay-2">
-        <div class="feature-icon icon-orange">◈</div>
-        <h3 class="feature-title">Gruppen & Teamarbeit</h3>
-        <p class="feature-desc">Erstelle Gruppen, lade Mitglieder ein und verwaltet Aufgaben gemeinsam. Mit Rollen (Owner, Admin, Member) und eigenem Gruppen-Chat.</p>
-      </div>
+          <!-- 2 Kalender -->
+          <div class="stage-slide" data-slide="calendar">
+            <div class="stage-header">
+              <span class="stage-tag">◷ Kalender</span>
+              <span class="stage-counter">02 / 09</span>
+            </div>
+            <h3 class="stage-headline">Dein Monat,<br><span class="gradient-text">auf einen Blick.</span></h3>
+            <p class="stage-copy">Termine, Aufgaben und Deadlines in einer klaren Ansicht. Mit nur einem Klick zwischen Monat und Woche wechseln.</p>
+            <div class="stage-visual">
+              <div class="demo-card" style="width:100%">
+                <div class="demo-cal">
+                  <div class="demo-cal-cell">M</div><div class="demo-cal-cell">D</div><div class="demo-cal-cell">M</div>
+                  <div class="demo-cal-cell">D</div><div class="demo-cal-cell">F</div><div class="demo-cal-cell">S</div><div class="demo-cal-cell">S</div>
+                  <div class="demo-cal-cell">1</div><div class="demo-cal-cell has">2</div><div class="demo-cal-cell">3</div>
+                  <div class="demo-cal-cell has">4</div><div class="demo-cal-cell">5</div><div class="demo-cal-cell">6</div><div class="demo-cal-cell has">7</div>
+                  <div class="demo-cal-cell">8</div><div class="demo-cal-cell">9</div><div class="demo-cal-cell today">10</div>
+                  <div class="demo-cal-cell has">11</div><div class="demo-cal-cell">12</div><div class="demo-cal-cell has">13</div><div class="demo-cal-cell">14</div>
+                </div>
+              </div>
+            </div>
+          </div>
 
-      <div class="feature-card reveal reveal-delay-2">
-        <div class="feature-icon icon-cyan">💬</div>
-        <h3 class="feature-title">Echtzeit-Gruppen-Chat</h3>
-        <p class="feature-desc">Kommuniziere direkt in deinen Gruppen — mit Dateianhängen, sofortigen Benachrichtigungen und nahtloser Aufgabenverknüpfung.</p>
-      </div>
+          <!-- 3 Recurring -->
+          <div class="stage-slide" data-slide="recurring">
+            <div class="stage-header">
+              <span class="stage-tag">↺ Wiederkehrend</span>
+              <span class="stage-counter">03 / 09</span>
+            </div>
+            <h3 class="stage-headline">Einmal anlegen,<br><span class="gradient-text">unendlich oft erledigen.</span></h3>
+            <p class="stage-copy">Tägliche Routinen, Wochenmeetings, Monatsabschlüsse — BeeQu erstellt automatisch jede Wiederholung im richtigen Moment.</p>
+            <div class="stage-visual">
+              <div class="demo-card" style="width:100%">
+                <div class="demo-row"><span class="demo-dot" style="background:#30D158"></span> Sport · Mo, Mi, Fr <span class="demo-chip" style="background:rgba(48,209,88,0.18);color:#5BE584">Wöchentlich</span></div>
+                <div class="demo-row"><span class="demo-dot" style="background:#30D158"></span> Team-Standup <span class="demo-chip" style="background:rgba(48,209,88,0.18);color:#5BE584">Täglich 09:00</span></div>
+                <div class="demo-row"><span class="demo-dot" style="background:#30D158"></span> Monatsbericht <span class="demo-chip" style="background:rgba(48,209,88,0.18);color:#5BE584">Letzter Tag</span></div>
+              </div>
+            </div>
+          </div>
 
-      <div class="feature-card reveal reveal-delay-3">
-        <div class="feature-icon icon-pink">📎</div>
-        <h3 class="feature-title">Dateianhänge</h3>
-        <p class="feature-desc">Hänge Dokumente, Bilder und Dateien direkt an Aufgaben an — bis zu 4 MB pro Datei. Alles an einem Ort, nichts geht verloren.</p>
-      </div>
+          <!-- 4 Groups -->
+          <div class="stage-slide" data-slide="groups">
+            <div class="stage-header">
+              <span class="stage-tag">◈ Gruppen</span>
+              <span class="stage-counter">04 / 09</span>
+            </div>
+            <h3 class="stage-headline">Gemeinsam planen.<br><span class="gradient-text">Gemeinsam erledigen.</span></h3>
+            <p class="stage-copy">Erstelle Gruppen, lade Mitglieder ein, vergebe Rollen — Owner, Admin oder Member. Mit eigenem Chat und gemeinsamen Aufgaben.</p>
+            <div class="stage-visual">
+              <div class="demo-card" style="width:100%">
+                <div class="demo-row" style="margin-bottom:12px;">
+                  <strong style="font-size:13px;">Marketing Team</strong>
+                  <div class="demo-avatars" style="margin-left:auto;">
+                    <div class="demo-avatar" style="background:#FF9F0A">A</div>
+                    <div class="demo-avatar" style="background:#5856D6">M</div>
+                    <div class="demo-avatar" style="background:#30D158">J</div>
+                    <div class="demo-avatar" style="background:rgba(255,255,255,0.15);color:var(--text-2)">+4</div>
+                  </div>
+                </div>
+                <div class="demo-row"><span class="demo-dot" style="background:#FF9F0A"></span> Kampagne planen <span class="demo-chip" style="background:rgba(255,159,10,0.2);color:#FFB73D">Admin</span></div>
+                <div class="demo-row"><span class="demo-dot" style="background:#FF9F0A"></span> Content prüfen <span class="demo-chip" style="background:rgba(255,159,10,0.2);color:#FFB73D">Member</span></div>
+              </div>
+            </div>
+          </div>
 
-      <div class="feature-card reveal reveal-delay-3">
-        <div class="feature-icon icon-green">📊</div>
-        <h3 class="feature-title">Statistiken & Einblicke</h3>
-        <p class="feature-desc">Verfolge deine Produktivität mit detaillierten Auswertungen. Wie viele Aufgaben hast du erledigt? Wann bist du am produktivsten?</p>
-      </div>
+          <!-- 5 Chat -->
+          <div class="stage-slide" data-slide="chat">
+            <div class="stage-header">
+              <span class="stage-tag">💬 Chat</span>
+              <span class="stage-counter">05 / 09</span>
+            </div>
+            <h3 class="stage-headline">Reden, wo<br><span class="gradient-text">die Arbeit passiert.</span></h3>
+            <p class="stage-copy">Echtzeit-Nachrichten direkt in der Gruppe — mit Dateianhängen, sofortigen Push-Benachrichtigungen und Aufgaben-Verknüpfung.</p>
+            <div class="stage-visual">
+              <div class="demo-card" style="width:100%">
+                <div class="demo-row" style="background:rgba(50,215,226,0.06);border-color:rgba(50,215,226,0.18)"><div class="demo-avatar" style="background:#32D7E2;margin:0;width:24px;height:24px;border:none;font-size:10px">M</div> <span>„Termin verschoben auf morgen 14 Uhr ✓"</span></div>
+                <div class="demo-row"><div class="demo-avatar" style="background:#5856D6;margin:0;width:24px;height:24px;border:none;font-size:10px">A</div> <span>„Brief.pdf angehängt"</span><span class="demo-chip" style="background:rgba(255,255,255,0.06)">📎</span></div>
+                <div class="demo-row"><div class="demo-avatar" style="background:#FF9F0A;margin:0;width:24px;height:24px;border:none;font-size:10px">J</div> <span class="demo-typing">tippt</span></div>
+              </div>
+            </div>
+          </div>
 
-      <div class="feature-card reveal reveal-delay-1">
-        <div class="feature-icon icon-blue">🔔</div>
-        <h3 class="feature-title">Smarte Erinnerungen</h3>
-        <p class="feature-desc">Desktop- und App-Benachrichtigungen die dich genau dann erinnern, wenn eine Aufgabe fällig wird. Nie wieder etwas vergessen.</p>
-      </div>
+          <!-- 6 Attach -->
+          <div class="stage-slide" data-slide="attach">
+            <div class="stage-header">
+              <span class="stage-tag">📎 Anhänge</span>
+              <span class="stage-counter">06 / 09</span>
+            </div>
+            <h3 class="stage-headline">Dateien direkt<br><span class="gradient-text">an der Aufgabe.</span></h3>
+            <p class="stage-copy">Hänge Dokumente, Bilder und PDFs an Aufgaben an — bis zu 4 MB pro Datei. Alles bleibt im Kontext, nichts geht verloren.</p>
+            <div class="stage-visual">
+              <div class="demo-card" style="width:100%">
+                <div class="demo-attach"><div class="file-ico">📄</div> <div><div>Briefing-Q2.pdf</div><div style="font-size:11px;color:var(--text-3)">2,4 MB · gerade hinzugefügt</div></div></div>
+                <div style="height:8px"></div>
+                <div class="demo-attach"><div class="file-ico">🖼</div> <div><div>moodboard.jpg</div><div style="font-size:11px;color:var(--text-3)">1,1 MB · 2 Tage</div></div></div>
+              </div>
+            </div>
+          </div>
 
-      <div class="feature-card reveal reveal-delay-2">
-        <div class="feature-icon icon-purple">✎</div>
-        <h3 class="feature-title">Notizen & Board</h3>
-        <p class="feature-desc">Kanban-ähnliches Notizen-Board für schnelle Gedanken, Ideen und Brainstorming — immer griffbereit neben deinen Aufgaben.</p>
+          <!-- 7 Stats -->
+          <div class="stage-slide" data-slide="stats">
+            <div class="stage-header">
+              <span class="stage-tag">📊 Statistiken</span>
+              <span class="stage-counter">07 / 09</span>
+            </div>
+            <h3 class="stage-headline">Sieh, wann du<br><span class="gradient-text">am stärksten bist.</span></h3>
+            <p class="stage-copy">Detaillierte Auswertungen zeigen dir, wie viel du geschafft hast und wann du am produktivsten bist.</p>
+            <div class="stage-visual">
+              <div class="demo-card" style="width:100%">
+                <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">
+                  <span>Diese Woche</span><span style="color:#5BE584">+18 %</span>
+                </div>
+                <div class="demo-chart"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="demo-meta"><span>Erledigt:</span><b>47</b><span>Streak:</span><b>12 Tage</b></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 8 Reminders -->
+          <div class="stage-slide" data-slide="reminders">
+            <div class="stage-header">
+              <span class="stage-tag">🔔 Erinnerungen</span>
+              <span class="stage-counter">08 / 09</span>
+            </div>
+            <h3 class="stage-headline">Pünktlich. Immer.<br><span class="gradient-text">Ohne Nachdenken.</span></h3>
+            <p class="stage-copy">Desktop- und Push-Benachrichtigungen genau dann, wenn eine Aufgabe fällig wird — nie wieder etwas vergessen.</p>
+            <div class="stage-visual" style="justify-content:flex-start;align-items:center;gap:24px;">
+              <div class="demo-bell">🔔</div>
+              <div class="demo-card" style="flex:1">
+                <div style="font-size:11px;color:var(--text-3);font-weight:700;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">in 15 Min · Push</div>
+                <div style="font-size:14px;font-weight:600;">Meeting mit Team</div>
+                <div style="font-size:12.5px;color:var(--text-2);margin-top:4px;">14:00 · Konferenzraum 3</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 9 Notes -->
+          <div class="stage-slide" data-slide="notes">
+            <div class="stage-header">
+              <span class="stage-tag">✎ Notizen</span>
+              <span class="stage-counter">09 / 09</span>
+            </div>
+            <h3 class="stage-headline">Gedanken festhalten.<br><span class="gradient-text">Ideen ordnen.</span></h3>
+            <p class="stage-copy">Ein Kanban-Board direkt neben deinen Aufgaben — für Brainstorming, Roadmaps und alles, was kurz raus muss.</p>
+            <div class="stage-visual">
+              <div style="width:100%">
+                <div class="demo-kanban">
+                  <div class="demo-col"><h6>Ideen</h6>
+                    <div class="demo-note">Newsletter Q3</div>
+                    <div class="demo-note">Podcast-Idee</div>
+                  </div>
+                  <div class="demo-col"><h6>In Arbeit</h6>
+                    <div class="demo-note">Launch-Plan</div>
+                  </div>
+                  <div class="demo-col"><h6>Fertig</h6>
+                    <div class="demo-note">Recherche</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
   </div>
@@ -2579,6 +3258,69 @@
       }
     });
   });
+
+  // ─── FEATURE SHOWCASE (spotlight + magnetic pill + crossfade) ───
+  (function () {
+    const showcase = document.getElementById('featureShowcase');
+    if (!showcase) return;
+
+    const items   = showcase.querySelectorAll('.feature-item');
+    const slides  = showcase.querySelectorAll('.stage-slide');
+    const pill    = document.getElementById('featurePill');
+    const stage   = document.getElementById('featureStage');
+    const list    = document.getElementById('featureList');
+    const features= document.querySelector('.features');
+
+    function activate(item) {
+      if (!item) return;
+      items.forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+
+      // Pill auf das Item legen (item.offsetTop ist relativ zur .feature-list)
+      pill.style.transform = `translateY(${item.offsetTop}px)`;
+
+      // Akzentfarben übernehmen
+      const c = item.dataset.color   || 'rgba(0,122,255,0.22)';
+      const b = item.dataset.border  || 'rgba(0,122,255,0.5)';
+      const g = item.dataset.glow    || 'rgba(0,122,255,0.22)';
+      const s = item.dataset.strong  || '#3A9FFF';
+      const so= item.dataset.soft    || '#5856D6';
+
+      [pill, stage, features].forEach(el => {
+        el.style.setProperty('--accent-color',  c);
+        el.style.setProperty('--accent-border', b);
+        el.style.setProperty('--accent-glow',   g);
+        el.style.setProperty('--accent-strong', s);
+        el.style.setProperty('--accent-soft',   so);
+      });
+
+      // Slide wechseln
+      const key = item.dataset.feature;
+      slides.forEach(sl => sl.classList.toggle('active', sl.dataset.slide === key));
+    }
+
+    items.forEach(item => {
+      item.addEventListener('mouseenter', () => activate(item));
+      item.addEventListener('click',      () => activate(item));
+      item.addEventListener('focus',      () => activate(item));
+      item.setAttribute('tabindex', '0');
+    });
+
+    // Initial: Pill auf das aktive Item
+    requestAnimationFrame(() => activate(showcase.querySelector('.feature-item.active')));
+    window.addEventListener('resize', () => activate(showcase.querySelector('.feature-item.active')));
+
+    // Mouse-following Spotlight im Stage
+    stage.addEventListener('mousemove', (e) => {
+      const r = stage.getBoundingClientRect();
+      stage.style.setProperty('--mx', ((e.clientX - r.left) / r.width  * 100) + '%');
+      stage.style.setProperty('--my', ((e.clientY - r.top)  / r.height * 100) + '%');
+    });
+    stage.addEventListener('mouseleave', () => {
+      stage.style.setProperty('--mx', '50%');
+      stage.style.setProperty('--my', '50%');
+    });
+  })();
 
   // ─── AI INPUT ANIMATION ───
   const aiInputTexts = [
