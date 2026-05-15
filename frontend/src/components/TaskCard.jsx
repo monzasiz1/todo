@@ -30,7 +30,7 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
   });
 
   // Swipe-to-reveal (mobile): nach links wischen, um Aktionen freizulegen
-  const SWIPE_ACTIONS_WIDTH = 186; // 3 buttons à 58px + 2×4px gap
+  const SWIPE_ACTIONS_WIDTH = 156; // Spurbreite der floating Icon-Chips
   const [swipeX, setSwipeX] = useState(0);
   const [swipeOpen, setSwipeOpen] = useState(false);
   const swipeStateRef = useRef({ startX: 0, startY: 0, startOffset: 0, isSwipe: false, decided: false });
@@ -306,7 +306,7 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
     // Swipe-Geste abschliessen
     if (swipeStateRef.current.isSwipe) {
       // Breite an Viewport anpassen (muss zu CSS unten passen)
-      const targetWidth = (typeof window !== 'undefined' && window.innerWidth <= 380) ? 168 : SWIPE_ACTIONS_WIDTH;
+      const targetWidth = (typeof window !== 'undefined' && window.innerWidth <= 380) ? 140 : SWIPE_ACTIONS_WIDTH;
       const threshold = targetWidth / 2.4;
       if (swipeX < -threshold) {
         setSwipeX(-targetWidth);

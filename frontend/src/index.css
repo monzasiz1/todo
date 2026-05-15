@@ -29597,8 +29597,7 @@ body.is-electron.is-mac .desktop-titlebar-center {
   align-items: stretch;
   width: 100%;
   will-change: transform;
-  /* Smoothe Snap-Animation; waehrend des aktiven Drags wird sie deaktiviert */
-  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .task-card-swipe-wrap.swiping .task-card-swipe-track { transition: none; }
 .task-card-swipe-track > .task-card {
@@ -29606,12 +29605,15 @@ body.is-electron.is-mac .desktop-titlebar-center {
   min-width: 0;
   will-change: transform;
 }
+
+/* Floating Icon-Chips: minimal, premium, ohne grosse Farbflaechen */
 .task-card-swipe-actions {
-  flex: 0 0 186px;
+  flex: 0 0 156px;
   display: flex;
-  align-items: stretch;
-  gap: 6px;
-  padding: 4px 4px 4px 8px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 10px 0 12px;
   pointer-events: none;
 }
 .task-card-swipe-wrap.open .task-card-swipe-actions { pointer-events: auto; }
@@ -29634,86 +29636,88 @@ body.is-electron.is-mac .desktop-titlebar-center {
 .task-card-swipe-wrap.open::after { opacity: 0; }
 
 .task-swipe-action {
-  flex: 1 1 0;
-  min-width: 0;
   position: relative;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  border: none;
-  border-radius: 13px;
+  padding: 0;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.96);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: #3A3A3C;
   cursor: pointer;
-  font-family: inherit;
-  font-size: 10.5px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  color: #fff;
-  padding: 6px 4px;
-  overflow: hidden;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 1px 2px rgba(0, 0, 0, 0.06),
-    0 4px 12px rgba(0, 0, 0, 0.08);
-  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), filter 0.15s ease, box-shadow 0.2s ease;
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 6px 18px rgba(0, 0, 0, 0.10);
+  /* Initial: zusammengeschrumpft & unsichtbar – wird beim Swipen mit Spring-Scale eingeblendet */
+  transform: scale(0.55);
+  opacity: 0;
+  transition:
+    transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 220ms ease,
+    box-shadow 0.2s ease,
+    filter 0.15s ease;
   -webkit-tap-highlight-color: transparent;
 }
-.task-swipe-action::before {
-  /* Sanfter Schein von oben fuer leichten Glanz */
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 55%);
-  pointer-events: none;
-}
 .task-swipe-action:active {
-  transform: scale(0.94);
-  filter: brightness(0.92);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 1px 2px rgba(0, 0, 0, 0.10);
+  transform: scale(0.92);
+  filter: brightness(0.96);
 }
+.task-swipe-action svg { display: block; }
+.task-swipe-action.edit   { color: #3A3A3C; }
+.task-swipe-action.share  { color: #007AFF; }
+.task-swipe-action.delete {
+  color: #E5484D;
+  background: rgba(255, 245, 245, 0.96);
+  border-color: rgba(229, 72, 77, 0.18);
+}
+
+/* Reveal: Buttons skalieren in (Spring) sobald Swipe beginnt; gestaffelt fuer Premium-Feel */
+.task-card-swipe-wrap.swiping .task-swipe-action,
+.task-card-swipe-wrap.open .task-swipe-action {
+  transform: scale(1);
+  opacity: 1;
+}
+.task-card-swipe-wrap.swiping .task-swipe-action:nth-child(1),
+.task-card-swipe-wrap.open .task-swipe-action:nth-child(1) { transition-delay: 0ms, 0ms, 0s, 0s; }
+.task-card-swipe-wrap.swiping .task-swipe-action:nth-child(2),
+.task-card-swipe-wrap.open .task-swipe-action:nth-child(2) { transition-delay: 60ms, 30ms, 0s, 0s; }
+.task-card-swipe-wrap.swiping .task-swipe-action:nth-child(3),
+.task-card-swipe-wrap.open .task-swipe-action:nth-child(3) { transition-delay: 120ms, 60ms, 0s, 0s; }
+
+/* Labels werden nicht mehr angezeigt – Icons sprechen fuer sich. Aria-Label bleibt fuer Screenreader. */
+.task-swipe-action-label { display: none; }
 .task-swipe-action-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.14);
-  transform: translateX(8px);
-  opacity: 0;
-  transition: transform 360ms cubic-bezier(0.22, 1, 0.36, 1), opacity 260ms ease;
 }
-.task-swipe-action-label {
-  transform: translateX(10px);
-  opacity: 0;
-  transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1), opacity 280ms ease;
-}
-/* Wenn die Aktionen sichtbar werden, gleiten Icon und Label gestaffelt rein */
-.task-card-swipe-wrap.swiping .task-swipe-action-icon,
-.task-card-swipe-wrap.open .task-swipe-action-icon {
-  transform: translateX(0);
-  opacity: 1;
-}
-.task-card-swipe-wrap.swiping .task-swipe-action-label,
-.task-card-swipe-wrap.open .task-swipe-action-label {
-  transform: translateX(0);
-  opacity: 1;
-  transition-delay: 40ms;
-}
-.task-swipe-action:nth-child(2) .task-swipe-action-icon,
-.task-swipe-action:nth-child(2) .task-swipe-action-label { transition-delay: 50ms; }
-.task-swipe-action:nth-child(3) .task-swipe-action-icon,
-.task-swipe-action:nth-child(3) .task-swipe-action-label { transition-delay: 100ms; }
 
-/* Flache, professionelle Farbgebung */
-.task-swipe-action.edit   { background: #5E6470; }
-.task-swipe-action.share  { background: #3A82F6; }
-.task-swipe-action.delete { background: #E5484D; }
+/* Dark Mode: dunkle Chips statt heller */
+@media (prefers-color-scheme: dark) {
+  .task-swipe-action {
+    background: rgba(44, 44, 46, 0.96);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #F2F2F7;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.30),
+      0 6px 18px rgba(0, 0, 0, 0.40);
+  }
+  .task-swipe-action.edit   { color: #F2F2F7; }
+  .task-swipe-action.share  { color: #4DA2FF; }
+  .task-swipe-action.delete {
+    color: #FF6B6F;
+    background: rgba(60, 30, 32, 0.92);
+    border-color: rgba(255, 107, 111, 0.25);
+  }
+}
 
-/* Nur Desktop (Hover/Maus): keine Swipe-Aktionen, kein Hint */
+/* Nur Desktop (Hover/Maus): keine Swipe-Aktionen */
 @media (hover: hover) and (pointer: fine) {
   .task-card-swipe-actions { display: none; }
   .task-card-swipe-track { transition: none; }
@@ -29721,9 +29725,8 @@ body.is-electron.is-mac .desktop-titlebar-center {
   .task-card-swipe-wrap::after { display: none; }
 }
 
-/* Schmale Screens: Actions-Spur kompakter */
+/* Schmale Screens: Spur etwas kompakter */
 @media (max-width: 380px) {
-  .task-card-swipe-actions { flex: 0 0 168px; gap: 5px; padding-left: 6px; }
-  .task-swipe-action { font-size: 10px; border-radius: 12px; }
-  .task-swipe-action-icon { width: 28px; height: 28px; border-radius: 8px; }
+  .task-card-swipe-actions { flex: 0 0 140px; gap: 7px; padding: 0 8px 0 10px; }
+  .task-swipe-action { flex: 0 0 38px; width: 38px; height: 38px; }
 }
