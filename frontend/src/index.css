@@ -29579,6 +29579,11 @@ body.is-electron.is-mac .desktop-titlebar-center {
   grid-column: 1 / -1;
 }
 
+/* Mobile: kleiner Trash-Button auf der Karte entfaellt – Loeschen erfolgt per Swipe */
+@media (max-width: 768px) {
+  .task-card .task-actions { display: none; }
+}
+
 /* Swipe-to-reveal Aktionen auf TaskCard (mobile) */
 .task-card-swipe-wrap {
   position: relative;
