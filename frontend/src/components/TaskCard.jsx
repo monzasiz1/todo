@@ -35,6 +35,7 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
   const [swipeX, setSwipeX] = useState(0);
   const [swipeOpen, setSwipeOpen] = useState(false);
   const [swipeArmed, setSwipeArmed] = useState(false); // Apple-Style: voll durchgezogen → sofort löschen
+  const [swipeDragging, setSwipeDragging] = useState(false); // aktiv ziehend (auch nach Snap weiter ziehen)
   const swipeStateRef = useRef({ startX: 0, startY: 0, startOffset: 0, isSwipe: false, decided: false, wrapWidth: 0, armed: false });
   const swipeWrapRef = useRef(null);
   const [shareOpen, setShareOpen] = useState(false);
@@ -290,6 +291,7 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
       if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 4) {
         // Horizontale Geste → Swipe-Aktionen, Chat-Drag verhindern
         swipeStateRef.current.isSwipe = true;
+        setSwipeDragging(true);
         if (touchDragRef.current.timer) {
           clearTimeout(touchDragRef.current.timer);
           touchDragRef.current.timer = null;
@@ -344,6 +346,7 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
     // Swipe-Geste abschliessen
     if (swipeStateRef.current.isSwipe) {
       const wrapW = swipeStateRef.current.wrapWidth || 320;
+      setSwipeDragging(false);
       // Apple-Style: voll durchgezogen → sofort löschen
       if (swipeStateRef.current.armed) {
         // Karte ganz raus animieren, dann Delete triggern
@@ -411,7 +414,7 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
     <>
     <div
       ref={swipeWrapRef}
-      className={`task-card-swipe-wrap${swipeOpen ? ' open' : ''}${!swipeOpen && swipeX < -4 ? ' swiping' : ''}${swipeArmed ? ' armed' : ''}`}
+      className={`task-card-swipe-wrap${swipeOpen ? ' open' : ''}${swipeDragging || (!swipeOpen && swipeX < -4) ? ' swiping' : ''}${swipeArmed ? ' armed' : ''}`}
       style={{ '--task-overpull': `${Math.max(0, -swipeX - SWIPE_ACTIONS_WIDTH)}px` }}
     >
       <div
