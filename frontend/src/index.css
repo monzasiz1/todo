@@ -22320,10 +22320,21 @@ body.cal-is-dragging * {
 }
 
 @media (max-width: 480px) {
-  .pv2 { padding: 12px; }
+  .pv2 { padding: 8px 4px; }
   .pv2-stats-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .pv2-hero { padding: 20px 16px 16px; }
   .pv2-code-input { width: 100%; }
+
+  /* Theme-Toggle (3 Buttons) bekommt eigene Zeile damit die Beschreibung
+     darunter nicht ueberlappt wird. */
+  .pv2-row:has(.theme-toggle) {
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+  .pv2-row:has(.theme-toggle) .theme-toggle {
+    flex: 1 1 100%;
+    margin-left: 50px; /* an pv2-row-body ausrichten (Icon 36 + gap 14) */
+  }
 }
 
 /* lp-* classes still used by modal components â€” see landing-modal-* rules above */
