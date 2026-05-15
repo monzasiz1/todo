@@ -1133,9 +1133,13 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
               onClick={() => setLocationExpanded((v) => !v)}
               aria-expanded={locationExpanded}
             >
-              <span className="task-detail-location-pin"><MapPin size={14} /></span>
-              <span className="task-detail-location-text-compact">{task.location.trim()}</span>
-              <ChevronDown size={14} className={`task-detail-location-chevron${locationExpanded ? ' open' : ''}`} />
+              <span className="task-detail-location-pin"><MapPin size={16} /></span>
+              <span className="task-detail-location-info">
+                <span className="task-detail-location-label">Ort</span>
+                <span className="task-detail-location-text-compact">{task.location.trim()}</span>
+              </span>
+              <span className="task-detail-location-hint">{locationExpanded ? 'Schließen' : 'Karte'}</span>
+              <ChevronDown size={16} className={`task-detail-location-chevron${locationExpanded ? ' open' : ''}`} />
             </button>
             <AnimatePresence initial={false}>
               {locationExpanded && (
