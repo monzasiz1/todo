@@ -29519,9 +29519,10 @@ body.is-electron.is-mac .desktop-titlebar-center {
   border-radius: 3px 0 0 3px;
 }
 .task-detail-item--location .task-detail-item-icon {
-  background: linear-gradient(135deg, #FF6B6B 0%, #EE0979 100%) !important;
-  color: #fff !important;
-  box-shadow: 0 3px 10px rgba(238, 9, 121, 0.30), inset 0 1px 0 rgba(255,255,255,0.20);
+  background: none !important;
+  color: #EE0979 !important;
+  box-shadow: none !important;
+  border: none !important;
 }
 .task-detail-item--location .task-detail-item-label {
   color: #EE0979;
