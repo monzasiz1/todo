@@ -16,30 +16,40 @@ import { useAuthStore } from '../store/authStore';
 const planAccents = { free: '#8E8E93', pro: '#007AFF', team: '#5856D6' };
 const orderedPlans = ['free', 'pro', 'team'].map((id) => PLANS[id]);
 
-function getPlanBullets(plan) {
-  if (plan.id === 'free') return [
-    `${plan.limits.tasks} Aufgaben · ${plan.limits.categories} Kategorien`,
-    `1 eigene Gruppe · max. ${plan.limits.groupMembers} Mitglieder`,
-    'Beitritt zu Gruppen unbegrenzt',
-    `${plan.limits.aiCalls} KI-Anfragen / Monat (Probe)`,
-    'Kalender, Dashboard & Notizen-Board',
-  ];
-  if (plan.id === 'pro') return [
-    'Unbegrenzte Aufgaben & Kategorien',
-    `${plan.limits.aiCalls} KI-Anfragen / Monat`,
-    `${plan.limits.groups} eigene Gruppen · bis ${plan.limits.groupMembers} Mitglieder`,
-    'Wiederkehrende Aufgaben',
-    'Dateianhänge (4 MB) · ICS-Kalender-Sync',
-    'Statistiken & Insights',
-  ];
-  return [
-    'Alles aus Pro',
-    'Unbegrenzte eigene Gruppen & Mitglieder',
-    'Team-Chat & geteilte Aufgaben',
-    'Rollen, Rechte & Admin-Tools',
-    `${plan.limits.aiCalls.toLocaleString('de-DE')} KI-Anfragen / Monat`,
-    'Prioritäts-Support',
-  ];
+// Identisch zu FEATURE_ROWS auf PricingPage – Landing muss 1:1 das anzeigen
+// was Nutzer*innen auch nach dem Login in der App in den Pricing-Karten sehen.
+const FEATURE_ROWS = [
+  { key: 'tasks',           label: 'Aufgaben',                       type: 'limit' },
+  { key: 'categories',      label: 'Kategorien',                     type: 'limit' },
+  { key: 'aiCalls',         label: 'KI-Anfragen / Monat',            type: 'limit' },
+  { key: 'groups',          label: 'Eigene Gruppen',                 type: 'limit' },
+  { key: 'groupMembers',    label: 'Mitglieder pro Gruppe',          type: 'limit' },
+  { key: 'teamChat',        label: 'Team-Chat & geteilte Aufgaben',  type: 'feature' },
+  { key: 'groupAdmin',      label: 'Rollen, Rechte & Admin',         type: 'feature' },
+  { key: 'recurringTasks',  label: 'Wiederkehrende Aufgaben',        type: 'feature' },
+  { key: 'attachments',     label: 'Anhänge',                        type: 'feature' },
+  { key: 'calendarSync',    label: 'Kalender-Sync',                  type: 'feature' },
+  { key: 'statistics',      label: 'Statistiken',                    type: 'feature' },
+  { key: 'prioritySupport', label: 'Prioritäts-Support',             type: 'feature' },
+];
+
+function formatLimitValue(value) {
+  if (value === Infinity) return 'Unbegrenzt';
+  if (value === 0 || value == null) return '—';
+  return new Intl.NumberFormat('de-DE').format(value);
+}
+
+function getPlanRows(plan) {
+  return FEATURE_ROWS.map((row) => {
+    const isFeature = row.type === 'feature';
+    const value = isFeature ? plan.features?.[row.key] : plan.limits?.[row.key];
+    const included = isFeature ? value === true : (value ?? 0) > 0;
+    return {
+      ...row,
+      included,
+      value: isFeature ? null : value,
+    };
+  });
 }
 
 const bentoFeatures = [
@@ -347,6 +357,15 @@ export default function LandingPage() {
 
   return (
     <div className="bq">
+
+      {/* ══════════ GLOBAL ANIMATED BG ══════════ */}
+      <div className="bq-page-aurora" aria-hidden>
+        <div className="bq-page-orb bq-page-orb-1" />
+        <div className="bq-page-orb bq-page-orb-2" />
+        <div className="bq-page-orb bq-page-orb-3" />
+        <div className="bq-page-orb bq-page-orb-4" />
+        <div className="bq-page-noise" />
+      </div>
 
       {/* ══════════ NAV ══════════ */}
       <nav className="bq-nav">
@@ -983,11 +1002,23 @@ export default function LandingPage() {
                     {subPrice && <div className="bq-price-year">{subPrice}</div>}
                   </div>
                   <div className="bq-price-line" />
-                  <ul className="bq-price-list">
-                    {getPlanBullets(plan).map((b) => (
-                      <li key={b}>
-                        <CheckCircle2 size={15} />
-                        <span>{b}</span>
+                  <ul className="bq-price-list bq-price-matrix">
+                    {getPlanRows(plan).map((row) => (
+                      <li
+                        key={row.key}
+                        className={`bq-price-row${row.included ? ' is-on' : ' is-off'}`}
+                      >
+                        {row.included ? (
+                          <CheckCircle2 size={15} className="bq-price-row-icon on" />
+                        ) : (
+                          <span className="bq-price-row-icon off" aria-hidden>—</span>
+                        )}
+                        <span className="bq-price-row-label">{row.label}</span>
+                        {row.type === 'limit' && (
+                          <span className="bq-price-row-value">
+                            {row.included ? formatLimitValue(row.value) : '—'}
+                          </span>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -1014,6 +1045,13 @@ export default function LandingPage() {
           </motion.div>
         </div>
       </section>
+
+      {/* divider: pricing(light) → climate(dark green) */}
+      <div className="bq-divider bq-divider-to-climate" aria-hidden>
+        <svg viewBox="0 0 1440 80" preserveAspectRatio="none">
+          <path d="M0,80 C240,20 480,60 720,40 C960,20 1200,60 1440,30 L1440,80 Z" fill="#062215" />
+        </svg>
+      </div>
 
       {/* ══════════ CLIMATE (eigene Section) ══════════ */}
       <section className="bq-climate-section" id="climate">
@@ -1095,6 +1133,13 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* divider: climate(dark green) → cta(dark blue) seamless wave */}
+      <div className="bq-divider bq-divider-to-cta" aria-hidden>
+        <svg viewBox="0 0 1440 80" preserveAspectRatio="none">
+          <path d="M0,40 C320,80 640,10 960,40 C1200,60 1320,30 1440,50 L1440,80 L0,80 Z" fill="#06080f" />
+        </svg>
+      </div>
+
       {/* ══════════ CTA (dark) ══════════ */}
       <section className="bq-cta">
         <div className="bq-cta-glow" aria-hidden />
@@ -1120,6 +1165,13 @@ export default function LandingPage() {
           </motion.div>
         </motion.div>
       </section>
+
+      {/* divider: cta(dark) → downloads(light) flip wave */}
+      <div className="bq-divider bq-divider-flip bq-divider-to-downloads" aria-hidden>
+        <svg viewBox="0 0 1440 80" preserveAspectRatio="none">
+          <path d="M0,40 C240,10 520,70 720,40 C920,10 1200,70 1440,30 L1440,80 L0,80 Z" fill="#f5f8ff" />
+        </svg>
+      </div>
 
       {/* ══════════ DOWNLOADS ══════════ */}
       <section className="bq-section" id="downloads" style={{ background: 'linear-gradient(180deg, #f5f8ff 0%, #ffffff 100%)', paddingTop: '80px', paddingBottom: '80px' }}>
