@@ -29591,38 +29591,41 @@ body.is-electron.is-mac .desktop-titlebar-center {
   isolation: isolate;
   overflow: hidden;
 }
-.task-card-swipe-wrap .task-card {
-  position: relative;
-  z-index: 2;
-  will-change: transform;
-}
-/* Aktionen starten ausserhalb des rechten Rands und gleiten mit dem Swipe rein */
-.task-card-swipe-actions {
-  position: absolute;
-  top: 4px;
-  bottom: 4px;
-  left: 100%;
-  width: 186px; /* 3 × 58 + 2 × 4 gap */
+/* Track haelt Karte + Aktionen nebeneinander und translatiert beide gemeinsam */
+.task-card-swipe-track {
   display: flex;
   align-items: stretch;
-  gap: 4px;
-  padding-left: 6px;
-  z-index: 1;
-  pointer-events: none;
+  width: 100%;
   will-change: transform;
+  /* Smoothe Snap-Animation; waehrend des aktiven Drags wird sie deaktiviert */
+  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.task-card-swipe-wrap.swiping .task-card-swipe-track { transition: none; }
+.task-card-swipe-track > .task-card {
+  flex: 0 0 100%;
+  min-width: 0;
+  will-change: transform;
+}
+.task-card-swipe-actions {
+  flex: 0 0 186px;
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  padding: 4px 4px 4px 8px;
+  pointer-events: none;
 }
 .task-card-swipe-wrap.open .task-card-swipe-actions { pointer-events: auto; }
 
-/* Subtiler Affordance-Hinweis am rechten Rand (kein lautes Pulsen) */
+/* Dezenter Affordance-Strich am rechten Kartenrand */
 .task-card-swipe-wrap::after {
   content: '';
   position: absolute;
-  top: 14px;
-  bottom: 14px;
-  right: 4px;
+  top: 16px;
+  bottom: 16px;
+  right: 5px;
   width: 2px;
   border-radius: 2px;
-  background: rgba(142, 142, 147, 0.28);
+  background: rgba(142, 142, 147, 0.30);
   pointer-events: none;
   z-index: 3;
   transition: opacity 0.2s ease;
@@ -29633,13 +29636,14 @@ body.is-electron.is-mac .desktop-titlebar-center {
 .task-swipe-action {
   flex: 1 1 0;
   min-width: 0;
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 4px;
   border: none;
-  border-radius: 12px;
+  border-radius: 13px;
   cursor: pointer;
   font-family: inherit;
   font-size: 10.5px;
@@ -29647,13 +29651,64 @@ body.is-electron.is-mac .desktop-titlebar-center {
   letter-spacing: 0.01em;
   color: #fff;
   padding: 6px 4px;
-  transition: filter 0.15s ease, transform 0.12s ease;
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.06),
+    0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), filter 0.15s ease, box-shadow 0.2s ease;
   -webkit-tap-highlight-color: transparent;
 }
-.task-swipe-action:active { transform: scale(0.96); filter: brightness(0.92); }
-.task-swipe-action svg { display: block; opacity: 0.95; }
+.task-swipe-action::before {
+  /* Sanfter Schein von oben fuer leichten Glanz */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 55%);
+  pointer-events: none;
+}
+.task-swipe-action:active {
+  transform: scale(0.94);
+  filter: brightness(0.92);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 1px 2px rgba(0, 0, 0, 0.10);
+}
+.task-swipe-action-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.14);
+  transform: translateX(8px);
+  opacity: 0;
+  transition: transform 360ms cubic-bezier(0.22, 1, 0.36, 1), opacity 260ms ease;
+}
+.task-swipe-action-label {
+  transform: translateX(10px);
+  opacity: 0;
+  transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1), opacity 280ms ease;
+}
+/* Wenn die Aktionen sichtbar werden, gleiten Icon und Label gestaffelt rein */
+.task-card-swipe-wrap.swiping .task-swipe-action-icon,
+.task-card-swipe-wrap.open .task-swipe-action-icon {
+  transform: translateX(0);
+  opacity: 1;
+}
+.task-card-swipe-wrap.swiping .task-swipe-action-label,
+.task-card-swipe-wrap.open .task-swipe-action-label {
+  transform: translateX(0);
+  opacity: 1;
+  transition-delay: 40ms;
+}
+.task-swipe-action:nth-child(2) .task-swipe-action-icon,
+.task-swipe-action:nth-child(2) .task-swipe-action-label { transition-delay: 50ms; }
+.task-swipe-action:nth-child(3) .task-swipe-action-icon,
+.task-swipe-action:nth-child(3) .task-swipe-action-label { transition-delay: 100ms; }
 
-/* Flache, professionelle Farbgebung (keine Verläufe) */
+/* Flache, professionelle Farbgebung */
 .task-swipe-action.edit   { background: #5E6470; }
 .task-swipe-action.share  { background: #3A82F6; }
 .task-swipe-action.delete { background: #E5484D; }
@@ -29661,12 +29716,14 @@ body.is-electron.is-mac .desktop-titlebar-center {
 /* Nur Desktop (Hover/Maus): keine Swipe-Aktionen, kein Hint */
 @media (hover: hover) and (pointer: fine) {
   .task-card-swipe-actions { display: none; }
+  .task-card-swipe-track { transition: none; }
   .task-card-swipe-wrap { overflow: visible; }
   .task-card-swipe-wrap::after { display: none; }
 }
 
-/* Schmale Screens: Actions-Spur kompakter, damit alle Buttons sicher in den Viewport passen */
+/* Schmale Screens: Actions-Spur kompakter */
 @media (max-width: 380px) {
-  .task-card-swipe-actions { width: 168px; gap: 3px; padding-left: 5px; }
-  .task-swipe-action { font-size: 10px; border-radius: 11px; }
+  .task-card-swipe-actions { flex: 0 0 168px; gap: 5px; padding-left: 6px; }
+  .task-swipe-action { font-size: 10px; border-radius: 12px; }
+  .task-swipe-action-icon { width: 28px; height: 28px; border-radius: 8px; }
 }

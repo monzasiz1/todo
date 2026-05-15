@@ -360,23 +360,9 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
     <>
     <div className={`task-card-swipe-wrap${swipeOpen ? ' open' : ''}${!swipeOpen && swipeX < -4 ? ' swiping' : ''}`}>
       <div
-        className="task-card-swipe-actions"
-        aria-hidden={!swipeOpen}
+        className="task-card-swipe-track"
         style={{ transform: `translate3d(${swipeX}px, 0, 0)` }}
       >
-        <button type="button" className="task-swipe-action edit" onClick={handleSwipeEdit} aria-label="Bearbeiten">
-          <Pencil size={18} />
-          <span>Bearbeiten</span>
-        </button>
-        <button type="button" className="task-swipe-action share" onClick={handleSwipeShare} aria-label="Teilen">
-          <Share2 size={18} />
-          <span>Teilen</span>
-        </button>
-        <button type="button" className="task-swipe-action delete" onClick={handleSwipeDelete} aria-label="Löschen">
-          <Trash2 size={18} />
-          <span>Löschen</span>
-        </button>
-      </div>
     <motion.div
       className={`task-card ${isEvent ? 'event' : 'todo'} ${task.completed ? 'completed' : ''} ${canShareToChat ? 'can-share-chat' : ''} ${isEventEnded ? 'ended-event' : ''}`}
       draggable={canShareToChat}
@@ -389,7 +375,7 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
       onTouchCancel={handleTouchEnd}
       layout={!disableLayout}
       initial={shouldAnimate ? { opacity: 0, y: 8 } : false}
-      animate={shouldAnimate ? { opacity: 1, y: 0, x: swipeX } : { opacity: 1, y: 0, x: swipeX }}
+      animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -100, height: 0, marginBottom: 0, padding: 0 }}
       transition={shouldAnimate ? { duration: 0.18, delay: index * 0.01 } : { duration: 0.18 }}
       onClick={handleCardClick}
@@ -648,6 +634,21 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
         </div>
       )}
     </motion.div>
+      <div className="task-card-swipe-actions" aria-hidden={!swipeOpen}>
+        <button type="button" className="task-swipe-action edit" onClick={handleSwipeEdit} aria-label="Bearbeiten">
+          <span className="task-swipe-action-icon"><Pencil size={18} /></span>
+          <span className="task-swipe-action-label">Bearbeiten</span>
+        </button>
+        <button type="button" className="task-swipe-action share" onClick={handleSwipeShare} aria-label="Teilen">
+          <span className="task-swipe-action-icon"><Share2 size={18} /></span>
+          <span className="task-swipe-action-label">Teilen</span>
+        </button>
+        <button type="button" className="task-swipe-action delete" onClick={handleSwipeDelete} aria-label="Löschen">
+          <span className="task-swipe-action-icon"><Trash2 size={18} /></span>
+          <span className="task-swipe-action-label">Löschen</span>
+        </button>
+      </div>
+      </div>
     </div>
 
     <DeleteTaskChoiceModal
