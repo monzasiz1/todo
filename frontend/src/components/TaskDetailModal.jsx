@@ -9,7 +9,7 @@ import {
   X, ArrowLeft, Calendar, CalendarCheck, Clock, Tag, Flag, CheckCircle2, Circle,
   Trash2, AlertTriangle, Repeat, Bell, FileText, ListChecks,
   Users, UserCheck, Eye, Edit3, Share2, MoreVertical, MessageCircle, Send, Video, ThumbsUp, ThumbsDown,
-  Lock, ChevronDown, Settings2
+  Lock, ChevronDown, Settings2, MapPin, ExternalLink
 } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -614,6 +614,10 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       lines.push(`Priorität: ${prioLabels[task.priority] || task.priority}`);
     }
     if (task.description) lines.push(`\n${task.description}`);
+    if (task.location && task.location.trim()) {
+      lines.push(`\n📍 ${task.location.trim()}`);
+      lines.push(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.location.trim())}`);
+    }
     lines.push('\nBeeQu – smarter planen. https://beequ.app');
     return lines.join('\n');
   };
@@ -1116,6 +1120,36 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
               : <div className="task-detail-desc-line">Keine Details hinterlegt.</div>}
           </div>
         </div>
+
+        {task.location && task.location.trim() && (
+          <div className="task-detail-location-card">
+            <div className="task-detail-location-head">
+              <div className="task-detail-location-title">
+                <MapPin size={16} />
+                <span>Ort</span>
+              </div>
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.location.trim())}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="task-detail-location-open"
+              >
+                <ExternalLink size={13} />
+                <span>In Maps öffnen</span>
+              </a>
+            </div>
+            <div className="task-detail-location-text">{task.location.trim()}</div>
+            <div className="task-detail-location-map">
+              <iframe
+                title="Karte"
+                src={`https://maps.google.com/maps?q=${encodeURIComponent(task.location.trim())}&hl=de&z=15&output=embed`}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        )}
 
         {isMobile && task.group_id && task.enable_group_rsvp === true && isGroupMember && renderVoteSection()}
 

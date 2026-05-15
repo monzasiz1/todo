@@ -36,9 +36,11 @@ CREATE TABLE IF NOT EXISTS tasks (
   sort_order INTEGER DEFAULT 0,
   reminder_at TIMESTAMP WITH TIME ZONE,
   reminder_sent BOOLEAN DEFAULT FALSE,
+  location TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS location TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_date ON tasks(user_id, date);

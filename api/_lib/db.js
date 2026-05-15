@@ -40,6 +40,8 @@ async function runSchemaInit(rawQuery) {
     `CREATE INDEX IF NOT EXISTS idx_notif_log_user_type ON notification_log(user_id, type, sent_at)`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ DEFAULT NOW()`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS notification_prefs JSONB DEFAULT '{"reminder":true,"daily_tasks":true,"engagement":true,"team_task":true,"group_message":true}'::jsonb`,
+    // Task location (free-text Ort / Google-Maps Query)
+    `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS location TEXT`,
 
     // Groups core
     `CREATE TABLE IF NOT EXISTS groups (
@@ -207,6 +209,11 @@ function getPool() {
     pool.on('error', (err) => {
       console.warn('[db] pool error:', err.message);
     });
+
+    // One-shot lightweight migrations that must always run, even when
+    // DB_SCHEMA_INIT_ON_START is disabled (e.g. production). Idempotent.
+    pool.query("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS location TEXT")
+      .catch((err) => console.warn('[db] auto-migration (tasks.location) failed:', err.message));
 
     const originalQuery = pool.query.bind(pool);
 

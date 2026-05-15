@@ -7,7 +7,8 @@ import { api } from '../utils/api';
 import {
   X, Calendar, CalendarCheck, Clock, Tag, Flag, FileText, Bell,
   Save, Users, UserCheck, Lock, Eye, Edit3, Video, ThumbsUp,
-  ChevronDown, Sparkles, Loader2, AlertTriangle, UsersRound, Repeat, ListTodo
+  ChevronDown, Sparkles, Loader2, AlertTriangle, UsersRound, Repeat, ListTodo,
+  MapPin, ExternalLink
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import AvatarBadge from './AvatarBadge';
@@ -188,6 +189,7 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
   const [taskType, setTaskType] = useState(task.type || 'task');
   const [title, setTitle] = useState(task.title || '');
   const [description, setDescription] = useState(task.description || '');
+  const [location, setLocation] = useState(task.location || '');
   const [date, setDate] = useState(task.date ? task.date.substring(0, 10) : '');
   const [dateEnd, setDateEnd] = useState(task.date_end ? task.date_end.substring(0, 10) : '');
   const [time, setTime] = useState(task.time ? task.time.substring(0, 5) : '');
@@ -357,6 +359,7 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
         taskType !== (task.type || 'task') ||
         title.trim() !== (task.title || '') ||
         description.trim() !== (task.description || '') ||
+        location.trim() !== (task.location || '') ||
         (date || null) !== (task.date ? task.date.substring(0, 10) : null) ||
         (dateEnd || null) !== (task.date_end ? task.date_end.substring(0, 10) : null) ||
         ((allDay ? null : (time || null)) !== (task.time ? task.time.substring(0, 5) : null)) ||
@@ -380,6 +383,7 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
         type: taskType,
         title: title.trim(),
         description: description.trim(),
+        location: location.trim() || null,
         date: date || null,
         date_end: dateEnd || null,
         time: allDay ? null : (time || null),
@@ -559,6 +563,36 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
               className="task-edit-input task-edit-textarea"
               rows={3}
             />
+          </div>
+
+          {/* Location */}
+          <div className="task-edit-field">
+            <label><MapPin size={14} /> Ort</label>
+            <div className="task-edit-location-row">
+              <input
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Adresse, Café, Park... (Google Maps)"
+                className="task-edit-input task-edit-location-input"
+              />
+              {location.trim() && (
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.trim())}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="task-edit-location-preview-btn"
+                  title="In Google Maps öffnen"
+                >
+                  <ExternalLink size={14} />
+                </a>
+              )}
+            </div>
+            {location.trim() && (
+              <div className="task-edit-location-hint">
+                <MapPin size={11} /> Wird in den Aufgaben-Details als Karte angezeigt.
+              </div>
+            )}
           </div>
 
           {/* Date */}
