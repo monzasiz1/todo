@@ -2547,65 +2547,98 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
         </div>
       </div>
 
-      {showHolidaySettings && (
-        <div className="cal-holiday-settings-panel">
-          <div className="cal-settings-head">
-            <strong>Kalendereinstellungen</strong>
-            <span>Feiertage & Darstellung anpassen</span>
-          </div>
-          <label className="cal-settings-field">
-            <span>Bundesland</span>
-            <select
-              value={holidayStateCode}
-              onChange={(e) => setHolidayStateCode(e.target.value)}
-              aria-label="Bundesland fuer Feiertage"
-            >
-              {FEDERAL_STATES.map((state) => (
-                <option key={state.code || 'national'} value={state.code}>{state.label}</option>
-              ))}
-            </select>
-          </label>
-          <div className="cal-settings-field">
-            <span>Farbe der Feiertage</span>
-            <div className="cal-color-presets">
-              {['#D92C2C','#E8720C','#8B5CF6','#059669','#2563EB','#DB2777'].map((c) => (
-                <button
-                  key={c}
-                  className={`cal-color-preset ${holidayColor === c ? 'selected' : ''}`}
-                  style={{ background: c }}
-                  onClick={() => setHolidayColor(c)}
-                  aria-label={`Farbe ${c}`}
-                />
-              ))}
-              <label className="cal-color-custom" title="Eigene Farbe">
-                <input
-                  type="color"
-                  value={holidayColor}
-                  onChange={(e) => setHolidayColor(e.target.value)}
-                  aria-label="Eigene Farbe"
-                />
-                <span style={{ background: holidayColor }} />
+      {showHolidaySettings && createPortal(
+        <div
+          className="cal-settings-modal-overlay"
+          onClick={() => setShowHolidaySettings(false)}
+        >
+          <div
+            className="cal-settings-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Kalendereinstellungen"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <header className="cal-settings-modal-head">
+              <div className="cal-settings-head">
+                <strong>Kalendereinstellungen</strong>
+                <span>Feiertage, Darstellung & Import</span>
+              </div>
+              <button
+                type="button"
+                className="cal-settings-modal-close"
+                onClick={() => setShowHolidaySettings(false)}
+                aria-label="Schliessen"
+              >
+                ×
+              </button>
+            </header>
+            <div className="cal-settings-modal-body">
+              <label className="cal-settings-field">
+                <span>Bundesland</span>
+                <select
+                  value={holidayStateCode}
+                  onChange={(e) => setHolidayStateCode(e.target.value)}
+                  aria-label="Bundesland fuer Feiertage"
+                >
+                  {FEDERAL_STATES.map((state) => (
+                    <option key={state.code || 'national'} value={state.code}>{state.label}</option>
+                  ))}
+                </select>
               </label>
+              <div className="cal-settings-field">
+                <span>Farbe der Feiertage</span>
+                <div className="cal-color-presets">
+                  {['#D92C2C','#E8720C','#8B5CF6','#059669','#2563EB','#DB2777'].map((c) => (
+                    <button
+                      key={c}
+                      className={`cal-color-preset ${holidayColor === c ? 'selected' : ''}`}
+                      style={{ background: c }}
+                      onClick={() => setHolidayColor(c)}
+                      aria-label={`Farbe ${c}`}
+                    />
+                  ))}
+                  <label className="cal-color-custom" title="Eigene Farbe">
+                    <input
+                      type="color"
+                      value={holidayColor}
+                      onChange={(e) => setHolidayColor(e.target.value)}
+                      aria-label="Eigene Farbe"
+                    />
+                    <span style={{ background: holidayColor }} />
+                  </label>
+                </div>
+              </div>
+              <p className="cal-settings-hint">
+                Aktiv: {selectedHolidayStateLabel}. Bundesweite Feiertage bleiben immer sichtbar.
+              </p>
+              <div className="cal-settings-field">
+                <span>Termine importieren</span>
+                <button
+                  type="button"
+                  className="cal-settings-import-btn"
+                  onClick={() => { setShowImportModal(true); setShowHolidaySettings(false); }}
+                >
+                  <Upload size={14} />
+                  <span>Aus .ics-Datei importieren</span>
+                </button>
+                <p className="cal-settings-hint">
+                  Google Calendar, Apple Kalender oder Outlook exportieren und hier hochladen.
+                </p>
+              </div>
             </div>
+            <footer className="cal-settings-modal-foot">
+              <button
+                type="button"
+                className="cal-settings-modal-done"
+                onClick={() => setShowHolidaySettings(false)}
+              >
+                Fertig
+              </button>
+            </footer>
           </div>
-          <p className="cal-settings-hint">
-            Aktiv: {selectedHolidayStateLabel}. Bundesweite Feiertage bleiben immer sichtbar.
-          </p>
-          <div className="cal-settings-field">
-            <span>Termine importieren</span>
-            <button
-              type="button"
-              className="cal-settings-import-btn"
-              onClick={() => { setShowImportModal(true); setShowHolidaySettings(false); }}
-            >
-              <Upload size={14} />
-              <span>Aus .ics-Datei importieren</span>
-            </button>
-            <p className="cal-settings-hint">
-              Google Calendar, Apple Kalender oder Outlook exportieren und hier hochladen.
-            </p>
-          </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <CalendarImportModal

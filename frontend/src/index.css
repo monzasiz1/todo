@@ -26190,6 +26190,87 @@ body.cal-is-dragging * {
   .cal-import-overlay { padding: 0; align-items: stretch; }
   .cal-import-modal { border-radius: 0; max-height: 100vh; width: 100%; }
 }
+
+/* ── Kalender-Einstellungen Modal ─────────────────────────────────────── */
+.cal-settings-modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(15, 17, 25, 0.5);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 240;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  animation: cal-settings-fade 0.18s ease-out;
+}
+@keyframes cal-settings-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.cal-settings-modal {
+  width: min(480px, 100%);
+  max-height: calc(100vh - 40px);
+  display: flex; flex-direction: column;
+  background: var(--bg, #fff);
+  color: var(--text);
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.25);
+  overflow: hidden;
+  animation: cal-settings-pop 0.22s cubic-bezier(.2,.8,.2,1);
+}
+@keyframes cal-settings-pop {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.cal-settings-modal-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.cal-settings-modal-close {
+  width: 32px; height: 32px;
+  border-radius: 10px;
+  border: none;
+  background: var(--hover);
+  color: var(--text-secondary);
+  font-size: 22px; line-height: 1;
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.cal-settings-modal-close:hover { color: var(--text); background: var(--border); }
+
+.cal-settings-modal-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  display: grid;
+  gap: 14px;
+}
+
+.cal-settings-modal-foot {
+  border-top: 1px solid var(--border);
+  padding: 12px 20px;
+  display: flex; justify-content: flex-end;
+  background: var(--bg);
+}
+.cal-settings-modal-done {
+  height: 36px; padding: 0 18px;
+  border-radius: 10px;
+  border: none;
+  background: var(--primary, #6366f1);
+  color: #fff;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.cal-settings-modal-done:hover { filter: brightness(1.05); }
+
+@media (max-width: 600px) {
+  .cal-settings-modal-overlay { padding: 0; align-items: stretch; }
+  .cal-settings-modal {
+    border-radius: 0;
+    max-height: 100vh;
+    width: 100%;
+    height: 100vh;
+  }
+}
 .gchat-event-card-ai {
   display: inline-flex;
   align-items: center;
