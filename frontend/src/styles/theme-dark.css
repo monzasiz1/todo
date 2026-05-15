@@ -1094,13 +1094,56 @@ html[data-theme="dark"] .manual-task-modal-body {
   border-color: var(--border);
 }
 
-/* Smart Insights Karten (Fokus-Heute Sektion) — falls dort weiße Spots */
-html[data-theme="dark"] .smart-insights,
-html[data-theme="dark"] .smart-insight-body {
+/* Smart Insights Karten (Fokus-Heute Sektion) */
+html[data-theme="dark"] .smart-insights {
   background: var(--card-solid);
   border-color: var(--border);
+  color: var(--text);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.35);
+}
+html[data-theme="dark"] .smart-insights-title {
+  color: var(--text);
+}
+html[data-theme="dark"] .smart-insights-meta {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+html[data-theme="dark"] .smart-insight-item {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text);
+}
+html[data-theme="dark"] .smart-insight-item--alert {
+  background: rgba(255, 59, 48, 0.08);
+  border-color: rgba(255, 59, 48, 0.32);
+}
+html[data-theme="dark"] .smart-insight-body {
   color: var(--text);
 }
 html[data-theme="dark"] .smart-insight-label {
   color: var(--text-tertiary);
+}
+html[data-theme="dark"] .smart-insight-progress {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* AI-Input (Sag der KI was du tun moechtest...) */
+html[data-theme="dark"] .ai-input-card {
+  background: var(--card-solid);
+}
+html[data-theme="dark"] .ai-input-field {
+  color: var(--text);
+  background: transparent;
+}
+html[data-theme="dark"] .ai-input-field::placeholder {
+  color: var(--text-tertiary);
+}
+html[data-theme="dark"] .ai-input-hint {
+  color: var(--text-tertiary);
+}
+html[data-theme="dark"] .ai-reply-bubble {
+  background: var(--card-solid);
+  border-color: var(--border);
+  color: var(--text);
 }
