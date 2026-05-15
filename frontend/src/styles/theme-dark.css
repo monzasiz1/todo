@@ -311,6 +311,23 @@ html[data-theme="dark"] .bottom-nav {
   box-shadow: none;
 }
 
+/* Sidebar-Links: deutlich sichtbarer Hover im Dark Theme */
+html[data-theme="dark"] .sidebar-link {
+  color: var(--text-secondary);
+  background: transparent;
+}
+html[data-theme="dark"] .sidebar-link:hover {
+  background: rgba(77, 163, 255, 0.14);
+  color: var(--text);
+}
+html[data-theme="dark"] .sidebar-link.active {
+  background: rgba(77, 163, 255, 0.22);
+  color: var(--primary);
+}
+html[data-theme="dark"] .sidebar-link svg {
+  color: inherit;
+}
+
 /* ── Desktop-/Tablet-Kalender (>=768px hat hartkodierte hellblaue Töne) ── */
 html[data-theme="dark"] .calendar-wrapper {
   background: var(--card-solid) !important;
