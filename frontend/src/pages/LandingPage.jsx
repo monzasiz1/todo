@@ -204,8 +204,16 @@ export default function LandingPage() {
 
   const handleLogin = async (e) => {
     e.preventDefault(); setLoginError('');
-    try { const ok = await login(loginEmail, loginPassword); if (ok) navigate('/app'); }
-    catch (err) { setLoginError(err.message || 'Login fehlgeschlagen'); }
+    try {
+      const ok = await login(loginEmail, loginPassword);
+      if (ok === true) { navigate('/app'); return; }
+      if (ok && ok.requires2FA) { /* 2FA-Flow wird separat behandelt */ return; }
+      // login() im Store schluckt Fehler und gibt false zurück → Meldung aus dem Store holen
+      const storeError = useAuthStore.getState().error;
+      setLoginError(storeError || 'E-Mail oder Passwort ist falsch.');
+    } catch (err) {
+      setLoginError(err.message || 'Login fehlgeschlagen');
+    }
   };
   const handleRegister = async (e) => {
     e.preventDefault(); setRegisterError('');
