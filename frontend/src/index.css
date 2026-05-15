@@ -29251,3 +29251,111 @@ body.is-electron.is-mac .desktop-titlebar-center {
   .task-detail-location-open span { display: none; }
   .task-detail-location-open { padding: 6px 8px; }
 }
+
+/* Maps-Choice Popover (Google Maps vs Apple Karten) */
+.task-detail-location-open-wrap { position: relative; }
+.task-detail-mapchoice-backdrop {
+  position: fixed; inset: 0;
+  z-index: 40;
+}
+.task-detail-mapchoice {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 220px;
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 0 14px 38px rgba(0,0,0,0.16), 0 2px 6px rgba(0,0,0,0.06);
+  padding: 6px;
+  z-index: 41;
+  transform-origin: top right;
+}
+.task-detail-mapchoice-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary, #8E8E93);
+  padding: 8px 10px 4px;
+}
+.task-detail-mapchoice-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: var(--text-primary, #1c1c1e);
+  transition: background 0.14s ease;
+  cursor: pointer;
+}
+.task-detail-mapchoice-item:hover { background: rgba(0,0,0,0.045); }
+.task-detail-mapchoice-item:active { background: rgba(0,0,0,0.07); }
+.task-detail-mapchoice-logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 15px;
+  color: #fff;
+  flex: 0 0 auto;
+}
+.task-detail-mapchoice-logo.google {
+  background: linear-gradient(135deg, #4285F4 0%, #34A853 50%, #FBBC05 75%, #EA4335 100%);
+}
+.task-detail-mapchoice-logo.apple {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border: 1px solid rgba(0,0,0,0.08);
+  position: relative;
+}
+.task-detail-mapchoice-logo.apple::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #ff5e5e 0%, #b91c1c 60%, #7f1d1d 100%);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.25);
+}
+.task-detail-mapchoice-label {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+.task-detail-mapchoice-name {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.task-detail-mapchoice-sub {
+  font-size: 11px;
+  color: var(--text-secondary, #8E8E93);
+  margin-top: 1px;
+}
+.task-detail-mapchoice-item svg { color: var(--text-secondary, #8E8E93); flex: 0 0 auto; }
+
+@media (max-width: 600px) {
+  .task-detail-mapchoice {
+    position: fixed;
+    top: auto;
+    bottom: 14px;
+    left: 14px;
+    right: 14px;
+    min-width: 0;
+    border-radius: 18px;
+    padding: 8px;
+    box-shadow: 0 -8px 30px rgba(0,0,0,0.22);
+    animation: mapchoice-up 0.18s ease;
+  }
+  @keyframes mapchoice-up {
+    from { transform: translateY(40%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .task-detail-mapchoice-item { padding: 12px; }
+  .task-detail-mapchoice-logo { width: 36px; height: 36px; border-radius: 11px; }
+  .task-detail-mapchoice-name { font-size: 15px; }
+}
