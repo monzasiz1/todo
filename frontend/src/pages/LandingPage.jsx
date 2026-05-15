@@ -17,22 +17,27 @@ const orderedPlans = ['free', 'pro', 'team'].map((id) => PLANS[id]);
 
 function getPlanBullets(plan) {
   if (plan.id === 'free') return [
-    `Bis zu ${plan.limits.tasks} Aufgaben & ${plan.limits.categories} Kategorien`,
-    'Dashboard, Kalender & Profil',
-    'Smarte Erinnerungen & Notizen-Board',
-    'KI, Gruppen und Anhänge ab Pro',
+    `${plan.limits.tasks} Aufgaben · ${plan.limits.categories} Kategorien`,
+    `1 eigene Gruppe · max. ${plan.limits.groupMembers} Mitglieder`,
+    'Beitritt zu Gruppen unbegrenzt',
+    `${plan.limits.aiCalls} KI-Anfragen / Monat (Probe)`,
+    'Kalender, Dashboard & Notizen-Board',
   ];
   if (plan.id === 'pro') return [
     'Unbegrenzte Aufgaben & Kategorien',
-    `${plan.limits.aiCalls} KI-Abfragen / Monat`,
-    `Bis zu ${plan.limits.groups} Gruppen & Echtzeit-Chat`,
-    'Wiederholungen, Anhänge & Statistiken',
+    `${plan.limits.aiCalls} KI-Anfragen / Monat`,
+    `${plan.limits.groups} eigene Gruppen · bis ${plan.limits.groupMembers} Mitglieder`,
+    'Wiederkehrende Aufgaben',
+    'Dateianhänge (4 MB) · ICS-Kalender-Sync',
+    'Statistiken & Insights',
   ];
   return [
     'Alles aus Pro',
-    `${plan.limits.aiCalls} KI-Abfragen / Monat`,
-    'Unbegrenzte Gruppen & Mitglieder',
-    'Priority-Support für dein Team',
+    'Unbegrenzte eigene Gruppen & Mitglieder',
+    'Team-Chat & geteilte Aufgaben',
+    'Rollen, Rechte & Admin-Tools',
+    `${plan.limits.aiCalls.toLocaleString('de-DE')} KI-Anfragen / Monat`,
+    'Prioritäts-Support',
   ];
 }
 
@@ -920,6 +925,11 @@ export default function LandingPage() {
                 <div className="bq-price-top">
                   <span className="bq-price-plan" style={{ color: planAccents[plan.id] }}>{plan.label}</span>
                   <div className="bq-price-amount">{plan.priceLabel}</div>
+                  {plan.id !== 'free' && (
+                    <div className="bq-price-year">
+                      oder <strong>{plan.priceLabelYear}</strong> · 2 Monate gratis
+                    </div>
+                  )}
                 </div>
                 <div className="bq-price-line" />
                 <ul className="bq-price-list">
@@ -939,6 +949,74 @@ export default function LandingPage() {
               </motion.div>
             ))}
           </div>
+
+          {/* ── Stripe Climate ── */}
+          <motion.div
+            className="bq-climate-card"
+            initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-60px' }}
+            variants={fadeUp}
+          >
+            <div className="bq-climate-orb bq-climate-orb-1" aria-hidden />
+            <div className="bq-climate-orb bq-climate-orb-2" aria-hidden />
+            <span className="bq-climate-leaf bq-climate-leaf-1" aria-hidden>🌿</span>
+            <span className="bq-climate-leaf bq-climate-leaf-2" aria-hidden>🍃</span>
+            <span className="bq-climate-leaf bq-climate-leaf-3" aria-hidden>🌱</span>
+
+            <div className="bq-climate-content">
+              <div className="bq-climate-badge">
+                <span className="bq-climate-pulse" aria-hidden />
+                <span>Stripe Climate · Mitglied</span>
+              </div>
+
+              <h3 className="bq-climate-title">
+                <span className="bq-climate-percent">1%</span>
+                <span>jedes Abos für unseren Planeten.</span>
+              </h3>
+
+              <p className="bq-climate-sub">
+                Wir spenden automatisch <strong>1 % jedes Pro- und Team-Abos</strong> an{' '}
+                <a href="https://stripe.com/climate" target="_blank" rel="noopener noreferrer" className="bq-climate-link">
+                  Stripe&nbsp;Climate
+                </a>{' '}
+                — eine Initiative, die <strong>nachweisbar CO₂ aus der Atmosphäre entfernt</strong>.
+                Kein Greenwashing, sondern direkte Förderung der nächsten Generation von
+                Climate-Tech: Direct-Air-Capture, Pflanzenkohle, mineralische Bindung und
+                Ozean-Verfahren.
+              </p>
+
+              <div className="bq-climate-stats">
+                <div className="bq-climate-stat">
+                  <div className="bq-climate-stat-icon">🌍</div>
+                  <div>
+                    <div className="bq-climate-stat-num">1 %</div>
+                    <div className="bq-climate-stat-label">jedes bezahlten Abos</div>
+                  </div>
+                </div>
+                <div className="bq-climate-stat">
+                  <div className="bq-climate-stat-icon">🌬️</div>
+                  <div>
+                    <div className="bq-climate-stat-num">CO₂</div>
+                    <div className="bq-climate-stat-label">nachweisbar entfernt</div>
+                  </div>
+                </div>
+                <div className="bq-climate-stat">
+                  <div className="bq-climate-stat-icon">⚡</div>
+                  <div>
+                    <div className="bq-climate-stat-num">Automatisch</div>
+                    <div className="bq-climate-stat-label">ohne Aufpreis für dich</div>
+                  </div>
+                </div>
+              </div>
+
+              <p className="bq-climate-foot">
+                Du bezahlst den normalen Preis — der Klimabeitrag kommt aus unserer Marge.
+                Mehr erfahren auf{' '}
+                <a href="https://stripe.com/climate" target="_blank" rel="noopener noreferrer" className="bq-climate-link">
+                  stripe.com/climate
+                </a>.
+              </p>
+            </div>
+          </motion.div>
         </div>
       </section>
 

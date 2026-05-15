@@ -20474,6 +20474,198 @@ body.cal-is-dragging * {
 }
 .bq-price-list li svg { color: var(--bq-blue); flex-shrink: 0; margin-top: 2px; }
 
+.bq-price-year {
+  font-size: 0.83rem;
+  color: var(--bq-muted);
+  margin-top: -2px;
+}
+.bq-price-year strong { color: #1d1d1f; font-weight: 600; }
+
+/* ── Stripe Climate ── */
+.bq-climate-card {
+  position: relative;
+  margin-top: 56px;
+  padding: 56px 56px 48px;
+  border-radius: var(--bq-r-xl);
+  overflow: hidden;
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(48,209,88,0.12), transparent 55%),
+    radial-gradient(110% 130% at 100% 100%, rgba(10,170,120,0.10), transparent 60%),
+    linear-gradient(160deg, #f1fbf3 0%, #eaf7ee 100%);
+  border: 1px solid rgba(48,170,90,0.22);
+  box-shadow:
+    0 20px 60px rgba(20,90,60,0.10),
+    inset 0 1px 0 rgba(255,255,255,0.6);
+}
+
+.bq-climate-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  pointer-events: none;
+  opacity: 0.55;
+}
+.bq-climate-orb-1 {
+  width: 360px; height: 360px;
+  background: radial-gradient(circle, #6BE08A 0%, transparent 65%);
+  top: -120px; left: -100px;
+}
+.bq-climate-orb-2 {
+  width: 320px; height: 320px;
+  background: radial-gradient(circle, #1EB073 0%, transparent 65%);
+  bottom: -140px; right: -80px;
+  opacity: 0.4;
+}
+
+.bq-climate-leaf {
+  position: absolute;
+  opacity: 0.22;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 10px rgba(30,176,115,0.35));
+  animation: bqLeafDrift 14s ease-in-out infinite;
+}
+.bq-climate-leaf-1 { top: 28px; right: 56px; font-size: 42px; animation-delay: 0s; }
+.bq-climate-leaf-2 { bottom: 28px; left: 64px; font-size: 32px; animation-delay: -5s; }
+.bq-climate-leaf-3 { top: 50%; left: 38%; font-size: 22px; animation-delay: -9s; opacity: 0.16; }
+
+@keyframes bqLeafDrift {
+  0%, 100% { transform: translate(0, 0) rotate(-8deg); }
+  50%      { transform: translate(6px, -10px) rotate(8deg); }
+}
+
+.bq-climate-content {
+  position: relative;
+  z-index: 1;
+  max-width: 880px;
+}
+
+.bq-climate-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(48,170,90,0.10);
+  border: 1px solid rgba(48,170,90,0.30);
+  color: #1e7a4a;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-bottom: 22px;
+  text-transform: none;
+  backdrop-filter: blur(6px);
+}
+
+.bq-climate-pulse {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #2BB673;
+  box-shadow: 0 0 0 0 rgba(43,182,115,0.55);
+  animation: bqClimatePulse 2.2s ease-out infinite;
+}
+@keyframes bqClimatePulse {
+  0%   { box-shadow: 0 0 0 0 rgba(43,182,115,0.55); }
+  70%  { box-shadow: 0 0 0 12px rgba(43,182,115,0); }
+  100% { box-shadow: 0 0 0 0 rgba(43,182,115,0); }
+}
+
+.bq-climate-title {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: clamp(28px, 3.6vw, 44px);
+  font-weight: 900;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  color: #0f3d27;
+  margin: 0 0 16px;
+}
+
+.bq-climate-percent {
+  background: linear-gradient(135deg, #2BB673 0%, #0E8F58 60%, #066B3F 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: clamp(52px, 6.4vw, 88px);
+  letter-spacing: -0.05em;
+  text-shadow: 0 0 60px rgba(43,182,115,0.18);
+}
+
+.bq-climate-sub {
+  font-size: 0.98rem;
+  line-height: 1.65;
+  color: #2a4a3a;
+  max-width: 720px;
+  margin: 0 0 28px;
+}
+
+.bq-climate-link {
+  color: #117A4A;
+  text-decoration: none;
+  border-bottom: 1px dashed rgba(17,122,74,0.5);
+  font-weight: 600;
+  transition: color 0.2s, border-color 0.2s;
+}
+.bq-climate-link:hover {
+  color: #0a5a36;
+  border-bottom-color: #0a5a36;
+}
+
+.bq-climate-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin: 0 0 26px;
+}
+
+.bq-climate-stat {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.65);
+  border: 1px solid rgba(48,170,90,0.20);
+  backdrop-filter: blur(8px);
+  transition: transform 0.25s, border-color 0.25s, background 0.25s;
+}
+.bq-climate-stat:hover {
+  transform: translateY(-2px);
+  border-color: rgba(48,170,90,0.45);
+  background: rgba(255,255,255,0.85);
+}
+
+.bq-climate-stat-icon {
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  border-radius: 12px;
+  background: rgba(48,170,90,0.12);
+  border: 1px solid rgba(48,170,90,0.25);
+  flex-shrink: 0;
+}
+
+.bq-climate-stat-num {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0f3d27;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+.bq-climate-stat-label {
+  font-size: 0.78rem;
+  color: #4a6b58;
+  margin-top: 2px;
+}
+
+.bq-climate-foot {
+  font-size: 0.82rem;
+  color: #4a6b58;
+  margin: 0;
+  line-height: 1.6;
+}
+
 /* â”€â”€ CTA (dark) â”€â”€ */
 .bq-cta {
   background: #06060A;
@@ -20683,6 +20875,9 @@ body.cal-is-dragging * {
   .bq-pricing-grid { grid-template-columns: 1fr; max-width: 460px; margin: 0 auto; }
   .bq-price-card.featured { transform: none; }
   .bq-mock-ins-list { grid-template-columns: 1fr; }
+  .bq-climate-card { padding: 36px 24px 32px; margin-top: 40px; }
+  .bq-climate-stats { grid-template-columns: 1fr; }
+  .bq-climate-leaf-2 { display: none; }
 }
 @media (max-width: 900px) {
   .bq-bento { grid-template-columns: repeat(2, minmax(0,1fr)); }
