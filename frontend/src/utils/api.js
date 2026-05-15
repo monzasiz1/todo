@@ -72,8 +72,20 @@ async function request(endpoint, options = {}) {
     });
 
     if (res.status === 401) {
-      const unauthorized = new Error('Nicht autorisiert');
+      // Versuche die echte Backend-Fehlermeldung zu lesen (z.B. "Ungültige Anmeldedaten",
+      // "Ungültiger 2FA-Code", "E-Mail nicht verifiziert" …) statt generisch "Nicht autorisiert".
+      let serverMsg = null;
+      let payload = null;
+      try {
+        const raw = await res.text();
+        if (raw) {
+          try { payload = JSON.parse(raw); serverMsg = payload?.error || payload?.message || null; }
+          catch { serverMsg = raw; }
+        }
+      } catch { /* body nicht lesbar */ }
+      const unauthorized = new Error(serverMsg || 'Nicht autorisiert');
       unauthorized.status = 401;
+      if (payload) unauthorized.payload = payload;
       throw unauthorized;
     }
 
