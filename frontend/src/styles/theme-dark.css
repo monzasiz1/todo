@@ -810,6 +810,25 @@ html[data-theme="dark"] .mobile-day-allday-item {
 html[data-theme="dark"] .calendar-day-tasks {
   color: var(--text);
 }
+
+/* Calendar-Header: Trennlinie zwischen Mai-Header und Mein/Familie-Tabs entfernen */
+html[data-theme="dark"] .cal-header-row2 {
+  border-top-color: transparent;
+}
+
+/* Bottom-Nav: aktiver/Hover-State im Dark Mode (weg von hellem Weiß-Backdrop) */
+html[data-theme="dark"] .bottom-nav-item.active {
+  color: var(--primary);
+  background: rgba(77, 163, 255, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(77, 163, 255, 0.32);
+}
+html[data-theme="dark"] .bottom-nav-item:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+}
+html[data-theme="dark"] .bottom-nav-item:active {
+  background: rgba(255, 255, 255, 0.10);
+}
 html[data-theme="dark"] .calendar-day-task {
   background: rgba(255, 255, 255, 0.04);
   border-color: var(--border);
