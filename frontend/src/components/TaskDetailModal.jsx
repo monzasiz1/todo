@@ -94,6 +94,8 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const [showMenu, setShowMenu] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [showMapChoice, setShowMapChoice] = useState(false);
+  const [mapChoicePos, setMapChoicePos] = useState(null);
+  const mapBtnRef = useRef(null);
   const [locationExpanded, setLocationExpanded] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [commentText, setCommentText] = useState('');
@@ -1158,8 +1160,18 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
                     <div className="task-detail-location-open-wrap">
                       <button
                         type="button"
+                        ref={mapBtnRef}
                         className="task-detail-location-open"
-                        onClick={(e) => { e.stopPropagation(); setShowMapChoice((s) => !s); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!showMapChoice && mapBtnRef.current && window.innerWidth > 600) {
+                            const r = mapBtnRef.current.getBoundingClientRect();
+                            setMapChoicePos({ top: r.bottom + 6, right: Math.max(8, window.innerWidth - r.right) });
+                          } else {
+                            setMapChoicePos(null);
+                          }
+                          setShowMapChoice((s) => !s);
+                        }}
                         aria-haspopup="menu"
                         aria-expanded={showMapChoice}
                       >
@@ -1167,12 +1179,13 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
                         <span>In Maps öffnen</span>
                       </button>
                       <AnimatePresence>
-                        {showMapChoice && (
+                        {showMapChoice && createPortal(
                           <>
                             <div className="task-detail-mapchoice-backdrop" onClick={() => setShowMapChoice(false)} />
                             <motion.div
                               className="task-detail-mapchoice"
                               role="menu"
+                              style={mapChoicePos ? { position: 'fixed', top: mapChoicePos.top, right: mapChoicePos.right } : undefined}
                               initial={{ opacity: 0, y: -6, scale: 0.96 }}
                               animate={{ opacity: 1, y: 0, scale: 1 }}
                               exit={{ opacity: 0, y: -6, scale: 0.96 }}
@@ -1210,7 +1223,8 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
                                 <ExternalLink size={13} />
                               </a>
                             </motion.div>
-                          </>
+                          </>,
+                          document.body
                         )}
                       </AnimatePresence>
                     </div>

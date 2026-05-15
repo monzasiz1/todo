@@ -29256,19 +29256,20 @@ body.is-electron.is-mac .desktop-titlebar-center {
 .task-detail-location-open-wrap { position: relative; }
 .task-detail-mapchoice-backdrop {
   position: fixed; inset: 0;
-  z-index: 40;
+  z-index: 10400;
+  background: transparent;
 }
 .task-detail-mapchoice {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
+  position: fixed;
+  top: 80px;
+  right: 16px;
   min-width: 220px;
   background: #fff;
   border-radius: 14px;
   border: 1px solid rgba(0,0,0,0.08);
   box-shadow: 0 14px 38px rgba(0,0,0,0.16), 0 2px 6px rgba(0,0,0,0.06);
   padding: 6px;
-  z-index: 41;
+  z-index: 10401;
   transform-origin: top right;
 }
 .task-detail-mapchoice-title {
@@ -29339,6 +29340,11 @@ body.is-electron.is-mac .desktop-titlebar-center {
 .task-detail-mapchoice-item svg { color: var(--text-secondary, #8E8E93); flex: 0 0 auto; }
 
 @media (max-width: 600px) {
+  .task-detail-mapchoice-backdrop {
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
   .task-detail-mapchoice {
     position: fixed;
     top: auto;
@@ -29350,6 +29356,7 @@ body.is-electron.is-mac .desktop-titlebar-center {
     padding: 8px;
     box-shadow: 0 -8px 30px rgba(0,0,0,0.22);
     animation: mapchoice-up 0.18s ease;
+    z-index: 10401;
   }
   @keyframes mapchoice-up {
     from { transform: translateY(40%); opacity: 0; }
