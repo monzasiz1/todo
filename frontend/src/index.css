@@ -29724,12 +29724,11 @@ body.is-electron.is-mac .desktop-titlebar-center {
   position: fixed;
   inset: 0;
   z-index: 10500; /* über BottomNav (1000) UND TaskDetailModal-Fullscreen (10200) */
-  background: rgba(15, 17, 22, 0.55);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  /* Mobil: Sheet ist Vollbild → Overlay-BG ist identisch zum Sheet,
+     damit Notch- und Home-Indicator-Bereich nahtlos in der Sheet-Farbe wirken. */
+  background: var(--surface, #fff);
   display: flex;
-  /* Bottom-Sheet: Sheet klebt unten, Notch-Bereich bleibt dunkles Overlay */
-  align-items: flex-end;
+  align-items: stretch;
   justify-content: center;
   padding: 0;
 }
@@ -29739,17 +29738,19 @@ body.is-electron.is-mac .desktop-titlebar-center {
   max-width: 100vw;
   background: var(--surface, #fff);
   color: var(--text, #1c1c1e);
-  /* Bottom-Sheet: oben abgerundet, unten flach */
-  border-radius: 22px 22px 0 0;
-  /* Normales Padding oben (NICHT safe-area-inset-top, da Sheet nicht bis Notch geht).
-     Unten Safe-Area, damit Home-Indicator auf iPhone respektiert wird. */
-  padding: 10px 18px calc(22px + env(safe-area-inset-bottom, 0px));
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.18);
+  border-radius: 0;
+  /* Vollbild inkl. Notch + Home-Indicator → Inhalt respektiert Safe-Areas via Padding */
+  padding: calc(10px + env(safe-area-inset-top, 0px))
+           calc(18px + env(safe-area-inset-right, 0px))
+           calc(22px + env(safe-area-inset-bottom, 0px))
+           calc(18px + env(safe-area-inset-left, 0px));
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   gap: 14px;
-  /* Sheet nimmt nur so viel Höhe wie nötig (bis max 90dvh), Rest bleibt Overlay */
-  max-height: 90dvh;
+  /* Sheet füllt vollen physischen Viewport (inkl. Notch + Home-Indicator) */
+  flex: 1 1 auto;
+  min-height: 100%;
   overflow-y: auto;
   overscroll-behavior: contain;
   /* GPU-Layer für sauberen Swipe-Drag */
@@ -29770,15 +29771,21 @@ body.is-electron.is-mac .desktop-titlebar-center {
   .share-sheet-handle { background: rgba(235, 235, 245, 0.32); }
 }
 
-/* Desktop / Tablet ab 720px: kein Bottom-Sheet sondern zentriertes Modal */
+/* Desktop / Tablet ab 720px: kein Vollbild sondern zentriertes Modal */
 @media (min-width: 720px) {
   .share-sheet-overlay {
     align-items: center;
+    /* Dunkles Backdrop nur auf Desktop, da Sheet hier nicht vollflächig ist */
+    background: rgba(15, 17, 22, 0.55);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
     padding: 24px;
   }
   .share-sheet {
     width: min(460px, 100%);
     max-width: 460px;
+    flex: 0 0 auto;
+    min-height: 0;
     max-height: min(86dvh, 720px);
     border-radius: 18px;
     padding: 18px 22px 22px;
