@@ -833,6 +833,13 @@ html[data-theme="dark"] .calendar-source-switchbar {
 }
 
 /* Bottom-Nav: aktiver/Hover-State im Dark Mode (weg von hellem Weiß-Backdrop) */
+html[data-theme="dark"] .bottom-nav-group {
+  background: transparent;
+  border-color: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
 html[data-theme="dark"] .bottom-nav-item.active {
   color: var(--primary);
   background: rgba(77, 163, 255, 0.18);
