@@ -745,6 +745,20 @@ html[data-theme="dark"] .cal-settings-hint {
   color: var(--text-tertiary);
 }
 
+/* Mobile Calendar Modebar (Tag/Woche/Monat Tabs am unteren Rand) */
+html[data-theme="dark"] .mobile-calendar-modebar {
+  background: rgba(19, 24, 38, 0.92);
+  border-top-color: var(--border);
+  border-bottom-color: var(--border);
+  box-shadow: 0 -1px 12px rgba(0, 0, 0, 0.5);
+}
+html[data-theme="dark"] .mobile-calendar-modebar-tabs button {
+  color: var(--text-secondary);
+}
+html[data-theme="dark"] .mobile-calendar-modebar-tabs button.active {
+  color: var(--primary);
+}
+
 /* Monats-Grid (Calendar.jsx Hauptmonatsansicht) */
 html[data-theme="dark"] .calendar-day-tasks {
   color: var(--text);
