@@ -6,7 +6,7 @@ import { useOpenTask } from '../hooks/useOpenTask';
 // TaskDetailModal ist gross und nur sichtbar, wenn der User eine Karte
 // oeffnet - lazy ausgliedern, um das Initial-Bundle zu verkleinern.
 const TaskDetailModal = lazy(() => import('./TaskDetailModal'));
-import { Check, Trash2, Clock, Calendar, CalendarCheck, GripVertical, Lock, Users, UserCheck, Repeat, Paperclip, Video, Circle, ThumbsDown, MapPin } from 'lucide-react';
+import { Check, Trash2, Clock, Calendar, CalendarCheck, GripVertical, Lock, Users, UserCheck, Repeat, Paperclip, Video, Circle, ThumbsDown, MapPin, Pencil, Share2 } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
 import SharedTaskBadge from './SharedTaskBadge';
@@ -28,6 +28,12 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
     startX: 0,
     startY: 0,
   });
+
+  // Swipe-to-reveal (mobile): nach links wischen, um Aktionen freizulegen
+  const SWIPE_ACTIONS_WIDTH = 198; // 3 buttons à 66px
+  const [swipeX, setSwipeX] = useState(0);
+  const [swipeOpen, setSwipeOpen] = useState(false);
+  const swipeStateRef = useRef({ startX: 0, startY: 0, startOffset: 0, isSwipe: false, decided: false });
 
   const formatDate = (dateStr) => {
     if (!dateStr) return null;
@@ -228,22 +234,54 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
   };
 
   const handleTouchStart = (e) => {
-    if (!canShareToChat) return;
     const t = e.touches?.[0];
     if (t) {
       touchDragRef.current.startX = t.clientX;
       touchDragRef.current.startY = t.clientY;
+      swipeStateRef.current = {
+        startX: t.clientX,
+        startY: t.clientY,
+        startOffset: swipeX,
+        isSwipe: false,
+        decided: false,
+      };
     }
+    if (!canShareToChat) return;
     if (touchDragRef.current.timer) clearTimeout(touchDragRef.current.timer);
     touchDragRef.current.timer = setTimeout(() => {
-      startTouchDrag();
+      if (!swipeStateRef.current.isSwipe) startTouchDrag();
     }, 180);
   };
 
   const handleTouchMove = (e) => {
+    const t = e.touches?.[0];
+    if (!t) return;
+    const dx = t.clientX - swipeStateRef.current.startX;
+    const dy = t.clientY - swipeStateRef.current.startY;
+
+    // Richtung entscheiden (einmal)
+    if (!swipeStateRef.current.decided && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+      swipeStateRef.current.decided = true;
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 6) {
+        // Horizontale Geste → Swipe-Aktionen, Chat-Drag verhindern
+        swipeStateRef.current.isSwipe = true;
+        if (touchDragRef.current.timer) {
+          clearTimeout(touchDragRef.current.timer);
+          touchDragRef.current.timer = null;
+        }
+      }
+    }
+
+    if (swipeStateRef.current.isSwipe) {
+      e.preventDefault?.();
+      const next = swipeStateRef.current.startOffset + dx;
+      const clamped = Math.max(-SWIPE_ACTIONS_WIDTH - 24, Math.min(30, next));
+      setSwipeX(clamped);
+      return;
+    }
+
+    // bestehender Chat-Drag-Move
     if (touchDragRef.current.timer) {
-      const t = e.touches?.[0];
-      if (!t) return;
       const movedEnough =
         Math.abs(t.clientX - touchDragRef.current.startX) > 8 ||
         Math.abs(t.clientY - touchDragRef.current.startY) > 8;
@@ -254,8 +292,6 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
     }
 
     if (!touchDragRef.current.active) return;
-    const t = e.touches?.[0];
-    if (!t) return;
     e.preventDefault();
     const over = !!document.elementFromPoint(t.clientX, t.clientY)?.closest('.gchat-dropzone');
     dispatchShareEvent('task-share-drag-hover', { over });
@@ -267,14 +303,74 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
       clearTimeout(touchDragRef.current.timer);
       touchDragRef.current.timer = null;
     }
+    // Swipe-Geste abschliessen
+    if (swipeStateRef.current.isSwipe) {
+      const threshold = SWIPE_ACTIONS_WIDTH / 2.4;
+      if (swipeX < -threshold) {
+        setSwipeX(-SWIPE_ACTIONS_WIDTH);
+        setSwipeOpen(true);
+      } else {
+        setSwipeX(0);
+        setSwipeOpen(false);
+      }
+      swipeStateRef.current.isSwipe = false;
+      return;
+    }
     if (!touchDragRef.current.active) return;
     const t = e.changedTouches?.[0];
     if (!t) return;
     endTouchDrag(t.clientX, t.clientY);
   };
 
+  const closeSwipe = () => { setSwipeX(0); setSwipeOpen(false); };
+  const handleCardClick = (e) => {
+    if (swipeOpen) {
+      e.stopPropagation();
+      closeSwipe();
+      return;
+    }
+    openTask(task);
+  };
+  const handleSwipeShare = async (e) => {
+    e.stopPropagation();
+    closeSwipe();
+    const shareText = `${shortTitle}${timeLabel ? ` · ${timeLabel}` : ''}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: shortTitle, text: shareText });
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareText);
+      }
+    } catch (_) { /* user cancelled */ }
+  };
+  const handleSwipeEdit = (e) => {
+    e.stopPropagation();
+    closeSwipe();
+    openTask(task);
+  };
+  const handleSwipeDelete = (e) => {
+    e.stopPropagation();
+    closeSwipe();
+    handleDeleteClick();
+  };
+
   return (
     <>
+    <div className={`task-card-swipe-wrap${swipeOpen ? ' open' : ''}`}>
+      <div className="task-card-swipe-actions" aria-hidden={!swipeOpen}>
+        <button type="button" className="task-swipe-action edit" onClick={handleSwipeEdit} aria-label="Bearbeiten">
+          <Pencil size={18} />
+          <span>Bearbeiten</span>
+        </button>
+        <button type="button" className="task-swipe-action share" onClick={handleSwipeShare} aria-label="Teilen">
+          <Share2 size={18} />
+          <span>Teilen</span>
+        </button>
+        <button type="button" className="task-swipe-action delete" onClick={handleSwipeDelete} aria-label="Löschen">
+          <Trash2 size={18} />
+          <span>Löschen</span>
+        </button>
+      </div>
     <motion.div
       className={`task-card ${isEvent ? 'event' : 'todo'} ${task.completed ? 'completed' : ''} ${canShareToChat ? 'can-share-chat' : ''} ${isEventEnded ? 'ended-event' : ''}`}
       draggable={canShareToChat}
@@ -287,13 +383,14 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
       onTouchCancel={handleTouchEnd}
       layout={!disableLayout}
       initial={shouldAnimate ? { opacity: 0, y: 8 } : false}
-      animate={shouldAnimate ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+      animate={shouldAnimate ? { opacity: 1, y: 0, x: swipeX } : { opacity: 1, y: 0, x: swipeX }}
       exit={{ opacity: 0, x: -100, height: 0, marginBottom: 0, padding: 0 }}
-      transition={shouldAnimate ? { duration: 0.18, delay: index * 0.01 } : { duration: 0.01 }}
-      onClick={() => openTask(task)}
+      transition={shouldAnimate ? { duration: 0.18, delay: index * 0.01 } : { duration: 0.18 }}
+      onClick={handleCardClick}
       style={{
         cursor: 'pointer',
         '--task-priority-color': priorityColors[task.priority] || priorityColors.medium,
+        touchAction: 'pan-y',
       }}
       title={isEventEnded ? 'Termin beendet' : (canShareToChat ? 'In den Gruppen-Chat ziehen' : undefined)}
     >
@@ -545,6 +642,7 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
         </div>
       )}
     </motion.div>
+    </div>
 
     <DeleteTaskChoiceModal
       open={deleteChoiceOpen}

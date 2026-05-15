@@ -29578,3 +29578,57 @@ body.is-electron.is-mac .desktop-titlebar-center {
 .task-detail-grid > .task-detail-item--location:last-child:nth-child(odd) {
   grid-column: 1 / -1;
 }
+
+/* Swipe-to-reveal Aktionen auf TaskCard (mobile) */
+.task-card-swipe-wrap {
+  position: relative;
+  border-radius: 16px;
+  isolation: isolate;
+}
+.task-card-swipe-wrap .task-card {
+  position: relative;
+  z-index: 2;
+  will-change: transform;
+}
+.task-card-swipe-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  padding: 4px 4px 4px 0;
+  z-index: 1;
+  pointer-events: none;
+}
+.task-card-swipe-wrap.open .task-card-swipe-actions { pointer-events: auto; }
+.task-swipe-action {
+  flex: 0 0 62px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #fff;
+  padding: 6px 4px;
+  transition: filter 0.15s ease, transform 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.task-swipe-action:active { transform: scale(0.94); filter: brightness(0.92); }
+.task-swipe-action svg { display: block; }
+.task-swipe-action.edit   { background: linear-gradient(135deg, #4C7BD9 0%, #007AFF 100%); box-shadow: 0 2px 8px rgba(0,122,255,0.25); }
+.task-swipe-action.share  { background: linear-gradient(135deg, #34C759 0%, #1FA851 100%); box-shadow: 0 2px 8px rgba(52,199,89,0.25); }
+.task-swipe-action.delete { background: linear-gradient(135deg, #FF6B6B 0%, #EE0979 100%); box-shadow: 0 2px 8px rgba(238,9,121,0.30); }
+
+/* Auf Desktop: keine Swipe-Aktionen anzeigen */
+@media (min-width: 769px) {
+  .task-card-swipe-actions { display: none; }
+}
