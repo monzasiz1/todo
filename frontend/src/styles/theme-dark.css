@@ -832,6 +832,42 @@ html[data-theme="dark"] .calendar-source-switchbar {
   border-top-color: transparent !important;
 }
 
+/* Mobile Wochenansicht: Allday-Strip + Trennlinien */
+html[data-theme="dark"] .mobile-week-allday-strip {
+  background: transparent;
+  border-bottom-color: var(--border);
+}
+html[data-theme="dark"] .mobile-week-allday-col {
+  border-left-color: var(--border);
+}
+html[data-theme="dark"] .mobile-week-allday-corner {
+  color: var(--text-tertiary);
+}
+html[data-theme="dark"] .mobile-week-grid-header {
+  background: transparent;
+  border-bottom-color: var(--border);
+}
+html[data-theme="dark"] .mobile-week-grid-day-head {
+  border-left-color: var(--border);
+  color: var(--text);
+}
+html[data-theme="dark"] .mobile-week-grid-day-head:active {
+  background: rgba(255, 255, 255, 0.05);
+}
+html[data-theme="dark"] .mobile-week-grid-hours {
+  border-right-color: var(--border);
+}
+html[data-theme="dark"] .mobile-week-grid-col {
+  border-left-color: var(--border);
+}
+html[data-theme="dark"] .mobile-week-grid-hour-line {
+  border-top-color: rgba(255, 255, 255, 0.05);
+}
+html[data-theme="dark"] .mobile-week-grid-hour-label {
+  background: transparent;
+  color: var(--text-tertiary);
+}
+
 /* Bottom-Nav: aktiver/Hover-State im Dark Mode (weg von hellem Weiß-Backdrop) */
 html[data-theme="dark"] .bottom-nav-group {
   background: transparent;
