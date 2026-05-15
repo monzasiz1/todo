@@ -29393,9 +29393,6 @@ body.is-electron.is-mac .desktop-titlebar-center {
 .task-detail-location-compact:hover {
   box-shadow: 0 4px 14px rgba(238, 9, 121, 0.12);
 }
-.task-detail-location-compact.open {
-  box-shadow: 0 6px 22px rgba(238, 9, 121, 0.14);
-}
 .task-detail-location-row {
   width: 100%;
   display: flex;
@@ -29448,52 +29445,30 @@ body.is-electron.is-mac .desktop-titlebar-center {
   color: var(--text-primary, #1c1c1e);
 }
 .task-detail-location-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-size: 11.5px;
   font-weight: 600;
   color: #EE0979;
   background: rgba(238, 9, 121, 0.10);
-  padding: 4px 9px;
+  padding: 5px 10px;
   border-radius: 999px;
   flex: 0 0 auto;
-  transition: background 0.18s ease;
+  transition: background 0.18s ease, transform 0.18s ease;
 }
-.task-detail-location-compact.open .task-detail-location-hint {
+.task-detail-location-row:hover .task-detail-location-hint {
   background: rgba(238, 9, 121, 0.16);
+  transform: translateX(-1px);
 }
-.task-detail-location-chevron {
-  color: #EE0979;
-  transition: transform 0.22s ease;
-  flex: 0 0 auto;
-}
-.task-detail-location-chevron.open { transform: rotate(180deg); }
-.task-detail-location-body {
-  padding: 0 12px 12px;
-}
-.task-detail-location-compact .task-detail-location-map {
-  margin: 4px 0 10px;
-  border-radius: 12px;
-  overflow: hidden;
-  height: 170px;
-  border: 1px solid rgba(238, 9, 121, 0.18);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-}
-.task-detail-location-compact .task-detail-location-map iframe {
-  width: 100%;
-  height: 100%;
-  border: 0;
-  display: block;
-}
-.task-detail-location-actions {
-  display: flex;
-  justify-content: flex-end;
-}
+.task-detail-location-hint svg { display: block; }
 
 @media (max-width: 600px) {
-  .task-detail-location-compact .task-detail-location-map { height: 150px; }
   .task-detail-location-text-compact { font-size: 13.5px; }
   .task-detail-location-row { padding: 10px 12px 10px 14px; gap: 10px; }
   .task-detail-location-pin { width: 30px; height: 30px; }
-  .task-detail-location-hint { display: none; }
+  .task-detail-location-hint span { display: none; }
+  .task-detail-location-hint { padding: 6px 8px; }
 }
 
 /* Dark mode */

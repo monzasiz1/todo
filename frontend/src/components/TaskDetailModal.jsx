@@ -96,7 +96,6 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const [showMapChoice, setShowMapChoice] = useState(false);
   const [mapChoicePos, setMapChoicePos] = useState(null);
   const mapBtnRef = useRef(null);
-  const [locationExpanded, setLocationExpanded] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState([]);
@@ -1126,114 +1125,81 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
         </div>
 
         {task.location && task.location.trim() && (
-          <div className={`task-detail-location-compact${locationExpanded ? ' open' : ''}`}>
+          <div className="task-detail-location-compact">
             <button
               type="button"
+              ref={mapBtnRef}
               className="task-detail-location-row"
-              onClick={() => setLocationExpanded((v) => !v)}
-              aria-expanded={locationExpanded}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!showMapChoice && mapBtnRef.current && window.innerWidth > 600) {
+                  const r = mapBtnRef.current.getBoundingClientRect();
+                  setMapChoicePos({ top: r.bottom + 6, right: Math.max(8, window.innerWidth - r.right) });
+                } else {
+                  setMapChoicePos(null);
+                }
+                setShowMapChoice((s) => !s);
+              }}
+              aria-haspopup="menu"
+              aria-expanded={showMapChoice}
             >
               <span className="task-detail-location-pin"><MapPin size={16} /></span>
               <span className="task-detail-location-info">
                 <span className="task-detail-location-label">Ort</span>
                 <span className="task-detail-location-text-compact">{task.location.trim()}</span>
               </span>
-              <span className="task-detail-location-hint">{locationExpanded ? 'Schließen' : 'Karte'}</span>
-              <ChevronDown size={16} className={`task-detail-location-chevron${locationExpanded ? ' open' : ''}`} />
+              <span className="task-detail-location-hint">
+                <ExternalLink size={12} />
+                <span>Karte</span>
+              </span>
             </button>
-            <AnimatePresence initial={false}>
-              {locationExpanded && (
-                <motion.div
-                  className="task-detail-location-body"
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
-                  style={{ overflow: 'hidden' }}
-                >
-                  <div className="task-detail-location-map">
-                    <iframe
-                      title="Karte"
-                      src={`https://maps.google.com/maps?q=${encodeURIComponent(task.location.trim())}&hl=de&z=15&output=embed`}
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                      allowFullScreen
-                    />
-                  </div>
-                  <div className="task-detail-location-actions">
-                    <div className="task-detail-location-open-wrap">
-                      <button
-                        type="button"
-                        ref={mapBtnRef}
-                        className="task-detail-location-open"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!showMapChoice && mapBtnRef.current && window.innerWidth > 600) {
-                            const r = mapBtnRef.current.getBoundingClientRect();
-                            setMapChoicePos({ top: r.bottom + 6, right: Math.max(8, window.innerWidth - r.right) });
-                          } else {
-                            setMapChoicePos(null);
-                          }
-                          setShowMapChoice((s) => !s);
-                        }}
-                        aria-haspopup="menu"
-                        aria-expanded={showMapChoice}
-                      >
-                        <ExternalLink size={13} />
-                        <span>In Maps öffnen</span>
-                      </button>
-                      <AnimatePresence>
-                        {showMapChoice && createPortal(
-                          <>
-                            <div className="task-detail-mapchoice-backdrop" onClick={() => setShowMapChoice(false)} />
-                            <motion.div
-                              className="task-detail-mapchoice"
-                              role="menu"
-                              style={mapChoicePos ? { position: 'fixed', top: mapChoicePos.top, right: mapChoicePos.right } : undefined}
-                              initial={{ opacity: 0, y: -6, scale: 0.96 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              exit={{ opacity: 0, y: -6, scale: 0.96 }}
-                              transition={{ duration: 0.14 }}
-                            >
-                              <div className="task-detail-mapchoice-title">Öffnen mit</div>
-                              <a
-                                className="task-detail-mapchoice-item"
-                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.location.trim())}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={() => setShowMapChoice(false)}
-                                role="menuitem"
-                              >
-                                <span className="task-detail-mapchoice-logo google">G</span>
-                                <span className="task-detail-mapchoice-label">
-                                  <span className="task-detail-mapchoice-name">Google Maps</span>
-                                  <span className="task-detail-mapchoice-sub">Browser / App</span>
-                                </span>
-                                <ExternalLink size={13} />
-                              </a>
-                              <a
-                                className="task-detail-mapchoice-item"
-                                href={`https://maps.apple.com/?q=${encodeURIComponent(task.location.trim())}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={() => setShowMapChoice(false)}
-                                role="menuitem"
-                              >
-                                <span className="task-detail-mapchoice-logo apple"></span>
-                                <span className="task-detail-mapchoice-label">
-                                  <span className="task-detail-mapchoice-name">Apple Karten</span>
-                                  <span className="task-detail-mapchoice-sub">iOS / macOS</span>
-                                </span>
-                                <ExternalLink size={13} />
-                              </a>
-                            </motion.div>
-                          </>,
-                          document.body
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  </div>
-                </motion.div>
+            <AnimatePresence>
+              {showMapChoice && createPortal(
+                <>
+                  <div className="task-detail-mapchoice-backdrop" onClick={() => setShowMapChoice(false)} />
+                  <motion.div
+                    className="task-detail-mapchoice"
+                    role="menu"
+                    style={mapChoicePos ? { position: 'fixed', top: mapChoicePos.top, right: mapChoicePos.right } : undefined}
+                    initial={{ opacity: 0, y: -6, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -6, scale: 0.96 }}
+                    transition={{ duration: 0.14 }}
+                  >
+                    <div className="task-detail-mapchoice-title">Öffnen mit</div>
+                    <a
+                      className="task-detail-mapchoice-item"
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.location.trim())}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setShowMapChoice(false)}
+                      role="menuitem"
+                    >
+                      <span className="task-detail-mapchoice-logo google">G</span>
+                      <span className="task-detail-mapchoice-label">
+                        <span className="task-detail-mapchoice-name">Google Maps</span>
+                        <span className="task-detail-mapchoice-sub">Browser / App</span>
+                      </span>
+                      <ExternalLink size={13} />
+                    </a>
+                    <a
+                      className="task-detail-mapchoice-item"
+                      href={`https://maps.apple.com/?q=${encodeURIComponent(task.location.trim())}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setShowMapChoice(false)}
+                      role="menuitem"
+                    >
+                      <span className="task-detail-mapchoice-logo apple"></span>
+                      <span className="task-detail-mapchoice-label">
+                        <span className="task-detail-mapchoice-name">Apple Karten</span>
+                        <span className="task-detail-mapchoice-sub">iOS / macOS</span>
+                      </span>
+                      <ExternalLink size={13} />
+                    </a>
+                  </motion.div>
+                </>,
+                document.body
               )}
             </AnimatePresence>
           </div>
