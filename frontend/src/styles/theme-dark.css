@@ -759,6 +759,53 @@ html[data-theme="dark"] .mobile-calendar-modebar-tabs button.active {
   color: var(--primary);
 }
 
+/* Monatsansicht: Tageszellen + Tageszahlen */
+html[data-theme="dark"] .calendar-day {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text);
+}
+html[data-theme="dark"] .calendar-day-number {
+  color: var(--text);
+}
+html[data-theme="dark"] .calendar-day.other-month .calendar-day-number {
+  color: var(--text-tertiary);
+  opacity: 0.5;
+}
+html[data-theme="dark"] .calendar-day.today {
+  background: rgba(77, 163, 255, 0.10);
+}
+html[data-theme="dark"] .calendar-day.today .calendar-day-number {
+  background: var(--primary);
+  color: #fff;
+}
+html[data-theme="dark"] .calendar-day.selected:not(.today) .calendar-day-number {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+html[data-theme="dark"] .calendar-day-name {
+  color: var(--text-tertiary);
+}
+
+/* Mobile Day-View Hintergrund + Stundenraster */
+html[data-theme="dark"] .mobile-day-view,
+html[data-theme="dark"] .mobile-day-grid {
+  background: transparent;
+  border-color: var(--border);
+}
+html[data-theme="dark"] .mobile-day-hour-row {
+  border-top-color: rgba(255, 255, 255, 0.05);
+}
+html[data-theme="dark"] .mobile-day-hour-label {
+  color: var(--text-tertiary);
+  background: transparent;
+}
+html[data-theme="dark"] .mobile-day-allday-item {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text);
+}
+
 /* Monats-Grid (Calendar.jsx Hauptmonatsansicht) */
 html[data-theme="dark"] .calendar-day-tasks {
   color: var(--text);
