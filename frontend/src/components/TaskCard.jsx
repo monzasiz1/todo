@@ -6,7 +6,7 @@ import { useOpenTask } from '../hooks/useOpenTask';
 // TaskDetailModal ist gross und nur sichtbar, wenn der User eine Karte
 // oeffnet - lazy ausgliedern, um das Initial-Bundle zu verkleinern.
 const TaskDetailModal = lazy(() => import('./TaskDetailModal'));
-import { Check, Trash2, Clock, Calendar, CalendarCheck, GripVertical, Lock, Users, UserCheck, Repeat, Paperclip, Video, Circle, ThumbsDown, MapPin, Pencil, Share2, ChevronLeft } from 'lucide-react';
+import { Check, Trash2, Clock, Calendar, CalendarCheck, GripVertical, Lock, Users, UserCheck, Repeat, Paperclip, Video, Circle, ThumbsDown, MapPin, Pencil, Share2 } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
 import SharedTaskBadge from './SharedTaskBadge';
@@ -30,7 +30,7 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
   });
 
   // Swipe-to-reveal (mobile): nach links wischen, um Aktionen freizulegen
-  const SWIPE_ACTIONS_WIDTH = 198; // 3 buttons à 66px
+  const SWIPE_ACTIONS_WIDTH = 186; // 3 buttons à 58px + 2×4px gap
   const [swipeX, setSwipeX] = useState(0);
   const [swipeOpen, setSwipeOpen] = useState(false);
   const swipeStateRef = useRef({ startX: 0, startY: 0, startOffset: 0, isSwipe: false, decided: false });
@@ -305,9 +305,11 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
     }
     // Swipe-Geste abschliessen
     if (swipeStateRef.current.isSwipe) {
-      const threshold = SWIPE_ACTIONS_WIDTH / 2.4;
+      // Breite an Viewport anpassen (muss zu CSS unten passen)
+      const targetWidth = (typeof window !== 'undefined' && window.innerWidth <= 380) ? 168 : SWIPE_ACTIONS_WIDTH;
+      const threshold = targetWidth / 2.4;
       if (swipeX < -threshold) {
-        setSwipeX(-SWIPE_ACTIONS_WIDTH);
+        setSwipeX(-targetWidth);
         setSwipeOpen(true);
       } else {
         setSwipeX(0);
@@ -357,8 +359,11 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
   return (
     <>
     <div className={`task-card-swipe-wrap${swipeOpen ? ' open' : ''}${!swipeOpen && swipeX < -4 ? ' swiping' : ''}`}>
-      <span className="task-card-swipe-hint" aria-hidden="true"><ChevronLeft size={14} /></span>
-      <div className="task-card-swipe-actions" aria-hidden={!swipeOpen}>
+      <div
+        className="task-card-swipe-actions"
+        aria-hidden={!swipeOpen}
+        style={{ transform: `translate3d(${swipeX}px, 0, 0)` }}
+      >
         <button type="button" className="task-swipe-action edit" onClick={handleSwipeEdit} aria-label="Bearbeiten">
           <Pencil size={18} />
           <span>Bearbeiten</span>
