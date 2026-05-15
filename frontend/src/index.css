@@ -27075,39 +27075,24 @@ body.cal-is-dragging * {
  *   ï¿½ Min-Cell-Height angepasst, sodass 4 Tasks + Multi-Day-Bar Platz haben
  * --------------------------------------------------------------------------- */
 @media (min-width: 769px) and (max-width: 1024px) {
-  /* Wrapper fï¿½llt verfï¿½gbaren Bereich unter Header/Sidebar.
-     Auf Tablets gilt das "Mobile Layout": .mobile-header ist FIXED und 56px
-     hoch (siehe oben). .app-main brauchte deshalb padding-top von 72px,
-     damit der Inhalt nicht hinter dem Top-Bar verschwindet. Wir behalten
-     hier mind. 60px (56 Top-Bar + kleiner Atemraum) und lassen unten 12px
-     Luft vor der Bottom-Nav. */
-  .app-main:has(.calendar-page-wrap) {
-    padding-top: calc(60px + env(safe-area-inset-top, 0px));
-    padding-bottom: 12px;
-    padding-left: 12px;
-    padding-right: 12px;
-    min-height: 100vh;
-    min-height: 100dvh;
-    box-sizing: border-box;
-  }
+  /* WICHTIG: .app-main behält auf Tablets seine Standard-Größe/Padding
+     (siehe Regel 769–1180px). Wenn wir hier umpoltern, springen Layout-
+     Maße beim Wechsel Dashboard↔Kalender. Also nur den Kalender-Wrapper
+     an die verfügbare Höhe anpassen, das Padding aber gleich lassen. */
 
   .calendar-page-wrap {
     display: flex;
     flex-direction: column;
-    /* Voller verfï¿½gbarer Raum:
-         100dvh
-         - 60px Top-Bar-Bereich (.mobile-header + Luft)
-         - 90px Bottom-Nav-Bereich
-         - 12px Luft zur Bottom-Nav (padding-bottom auf .app-main)
-         - safe-areas top/bottom (Notch / Home-Indicator)
-       Ergebnis: passt ohne Scroll vollstaendig in den Viewport. */
-    min-height: calc(100dvh - 60px - 90px - 12px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
-    height: calc(100dvh - 60px - 90px - 12px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    /* .app-main hat auf Tablet padding: 20px 14px 90px → Inhalt füllt:
+         100dvh - 20px (top-padding) - 90px (bottom-padding f. Bottom-Nav)
+         - safe-areas. So bleibt Dashboard-Container-Größe identisch. */
+    min-height: calc(100dvh - 20px - 90px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    height: calc(100dvh - 20px - 90px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
     overflow: hidden;
   }
 
   .calendar-page-wrap .page-header {
-    /* Page-Header (Seitentitel) ausblenden ï¿½ der Calendar-eigene Header
+    /* Page-Header (Seitentitel) ausblenden – der Calendar-eigene Header
        reicht und spart wertvolle Vertikal-Hoehe. */
     display: none;
   }
