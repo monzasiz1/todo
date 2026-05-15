@@ -294,12 +294,6 @@ html[data-theme="dark"] .theme-toggle-btn.active {
 /* .bottom-nav ist nur Container fuer zwei Glas-Pillen + FAB → muss transparent bleiben.
    Background liegt auf .bottom-nav-group (siehe unten). */
 html[data-theme="dark"] .app-sidebar,
-html[data-theme="dark"] .sidebar,
-html[data-theme="dark"] [class*="sidebar-"],
-html[data-theme="dark"] .layout,
-html[data-theme="dark"] .layout-main,
-html[data-theme="dark"] .topbar,
-html[data-theme="dark"] .top-bar,
 html[data-theme="dark"] .desktop-titlebar {
   background: var(--bg-elevated);
   color: var(--text);
@@ -325,6 +319,10 @@ html[data-theme="dark"] .sidebar-link.active {
   color: var(--primary);
 }
 html[data-theme="dark"] .sidebar-link svg {
+  color: inherit;
+}
+html[data-theme="dark"] .sidebar-link-label {
+  background: transparent;
   color: inherit;
 }
 
@@ -927,6 +925,9 @@ html[data-theme="dark"] .desktop-week-hour-label,
 html[data-theme="dark"] .desktop-week-left-label,
 html[data-theme="dark"] .calendar-day-header {
   color: var(--text-tertiary);
+}
+html[data-theme="dark"] .desktop-week-hour-label {
+  background: transparent;
 }
 html[data-theme="dark"] .desktop-week-days-row .desktop-week-day-header,
 html[data-theme="dark"] .calendar-day-header {
