@@ -151,6 +151,23 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
     };
   }, []);
 
+  // Native non-passive touchmove-Listener: garantiert, dass preventDefault()
+  // beim horizontalen Wischen wirklich greift (React's onTouchMove ist passiv
+  // und ignoriert preventDefault). Ohne diesen Listener scrollt der Browser
+  // manchmal die Seite mitten in der Swipe-Geste weg → Swipe „funktioniert"
+  // dann zufällig.
+  useEffect(() => {
+    const el = swipeWrapRef.current;
+    if (!el) return undefined;
+    const onMoveNative = (e) => {
+      if (swipeStateRef.current.isSwipe && e.cancelable) {
+        e.preventDefault();
+      }
+    };
+    el.addEventListener('touchmove', onMoveNative, { passive: false });
+    return () => el.removeEventListener('touchmove', onMoveNative);
+  }, []);
+
   useEffect(() => {
     let mounted = true;
     let intervalId = null;
@@ -266,10 +283,11 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
     const dx = t.clientX - swipeStateRef.current.startX;
     const dy = t.clientY - swipeStateRef.current.startY;
 
-    // Richtung entscheiden (einmal)
-    if (!swipeStateRef.current.decided && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+    // Richtung entscheiden (einmal) — niedrige Schwelle, damit Lock-In schnell
+    // passiert und der Browser keine Zeit hat, vertikales Scrollen zu starten.
+    if (!swipeStateRef.current.decided && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
       swipeStateRef.current.decided = true;
-      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 6) {
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 4) {
         // Horizontale Geste → Swipe-Aktionen, Chat-Drag verhindern
         swipeStateRef.current.isSwipe = true;
         if (touchDragRef.current.timer) {
