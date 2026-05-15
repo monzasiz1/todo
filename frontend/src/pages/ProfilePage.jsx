@@ -937,6 +937,11 @@ export default function ProfilePage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <DataExportModal
+        open={showExportModal}
+        onClose={() => setShowExportModal(false)}
+      />
     </div>
   );
 
