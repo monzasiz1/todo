@@ -65,11 +65,26 @@ function getHeaders() {
 async function request(endpoint, options = {}) {
   const method = (options.method || 'GET').toUpperCase();
   const isRead = method === 'GET';
+  // Transiente Server-Fehler (502 Bad Gateway, 503 Service Unavailable, 504 Gateway Timeout)
+  // sind auf Vercel/Supabase oft kurze Cold-Start- oder Connection-Limit-Glitches.
+  // Wir wiederholen lesende Requests mit exponentiellem Backoff, damit der Nutzer
+  // davon im Idealfall nichts mitbekommt.
+  const TRANSIENT_STATUSES = new Set([502, 503, 504]);
+  const MAX_RETRIES = isRead ? 3 : 1;
+  let attempt = 0;
+  let res;
   try {
-    const res = await fetch(`${API_URL}${endpoint}`, {
-      headers: getHeaders(),
-      ...options,
-    });
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      res = await fetch(`${API_URL}${endpoint}`, {
+        headers: getHeaders(),
+        ...options,
+      });
+      if (!TRANSIENT_STATUSES.has(res.status) || attempt >= MAX_RETRIES - 1) break;
+      attempt += 1;
+      const delay = 250 * Math.pow(2, attempt - 1) + Math.floor(Math.random() * 120);
+      await new Promise((r) => setTimeout(r, delay));
+    }
 
     if (res.status === 401) {
       // Versuche die echte Backend-Fehlermeldung zu lesen (z.B. "Ungültige Anmeldedaten",
@@ -103,6 +118,12 @@ async function request(endpoint, options = {}) {
       const err = new Error(data.error || `Anfrage fehlgeschlagen (${res.status})`);
       err.status = res.status;
       err.payload = data;
+      // Bei transienten Server-Fehlern bei GET-Requests: lokalen Cache verwenden,
+      // damit die UI weiter funktioniert (Profil, Tasks, Kategorien usw.).
+      if (isRead && TRANSIENT_STATUSES.has(res.status)) {
+        const cached = cacheGet(endpoint);
+        if (cached) return cached;
+      }
       throw err;
     }
 
