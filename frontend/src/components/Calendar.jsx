@@ -5,8 +5,9 @@ import TaskDetailModal from './TaskDetailModal';
 import { useOpenTask } from '../hooks/useOpenTask';
 import { useTaskStore } from '../store/taskStore';
 import { api } from '../utils/api';
-import { ChevronLeft, ChevronRight, ChevronDown, Maximize2, Minimize2, Video, Settings, User } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, Maximize2, Minimize2, Video, Settings, User, Upload } from 'lucide-react';
 import DayCreateModal from './DayCreateModal';
+import CalendarImportModal from './CalendarImportModal';
 import AvatarBadge from './AvatarBadge';
 import { FEDERAL_STATES, getGermanHolidaysInRange } from '../utils/holidays';
 import {
@@ -268,6 +269,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const [showDayModal, setShowDayModal] = useState(false);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [showHolidaySettings, setShowHolidaySettings] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [showSidebarCategories, setShowSidebarCategories] = useState(true);
   const [isCalendarFullscreen, setIsCalendarFullscreen] = useState(false);
   const [pickerYear, setPickerYear] = useState(getYear(new Date()));
@@ -2589,8 +2591,31 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
           <p className="cal-settings-hint">
             Aktiv: {selectedHolidayStateLabel}. Bundesweite Feiertage bleiben immer sichtbar.
           </p>
+          <div className="cal-settings-field">
+            <span>Termine importieren</span>
+            <button
+              type="button"
+              className="cal-settings-import-btn"
+              onClick={() => { setShowImportModal(true); setShowHolidaySettings(false); }}
+            >
+              <Upload size={14} />
+              <span>Aus .ics-Datei importieren</span>
+            </button>
+            <p className="cal-settings-hint">
+              Google Calendar, Apple Kalender oder Outlook exportieren und hier hochladen.
+            </p>
+          </div>
         </div>
       )}
+
+      <CalendarImportModal
+        open={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImported={() => {
+          // Tasks neu laden, damit die importierten Termine im Kalender erscheinen.
+          if (typeof onTaskCreated === 'function') onTaskCreated();
+        }}
+      />
 
       {view === 'month' ? (
         <div className="calendar-grid">{renderMonthView()}</div>

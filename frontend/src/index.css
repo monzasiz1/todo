@@ -25979,6 +25979,217 @@ body.cal-is-dragging * {
   letter-spacing: 0.04em;
 }
 .gchat-bubble.own .gchat-event-card-badge { color: rgba(255,255,255,0.85); }
+
+/* ── Kalender-Import (.ics) ───────────────────────────────────────────── */
+.cal-settings-import-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elevated);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s, border-color 0.15s;
+}
+.cal-settings-import-btn:hover { background: var(--hover); border-color: var(--primary, #6366f1); }
+.cal-settings-import-btn:active { transform: translateY(1px); }
+
+.cal-import-overlay {
+  position: fixed; inset: 0;
+  background: rgba(15, 17, 25, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 250;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.cal-import-modal {
+  width: min(640px, 100%);
+  max-height: calc(100vh - 40px);
+  display: flex; flex-direction: column;
+  background: var(--bg, #fff);
+  color: var(--text);
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.25);
+  overflow: hidden;
+}
+.cal-import-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.cal-import-head h3 { margin: 0; font-size: 17px; font-weight: 700; }
+.cal-import-head p { margin: 4px 0 0; font-size: 12.5px; color: var(--text-secondary); line-height: 1.45; }
+.cal-import-close {
+  width: 32px; height: 32px;
+  border-radius: 10px;
+  border: none;
+  background: var(--hover);
+  color: var(--text-secondary);
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.cal-import-close:hover { color: var(--text); }
+
+.cal-import-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  display: grid;
+  gap: 14px;
+}
+
+.cal-import-drop {
+  display: grid; place-items: center; gap: 6px;
+  padding: 26px 20px;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: 14px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.cal-import-drop:hover { border-color: var(--primary, #6366f1); background: var(--hover); }
+.cal-import-drop strong { font-size: 14px; font-weight: 700; }
+.cal-import-drop span { font-size: 12px; color: var(--text-secondary); }
+
+.cal-import-paste { display: grid; gap: 6px; }
+.cal-import-paste label { font-size: 12px; font-weight: 700; color: var(--text-secondary); }
+.cal-import-paste textarea {
+  width: 100%;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  resize: vertical;
+}
+
+.cal-import-help {
+  font-size: 12px; color: var(--text-secondary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+.cal-import-help summary { cursor: pointer; font-weight: 700; color: var(--text); }
+.cal-import-help ul { margin: 8px 0 0; padding-left: 18px; line-height: 1.55; }
+
+.cal-import-error {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(220, 38, 38, 0.08);
+  color: #b91c1c;
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 13px;
+}
+
+.cal-import-summary {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12.5px;
+  color: var(--text);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 12px;
+}
+.cal-import-summary span { flex: 1; }
+.cal-import-link {
+  background: none; border: none; color: var(--primary, #6366f1);
+  font-size: 12.5px; font-weight: 600; cursor: pointer; padding: 0;
+}
+
+.cal-import-toolbar {
+  display: flex; align-items: center; gap: 8px;
+}
+.cal-import-toolbar button {
+  height: 30px; padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elevated);
+  color: var(--text);
+  font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.cal-import-toolbar button:hover { background: var(--hover); }
+.cal-import-count { margin-left: auto; font-size: 12px; color: var(--text-secondary); }
+
+.cal-import-list {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: 6px;
+  max-height: 320px; overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 6px;
+  background: var(--bg-elevated);
+}
+.cal-import-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.12s, border-color 0.12s;
+}
+.cal-import-item:hover { background: var(--hover); }
+.cal-import-item.on { background: var(--hover); border-color: var(--primary, #6366f1); }
+.cal-import-check { color: var(--text-secondary); display: inline-flex; padding-top: 1px; }
+.cal-import-item.on .cal-import-check { color: var(--primary, #6366f1); }
+.cal-import-item-body { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.cal-import-item-body strong {
+  font-size: 13.5px; font-weight: 700; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cal-import-item-body span { font-size: 12px; color: var(--text-secondary); }
+.cal-import-rrule { font-size: 11px; font-style: normal; color: #b45309; }
+
+.cal-import-foot {
+  border-top: 1px solid var(--border);
+  padding: 12px 20px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: var(--bg);
+}
+.cal-import-progress {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--text-secondary);
+}
+.cal-import-spin { animation: cal-import-spin 0.9s linear infinite; }
+@keyframes cal-import-spin { to { transform: rotate(360deg); } }
+.cal-import-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.cal-import-btn-secondary {
+  height: 36px; padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elevated);
+  color: var(--text);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.cal-import-btn-secondary:hover:not(:disabled) { background: var(--hover); }
+.cal-import-btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+.cal-import-btn-primary {
+  height: 36px; padding: 0 16px;
+  border-radius: 10px;
+  border: none;
+  background: var(--primary, #6366f1);
+  color: #fff;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.cal-import-btn-primary:hover:not(:disabled) { filter: brightness(1.05); }
+.cal-import-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+@media (max-width: 600px) {
+  .cal-import-overlay { padding: 0; align-items: stretch; }
+  .cal-import-modal { border-radius: 0; max-height: 100vh; width: 100%; }
+}
 .gchat-event-card-ai {
   display: inline-flex;
   align-items: center;
