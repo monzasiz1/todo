@@ -169,9 +169,9 @@ export default function ShareTaskSheet({ task, open, onClose }) {
     if (!task?.id) return '';
     try {
       const origin = typeof window !== 'undefined' && window.location?.origin ? window.location.origin : 'https://beequ.app';
-      return `${origin}/?task=${task.id}`;
+      return `${origin}/app/tasks/${task.id}`;
     } catch (_) {
-      return `https://beequ.app/?task=${task.id}`;
+      return `https://beequ.app/app/tasks/${task.id}`;
     }
   }, [task]);
 

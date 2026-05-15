@@ -29,7 +29,8 @@ const DesktopTitleBar = lazy(() => import('./components/DesktopTitleBar'));
 
 function ProtectedRoute({ children }) {
   const { token } = useAuthStore();
-  if (!token) return <Navigate to="/app/login" replace />;
+  const location = useLocation();
+  if (!token) return <Navigate to="/app/login" replace state={{ from: location }} />;
   return children;
 }
 

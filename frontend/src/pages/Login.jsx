@@ -19,13 +19,18 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     clearError();
+    // Nach erfolgreichem Login zur ursprünglich angefragten Seite zurück (z.B. Share-Link auf Task)
+    const from = location.state?.from;
+    const redirectTo = from?.pathname
+      ? `${from.pathname}${from.search || ''}${from.hash || ''}`
+      : '/app';
     if (step === 'credentials') {
       const result = await login(email, password);
-      if (result === true)          navigate('/app');
+      if (result === true)          navigate(redirectTo, { replace: true });
       else if (result?.requires2FA) setStep('2fa');
     } else {
       const result = await login(email, password, tfaCode);
-      if (result === true) navigate('/app');
+      if (result === true) navigate(redirectTo, { replace: true });
     }
   };
 
