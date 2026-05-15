@@ -2,7 +2,12 @@
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
+import './styles/theme-dark.css';
+import { initTheme } from './utils/theme';
 import { purgeAuthQueueEntries } from './utils/offlineQueue';
+
+// Theme so früh wie möglich anwenden, um FOUC (Flash of Unstyled Theme) zu vermeiden.
+initTheme();
 
 // Markiere Body als Electron-Desktop-App, damit CSS den Platz fuer die
 // Custom-Titlebar reservieren kann und Plattform-spezifische Anpassungen

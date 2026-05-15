@@ -13,10 +13,10 @@ export default function PasswordChangeConfirmed() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#007AFF 0%,#5856D6 100%)' }}>
-      <div style={{ background: '#fff', borderRadius: 18, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', padding: 40, maxWidth: 380, textAlign: 'center' }}>
+      <div style={{ background: 'var(--card-solid, #fff)', color: 'var(--text, #1C1C1E)', borderRadius: 18, boxShadow: '0 8px 32px rgba(0,0,0,0.25)', padding: 40, maxWidth: 380, textAlign: 'center' }}>
         <ShieldCheck size={48} style={{ color: '#34C759', marginBottom: 18 }} />
         <h2 style={{ margin: 0, fontWeight: 800, fontSize: 26 }}>Passwort geändert!</h2>
-        <p style={{ color: '#444', margin: '18px 0 0' }}>Dein Passwort wurde erfolgreich geändert.<br />Du wirst jetzt zum Login weitergeleitet.</p>
+        <p style={{ color: 'var(--text-secondary, #444)', margin: '18px 0 0' }}>Dein Passwort wurde erfolgreich geändert.<br />Du wirst jetzt zum Login weitergeleitet.</p>
       </div>
     </div>
   );

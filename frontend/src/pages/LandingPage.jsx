@@ -1526,10 +1526,11 @@ export default function LandingPage() {
           >
             {/* Windows */}
             <div style={{
-              background: '#ffffff',
+              background: 'var(--card-solid, #ffffff)',
+              color: 'var(--text, #1C1C1E)',
               borderRadius: '16px',
               padding: '32px',
-              border: '1px solid rgba(0, 122, 255, 0.15)',
+              border: '1px solid var(--border, rgba(0, 122, 255, 0.15))',
               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
               textAlign: 'center'
             }}>
@@ -1550,10 +1551,10 @@ export default function LandingPage() {
                   <path d="M0,0 L10,0 L10,10 L0,10 Z M11,0 L24,0 L24,13 L11,13 Z M0,11 L10,11 L10,24 L0,24 Z M11,14 L24,14 L24,24 L11,24 Z"/>
                 </svg>
               </div>
-              <h3 style={{ fontSize: '1.3rem', fontWeight: '700', marginBottom: '8px', color: '#0c1d36' }}>
+              <h3 style={{ fontSize: '1.3rem', fontWeight: '700', marginBottom: '8px', color: 'var(--text, #0c1d36)' }}>
                 Windows
               </h3>
-              <p style={{ fontSize: '0.92rem', color: '#6b7c95', marginBottom: '20px' }}>
+              <p style={{ fontSize: '0.92rem', color: 'var(--text-secondary, #6b7c95)', marginBottom: '20px' }}>
                 Windows 10/11 (64-bit)
               </p>
               <a 
@@ -1581,10 +1582,11 @@ export default function LandingPage() {
 
             {/* macOS */}
             <div style={{
-              background: '#ffffff',
+              background: 'var(--card-solid, #ffffff)',
+              color: 'var(--text, #1C1C1E)',
               borderRadius: '16px',
               padding: '32px',
-              border: '1px solid rgba(0, 0, 0, 0.1)',
+              border: '1px solid var(--border, rgba(0, 0, 0, 0.1))',
               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
               textAlign: 'center'
             }}>
@@ -1602,10 +1604,10 @@ export default function LandingPage() {
               }}>
                 
               </div>
-              <h3 style={{ fontSize: '1.3rem', fontWeight: '700', marginBottom: '8px', color: '#0c1d36' }}>
+              <h3 style={{ fontSize: '1.3rem', fontWeight: '700', marginBottom: '8px', color: 'var(--text, #0c1d36)' }}>
                 macOS
               </h3>
-              <p style={{ fontSize: '0.92rem', color: '#6b7c95', marginBottom: '20px' }}>
+              <p style={{ fontSize: '0.92rem', color: 'var(--text-secondary, #6b7c95)', marginBottom: '20px' }}>
                 Intel + Apple Silicon
               </p>
               <button 
@@ -1617,7 +1619,7 @@ export default function LandingPage() {
                   opacity: 0.5,
                   cursor: 'not-allowed',
                   background: '#e5e7eb',
-                  color: '#6b7c95'
+                  color: 'var(--text-secondary, #6b7c95)'
                 }}
               >
                 In Kürze verfügbar
@@ -1630,7 +1632,7 @@ export default function LandingPage() {
                   display: 'block',
                   marginTop: '12px',
                   fontSize: '0.85rem',
-                  color: '#6b7c95',
+                  color: 'var(--text-secondary, #6b7c95)',
                   textDecoration: 'none'
                 }}
               >
@@ -1650,7 +1652,7 @@ export default function LandingPage() {
             }}
             variants={fadeUp}
           >
-            <p style={{ fontSize: '0.9rem', color: '#6b7c95', margin: 0 }}>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary, #6b7c95)', margin: 0 }}>
               <Check size={16} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '6px', color: '#34C759' }} />
               Keine Anmeldung für Download erforderlich &nbsp;•&nbsp; 
               <Check size={16} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '6px', color: '#34C759' }} />

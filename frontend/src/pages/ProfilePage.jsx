@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect, useRef } from 'react';
 import Confetti from '../components/Confetti';
 import DataExportModal from '../components/DataExportModal';
+import ThemeToggle from '../components/ThemeToggle';
 import { useAuthStore } from '../store/authStore';
 import { api } from '../utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -611,6 +612,19 @@ export default function ProfilePage() {
 
       {/* ═══ RIGHT PANEL ═══ */}
       <main className="pv2-right">
+
+        {/* Darstellung */}
+        <div className="pv2-card">
+          <div className="pv2-section-head"><Palette size={15} /><span>Darstellung</span></div>
+          <div className="pv2-row" style={{ cursor: 'default', alignItems: 'center' }}>
+            <div className="pv2-row-icon" style={{ background: 'rgba(88,86,214,0.1)', color: '#5856D6' }}><Palette size={16} /></div>
+            <div className="pv2-row-body">
+              <span className="pv2-row-title">Theme</span>
+              <span className="pv2-row-sub">Hell, Dunkel oder Systemvorgabe</span>
+            </div>
+            <ThemeToggle />
+          </div>
+        </div>
 
         {/* Security */}
         <div className="pv2-card">

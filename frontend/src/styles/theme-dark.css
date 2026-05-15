@@ -1,0 +1,521 @@
+/* ════════════════════════════════════════════════════════════════════
+   BEEQU — DARK THEME
+   Aktiviert per <html data-theme="dark">. Überschreibt nur Token-Variablen
+   aus index.css (:root) — keine bestehenden Selektoren werden geändert.
+
+   Strategie:
+   - Helle Hintergründe -> tiefes Schiefergrau (#0B1220 / #131A29 / #1B2236)
+   - Karten / Surface  -> leichtes Aufhellen + dünne weiße Borders
+   - Text              -> warm-weiß mit reduzierten Sekundärstufen
+   - Akzente bleiben   -> Blau/Violett/Grün etc. (mit leichtem Sättigungs-Lift)
+   - Schatten          -> tiefer + transparenter (kein Box-Shadow-Overflow)
+   ════════════════════════════════════════════════════════════════════ */
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* ── Core tokens (index.css :root) ── */
+  --primary:        #4DA3FF;
+  --primary-light:  #7CC0FF;
+  --primary-bg:     rgba(77, 163, 255, 0.16);
+
+  --bg:             #0B1220;
+  --bg-elevated:    #131A29;
+  --surface:        #131A29;
+  --surface-2:      #1B2236;
+
+  --hover:          rgba(255, 255, 255, 0.06);
+  --card:           rgba(255, 255, 255, 0.04);
+  --card-solid:     #1B2236;
+
+  --text:            #F5F7FB;
+  --text-secondary:  rgba(245, 247, 251, 0.62);
+  --text-tertiary:   rgba(245, 247, 251, 0.38);
+
+  --border:         rgba(255, 255, 255, 0.08);
+  --border-strong:  rgba(255, 255, 255, 0.16);
+
+  --success:        #30D158;
+  --warning:        #FFB340;
+  --danger:         #FF453A;
+  --urgent:         #FF6482;
+  --purple:         #7C7AE6;
+  --teal:           #5EE7DE;
+
+  --shadow-sm:      0 1px 3px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md:      0 6px 18px rgba(0, 0, 0, 0.5),  0 2px 6px rgba(0, 0, 0, 0.4);
+  --shadow-lg:      0 14px 40px rgba(0, 0, 0, 0.55), 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-xl:      0 24px 60px rgba(0, 0, 0, 0.6),  0 8px 20px rgba(0, 0, 0, 0.45);
+
+  --glass:          rgba(20, 26, 41, 0.72);
+  --glass-border:   rgba(255, 255, 255, 0.08);
+
+  /* ── Landing-Tokens (bq-*) ── */
+  --bq-text:        #F5F7FB;
+  --bq-muted:       rgba(245, 247, 251, 0.6);
+  --bq-border:      rgba(255, 255, 255, 0.08);
+  --bq-card:        #131A29;
+  --bq-bg:          #0B1220;
+  --bq-shadow:      0 6px 22px rgba(0, 0, 0, 0.5), 0 1px 4px rgba(0, 0, 0, 0.3);
+  --bq-shadow-lg:   0 24px 70px rgba(0, 0, 0, 0.65), 0 6px 22px rgba(0, 0, 0, 0.4);
+}
+
+/* ── Body + html grundlegend ───────────────────────────────────────── */
+html[data-theme="dark"],
+html[data-theme="dark"] body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ── native UI / Form-Elemente ─────────────────────────────────────── */
+html[data-theme="dark"] input,
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select {
+  background-color: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+  caret-color: var(--primary);
+}
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder {
+  color: var(--text-tertiary);
+}
+html[data-theme="dark"] hr {
+  border-color: var(--border);
+}
+
+/* ── Scrollbar (WebKit/Chromium) ───────────────────────────────────── */
+html[data-theme="dark"] *::-webkit-scrollbar {
+  width: 10px; height: 10px;
+}
+html[data-theme="dark"] *::-webkit-scrollbar-track {
+  background: transparent;
+}
+html[data-theme="dark"] *::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+html[data-theme="dark"] *::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+/* ── Selection ─────────────────────────────────────────────────────── */
+html[data-theme="dark"] ::selection {
+  background: rgba(77, 163, 255, 0.32);
+  color: #fff;
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+   ÜBERLAGERUNGEN für hartkodierte Helligkeiten in einzelnen Modulen.
+   Wir greifen NUR strukturell auf bestehende Klassen zu und überschreiben
+   sparsam. Erweitern wir nach und nach, sobald Stellen auffallen.
+   ────────────────────────────────────────────────────────────────────── */
+
+/* App-Shell / Cards / Glas-Optik */
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .pv2-card,
+html[data-theme="dark"] .profile-section-card,
+html[data-theme="dark"] .profile-header-card,
+html[data-theme="dark"] .profile-teams-card {
+  background: var(--card-solid);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+/* Modale / Overlays mit weißem Background */
+html[data-theme="dark"] .modal,
+html[data-theme="dark"] [class*="modal-content"],
+html[data-theme="dark"] [class*="-modal"]:not(.modal-overlay) {
+  background-color: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+html[data-theme="dark"] [class*="modal-overlay"] {
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+/* Buttons mit hellem Default-Background */
+html[data-theme="dark"] button:not([class]),
+html[data-theme="dark"] .btn-secondary,
+html[data-theme="dark"] .btn-ghost {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* Toasts / Tooltips */
+html[data-theme="dark"] .toast,
+html[data-theme="dark"] .tooltip {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* Landing-Page-Sektionen, die explizit auf weiß gesetzt sind */
+html[data-theme="dark"] .bq,
+html[data-theme="dark"] .bq-section,
+html[data-theme="dark"] .bq-features-section {
+  background: var(--bg);
+  color: var(--text);
+}
+html[data-theme="dark"] .bq-features-section {
+  background:
+    radial-gradient(circle at 12% 16%, rgba(77, 163, 255, 0.12), transparent 30%),
+    radial-gradient(circle at 82% 18%, rgba(124, 122, 230, 0.12), transparent 32%),
+    linear-gradient(180deg, #0B1220 0%, #131A29 100%);
+}
+html[data-theme="dark"] .bq-showcase-list,
+html[data-theme="dark"] .bq-showcase-stage {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015));
+  border-color: var(--border);
+  color: var(--text);
+}
+html[data-theme="dark"] .bq-showcase-stage {
+  background:
+    radial-gradient(620px circle at var(--mx, 50%) var(--my, 50%),
+      color-mix(in srgb, var(--bq-card-accent, #4DA3FF) 20%, transparent),
+      transparent 55%),
+    linear-gradient(180deg, #131A29, #1B2236);
+}
+html[data-theme="dark"] .bq-showcase-headline { color: var(--text); }
+html[data-theme="dark"] .bq-showcase-copy    { color: var(--text-secondary); }
+html[data-theme="dark"] .bq-showcase-item    { color: var(--text-secondary); }
+html[data-theme="dark"] .bq-showcase-item.active { color: var(--text); }
+html[data-theme="dark"] .bq-showcase-item-plan  { color: var(--text-tertiary); }
+
+html[data-theme="dark"] .bq-demo-card,
+html[data-theme="dark"] .bq-demo-toast {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border);
+  color: var(--text);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45);
+}
+html[data-theme="dark"] .bq-demo-row,
+html[data-theme="dark"] .bq-demo-msg,
+html[data-theme="dark"] .bq-demo-file,
+html[data-theme="dark"] .bq-demo-cal-c {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+}
+html[data-theme="dark"] .bq-demo-cal-h,
+html[data-theme="dark"] .bq-demo-cal-head,
+html[data-theme="dark"] .bq-demo-toast small {
+  color: var(--text-tertiary);
+}
+
+/* Sektion-Header der Landing */
+html[data-theme="dark"] .bq-section-head h2,
+html[data-theme="dark"] .bq-bento-card h3 { color: var(--text); }
+html[data-theme="dark"] .bq-section-head p,
+html[data-theme="dark"] .bq-bento-card p  { color: var(--text-secondary); }
+html[data-theme="dark"] .bq-h2-muted      { color: var(--text-tertiary); }
+html[data-theme="dark"] .bq-bento-card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02)),
+    var(--bq-card-tint, rgba(77, 163, 255, 0.06));
+  border-color: var(--border);
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Auth-Screens (kommen aus auth.css) */
+html[data-theme="dark"] .bq-auth-page,
+html[data-theme="dark"] [class*="auth-page"],
+html[data-theme="dark"] [class*="auth-card"] {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* Smoother Theme-Übergang (nur Farben/Background) */
+html[data-theme="dark"] body,
+html[data-theme="dark"] body * {
+  transition-property: background-color, color, border-color, box-shadow;
+  transition-duration: 0.18s;
+  transition-timing-function: ease;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   THEME-TOGGLE Komponente (immer aktiv, light + dark)
+   ════════════════════════════════════════════════════════════════════ */
+.theme-toggle {
+  display: inline-flex;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--surface-2, rgba(0, 0, 0, 0.04));
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.06));
+  gap: 2px;
+}
+.theme-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary, #8E8E93);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.16s ease, color 0.16s ease, transform 0.12s ease;
+}
+.theme-toggle-btn:hover {
+  color: var(--text, #1C1C1E);
+  background: var(--hover, rgba(0, 0, 0, 0.04));
+}
+.theme-toggle-btn:active {
+  transform: scale(0.97);
+}
+.theme-toggle-btn.active {
+  background: var(--bg-elevated, #ffffff);
+  color: var(--primary, #007AFF);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.08));
+}
+html[data-theme="dark"] .theme-toggle-btn.active {
+  background: rgba(77, 163, 255, 0.18);
+  color: var(--primary, #4DA3FF);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   STUFE 2 — Hartkodierte Helligkeiten in Komponenten überschreiben.
+   Reihenfolge folgt grob der Sichtbarkeit/Frequenz in der App.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── App-Shell ──────────────────────────────────────────────────────── */
+html[data-theme="dark"] .app-sidebar,
+html[data-theme="dark"] .sidebar,
+html[data-theme="dark"] [class*="sidebar-"],
+html[data-theme="dark"] .bottom-nav,
+html[data-theme="dark"] .layout,
+html[data-theme="dark"] .layout-main,
+html[data-theme="dark"] .topbar,
+html[data-theme="dark"] .top-bar,
+html[data-theme="dark"] .desktop-titlebar {
+  background: var(--bg-elevated);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* ── Kalender ───────────────────────────────────────────────────────── */
+html[data-theme="dark"] .calendar-header,
+html[data-theme="dark"] .calendar-grid,
+html[data-theme="dark"] .calendar-page-wrap .calendar-header,
+html[data-theme="dark"] .calendar-page-wrap .calendar-body,
+html[data-theme="dark"] .calendar-day,
+html[data-theme="dark"] .calendar-weekday,
+html[data-theme="dark"] .mobile-day-view {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+html[data-theme="dark"] .calendar-nav-btn,
+html[data-theme="dark"] .calendar-nav-btn:hover {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--border);
+}
+html[data-theme="dark"] .calendar-day.today {
+  background: rgba(77, 163, 255, 0.12);
+}
+html[data-theme="dark"] .calendar-day.other-month,
+html[data-theme="dark"] .calendar-weekday {
+  color: var(--text-tertiary);
+}
+
+/* ── Forms / Inputs ─────────────────────────────────────────────────── */
+html[data-theme="dark"] .task-edit-input,
+html[data-theme="dark"] .task-edit-body .task-edit-input,
+html[data-theme="dark"] .manual-task-form-panel .task-edit-input,
+html[data-theme="dark"] .gs-input,
+html[data-theme="dark"] .gs-input:focus,
+html[data-theme="dark"] .bq-input-wrap input,
+html[data-theme="dark"] .bq-input-wrap input:focus,
+html[data-theme="dark"] .bq-code-input {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--border);
+}
+html[data-theme="dark"] .bq-input-wrap input:focus,
+html[data-theme="dark"] .gs-input:focus,
+html[data-theme="dark"] .task-edit-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(77, 163, 255, 0.18);
+}
+
+/* ── Modals & Sheets ────────────────────────────────────────────────── */
+html[data-theme="dark"] .upgrade-modal,
+html[data-theme="dark"] .pricing-card,
+html[data-theme="dark"] .gs-card,
+html[data-theme="dark"] .quick-add-sheet,
+html[data-theme="dark"] .qas-card,
+html[data-theme="dark"] .task-detail-modal,
+html[data-theme="dark"] .task-edit-modal,
+html[data-theme="dark"] .delete-task-choice-modal,
+html[data-theme="dark"] .day-create-modal,
+html[data-theme="dark"] .calendar-import-modal,
+html[data-theme="dark"] .data-export-modal,
+html[data-theme="dark"] .category-manager,
+html[data-theme="dark"] .focus-timer,
+html[data-theme="dark"] .focus-timer-pin,
+html[data-theme="dark"] .help-chat,
+html[data-theme="dark"] .share-task-sheet,
+html[data-theme="dark"] .install-prompt,
+html[data-theme="dark"] .notification-dropdown,
+html[data-theme="dark"] .friends-list,
+html[data-theme="dark"] .group-chat-panel,
+html[data-theme="dark"] .group-project-board {
+  background: var(--card-solid);
+  color: var(--text);
+  border-color: var(--border);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Tabs / Pills / Filter */
+html[data-theme="dark"] .qas-tab,
+html[data-theme="dark"] .filter-btn {
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
+html[data-theme="dark"] .qas-tab.active,
+html[data-theme="dark"] .filter-btn.active {
+  background: var(--primary);
+  color: #fff;
+}
+html[data-theme="dark"] .filter-btn.active .filter-dot {
+  background: #fff;
+}
+
+/* Radios (custom) */
+html[data-theme="dark"] .data-export-radio.is-on::after {
+  background: var(--primary);
+}
+html[data-theme="dark"] .data-export-radio {
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+
+/* ── Auth Screens ───────────────────────────────────────────────────── */
+html[data-theme="dark"] .bq-auth-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+html[data-theme="dark"] .bq-verify-card,
+html[data-theme="dark"] .bq-auth-verify {
+  background: var(--card-solid);
+  color: var(--text);
+  border-color: var(--border);
+}
+html[data-theme="dark"] .bq-verify-card strong,
+html[data-theme="dark"] .bq-auth-verify strong {
+  color: var(--text);
+}
+html[data-theme="dark"] .bq-code-input {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+/* ── Group Chat ─────────────────────────────────────────────────────── */
+html[data-theme="dark"] .gchat-edit-save {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+html[data-theme="dark"] .gchat-bubble,
+html[data-theme="dark"] .gchat-bubble.own,
+html[data-theme="dark"] .gchat-input,
+html[data-theme="dark"] .gchat-input:focus {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--border);
+}
+html[data-theme="dark"] .gchat-bubble.own {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* ── Task Detail / Cards ────────────────────────────────────────────── */
+html[data-theme="dark"] .task-detail-location-open:hover {
+  background: var(--surface-2);
+}
+html[data-theme="dark"] .task-card,
+html[data-theme="dark"] .task-list-item {
+  background: var(--card-solid);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* ── Profile / Action Button Cancel ─────────────────────────────────── */
+html[data-theme="dark"] .profile-action-btn-cancel {
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
+html[data-theme="dark"] .profile-action-btn-cancel:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+
+/* ── Bento Landing Mock-Elemente (nicht-Showcase) ───────────────────── */
+html[data-theme="dark"] .bq-mock-sidebar,
+html[data-theme="dark"] .bq-mock-ai-card,
+html[data-theme="dark"] .bq-ai-demo-card,
+html[data-theme="dark"] .bq-outline {
+  background: var(--card-solid);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* CTA-Section (eingeladene helle Buttons auf dunklem Hintergrund) bleibt
+   absichtlich hell — .bq-cta-primary nicht überschreiben. */
+
+/* ── Notes-Widget ───────────────────────────────────────────────────── */
+html[data-theme="dark"] .notes-widget,
+html[data-theme="dark"] [class*="note-card"],
+html[data-theme="dark"] [class*="note-board"] {
+  background: var(--card-solid);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* ── Generische Modal-Overlays absichern ────────────────────────────── */
+html[data-theme="dark"] .modal-overlay,
+html[data-theme="dark"] .bq-auth-overlay {
+  background: rgba(0, 0, 0, 0.65);
+}
+html[data-theme="dark"] .modal-content,
+html[data-theme="dark"] .bq-auth-card {
+  background: var(--card-solid);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* ── Toasts / Feedback ──────────────────────────────────────────────── */
+html[data-theme="dark"] .feedback-toast,
+html[data-theme="dark"] .profile-toast {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ── PWA-spezifische Helligkeiten (Layout-Wrapper) ──────────────────── */
+html[data-theme="dark"] body,
+html[data-theme="dark"] #root,
+html[data-theme="dark"] .app-root {
+  background: var(--bg);
+}
+
+/* ── Sicherer Fallback: Inline-Style #fff/#ffffff in JSX ────────────────
+   Inline-Styles können wir nicht via CSS-Klassen ersetzen, aber für
+   Sticky-Notes-Demo & Auth-Confirmed-Screen wurde extra im JSX nachgezogen
+   (siehe Commit). Falls noch was übersehen wurde, helfen die folgenden
+   Spezial-Selektoren bei häufigen JSX-Inline-Patterns. */
