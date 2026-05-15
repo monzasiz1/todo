@@ -16,7 +16,6 @@ import {
   MapPin,
   AlignLeft,
   Flag,
-  X,
 } from 'lucide-react';
 
 // Hilfen
@@ -307,9 +306,6 @@ export default function ShareTaskSheet({ task, open, onClose }) {
                   <div className="share-sheet-subtitle">Wähle, wie du die Aufgabe versendest</div>
                 </div>
               </div>
-              <button type="button" className="share-sheet-close" onClick={onClose} aria-label="Schließen">
-                <X size={18} />
-              </button>
             </div>
 
             {/* Preview Card */}
