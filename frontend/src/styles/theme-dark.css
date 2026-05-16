@@ -1066,9 +1066,47 @@ html[data-theme="dark"] .cal-settings-modal-foot {
   color: var(--text);
   border-color: var(--border);
 }
+html[data-theme="dark"] .cal-settings-modal-foot {
+  background: var(--card-solid);
+}
+html[data-theme="dark"] .cal-settings-modal-close {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+}
+html[data-theme="dark"] .cal-settings-modal-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text);
+}
 html[data-theme="dark"] .cal-settings-field {
   background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+html[data-theme="dark"] .cal-settings-field > span {
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 11px;
+}
+html[data-theme="dark"] .cal-settings-field select {
+  background: var(--surface);
   border-color: var(--border);
+  color: var(--text);
+}
+html[data-theme="dark"] .cal-settings-field select:focus {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(77, 163, 255, 0.18);
+}
+html[data-theme="dark"] .cal-settings-import-btn {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+html[data-theme="dark"] .cal-settings-import-btn:hover {
+  background: var(--hover);
+  border-color: var(--primary);
 }
 html[data-theme="dark"] .cal-settings-hint {
   color: var(--text-tertiary);
