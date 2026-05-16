@@ -858,6 +858,11 @@ html[data-theme="dark"] .dash-section-list .task-description-preview,
 html[data-theme="dark"] .dash-section-list .task-meta-item {
   color: var(--text-secondary);
 }
+/* Location-Pin behaelt seinen Akzent (rosa/pink) */
+html[data-theme="dark"] .dash-section-list .task-meta-item.task-meta-location,
+html[data-theme="dark"] .task-meta-item.task-meta-location {
+  color: #FF7AB8;
+}
 
 /* Type-Badges */
 html[data-theme="dark"] .dash-section-list .task-type-badge.task {
