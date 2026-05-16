@@ -15745,12 +15745,20 @@ body.cal-is-dragging * {
    Inhalte (z. B. kompakte Event-Header) auf shrink-to-fit kollabieren. */
 .group-task-list > .task-card,
 .group-task-list .task-card.event,
-.group-task-list .task-card.todo {
+.group-task-list .task-card.todo,
+.group-task-list > .task-card-swipe-wrap,
+.group-task-list .task-card-swipe-wrap {
   width: 100%;
   max-width: 100%;
   flex: 1 1 100%;
   align-self: stretch;
   box-sizing: border-box;
+}
+/* Inside the swipe-wrap, the task card must always fill the track */
+.group-task-list .task-card-swipe-wrap > .task-card-swipe-track,
+.group-task-list .task-card-swipe-wrap .task-card-swipe-track > .task-card {
+  width: 100%;
+  max-width: 100%;
 }
 
 /* --- Dashboard section expander --- */
