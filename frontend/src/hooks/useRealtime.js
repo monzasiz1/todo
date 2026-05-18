@@ -20,6 +20,16 @@ function setRealtimeActive(v) {
   try { window.__beequRealtimeActive = !!v; } catch { /* ignore */ }
 }
 
+// Diagnose-Objekt fuer User-Debugging. In DevTools-Konsole `__beequRealtime`
+// eingeben um den aktuellen Stand zu sehen.
+function setStatus(patch) {
+  try {
+    window.__beequRealtime = { ...(window.__beequRealtime || {}), ...patch, ts: Date.now() };
+    // eslint-disable-next-line no-console
+    console.info('[realtime]', window.__beequRealtime);
+  } catch { /* ignore */ }
+}
+
 // Re-fetch wird gedebounced damit ein Bulk-Update (z.B. Server schreibt 5
 // Rows nacheinander) nicht 5x denselben Endpoint hämmert.
 function debounce(fn, ms = 250) {
@@ -47,32 +57,42 @@ export function useRealtime({ userId, enabled = true } = {}) {
   const channelsRef = useRef([]);
 
   useEffect(() => {
-    if (!enabled || !userId) return undefined;
-    if (!isSupabaseConfigured()) return undefined;
+    if (!enabled || !userId) { setStatus({ phase: 'disabled', reason: 'no-user' }); return undefined; }
+    if (!isSupabaseConfigured()) {
+      setStatus({
+        phase: 'misconfigured',
+        reason: 'VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY fehlen im Build (Vercel ENV).',
+      });
+      return undefined;
+    }
 
     const supabase = getSupabase();
-    if (!supabase) return undefined;
+    if (!supabase) { setStatus({ phase: 'misconfigured', reason: 'getSupabase() returned null' }); return undefined; }
     supabaseRef.current = supabase;
+    setStatus({ phase: 'starting', userId });
 
     let cancelled = false;
 
     const setupAuthAndSubscribe = async () => {
       try {
+        setStatus({ phase: 'fetching-token' });
         const tok = await fetchRealtimeToken();
         if (cancelled) return;
-        if (!tok?.access_token) return;
+        if (!tok?.access_token) { setStatus({ phase: 'no-token', reason: 'response has no access_token' }); return; }
 
         // Setzt das JWT auf den Realtime-Socket. auth.uid() / app_user_id() in
         // RLS-Policies sehen ab jetzt den eingeloggten User.
         try { supabase.realtime.setAuth(tok.access_token); } catch { /* ignore */ }
+        setStatus({ phase: 'token-set', expires_in: tok.expires_in });
 
         scheduleRefresh(tok.expires_in);
         subscribeAll();
       } catch (err) {
         // 503 = Realtime nicht konfiguriert (SUPABASE_JWT_SECRET fehlt).
         // 401 = nicht eingeloggt. In beiden Faellen einfach kein Realtime.
+        setStatus({ phase: 'error', reason: err?.message || String(err) });
         // eslint-disable-next-line no-console
-        if (import.meta.env.DEV) console.warn('[realtime] disabled:', err?.message || err);
+        console.warn('[realtime] disabled:', err?.message || err);
       }
     };
 
@@ -113,7 +133,10 @@ export function useRealtime({ userId, enabled = true } = {}) {
           { event: '*', schema: 'public', table: 'group_tasks' },
           () => refetchTasks()
         )
-        .subscribe();
+        .subscribe((status, err) => {
+          setStatus({ tasksChannel: status, tasksErr: err?.message });
+          if (status === 'SUBSCRIBED') setRealtimeActive(true);
+        });
 
       channelsRef.current.push({ channel: tasksChannel, cancel: refetchTasks.cancel });
 
@@ -134,7 +157,9 @@ export function useRealtime({ userId, enabled = true } = {}) {
             } catch { /* ignore */ }
           }
         )
-        .subscribe();
+        .subscribe((status, err) => {
+          setStatus({ chatChannel: status, chatErr: err?.message });
+        });
       channelsRef.current.push({ channel: chatChannel });
 
       // 3) GRUPPEN — Aenderungen an groups + group_members refreshen die
@@ -162,7 +187,9 @@ export function useRealtime({ userId, enabled = true } = {}) {
           { event: '*', schema: 'public', table: 'group_members' },
           () => refetchGroups()
         )
-        .subscribe();
+        .subscribe((status, err) => {
+          setStatus({ groupsChannel: status, groupsErr: err?.message });
+        });
       channelsRef.current.push({ channel: groupsChannel, cancel: refetchGroups.cancel });
 
       // 4) ONLINE-PRESENCE — Channel 'rt-presence'. Jeder verbundene Client
@@ -184,12 +211,16 @@ export function useRealtime({ userId, enabled = true } = {}) {
         .on('presence', { event: 'leave' }, ({ key }) => {
           if (key) useStatusStore.getState().removeOnline(key);
         })
-        .subscribe(async (status) => {
+        .subscribe(async (status, err) => {
+          setStatus({ presenceChannel: status, presenceErr: err?.message });
           if (status === 'SUBSCRIBED') {
             try {
               await presence.track({ user_id: userId, online_at: Date.now() });
               setRealtimeActive(true);
-            } catch { /* ignore */ }
+              setStatus({ presenceTracked: true });
+            } catch (e) {
+              setStatus({ presenceTracked: false, trackErr: e?.message });
+            }
           }
         });
       channelsRef.current.push({
@@ -211,7 +242,9 @@ export function useRealtime({ userId, enabled = true } = {}) {
           if (Number(senderId) === Number(userId)) return;
           useStatusStore.getState().markTyping(groupId, senderId);
         })
-        .subscribe();
+        .subscribe((status, err) => {
+          setStatus({ typingChannel: status, typingErr: err?.message });
+        });
       channelsRef.current.push({ channel: typingChannel });
 
       // Globaler Helper, damit UI-Code (z.B. Chat-Input) Typing senden kann
