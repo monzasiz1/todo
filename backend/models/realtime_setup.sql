@@ -141,7 +141,20 @@ DO $$ BEGIN
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'note_connections') THEN
     EXECUTE 'DROP POLICY IF EXISTS rt_select_own_note_connections ON public.note_connections';
-    EXECUTE 'CREATE POLICY rt_select_own_note_connections ON public.note_connections FOR SELECT TO authenticated USING (user_id = public.app_user_id())';
+    -- note_connections hat keine user_id-Spalte → Sichtbarkeit ueber die
+    -- verbundenen Notes ableiten: User sieht eine Verbindung, wenn er
+    -- mindestens eine der beiden Notes besitzt.
+    EXECUTE $POL$
+      CREATE POLICY rt_select_own_note_connections ON public.note_connections
+        FOR SELECT TO authenticated
+        USING (
+          EXISTS (
+            SELECT 1 FROM public.notes n
+            WHERE (n.id = note_connections.note_id_1 OR n.id = note_connections.note_id_2)
+              AND n.user_id = public.app_user_id()
+          )
+        )
+    $POL$;
   END IF;
 END $$;
 

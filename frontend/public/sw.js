@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = 'beequ-v12';
+﻿const CACHE_NAME = 'beequ-v13';
 const API_CACHE_NAME = 'beequ-api-v1';
 const STATIC_ASSETS = [
   '/',
@@ -20,6 +20,7 @@ const API_CACHE_BLOCKLIST = [
   '/auth/verify-code',
   '/auth/resend-code',
   '/auth/2fa',
+  '/auth/realtime-token',
   '/billing',
   '/notifications/log',
   '/tasks/reminders/due',

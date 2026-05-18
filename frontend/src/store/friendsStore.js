@@ -72,27 +72,61 @@ export const useFriendsStore = create((set, get) => ({
   acceptFriend: async (id) => {
     try {
       await api.acceptFriend(id);
-      get().fetchFriends();
     } catch (err) {
-      set({ error: err.message });
+      // 404 = Anfrage existiert nicht mehr (z.B. bereits angenommen/abgelehnt
+      // oder durch lokalen Cache veralteter Eintrag). Eintrag optimistisch
+      // aus der Liste werfen, damit der Karte nicht endlos stehen bleibt.
+      const msg = String(err?.message || '');
+      if (msg.includes('404') || /nicht gefunden/i.test(msg)) {
+        const pending = get().pending.filter((p) => p.id !== id);
+        const next = { ...get(), pending };
+        set({ pending });
+        writeFriendsCache(next);
+      } else {
+        set({ error: err.message });
+      }
+    } finally {
+      // Immer mit Server synchronisieren – auch im Fehlerfall, damit der
+      // lokale Cache nicht weiter „pending" zeigt, wenn der Server bereits
+      // einen anderen Status kennt.
+      get().fetchFriends();
     }
   },
 
   declineFriend: async (id) => {
     try {
       await api.declineFriend(id);
-      get().fetchFriends();
     } catch (err) {
-      set({ error: err.message });
+      const msg = String(err?.message || '');
+      if (msg.includes('404') || /nicht gefunden/i.test(msg)) {
+        const pending = get().pending.filter((p) => p.id !== id);
+        const next = { ...get(), pending };
+        set({ pending });
+        writeFriendsCache(next);
+      } else {
+        set({ error: err.message });
+      }
+    } finally {
+      get().fetchFriends();
     }
   },
 
   removeFriend: async (id) => {
     try {
       await api.removeFriend(id);
-      get().fetchFriends();
     } catch (err) {
-      set({ error: err.message });
+      const msg = String(err?.message || '');
+      if (msg.includes('404') || /nicht gefunden/i.test(msg)) {
+        const friends = get().friends.filter((f) => f.id !== id);
+        const pending = get().pending.filter((p) => p.id !== id);
+        const next = { ...get(), friends, pending };
+        set({ friends, pending });
+        writeFriendsCache(next);
+      } else {
+        set({ error: err.message });
+      }
+    } finally {
+      get().fetchFriends();
     }
   },
 
