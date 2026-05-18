@@ -6670,11 +6670,18 @@ body.cal-is-dragging * {
   }
 
   .calendar-page-wrap .calendar-grid {
-    flex: 1;
+    flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
     padding-bottom: 0;
     background: #fff;
+    /* Profi-Kalender: erste Zeile = Wochentags-Header (auto), alle
+       Datums-Zeilen exakt gleich hoch (fixe Pixel-Hoehe). So bleibt das
+       Raster konsistent unabhaengig davon, ob ein Monat 5 oder 6 Wochen
+       hat und egal wie viele Tasks pro Tag liegen. */
+    grid-template-rows: auto;
+    grid-auto-rows: 76px;
+    align-content: start;
   }
 
   .calendar-page-wrap .mobile-week-grid-wrap {
@@ -6718,13 +6725,17 @@ body.cal-is-dragging * {
   }
 
   .calendar-day {
-    min-height: 70px !important;
+    /* Hoehe kommt vom Grid (grid-auto-rows: 76px). Zelle darf NICHT mehr
+       wachsen, sonst werden Zeilen je nach Task-Anzahl unterschiedlich
+       hoch. Inhalte clippen und ueber "+N"-Indikator anzeigen. */
+    min-height: 0 !important;
+    height: 100%;
     padding: 5px 3px 4px;
     border-color: #eef0f5;
     background: #fff;
     cursor: pointer;
     transition: background 0.1s;
-    overflow: visible;
+    overflow: hidden;
   }
 
   .calendar-day:active {
