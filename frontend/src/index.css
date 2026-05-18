@@ -6698,7 +6698,7 @@ body.cal-is-dragging * {
   }
 
   .calendar-day-header {
-    padding: 7px 4px;
+    padding: 3px 4px 2px;
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.03em;
@@ -6706,6 +6706,7 @@ body.cal-is-dragging * {
     color: #9098ac;
     background: #fff;
     border-bottom: 1px solid #eef0f5;
+    line-height: 1.1;
   }
 
   .calendar-day {
@@ -27200,8 +27201,9 @@ body.cal-is-dragging * {
   }
 
   .calendar-page-wrap .calendar-day-header {
-    padding: 6px 8px;
+    padding: 3px 8px 2px;
     font-size: 10px;
+    line-height: 1.1;
   }
 
   /* Multi-Day-Bars: explizit hoehere z-index sicherstellen, sodass
