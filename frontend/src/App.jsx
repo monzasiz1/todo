@@ -2,6 +2,7 @@ import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import { useTaskStore } from './store/taskStore';
+import { useRealtime } from './hooks/useRealtime';
 import AppLaunchSplash from './components/AppLaunchSplash';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
@@ -79,8 +80,14 @@ function StandaloneRedirector() {
 
 export default function App() {
   const token = useAuthStore((s) => s.token);
+  const userId = useAuthStore((s) => s.user?.id);
   const tasksLoading = useTaskStore((s) => s.loading);
   const tasksCount = useTaskStore((s) => s.tasks.length);
+
+  // Supabase Realtime: live-Updates fuer Tasks (Phase 1).
+  // Aktiviert sich automatisch sobald ein User eingeloggt ist und die
+  // VITE_SUPABASE_* Env-Vars vorhanden sind.
+  useRealtime({ userId: token ? userId : null, enabled: Boolean(token) });
   const [baseSplashReady, setBaseSplashReady] = useState(false);
   const [splashHardStop, setSplashHardStop] = useState(false);
   const isInitialDashboardRoute =

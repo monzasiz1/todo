@@ -1,0 +1,430 @@
+
+
+/* ============================================================
+   GROUPS – Discover (Search public groups) – v2
+   Komplettes Redesign der "Gruppen suchen"-Seite im App-Stil.
+   Light + Dark, gemeinsame Tokens.
+   ============================================================ */
+
+.gs-discover {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 4px 0 24px;
+}
+
+/* ── Top-Bar ──────────────────────────────── */
+.gs-discover-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 2px 0 4px;
+}
+.gs-discover-back {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface, var(--bg));
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+  flex-shrink: 0;
+}
+.gs-discover-back:hover {
+  background: var(--surface-2, var(--border));
+  border-color: var(--border-strong, var(--border));
+  transform: translateX(-1px);
+}
+.gs-discover-topbar-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  flex: 1;
+  text-align: center;
+}
+.gs-discover-topbar-spacer { width: 38px; flex-shrink: 0; }
+
+/* ── Hero ─────────────────────────────────── */
+.gs-discover-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  padding: 20px 16px 4px;
+}
+.gs-discover-hero-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, #007AFF 16%, transparent),
+    color-mix(in srgb, #5856D6 16%, transparent));
+  color: #007AFF;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px color-mix(in srgb, #007AFF 18%, transparent);
+}
+.gs-discover-hero-title {
+  font-size: 22px;
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  margin: 4px 0 0;
+}
+.gs-discover-hero-sub {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+  max-width: 460px;
+  line-height: 1.5;
+}
+
+/* ── Searchbar ────────────────────────────── */
+.gs-discover-searchbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 8px 14px;
+  background: var(--surface, var(--bg));
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  margin-top: 4px;
+}
+.gs-discover-searchbar:focus-within {
+  border-color: color-mix(in srgb, #007AFF 55%, var(--border));
+  box-shadow: 0 0 0 4px color-mix(in srgb, #007AFF 14%, transparent);
+}
+.gs-discover-searchbar-icon { color: var(--text-tertiary); flex-shrink: 0; }
+.gs-discover-searchbar-input {
+  flex: 1;
+  min-width: 0;
+  height: 38px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 500;
+  outline: none;
+}
+.gs-discover-searchbar-input::placeholder { color: var(--text-tertiary); }
+.gs-discover-searchbar-clear {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface-2, var(--border));
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.gs-discover-searchbar-clear:hover { background: var(--border); color: var(--text); }
+.gs-discover-searchbar-cta {
+  height: 38px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #2D8BFF 0%, #007AFF 100%);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: 0 4px 14px color-mix(in srgb, #007AFF 38%, transparent);
+  transition: filter 0.15s, transform 0.1s, opacity 0.15s;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 86px;
+}
+.gs-discover-searchbar-cta:hover:not(:disabled) { filter: brightness(1.08); }
+.gs-discover-searchbar-cta:active:not(:disabled) { transform: translateY(1px); }
+.gs-discover-searchbar-cta:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+/* ── Spinner ──────────────────────────────── */
+.gs-discover-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: gs-discover-spin 0.75s linear infinite;
+  display: inline-block;
+}
+@keyframes gs-discover-spin { to { transform: rotate(360deg); } }
+
+/* ── Initial Placeholder ──────────────────── */
+.gs-discover-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 36px 24px;
+  border: 1.5px dashed var(--border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface, var(--bg)) 50%, transparent);
+  color: var(--text-secondary);
+}
+.gs-discover-placeholder-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: var(--surface-2, var(--border));
+  color: var(--text-tertiary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+.gs-discover-placeholder p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  max-width: 360px;
+}
+
+/* ── Skeletons ────────────────────────────── */
+.gs-discover-skeletons { display: flex; flex-direction: column; gap: 12px; }
+.gs-discover-skeleton {
+  height: 92px;
+  border-radius: 16px;
+  background: linear-gradient(90deg,
+    var(--surface, var(--bg)) 0%,
+    var(--surface-2, var(--border)) 50%,
+    var(--surface, var(--bg)) 100%);
+  background-size: 200% 100%;
+  animation: gs-discover-shimmer 1.4s ease-in-out infinite;
+  border: 1px solid var(--border);
+}
+@keyframes gs-discover-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+/* ── Empty State ──────────────────────────── */
+.gs-discover-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 32px 24px;
+  border-radius: 16px;
+  background: var(--surface, var(--bg));
+  border: 1px solid var(--border);
+}
+.gs-discover-empty-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--surface-2, var(--border));
+  color: var(--text-tertiary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+.gs-discover-empty h3 { margin: 0 0 4px; font-size: 16px; font-weight: 700; color: var(--text); }
+.gs-discover-empty p { margin: 0; font-size: 13.5px; color: var(--text-secondary); max-width: 320px; }
+
+/* ── Results ──────────────────────────────── */
+.gs-discover-results { display: flex; flex-direction: column; gap: 10px; }
+.gs-discover-results-head {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  padding: 0 4px 2px;
+}
+
+.gs-discover-card {
+  background: var(--surface, var(--bg));
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+.gs-discover-card:hover {
+  border-color: color-mix(in srgb, #007AFF 35%, var(--border));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.gs-discover-card-main { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.gs-discover-card-info { flex: 1; min-width: 0; }
+.gs-discover-card-name {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gs-discover-card-desc {
+  margin-top: 3px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.gs-discover-card-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.gs-discover-card-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--surface-2, var(--border));
+  padding: 3px 8px;
+  border-radius: 999px;
+  line-height: 1.4;
+}
+.gs-discover-card-chip.subtle {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-tertiary);
+}
+
+.gs-discover-card-status { margin-left: auto; align-self: flex-start; flex-shrink: 0; }
+.gs-discover-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.gs-discover-status.ok { background: color-mix(in srgb, #34C759 18%, transparent); color: #1f9d4f; }
+.gs-discover-status.pending { background: color-mix(in srgb, #FF9F0A 20%, transparent); color: #c47600; }
+.gs-discover-status.rejected { background: color-mix(in srgb, #FF3B30 18%, transparent); color: #d22d23; }
+
+.gs-discover-card-request { display: flex; gap: 8px; align-items: stretch; }
+.gs-discover-card-msg {
+  flex: 1;
+  min-width: 0;
+  height: 38px;
+  padding: 0 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 11px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.gs-discover-card-msg:focus {
+  border-color: color-mix(in srgb, #007AFF 55%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, #007AFF 14%, transparent);
+}
+.gs-discover-card-msg::placeholder { color: var(--text-tertiary); }
+
+.gs-discover-card-join {
+  height: 38px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 11px;
+  background: linear-gradient(180deg, #2D8BFF 0%, #007AFF 100%);
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-shadow: 0 4px 12px color-mix(in srgb, #007AFF 32%, transparent);
+  transition: filter 0.15s, transform 0.1s;
+  flex-shrink: 0;
+  min-width: 116px;
+}
+.gs-discover-card-join:hover:not(:disabled) { filter: brightness(1.08); }
+.gs-discover-card-join:active:not(:disabled) { transform: translateY(1px); }
+.gs-discover-card-join:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ── Mobile Anpassungen ───────────────────── */
+@media (max-width: 600px) {
+  .gs-discover { gap: 14px; }
+  .gs-discover-hero { padding: 12px 4px 0; }
+  .gs-discover-hero-title { font-size: 19px; }
+  .gs-discover-hero-sub { font-size: 13.5px; }
+  .gs-discover-searchbar { padding: 6px 6px 6px 12px; border-radius: 14px; }
+  .gs-discover-searchbar-cta { padding: 0 14px; min-width: 0; font-size: 13px; }
+  .gs-discover-card { padding: 12px; border-radius: 14px; }
+  .gs-discover-card-name { font-size: 14.5px; }
+  .gs-discover-card-desc { font-size: 12.5px; }
+  .gs-discover-card-request { flex-direction: column; }
+  .gs-discover-card-join { width: 100%; }
+  .gs-discover-card-status { margin-left: 0; align-self: flex-end; }
+}
+
+/* ── Dark Theme Overrides ─────────────────── */
+html[data-theme="dark"] .gs-discover-back { background: var(--surface); border-color: var(--border); }
+html[data-theme="dark"] .gs-discover-back:hover { background: var(--surface-2); }
+html[data-theme="dark"] .gs-discover-hero-icon {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--primary) 22%, var(--surface-2)),
+    color-mix(in srgb, #9D7BFF 22%, var(--surface-2)));
+  color: var(--primary);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--primary) 35%, transparent);
+}
+html[data-theme="dark"] .gs-discover-searchbar { background: var(--surface); border-color: var(--border); }
+html[data-theme="dark"] .gs-discover-searchbar:focus-within {
+  border-color: color-mix(in srgb, var(--primary) 60%, var(--border));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+html[data-theme="dark"] .gs-discover-searchbar-cta,
+html[data-theme="dark"] .gs-discover-card-join {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--primary) 92%, #fff) 0%,
+    var(--primary) 100%);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--primary) 45%, transparent);
+}
+html[data-theme="dark"] .gs-discover-placeholder {
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
+  border-color: var(--border);
+}
+html[data-theme="dark"] .gs-discover-placeholder-icon,
+html[data-theme="dark"] .gs-discover-empty-icon,
+html[data-theme="dark"] .gs-discover-searchbar-clear { background: var(--surface-2); }
+html[data-theme="dark"] .gs-discover-searchbar-clear:hover {
+  background: color-mix(in srgb, #ffffff 8%, var(--surface-2));
+}
+html[data-theme="dark"] .gs-discover-empty { background: var(--surface); border-color: var(--border); }
+html[data-theme="dark"] .gs-discover-card { background: var(--surface); border-color: var(--border); }
+html[data-theme="dark"] .gs-discover-card:hover {
+  border-color: color-mix(in srgb, var(--primary) 50%, var(--border));
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+}
+html[data-theme="dark"] .gs-discover-card-chip { background: var(--surface-2); color: var(--text-secondary); }
+html[data-theme="dark"] .gs-discover-card-msg { background: var(--bg); border-color: var(--border); color: var(--text); }
+html[data-theme="dark"] .gs-discover-status.ok { background: color-mix(in srgb, #34C759 22%, transparent); color: #4ade80; }
+html[data-theme="dark"] .gs-discover-status.pending { background: color-mix(in srgb, #FF9F0A 26%, transparent); color: #fbbf24; }
+html[data-theme="dark"] .gs-discover-status.rejected { background: color-mix(in srgb, #FF3B30 24%, transparent); color: #fca5a5; }
+html[data-theme="dark"] .gs-discover-skeleton {
+  background: linear-gradient(90deg, var(--surface) 0%, var(--surface-2) 50%, var(--surface) 100%);
+  background-size: 200% 100%;
+  border-color: var(--border);
+}

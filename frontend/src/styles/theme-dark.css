@@ -1614,7 +1614,7 @@ html[data-theme="dark"] .day-create-ai-submit {
 }
 
 /* --------------------------------------------------------------------
-   Group Chat – Team-Plan Lock Card (Dark)
+   Group Chat ï¿½ Team-Plan Lock Card (Dark)
    -------------------------------------------------------------------- */
 html[data-theme="dark"] .gchat-locked {
   background: linear-gradient(
@@ -1649,7 +1649,7 @@ html[data-theme="dark"] .gchat-locked-cta:hover {
 }
 
 /* --------------------------------------------------------------------
-   Upgrade-Modal (Stripe) – Plan-Karten & Toggle (Dark)
+   Upgrade-Modal (Stripe) ï¿½ Plan-Karten & Toggle (Dark)
    -------------------------------------------------------------------- */
 html[data-theme="dark"] .upgrade-modal-title {
   color: var(--text);

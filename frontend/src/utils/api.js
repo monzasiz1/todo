@@ -206,6 +206,9 @@ export const api = {
 
   getMe: () => request('/auth/me'),
 
+  // Realtime: holt ein Supabase-kompatibles JWT (kurzlebig, RLS-aware).
+  getRealtimeToken: () => request('/auth/realtime-token'),
+
   // 2FA
   setup2FA:   ()       => request('/auth/2fa/setup',   { method: 'POST', body: '{}' }),
   confirm2FA: (code)   => request('/auth/2fa/confirm', { method: 'POST', body: JSON.stringify({ code }) }),

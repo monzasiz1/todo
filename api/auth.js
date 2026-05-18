@@ -330,6 +330,48 @@ module.exports = async function handler(req, res) {
     }
   }
 
+  /* ── GET /api/auth/realtime-token ──
+     Signiert ein Supabase-kompatibles JWT mit dem SUPABASE_JWT_SECRET,
+     damit der Browser per Supabase-Realtime authentifiziert subscriben kann
+     und auth.uid()/auth.jwt() in den RLS-Policies funktionieren.
+     Liefert Token + ablaufzeitpunkt. */
+  if (action === 'realtime-token' && req.method === 'GET') {
+    const user = verifyToken(req);
+    if (!user) return res.status(401).json({ error: 'Nicht autorisiert' });
+
+    const secret = process.env.SUPABASE_JWT_SECRET;
+    if (!secret) {
+      return res.status(503).json({ error: 'Realtime nicht konfiguriert (SUPABASE_JWT_SECRET fehlt)' });
+    }
+
+    try {
+      const jwt = require('jsonwebtoken');
+      const now = Math.floor(Date.now() / 1000);
+      const expiresInSec = 60 * 60; // 1h, Frontend refresht rechtzeitig
+      const payload = {
+        sub: String(user.id),
+        role: 'authenticated',
+        aud: 'authenticated',
+        iat: now,
+        exp: now + expiresInSec,
+        // Custom Claim, damit Policies user_id auch als int lesen koennen.
+        app_user_id: user.id,
+        email: user.email || null,
+      };
+      const token = jwt.sign(payload, secret, { algorithm: 'HS256' });
+      return res.json({
+        access_token: token,
+        token_type: 'bearer',
+        expires_in: expiresInSec,
+        expires_at: now + expiresInSec,
+        user_id: user.id,
+      });
+    } catch (err) {
+      console.error('Realtime token error:', err);
+      return res.status(500).json({ error: 'Realtime-Token konnte nicht erstellt werden' });
+    }
+  }
+
   /* ── GET /api/auth/activate ── */
   if (action === 'activate' && req.method === 'GET') {
     const { token } = req.query;
