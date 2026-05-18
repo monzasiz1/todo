@@ -25,8 +25,12 @@ function setRealtimeActive(v) {
 function setStatus(patch) {
   try {
     window.__beequRealtime = { ...(window.__beequRealtime || {}), ...patch, ts: Date.now() };
+    // Wichtig: NUR den Patch loggen, nicht den merged state — sonst sieht es
+    // so aus als ob `phase` sich oft auf "token-set" wiederholt (in Wirklichkeit
+    // sind das spaetere Subscribe-/Presence-Statusupdates die den alten phase
+    // mit-loggen wuerden).
     // eslint-disable-next-line no-console
-    console.info('[realtime]', window.__beequRealtime);
+    console.info('[realtime]', { ...patch, ts: window.__beequRealtime.ts });
   } catch { /* ignore */ }
 }
 
