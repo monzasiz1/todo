@@ -1555,3 +1555,27 @@ html[data-theme="dark"] .group-cat-add-btn {
 html[data-theme="dark"] .group-cat-add-btn:hover {
   background: rgba(77, 163, 255, 0.26);
 }
+
+/* Sidebar Kategorie-Zähler (Badge rechts) */
+html[data-theme="dark"] .sidebar-category {
+  color: var(--text-secondary);
+}
+html[data-theme="dark"] .sidebar-category:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+}
+html[data-theme="dark"] .sidebar-category.active {
+  background: rgba(77, 163, 255, 0.18);
+  color: var(--primary);
+}
+html[data-theme="dark"] .sidebar-category-dot {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08);
+}
+html[data-theme="dark"] .sidebar-category-count {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-tertiary);
+}
+html[data-theme="dark"] .sidebar-category.active .sidebar-category-count {
+  background: rgba(77, 163, 255, 0.22);
+  color: var(--primary);
+}
