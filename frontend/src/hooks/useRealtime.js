@@ -96,6 +96,7 @@ function teardownSingleton() {
   _rt.userId = null;
   _rt.supabase = null;
   _rt.tokenCache = null;
+  _rt.starting = false;
   setRealtimeActive(false);
   try { delete window.__beequBroadcastTyping; } catch { /* ignore */ }
   try { useStatusStore.getState().reset(); } catch { /* ignore */ }
@@ -123,9 +124,11 @@ export function useRealtime({ userId, enabled = true } = {}) {
     if (!supabase) { setStatus({ phase: 'misconfigured', reason: 'getSupabase() returned null' }); return undefined; }
     supabaseRef.current = supabase;
 
-    // Singleton schon fuer denselben User aktiv? Nichts tun — verhindert
-    // mehrfaches Fetchen + Re-Subscribes wenn der Effekt re-runs.
-    if (_rt.userId === userId && _rt.channels.length > 0) {
+    // Singleton schon fuer denselben User aktiv ODER gerade beim Setup?
+    // Nichts tun — verhindert mehrfaches Fetchen + Re-Subscribes wenn der
+    // Effekt schnell hintereinander re-runs (z.B. waehrend setupAuth noch
+    // laeuft und die Channels noch nicht gepusht sind).
+    if (_rt.userId === userId && (_rt.starting || _rt.channels.length > 0)) {
       setStatus({ phase: 'already-active', userId });
       return undefined;
     }
@@ -134,6 +137,7 @@ export function useRealtime({ userId, enabled = true } = {}) {
 
     _rt.userId = userId;
     _rt.supabase = supabase;
+    _rt.starting = true; // SYNCHRONER Lock — gilt sofort fuer alle parallelen useEffect-Runs
     setStatus({ phase: 'starting', userId });
 
     let cancelled = false;
@@ -361,7 +365,7 @@ export function useRealtime({ userId, enabled = true } = {}) {
       } catch { /* ignore */ }
     };
 
-    setupAuthAndSubscribe();
+    setupAuthAndSubscribe().finally(() => { _rt.starting = false; });
 
     // Bewusst KEIN cleanup im return: wir wollen NICHT bei jedem useEffect-
     // Re-Run (z.B. wegen kurzem token-flicker) alles abreissen. Echter
