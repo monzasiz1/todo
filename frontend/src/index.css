@@ -27243,15 +27243,18 @@ body.cal-is-dragging * {
     flex: 1 1 auto;
     min-height: 0;
     grid-template-rows: auto;
-    grid-auto-rows: 1fr;
+    /* minmax(0, 1fr) verhindert, dass Tasks die Zeilenhoehe sprengen und
+       so den optischen Abstand Header<->Datum je nach Monatsinhalt aendern. */
+    grid-auto-rows: minmax(0, 1fr);
     overflow-y: auto;
   }
 
   /* Zellen: mehr Hoehe als Desktop-Tablet (vorher 110px),
      damit 4 Tasks + Multi-Day-Bar nebeneinander Platz haben. */
   .calendar-page-wrap .calendar-day {
-    min-height: 96px !important;
+    min-height: 0 !important;
     padding: 6px 6px 8px;
+    overflow: hidden;
   }
 
   .calendar-page-wrap .calendar-day-tasks {
