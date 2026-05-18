@@ -35,6 +35,23 @@ module.exports = async function handler(req, res) {
   const segments = subPath.split('/').filter(Boolean);
   const action = segments[0] || '';
 
+  /* ── GET /api/auth/realtime-debug ──
+     Gibt einen Fingerprint des SUPABASE_JWT_SECRET zurueck (Laenge + erste/letzte
+     4 Zeichen, sha256-Prefix). Niemals den ganzen Wert. Nur fuer Debug-Zwecke. */
+  if (action === 'realtime-debug' && req.method === 'GET') {
+    const s = process.env.SUPABASE_JWT_SECRET || '';
+    const sha = s ? crypto.createHash('sha256').update(s).digest('hex').slice(0, 12) : null;
+    return res.json({
+      hasSecret: Boolean(s),
+      length: s.length,
+      first4: s.slice(0, 4),
+      last4: s.slice(-4),
+      sha256Prefix: sha,
+      hasSupabaseUrl: Boolean(process.env.SUPABASE_URL),
+      hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+    });
+  }
+
   /* ── POST /api/auth/register ── */
   if (action === 'register' && req.method === 'POST') {
     try {
@@ -333,7 +350,8 @@ module.exports = async function handler(req, res) {
   /* ── GET /api/auth/realtime-token ──
      Signiert ein Supabase-kompatibles JWT mit dem SUPABASE_JWT_SECRET,
      damit der Browser per Supabase-Realtime authentifiziert subscriben kann
-     und auth.uid()/auth.jwt() in den RLS-Policies funktionieren. */
+     und auth.uid()/auth.jwt() in den RLS-Policies funktionieren.
+     Liefert Token + ablaufzeitpunkt. */
   if (action === 'realtime-token' && req.method === 'GET') {
     const user = verifyToken(req);
     if (!user) return res.status(401).json({ error: 'Nicht autorisiert' });
@@ -346,13 +364,14 @@ module.exports = async function handler(req, res) {
     try {
       const jwt = require('jsonwebtoken');
       const now = Math.floor(Date.now() / 1000);
-      const expiresInSec = 60 * 60;
+      const expiresInSec = 60 * 60; // 1h, Frontend refresht rechtzeitig
       const payload = {
         sub: String(user.id),
         role: 'authenticated',
         aud: 'authenticated',
         iat: now,
         exp: now + expiresInSec,
+        // Custom Claim, damit Policies user_id auch als int lesen koennen.
         app_user_id: user.id,
         email: user.email || null,
       };
