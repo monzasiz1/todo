@@ -954,9 +954,22 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
               <div className="task-detail-item-icon" style={isOverdue ? { color: 'var(--danger)' } : {}}><Calendar size={18} /></div>
               <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
                 <div className="task-detail-item-label">{task.date_end && task.date_end !== task.date ? 'Zeitraum' : 'Datum'}</div>
-                <div className="task-detail-item-value" style={isOverdue ? { color: 'var(--danger)' } : {}}>
-                  {formatDate(task.date)}{task.date_end && task.date_end !== task.date ? ` – ${formatDate(task.date_end)}` : ''}
-                </div>
+                {task.date_end && task.date_end !== task.date ? (
+                  <div className="task-detail-daterange" style={isOverdue ? { color: 'var(--danger)' } : {}}>
+                    <div className="task-detail-daterange-row">
+                      <span className="task-detail-daterange-tag">Von</span>
+                      <span className="task-detail-daterange-date">{formatDate(task.date)}</span>
+                    </div>
+                    <div className="task-detail-daterange-row">
+                      <span className="task-detail-daterange-tag">Bis</span>
+                      <span className="task-detail-daterange-date">{formatDate(task.date_end)}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="task-detail-item-value" style={isOverdue ? { color: 'var(--danger)' } : {}}>
+                    {formatDate(task.date)}
+                  </div>
+                )}
               </div>
               {canEdit && <Settings2 size={12} className="task-detail-item-edit-hint" />}
             </button>

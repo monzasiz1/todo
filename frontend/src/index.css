@@ -30328,6 +30328,57 @@ body.is-electron.is-mac .desktop-titlebar-center {
   grid-column: 1 / -1;
 }
 
+/* Zeitraum (mehrtägig) — Von/Bis-Stack mit Pill-Tags fuer klare Lesbarkeit */
+.task-detail-daterange {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+}
+.task-detail-daterange-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.task-detail-daterange-tag {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  padding: 2px 7px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  line-height: 1.4;
+  min-width: 30px;
+  text-align: center;
+}
+.task-detail-daterange-date {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
+}
+.task-detail-grid > .task-detail-item--dt:has(.task-detail-daterange) {
+  grid-column: 1 / -1;
+}
+@media (max-width: 480px) {
+  .task-detail-daterange-date {
+    font-size: 0.78rem;
+  }
+  .task-detail-daterange-tag {
+    font-size: 0.58rem;
+    padding: 1px 6px;
+    min-width: 26px;
+  }
+}
+
 /* Mobile/Tablet (Touch): kleiner Trash-Button auf der Karte entfaellt – Loeschen erfolgt per Swipe */
 @media (hover: none) and (pointer: coarse) {
   .task-card .task-actions { display: none; }
