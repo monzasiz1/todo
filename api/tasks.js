@@ -1276,7 +1276,7 @@ module.exports = async function handler(req, res) {
     try {
       let taskId = segments[0];
       const { title, description, date, date_end, time, time_end, priority, category_id, reminder_at,
-              recurrence_rule, recurrence_interval, recurrence_end, type, enable_group_rsvp, location } = req.body;
+              recurrence_rule, recurrence_interval, recurrence_end, type, enable_group_rsvp } = req.body;
       const taskType = type === 'event' ? 'event' : (type === 'task' ? 'task' : undefined);
       
       console.log(`[API Update] User ${user.id} updating task ${taskId} with:`, {
@@ -1307,7 +1307,6 @@ module.exports = async function handler(req, res) {
       const hasRecurrenceEnd = Object.prototype.hasOwnProperty.call(req.body, 'recurrence_end');
       const hasType = Object.prototype.hasOwnProperty.call(req.body, 'type');
       const hasEnableGroupRsvp = Object.prototype.hasOwnProperty.call(req.body, 'enable_group_rsvp');
-      const hasLocation = Object.prototype.hasOwnProperty.call(req.body, 'location');
 
       const runUpdate = async () => {
         const setClauses = [];
@@ -1331,7 +1330,6 @@ module.exports = async function handler(req, res) {
         if (hasRecurrenceEnd) addSet('recurrence_end', recurrence_end || null);
         if (hasType) addSet('type', taskType || null);
         if (hasEnableGroupRsvp) addSet('enable_group_rsvp', enable_group_rsvp === true);
-        if (hasLocation) addSet('location', typeof location === 'string' ? location.trim() || null : null);
 
         setClauses.push('updated_at = NOW()');
         values.push(user.id);
@@ -2266,7 +2264,7 @@ module.exports = async function handler(req, res) {
     try {
       const { title, description, date, date_end, time, time_end, priority, category_id, reminder_at,
               recurrence_rule, recurrence_interval, recurrence_end, group_id, group_category_id,
-              visibility, permissions, type, enable_group_rsvp, location } = req.body;
+              visibility, permissions, type, enable_group_rsvp } = req.body;
       if (!title) {
         return res.status(400).json({ error: 'Titel ist erforderlich' });
       }
@@ -2328,13 +2326,12 @@ module.exports = async function handler(req, res) {
 
       const result = await pool.query(
         `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order,
-        recurrence_rule, recurrence_interval, recurrence_end, visibility, type, enable_group_rsvp, location)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+        recurrence_rule, recurrence_interval, recurrence_end, visibility, type, enable_group_rsvp)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
          RETURNING *`,
         [user.id, title, description || null, date || null, date_end || null, time || null, time_end || null,
          priority || 'medium', category_id || null, reminder_at || null,
-        maxOrder.rows[0].next_order, recurrenceRule, recurrenceInterval, recurrenceEnd, finalVisibility, taskType, enable_group_rsvp === true,
-        (typeof location === 'string' ? location.trim() || null : null)]
+        maxOrder.rows[0].next_order, recurrenceRule, recurrenceInterval, recurrenceEnd, finalVisibility, taskType, enable_group_rsvp === true]
       );
 
       const firstTask = result.rows[0];

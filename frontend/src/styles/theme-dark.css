@@ -1177,6 +1177,14 @@ html[data-theme="dark"] .mobile-day-allday-item {
   border-color: var(--border);
   color: var(--text);
 }
+/* Mobile Day-View „Ganztägig"-Top-Bar (über dem Stundenraster) */
+html[data-theme="dark"] .mobile-day-allday-top {
+  background: transparent;
+  border-bottom-color: var(--border);
+}
+html[data-theme="dark"] .mobile-day-allday-label {
+  color: var(--text-tertiary);
+}
 
 /* Monats-Grid (Calendar.jsx Hauptmonatsansicht) */
 html[data-theme="dark"] .calendar-day-tasks {
@@ -1443,4 +1451,107 @@ html[data-theme="dark"] .ai-reply-bubble {
   background: var(--card-solid);
   border-color: var(--border);
   color: var(--text);
+}
+
+/* Sidebar Kategorien-Scrollbar im Dark Theme */
+html[data-theme="dark"] .sidebar-categories-wrap {
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+html[data-theme="dark"] .sidebar-categories-wrap::-webkit-scrollbar {
+  width: 8px;
+}
+html[data-theme="dark"] .sidebar-categories-wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+html[data-theme="dark"] .sidebar-categories-wrap::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+html[data-theme="dark"] .sidebar-categories-wrap::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.26);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+/* Sidebar User-Block (unten, Profil-Link) */
+html[data-theme="dark"] .sidebar-bottom {
+  border-top-color: var(--border);
+}
+html[data-theme="dark"] .sidebar-user {
+  color: var(--text);
+}
+html[data-theme="dark"] .sidebar-user:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+html[data-theme="dark"] .sidebar-user-name {
+  color: var(--text);
+}
+html[data-theme="dark"] .sidebar-user-email {
+  color: var(--text-tertiary);
+}
+
+/* Freunde-Liste (Friends-Page) */
+html[data-theme="dark"] .friends-list {
+  color: var(--text);
+}
+html[data-theme="dark"] .friend-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+html[data-theme="dark"] .friend-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--border));
+}
+html[data-theme="dark"] .friend-name {
+  color: var(--text);
+}
+html[data-theme="dark"] .friend-email {
+  color: var(--text-tertiary);
+}
+
+/* Groups: Suchfeld */
+html[data-theme="dark"] .groups-search-wrap {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+html[data-theme="dark"] .groups-search-wrap:focus-within {
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
+}
+html[data-theme="dark"] .groups-search-input {
+  color: var(--text);
+}
+html[data-theme="dark"] .groups-search-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* Groups: Pfeil-Badge auf der Card (hatte hartkodiertes white) */
+html[data-theme="dark"] .group-card-arrow {
+  background: color-mix(in srgb, var(--primary) 16%, var(--surface-2));
+  color: var(--text-tertiary);
+}
+html[data-theme="dark"] .group-card:hover .group-card-arrow {
+  background: color-mix(in srgb, var(--primary) 28%, var(--surface-2));
+  color: var(--primary);
+}
+
+/* Groups: Kategorie-/Subgruppen-Manager-Karte */
+html[data-theme="dark"] .group-cat-manager {
+  background: var(--card-solid);
+  border-color: var(--border);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+  color: var(--text);
+}
+html[data-theme="dark"] .group-cat-manager-header h4 {
+  color: var(--text);
+}
+html[data-theme="dark"] .group-cat-add-btn {
+  background: rgba(77, 163, 255, 0.16);
+  color: var(--primary);
+}
+html[data-theme="dark"] .group-cat-add-btn:hover {
+  background: rgba(77, 163, 255, 0.26);
 }
