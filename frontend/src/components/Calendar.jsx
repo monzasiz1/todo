@@ -2552,13 +2552,23 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
           className="cal-settings-modal-overlay"
           onClick={() => setShowHolidaySettings(false)}
         >
-          <div
+          <motion.div
             className="cal-settings-modal"
             role="dialog"
             aria-modal="true"
             aria-label="Kalendereinstellungen"
             onClick={(e) => e.stopPropagation()}
+            drag="y"
+            dragDirectionLock
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.6 }}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 120 || info.velocity.y > 500) {
+                setShowHolidaySettings(false);
+              }
+            }}
           >
+            <div className="cal-settings-modal-drag" aria-hidden="true" />
             <header className="cal-settings-modal-head">
               <div className="cal-settings-head">
                 <strong>Kalendereinstellungen</strong>
@@ -2636,7 +2646,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                 Fertig
               </button>
             </footer>
-          </div>
+          </motion.div>
         </div>,
         document.body
       )}
