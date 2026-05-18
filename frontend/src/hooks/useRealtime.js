@@ -45,19 +45,72 @@ function debounce(fn, ms = 250) {
   return debounced;
 }
 
+// ─── Modul-Singleton ─────────────────────────────────────────────────────
+// Verhindert dass der Hook bei jedem Re-Render alles neu aufbaut.
+// Wenn z.B. der Auth-Token in einem Refresh-Vorgang kurz auf null springt,
+// flackert `enabled` von true→false→true und useEffect feuert mehrfach.
+// Mit diesem Singleton ist das egal: Subscriptions bleiben bestehen, Token
+// wird nicht neu geholt wenn der gecachte noch >5 Min gueltig ist.
+const _rt = {
+  userId: null,
+  supabase: null,
+  channels: [],          // { channel, cancel? }
+  refreshTimer: null,
+  tokenCache: null,      // { access_token, expires_in, expires_at_ms }
+  inflight: null,        // Promise<token> waehrend Fetch laeuft
+};
+
 async function fetchRealtimeToken() {
-  // api.request wirft bei 401, sonst { access_token, expires_in, expires_at, ... }
-  const res = await api.getRealtimeToken();
-  return res;
+  const now = Date.now();
+  // Cache-Hit: Token noch min. 5 Minuten gueltig → wiederverwenden.
+  if (_rt.tokenCache && _rt.tokenCache.expires_at_ms - now > 5 * 60_000) {
+    return _rt.tokenCache;
+  }
+  // In-Flight-Dedupe: laeuft schon ein Fetch → an dessen Promise haengen.
+  if (_rt.inflight) return _rt.inflight;
+  _rt.inflight = (async () => {
+    try {
+      const res = await api.getRealtimeToken();
+      if (res?.access_token) {
+        _rt.tokenCache = {
+          ...res,
+          expires_at_ms: Date.now() + (res.expires_in || 3600) * 1000,
+        };
+        return _rt.tokenCache;
+      }
+      return res;
+    } finally {
+      _rt.inflight = null;
+    }
+  })();
+  return _rt.inflight;
+}
+
+function teardownSingleton() {
+  if (_rt.refreshTimer) { clearTimeout(_rt.refreshTimer); _rt.refreshTimer = null; }
+  for (const entry of _rt.channels) {
+    try { entry.cancel?.(); } catch { /* ignore */ }
+    try { _rt.supabase?.removeChannel(entry.channel); } catch { /* ignore */ }
+  }
+  _rt.channels = [];
+  _rt.userId = null;
+  _rt.supabase = null;
+  _rt.tokenCache = null;
+  setRealtimeActive(false);
+  try { delete window.__beequBroadcastTyping; } catch { /* ignore */ }
+  try { useStatusStore.getState().reset(); } catch { /* ignore */ }
 }
 
 export function useRealtime({ userId, enabled = true } = {}) {
   const supabaseRef = useRef(null);
-  const refreshTimerRef = useRef(null);
-  const channelsRef = useRef([]);
 
   useEffect(() => {
-    if (!enabled || !userId) { setStatus({ phase: 'disabled', reason: 'no-user' }); return undefined; }
+    if (!enabled || !userId) {
+      // Logout / kein User → komplett aufraeumen.
+      if (_rt.userId) teardownSingleton();
+      setStatus({ phase: 'disabled', reason: 'no-user' });
+      return undefined;
+    }
     if (!isSupabaseConfigured()) {
       setStatus({
         phase: 'misconfigured',
@@ -69,6 +122,18 @@ export function useRealtime({ userId, enabled = true } = {}) {
     const supabase = getSupabase();
     if (!supabase) { setStatus({ phase: 'misconfigured', reason: 'getSupabase() returned null' }); return undefined; }
     supabaseRef.current = supabase;
+
+    // Singleton schon fuer denselben User aktiv? Nichts tun — verhindert
+    // mehrfaches Fetchen + Re-Subscribes wenn der Effekt re-runs.
+    if (_rt.userId === userId && _rt.channels.length > 0) {
+      setStatus({ phase: 'already-active', userId });
+      return undefined;
+    }
+    // User gewechselt? Erst alten Stand abreissen.
+    if (_rt.userId && _rt.userId !== userId) teardownSingleton();
+
+    _rt.userId = userId;
+    _rt.supabase = supabase;
     setStatus({ phase: 'starting', userId });
 
     let cancelled = false;
@@ -121,10 +186,12 @@ export function useRealtime({ userId, enabled = true } = {}) {
     };
 
     const scheduleRefresh = (expiresInSec) => {
-      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+      if (_rt.refreshTimer) clearTimeout(_rt.refreshTimer);
       const refreshInMs = Math.max(30_000, (expiresInSec - 60) * 1000);
-      refreshTimerRef.current = setTimeout(async () => {
+      _rt.refreshTimer = setTimeout(async () => {
         try {
+          // Cache invalidieren damit wirklich neu geholt wird.
+          _rt.tokenCache = null;
           const tok = await fetchRealtimeToken();
           if (cancelled) return;
           if (tok?.access_token) {
@@ -162,7 +229,7 @@ export function useRealtime({ userId, enabled = true } = {}) {
           if (status === 'SUBSCRIBED') setRealtimeActive(true);
         });
 
-      channelsRef.current.push({ channel: tasksChannel, cancel: refetchTasks.cancel });
+      _rt.channels.push({ channel: tasksChannel, cancel: refetchTasks.cancel });
 
       // 2) CHAT — group_messages. Pro Postgres-Change feuern wir ein
       //    Window-Event mit der betroffenen group_id; GroupChatPanel laedt
@@ -184,7 +251,7 @@ export function useRealtime({ userId, enabled = true } = {}) {
         .subscribe((status, err) => {
           setStatus({ chatChannel: status, chatErr: err?.message });
         });
-      channelsRef.current.push({ channel: chatChannel });
+      _rt.channels.push({ channel: chatChannel });
 
       // 3) GRUPPEN — Aenderungen an groups + group_members refreshen die
       //    Gruppenliste. Hot-Pfad: neuer Member, Rolle geaendert, Gruppe
@@ -214,7 +281,7 @@ export function useRealtime({ userId, enabled = true } = {}) {
         .subscribe((status, err) => {
           setStatus({ groupsChannel: status, groupsErr: err?.message });
         });
-      channelsRef.current.push({ channel: groupsChannel, cancel: refetchGroups.cancel });
+      _rt.channels.push({ channel: groupsChannel, cancel: refetchGroups.cancel });
 
       // 4) ONLINE-PRESENCE — Channel 'rt-presence'. Jeder verbundene Client
       //    'tracked' seine user_id; alle anderen sehen joins/leaves sofort.
@@ -247,7 +314,7 @@ export function useRealtime({ userId, enabled = true } = {}) {
             }
           }
         });
-      channelsRef.current.push({
+      _rt.channels.push({
         channel: presence,
         cancel: () => {
           try { presence.untrack(); } catch { /* ignore */ }
@@ -269,7 +336,7 @@ export function useRealtime({ userId, enabled = true } = {}) {
         .subscribe((status, err) => {
           setStatus({ typingChannel: status, typingErr: err?.message });
         });
-      channelsRef.current.push({ channel: typingChannel });
+      _rt.channels.push({ channel: typingChannel });
 
       // Globaler Helper, damit UI-Code (z.B. Chat-Input) Typing senden kann
       // ohne Supabase direkt zu importieren. Throttled auf 1x/2s, und nur
@@ -296,17 +363,9 @@ export function useRealtime({ userId, enabled = true } = {}) {
 
     setupAuthAndSubscribe();
 
-    return () => {
-      cancelled = true;
-      setRealtimeActive(false);
-      try { delete window.__beequBroadcastTyping; } catch { /* ignore */ }
-      try { useStatusStore.getState().reset(); } catch { /* ignore */ }
-      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
-      for (const entry of channelsRef.current) {
-        try { entry.cancel?.(); } catch { /* ignore */ }
-        try { supabase.removeChannel(entry.channel); } catch { /* ignore */ }
-      }
-      channelsRef.current = [];
-    };
+    // Bewusst KEIN cleanup im return: wir wollen NICHT bei jedem useEffect-
+    // Re-Run (z.B. wegen kurzem token-flicker) alles abreissen. Echter
+    // Teardown passiert oben wenn enabled=false / userId-Wechsel.
+    return undefined;
   }, [userId, enabled]);
 }
