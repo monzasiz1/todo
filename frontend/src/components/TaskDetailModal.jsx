@@ -90,6 +90,8 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const [dtEndHour, setDtEndHour] = useState('13');
   const [dtEndMinute, setDtEndMinute] = useState('00');
   const [dtEndEnabled, setDtEndEnabled] = useState(false);
+  const [dtDateEnd, setDtDateEnd] = useState('');
+  const [dtEndDateEnabled, setDtEndDateEnabled] = useState(false);
   const [dtSaving, setDtSaving] = useState(false);
   const [sharingToChat, setSharingToChat] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -345,7 +347,11 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   }, []);
 
   const openDateTimeEdit = () => {
-    setDtDate(task.date ? String(task.date).slice(0, 10) : format(new Date(), 'yyyy-MM-dd'));
+    const startStr = task.date ? String(task.date).slice(0, 10) : format(new Date(), 'yyyy-MM-dd');
+    const endStr = task.date_end ? String(task.date_end).slice(0, 10) : '';
+    setDtDate(startStr);
+    setDtDateEnd(endStr && endStr !== startStr ? endStr : startStr);
+    setDtEndDateEnabled(!!endStr && endStr !== startStr);
     const t = task.time ? String(task.time).slice(0, 5) : '';
     const te = task.time_end ? String(task.time_end).slice(0, 5) : '';
     setDtHour(t ? t.split(':')[0] : '12');
@@ -359,8 +365,13 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const handleSaveDateTime = async () => {
     setDtSaving(true);
     try {
+      // Sicherstellen, dass Enddatum nie vor Startdatum liegt
+      const safeDateEnd = dtEndDateEnabled && dtDateEnd && dtDate && dtDateEnd >= dtDate
+        ? dtDateEnd
+        : null;
       const updates = {
         date: dtDate || null,
+        date_end: safeDateEnd,
         time: dtHour ? `${dtHour}:${dtMinute}` : null,
         time_end: dtEndEnabled ? `${dtEndHour}:${dtEndMinute}` : null,
       };
@@ -1077,9 +1088,31 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
               <div className="drum-panel-inner">
                 {/* Datum */}
                 <div className="drum-section">
-                  <div className="drum-section-label">Datum</div>
+                  <div className="drum-section-label">
+                    {dtEndDateEnabled ? 'Von' : 'Datum'}
+                    <button
+                      type="button"
+                      className="drum-end-toggle"
+                      onClick={() => setDtEndDateEnabled((e) => {
+                        const next = !e;
+                        if (next && (!dtDateEnd || dtDateEnd < dtDate)) setDtDateEnd(dtDate);
+                        return next;
+                      })}
+                    >
+                      {dtEndDateEnabled ? '✕' : '+ Enddatum'}
+                    </button>
+                  </div>
                   <WheelCol key={`d-${showDateTimeEdit}`} items={dateItems} initialValue={dtDate} onChange={setDtDate} />
                 </div>
+                {dtEndDateEnabled && (
+                  <>
+                    <div className="drum-divider" />
+                    <div className="drum-section">
+                      <div className="drum-section-label">Bis</div>
+                      <WheelCol key={`d2-${showDateTimeEdit}`} items={dateItems} initialValue={dtDateEnd} onChange={setDtDateEnd} />
+                    </div>
+                  </>
+                )}
                 <div className="drum-divider" />
                 {/* Von */}
                 <div className="drum-section">
