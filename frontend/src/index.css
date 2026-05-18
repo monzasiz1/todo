@@ -6757,9 +6757,12 @@ body.cal-is-dragging * {
   }
 
   .calendar-day {
-    /* Hoehe kommt vom Grid (grid-auto-rows: 76px). Zelle darf NICHT mehr
+    /* Hoehe kommt vom Grid (grid-auto-rows: 82px). Zelle darf NICHT mehr
        wachsen, sonst werden Zeilen je nach Task-Anzahl unterschiedlich
-       hoch. Inhalte clippen und ueber "+N"-Indikator anzeigen. */
+       hoch. Wir verlassen uns dafuer auf das Grid (feste Row-Hoehe) und
+       NICHT auf overflow:hidden auf der Zelle – sonst werden Multi-Day-
+       Balken, die ueber mehrere Spalten reichen, auf den ersten Tag
+       geclippt. overflow muss daher 'visible' bleiben. */
     min-height: 0 !important;
     height: 100%;
     padding: 5px 3px 4px;
@@ -6767,7 +6770,7 @@ body.cal-is-dragging * {
     background: #fff;
     cursor: pointer;
     transition: background 0.1s;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .calendar-day:active {
@@ -27311,11 +27314,13 @@ body.cal-is-dragging * {
   }
 
   /* Zellen: mehr Hoehe als Desktop-Tablet (vorher 110px),
-     damit 4 Tasks + Multi-Day-Bar nebeneinander Platz haben. */
+     damit 4 Tasks + Multi-Day-Bar nebeneinander Platz haben.
+     overflow:visible, sonst werden tageuebergreifende Balken auf
+     den ersten Tag geclippt. */
   .calendar-page-wrap .calendar-day {
     min-height: 0 !important;
     padding: 6px 6px 8px;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .calendar-page-wrap .calendar-day-tasks {

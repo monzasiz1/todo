@@ -1773,3 +1773,77 @@ html[data-theme="dark"] .upgrade-modal-manage {
 html[data-theme="dark"] .upgrade-modal-manage:hover {
   color: var(--text);
 }
+
+
+/* ============================================================
+   Toast / Snackbar – komplettes Dark-Theme
+   Deckt body-text, Action-Button, Close-Button und Icon-Slot ab.
+   ============================================================ */
+html[data-theme="dark"] .toast {
+  background: var(--card-solid, var(--surface-2));
+  border-color: color-mix(in srgb, #ffffff 8%, var(--border));
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.55),
+    0 2px 8px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+html[data-theme="dark"] .toast__msg {
+  color: var(--text);
+}
+html[data-theme="dark"] .toast__icon {
+  /* Falls Variante keine eigene --t-bg setzt: dezenter Surface-Hintergrund */
+  background: color-mix(in srgb, var(--t-color, var(--primary)) 22%, transparent);
+  color: var(--t-color, var(--primary));
+}
+html[data-theme="dark"] .toast__action {
+  background: color-mix(in srgb, #ffffff 10%, transparent);
+  color: var(--text);
+}
+html[data-theme="dark"] .toast__action:hover {
+  background: color-mix(in srgb, #ffffff 18%, transparent);
+  color: #fff;
+}
+html[data-theme="dark"] .toast__close {
+  background: color-mix(in srgb, #ffffff 8%, transparent);
+  color: var(--text-secondary);
+}
+html[data-theme="dark"] .toast__close:hover {
+  background: color-mix(in srgb, #ffffff 16%, transparent);
+  color: var(--text);
+}
+html[data-theme="dark"] .toast__bar {
+  opacity: 0.75;
+}
+
+/* Variant-spezifische Icon-Hintergründe leicht aufhellen, damit sie auf
+   dem dunklen Surface gut sichtbar sind. Die JSX-Komponente setzt
+   --t-color/--t-bg inline; wir verstärken nur den Hintergrund. */
+html[data-theme="dark"] .toast.toast--success .toast__icon,
+html[data-theme="dark"] .toast.success .toast__icon {
+  background: color-mix(in srgb, #34C759 24%, transparent);
+  color: #4ade80;
+}
+html[data-theme="dark"] .toast.toast--error .toast__icon,
+html[data-theme="dark"] .toast.error .toast__icon {
+  background: color-mix(in srgb, #FF3B30 22%, transparent);
+  color: #fca5a5;
+}
+html[data-theme="dark"] .toast.toast--info .toast__icon,
+html[data-theme="dark"] .toast.info .toast__icon {
+  background: color-mix(in srgb, var(--primary) 22%, transparent);
+  color: var(--primary);
+}
+html[data-theme="dark"] .toast.toast--warning .toast__icon,
+html[data-theme="dark"] .toast.warning .toast__icon {
+  background: color-mix(in srgb, #FF9F0A 24%, transparent);
+  color: #fbbf24;
+}
+
+/* Tooltip-Kontrast nachschärfen (war im Basis-Override bereits gesetzt,
+   hier nur Border und Text-Schatten für bessere Lesbarkeit). */
+html[data-theme="dark"] .tooltip {
+  background: var(--card-solid, var(--surface-2));
+  color: var(--text);
+  border-color: var(--border);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
