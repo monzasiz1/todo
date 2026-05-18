@@ -27259,9 +27259,11 @@ body.cal-is-dragging * {
     flex: 1 1 auto;
     min-height: 0;
     grid-template-rows: auto;
-    /* minmax(0, 1fr) verhindert, dass Tasks die Zeilenhoehe sprengen und
-       so den optischen Abstand Header<->Datum je nach Monatsinhalt aendern. */
-    grid-auto-rows: minmax(0, 1fr);
+    /* Fixe Zeilen-Hoehe + align-content:start verhindert, dass 5-Wochen-
+       Monate hoehere Zeilen bekommen als 6-Wochen-Monate. So bleibt der
+       optische Abstand Wochentag-Header <-> erste Datumszeile konstant. */
+    grid-auto-rows: 82px;
+    align-content: start;
     overflow-y: auto;
   }
 
