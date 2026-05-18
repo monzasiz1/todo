@@ -116,11 +116,7 @@ Nach Deploy + Migration:
 
 ```sql
 -- Sollte 0 zurueckliefern:
-select count(*) from users where avatar_url like 'data:image/%';
-
--- Beispielreihe pruefen:
-select id, name, length(avatar_url) as len, left(avatar_url, 60) as preview
-from users where avatar_url is not null limit 5;
+![alt text](image.png)
 -- preview sollte mit "https://<ref>.supabase.co/storage/v1/object/public/avatars/..." beginnen
 ```
 

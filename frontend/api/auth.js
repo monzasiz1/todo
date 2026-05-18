@@ -49,6 +49,7 @@ module.exports = async function handler(req, res) {
       sha256Prefix: sha,
       hasSupabaseUrl: Boolean(process.env.SUPABASE_URL),
       hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+      kid: process.env.SUPABASE_JWT_KID || null,
     });
   }
 
@@ -375,7 +376,14 @@ module.exports = async function handler(req, res) {
         app_user_id: user.id,
         email: user.email || null,
       };
-      const token = jwt.sign(payload, secret, { algorithm: 'HS256' });
+      const token = jwt.sign(payload, secret, {
+        algorithm: 'HS256',
+        // kid-Header faellt nur an wenn die ENV gesetzt ist. Supabase Realtime
+        // braucht das, sobald mehrere JWT-Signaturschluessel im Projekt liegen
+        // (z.B. aktueller HS256 + frueherer ECC), damit der richtige zur
+        // Verifizierung gewaehlt wird.
+        ...(process.env.SUPABASE_JWT_KID ? { keyid: process.env.SUPABASE_JWT_KID } : {}),
+      });
       return res.json({
         access_token: token,
         token_type: 'bearer',
