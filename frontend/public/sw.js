@@ -7,6 +7,11 @@ const STATIC_ASSETS = [
   '/icons/icon-512.png',
 ];
 
+// Wird beim Build vom Vite-Plugin `beequ-sw-precache-manifest` durch eine
+// JSON-Liste aller gehashten Asset-URLs ersetzt. Im Dev-Modus bleibt der
+// Ausdruck stehen und liefert ein leeres Array (warmAppShell uebernimmt dann).
+const PRECACHE_MANIFEST = self.__PRECACHE_MANIFEST__ || [];
+
 // API-Pfade, die NICHT im SW-Cache landen sollen (sensible / mutierende
 // Endpunkte, oder solche bei denen Frische zwingend ist).
 const API_CACHE_BLOCKLIST = [
@@ -105,18 +110,42 @@ function offlineStyleResponse() {
   });
 }
 
-// Install: cache static assets
+// Robustes Bulk-Precache: nutzt einzelne fetch+put pro URL und ignoriert
+// Einzelfehler, damit ein einziges 404 nicht den gesamten install kippt.
+async function precacheUrls(cache, urls) {
+  if (!urls || !urls.length) return;
+  await Promise.all(urls.map(async (url) => {
+    try {
+      // Bereits gecacht? Dann nichts tun (spart Bandbreite bei Reinstalls).
+      const existing = await cache.match(url).catch(() => null);
+      if (existing) return;
+      const res = await fetch(url, { cache: 'no-store', credentials: 'same-origin' });
+      if (res && res.status === 200) {
+        await cache.put(url, res.clone());
+      }
+    } catch {
+      // ignore (offline waehrend install, oder Asset wurde geloescht)
+    }
+  }));
+}
+
+// Install: cache static assets + alle gehashten Vite-Chunks
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
-      await cache.addAll(STATIC_ASSETS);
+      // Pflicht-Shell zuerst – darf scheitern, kippt den Install aber nicht.
+      try { await cache.addAll(STATIC_ASSETS); } catch { /* einzelne fehler okay */ }
       await warmAppShell(cache);
+      // Build-Manifest: ALLE Vite-Chunks (auch dynamische Imports wie
+      // CalendarPage, NotesPage, ChatPage …), Icons & Fonts vorab cachen,
+      // damit die App auch beim ersten Offline-Besuch funktionsfaehig ist.
+      await precacheUrls(cache, PRECACHE_MANIFEST);
     }).catch(() => {})
   );
   self.skipWaiting();
 });
 
-// Activate: clean old caches
+// Activate: clean old caches + nachziehen neuer Chunks
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then(async (keys) => {
@@ -126,6 +155,8 @@ self.addEventListener('activate', (event) => {
       );
       const cache = await caches.open(CACHE_NAME);
       await warmAppShell(cache);
+      // Auch beim Activate (z.B. nach App-Update) alle Chunks nachladen.
+      await precacheUrls(cache, PRECACHE_MANIFEST);
     }).catch(() => {})
   );
   self.clients.claim();
