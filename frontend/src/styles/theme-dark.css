@@ -1583,7 +1583,7 @@ html[data-theme="dark"] .sidebar-category.active .sidebar-category-count {
 /* Day-Create AI-Input-Row: animierte Border bleibt, Innenflaeche dunkel */
 html[data-theme="dark"] .day-create-ai-input-row {
   background:
-    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(var(--card-solid), var(--card-solid)) padding-box,
     linear-gradient(120deg, #7C7AE8, #C77DEA, #FF5EAB, #FFB347, #6FD3FF, #7C7AE8) border-box;
   background-size: auto, 300% 300%;
   box-shadow:
