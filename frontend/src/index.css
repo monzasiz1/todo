@@ -30791,24 +30791,25 @@ body.is-electron.is-mac .desktop-titlebar-center {
   gap: 12px;
   padding: 2px 0 4px;
 }
+/* Identisch zu .group-back-btn (siehe oben), damit alle Back-Buttons
+   in der Groups-Sektion ein einheitliches Look & Feel haben. */
 .gs-discover-back {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: var(--surface, var(--bg));
-  color: var(--text);
-  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 122, 255, 0.08);
+  color: var(--primary, #007AFF);
+  display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+  padding: 0;
+  transition: background 0.15s;
   flex-shrink: 0;
 }
 .gs-discover-back:hover {
-  background: var(--surface-2, var(--border));
-  border-color: var(--border-strong, var(--border));
-  transform: translateX(-1px);
+  background: rgba(0, 122, 255, 0.15);
 }
 .gs-discover-topbar-title {
   font-size: 17px;
@@ -30817,7 +30818,7 @@ body.is-electron.is-mac .desktop-titlebar-center {
   flex: 1;
   text-align: center;
 }
-.gs-discover-topbar-spacer { width: 38px; flex-shrink: 0; }
+.gs-discover-topbar-spacer { width: 30px; flex-shrink: 0; }
 
 /* â”€â”€ Hero â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .gs-discover-hero {

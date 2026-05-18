@@ -1847,3 +1847,88 @@ html[data-theme="dark"] .tooltip {
   border-color: var(--border);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
 }
+
+
+/* ============================================================
+   Group Tabs – Dark Theme
+   .group-tabs hatte hartkodierte weisse Hintergruende (rgba(255,255,255,...)
+   und linear-gradient(#fff -> #f3f7ff)), die im Dark Mode hell blieben.
+   ============================================================ */
+html[data-theme="dark"] .group-tabs {
+  background: var(--surface);
+  border-color: var(--border);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+html[data-theme="dark"] .group-tab {
+  color: var(--text-secondary);
+}
+html[data-theme="dark"] .group-tab:hover {
+  background: color-mix(in srgb, #ffffff 6%, transparent);
+  color: var(--text);
+}
+html[data-theme="dark"] .group-tab.active {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--primary) 18%, var(--surface-2)),
+    var(--surface-2));
+  color: var(--text);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+html[data-theme="dark"] .group-tab-count {
+  background: color-mix(in srgb, #ffffff 10%, transparent);
+  color: var(--text-secondary);
+}
+html[data-theme="dark"] .group-tab.active .group-tab-count {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* ============================================================
+   Discover-Back-Button: Dark-Variante an Primary-Tint angepasst
+   (alte Overrides ueberschreiben, damit der Button im Dark-Mode
+    nicht mehr als grosser Surface-Kasten erscheint).
+   ============================================================ */
+html[data-theme="dark"] .gs-discover-back {
+  background: color-mix(in srgb, var(--primary) 16%, transparent);
+  border: none;
+  color: var(--primary);
+}
+html[data-theme="dark"] .gs-discover-back:hover {
+  background: color-mix(in srgb, var(--primary) 26%, transparent);
+}
+
+/* ============================================================
+   Task-Card volle Breite im Gruppen-Kontext
+   Der Swipe-Wrap kollabierte in manchen Flex-Containern auf
+   shrink-to-fit. Hier global auf block + 100% erzwingen.
+   ============================================================ */
+.group-task-list .task-card-swipe-wrap,
+.group-task-list .task-card,
+.dash-section-list .task-card-swipe-wrap,
+.dash-section-list .task-card {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.group-task-list .task-card-swipe-wrap,
+.dash-section-list .task-card-swipe-wrap {
+  /* Wrap selbst bleibt position:relative + overflow:hidden (Base-Style),
+     hier nur Width/Display erzwingen. */
+  align-self: stretch;
+}
+.group-task-list .task-card-swipe-wrap > .task-card-swipe-track,
+.dash-section-list .task-card-swipe-wrap > .task-card-swipe-track {
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+}
+/* Die Karte innerhalb des Tracks bleibt flex (fuer ihr internes Layout) */
+.group-task-list .task-card-swipe-wrap > .task-card-swipe-track > .task-card,
+.dash-section-list .task-card-swipe-wrap > .task-card-swipe-track > .task-card {
+  display: flex;
+  flex: 0 0 100%;
+  width: 100%;
+  max-width: 100%;
+}
