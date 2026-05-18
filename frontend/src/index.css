@@ -2591,7 +2591,10 @@ input, textarea, select {
 /* Mobile Week View â€” All-Day Strip */
 .mobile-week-allday-strip {
   display: grid;
-  grid-template-columns: 36px repeat(7, minmax(0, 1fr));
+  /* Corner-Breite MUSS exakt der .mobile-week-grid-tlabel /
+     .mobile-week-grid-hours Breite (30px) entsprechen, sonst sind
+     Tages-Spalten gegenueber dem Header und dem Stunden-Grid verschoben. */
+  grid-template-columns: 30px repeat(7, minmax(0, 1fr));
   background: #f7f8fc;
   border-bottom: 1px solid #e8ecf3;
   flex-shrink: 0;
@@ -2604,10 +2607,12 @@ input, textarea, select {
   font-weight: 700;
   color: #9098ac;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  padding: 5px 3px 0;
+  letter-spacing: 0;
+  padding: 5px 1px 0;
   text-align: center;
-  line-height: 1.2;
+  line-height: 1.1;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .mobile-week-allday-col {
