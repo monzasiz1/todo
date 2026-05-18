@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { useGroupStore } from '../store/groupStore';
 import { useAuthStore } from '../store/authStore';
 import { useTaskStore } from '../store/taskStore';
+import { useStatusStore } from '../store/statusStore';
 import { api } from '../utils/api';
 import AvatarBadge from './AvatarBadge';
 
@@ -121,6 +122,40 @@ function formatReminderLabel(localDateTime) {
   return `Erinnerung am ${dt.toLocaleDateString('de-DE')} um ${dt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} erstellt`;
 }
 
+// ── Tipp-Indikator (rein lokal, Daten kommen ueber statusStore) ───────────
+function TypingIndicator({ groupId, selfId, messages }) {
+  // Reaktiv: re-rendert wenn statusStore.typingByGroup sich aendert.
+  const typingByGroup = useStatusStore((s) => s.typingByGroup);
+  if (!groupId) return null;
+  const set = typingByGroup.get(String(groupId));
+  if (!set || set.size === 0) return null;
+  const ids = [...set].filter((id) => Number(id) !== Number(selfId));
+  if (ids.length === 0) return null;
+  const nameById = new Map();
+  for (const m of (messages || [])) {
+    if (m?.user_id && m?.user_name) nameById.set(Number(m.user_id), m.user_name);
+  }
+  const names = ids.map((id) => nameById.get(Number(id))).filter(Boolean);
+  let label;
+  if (names.length === 0) {
+    label = ids.length === 1 ? 'Jemand schreibt…' : `${ids.length} Personen schreiben…`;
+  } else if (names.length === 1) {
+    label = `${names[0]} schreibt…`;
+  } else if (names.length === 2) {
+    label = `${names[0]} und ${names[1]} schreiben…`;
+  } else {
+    label = `${names[0]}, ${names[1]} und ${names.length - 2} weitere schreiben…`;
+  }
+  return (
+    <div className="gchat-typing-indicator" aria-live="polite">
+      <span className="gchat-typing-dots" aria-hidden="true">
+        <span /><span /><span />
+      </span>
+      <span className="gchat-typing-label">{label}</span>
+    </div>
+  );
+}
+
 // pageMode=false (default): fixed panel, controlled via open/onClose (desktop)
 // pageMode=true: renders as a page (mobile/tablet, used by ChatPage)
 export default function GroupChatPanel({ open, onClose, pageMode = false }) {
@@ -203,9 +238,35 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
     loadMessages().finally(() => setLoadingMsgs(false));
 
     clearInterval(pollRef.current);
-    pollRef.current = setInterval(loadMessages, 5000);
-    return () => clearInterval(pollRef.current);
-  }, [isActive, selectedGroupId, loadMessages]);
+    // Wenn Realtime aktiv ist, reicht ein langer Safety-Refresh alle 30s.
+    // Ohne Realtime weiter bei 5s wie bisher.
+    const intervalMs = (typeof window !== 'undefined' && window.__beequRealtimeActive)
+      ? 30000
+      : 5000;
+    pollRef.current = setInterval(loadMessages, intervalMs);
+
+    // Realtime-Trigger: bei Postgres-Events auf group_messages sofort neu laden.
+    const onChatChanged = (e) => {
+      const gid = e?.detail?.groupId;
+      if (!gid || Number(gid) === Number(selectedGroupId)) loadMessages();
+    };
+    window.addEventListener('beequ:chat-changed', onChatChanged);
+
+    // Realtime-Trigger fuer Gruppenliste (neue Member, Name etc.):
+    // fetchGroups wird zentral vom useRealtime-Hook angestossen; wir
+    // refreshen hier nur das selektierte Group-Detail damit Member-Namen
+    // und Rollen im Header aktuell sind.
+    const onGroupsChanged = () => {
+      try { fetchGroups(); } catch { /* ignore */ }
+    };
+    window.addEventListener('beequ:groups-changed', onGroupsChanged);
+
+    return () => {
+      clearInterval(pollRef.current);
+      window.removeEventListener('beequ:chat-changed', onChatChanged);
+      window.removeEventListener('beequ:groups-changed', onGroupsChanged);
+    };
+  }, [isActive, selectedGroupId, loadMessages, fetchGroups]);
 
   // ── Focus input when opening ──────────────────────────────────────────────
   useEffect(() => {
@@ -1382,6 +1443,9 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
                   ))}
                 </div>
 
+                {/* ── Tipp-Indikator (live, ohne DB) ── */}
+                <TypingIndicator groupId={selectedGroupId} selfId={user?.id} messages={messages} />
+
                 {/* ── Input ── */}
                 <div className="gchat-input-row" ref={taskPickerRef}>
                   {/* Task-Picker Dropdown */}
@@ -1436,7 +1500,11 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
                     className="gchat-input"
                     placeholder={chatLocked ? 'Chat erfordert Team-Plan' : 'Nachricht schreiben…'}
                     value={input}
-                    onChange={(e) => setInput(e.target.value)}
+                    onChange={(e) => {
+                      setInput(e.target.value);
+                      // Tipp-Indikator broadcasten (von useRealtime bereitgestellt).
+                      try { window.__beequBroadcastTyping?.(selectedGroupId); } catch { /* ignore */ }
+                    }}
                     onKeyDown={handleKeyDown}
                     rows={1}
                     disabled={chatLocked}

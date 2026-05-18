@@ -12,6 +12,13 @@
 import { useEffect, useRef } from 'react';
 import { getSupabase, isSupabaseConfigured } from '../lib/supabase';
 import { api } from '../utils/api';
+import { useStatusStore } from '../store/statusStore';
+
+// Globaler "Realtime aktiv"-Marker. Komponenten koennen so z.B. ihr Polling
+// reduzieren, wenn live-Updates ankommen.
+function setRealtimeActive(v) {
+  try { window.__beequRealtimeActive = !!v; } catch { /* ignore */ }
+}
 
 // Re-fetch wird gedebounced damit ein Bulk-Update (z.B. Server schreibt 5
 // Rows nacheinander) nicht 5x denselben Endpoint hämmert.
@@ -110,14 +117,125 @@ export function useRealtime({ userId, enabled = true } = {}) {
 
       channelsRef.current.push({ channel: tasksChannel, cancel: refetchTasks.cancel });
 
-      // Weitere Features (Chat, Gruppen, Status, Notes) werden in Phase 2
-      // hier ergaenzt - dieselbe Mechanik.
+      // 2) CHAT — group_messages. Pro Postgres-Change feuern wir ein
+      //    Window-Event mit der betroffenen group_id; GroupChatPanel laedt
+      //    dann selbst neu (kein globaler Store-Refetch noetig).
+      const chatChannel = supabase
+        .channel(`rt-chat-${userId}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'group_messages' },
+          (payload) => {
+            const gid = payload?.new?.group_id ?? payload?.old?.group_id;
+            try {
+              window.dispatchEvent(new CustomEvent('beequ:chat-changed', {
+                detail: { groupId: gid, eventType: payload.eventType },
+              }));
+            } catch { /* ignore */ }
+          }
+        )
+        .subscribe();
+      channelsRef.current.push({ channel: chatChannel });
+
+      // 3) GRUPPEN — Aenderungen an groups + group_members refreshen die
+      //    Gruppenliste. Hot-Pfad: neuer Member, Rolle geaendert, Gruppe
+      //    umbenannt, etc.
+      const refetchGroups = debounce(async () => {
+        try {
+          const { useGroupStore } = await import('../store/groupStore');
+          await useGroupStore.getState().fetchGroups();
+        } catch { /* ignore */ }
+        try {
+          window.dispatchEvent(new CustomEvent('beequ:groups-changed'));
+        } catch { /* ignore */ }
+      }, 300);
+
+      const groupsChannel = supabase
+        .channel(`rt-groups-${userId}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'groups' },
+          () => refetchGroups()
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'group_members' },
+          () => refetchGroups()
+        )
+        .subscribe();
+      channelsRef.current.push({ channel: groupsChannel, cancel: refetchGroups.cancel });
+
+      // 4) ONLINE-PRESENCE — Channel 'rt-presence'. Jeder verbundene Client
+      //    'tracked' seine user_id; alle anderen sehen joins/leaves sofort.
+      //    Kein DB-Write notwendig.
+      const presence = supabase.channel('rt-presence', {
+        config: { presence: { key: String(userId) } },
+      });
+      presence
+        .on('presence', { event: 'sync' }, () => {
+          const state = presence.presenceState();
+          // state ist { '<userId>': [{ ...meta }, ...] }
+          const ids = Object.keys(state).map((k) => Number(k)).filter(Boolean);
+          useStatusStore.getState().setOnlineUsers(ids);
+        })
+        .on('presence', { event: 'join' }, ({ key }) => {
+          if (key) useStatusStore.getState().addOnline(key);
+        })
+        .on('presence', { event: 'leave' }, ({ key }) => {
+          if (key) useStatusStore.getState().removeOnline(key);
+        })
+        .subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            try {
+              await presence.track({ user_id: userId, online_at: Date.now() });
+              setRealtimeActive(true);
+            } catch { /* ignore */ }
+          }
+        });
+      channelsRef.current.push({
+        channel: presence,
+        cancel: () => {
+          try { presence.untrack(); } catch { /* ignore */ }
+        },
+      });
+
+      // 5) TYPING — globaler Broadcast-Channel. Jede Tipp-Aktion sendet
+      //    {groupId, userId}; alle anderen Clients markieren den User
+      //    fuer ~4s als "tippt gerade". Wir publishen nicht ueber die DB.
+      const typingChannel = supabase.channel('rt-typing');
+      typingChannel
+        .on('broadcast', { event: 'typing' }, (msg) => {
+          const { groupId, userId: senderId } = msg?.payload || {};
+          if (!groupId || !senderId) return;
+          // Nicht uns selbst markieren.
+          if (Number(senderId) === Number(userId)) return;
+          useStatusStore.getState().markTyping(groupId, senderId);
+        })
+        .subscribe();
+      channelsRef.current.push({ channel: typingChannel });
+
+      // Globaler Helper, damit UI-Code (z.B. Chat-Input) Typing senden kann
+      // ohne Supabase direkt zu importieren.
+      try {
+        window.__beequBroadcastTyping = (groupId) => {
+          try {
+            typingChannel.send({
+              type: 'broadcast',
+              event: 'typing',
+              payload: { groupId: String(groupId), userId },
+            });
+          } catch { /* ignore */ }
+        };
+      } catch { /* ignore */ }
     };
 
     setupAuthAndSubscribe();
 
     return () => {
       cancelled = true;
+      setRealtimeActive(false);
+      try { delete window.__beequBroadcastTyping; } catch { /* ignore */ }
+      try { useStatusStore.getState().reset(); } catch { /* ignore */ }
       if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
       for (const entry of channelsRef.current) {
         try { entry.cancel?.(); } catch { /* ignore */ }
