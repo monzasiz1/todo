@@ -9873,9 +9873,9 @@ body.cal-is-dragging * {
   }
 
   .desktop-week-all-day-event.allday-span-start {
-    border-radius: 4px 0 0 4px;
-    width: calc(100% + 5px);
-    margin-right: -5px;
+    /* Balken wird als EIN Element ueber mehrere Tage gerendert
+       (siehe Calendar.jsx, spanWidth) – daher rundum gerundet. */
+    border-radius: 4px;
     position: relative;
     z-index: 2;
     justify-content: center;
