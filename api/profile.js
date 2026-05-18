@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const { getPool } = require('./_lib/db');
 const { verifyToken, generateToken, cors } = require('./_lib/auth');
 const { sendPasswordChangedMail } = require('./_lib/mailer');
+const storage = require('./_lib/storage');
 
 module.exports = async function handler(req, res) {
   cors(res);
@@ -194,33 +195,48 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // PUT /api/profile/avatar — Upload avatar image (base64)
+  // PUT /api/profile/avatar — Upload avatar image (base64 → Supabase Storage)
   if (action === 'avatar' && req.method === 'PUT') {
     try {
       const { avatar_url } = req.body;
 
+      // Avatar entfernen
       if (!avatar_url) {
-        // Remove avatar
+        try { await storage.deleteAvatar(user.id); } catch { /* ignore */ }
         await pool.query('UPDATE users SET avatar_url = NULL WHERE id = $1', [user.id]);
         return res.json({ avatar_url: null });
       }
 
-      // Validate base64 data URI
+      // Falls bereits eine HTTPS-URL geschickt wird (z.B. Re-Save ohne Aenderung),
+      // nicht erneut hochladen, nur persistieren.
+      if (/^https?:\/\//i.test(avatar_url)) {
+        await pool.query('UPDATE users SET avatar_url = $2 WHERE id = $1', [user.id, avatar_url]);
+        return res.json({ avatar_url });
+      }
+
       if (!avatar_url.startsWith('data:image/')) {
-        return res.status(400).json({ error: 'Ungültiges Bildformat' });
+        return res.status(400).json({ error: 'Ungueltiges Bildformat' });
       }
-
-      // Max ~2MB base64
       if (avatar_url.length > 2800000) {
-        return res.status(400).json({ error: 'Bild zu groß (max. 2MB)' });
+        return res.status(400).json({ error: 'Bild zu gross (max. 2MB)' });
       }
 
-      await pool.query(
-        'UPDATE users SET avatar_url = $2 WHERE id = $1',
-        [user.id, avatar_url]
-      );
+      if (!storage.isConfigured()) {
+        return res.status(503).json({
+          error: 'Avatar-Upload nicht verfuegbar (Storage nicht konfiguriert)',
+        });
+      }
 
-      return res.json({ avatar_url });
+      let publicUrl;
+      try {
+        publicUrl = await storage.uploadAvatarFromDataUri(user.id, avatar_url);
+      } catch (e) {
+        console.error('Avatar upload to Storage failed:', e?.message || e);
+        return res.status(500).json({ error: 'Avatar konnte nicht hochgeladen werden' });
+      }
+
+      await pool.query('UPDATE users SET avatar_url = $2 WHERE id = $1', [user.id, publicUrl]);
+      return res.json({ avatar_url: publicUrl });
     } catch (err) {
       console.error('Avatar upload error:', err);
       return res.status(500).json({ error: 'Avatar konnte nicht hochgeladen werden' });

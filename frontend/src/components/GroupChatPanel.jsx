@@ -240,12 +240,21 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
     loadMessages().finally(() => setLoadingMsgs(false));
 
     clearInterval(pollRef.current);
-    // Wenn Realtime aktiv ist, reicht ein langer Safety-Refresh alle 30s.
-    // Ohne Realtime weiter bei 5s wie bisher.
-    const intervalMs = (typeof window !== 'undefined' && window.__beequRealtimeActive)
-      ? 30000
-      : 5000;
-    pollRef.current = setInterval(loadMessages, intervalMs);
+    // Polling-Strategie (Egress-schonend):
+    //   • Realtime aktiv  + Tab sichtbar  → 60s Safety-Refresh
+    //   • Realtime aktiv  + Tab versteckt → kein Poll
+    //   • Realtime aus    + Tab sichtbar  → 30s
+    //   • Realtime aus    + Tab versteckt → kein Poll (refresh on visible)
+    const computeInterval = () => {
+      if (typeof document !== 'undefined' && document.hidden) return 0;
+      return (typeof window !== 'undefined' && window.__beequRealtimeActive) ? 60000 : 30000;
+    };
+    const startPoll = () => {
+      clearInterval(pollRef.current);
+      const ms = computeInterval();
+      if (ms > 0) pollRef.current = setInterval(loadMessages, ms);
+    };
+    startPoll();
 
     // Realtime-Trigger: bei Postgres-Events auf group_messages sofort neu laden.
     const onChatChanged = (e) => {
@@ -255,18 +264,23 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
     window.addEventListener('beequ:chat-changed', onChatChanged);
 
     // Realtime-Trigger fuer Gruppenliste (neue Member, Name etc.):
-    // fetchGroups wird zentral vom useRealtime-Hook angestossen; wir
-    // refreshen hier nur das selektierte Group-Detail damit Member-Namen
-    // und Rollen im Header aktuell sind.
     const onGroupsChanged = () => {
       try { fetchGroups(); } catch { /* ignore */ }
     };
     window.addEventListener('beequ:groups-changed', onGroupsChanged);
 
+    // Tab-Sichtbarkeit: bei Wechsel auf "sichtbar" einmal nachladen + Poll neu starten.
+    const onVisibility = () => {
+      if (!document.hidden) loadMessages();
+      startPoll();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
     return () => {
       clearInterval(pollRef.current);
       window.removeEventListener('beequ:chat-changed', onChatChanged);
       window.removeEventListener('beequ:groups-changed', onGroupsChanged);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [isActive, selectedGroupId, loadMessages, fetchGroups]);
 
