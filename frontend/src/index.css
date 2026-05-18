@@ -3685,10 +3685,18 @@ input, textarea, select {
 
 .calendar-day-more {
   font-size: 0.6rem;
-  color: var(--text-tertiary);
-  font-weight: 600;
-  padding: 1px 4px;
+  color: var(--primary);
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(0, 122, 255, 0.12);
   cursor: pointer;
+  align-self: flex-start;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.calendar-day-more:hover {
+  background: rgba(0, 122, 255, 0.22);
+  color: var(--primary-hover, var(--primary));
 }
 
 /* â”€â”€ Drag & Drop â”€â”€ */
