@@ -1609,90 +1609,169 @@ function SearchGroups({ onBack }) {
     }
   };
 
+  const clearQuery = () => {
+    setQuery('');
+    setResults([]);
+    setSearched(false);
+  };
+
   return (
-    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-      <div className="group-sub-header">
-        <button className="group-back-btn" onClick={onBack}><ArrowLeft size={20} /></button>
-        <h2>Gruppen suchen</h2>
+    <motion.div
+      className="gs-discover"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -12 }}
+      transition={{ duration: 0.22 }}
+    >
+      <div className="gs-discover-topbar">
+        <button className="gs-discover-back" onClick={onBack} aria-label="Zurück">
+          <ArrowLeft size={20} />
+        </button>
+        <div className="gs-discover-topbar-title">Gruppen entdecken</div>
+        <div className="gs-discover-topbar-spacer" />
       </div>
 
-      <div className="group-search-public-wrap">
-        <p className="group-search-public-intro">
-          Finde öffentliche Gruppen und sende eine Beitrittsanfrage. Der Admin der Gruppe nimmt dich dann auf.
+      <div className="gs-discover-hero">
+        <div className="gs-discover-hero-icon"><Globe size={26} /></div>
+        <h1 className="gs-discover-hero-title">Öffentliche Gruppen finden</h1>
+        <p className="gs-discover-hero-sub">
+          Suche nach Gruppen, die zu dir passen und sende dem Admin eine Beitrittsanfrage.
         </p>
-
-        <div className="group-search-public-row">
-          <input
-            className="groups-search-input"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && doSearch()}
-            placeholder="Gruppenname eingeben..."
-            autoFocus
-          />
-          <button
-            className="group-action-btn primary"
-            onClick={doSearch}
-            disabled={loading || !query.trim()}
-            style={{ minWidth: 100, marginLeft: 8 }}
-          >
-            {loading ? 'Suche...' : <><Search size={15} /> Suchen</>}
-          </button>
-        </div>
-
-        {searched && !loading && results.length === 0 && (
-          <div className="group-empty" style={{ marginTop: 24 }}>
-            <div className="group-empty-icon"><Globe size={32} /></div>
-            <h3>Keine Treffer</h3>
-            <p>Keine öffentlichen Gruppen mit diesem Namen gefunden.</p>
-          </div>
-        )}
-
-        {results.map((g) => (
-          <div key={g.id} className="group-search-result-card">
-            <AvatarBadge
-              name={g.name}
-              color={g.color || '#007AFF'}
-              avatarUrl={g.image_url}
-              size={46}
-            />
-            <div className="group-search-result-info">
-              <strong className="group-search-result-name">{g.name}</strong>
-              {g.description && <p className="group-search-result-desc">{g.description}</p>}
-              <span className="group-search-result-meta">
-                <Users size={11} /> {g.member_count} Mitglieder
-              </span>
-            </div>
-            <div className="group-search-result-action">
-              {g.already_member ? (
-                <span className="group-search-already-member"><Check size={13} /> Bereits Mitglied</span>
-              ) : g.my_request_status === 'pending' ? (
-                <span className="group-search-req-sent"><Check size={13} /> Anfrage gesendet</span>
-              ) : g.my_request_status === 'rejected' ? (
-                <span className="group-search-req-rejected">Abgelehnt</span>
-              ) : (
-                <>
-                  <input
-                    className="group-search-msg-input"
-                    placeholder="Kurze Nachricht (optional)"
-                    value={requestMsg[g.id] || ''}
-                    onChange={(e) => setRequestMsg((prev) => ({ ...prev, [g.id]: e.target.value }))}
-                    maxLength={200}
-                  />
-                  <button
-                    className="group-action-btn primary"
-                    style={{ fontSize: 13, padding: '7px 14px', marginTop: 6 }}
-                    onClick={() => sendRequest(g.id)}
-                    disabled={sending[g.id]}
-                  >
-                    {sending[g.id] ? '...' : <><UserPlus size={13} /> Anfrage senden</>}
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        ))}
       </div>
+
+      <div className="gs-discover-searchbar">
+        <Search size={18} className="gs-discover-searchbar-icon" />
+        <input
+          className="gs-discover-searchbar-input"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && doSearch()}
+          placeholder="Gruppenname eingeben…"
+          autoFocus
+        />
+        {query && (
+          <button className="gs-discover-searchbar-clear" onClick={clearQuery} aria-label="Leeren">
+            <X size={14} />
+          </button>
+        )}
+        <button
+          className="gs-discover-searchbar-cta"
+          onClick={doSearch}
+          disabled={loading || !query.trim()}
+        >
+          {loading ? <span className="gs-discover-spinner" /> : 'Suchen'}
+        </button>
+      </div>
+
+      {loading && (
+        <div className="gs-discover-skeletons">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="gs-discover-skeleton" />
+          ))}
+        </div>
+      )}
+
+      {!loading && !searched && (
+        <div className="gs-discover-placeholder">
+          <div className="gs-discover-placeholder-icon"><Search size={22} /></div>
+          <p>Tippe einen Gruppennamen ein, um öffentliche Gruppen zu durchsuchen.</p>
+        </div>
+      )}
+
+      {!loading && searched && results.length === 0 && (
+        <div className="gs-discover-empty">
+          <div className="gs-discover-empty-icon"><Globe size={26} /></div>
+          <h3>Keine Treffer</h3>
+          <p>Keine öffentlichen Gruppen mit diesem Namen gefunden.</p>
+        </div>
+      )}
+
+      {!loading && results.length > 0 && (
+        <div className="gs-discover-results">
+          <div className="gs-discover-results-head">
+            <span>{results.length} {results.length === 1 ? 'Treffer' : 'Treffer'}</span>
+          </div>
+
+          {results.map((g) => {
+            const isMember = !!g.already_member;
+            const isPending = g.my_request_status === 'pending';
+            const isRejected = g.my_request_status === 'rejected';
+            const canRequest = !isMember && !isPending && !isRejected;
+            const isSending = !!sending[g.id];
+
+            return (
+              <div key={g.id} className="gs-discover-card">
+                <div className="gs-discover-card-main">
+                  <AvatarBadge
+                    name={g.name}
+                    color={g.color || '#007AFF'}
+                    avatarUrl={g.image_url}
+                    size={48}
+                  />
+                  <div className="gs-discover-card-info">
+                    <div className="gs-discover-card-name">{g.name}</div>
+                    {g.description && (
+                      <div className="gs-discover-card-desc">{g.description}</div>
+                    )}
+                    <div className="gs-discover-card-meta">
+                      <span className="gs-discover-card-chip">
+                        <Users size={12} />
+                        {g.member_count} Mitglied{g.member_count === 1 ? '' : 'er'}
+                      </span>
+                      <span className="gs-discover-card-chip subtle">
+                        <Globe size={12} /> Öffentlich
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="gs-discover-card-status">
+                    {isMember && (
+                      <span className="gs-discover-status ok">
+                        <Check size={14} /> Mitglied
+                      </span>
+                    )}
+                    {isPending && (
+                      <span className="gs-discover-status pending">
+                        <Clock size={14} /> Anfrage offen
+                      </span>
+                    )}
+                    {isRejected && (
+                      <span className="gs-discover-status rejected">
+                        <X size={14} /> Abgelehnt
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {canRequest && (
+                  <div className="gs-discover-card-request">
+                    <input
+                      className="gs-discover-card-msg"
+                      placeholder="Kurze Nachricht an den Admin (optional)"
+                      value={requestMsg[g.id] || ''}
+                      onChange={(e) => setRequestMsg((prev) => ({ ...prev, [g.id]: e.target.value }))}
+                      maxLength={200}
+                    />
+                    <button
+                      className="gs-discover-card-join"
+                      onClick={() => sendRequest(g.id)}
+                      disabled={isSending}
+                    >
+                      {isSending ? (
+                        <span className="gs-discover-spinner" />
+                      ) : (
+                        <>
+                          <UserPlus size={14} /> Beitreten
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </motion.div>
   );
 }
