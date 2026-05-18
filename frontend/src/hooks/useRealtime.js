@@ -83,7 +83,31 @@ export function useRealtime({ userId, enabled = true } = {}) {
         // Setzt das JWT auf den Realtime-Socket. auth.uid() / app_user_id() in
         // RLS-Policies sehen ab jetzt den eingeloggten User.
         try { supabase.realtime.setAuth(tok.access_token); } catch { /* ignore */ }
-        setStatus({ phase: 'token-set', expires_in: tok.expires_in });
+        // Token-Payload dekodieren (nur zur Diagnose, keine Signatur-Pruefung).
+        let tokenPayload = null;
+        try {
+          const part = tok.access_token.split('.')[1];
+          const json = atob(part.replace(/-/g, '+').replace(/_/g, '/'));
+          tokenPayload = JSON.parse(json);
+        } catch { /* ignore */ }
+        setStatus({
+          phase: 'token-set',
+          expires_in: tok.expires_in,
+          tokenPayload,
+          tokenLen: tok.access_token.length,
+        });
+
+        // Socket-Level Fehler/Close-Events einfangen, damit wir die
+        // Server-Begruendung sehen (z.B. "InvalidJWTToken").
+        try {
+          const sock = supabase.realtime;
+          sock.onError?.((e) => {
+            setStatus({ socketError: e?.message || String(e) || 'unknown' });
+          });
+          sock.onClose?.((e) => {
+            setStatus({ socketClose: { code: e?.code, reason: e?.reason } });
+          });
+        } catch { /* ignore */ }
 
         scheduleRefresh(tok.expires_in);
         subscribeAll();
@@ -248,10 +272,18 @@ export function useRealtime({ userId, enabled = true } = {}) {
       channelsRef.current.push({ channel: typingChannel });
 
       // Globaler Helper, damit UI-Code (z.B. Chat-Input) Typing senden kann
-      // ohne Supabase direkt zu importieren.
+      // ohne Supabase direkt zu importieren. Throttled auf 1x/2s, und nur
+      // wenn der Channel auch SUBSCRIBED ist (sonst spammen wir 402-Errors
+      // wenn Supabase Realtime gesperrt/pausiert ist).
+      let lastTypingSentAt = 0;
       try {
         window.__beequBroadcastTyping = (groupId) => {
           try {
+            const st = (typeof window !== 'undefined' && window.__beequRealtime) || {};
+            if (st.typingChannel !== 'SUBSCRIBED') return;
+            const now = Date.now();
+            if (now - lastTypingSentAt < 2000) return;
+            lastTypingSentAt = now;
             typingChannel.send({
               type: 'broadcast',
               event: 'typing',
