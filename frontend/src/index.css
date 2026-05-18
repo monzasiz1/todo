@@ -3920,16 +3920,45 @@ body.cal-is-dragging * {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Desktop: dezente "beendet"-Markierung statt grossem BEENDET-Badge.
+   Wir blenden den Text aus, zeigen nur einen kleinen Check-Dot rechts
+   in der Pille und ziehen via :has() einen Strikethrough durch den Titel
+   und reduzieren die Opacity. Klar erkennbar, aber unauffaellig. */
 .calendar-day-task-ended {
   flex-shrink: 0;
-  font-size: 0.54rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  color: #5E5E66;
-  background: rgba(142, 142, 147, 0.18);
-  border-radius: 999px;
-  padding: 1px 5px;
+  margin-left: auto;
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 0; /* Text "Beendet" ausblenden */
+  color: transparent;
+  background: rgba(255, 255, 255, 0.32);
+  position: relative;
+  align-self: center;
+  pointer-events: none;
+}
+.calendar-day-task-ended::before {
+  /* Kleiner weisser Check innerhalb des Kreises */
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 3px;
+  border-left: 1.5px solid #fff;
+  border-bottom: 1.5px solid #fff;
+  transform: translate(-55%, -75%) rotate(-45deg);
+}
+/* Beendete Pille: Titel durchgestrichen + Pille leicht gedaempft.
+   :has() wird von allen modernen Browsern unterstuetzt. */
+.calendar-day-task:has(> .calendar-day-task-ended) {
+  opacity: 0.72;
+}
+.calendar-day-task:has(> .calendar-day-task-ended) .calendar-day-task-title {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  text-decoration-color: rgba(255, 255, 255, 0.7);
 }
 
 @media (max-width: 768px) {
@@ -6636,13 +6665,16 @@ body.cal-is-dragging * {
     padding: 0 9px 0 6px;
   }
 
-  /* â”€â”€ Calendar Page: Vollbild wie native App â”€â”€ */
+  /* â”€â”€ Calendar Page: Vollbild wie native App â”€â”€
+     bottom = Bottom-Nav (72px) + Modebar (52px) = 124px + Safe-Area.
+     So endet das Kalender-Grid exakt an der Oberkante der Modebar und
+     der gesamte sichtbare Bereich dazwischen wird vom Raster genutzt. */
   .calendar-page-wrap {
     position: fixed;
     top: calc(56px + env(safe-area-inset-top, 0px));
     left: 0;
     right: 0;
-    bottom: calc(116px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(124px + env(safe-area-inset-bottom, 0px));
     padding: 0;
     margin: 0;
     z-index: 1;
@@ -6672,16 +6704,16 @@ body.cal-is-dragging * {
   .calendar-page-wrap .calendar-grid {
     flex: 1 1 auto;
     min-height: 0;
-    overflow-y: auto;
+    overflow: hidden;
     padding-bottom: 0;
     background: #fff;
-    /* Profi-Kalender: erste Zeile = Wochentags-Header (auto), alle
-       Datums-Zeilen exakt gleich hoch (fixe Pixel-Hoehe). So bleibt das
-       Raster konsistent unabhaengig davon, ob ein Monat 5 oder 6 Wochen
-       hat und egal wie viele Tasks pro Tag liegen. */
+    /* Profi-Kalender Mobile: Header (auto) + Datums-Zeilen, die den
+       verfuegbaren Platz bis zur Modebar gleichmaessig ausfuellen.
+       minmax(82px, 1fr) garantiert eine angenehme Mindesthoehe und
+       streckt die Zellen, damit am unteren Rand kein Leerraum bleibt. */
     grid-template-rows: auto;
-    grid-auto-rows: 76px;
-    align-content: start;
+    grid-auto-rows: minmax(82px, 1fr);
+    align-content: stretch;
   }
 
   .calendar-page-wrap .mobile-week-grid-wrap {
@@ -27270,11 +27302,11 @@ body.cal-is-dragging * {
     flex: 1 1 auto;
     min-height: 0;
     grid-template-rows: auto;
-    /* Fixe Zeilen-Hoehe + align-content:start verhindert, dass 5-Wochen-
-       Monate hoehere Zeilen bekommen als 6-Wochen-Monate. So bleibt der
-       optische Abstand Wochentag-Header <-> erste Datumszeile konstant. */
-    grid-auto-rows: 82px;
-    align-content: start;
+    /* Tablet: Datums-Zeilen fuellen die ganze Hoehe bis zur Bottom-Nav.
+       Mindestens 90px hoch, danach gleichmaessig verteilt - so bleibt
+       der visuelle Abstand konsistent und das Grid hat keinen Leerraum. */
+    grid-auto-rows: minmax(90px, 1fr);
+    align-content: stretch;
     overflow-y: auto;
   }
 
