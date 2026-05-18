@@ -25145,6 +25145,29 @@ body.cal-is-dragging * {
 }
 .gchat-smart-chip:disabled { opacity: 0.5; }
 
+/* Avatar mit Online-Dot Overlay */
+.gchat-avatar-wrap {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+.gchat-avatar-wrap img,
+.gchat-avatar-wrap .gchat-avatar-initials {
+  display: block;
+}
+.gchat-online-dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #22c55e; /* green-500 */
+  border: 2px solid var(--card-solid, #fff);
+  box-shadow: 0 0 4px rgba(34, 197, 94, 0.4);
+  pointer-events: none;
+}
+
 /* Tipp-Indikator (live) */
 .gchat-typing-indicator {
   display: flex;

@@ -165,6 +165,8 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
   const { groups, fetchGroups } = useGroupStore();
   const { user } = useAuthStore();
   const allTasks = useTaskStore((s) => s.tasks);
+  // Live Online-Status (Presence). Set re-rendert nur bei Aenderung.
+  const onlineUserIds = useStatusStore((s) => s.onlineUserIds);
 
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -1004,16 +1006,21 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
                         {!isOwn && (
                           <div className="gchat-msg-avatar">
                             {showSender ? (
-                              msg.sender_avatar ? (
-                                <img src={msg.sender_avatar} alt={msg.sender_name} />
-                              ) : (
-                                <div
-                                  className="gchat-avatar-initials"
-                                  style={{ background: msg.sender_color || '#007AFF' }}
-                                >
-                                  {initials(msg.sender_name)}
-                                </div>
-                              )
+                              <div className="gchat-avatar-wrap">
+                                {msg.sender_avatar ? (
+                                  <img src={msg.sender_avatar} alt={msg.sender_name} />
+                                ) : (
+                                  <div
+                                    className="gchat-avatar-initials"
+                                    style={{ background: msg.sender_color || '#007AFF' }}
+                                  >
+                                    {initials(msg.sender_name)}
+                                  </div>
+                                )}
+                                {onlineUserIds.has(Number(msg.user_id)) && (
+                                  <span className="gchat-online-dot" title="Online" />
+                                )}
+                              </div>
                             ) : (
                               <div className="gchat-avatar-spacer" />
                             )}
