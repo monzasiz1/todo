@@ -1579,3 +1579,32 @@ html[data-theme="dark"] .sidebar-category.active .sidebar-category-count {
   background: rgba(77, 163, 255, 0.22);
   color: var(--primary);
 }
+
+/* Day-Create AI-Input-Row: animierte Border bleibt, Innenflaeche dunkel */
+html[data-theme="dark"] .day-create-ai-input-row {
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(120deg, #7C7AE8, #C77DEA, #FF5EAB, #FFB347, #6FD3FF, #7C7AE8) border-box;
+  background-size: auto, 300% 300%;
+  box-shadow:
+    0 0 0 0 rgba(124, 122, 232, 0),
+    0 8px 22px rgba(124, 122, 232, 0.18);
+}
+html[data-theme="dark"] .day-create-ai-input-row::before {
+  background: linear-gradient(120deg, rgba(124,122,232,0.55), rgba(199,125,234,0.5), rgba(255,94,171,0.45), rgba(255,179,71,0.45), rgba(111,211,255,0.5));
+  opacity: 0.55;
+}
+html[data-theme="dark"] .day-create-ai-input-row:focus-within {
+  box-shadow:
+    0 0 0 4px rgba(124, 122, 232, 0.28),
+    0 12px 30px rgba(199, 125, 234, 0.28);
+}
+html[data-theme="dark"] .day-create-ai-icon {
+  color: #B5B3FF;
+  filter: drop-shadow(0 0 8px rgba(124, 122, 232, 0.6));
+}
+html[data-theme="dark"] .day-create-ai-submit {
+  background: linear-gradient(135deg, #7C7AE8 0%, #C77DEA 55%, #FF5EAB 100%);
+  background-size: 200% 200%;
+  box-shadow: 0 6px 18px rgba(124, 122, 232, 0.5);
+}
