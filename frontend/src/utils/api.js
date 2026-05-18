@@ -45,6 +45,15 @@ export function clearApiCacheForCurrentUser() {
   } catch {
     // ignore
   }
+  // Service-Worker API-Cache ebenfalls leeren, damit nach Logout kein
+  // ge-cachter Response des Vorgaengers an einen neuen Nutzer geliefert wird.
+  try {
+    if (typeof navigator !== 'undefined' && navigator.serviceWorker?.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_API_CACHE' });
+    }
+  } catch {
+    // ignore
+  }
 }
 
 function getHeaders() {

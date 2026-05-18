@@ -1,10 +1,34 @@
-﻿const CACHE_NAME = 'beequ-v11';
+﻿const CACHE_NAME = 'beequ-v12';
+const API_CACHE_NAME = 'beequ-api-v1';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
 ];
+
+// API-Pfade, die NICHT im SW-Cache landen sollen (sensible / mutierende
+// Endpunkte, oder solche bei denen Frische zwingend ist).
+const API_CACHE_BLOCKLIST = [
+  '/auth/login',
+  '/auth/register',
+  '/auth/verify-code',
+  '/auth/resend-code',
+  '/auth/2fa',
+  '/billing',
+  '/notifications/log',
+  '/tasks/reminders/due',
+];
+
+// Max. Alter eines API-Cache-Eintrags, ab dem er beim Offline-Fallback
+// noch geliefert, beim Online-Treffer aber sofort revalidiert wird.
+const API_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 Tage
+
+function isApiCacheable(url) {
+  if (!url.pathname.startsWith('/api/')) return false;
+  const sub = url.pathname.slice(4); // '/auth/...'
+  return !API_CACHE_BLOCKLIST.some((p) => sub.startsWith(p));
+}
 
 function offlineFallbackResponse() {
   return new Response('Offline', {
@@ -96,8 +120,9 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then(async (keys) => {
+      const allowed = new Set([CACHE_NAME, API_CACHE_NAME]);
       await Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key).catch(() => {}))
+        keys.filter((key) => !allowed.has(key)).map((key) => caches.delete(key).catch(() => {}))
       );
       const cache = await caches.open(CACHE_NAME);
       await warmAppShell(cache);
@@ -106,27 +131,93 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: network-first for API, cache-first for assets
+// Fetch: cache-first shell, stale-while-revalidate APIs, cache-first assets
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET requests
+  // Skip non-GET requests (Mutationen laufen weiter ueber normales fetch +
+  // Offline-Queue im App-Code).
   if (request.method !== 'GET') return;
 
-  // API requests: network only (always need fresh data)
+  // ── API GETs: stale-while-revalidate ──
+  // Cache-Treffer wird sofort zurueckgegeben (Null-Ladezeit), parallel laeuft
+  // ein Network-Fetch der den Cache aktualisiert. Offline -> Cache, dann 503.
   if (url.pathname.startsWith('/api/')) {
+    if (!isApiCacheable(url)) return; // sensible Endpunkte unangetastet
+
+    event.respondWith((async () => {
+      const cache = await caches.open(API_CACHE_NAME).catch(() => null);
+      const cached = cache ? await cache.match(request).catch(() => null) : null;
+
+      const networkPromise = fetch(request).then(async (response) => {
+        try {
+          if (response && response.status === 200 && cache) {
+            const ct = response.headers.get('content-type') || '';
+            if (ct.includes('application/json') || ct.includes('text/json')) {
+              const clone = response.clone();
+              const headers = new Headers(clone.headers);
+              headers.set('sw-cached-at', String(Date.now()));
+              const body = await clone.blob();
+              const stamped = new Response(body, {
+                status: clone.status,
+                statusText: clone.statusText,
+                headers,
+              });
+              cache.put(request, stamped).catch(() => {});
+            }
+          }
+        } catch { /* ignore cache write errors */ }
+        return response;
+      }).catch(() => null);
+
+      if (cached) {
+        // Hintergrund-Update nicht awaiten -> Antwort ist sofort da.
+        event.waitUntil(networkPromise);
+        return cached;
+      }
+
+      const networkRes = await networkPromise;
+      if (networkRes) return networkRes;
+
+      // Offline und kein Cache -> kontrollierter 503 statt TypeError,
+      // damit der App-Code sauber in den localStorage/offlineQueue-Fallback geht.
+      return new Response(JSON.stringify({ error: 'offline' }), {
+        status: 503,
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      });
+    })());
     return;
   }
 
-  // For navigation requests, always prefer a fresh HTML shell.
+  // ── Navigation: cache-first mit Hintergrund-Revalidate ──
+  // App-Shell laedt SOFORT aus dem Cache (kein FOUC, keine Ladezeit), im
+  // Hintergrund wird die neueste index.html geholt und der Cache aktualisiert.
   if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request, { cache: 'no-store' }).catch(async () => {
-        const shell = await caches.match('/').catch(() => null);
-        return shell || offlineHtmlResponse();
-      })
-    );
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME).catch(() => null);
+      const cached = cache ? await cache.match('/').catch(() => null) : null;
+
+      const networkPromise = fetch(request, { cache: 'no-store' }).then(async (response) => {
+        try {
+          if (response && response.status === 200 && cache) {
+            const ct = response.headers.get('content-type') || '';
+            if (ct.includes('text/html')) {
+              cache.put('/', response.clone()).catch(() => {});
+            }
+          }
+        } catch { /* ignore */ }
+        return response;
+      }).catch(() => null);
+
+      if (cached) {
+        event.waitUntil(networkPromise);
+        return cached;
+      }
+
+      const networkRes = await networkPromise;
+      return networkRes || offlineHtmlResponse();
+    })());
     return;
   }
 
@@ -275,6 +366,17 @@ self.addEventListener('message', (event) => {
         console.log('[SW] Auth token stored in IDB');
       });
     }
+    return;
+  }
+
+  // Beim Logout / User-Wechsel: API-Cache leeren, damit keine Daten
+  // des vorherigen Accounts an einen neuen Nutzer geliefert werden.
+  if (event.data?.type === 'CLEAR_API_CACHE') {
+    event.waitUntil(
+      caches.delete(API_CACHE_NAME).catch(() => false).then(() => {
+        console.log('[SW] API cache cleared');
+      })
+    );
     return;
   }
 
