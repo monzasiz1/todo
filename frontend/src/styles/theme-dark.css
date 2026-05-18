@@ -1932,3 +1932,32 @@ html[data-theme="dark"] .gs-discover-back:hover {
   width: 100%;
   max-width: 100%;
 }
+
+/* ============================================================
+   Task-Detail: Event-Variante darf nicht dunkler wirken als Task-Variante.
+   Im Dark-Mode bekommen beide eine sanfte, sichtbare Surface-Erhebung.
+   ============================================================ */
+html[data-theme="dark"] .task-detail-modal.is-task-detail .task-detail-main {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--primary) 10%, var(--card-solid)) 0%,
+    var(--card-solid) 230px);
+}
+html[data-theme="dark"] .task-detail-modal:not(.is-task-detail) .task-detail-main {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--purple) 10%, var(--card-solid)) 0%,
+    var(--card-solid) 230px);
+}
+html[data-theme="dark"] .task-detail-modal.is-task-detail .task-detail-description {
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 22%, transparent);
+}
+html[data-theme="dark"] .task-detail-modal:not(.is-task-detail) .task-detail-description {
+  background: color-mix(in srgb, var(--purple) 12%, transparent);
+  border-color: color-mix(in srgb, var(--purple) 22%, transparent);
+}
+html[data-theme="dark"] .task-detail-modal.is-task-detail .task-detail-grid {
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
+}
+html[data-theme="dark"] .task-detail-modal:not(.is-task-detail) .task-detail-grid {
+  background: color-mix(in srgb, var(--purple) 18%, transparent);
+}
