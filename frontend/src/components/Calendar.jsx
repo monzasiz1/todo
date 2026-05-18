@@ -1666,7 +1666,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       const ended = isEventEnded(t, nowTs);
                       const doneOrOld = t.completed || ended;
                       const spanWidth = seg.span > 1
-                        ? `calc(${seg.span * 100}% + ${(seg.span - 1) * 8}px)`
+                        ? `calc(${seg.span * 100}% - 8px)`
                         : 'calc(100% - 8px)';
                       const topPx = 4 + seg.lane * LANE_HEIGHT;
 
