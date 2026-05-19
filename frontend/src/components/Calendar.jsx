@@ -131,28 +131,32 @@ const isEventEnded = (task, nowTs = Date.now()) => {
 // Zeitraum (Start-Tag 00:00 bis End-Tag 24:00) und projiziert die Position
 // auf das aktuell sichtbare Segment.
 const GRAY_PAST = 'rgba(142,142,147,0.62)';
+// Liefert { bg, pct } fuer einen Mehrtages-Termin-Balken. pct = 0..100 zeigt die
+// verstrichene Fraktion innerhalb des sichtbaren Segments (null = noch nicht
+// gestartet oder bereits komplett vorbei). bg ist der fertige background-String.
 const buildMultiDayBackground = (eventStartStr, eventEndStr, segStartStr, segEndStr, nowTs, accent) => {
-  if (!eventStartStr || !eventEndStr || eventEndStr < eventStartStr) return accent;
-  if (!segStartStr || !segEndStr) return accent;
+  const off = { bg: accent, pct: null };
+  if (!eventStartStr || !eventEndStr || eventEndStr < eventStartStr) return off;
+  if (!segStartStr || !segEndStr) return off;
   const dayMs = 86400000;
   const eStart = new Date(`${eventStartStr}T00:00:00`).getTime();
-  // End-Tag voll mitnehmen: bis 24:00 des letzten Tages.
   const eEnd = new Date(`${eventEndStr}T00:00:00`).getTime() + dayMs;
   const sStart = new Date(`${segStartStr}T00:00:00`).getTime();
   const sEnd = new Date(`${segEndStr}T00:00:00`).getTime() + dayMs;
   const total = eEnd - eStart;
   const segDur = sEnd - sStart;
-  if (total <= 0 || segDur <= 0) return accent;
+  if (total <= 0 || segDur <= 0) return off;
   const now = typeof nowTs === 'number' ? nowTs : Date.now();
-  // Globale verstrichene Zeit seit Event-Start, geclamped auf [0, total].
   const elapsedGlobal = Math.max(0, Math.min(total, now - eStart));
-  // Offset des Segments im Event und verstrichene Zeit innerhalb des Segments.
   const segOffset = Math.max(0, sStart - eStart);
   const elapsedInSeg = Math.max(0, Math.min(segDur, elapsedGlobal - segOffset));
-  if (elapsedInSeg <= 0) return accent;
-  if (elapsedInSeg >= segDur) return GRAY_PAST;
-  const frac = Math.round((elapsedInSeg / segDur) * 10000) / 100; // 0.01% Aufloesung
-  return `linear-gradient(to right, ${GRAY_PAST} 0%, ${GRAY_PAST} ${frac}%, ${accent} ${frac}%, ${accent} 100%)`;
+  if (elapsedInSeg <= 0) return { bg: accent, pct: null };
+  if (elapsedInSeg >= segDur) return { bg: GRAY_PAST, pct: null };
+  const frac = Math.round((elapsedInSeg / segDur) * 10000) / 100;
+  return {
+    bg: `linear-gradient(to right, ${GRAY_PAST} 0%, ${GRAY_PAST} ${frac}%, ${accent} ${frac}%, ${accent} 100%)`,
+    pct: frac,
+  };
 };
 
 const isAllDayTask = (task) => {
@@ -1442,7 +1446,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                     const slotOrder = assignedLane;
                     // Bei Mehrtages-Eintraegen: bereits vergangene Tage anteilig grau einfaerben.
                     const isMultiDayBar = !!seg && spanDaysInRow > 1 && !ended && !isHolidayTask;
-                    const multiDayBg = isMultiDayBar
+                    const multiDayProgress = isMultiDayBar
                       ? buildMultiDayBackground(
                           String(t.date).slice(0, 10),
                           String(t.date_end || t.date).slice(0, 10),
@@ -1452,10 +1456,12 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                           accentColor,
                         )
                       : null;
+                    const multiDayBg = multiDayProgress ? multiDayProgress.bg : null;
+                    const multiDayPct = multiDayProgress && multiDayProgress.pct;
                     return (
                       <div
                         key={t.id}
-                        className={`calendar-day-task ${multiClass} ${t.completed ? 'completed' : ''} ${t.group_id ? 'group-task' : ''} ${ended ? 'ended-event' : ''} ${isHolidayTask ? 'holiday-entry' : ''} ${dragInfo?.task.id === t.id ? 'cal-dragging' : ''}`}
+                        className={`calendar-day-task ${multiClass} ${t.completed ? 'completed' : ''} ${t.group_id ? 'group-task' : ''} ${ended ? 'ended-event' : ''} ${isHolidayTask ? 'holiday-entry' : ''} ${dragInfo?.task.id === t.id ? 'cal-dragging' : ''}${multiDayPct != null ? ' has-progress' : ''}`}
                         style={isMobile ? {
                           visibility: isHiddenSegment ? 'hidden' : 'visible',
                           pointerEvents: isHiddenSegment ? 'none' : 'auto',
@@ -1468,6 +1474,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                           cursor: isHolidayTask ? 'default' : 'pointer',
                           userSelect: 'none',
                           zIndex: spanWidth ? 4 : undefined,
+                          ...(multiDayPct != null ? { '--progress-pct': `${multiDayPct}%` } : {}),
                         } : {
                           visibility: isHiddenSegment ? 'hidden' : 'visible',
                           pointerEvents: isHiddenSegment ? 'none' : 'auto',
@@ -1480,6 +1487,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                           cursor: isHolidayTask ? 'default' : (viewportState.isDesktop && !ended ? 'grab' : 'pointer'),
                           userSelect: 'none',
                           zIndex: spanWidth ? 4 : undefined,
+                          ...(multiDayPct != null ? { '--progress-pct': `${multiDayPct}%` } : {}),
                         }}
                         onPointerDown={viewportState.isDesktop && !ended && !isHolidayTask ? (e) => handlePointerDown(e, t) : undefined}
                         onClick={(e) => {
@@ -1720,7 +1728,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
 
                       const accent = t.category_color || t.group_category_color || t.group_color || '#4C7BD9';
                       // Mehrtages-Termin: vergangene Tage anteilig grau
-                      const multiDayBg = (seg.isMultiDay && seg.span > 1 && !doneOrOld)
+                      const multiDayProgress = (seg.isMultiDay && seg.span > 1 && !doneOrOld)
                         ? buildMultiDayBackground(
                             String(t.date).slice(0, 10),
                             String(t.date_end || t.date).slice(0, 10),
@@ -1730,11 +1738,13 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                             accent,
                           )
                         : null;
+                      const multiDayBg = multiDayProgress ? multiDayProgress.bg : null;
+                      const multiDayPct = multiDayProgress && multiDayProgress.pct;
 
                       return (
                         <button
                           key={t.id}
-                          className={`desktop-week-all-day-event ${spanClass}${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${t.completed ? ' completed' : ''}`}
+                          className={`desktop-week-all-day-event ${spanClass}${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${t.completed ? ' completed' : ''}${multiDayPct != null ? ' has-progress' : ''}`}
                           style={{
                             background: doneOrOld ? 'rgba(142,142,147,0.4)' : (multiDayBg || accent),
                             position: 'absolute',
@@ -1743,6 +1753,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                             width: spanWidth,
                             maxWidth: 'none',
                             zIndex: seg.span > 1 ? 4 : 3,
+                            ...(multiDayPct != null ? { '--progress-pct': `${multiDayPct}%` } : {}),
                           }}
                           onClick={(e) => { e.stopPropagation(); openCalendarEntry(t); }}
                         >

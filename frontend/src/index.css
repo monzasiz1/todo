@@ -3624,6 +3624,54 @@ input, textarea, select {
   filter: none;
 }
 
+/* ── Echtzeit-Verlauf: "Wasser-in-Flasche"-Schimmer ──────────────────────────
+   Auf .has-progress wird via inline-style --progress-pct (0..100%) gesetzt.
+   Ein Pseudo-Element ueberlagert genau den vergangenen Bereich und laesst dort
+   ein dezentes Highlight hin- und zurueckwandern (alternate). GPU-freundlich
+   ueber background-position; per prefers-reduced-motion abschaltbar. */
+.calendar-day-task.has-progress,
+.desktop-week-all-day-event.has-progress,
+.day-create-task-item.has-progress {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.calendar-day-task.has-progress::after,
+.desktop-week-all-day-event.has-progress::after,
+.day-create-task-item.has-progress::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--progress-pct, 0%);
+  pointer-events: none;
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.18) 50%,
+    transparent 100%
+  );
+  background-size: 220% 100%;
+  background-repeat: no-repeat;
+  background-position: 0% 0%;
+  animation: progress-water 3.6s ease-in-out infinite alternate;
+  border-radius: inherit;
+  will-change: background-position;
+  z-index: 1;
+}
+@keyframes progress-water {
+  from { background-position: 0% 0%; }
+  to   { background-position: 100% 0%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .calendar-day-task.has-progress::after,
+  .desktop-week-all-day-event.has-progress::after,
+  .day-create-task-item.has-progress::after {
+    animation: none;
+  }
+}
+
 /* â”€â”€ Multi-day spanning events in month view â”€â”€ */
 .calendar-day-task.multi-day-start {
   border-radius: 3px;

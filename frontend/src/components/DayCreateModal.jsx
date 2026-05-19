@@ -50,21 +50,25 @@ function isEventEnded(task) {
   return !!end && end.getTime() < Date.now();
 }
 
-// Anteiliger Grau-Verlauf fuer laufende Events: linear-gradient von grau (vergangen) zu accentBg.
+// Anteiliger Grau-Verlauf fuer laufende Events. Liefert { bg, pct }.
 function buildProgressBackground(task, accentBg, fallback) {
-  if (task?.type !== 'event') return accentBg || fallback;
+  const off = { bg: accentBg || fallback, pct: null };
+  if (task?.type !== 'event') return off;
   const start = getEventStartDate(task);
   const end = getEventEndDate(task);
-  if (!start || !end) return accentBg || fallback;
+  if (!start || !end) return off;
   const total = end.getTime() - start.getTime();
-  if (total <= 0) return accentBg || fallback;
+  if (total <= 0) return off;
   const elapsed = Date.now() - start.getTime();
-  if (elapsed <= 0) return accentBg || fallback;
-  if (elapsed >= total) return 'rgba(142,142,147,0.10)';
-  const pct = Math.round((elapsed / total) * 1000) / 10; // 0.1% Aufloesung
-  const past = 'rgba(142,142,147,0.18)';
+  if (elapsed <= 0) return off;
+  if (elapsed >= total) return { bg: 'rgba(142,142,147,0.10)', pct: null };
+  const pct = Math.round((elapsed / total) * 1000) / 10;
+  const past = 'rgba(142,142,147,0.22)';
   const remain = accentBg || fallback;
-  return `linear-gradient(to right, ${past} 0%, ${past} ${pct}%, ${remain} ${pct}%, ${remain} 100%)`;
+  return {
+    bg: `linear-gradient(to right, ${past} 0%, ${past} ${pct}%, ${remain} ${pct}%, ${remain} 100%)`,
+    pct,
+  };
 }
 
 function isHolidayEntry(task) {
@@ -272,14 +276,17 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
                 const catColor = task.group_category_color || task.category_color;
                 const accentColor = catColor || (task.group_id ? (task.group_color || '#5856D6') : null);
                 const catName = task.group_category_name || task.category;
-                const accentBg = accentColor ? `${accentColor}12` : 'var(--hover)';
-                const liveBg = !endedEvent && !holidayEntry
+                // Kraeftigere Akzentfarbe (frueher 12 = ~7% Alpha, jetzt 33 = ~20%).
+                const accentBg = accentColor ? `${accentColor}33` : 'var(--hover)';
+                const progress = !endedEvent && !holidayEntry
                   ? buildProgressBackground(task, accentBg, 'var(--hover)')
                   : null;
+                const liveBg = progress ? progress.bg : null;
+                const livePct = progress && progress.pct;
                 return (
               <div
                 key={task.id}
-                className={`day-create-task-item ${task.completed ? 'completed' : ''} ${endedEvent ? 'ended-event' : ''} ${holidayEntry ? 'holiday-entry' : ''}`}
+                className={`day-create-task-item ${task.completed ? 'completed' : ''} ${endedEvent ? 'ended-event' : ''} ${holidayEntry ? 'holiday-entry' : ''}${livePct != null ? ' has-progress' : ''}`}
                 style={{
                   borderLeft: `3px solid ${holidayEntry ? '#D92C2C' : (endedEvent ? 'rgba(142,142,147,0.28)' : (accentColor || 'var(--primary)'))}`,
                   background: holidayEntry
@@ -288,6 +295,7 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
                     ? 'rgba(142, 142, 147, 0.10)'
                     : (liveBg || accentBg),
                   cursor: holidayEntry ? 'default' : 'pointer',
+                  ...(livePct != null ? { '--progress-pct': `${livePct}%` } : {}),
                 }}
                 onClick={() => handleTaskClick(task)}
               >
