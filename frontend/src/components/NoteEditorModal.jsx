@@ -95,7 +95,10 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   const hasEditPermission = !isOwnerOfNote && (
     note?.permission === 'edit' || note?.shared_permission === 'edit'
   );
-  const readOnly = readOnlyProp || (!isOwnerOfNote && !hasEditPermission);
+  // Edit-Permission haebelt einen extern gesetzten readOnly-Prop aus
+  // (z.B. wenn TaskDetailModal die Note als "foreign" markiert, der User
+  // sie aber via note_shares mit edit bearbeiten darf).
+  const readOnly = (readOnlyProp && !hasEditPermission) || (!isOwnerOfNote && !hasEditPermission);
   const [showPreview, setShowPreview] = useState(false);
   const [saveState, setSaveState] = useState('idle'); // 'idle' | 'saving' | 'saved'
   const [taskPickerOpen, setTaskPickerOpen] = useState(false);
