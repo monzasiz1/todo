@@ -3624,44 +3624,19 @@ input, textarea, select {
   filter: none;
 }
 
-/* ── Echtzeit-Verlauf: "Wasser-in-Flasche"-Schimmer ──────────────────────────
-   Auf .has-progress wird via inline-style --progress-pct (0..100%) gesetzt.
-   Ein Pseudo-Element ueberlagert genau den vergangenen Bereich und laesst dort
-   ein dezentes Highlight hin- und zurueckwandern (alternate). GPU-freundlich
-   ueber background-position; per prefers-reduced-motion abschaltbar. */
+/* ── Mehrtages-Fortschritt: Apple/Linear-Style Loading-Animation ─────────────
+   Inline-style setzt --progress-pct (0..100). Zwei Pseudo-Elemente:
+   ::after  = wandernder Shine im bereits vergangenen Bereich (gibt Eindruck
+              eines fortlaufenden "Ladens" / Vorankommens).
+   ::before = weicher Glow-Puls direkt an der Fortschritts-Kante (markiert das
+              "Jetzt"). GPU-freundlich: nur background-position + transform +
+              opacity. Per prefers-reduced-motion abschaltbar. */
 .calendar-day-task.has-progress,
 .desktop-week-all-day-event.has-progress,
 .day-create-task-item.has-progress {
   position: relative;
   overflow: hidden;
   isolation: isolate;
-}
-/* Weicher Grau-Auslauf an der Fortschrittskante: simuliert, dass die Grau-Kante
-   minuetlich leicht hin und her "atmet". Keine harte Linie, nur sanfter Falloff. */
-.calendar-day-task.has-progress::before,
-.desktop-week-all-day-event.has-progress::before,
-.day-create-task-item.has-progress::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: var(--progress-pct, 0%);
-  width: 28px;
-  margin-left: -22px;
-  pointer-events: none;
-  background: linear-gradient(
-    90deg,
-    rgba(142, 142, 147, 0.22) 0%,
-    rgba(142, 142, 147, 0.14) 55%,
-    rgba(142, 142, 147, 0) 100%
-  );
-  animation: progress-edge-wobble 3s ease-in-out infinite alternate;
-  will-change: transform;
-  z-index: 1;
-}
-@keyframes progress-edge-wobble {
-  from { transform: translateX(-1.5px); }
-  to   { transform: translateX(1.5px); }
 }
 .calendar-day-task.has-progress::after,
 .desktop-week-all-day-event.has-progress::after,
@@ -3673,27 +3648,65 @@ input, textarea, select {
   left: 0;
   width: var(--progress-pct, 0%);
   pointer-events: none;
-  /* Highlight nur an der vorderen Kante des bereits vergangenen Anteils.
-     Sieht aus, als wuerde der Fortschritt minuetlich leicht "vorwaerts druecken". */
   background-image: linear-gradient(
-    90deg,
+    100deg,
     transparent 0%,
+    transparent 38%,
+    rgba(255, 255, 255, 0.06) 45%,
+    rgba(255, 255, 255, 0.34) 50%,
+    rgba(255, 255, 255, 0.06) 55%,
     transparent 62%,
-    rgba(255, 255, 255, 0.10) 80%,
-    rgba(255, 255, 255, 0.55) 96%,
-    rgba(255, 255, 255, 0.20) 100%
+    transparent 100%
   );
-  background-size: 135% 100%;
+  background-size: 220% 100%;
   background-repeat: no-repeat;
-  background-position: 100% 0%;
-  animation: progress-edge-push 2.6s ease-in-out infinite alternate;
+  background-position: -130% 0%;
+  animation: progress-shine 5s ease-in-out infinite;
   will-change: background-position;
-  z-index: 1;
   mix-blend-mode: screen;
+  z-index: 1;
 }
-@keyframes progress-edge-push {
-  from { background-position: 100% 0%; }
-  to   { background-position: 86% 0%; }
+@keyframes progress-shine {
+  0%   { background-position: -130% 0%; }
+  70%  { background-position: 230% 0%; }
+  100% { background-position: 230% 0%; }
+}
+.calendar-day-task.has-progress::before,
+.desktop-week-all-day-event.has-progress::before,
+.day-create-task-item.has-progress::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: var(--progress-pct, 0%);
+  width: 22px;
+  height: 220%;
+  margin-left: -11px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 255, 255, 0.32) 0%,
+    rgba(255, 255, 255, 0.10) 40%,
+    transparent 72%
+  );
+  animation: progress-edge-pulse 2.8s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+  mix-blend-mode: screen;
+  z-index: 2;
+}
+@keyframes progress-edge-pulse {
+  from { transform: translate(-1px, -50%) scale(0.9);  opacity: 0.55; }
+  to   { transform: translate(1.5px, -50%) scale(1.08); opacity: 1; }
+}
+.calendar-day-task.has-progress:hover::after,
+.desktop-week-all-day-event.has-progress:hover::after,
+.day-create-task-item.has-progress:hover::after {
+  animation-duration: 3.2s;
+}
+.calendar-day-task.has-progress:hover::before,
+.desktop-week-all-day-event.has-progress:hover::before,
+.day-create-task-item.has-progress:hover::before {
+  filter: brightness(1.2);
 }
 @media (prefers-reduced-motion: reduce) {
   .calendar-day-task.has-progress::after,
