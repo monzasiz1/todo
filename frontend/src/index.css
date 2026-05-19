@@ -31641,17 +31641,19 @@ html[data-theme="dark"] .gs-discover-skeleton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  margin: 0 8px 0 4px;
+  width: 32px;
+  height: 32px;
+  margin: 0 4px 0 10px;
+  align-self: center;
   border-radius: 50%;
   background: var(--primary-bg, rgba(0,122,255,.12));
   color: var(--primary, #007AFF);
-  font-size: 0.62rem;
+  font-size: 0.72rem;
   font-weight: 700;
   overflow: hidden;
   flex-shrink: 0;
   border: 1px solid var(--border, rgba(0,0,0,.06));
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 .task-detail-note-chip-avatar img {
   width: 100%;
@@ -31663,22 +31665,35 @@ html[data-theme="dark"] .gs-discover-skeleton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  margin-left: 6px;
+  width: 24px;
+  height: 24px;
+  margin: 0 2px 0 10px;
+  align-self: center;
+  border-radius: 50%;
+  background: var(--surface-2, rgba(0,0,0,.04));
   color: var(--text-tertiary, #AEAEB2);
   flex-shrink: 0;
 }
 .task-detail-note-chip--shared .task-detail-note-chip-badge {
+  background: var(--primary-bg, rgba(0,122,255,.12));
   color: var(--primary, #007AFF);
 }
 .task-detail-note-chip--foreign {
   background: var(--surface-2, #F2F2F7);
 }
 .task-detail-note-chip--foreign .task-detail-note-chip-title::after {
-  content: ' · Team';
-  font-weight: 400;
-  font-size: 0.7rem;
-  color: var(--text-tertiary, #AEAEB2);
+  content: 'Team';
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  vertical-align: 1px;
+  font-weight: 600;
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--primary, #007AFF);
+  background: var(--primary-bg, rgba(0,122,255,.12));
+  border-radius: 999px;
 }
 
 .task-detail-notes-add-wrap { position: relative; }
