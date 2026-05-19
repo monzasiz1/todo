@@ -28,6 +28,21 @@ const TASK_RANGE_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
 const TASK_RANGE_CACHE_MAX_ENTRIES = 12;
 const QUICK_UNDO_FIELDS = new Set(['title', 'description', 'date', 'date_end', 'time', 'time_end', 'priority', 'category_id', 'reminder_at', 'type']);
 const pendingTaskDeletes = new Map();
+// Zusaetzliche IDs, die aktuell geloescht/dismissed werden (auch ohne Timer).
+// Verhindert, dass parallele Refetches eine bereits optimistisch entfernte
+// Task wieder einblenden, bevor der Server-Delete durch ist.
+const pendingDeleteIds = new Set();
+
+function isPendingDelete(id) {
+  const key = String(id);
+  return pendingDeleteIds.has(key) || pendingTaskDeletes.has(key);
+}
+
+function stripPendingDeletes(tasks) {
+  if (!Array.isArray(tasks)) return tasks;
+  if (pendingDeleteIds.size === 0 && pendingTaskDeletes.size === 0) return tasks;
+  return tasks.filter((t) => !isPendingDelete(t?.id));
+}
 
 function readCachedTasks() {
   try {
@@ -283,14 +298,17 @@ export const useTaskStore = create((set, get) => ({
       const requestParams = { ...params };
       delete requestParams.dashboard;
       const data = useDashboardEndpoint ? await api.getDashboardTasks(requestParams) : await api.getTasks(requestParams);
+      // Optimistisch geloeschte Tasks aus dem Server-Response herausfiltern,
+      // damit ein paralleler Refetch keine bereits entfernte Task wieder einblendet.
+      const filteredTasks = stripPendingDeletes(data.tasks);
       set({
-        tasks: data.tasks,
+        tasks: filteredTasks,
         rangeCache: {},
         loading: false,
         lastTasksFetchAt: Date.now(),
         lastTasksFetchKey: fetchKey,
       });
-      writeCachedTasks(data.tasks);
+      writeCachedTasks(filteredTasks);
       writeCachedTaskRanges({});
     } catch (err) {
       set({ error: err.message, loading: false });
@@ -307,8 +325,9 @@ export const useTaskStore = create((set, get) => ({
 
   primeTasksRangeCache: (start, end, tasks) => {
     const key = `${String(start).slice(0, 10)}|${String(end).slice(0, 10)}`;
+    const filteredTasks = stripPendingDeletes(tasks);
     set((s) => {
-      const rangeCache = buildNextRangeCache(s.rangeCache, key, tasks);
+      const rangeCache = buildNextRangeCache(s.rangeCache, key, filteredTasks);
       writeCachedTaskRanges(rangeCache);
       return { rangeCache };
     });
@@ -324,12 +343,13 @@ export const useTaskStore = create((set, get) => ({
 
     try {
       const data = await api.getTasksRange(start, end);
+      const filteredTasks = stripPendingDeletes(data.tasks);
       set((s) => {
-        const rangeCache = buildNextRangeCache(s.rangeCache, key, data.tasks);
+        const rangeCache = buildNextRangeCache(s.rangeCache, key, filteredTasks);
         writeCachedTaskRanges(rangeCache);
         return { rangeCache };
       });
-      return data.tasks;
+      return filteredTasks;
     } catch (err) {
       set({ error: err.message });
       return [];
@@ -650,6 +670,11 @@ export const useTaskStore = create((set, get) => ({
 
     const mode = options.mode || null; // 'full' | 'dismiss' | null
 
+    // Sofort als "in Loeschung" markieren, damit parallele Refetches
+    // (z. B. durch beequ:tasks-changed, Fokus-Refetch) die Task nicht
+    // zurueckholen, solange Server-Delete/Dismiss noch nicht durch ist.
+    pendingDeleteIds.add(key);
+
     // Optimistische Updates in beiden Stores
     if (deletedTaskIndex >= 0) {
       set((s) => ({ tasks: s.tasks.filter((t) => String(t.id) !== key), rangeCache: {} }));
@@ -675,6 +700,7 @@ export const useTaskStore = create((set, get) => ({
         await api.deleteTask(id, { mode: 'dismiss' });
       } catch (err) {
         // Rollback der optimistischen Änderung
+        pendingDeleteIds.delete(key);
         if (deletedTask) {
           set((s) => ({ tasks: restoreTaskAtIndex(s.tasks, deletedTask, deletedTaskIndex), rangeCache: {} }));
           writeCachedTaskRanges({});
@@ -686,7 +712,8 @@ export const useTaskStore = create((set, get) => ({
         get().addToast(err.message || 'Aus Kalender entfernen fehlgeschlagen', 'error');
         return;
       }
-      // Jetzt darf refetched werden — Server hat den dismissal-Eintrag
+      // Server hat den Dismissal-Eintrag jetzt -> Schutz aufheben und refetch erlauben.
+      pendingDeleteIds.delete(key);
       emitTasksChanged();
 
       get().addToast('Aus deinem Kalender entfernt', 'info', {
@@ -732,8 +759,10 @@ export const useTaskStore = create((set, get) => ({
     const finalizeDelete = async () => {
       try {
         await api.deleteTask(id, mode ? { mode } : {});
+        pendingDeleteIds.delete(key);
         emitTasksChanged();
       } catch (err) {
+        pendingDeleteIds.delete(key);
         if (deletedTask) {
           set((s) => ({ tasks: restoreTaskAtIndex(s.tasks, deletedTask, deletedTaskIndex), rangeCache: {} }));
           writeCachedTaskRanges({});
@@ -756,6 +785,7 @@ export const useTaskStore = create((set, get) => ({
         if (!pending) return;
         clearTimeout(pending.timerId);
         pendingTaskDeletes.delete(key);
+        pendingDeleteIds.delete(key);
         if (pending.task && pending.index >= 0) {
           set((s) => ({ tasks: restoreTaskAtIndex(s.tasks, pending.task, pending.index), rangeCache: {} }));
           writeCachedTaskRanges({});
