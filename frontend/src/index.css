@@ -3633,14 +3633,16 @@ input, textarea, select {
               opacity. Per prefers-reduced-motion abschaltbar. */
 .calendar-day-task.has-progress,
 .desktop-week-all-day-event.has-progress,
-.day-create-task-item.has-progress {
+.day-create-task-item.has-progress,
+.mobile-week-allday-pill.has-progress {
   position: relative;
   overflow: hidden;
   isolation: isolate;
 }
 .calendar-day-task.has-progress::after,
 .desktop-week-all-day-event.has-progress::after,
-.day-create-task-item.has-progress::after {
+.day-create-task-item.has-progress::after,
+.mobile-week-allday-pill.has-progress::after {
   content: '';
   position: absolute;
   top: 0;
@@ -3673,25 +3675,26 @@ input, textarea, select {
 }
 .calendar-day-task.has-progress::before,
 .desktop-week-all-day-event.has-progress::before,
-.day-create-task-item.has-progress::before {
+.day-create-task-item.has-progress::before,
+.mobile-week-allday-pill.has-progress::before {
   content: '';
   position: absolute;
   top: 0;
   bottom: 0;
   left: var(--progress-pct, 0%);
-  width: 2px;
-  margin-left: -1px;
+  width: 3px;
+  margin-left: -1.5px;
   pointer-events: none;
   /* Schlanke vertikale Lichtkante an der Fortschritts-Grenze.
      Vertikal weicher Falloff (top/bottom transparent), pulsiert nur in Opacity. */
   background: linear-gradient(
     180deg,
     rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.55) 50%,
+    rgba(255, 255, 255, 0.85) 50%,
     rgba(255, 255, 255, 0) 100%
   );
   border-radius: 2px;
-  filter: blur(0.4px);
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.35);
   animation: progress-edge-pulse 2.6s ease-in-out infinite alternate;
   will-change: opacity, transform;
   mix-blend-mode: screen;
@@ -3715,9 +3718,11 @@ input, textarea, select {
   .calendar-day-task.has-progress::after,
   .desktop-week-all-day-event.has-progress::after,
   .day-create-task-item.has-progress::after,
+  .mobile-week-allday-pill.has-progress::after,
   .calendar-day-task.has-progress::before,
   .desktop-week-all-day-event.has-progress::before,
-  .day-create-task-item.has-progress::before {
+  .day-create-task-item.has-progress::before,
+  .mobile-week-allday-pill.has-progress::before {
     animation: none;
   }
 }

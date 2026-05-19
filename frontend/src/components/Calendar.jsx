@@ -2046,16 +2046,32 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       const ended = isEventEnded(t, nowTs);
                       const doneOrOld = t.completed || ended;
                       const spanWidth = seg.span > 1 ? `calc(${seg.span * 100}% + ${(seg.span - 1) * 8}px)` : undefined;
-                      
+                      const accent = t.category_color || t.group_category_color || t.group_color || '#4C7BD9';
+                      const segStartStr = format(addDays(days[0], seg.startIdx), 'yyyy-MM-dd');
+                      const segEndStr = format(addDays(days[0], seg.endIdx), 'yyyy-MM-dd');
+                      const multiDayProgress = (seg.isMultiDay && seg.span > 1 && !doneOrOld)
+                        ? buildMultiDayBackground(
+                            String(t.date).slice(0, 10),
+                            String(t.date_end || t.date).slice(0, 10),
+                            segStartStr,
+                            segEndStr,
+                            nowTs,
+                            accent,
+                          )
+                        : null;
+                      const multiDayBg = multiDayProgress ? multiDayProgress.bg : null;
+                      const multiDayPct = multiDayProgress && multiDayProgress.pct;
+
                       return (
                         <div
                           key={`mwadt-${t.id}`}
-                          className={`mobile-week-allday-pill ${seg.isMultiDay ? (seg.span === 1 ? 'mw-span-single' : 'mw-span-start') : ''}${doneOrOld ? ' done' : ''}`}
-                          style={{ 
-                            background: doneOrOld ? 'rgba(142,142,147,0.35)' : (t.category_color || t.group_category_color || t.group_color || '#4C7BD9'),
+                          className={`mobile-week-allday-pill ${seg.isMultiDay ? (seg.span === 1 ? 'mw-span-single' : 'mw-span-start') : ''}${doneOrOld ? ' done' : ''}${multiDayPct != null ? ' has-progress' : ''}`}
+                          style={{
+                            background: doneOrOld ? 'rgba(142,142,147,0.35)' : (multiDayBg || accent),
                             width: spanWidth,
                             maxWidth: spanWidth ? 'none' : '100%',
-                            zIndex: spanWidth ? 4 : undefined
+                            zIndex: spanWidth ? 4 : undefined,
+                            ...(multiDayPct != null ? { '--progress-pct': `${multiDayPct}%` } : {}),
                           }}
                           onClick={(e) => { e.stopPropagation(); openCalendarEntry(t); }}
                         >
