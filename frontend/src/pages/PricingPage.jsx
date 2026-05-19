@@ -103,7 +103,7 @@ export default function PricingPage() {
   const { planId } = usePlan();
   const [loading, setLoading] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
-  const [annual, setAnnual] = useState(true);
+  const [annual, setAnnual] = useState(false);
 
   const interval = annual ? 'year' : 'month';
   const hasPaidPlan = planId === 'pro' || planId === 'team';
