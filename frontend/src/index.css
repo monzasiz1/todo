@@ -3676,27 +3676,30 @@ input, textarea, select {
 .day-create-task-item.has-progress::before {
   content: '';
   position: absolute;
-  top: 50%;
+  top: 0;
+  bottom: 0;
   left: var(--progress-pct, 0%);
-  width: 22px;
-  height: 220%;
-  margin-left: -11px;
-  transform: translateY(-50%);
+  width: 2px;
+  margin-left: -1px;
   pointer-events: none;
-  background: radial-gradient(
-    ellipse at center,
-    rgba(255, 255, 255, 0.32) 0%,
-    rgba(255, 255, 255, 0.10) 40%,
-    transparent 72%
+  /* Schlanke vertikale Lichtkante an der Fortschritts-Grenze.
+     Vertikal weicher Falloff (top/bottom transparent), pulsiert nur in Opacity. */
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgba(255, 255, 255, 0) 100%
   );
-  animation: progress-edge-pulse 2.8s ease-in-out infinite alternate;
-  will-change: transform, opacity;
+  border-radius: 2px;
+  filter: blur(0.4px);
+  animation: progress-edge-pulse 2.6s ease-in-out infinite alternate;
+  will-change: opacity, transform;
   mix-blend-mode: screen;
   z-index: 2;
 }
 @keyframes progress-edge-pulse {
-  from { transform: translate(-1px, -50%) scale(0.9);  opacity: 0.55; }
-  to   { transform: translate(1.5px, -50%) scale(1.08); opacity: 1; }
+  from { opacity: 0.45; transform: translateX(-0.5px) scaleY(0.94); }
+  to   { opacity: 1;    transform: translateX(0.5px)  scaleY(1.02); }
 }
 .calendar-day-task.has-progress:hover::after,
 .desktop-week-all-day-event.has-progress:hover::after,
@@ -3717,6 +3720,28 @@ input, textarea, select {
   .day-create-task-item.has-progress::before {
     animation: none;
   }
+}
+/* DayCreateModal-Zeilen sind groesser: Shine dezenter halten. */
+.day-create-task-item.has-progress::after {
+  background-image: linear-gradient(
+    100deg,
+    transparent 0%,
+    transparent 40%,
+    rgba(255, 255, 255, 0.04) 47%,
+    rgba(255, 255, 255, 0.20) 50%,
+    rgba(255, 255, 255, 0.04) 53%,
+    transparent 60%,
+    transparent 100%
+  );
+  animation-duration: 6s;
+}
+.day-create-task-item.has-progress::before {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.42) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
 }
 
 /* â”€â”€ Multi-day spanning events in month view â”€â”€ */
