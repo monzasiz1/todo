@@ -357,9 +357,27 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
   }, []);
 
   const shareDroppedTaskToChat = useCallback(async (taskId, forcedGroupId = null) => {
-    const targetGroupId = Number(forcedGroupId || selectedGroupId);
-    if (!targetGroupId || !taskId || sharingDroppedTask) return;
+    if (!taskId || sharingDroppedTask) return;
 
+    // Ziel-Gruppe IMMER aus der Aufgabe selbst ableiten. So kann eine Task aus
+    // Gruppe A nicht versehentlich in Gruppe B gepostet werden, egal welcher
+    // Chat gerade offen ist.
+    const task = (allTasks || []).find((t) => Number(t.id) === Number(taskId));
+    const taskGroupId = task && task.group_id != null ? Number(task.group_id) : null;
+    const fallbackGroupId = forcedGroupId != null ? Number(forcedGroupId) : null;
+    const targetGroupId = taskGroupId || fallbackGroupId || null;
+
+    if (!targetGroupId) {
+      try {
+        useTaskStore.getState().addToast(
+          'Diese Aufgabe ist keiner Gruppe zugeordnet und kann nicht im Chat geteilt werden.',
+          'error',
+        );
+      } catch {}
+      return;
+    }
+
+    // Auto-Switch in die zugehoerige Gruppe, falls aktuell eine andere offen ist.
     if (selectedGroupId !== targetGroupId) {
       setSelectedGroupId(targetGroupId);
       setMessages([]);
@@ -379,7 +397,7 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
       // User braucht klare Rueckmeldung statt stillem Schlucken.
       const status = err?.status;
       const msg = status === 403
-        ? 'Diese Aufgabe ist keiner Gruppe zugeordnet oder gehoert zu einer anderen Gruppe. Weise sie zuerst dieser Gruppe zu.'
+        ? 'Diese Aufgabe gehoert zu einer anderen Gruppe und kann hier nicht geteilt werden.'
         : status === 404
           ? 'Aufgabe nicht gefunden.'
           : (err?.message || 'Teilen fehlgeschlagen');
@@ -387,7 +405,7 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
     } finally {
       setSharingDroppedTask(false);
     }
-  }, [selectedGroupId, sharingDroppedTask]);
+  }, [allTasks, selectedGroupId, sharingDroppedTask]);
 
   useEffect(() => {
     const onStart = (e) => {
