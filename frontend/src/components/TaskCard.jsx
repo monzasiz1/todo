@@ -71,7 +71,8 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
 
   const getEventEndDate = (t) => {
     if (!t?.date) return null;
-    const datePart = String(t.date).slice(0, 10);
+    // Bei mehrtaegigen Eintraegen zaehlt das Enddatum, nicht der erste Tag.
+    const datePart = String(t.date_end || t.date).slice(0, 10);
     const rawEnd = String(t.time_end || t.time || '23:59').slice(0, 5);
     const parts = rawEnd.split(':');
     const hh = String(Math.min(23, Math.max(0, Number(parts[0]) || 23))).padStart(2, '0');
@@ -90,8 +91,12 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
   const isEvent = task.type === 'event';
   const eventEndAt = isEvent ? getEventEndDate(task) : null;
   const isEventEnded = isEvent && !!eventEndAt && eventEndAt.getTime() < nowTs;
-  // Beendete Termine sind nicht überfällig – nur offene Aufgaben (keine Events) werden rot markiert
-  const isOverdue = task.date && !task.completed && isPast(parseISO(task.date)) && !isToday(parseISO(task.date)) && !isEventEnded;
+  // Beendete Termine sind nicht ueberfaellig - nur offene Aufgaben (keine Events) werden rot markiert.
+  // Bei mehrtaegigen Tasks zaehlt das Enddatum: solange heute im Bereich [date, date_end]
+  // liegt, ist die Aufgabe nicht ueberfaellig.
+  const overdueRef = task.date_end || task.date;
+  const isOverdue = task.date && !task.completed && !!overdueRef
+    && isPast(parseISO(overdueRef)) && !isToday(parseISO(overdueRef)) && !isEventEnded;
   const currentUserId = useMemo(() => {
     try {
       const u = JSON.parse(localStorage.getItem('user') || 'null');

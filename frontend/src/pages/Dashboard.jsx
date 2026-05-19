@@ -75,15 +75,25 @@ function deduplicateRecurring(tasks) {
 
 function isBirthdayTask(task) {
   if (!task) return false;
-  const t = String(task.title || '').toLowerCase();
-  if (!t) return false;
-  return (
-    t.includes('geburtstag')
-    || t.includes('birthday')
-    || t.includes('🎂')
-    || /\bb-?day\b/.test(t)
-    || /\bbday\b/.test(t)
-  );
+  const raw = String(task.title || '');
+  if (!raw) return false;
+  const t = raw.toLowerCase();
+
+  // 🎂 = eindeutiger Birthday-Marker, immer Treffer.
+  if (raw.includes('🎂')) return true;
+
+  const mentionsBirthday = /(^|\W)(geburtstag|birthday|b-?day|bday)(\W|s|$)/.test(t);
+  if (!mentionsBirthday) return false;
+
+  // Aktionen rund um einen Geburtstag sind keine Geburtstags-Termine.
+  const actionVerbs = /\b(kaufen|besorgen|planen|organisier\w*|vorbereiten|backen|basteln|schreiben|gestalten|buchen|reservieren|bestellen|abholen|einpacken|einkaufen|suchen|finden|ueberlegen|überlegen|gratulieren|anrufen|posten|erinnern)\b/;
+  if (actionVerbs.test(t)) return false;
+
+  // Kompositionen wie "Geburtstagsgeschenk" / "-karte" sind ebenfalls keine Termine.
+  const nonEventCompounds = /\bgeburtstags(geschenk|karte|gru(ss|ß)|wunsch|liste|einladung|deko|kuchen|torte|essen|menue|menü|brunch|frühstück|fruehstueck)\w*/;
+  if (nonEventCompounds.test(t)) return false;
+
+  return true;
 }
 
 function groupTasksByDate(tasks) {
