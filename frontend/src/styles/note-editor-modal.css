@@ -19,7 +19,9 @@ body.note-editor-open .bottom-nav {
 .nem-overlay {
   position: fixed;
   inset: 0;
-  z-index: 1300;
+  /* MUSS ueber .is-mobile-fullscreen (z-index 10200) liegen, sonst oeffnet
+     sich der Editor auf Mobile hinter dem TaskDetailModal und ist unsichtbar. */
+  z-index: 10300;
   background: rgba(15, 23, 42, 0.55);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -136,7 +138,12 @@ body.note-editor-open .bottom-nav {
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
+  flex: 0 0 auto;
   transition: background .12s ease, color .12s ease, border-color .12s ease;
+}
+.nem-visibility-toggle > span {
+  white-space: nowrap;
 }
 .nem-visibility-toggle:hover {
   border-color: var(--primary, #007AFF);
@@ -192,26 +199,45 @@ body.note-editor-open .bottom-nav {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   border: 0;
-  background: transparent;
+  /* Hintergrund sorgt dafuer, dass die Buttons auch im Dark-Mode
+     deutlich vom Chip unterscheidbar sind. */
+  background: rgba(0, 0, 0, 0.08);
   color: inherit;
   cursor: pointer;
   padding: 0;
-  transition: background .12s ease;
+  flex: 0 0 auto;
+  transition: background .12s ease, color .12s ease;
 }
 .nem-share-chip-perm:hover {
-  background: rgba(0,0,0,.08);
+  background: rgba(0, 122, 255, 0.18);
+  color: #007AFF;
 }
 .nem-share-chip-perm.is-edit {
-  background: rgba(52, 199, 89, 0.22);
+  background: rgba(52, 199, 89, 0.28);
   color: #1f8a3a;
 }
+.nem-share-chip-perm.is-edit:hover {
+  background: rgba(52, 199, 89, 0.42);
+}
 .nem-share-chip-remove:hover {
-  background: rgba(255, 59, 48, 0.18);
+  background: rgba(255, 59, 48, 0.22);
   color: #FF3B30;
+}
+html[data-theme="dark"] .nem-share-chip-perm,
+html[data-theme="dark"] .nem-share-chip-remove {
+  background: rgba(255, 255, 255, 0.10);
+}
+html[data-theme="dark"] .nem-share-chip-perm:hover {
+  background: rgba(88, 166, 255, 0.28);
+  color: #58A6FF;
+}
+html[data-theme="dark"] .nem-share-chip-remove:hover {
+  background: rgba(255, 99, 99, 0.28);
+  color: #ff6b6b;
 }
 .nem-share-chip-avatar {
   width: 22px;

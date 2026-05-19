@@ -230,7 +230,9 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   // dieser Task) erst nach einem fetch sichtbar werden.
   useEffect(() => {
     if (!task?.id) return;
-    try { fetchNotesStore?.(); } catch {}
+    // force=true: 15s-Throttle umgehen, damit gerade erstellte/geteilte
+    // Notes (z.B. Team-Notes von Gruppenmitgliedern) sofort sichtbar werden.
+    try { fetchNotesStore?.({ force: true }); } catch {}
     // Nur beim Oeffnen pruefen – kein Loop wenn notesAll sich aendert
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [task?.id]);

@@ -547,7 +547,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                           title={isEdit ? 'Klicken: Nur-Lese-Recht' : 'Klicken: Schreibrecht geben'}
                           aria-label={isEdit ? 'Schreibrecht entziehen' : 'Schreibrecht geben'}
                         >
-                          {isEdit ? <Pencil size={11} /> : <Eye size={11} />}
+                          {isEdit ? <Pencil size={13} /> : <Eye size={13} />}
                         </button>
                         <button
                           type="button"
@@ -556,7 +556,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                           title="Freigabe entfernen"
                           aria-label="Freigabe entfernen"
                         >
-                          <X size={11} />
+                          <X size={13} />
                         </button>
                       </span>
                     );
