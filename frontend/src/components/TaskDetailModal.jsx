@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTaskStore } from '../store/taskStore';
 import { useGroupStore } from '../store/groupStore';
 import { useNotesStore } from '../store/notesStore';
+import NoteEditorModal from './NoteEditorModal';
 import { lockScroll, unlockScroll } from '../utils/scrollLock';
 import { api } from '../utils/api';
 import {
@@ -75,10 +76,13 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const addToast = useTaskStore((s) => s.addToast);
   const notesAll = useNotesStore((s) => s.notes);
   const updateNoteStore = useNotesStore((s) => s.updateNote);
+  const deleteNoteStore = useNotesStore((s) => s.deleteNote);
+  const completeNoteStore = useNotesStore((s) => s.completeNote);
   const fetchNotesStore = useNotesStore((s) => s.fetchNotes);
   const navigate = useNavigate();
   const [notePickerOpen, setNotePickerOpen] = useState(false);
   const [notePickerQuery, setNotePickerQuery] = useState('');
+  const [openNoteId, setOpenNoteId] = useState(null);
   const [friends, setFriends] = useState([]);
   const [freshSender, setFreshSender] = useState(null); // cached-Task-unabhängige Sender-Daten
   const [showEdit, setShowEdit] = useState(false);
@@ -1214,12 +1218,11 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
           task={task}
           notesAll={notesAll}
           updateNoteStore={updateNoteStore}
-          navigate={navigate}
+          onOpenNote={(noteId) => setOpenNoteId(noteId)}
           pickerOpen={notePickerOpen}
           setPickerOpen={setNotePickerOpen}
           pickerQuery={notePickerQuery}
           setPickerQuery={setNotePickerQuery}
-          onClose={onClose}
         />
 
         {task.location && task.location.trim() && showMapChoice && createPortal(
@@ -1698,8 +1701,26 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     document.body
   );
 
+  // Verknuepfte Notiz direkt im Vollbild-Editor oeffnen (statt zur NotesPage zu navigieren).
+  const openedNote = openNoteId != null
+    ? (Array.isArray(notesAll) ? notesAll.find((n) => String(n.id) === String(openNoteId)) : null)
+    : null;
+  const noteEditorPortal = openedNote && createPortal(
+    <NoteEditorModal
+      note={openedNote}
+      onClose={() => setOpenNoteId(null)}
+      onUpdate={async (id, updates) => { try { await updateNoteStore(id, updates); } catch (e) { console.error(e); } }}
+      onDelete={async (id) => {
+        if (!window.confirm('Notiz wirklich loeschen?')) return;
+        try { await deleteNoteStore?.(id); setOpenNoteId(null); } catch (e) { console.error(e); }
+      }}
+      onComplete={async (id) => { try { await completeNoteStore?.(id); setOpenNoteId(null); } catch (e) { console.error(e); } }}
+    />,
+    document.body
+  );
+
   if (pageMode) {
-    return <>{content}{editPortal}{deleteChoicePortal}{sharePortal}</>;
+    return <>{content}{editPortal}{deleteChoicePortal}{sharePortal}{noteEditorPortal}</>;
   }
 
   // Mobile/tablet: render directly into body — no overlay wrapper
@@ -1714,6 +1735,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
         {editPortal}
         {deleteChoicePortal}
         {sharePortal}
+        {noteEditorPortal}
       </>
     );
   }
@@ -1735,6 +1757,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       {editPortal}
       {deleteChoicePortal}
       {sharePortal}
+      {noteEditorPortal}
     </>
   );
 }
@@ -1758,7 +1781,7 @@ function parseNoteMeta(content) {
   return { accent, snippet };
 }
 
-function LinkedNotesSection({ task, notesAll, updateNoteStore, navigate, pickerOpen, setPickerOpen, pickerQuery, setPickerQuery, onClose }) {
+function LinkedNotesSection({ task, notesAll, updateNoteStore, onOpenNote, pickerOpen, setPickerOpen, pickerQuery, setPickerQuery }) {
   const linkedNotes = useMemo(() => {
     if (!Array.isArray(notesAll) || !task?.id) return [];
     return notesAll.filter((n) => n && String(n.linked_task_id || '') === String(task.id));
@@ -1787,11 +1810,8 @@ function LinkedNotesSection({ task, notesAll, updateNoteStore, navigate, pickerO
     try { await updateNoteStore(noteId, { linked_task_id: null }); } catch (err) { console.error(err); }
   };
   const handleOpenNote = (note) => {
-    // Navigiere zur NotesPage, NotesPage liest ?openNote=ID und oeffnet den Editor.
-    try {
-      navigate(`/app/notes?openNote=${encodeURIComponent(note.id)}`);
-      onClose?.();
-    } catch (err) { console.error(err); }
+    // Notiz direkt im Vollbild-Editor oeffnen (statt zur NotesPage zu navigieren).
+    try { onOpenNote?.(note.id); } catch (err) { console.error(err); }
   };
 
   return (
