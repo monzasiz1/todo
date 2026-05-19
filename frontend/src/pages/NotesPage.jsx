@@ -17,6 +17,90 @@ const NOTE_COLORS = [
   { name: 'Lila', bg: '#E8DAEF', border: '#BB8FCE', shadow: '#8E44AD' },
 ];
 
+// ── Mini-Markdown (Inline): **fett**, *kursiv*, `code`, http(s)-Links ─────────
+// Bewusst klein gehalten — kein dangerouslySetInnerHTML, kein XSS-Risiko.
+function renderInlineMd(text, baseKey) {
+  if (!text) return null;
+  // Token-Regex: **bold**, *italic*, `code`, URL
+  const re = /(\*\*[^*]+\*\*|\*[^*\n]+\*|`[^`\n]+`|https?:\/\/[^\s)]+)/g;
+  const parts = [];
+  let last = 0; let m; let i = 0;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    const tok = m[0];
+    if (tok.startsWith('**')) parts.push(<strong key={`${baseKey}-b-${i}`}>{tok.slice(2, -2)}</strong>);
+    else if (tok.startsWith('`')) parts.push(<code key={`${baseKey}-c-${i}`} className="note-md-code">{tok.slice(1, -1)}</code>);
+    else if (tok.startsWith('*')) parts.push(<em key={`${baseKey}-i-${i}`}>{tok.slice(1, -1)}</em>);
+    else parts.push(
+      <a
+        key={`${baseKey}-a-${i}`}
+        href={tok}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="note-md-link"
+        onClick={(e) => e.stopPropagation()}
+      >{tok}</a>
+    );
+    last = m.index + tok.length;
+    i++;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts;
+}
+
+// ── Block-Renderer: Zeile-für-Zeile inkl. Checklisten und Listen ──────────────
+// onToggleLine(lineIndex) wird aufgerufen, wenn der User eine Checkbox klickt.
+// Der gerenderte JSX-Baum darf auf .note-display geklickt werden (öffnet Editor),
+// Checkboxen und Links stoppen die Propagation.
+function renderNoteMarkdown(text, onToggleLine) {
+  if (!text) return null;
+  const lines = text.split('\n');
+  const out = [];
+  for (let idx = 0; idx < lines.length; idx++) {
+    const raw = lines[idx];
+    const line = raw.replace(/\r$/, '');
+    if (!line.trim()) {
+      out.push(<div key={`ln-${idx}`} className="note-md-blank" />);
+      continue;
+    }
+    const cbMatch = line.match(/^(\s*)-\s\[( |x|X)\]\s?(.*)$/);
+    if (cbMatch) {
+      const checked = cbMatch[2].toLowerCase() === 'x';
+      const rest = cbMatch[3];
+      out.push(
+        <div key={`ln-${idx}`} className={`note-md-check ${checked ? 'checked' : ''}`}>
+          <button
+            type="button"
+            className="note-md-checkbox"
+            aria-checked={checked}
+            role="checkbox"
+            onClick={(e) => { e.stopPropagation(); onToggleLine?.(idx); }}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            {checked ? <Check size={11} strokeWidth={3} /> : null}
+          </button>
+          <span className="note-md-check-text">{renderInlineMd(rest, `ln-${idx}`)}</span>
+        </div>
+      );
+      continue;
+    }
+    const liMatch = line.match(/^(\s*)[-*]\s+(.*)$/);
+    if (liMatch) {
+      out.push(
+        <div key={`ln-${idx}`} className="note-md-li">
+          <span className="note-md-bullet">•</span>
+          <span>{renderInlineMd(liMatch[2], `ln-${idx}`)}</span>
+        </div>
+      );
+      continue;
+    }
+    out.push(
+      <div key={`ln-${idx}`} className="note-md-p">{renderInlineMd(line, `ln-${idx}`)}</div>
+    );
+  }
+  return out;
+}
+
 function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange, isSelected, onSelect, tasks = [], onOpenTask, boardScaleRef, gridPos = null, dragDisabled = false }) {
   const [isEditing, setIsEditing] = useState(false);
   const [content, setContent] = useState(note.content || '');
@@ -47,12 +131,15 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
   }, [note.content]);
 
   const isLongText = useMemo(() => {
-    return actualContent.length > 100;
+    // Mehr Platz fuer Listen / Checklisten: erst ab 220 Zeichen kuerzen.
+    // Wenn der Inhalt Checklisten oder Mehrzeiler enthaelt, NIE kuerzen.
+    if (/\n/.test(actualContent)) return false;
+    return actualContent.length > 220;
   }, [actualContent]);
 
   const displayContent = useMemo(() => {
     if (!isLongText || isExpanded) return actualContent;
-    return actualContent.slice(0, 100) + '...';
+    return actualContent.slice(0, 220) + '...';
   }, [actualContent, isLongText, isExpanded]);
 
   // 0 = pin+curl-BR, 1 = sheen, 2 = tape, 3 = clip+curl-BL
@@ -79,6 +166,21 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
     }
     setIsEditing(false);
   }, [content, note.content, note.id, onUpdate, noteColor.name]);
+
+  // Checkbox-Toggle in einer bestimmten Zeile (Persistenz inkl. COLOR-Prefix).
+  const handleToggleLine = useCallback(async (lineIndex) => {
+    const text = actualContent || '';
+    const lines = text.split('\n');
+    if (lineIndex < 0 || lineIndex >= lines.length) return;
+    const m = lines[lineIndex].match(/^(\s*-\s\[)( |x|X)(\]\s?.*)$/);
+    if (!m) return;
+    const newMark = m[2].toLowerCase() === 'x' ? ' ' : 'x';
+    lines[lineIndex] = `${m[1]}${newMark}${m[3]}`;
+    const updated = lines.join('\n');
+    const contentWithColor = `[COLOR:${noteColor.name}] ${updated}`;
+    try { await onUpdate(note.id, { content: contentWithColor }); }
+    catch (err) { console.error('Checklist-Toggle failed:', err); }
+  }, [actualContent, noteColor.name, note.id, onUpdate]);
 
   // rAF-throttled drag — never thrash layout, single style write per frame
   const rafIdRef = useRef(0);
@@ -337,10 +439,12 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
             className="note-display"
             onClick={(e) => {
               e.stopPropagation();
+              // Klicks auf interaktive Markdown-Elemente (Checkbox/Link) starten den Editor nicht.
+              if (e.target.closest('.note-md-checkbox') || e.target.closest('.note-md-link')) return;
               setIsEditing(true);
             }}
           >
-            {displayContent || ''}
+            {displayContent ? renderNoteMarkdown(displayContent, handleToggleLine) : null}
             {isLongText && !isExpanded && (
               <button 
                 className="expand-text-btn"
