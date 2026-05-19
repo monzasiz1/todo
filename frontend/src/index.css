@@ -3646,27 +3646,27 @@ input, textarea, select {
   left: 0;
   width: var(--progress-pct, 0%);
   pointer-events: none;
-  /* Kein border-radius hier: sonst rundet die rechte Kante mitten im Balken
-     waehrend der Shimmer vorbeizieht. Parent clippt aussen via overflow:hidden. */
+  /* Highlight nur an der vorderen Kante des bereits vergangenen Anteils.
+     Sieht aus, als wuerde der Fortschritt minuetlich leicht "vorwaerts druecken". */
   background-image: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.05) 30%,
-    rgba(255, 255, 255, 0.42) 50%,
-    rgba(255, 255, 255, 0.05) 70%,
-    transparent 100%
+    transparent 62%,
+    rgba(255, 255, 255, 0.10) 80%,
+    rgba(255, 255, 255, 0.55) 96%,
+    rgba(255, 255, 255, 0.20) 100%
   );
-  background-size: 260% 100%;
+  background-size: 135% 100%;
   background-repeat: no-repeat;
-  background-position: 0% 0%;
-  animation: progress-water 3.2s ease-in-out infinite alternate;
+  background-position: 100% 0%;
+  animation: progress-edge-push 2.6s ease-in-out infinite alternate;
   will-change: background-position;
   z-index: 1;
   mix-blend-mode: screen;
 }
-@keyframes progress-water {
-  from { background-position: 0% 0%; }
-  to   { background-position: 100% 0%; }
+@keyframes progress-edge-push {
+  from { background-position: 100% 0%; }
+  to   { background-position: 86% 0%; }
 }
 @media (prefers-reduced-motion: reduce) {
   .calendar-day-task.has-progress::after,
