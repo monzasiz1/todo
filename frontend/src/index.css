@@ -3636,6 +3636,33 @@ input, textarea, select {
   overflow: hidden;
   isolation: isolate;
 }
+/* Pulsierende Fortschritts-Kante direkt am Uebergang grau -> Akzent.
+   Sieht aus, als wuerde die Grenze minuetlich leicht nach vorn druecken. */
+.calendar-day-task.has-progress::before,
+.desktop-week-all-day-event.has-progress::before,
+.day-create-task-item.has-progress::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--progress-pct, 0%);
+  width: 10px;
+  margin-left: -5px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    rgba(142, 142, 147, 0) 0%,
+    rgba(142, 142, 147, 0.55) 50%,
+    rgba(142, 142, 147, 0) 100%
+  );
+  animation: progress-edge-wobble 2.6s ease-in-out infinite alternate;
+  will-change: transform;
+  z-index: 1;
+}
+@keyframes progress-edge-wobble {
+  from { transform: translateX(-2px); }
+  to   { transform: translateX(2px); }
+}
 .calendar-day-task.has-progress::after,
 .desktop-week-all-day-event.has-progress::after,
 .day-create-task-item.has-progress::after {
@@ -3671,7 +3698,10 @@ input, textarea, select {
 @media (prefers-reduced-motion: reduce) {
   .calendar-day-task.has-progress::after,
   .desktop-week-all-day-event.has-progress::after,
-  .day-create-task-item.has-progress::after {
+  .day-create-task-item.has-progress::after,
+  .calendar-day-task.has-progress::before,
+  .desktop-week-all-day-event.has-progress::before,
+  .day-create-task-item.has-progress::before {
     animation: none;
   }
 }
