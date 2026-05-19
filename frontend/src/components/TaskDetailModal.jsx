@@ -225,14 +225,12 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     };
   }, []);
 
-  // Notes laden, falls Store noch leer (z.B. wenn Task direkt geoeffnet wurde
-  // ohne vorher /app/notes besucht zu haben). Auf Mobile passierte das, dass
-  // angeheftete Notizen nicht angezeigt wurden, weil notesAll leer war.
+  // Notes beim Oeffnen der Task neu laden. Wichtig: auch wenn der Store
+  // bereits eigene Notes enthaelt, koennen Team-Notes von anderen Usern (zu
+  // dieser Task) erst nach einem fetch sichtbar werden.
   useEffect(() => {
     if (!task?.id) return;
-    if (!Array.isArray(notesAll) || notesAll.length === 0) {
-      try { fetchNotesStore?.(); } catch {}
-    }
+    try { fetchNotesStore?.(); } catch {}
     // Nur beim Oeffnen pruefen – kein Loop wenn notesAll sich aendert
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [task?.id]);

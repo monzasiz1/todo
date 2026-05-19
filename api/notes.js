@@ -506,24 +506,27 @@ module.exports = async function handler(req, res) {
                     u.name AS owner_name, u.avatar_url AS owner_avatar_url
                FROM notes n
                JOIN tasks t ON t.id::text = n.linked_task_id::text
-               LEFT JOIN users u ON u.id = n.user_id
+               LEFT JOIN users u ON u.id::text = n.user_id::text
               WHERE n.user_id::text <> $1
                 AND n.visibility = 'group'
                 AND COALESCE(n.completed, false) = false
                 AND (
-                  t.user_id = $2
+                  t.user_id::text = $1
                   OR EXISTS (
                     SELECT 1 FROM task_permissions tp
-                     WHERE tp.task_id = t.id AND tp.user_id = $2 AND tp.can_view = true
+                     WHERE tp.task_id::text = t.id::text
+                       AND tp.user_id::text = $1
+                       AND tp.can_view = true
                   )
                   OR EXISTS (
                     SELECT 1 FROM group_tasks gt
-                      JOIN group_members gm ON gm.group_id = gt.group_id AND gm.user_id = $2
-                     WHERE gt.task_id = t.id
+                      JOIN group_members gm ON gm.group_id = gt.group_id
+                     WHERE gt.task_id::text = t.id::text
+                       AND gm.user_id::text = $1
                   )
                 )
               ORDER BY n.updated_at DESC`,
-            [userIdText, userId]
+            [userIdText]
           );
           // Markiere als read-only fuer den anfragenden User
           const teamNotes = (teamResult.rows || []).map((n) => ({
@@ -531,6 +534,7 @@ module.exports = async function handler(req, res) {
             is_foreign: true,
             read_only: true,
           }));
+          console.log('[notes] team-notes fetched:', teamNotes.length, 'for user', userIdText);
           ownNotes = ownNotes.concat(teamNotes);
         } catch (teamErr) {
           // Fehler nicht fatal — Tabellen group_tasks/task_permissions koennten
