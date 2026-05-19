@@ -26,6 +26,7 @@
   .app-layout:has(.notes-board-container) .app-main {
     padding-left: 0;
     padding-right: 0;
+    padding-top: 0 !important;
   }
 
   .app-layout:has(.notes-board-container) .app-content-shell.notes-full-width {
@@ -34,16 +35,24 @@
     margin: 0;
   }
 
+  /* Notes-Seite auf Handy + Tablet vollbild: mobile-header ausblenden,
+     Bottom-Nav-Scrim weg (Bottom-Nav selbst bleibt als schwebende
+     Glas-Pille darueber). */
+  body:has(.notes-board-container) .mobile-header { display: none !important; }
+  body:has(.notes-board-container) .bottom-nav-scrim { display: none !important; }
+
   .notes-board-container {
-    min-height: calc(100dvh - 110px);
-    max-height: calc(100dvh - 110px);
+    /* Komplette Bildschirmhoehe inkl. Safe-Areas (iOS Notch). */
+    min-height: 100dvh;
+    max-height: 100dvh;
+    padding-top: env(safe-area-inset-top, 0px);
   }
 }
 
 @media (max-width: 768px) {
   .notes-board-container {
-    min-height: calc(100dvh - 162px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
-    max-height: calc(100dvh - 162px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    min-height: 100dvh;
+    max-height: 100dvh;
   }
 }
 
