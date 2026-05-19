@@ -934,14 +934,18 @@ export default function NotesPage() {
       x = visX + margin + Math.random() * Math.max(0, visW - noteW - margin * 2);
       y = visY + margin + Math.random() * Math.max(0, visH - noteH - margin * 2);
     }
-    await createNote({
-      title: 'Neue Notiz',
-      content: `[COLOR:${randomColor.name}] `,
-      x: Math.round(x),
-      y: Math.round(y),
-    }).catch((err) => {
-      // Frueher: Klick wirkte auf iOS PWA folgenlos, weil Fehler still verschluckt
-      // wurden. Jetzt klare Rueckmeldung.
+    try {
+      const created = await createNote({
+        title: '',
+        content: `[COLOR:${randomColor.name}] `,
+        x: Math.round(x),
+        y: Math.round(y),
+      });
+      // Direkt im Vollbild-Editor oeffnen (Erstellungs-Flow wie iOS Notes).
+      if (created && created.id != null) {
+        setEditorNoteId(created.id);
+      }
+    } catch (err) {
       console.error('[NotesPage] createNote failed:', err);
       try {
         useTaskStore.getState().addToast(
@@ -949,7 +953,7 @@ export default function NotesPage() {
           'error',
         );
       } catch {}
-    });
+    }
   }, [createNote]);
 
   const handleUpdateNote = useCallback(async (noteId, updates) => {
