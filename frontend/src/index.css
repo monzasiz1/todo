@@ -15562,6 +15562,55 @@ body.cal-is-dragging * {
   flex-wrap: wrap;
 }
 
+/* Rolle als schicker Chip im Detail-Header (kein position:absolute). */
+.group-role-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  line-height: 1;
+  border: 1px solid transparent;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  white-space: nowrap;
+}
+.group-role-chip.role-owner {
+  background: linear-gradient(135deg, #FFE48A, #FFC700);
+  color: #5a3d00;
+  border-color: rgba(170, 120, 0, 0.35);
+  box-shadow: 0 2px 6px rgba(255, 199, 0, 0.35), inset 0 1px 0 rgba(255,255,255,0.55);
+}
+.group-role-chip.role-admin {
+  background: linear-gradient(135deg, #6AA8FF, #2E72E0);
+  color: #fff;
+  border-color: rgba(20, 70, 160, 0.4);
+  box-shadow: 0 2px 6px rgba(46, 114, 224, 0.35), inset 0 1px 0 rgba(255,255,255,0.35);
+}
+.group-role-chip.role-member {
+  background: color-mix(in srgb, var(--surface-2, #f2f2f7) 85%, transparent);
+  color: var(--text-secondary, #555);
+  border-color: var(--border, rgba(0,0,0,0.08));
+}
+
+html[data-theme="dark"] .group-role-chip.role-owner {
+  background: linear-gradient(135deg, #D9A300, #8a6500);
+  color: #fff5cc;
+  border-color: rgba(255, 220, 120, 0.35);
+}
+html[data-theme="dark"] .group-role-chip.role-admin {
+  background: linear-gradient(135deg, #4789e8, #1f4fa0);
+  color: #fff;
+  border-color: rgba(120, 170, 255, 0.35);
+}
+html[data-theme="dark"] .group-role-chip.role-member {
+  background: rgba(255,255,255,0.08);
+  color: var(--text-secondary, #a1a1aa);
+  border-color: rgba(255,255,255,0.1);
+}
+
 .group-detail-role-hint {
   font-size: 11px;
   font-weight: 700;

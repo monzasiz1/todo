@@ -126,30 +126,32 @@ const isEventEnded = (task, nowTs = Date.now()) => {
 };
 
 // Liefert eine `background`-CSS-Property fuer einen Mehrtages-Termin-Balken,
-// bei dem die bereits vergangenen Tage anteilig grau eingefaerbt sind.
-// Berechnet den grauen Anteil global ueber das ganze Event (nicht nur ueber
-// das sichtbare Wochen-Segment), aber gibt einen Verlauf zurueck, der zur
-// Breite des aktuell gerenderten Segments passt.
+// bei dem die bereits vergangene Zeit minutengenau grau eingefaerbt ist
+// ("Echtzeit-Verlauf"). Berechnet den grauen Anteil ueber den vollen Event-
+// Zeitraum (Start-Tag 00:00 bis End-Tag 24:00) und projiziert die Position
+// auf das aktuell sichtbare Segment.
 const GRAY_PAST = 'rgba(142,142,147,0.62)';
-const buildMultiDayBackground = (eventStartStr, eventEndStr, segStartStr, segEndStr, todayStr, accent) => {
-  if (!eventStartStr || !eventEndStr || eventEndStr <= eventStartStr) return accent;
+const buildMultiDayBackground = (eventStartStr, eventEndStr, segStartStr, segEndStr, nowTs, accent) => {
+  if (!eventStartStr || !eventEndStr || eventEndStr < eventStartStr) return accent;
   if (!segStartStr || !segEndStr) return accent;
   const dayMs = 86400000;
   const eStart = new Date(`${eventStartStr}T00:00:00`).getTime();
-  const eEnd = new Date(`${eventEndStr}T00:00:00`).getTime();
+  // End-Tag voll mitnehmen: bis 24:00 des letzten Tages.
+  const eEnd = new Date(`${eventEndStr}T00:00:00`).getTime() + dayMs;
   const sStart = new Date(`${segStartStr}T00:00:00`).getTime();
-  const sEnd = new Date(`${segEndStr}T00:00:00`).getTime();
-  const today = new Date(`${todayStr}T00:00:00`).getTime();
-  const totalDays = Math.round((eEnd - eStart) / dayMs) + 1;
-  const segDays = Math.round((sEnd - sStart) / dayMs) + 1;
-  if (totalDays < 2 || segDays < 1) return accent;
-  // Tage des Events strikt vor heute (heute zaehlt als laufend, nicht vergangen).
-  const pastGlobal = Math.max(0, Math.min(totalDays, Math.round((today - eStart) / dayMs)));
-  const segOffset = Math.max(0, Math.round((sStart - eStart) / dayMs));
-  const pastInSeg = Math.max(0, Math.min(segDays, pastGlobal - segOffset));
-  if (pastInSeg <= 0) return accent;
-  if (pastInSeg >= segDays) return GRAY_PAST;
-  const frac = (pastInSeg / segDays) * 100;
+  const sEnd = new Date(`${segEndStr}T00:00:00`).getTime() + dayMs;
+  const total = eEnd - eStart;
+  const segDur = sEnd - sStart;
+  if (total <= 0 || segDur <= 0) return accent;
+  const now = typeof nowTs === 'number' ? nowTs : Date.now();
+  // Globale verstrichene Zeit seit Event-Start, geclamped auf [0, total].
+  const elapsedGlobal = Math.max(0, Math.min(total, now - eStart));
+  // Offset des Segments im Event und verstrichene Zeit innerhalb des Segments.
+  const segOffset = Math.max(0, sStart - eStart);
+  const elapsedInSeg = Math.max(0, Math.min(segDur, elapsedGlobal - segOffset));
+  if (elapsedInSeg <= 0) return accent;
+  if (elapsedInSeg >= segDur) return GRAY_PAST;
+  const frac = Math.round((elapsedInSeg / segDur) * 10000) / 100; // 0.01% Aufloesung
   return `linear-gradient(to right, ${GRAY_PAST} 0%, ${GRAY_PAST} ${frac}%, ${accent} ${frac}%, ${accent} 100%)`;
 };
 
@@ -1446,7 +1448,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                           String(t.date_end || t.date).slice(0, 10),
                           format(d, 'yyyy-MM-dd'),
                           format(addDays(d, spanDaysInRow - 1), 'yyyy-MM-dd'),
-                          format(new Date(nowTs), 'yyyy-MM-dd'),
+                          nowTs,
                           accentColor,
                         )
                       : null;
@@ -1724,7 +1726,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                             String(t.date_end || t.date).slice(0, 10),
                             format(d, 'yyyy-MM-dd'),
                             format(addDays(d, seg.span - 1), 'yyyy-MM-dd'),
-                            format(new Date(nowTs), 'yyyy-MM-dd'),
+                            nowTs,
                             accent,
                           )
                         : null;

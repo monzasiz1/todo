@@ -425,9 +425,6 @@ function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick, o
                     size={52}
                     className="group-card-cover-avatar"
                   />
-                  <span className={`group-role-badge ${g.role}`}>
-                    {roleConf.label}
-                  </span>
                   <div className="group-card-presence">
                     <div className="group-card-presence-stack" aria-hidden>
                       {previewMembers.map((memberIdx) => (
@@ -906,9 +903,15 @@ function GroupDetail({ groupId, onBack }) {
           <h2>{currentGroup.name}</h2>
           {currentGroup.description && <p>{currentGroup.description}</p>}
           <div className="group-detail-role-row">
-            <span className={`group-role-badge ${myRole}`}>
-              {ROLE_CONFIG[myRole]?.label || 'Mitglied'}
-            </span>
+            {(() => {
+              const RoleIcon = ROLE_CONFIG[myRole]?.icon || Users;
+              return (
+                <span className={`group-role-chip role-${myRole}`}>
+                  <RoleIcon size={12} strokeWidth={2.4} />
+                  {ROLE_CONFIG[myRole]?.label || 'Mitglied'}
+                </span>
+              );
+            })()}
             <span className="group-detail-role-hint">Collaboration Space</span>
           </div>
         </div>
