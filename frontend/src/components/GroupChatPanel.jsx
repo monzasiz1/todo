@@ -317,10 +317,12 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
 
   const filteredPickerTasks = useMemo(() => {
     const q = taskPickerSearch.toLowerCase().trim();
+    const gid = Number(selectedGroupId);
+    if (!gid) return [];
+    // Datenschutz: ausschliesslich Tasks DIESER Gruppe (keine privaten Tasks).
     return (allTasks || [])
       .filter((t) => !t.deleted && !t.is_archived)
-      // Datenschutz: nur Tasks dieser Gruppe ODER eigene gruppenlose Tasks
-      .filter((t) => !t.group_id || Number(t.group_id) === Number(selectedGroupId))
+      .filter((t) => t.group_id != null && Number(t.group_id) === gid)
       .filter((t) => !q || (t.title || '').toLowerCase().includes(q))
       .slice(0, 30);
   }, [allTasks, taskPickerSearch, selectedGroupId]);
