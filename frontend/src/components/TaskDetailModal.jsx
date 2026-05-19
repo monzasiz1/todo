@@ -1874,7 +1874,7 @@ function LinkedNotesSection({ task, notesAll, updateNoteStore, navigate, pickerO
                       placeholder="Notiz suchen…"
                       value={pickerQuery}
                       onChange={(e) => setPickerQuery(e.target.value)}
-                      autoFocus
+                      autoFocus={typeof window !== 'undefined' && !window.matchMedia('(max-width: 720px)').matches}
                     />
                     <button
                       type="button"
