@@ -256,7 +256,13 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
     }
     const x = Math.max(0, dragStartPos.current.lastX ?? (note.x ?? 100));
     const y = Math.max(0, dragStartPos.current.lastY ?? (note.y ?? 100));
-    onPositionChange(note.id, x, y);
+    // Nur persistieren, wenn die Position sich wirklich veraendert hat
+    // (Toleranz 2 px). Verhindert API-Calls bei reinem Klick ohne Drag.
+    const prevX = note.x ?? 100;
+    const prevY = note.y ?? 100;
+    if (Math.abs(x - prevX) > 2 || Math.abs(y - prevY) > 2) {
+      onPositionChange(note.id, x, y);
+    }
     setIsDragging(false);
   }, [isDragging, note.id, note.x, note.y, onPositionChange]);
 

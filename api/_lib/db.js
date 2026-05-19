@@ -194,7 +194,11 @@ function getPool() {
     const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
     const defaultMax = isServerless ? 1 : 5;
     const poolMax = parsePositiveInt(process.env.DB_POOL_MAX, defaultMax);
-    const poolIdleTimeoutMs = parsePositiveInt(process.env.DB_POOL_IDLE_TIMEOUT_MS, 10000);
+    // Aggressives Idle-Timeout in serverless: Verbindung sofort freigeben,
+    // damit gleichzeitige Lambda-Instanzen das Supabase pool_size=15 Limit
+    // des Session-Poolers nicht sprengen.
+    const defaultIdle = isServerless ? 1000 : 10000;
+    const poolIdleTimeoutMs = parsePositiveInt(process.env.DB_POOL_IDLE_TIMEOUT_MS, defaultIdle);
     const poolConnTimeoutMs = parsePositiveInt(process.env.DB_POOL_CONN_TIMEOUT_MS, 10000);
 
     pool = new Pool({
@@ -212,8 +216,12 @@ function getPool() {
 
     // One-shot lightweight migrations that must always run, even when
     // DB_SCHEMA_INIT_ON_START is disabled (e.g. production). Idempotent.
-    pool.query("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS location TEXT")
-      .catch((err) => console.warn('[db] auto-migration (tasks.location) failed:', err.message));
+    // Per-ENV abschaltbar (DB_AUTO_MIGRATIONS=0), damit produktive Cold-Starts
+    // keine zusaetzliche DB-Connection verbrauchen.
+    if (String(process.env.DB_AUTO_MIGRATIONS ?? '1') !== '0') {
+      pool.query("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS location TEXT")
+        .catch((err) => console.warn('[db] auto-migration (tasks.location) failed:', err.message));
+    }
 
     const originalQuery = pool.query.bind(pool);
 
