@@ -1215,7 +1215,311 @@
   .notes-archive-item {
     flex-wrap: wrap;
   }
+}
 
+/* ════════════════════════════════════════════════════════════════
+   STICKY-NOTE TITEL (über dem Content)
+   Schmal, fett, mit Cursive-Font passend zur Note-Optik.
+════════════════════════════════════════════════════════════════ */
+.note-title-input,
+.note-title-display {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 0 0 4px;
+  margin: 0 0 6px;
+  border-bottom: 1px dashed rgba(60, 45, 30, 0.18);
+  letter-spacing: -0.01em;
+  cursor: text;
+  /* Buttons der Note-Header NICHT überdecken */
+  position: relative;
+  z-index: 2;
+}
+
+.note-title-display {
+  cursor: text;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 18px;
+}
+
+.note-title-display:empty::before {
+  content: "Titel…";
+  color: var(--ink-soft);
+  opacity: 0.55;
+  font-style: italic;
+  font-weight: 600;
+}
+
+.note-title-input::placeholder {
+  color: var(--ink-soft);
+  opacity: 0.5;
+  font-style: italic;
+}
+
+/* Wenn Titel vorhanden ist, etwas weniger Platz für Content */
+.sticky-note.has-title .note-content {
+  height: 102px;
+}
+
+@media (max-width: 900px) {
+  .sticky-note.has-title .note-content { height: 86px; }
+}
+@media (max-width: 640px) {
+  .sticky-note.has-title .note-content { height: 76px; }
+  .note-title-input,
+  .note-title-display { font-size: 13px; }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   GRID-LAYOUT MODUS — Toggle via Board-Control
+   Notizen werden in einem Raster ausgerichtet, Drag deaktiviert.
+════════════════════════════════════════════════════════════════ */
+.notes-board.layout-grid .sticky-note {
+  cursor: default;
+  transition: left 0.32s cubic-bezier(0.32, 1.4, 0.64, 1),
+              top 0.32s cubic-bezier(0.32, 1.4, 0.64, 1),
+              transform 0.18s ease,
+              box-shadow 0.18s ease;
+}
+
+.notes-board.layout-grid .sticky-note.dragging {
+  /* nicht draggable im Grid-Modus */
+  box-shadow: 2px 4px 8px rgba(0, 0, 0, 0.18);
+}
+
+.board-control-btn.active {
+  background: var(--primary, #007AFF);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.32);
+}
+
+.board-control-btn.active:hover {
+  background: #0070e0;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   DARK THEME — Header / Controls / Modals / Archiv / Picker
+   Sticky-Notes selbst bleiben in Papier-Farben (per Design-Entscheidung).
+   Kork-Hintergrund wird leicht abgedunkelt für angenehmere Nacht-Optik.
+════════════════════════════════════════════════════════════════ */
+html[data-theme="dark"] .notes-board-container {
+  background: var(--bg, #0b0b0f);
+}
+
+html[data-theme="dark"] .notes-board-header {
+  background: var(--surface, #16161c);
+  border-bottom-color: var(--border, rgba(255, 255, 255, 0.08));
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+html[data-theme="dark"] .board-title h1,
+html[data-theme="dark"] .board-title-icon {
+  color: var(--text, #f5f5f7);
+}
+
+html[data-theme="dark"] .notes-count {
+  background: var(--surface-2, #1f1f27);
+  border-color: var(--border, rgba(255, 255, 255, 0.08));
+  color: var(--text-secondary, #a1a1aa);
+}
+
+html[data-theme="dark"] .board-control-btn {
+  background: var(--surface, #1f1f27);
+  border-color: var(--border-strong, rgba(255, 255, 255, 0.14));
+  color: var(--text, #f5f5f7);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+html[data-theme="dark"] .board-control-btn:hover {
+  background: var(--hover, rgba(255, 255, 255, 0.08));
+}
+
+html[data-theme="dark"] .board-control-btn.active,
+html[data-theme="dark"] .board-control-btn.primary {
+  background: var(--primary, #0a84ff);
+  color: #fff;
+  border-color: transparent;
+}
+
+html[data-theme="dark"] .zoom-indicator {
+  background: var(--surface-2, #1f1f27);
+  border-color: var(--border, rgba(255, 255, 255, 0.08));
+  color: var(--text-secondary, #a1a1aa);
+}
+
+/* Korkboard im Dark-Theme leicht abgedunkelt + warmer Lichtschein gedimmt */
+html[data-theme="dark"] .notes-board {
+  background-color: #5d4128;
+  background-image:
+    radial-gradient(ellipse 1800px 1300px at 12% 10%, rgba(255, 220, 170, 0.06), transparent 60%),
+    radial-gradient(ellipse 1800px 1300px at 90% 92%, rgba(0, 0, 0, 0.45), transparent 65%),
+    url('/cork-board.jpg'),
+    linear-gradient(135deg, #6a4a30 0%, #503520 50%, #3a2614 100%);
+}
+
+html[data-theme="dark"] .cork-board-background {
+  background:
+    radial-gradient(ellipse 65% 55% at 50% 50%, transparent 50%, rgba(0, 0, 0, 0.42) 90%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+/* Empty-State im Dark-Mode */
+html[data-theme="dark"] .empty-board-content {
+  background: rgba(28, 22, 16, 0.78);
+  border-color: rgba(200, 165, 120, 0.35);
+  color: #f0e4d4;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+}
+
+/* Mobile-Hint im Dark-Mode */
+html[data-theme="dark"] .mobile-hint {
+  background: rgba(245, 245, 247, 0.92);
+  color: #16161c;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.55);
+}
+
+/* Connect-Mode-Hint im Dark-Mode */
+html[data-theme="dark"] .connect-mode-hint {
+  background: var(--surface, #1f1f27);
+  border-color: var(--border-strong, rgba(255, 255, 255, 0.14));
+  color: var(--text, #f5f5f7);
+}
+
+/* Task-Picker Modal */
+html[data-theme="dark"] .task-picker-overlay {
+  background: rgba(0, 0, 0, 0.62);
+}
+
+html[data-theme="dark"] .task-picker-modal {
+  background: var(--card-solid, #16161c);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+}
+
+html[data-theme="dark"] .task-picker-header h3,
+html[data-theme="dark"] .task-picker-item {
+  color: var(--text, #f5f5f7);
+}
+
+html[data-theme="dark"] .task-picker-header .close-btn {
+  background: var(--surface-2, #1f1f27);
+  color: var(--text-secondary, #a1a1aa);
+}
+
+html[data-theme="dark"] .task-picker-header .close-btn:hover {
+  background: var(--hover, rgba(255, 255, 255, 0.08));
+}
+
+html[data-theme="dark"] .task-picker-item {
+  background: var(--surface-2, #1f1f27);
+  border-color: var(--border, rgba(255, 255, 255, 0.08));
+}
+
+html[data-theme="dark"] .task-picker-item:hover {
+  background: var(--hover, rgba(255, 255, 255, 0.08));
+}
+
+html[data-theme="dark"] .task-name,
+html[data-theme="dark"] .task-date,
+html[data-theme="dark"] .task-meta,
+html[data-theme="dark"] .task-type-label {
+  color: var(--text-secondary, #a1a1aa);
+}
+
+html[data-theme="dark"] .task-picker-empty {
+  color: var(--text-secondary, #a1a1aa);
+}
+
+html[data-theme="dark"] .task-picker-handle,
+html[data-theme="dark"] .notes-archive-handle {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* Archiv Modal */
+html[data-theme="dark"] .notes-archive-overlay {
+  background: rgba(0, 0, 0, 0.62);
+}
+
+html[data-theme="dark"] .notes-archive-modal {
+  background: var(--card-solid, #16161c);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+}
+
+html[data-theme="dark"] .notes-archive-header {
+  border-bottom-color: var(--border, rgba(255, 255, 255, 0.08));
+}
+
+html[data-theme="dark"] .notes-archive-title-wrap {
+  color: var(--text, #f5f5f7);
+}
+
+html[data-theme="dark"] .notes-archive-count {
+  background: var(--surface-2, #1f1f27);
+  color: var(--text-secondary, #a1a1aa);
+}
+
+html[data-theme="dark"] .notes-archive-header .close-btn {
+  background: var(--surface-2, #1f1f27);
+  color: var(--text-secondary, #a1a1aa);
+}
+
+html[data-theme="dark"] .notes-archive-empty {
+  color: var(--text-secondary, #a1a1aa);
+}
+
+html[data-theme="dark"] .notes-archive-empty p {
+  color: var(--text, #f5f5f7);
+}
+
+html[data-theme="dark"] .notes-archive-item {
+  background: var(--surface-2, #1f1f27);
+  border-color: var(--border, rgba(255, 255, 255, 0.08));
+}
+
+html[data-theme="dark"] .notes-archive-item:hover {
+  background: var(--hover, rgba(255, 255, 255, 0.08));
+}
+
+html[data-theme="dark"] .notes-archive-item-text {
+  color: var(--text, #f5f5f7);
+}
+
+html[data-theme="dark"] .notes-archive-item-meta {
+  color: var(--text-secondary, #a1a1aa);
+}
+
+html[data-theme="dark"] .notes-archive-btn {
+  background: var(--surface, #1f1f27);
+  border-color: var(--border, rgba(255, 255, 255, 0.10));
+  color: var(--text, #f5f5f7);
+}
+
+html[data-theme="dark"] .notes-archive-btn.restore {
+  color: #34c759;
+  border-color: rgba(52, 199, 89, 0.35);
+}
+
+html[data-theme="dark"] .notes-archive-btn.restore:hover {
+  background: rgba(52, 199, 89, 0.12);
+}
+
+html[data-theme="dark"] .notes-archive-btn.danger {
+  color: #ff453a;
+  border-color: rgba(255, 69, 58, 0.4);
+}
+
+html[data-theme="dark"] .notes-archive-btn.danger:hover {
+  background: rgba(255, 69, 58, 0.12);
+}
+
+@media (max-width: 768px) {
   .notes-archive-item-body {
     flex-basis: calc(100% - 38px);
   }

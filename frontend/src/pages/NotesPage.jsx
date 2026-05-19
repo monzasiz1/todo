@@ -17,9 +17,11 @@ const NOTE_COLORS = [
   { name: 'Lila', bg: '#E8DAEF', border: '#BB8FCE', shadow: '#8E44AD' },
 ];
 
-function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange, isSelected, onSelect, tasks = [], onOpenTask, boardScaleRef }) {
+function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange, isSelected, onSelect, tasks = [], onOpenTask, boardScaleRef, gridPos = null, dragDisabled = false }) {
   const [isEditing, setIsEditing] = useState(false);
   const [content, setContent] = useState(note.content || '');
+  const [title, setTitle] = useState(note.title || '');
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [showTaskPicker, setShowTaskPicker] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -87,8 +89,16 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
       e.target.closest('.note-content') ||
       e.target.closest('.note-actions') ||
       e.target.closest('.note-linked-tasks') ||
+      e.target.closest('.note-title-input') ||
+      e.target.closest('.note-title-display') ||
       e.target.closest('.task-picker-overlay')
     ) return;
+
+    // Drag im Grid-Modus deaktiviert
+    if (dragDisabled) {
+      onSelect(note.id);
+      return;
+    }
 
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -106,7 +116,7 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
     };
 
     e.preventDefault();
-  }, [note.id, note.x, note.y, onSelect]);
+  }, [note.id, note.x, note.y, onSelect, dragDisabled]);
 
   const handlePointerMove = useCallback((e) => {
     if (!isDragging) return;
@@ -192,15 +202,31 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
     setContent(actualContent);
   }, [actualContent]);
 
+  useEffect(() => {
+    setTitle(note.title || '');
+  }, [note.title]);
+
+  const handleTitleSave = useCallback(async () => {
+    const trimmed = (title || '').trim();
+    if (trimmed !== (note.title || '').trim()) {
+      try { await onUpdate(note.id, { title: trimmed }); } catch (err) { console.error('Title-Save failed:', err); }
+    }
+    setIsEditingTitle(false);
+  }, [title, note.title, note.id, onUpdate]);
+
+  const hasTitle = !!(note.title && String(note.title).trim());
+  const posX = gridPos ? gridPos.x : (note.x ?? 100);
+  const posY = gridPos ? gridPos.y : (note.y ?? 100);
+
   return (
     <div
       ref={noteRef}
-      className={`sticky-note ${isSelected ? 'selected' : ''} ${isDragging ? 'dragging' : ''} ${linkedTasks.length > 0 ? 'has-linked-task' : ''}`}
+      className={`sticky-note ${isSelected ? 'selected' : ''} ${isDragging ? 'dragging' : ''} ${linkedTasks.length > 0 ? 'has-linked-task' : ''} ${hasTitle ? 'has-title' : ''}`}
       data-variant={variantIndex}
       style={{
         position: 'absolute',
-        left: note.x ?? 100,
-        top: note.y ?? 100,
+        left: posX,
+        top: posY,
         // Vollflächige Note-Farbe ohne Transparenz — Kork darf nicht durchscheinen.
         backgroundColor: noteColor.bg,
         boxShadow: `2px 4px 8px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255,255,255,0.28)`,
@@ -259,6 +285,33 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
           </button>
         </div>
       </div>
+
+      {/* Titel-Zeile (optional). Inline-editierbar wie der Content. */}
+      {isEditingTitle ? (
+        <input
+          type="text"
+          className="note-title-input"
+          value={title}
+          maxLength={80}
+          onChange={(e) => setTitle(e.target.value)}
+          onBlur={handleTitleSave}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') { e.preventDefault(); handleTitleSave(); }
+            if (e.key === 'Escape') { setTitle(note.title || ''); setIsEditingTitle(false); }
+          }}
+          placeholder="Titel…"
+          autoFocus
+          onPointerDown={(e) => e.stopPropagation()}
+        />
+      ) : (
+        <div
+          className="note-title-display"
+          onClick={(e) => { e.stopPropagation(); setIsEditingTitle(true); }}
+          title={hasTitle ? note.title : 'Titel hinzufügen'}
+        >
+          {hasTitle ? note.title : ''}
+        </div>
+      )}
 
       <div className="note-content">
         {isEditing ? (
@@ -453,7 +506,10 @@ const StickyNote = memo(StickyNoteImpl, (prev, next) => (
   prev.onPositionChange === next.onPositionChange &&
   prev.onSelect === next.onSelect &&
   prev.onOpenTask === next.onOpenTask &&
-  prev.boardScaleRef === next.boardScaleRef
+  prev.boardScaleRef === next.boardScaleRef &&
+  prev.gridPos?.x === next.gridPos?.x &&
+  prev.gridPos?.y === next.gridPos?.y &&
+  prev.dragDisabled === next.dragDisabled
 ));
 
 const BOARD_W = 3200;
@@ -491,6 +547,22 @@ export default function NotesPage() {
   const [selectedNoteIds, setSelectedNoteIds] = useState([]);
   const [selectedConnectionId, setSelectedConnectionId] = useState(null);
   const [showMobileHint, setShowMobileHint] = useState(false);
+
+  // Layout-Modus: 'free' (Standard, frei positionierbar) oder 'grid' (Raster, Drag aus).
+  const [layoutMode, setLayoutMode] = useState(() => {
+    try {
+      const v = localStorage.getItem('beequ:notes:layout');
+      return v === 'grid' ? 'grid' : 'free';
+    } catch { return 'free'; }
+  });
+  const isGrid = layoutMode === 'grid';
+  const toggleLayoutMode = useCallback(() => {
+    setLayoutMode((prev) => {
+      const next = prev === 'grid' ? 'free' : 'grid';
+      try { localStorage.setItem('beequ:notes:layout', next); } catch {}
+      return next;
+    });
+  }, []);
 
   // Mindmap-Verbindungs-Workflow:
   //   connectMode true → naechster Klick wird zur Quelle, der danach zum Ziel.
@@ -735,27 +807,56 @@ export default function NotesPage() {
     return map;
   }, [notes]);
 
+  // Grid-Positionen berechnen (nur wenn layoutMode === 'grid').
+  // Notizen werden stabil nach id sortiert und in einem Raster ausgerichtet.
+  // Position-Updates werden NICHT in die DB geschrieben — wenn der User
+  // zurück auf 'free' wechselt, stehen die Notes wieder an ihren x/y-Werten.
+  const NOTE_CELL = 220;
+  const GRID_PAD = 60;
+  const gridPositions = useMemo(() => {
+    if (!isGrid) return null;
+    const vp = viewportRef.current;
+    const cols = Math.max(2, Math.floor(((vp?.clientWidth || 1200) - GRID_PAD * 2) / NOTE_CELL)) || 4;
+    const sorted = [...notes].filter((n) => n && n.id != null).sort((a, b) => Number(a.id) - Number(b.id));
+    const map = new Map();
+    sorted.forEach((n, idx) => {
+      const col = idx % cols;
+      const row = Math.floor(idx / cols);
+      map.set(String(n.id), { x: GRID_PAD + col * NOTE_CELL, y: GRID_PAD + row * NOTE_CELL });
+    });
+    return map;
+  }, [isGrid, notes]);
+
   // Connections fuer Render aufbereiten (nur Linien, deren beide Notes
   // aktuell sichtbar sind — geteilte Verbindungen mit fehlender Note ueberspringen).
   const renderableConnections = useMemo(() => {
     const NOTE_HALF = 95; // Note ist ~190px breit -> Mittelpunkt-Offset
+    const posOf = (n) => {
+      if (gridPositions) {
+        const g = gridPositions.get(String(n.id));
+        if (g) return { x: g.x, y: g.y };
+      }
+      return { x: n.x || 100, y: n.y || 100 };
+    };
     return (connections || [])
       .map((c) => {
         const a = notesById.get(String(c.note_id_1));
         const b = notesById.get(String(c.note_id_2));
         if (!a || !b) return null;
+        const pa = posOf(a);
+        const pb = posOf(b);
         return {
           id: c.id,
           note_id_1: c.note_id_1,
           note_id_2: c.note_id_2,
-          x1: (a.x || 100) + NOTE_HALF,
-          y1: (a.y || 100) + NOTE_HALF,
-          x2: (b.x || 100) + NOTE_HALF,
-          y2: (b.y || 100) + NOTE_HALF,
+          x1: pa.x + NOTE_HALF,
+          y1: pa.y + NOTE_HALF,
+          x2: pb.x + NOTE_HALF,
+          y2: pb.y + NOTE_HALF,
         };
       })
       .filter(Boolean);
-  }, [connections, notesById]);
+  }, [connections, notesById, gridPositions]);
 
   // ── "fit all" button ──────────────────────────────────────────────────────
   const handleFitAll = useCallback(() => {
@@ -786,12 +887,22 @@ export default function NotesPage() {
     const vh = vp.clientHeight;
     if (vw === 0 || vh === 0) return;
 
+    // Im Grid-Modus zentrieren wir auf die Grid-Positionen, nicht auf note.x/y.
+    const posOf = (n) => {
+      if (gridPositions) {
+        const g = gridPositions.get(String(n.id));
+        if (g) return { x: g.x, y: g.y };
+      }
+      return { x: n.x ?? 0, y: n.y ?? 0 };
+    };
+
     if (notes.length > 0) {
       const pad = 64;
-      const minX = Math.min(...notes.map(n => n.x ?? 0));
-      const minY = Math.min(...notes.map(n => n.y ?? 0));
-      const maxX = Math.max(...notes.map(n => (n.x ?? 0) + 190));
-      const maxY = Math.max(...notes.map(n => (n.y ?? 0) + 190));
+      const positions = notes.map(posOf);
+      const minX = Math.min(...positions.map(p => p.x));
+      const minY = Math.min(...positions.map(p => p.y));
+      const maxX = Math.max(...positions.map(p => p.x + 190));
+      const maxY = Math.max(...positions.map(p => p.y + 190));
       const cw = maxX - minX + pad * 2;
       const ch = maxY - minY + pad * 2;
       // Auf Mobile/Tablet: nicht über 1.0 hochskalieren (sonst zu groß), auf Desktop genauso.
@@ -810,7 +921,7 @@ export default function NotesPage() {
       setPan(np);
       applyTransform(s, np);
     }
-  }, [notes, clampPan, applyTransform]);
+  }, [notes, clampPan, applyTransform, gridPositions]);
 
   // Auto-Zentrierung:
   //  • beim allerersten Mount, sobald Viewport gemessen ist (useLayoutEffect
@@ -828,6 +939,18 @@ export default function NotesPage() {
     centerView();
     initialCenteredRef.current = newState;
   }, [notes.length, centerView]);
+
+  // Re-center beim Wechsel des Layout-Modus (Grid <-> Frei)
+  useEffect(() => {
+    if (!viewportRef.current) return;
+    // Erlaubt expliziten Re-Center auch nach Interaktion (User hat Toggle geklickt)
+    userInteractedRef.current = false;
+    initialCenteredRef.current = 'none';
+    // setTimeout, damit der Render mit neuen Positionen abgeschlossen ist
+    const t = setTimeout(() => centerView(), 50);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layoutMode]);
 
   // Resize/Orientation + ResizeObserver auf dem Viewport (fängt auch Layout-
   // Wechsel ein, die kein window.resize feuern — z. B. Sidebar-Collapse).
@@ -1053,6 +1176,14 @@ export default function NotesPage() {
             </button>
           )}
           <button
+            className={`board-control-btn ${isGrid ? 'active' : ''}`}
+            onClick={toggleLayoutMode}
+            title={isGrid ? 'Freies Layout (Drag & Drop)' : 'Raster-Layout aktivieren'}
+            aria-pressed={isGrid}
+          >
+            <LayoutGrid size={16} />
+          </button>
+          <button
             className={`board-control-btn ${connectMode ? 'active' : ''}`}
             onClick={handleToggleConnectMode}
             title={connectMode
@@ -1088,7 +1219,7 @@ export default function NotesPage() {
         {/* Canvas: panned + scaled */}
         <div
           ref={boardRef}
-          className="notes-board"
+          className={`notes-board ${isGrid ? 'layout-grid' : ''}`}
           style={{ transform: `translate(${pan.x}px,${pan.y}px) scale(${scale})` }}
           onClick={(e) => {
             if (e.target === boardRef.current || e.target.classList.contains('board-background') || e.target.classList.contains('cork-board-background')) {
@@ -1169,6 +1300,8 @@ export default function NotesPage() {
               tasks={tasks}
               onOpenTask={openTask}
               boardScaleRef={scaleRef}
+              gridPos={gridPositions ? gridPositions.get(String(note.id)) : null}
+              dragDisabled={isGrid}
             />
           ))}
 
