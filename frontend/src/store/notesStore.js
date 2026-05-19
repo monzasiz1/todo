@@ -43,16 +43,22 @@ export const useNotesStore = create((set, get) => ({
   connectionsLoading: false,
 
   // Fetch notes from backend
+  // options.force = true  → Throttle umgehen (Hard-Refresh)
+  // options.maxAgeMs    → eigener Stale-Schwellwert (default 30 s)
   fetchNotes: async (options = {}) => {
     const now = Date.now();
-    const maxAgeMs = 15000;
+    const maxAgeMs = Number.isFinite(options?.maxAgeMs) ? options.maxAgeMs : 30000;
     const force = options?.force === true;
 
     if (!force && now - get().lastFetchAt < maxAgeMs) {
       return get().notes;
     }
 
-    set({ loading: true });
+    // SWR-Pattern: bestehende Notes bleiben sichtbar während Refetch.
+    // loading=true nur setzen, wenn wir noch GAR keine Notes haben (Cold-Start),
+    // damit der Canvas nicht bei jedem Re-Fetch flackert.
+    const hadNotes = (get().notes?.length || 0) > 0;
+    if (!hadNotes) set({ loading: true });
     try {
       const [ownData, sharedData] = await Promise.all([
         api.getNotes?.(),
