@@ -101,7 +101,7 @@ function renderNoteMarkdown(text, onToggleLine) {
   return out;
 }
 
-function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange, isSelected, onSelect, tasks = [], onOpenTask, boardScaleRef, gridPos = null, dragDisabled = false }) {
+function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange, isSelected, onSelect, tasks = [], onOpenTask, boardScaleRef, gridPos = null, dragDisabled = false, onDragLive }) {
   const [isEditing, setIsEditing] = useState(false);
   const [content, setContent] = useState(note.content || '');
   const [title, setTitle] = useState(note.title || '');
@@ -267,7 +267,9 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
       onPositionChange(note.id, x, y);
     }
     setIsDragging(false);
-  }, [isDragging, note.id, note.x, note.y, onPositionChange]);
+    // Drag-Ende → Live-Position aufraeumen (Linien snappen zur Server-Position).
+    onDragLive?.(null);
+  }, [isDragging, note.id, note.x, note.y, onPositionChange, onDragLive]);
 
   useEffect(() => {
     if (isDragging) {
@@ -631,7 +633,8 @@ const StickyNote = memo(StickyNoteImpl, (prev, next) => (
   prev.boardScaleRef === next.boardScaleRef &&
   prev.gridPos?.x === next.gridPos?.x &&
   prev.gridPos?.y === next.gridPos?.y &&
-  prev.dragDisabled === next.dragDisabled
+  prev.dragDisabled === next.dragDisabled &&
+  prev.onDragLive === next.onDragLive
 ));
 
 const BOARD_W = 3200;
@@ -669,6 +672,15 @@ export default function NotesPage() {
   const [selectedNoteIds, setSelectedNoteIds] = useState([]);
   const [selectedConnectionId, setSelectedConnectionId] = useState(null);
   const [showMobileHint, setShowMobileHint] = useState(false);
+
+  // Live-Drag-Position der gerade gezogenen Note. Wird per rAF aktualisiert,
+  // damit Verbindungslinien smooth mitziehen, ohne pro Frame alle Notes neu zu
+  // rendern (StickyNote ist memoisiert).
+  const [draggingPos, setDraggingPos] = useState(null); // { id, x, y } | null
+  const handleDragLive = useCallback((id, x, y) => {
+    if (id == null) setDraggingPos(null);
+    else setDraggingPos({ id, x, y });
+  }, []);
 
   // Layout-Modus: 'free' (Standard, frei positionierbar) oder 'grid' (Raster, Drag aus).
   const [layoutMode, setLayoutMode] = useState(() => {
@@ -954,6 +966,10 @@ export default function NotesPage() {
   const renderableConnections = useMemo(() => {
     const NOTE_HALF = 95; // Note ist ~190px breit -> Mittelpunkt-Offset
     const posOf = (n) => {
+      // Live-Position waehrend Drag hat Vorrang → Linie folgt smooth.
+      if (draggingPos && String(draggingPos.id) === String(n.id)) {
+        return { x: draggingPos.x, y: draggingPos.y };
+      }
       if (gridPositions) {
         const g = gridPositions.get(String(n.id));
         if (g) return { x: g.x, y: g.y };
@@ -967,18 +983,28 @@ export default function NotesPage() {
         if (!a || !b) return null;
         const pa = posOf(a);
         const pb = posOf(b);
+        const x1 = pa.x + NOTE_HALF;
+        const y1 = pa.y + NOTE_HALF;
+        const x2 = pb.x + NOTE_HALF;
+        const y2 = pb.y + NOTE_HALF;
+        // Quadratische Bezier-Kurve fuer eleganten Schwung. Kontrollpunkt
+        // senkrecht zur Verbindungsachse, Offset proportional zur Distanz.
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const dist = Math.hypot(dx, dy) || 1;
+        const curve = Math.min(60, dist * 0.18);
+        const cx = (x1 + x2) / 2 + (-dy / dist) * curve;
+        const cy = (y1 + y2) / 2 + (dx / dist) * curve;
         return {
           id: c.id,
           note_id_1: c.note_id_1,
           note_id_2: c.note_id_2,
-          x1: pa.x + NOTE_HALF,
-          y1: pa.y + NOTE_HALF,
-          x2: pb.x + NOTE_HALF,
-          y2: pb.y + NOTE_HALF,
+          x1, y1, x2, y2, cx, cy,
+          d: `M ${x1.toFixed(1)} ${y1.toFixed(1)} Q ${cx.toFixed(1)} ${cy.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`,
         };
       })
       .filter(Boolean);
-  }, [connections, notesById, gridPositions]);
+  }, [connections, notesById, gridPositions, draggingPos]);
 
   // ── "fit all" button ──────────────────────────────────────────────────────
   const handleFitAll = useCallback(() => {
@@ -1365,25 +1391,28 @@ export default function NotesPage() {
             >
               {renderableConnections.map((c) => {
                 const isSel = String(selectedConnectionId) === String(c.id);
-                const mx = (c.x1 + c.x2) / 2;
-                const my = (c.y1 + c.y2) / 2;
                 const onLineClick = (e) => {
                   e.stopPropagation();
                   setSelectedConnectionId((prev) => (String(prev) === String(c.id) ? prev : c.id));
                 };
                 return (
                   <g key={c.id} className={`connection-group${isSel ? ' is-selected' : ''}`}>
-                    {/* Unsichtbare Hitbox: breit genug fuer Touch */}
-                    <line
+                    {/* Unsichtbare breite Hitbox fuer Touch/Klick */}
+                    <path
                       className="connection-hitbox"
-                      x1={c.x1} y1={c.y1} x2={c.x2} y2={c.y2}
+                      d={c.d}
                       onClick={onLineClick}
                       onPointerDown={(e) => e.stopPropagation()}
                     />
+                    {/* Weicher Glow-Hintergrund */}
+                    <path
+                      className="connection-glow"
+                      d={c.d}
+                    />
                     {/* Sichtbare Linie */}
-                    <line
+                    <path
                       className="connection-line"
-                      x1={c.x1} y1={c.y1} x2={c.x2} y2={c.y2}
+                      d={c.d}
                       onClick={onLineClick}
                       onPointerDown={(e) => e.stopPropagation()}
                     />
@@ -1391,7 +1420,7 @@ export default function NotesPage() {
                     {isSel && (
                       <g
                         className="connection-delete-btn"
-                        transform={`translate(${mx} ${my})`}
+                        transform={`translate(${c.cx} ${c.cy})`}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleRemoveConnection(c);
@@ -1424,6 +1453,7 @@ export default function NotesPage() {
               boardScaleRef={scaleRef}
               gridPos={gridPositions ? gridPositions.get(String(note.id)) : null}
               dragDisabled={isGrid}
+              onDragLive={handleDragLive}
             />
           ))}
 
