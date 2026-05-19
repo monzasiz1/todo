@@ -345,9 +345,28 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
 
   // Body-Klasse setzen: BottomNav ausblenden + Body-Scroll sperren ohne
   // Layout-Shift (Vermeidet, dass sich der notes-board-header verschiebt).
+  // Zusaetzlich iOS-Scroll-Lock via position:fixed + scrollY-Restore, damit
+  // beim Schliessen die NotesPage nicht durch eine offene Tastatur verrutscht.
   useEffect(() => {
+    const scrollY = window.scrollY || window.pageYOffset || 0;
     document.body.classList.add('note-editor-open');
-    return () => document.body.classList.remove('note-editor-open');
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.width = '100%';
+    return () => {
+      document.body.classList.remove('note-editor-open');
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.width = '';
+      // Aktives Element blurren -> Mobile-Tastatur schliesst zuverlaessig.
+      try { document.activeElement?.blur?.(); } catch {}
+      // ScrollY wiederherstellen (instant, sonst springt es sichtbar).
+      window.scrollTo(0, scrollY);
+    };
   }, []);
 
   if (!note) return null;
@@ -640,7 +659,6 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                         placeholder="Freund suchen…"
                         value={friendQuery}
                         onChange={(e) => setFriendQuery(e.target.value)}
-                        autoFocus
                       />
                     </div>
                     <div className="nem-link-picker-list">
@@ -681,7 +699,6 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                     placeholder="Termin suchen…"
                     value={taskQuery}
                     onChange={(e) => setTaskQuery(e.target.value)}
-                    autoFocus
                   />
                 </div>
                 <div className="nem-link-picker-list">
