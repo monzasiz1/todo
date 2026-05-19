@@ -341,28 +341,30 @@ function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick, o
           </button>
         </div>
 
-        {/* Search */}
-        <div className="groups-search-wrap">
-          <Search size={16} />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Gruppe oder Rolle suchen..."
-            className="groups-search-input"
-            aria-label="Gruppen durchsuchen"
-          />
-          {query && (
-            <button
-              type="button"
-              className="groups-search-clear"
-              onClick={() => setQuery('')}
-              aria-label="Suche leeren"
-            >
-              <X size={14} />
-            </button>
-          )}
-        </div>
+        {/* Search — nur anzeigen, wenn ueberhaupt Gruppen existieren */}
+        {groups.length > 0 && (
+          <div className="groups-search-wrap">
+            <Search size={16} />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Gruppe oder Rolle suchen..."
+              className="groups-search-input"
+              aria-label="Gruppen durchsuchen"
+            />
+            {query && (
+              <button
+                type="button"
+                className="groups-search-clear"
+                onClick={() => setQuery('')}
+                aria-label="Suche leeren"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        )}
       </section>
 
       {loading && groups.length === 0 ? (
@@ -931,15 +933,17 @@ function GroupDetail({ groupId, onBack }) {
         </article>
       </div>
 
-      {/* Invite Code */}
-      <div className="group-invite-row">
-        <span className="group-invite-label">Einladungscode:</span>
-        <code className="group-invite-code">{currentGroup.invite_code}</code>
-        <button className="group-invite-copy" onClick={copyCode}>
-          {copied ? <Check size={14} /> : <Copy size={14} />}
-          {copied ? 'Kopiert!' : 'Kopieren'}
-        </button>
-      </div>
+      {/* Invite Code — nur fuer Admins/Owner sichtbar */}
+      {isAdmin && (
+        <div className="group-invite-row">
+          <span className="group-invite-label">Einladungscode:</span>
+          <code className="group-invite-code">{currentGroup.invite_code}</code>
+          <button className="group-invite-copy" onClick={copyCode}>
+            {copied ? <Check size={14} /> : <Copy size={14} />}
+            {copied ? 'Kopiert!' : 'Kopieren'}
+          </button>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="group-tabs">
