@@ -1432,15 +1432,16 @@ module.exports = async function handler(req, res) {
       const groupName = groupMeta.rows[0]?.name || 'Gruppe';
       const preview = content.trim().slice(0, 120);
 
-      await notifyGroupMembers(groupId, user.id, () => ({
+      // Push-Notifications nicht awaiten: Response sofort senden, Push laeuft
+      // im Hintergrund. Reduziert wahrgenommene Chat-Latenz deutlich.
+      notifyGroupMembers(groupId, user.id, () => ({
         type: 'group_message',
         prefKey: 'group_message',
         title: `Neue Nachricht in ${groupName}`,
         body: `${sender.name}: ${preview}`,
         tag: `group-msg-${groupId}-${msg.id}`,
         url: '/groups',
-      }));
-      // Note: no taskId for plain text messages - only group_id is passed via notifyGroupMembers
+      })).catch((err) => console.error('notifyGroupMembers (message) failed:', err));
 
       return res.status(201).json({
         message: {

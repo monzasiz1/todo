@@ -35,24 +35,6 @@ module.exports = async function handler(req, res) {
   const segments = subPath.split('/').filter(Boolean);
   const action = segments[0] || '';
 
-  /* ── GET /api/auth/realtime-debug ──
-     Gibt einen Fingerprint des SUPABASE_JWT_SECRET zurueck (Laenge + erste/letzte
-     4 Zeichen, sha256-Prefix). Niemals den ganzen Wert. Nur fuer Debug-Zwecke. */
-  if (action === 'realtime-debug' && req.method === 'GET') {
-    const s = process.env.SUPABASE_JWT_SECRET || '';
-    const sha = s ? crypto.createHash('sha256').update(s).digest('hex').slice(0, 12) : null;
-    return res.json({
-      hasSecret: Boolean(s),
-      length: s.length,
-      first4: s.slice(0, 4),
-      last4: s.slice(-4),
-      sha256Prefix: sha,
-      hasSupabaseUrl: Boolean(process.env.SUPABASE_URL),
-      hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
-      kid: process.env.SUPABASE_JWT_KID || null,
-    });
-  }
-
   /* ── POST /api/auth/register ── */
   if (action === 'register' && req.method === 'POST') {
     try {
