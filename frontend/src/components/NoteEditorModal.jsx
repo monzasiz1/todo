@@ -152,6 +152,13 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   // Beim Unmount sicher speichern
   useEffect(() => () => { flushSave(); }, [flushSave]);
 
+  // Body-Klasse setzen: BottomNav ausblenden + Body-Scroll sperren ohne
+  // Layout-Shift (Vermeidet, dass sich der notes-board-header verschiebt).
+  useEffect(() => {
+    document.body.classList.add('note-editor-open');
+    return () => document.body.classList.remove('note-editor-open');
+  }, []);
+
   if (!note) return null;
 
   const handleClose = () => {
@@ -211,7 +218,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
       >
         <motion.div
           className="nem-sheet"
-          style={{ backgroundColor: color.bg, borderColor: color.border }}
+          style={{ '--nem-accent': color.border }}
           initial={{ y: 24, opacity: 0, scale: 0.98 }}
           animate={{ y: 0, opacity: 1, scale: 1 }}
           exit={{ y: 24, opacity: 0, scale: 0.98 }}
@@ -220,6 +227,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
           aria-modal="true"
           aria-label="Notiz bearbeiten"
         >
+          <div className="nem-color-bar" aria-hidden="true" />
           <div className="nem-header">
             <input
               type="text"
@@ -298,7 +306,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                   onClick={() => setImportance(level)}
                   title={`Wichtigkeit: ${level}`}
                 >
-                  {level === 'low' ? '· · Niedrig' : level === 'medium' ? '· Mittel' : '! Hoch'}
+                  {level === 'low' ? 'Niedrig' : level === 'medium' ? 'Mittel' : 'Hoch'}
                 </button>
               ))}
             </div>

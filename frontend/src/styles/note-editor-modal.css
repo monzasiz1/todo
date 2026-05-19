@@ -1,108 +1,139 @@
 /* ════════════════════════════════════════════════════════════════
-   NOTE-EDITOR-MODAL: Vollbild-"Notizblatt" zum Schreiben langer
-   Notizen. Desktop: zentriertes Papier. Mobile: Bottom-Sheet.
+   NOTE-EDITOR-MODAL: an das App-Design angepasst
+   - Light / Dark via Variablen (--bg, --surface, --primary, --text, ...)
+   - Mobile: Full-Screen, Footer an Bildschirmkante mit safe-area
+   - BottomNav wird ausgeblendet solange Modal offen ist
+   - Kein Layout-Shift des darunterliegenden Boards
    ════════════════════════════════════════════════════════════════ */
 
+/* Body-Hilfsklassen: gesetzt durch NoteEditorModal beim Mount */
+body.note-editor-open {
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+body.note-editor-open .bottom-nav {
+  display: none !important;
+}
+
+/* Overlay */
 .nem-overlay {
   position: fixed;
   inset: 0;
-  z-index: 1200;
-  background: rgba(10, 20, 50, 0.55);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  z-index: 1300;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
+  contain: layout style;
 }
 
+/* Sheet */
 .nem-sheet {
-  width: min(760px, 100%);
+  width: min(720px, 100%);
   max-height: calc(100dvh - 48px);
-  border-radius: 14px;
-  border: 1px solid rgba(83, 61, 37, 0.25);
+  background: var(--surface, #ffffff);
+  color: var(--text, #1c1c1e);
+  border-radius: 16px;
+  border: 1px solid var(--border-strong, rgba(0, 0, 0, 0.12));
   box-shadow:
-    0 24px 60px rgba(10, 20, 50, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    0 20px 50px rgba(15, 23, 42, 0.25),
+    0 4px 12px rgba(15, 23, 42, 0.10);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  /* Leichter Papier-Schein */
-  background-image:
-    radial-gradient(ellipse 85% 65% at 50% 50%, transparent 55%, rgba(28, 14, 4, 0.10) 100%);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "Inter", sans-serif;
 }
 
-/* Header: Titel + Status + Buttons */
+/* Farb-Indikator-Streifen oben */
+.nem-color-bar {
+  height: 4px;
+  width: 100%;
+  background: var(--nem-accent, var(--primary, #007aff));
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
 .nem-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 18px 10px;
-  border-bottom: 1px solid rgba(83, 61, 37, 0.15);
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border, rgba(0, 0, 0, 0.06));
+  flex-shrink: 0;
 }
 
 .nem-title {
   flex: 1 1 auto;
+  min-width: 0;
   border: 0;
   outline: 0;
   background: transparent;
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--ink, #2a1f10);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text, #1c1c1e);
   font-family: inherit;
   letter-spacing: -0.01em;
+  padding: 4px 0;
 }
 .nem-title::placeholder {
-  color: rgba(74, 58, 36, 0.4);
-  font-weight: 600;
-  font-style: italic;
+  color: var(--text-tertiary, #aeaeb2);
+  font-weight: 500;
 }
 
 .nem-header-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   flex-shrink: 0;
 }
 
 .nem-save-state {
   font-size: 12px;
-  color: rgba(74, 58, 36, 0.65);
-  margin-right: 6px;
-  min-width: 70px;
+  color: var(--text-secondary, #8e8e93);
+  margin-right: 4px;
+  min-width: 76px;
   text-align: right;
   transition: opacity 0.2s ease;
+  font-weight: 500;
 }
 .nem-save-idle { opacity: 0; }
-.nem-save-saved { color: #2e7d32; opacity: 1; }
+.nem-save-saved { color: var(--success, #34c759); opacity: 1; }
 .nem-save-saving { opacity: 1; }
 
 .nem-icon-btn {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 0;
-  background: rgba(255, 255, 255, 0.5);
+  background: transparent;
   border-radius: 8px;
   cursor: pointer;
-  color: var(--ink, #2a1f10);
-  transition: background 0.15s ease, transform 0.1s ease;
+  color: var(--text-secondary, #8e8e93);
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
 }
-.nem-icon-btn:hover { background: rgba(255, 255, 255, 0.85); }
+.nem-icon-btn:hover {
+  background: var(--hover, rgba(28, 28, 30, 0.06));
+  color: var(--text, #1c1c1e);
+}
 .nem-icon-btn:active { transform: scale(0.95); }
 .nem-icon-btn[aria-pressed="true"] {
-  background: rgba(0, 122, 255, 0.18);
-  color: #0a6cff;
+  background: var(--primary-bg, rgba(0, 122, 255, 0.10));
+  color: var(--primary, #007aff);
 }
 
-/* Body: Textarea oder Preview */
+/* ── Body ─────────────────────────────────────────────────── */
 .nem-body {
   flex: 1 1 auto;
   overflow: auto;
-  padding: 14px 22px 20px;
-  min-height: 200px;
+  padding: 16px 20px;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
 }
 
 .nem-textarea {
@@ -112,195 +143,219 @@
   outline: 0;
   background: transparent;
   resize: none;
-  color: var(--ink, #2a1f10);
-  font-family: "Inter", "Segoe UI", -apple-system, sans-serif;
+  color: var(--text, #1c1c1e);
+  font-family: inherit;
   font-size: 15px;
-  line-height: 1.6;
+  line-height: 1.55;
   letter-spacing: -0.005em;
   field-sizing: content;
 }
 .nem-textarea::placeholder {
-  color: rgba(74, 58, 36, 0.4);
+  color: var(--text-tertiary, #aeaeb2);
   white-space: pre-wrap;
 }
 
 /* Preview */
 .nem-preview {
-  font-family: "Inter", "Segoe UI", -apple-system, sans-serif;
+  font-family: inherit;
   font-size: 15px;
   line-height: 1.6;
-  color: var(--ink, #2a1f10);
+  color: var(--text, #1c1c1e);
 }
-.nem-preview h1 { font-size: 22px; font-weight: 700; margin: 12px 0 6px; }
-.nem-preview h2 { font-size: 18px; font-weight: 700; margin: 10px 0 4px; }
+.nem-preview h1 {
+  font-size: 22px; font-weight: 700;
+  margin: 14px 0 6px;
+  letter-spacing: -0.02em;
+}
+.nem-preview h2 {
+  font-size: 18px; font-weight: 700;
+  margin: 12px 0 4px;
+  letter-spacing: -0.01em;
+}
 .nem-preview p { margin: 4px 0; }
-.nem-preview a { color: #0a6cff; text-decoration: underline; }
+.nem-preview a { color: var(--primary, #007aff); text-decoration: none; }
+.nem-preview a:hover { text-decoration: underline; }
 .nem-preview code {
-  background: rgba(0, 0, 0, 0.07);
-  padding: 1px 5px;
-  border-radius: 4px;
-  font-family: "JetBrains Mono", ui-monospace, monospace;
+  background: var(--surface-2, rgba(0, 0, 0, 0.05));
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", monospace;
   font-size: 0.92em;
 }
 .nem-preview strong { font-weight: 700; }
 .nem-preview em { font-style: italic; }
-.nem-empty { opacity: 0.5; font-style: italic; }
+.nem-empty { opacity: 0.5; font-style: italic; color: var(--text-tertiary, #aeaeb2); }
 
-.nem-md-li {
-  display: flex;
-  gap: 8px;
-  margin: 3px 0;
-}
-.nem-md-bullet {
-  color: rgba(74, 58, 36, 0.6);
-  flex-shrink: 0;
-}
-.nem-md-check {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin: 3px 0;
-}
+.nem-md-li { display: flex; gap: 8px; margin: 3px 0; }
+.nem-md-bullet { color: var(--text-tertiary, #aeaeb2); flex-shrink: 0; }
+.nem-md-check { display: flex; align-items: flex-start; gap: 8px; margin: 3px 0; }
 .nem-md-checkbox {
-  width: 16px;
-  height: 16px;
-  border: 1.5px solid rgba(74, 58, 36, 0.55);
-  border-radius: 4px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  margin-top: 3px;
-  background: rgba(255, 255, 255, 0.4);
+  width: 18px; height: 18px;
+  border: 1.5px solid var(--border-strong, rgba(0, 0, 0, 0.18));
+  border-radius: 5px;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 2px;
+  background: var(--bg-elevated, #ffffff);
 }
 .nem-md-check.checked .nem-md-checkbox {
-  background: #2e7d32;
-  border-color: #2e7d32;
+  background: var(--success, #34c759);
+  border-color: var(--success, #34c759);
   color: #fff;
 }
 .nem-md-check.checked > span:last-child {
   text-decoration: line-through;
-  opacity: 0.65;
+  opacity: 0.6;
 }
 
-/* Footer: Farb-Picker, Wichtigkeit, Aktionen */
+/* ── Footer ─────────────────────────────────────────────────── */
 .nem-footer {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 10px 16px;
+  gap: 12px;
+  padding: 10px 14px;
   padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
-  border-top: 1px solid rgba(83, 61, 37, 0.18);
-  background: rgba(255, 255, 255, 0.25);
+  border-top: 1px solid var(--border, rgba(0, 0, 0, 0.06));
+  background: var(--surface, #ffffff);
   flex-wrap: wrap;
-}
-
-.nem-color-row {
-  display: flex;
-  gap: 6px;
   flex-shrink: 0;
 }
+
+.nem-color-row { display: flex; gap: 6px; flex-shrink: 0; }
 .nem-color-dot {
-  width: 24px;
-  height: 24px;
+  width: 22px; height: 22px;
   border-radius: 50%;
-  border: 2px solid rgba(0, 0, 0, 0.12);
-  cursor: pointer;
-  padding: 0;
+  border: 2px solid var(--border-strong, rgba(0, 0, 0, 0.10));
+  cursor: pointer; padding: 0;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
-.nem-color-dot:hover { transform: scale(1.08); }
+.nem-color-dot:hover { transform: scale(1.1); }
 .nem-color-dot.is-active {
-  box-shadow: 0 0 0 2px var(--ink, #2a1f10) inset, 0 0 0 3px rgba(255, 255, 255, 0.8);
-  transform: scale(1.1);
+  box-shadow:
+    0 0 0 2px var(--surface, #fff) inset,
+    0 0 0 3px var(--primary, #007aff);
+  transform: scale(1.08);
 }
 
-.nem-importance-row {
-  display: flex;
-  gap: 4px;
-}
+.nem-importance-row { display: flex; gap: 4px; }
 .nem-importance-btn {
-  padding: 5px 10px;
-  font-size: 12px;
-  font-weight: 600;
-  border: 1px solid rgba(74, 58, 36, 0.25);
-  background: rgba(255, 255, 255, 0.5);
-  color: var(--ink, #2a1f10);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.12s ease;
+  padding: 6px 10px;
+  font-size: 12px; font-weight: 600;
+  border: 1px solid var(--border-strong, rgba(0, 0, 0, 0.10));
+  background: var(--surface, #ffffff);
+  color: var(--text-secondary, #8e8e93);
+  border-radius: 8px; cursor: pointer;
+  transition: all 0.12s ease;
+  font-family: inherit;
 }
-.nem-importance-btn:hover { background: rgba(255, 255, 255, 0.85); }
+.nem-importance-btn:hover {
+  background: var(--hover, rgba(28, 28, 30, 0.06));
+  color: var(--text, #1c1c1e);
+}
 .nem-importance-btn.is-active {
-  background: var(--ink, #2a1f10);
+  background: var(--primary, #007aff);
   color: #fff;
-  border-color: var(--ink, #2a1f10);
+  border-color: var(--primary, #007aff);
 }
 
-.nem-footer-actions {
-  margin-left: auto;
-  display: flex;
-  gap: 6px;
-}
+.nem-footer-actions { margin-left: auto; display: flex; gap: 6px; }
 .nem-action-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 12px;
-  font-size: 13px;
-  font-weight: 600;
-  border: 1px solid rgba(74, 58, 36, 0.25);
-  background: rgba(255, 255, 255, 0.55);
-  color: var(--ink, #2a1f10);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 12px;
+  font-size: 13px; font-weight: 600;
+  border: 1px solid var(--border-strong, rgba(0, 0, 0, 0.10));
+  background: var(--surface, #ffffff);
+  color: var(--text, #1c1c1e);
+  border-radius: 8px; cursor: pointer;
+  transition: all 0.12s ease;
+  font-family: inherit;
 }
-.nem-action-btn:hover { background: rgba(255, 255, 255, 0.85); }
+.nem-action-btn:hover { background: var(--hover, rgba(28, 28, 30, 0.06)); }
 .nem-action-btn.primary {
-  background: #0a6cff;
-  border-color: #0a6cff;
+  background: var(--primary, #007aff);
+  border-color: var(--primary, #007aff);
   color: #fff;
 }
-.nem-action-btn.primary:hover { background: #0058d4; }
+.nem-action-btn.primary:hover { background: var(--primary-light, #4da3ff); }
+.nem-action-btn.danger {
+  color: var(--danger, #ff3b30);
+  border-color: color-mix(in srgb, var(--danger, #ff3b30) 30%, transparent);
+}
 .nem-action-btn.danger:hover {
-  background: #c62828;
-  border-color: #c62828;
+  background: var(--danger, #ff3b30);
   color: #fff;
+  border-color: var(--danger, #ff3b30);
 }
 
-/* Mobile: Bottom-Sheet, Fullscreen */
+/* ─────────────────────────────────────────────────────────────
+   MOBILE: Full-Screen mit Footer am Bildschirmrand
+   ─────────────────────────────────────────────────────────── */
 @media (max-width: 720px) {
   .nem-overlay {
     padding: 0;
-    align-items: flex-end;
+    align-items: stretch;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
   .nem-sheet {
     width: 100%;
     max-height: 100dvh;
     height: 100dvh;
-    border-radius: 18px 18px 0 0;
-    border-bottom: 0;
+    border-radius: 0;
+    border: 0;
+    box-shadow: none;
   }
+  .nem-color-bar { height: 3px; }
   .nem-header {
-    padding-top: max(14px, env(safe-area-inset-top, 0px));
+    padding-top: max(12px, env(safe-area-inset-top, 0px));
+    padding-left: max(14px, env(safe-area-inset-left, 14px));
+    padding-right: max(14px, env(safe-area-inset-right, 14px));
   }
-  .nem-title { font-size: 18px; }
-  .nem-body { padding: 12px 16px 16px; }
+  .nem-title { font-size: 17px; }
+  .nem-save-state {
+    min-width: 0;
+    font-size: 11px;
+  }
+  .nem-body { padding: 14px 16px 16px; }
   .nem-footer {
     padding: 10px 12px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    padding-left: max(12px, env(safe-area-inset-left, 12px));
+    padding-right: max(12px, env(safe-area-inset-right, 12px));
     gap: 10px;
   }
+  .nem-color-row { order: 1; flex: 1 1 auto; }
+  .nem-importance-row { order: 2; flex: 0 0 auto; }
+  .nem-importance-btn { padding: 6px 8px; font-size: 11px; }
   .nem-footer-actions {
+    order: 3;
     margin-left: 0;
     width: 100%;
     justify-content: space-between;
   }
   .nem-action-btn span { display: none; }
-  .nem-action-btn { padding: 9px 12px; }
+  .nem-action-btn {
+    padding: 10px 12px;
+    flex: 1 1 0;
+    justify-content: center;
+  }
 }
 
-/* Dark theme */
+/* Sehr schmale Phones (iPhone SE etc.) */
+@media (max-width: 380px) {
+  .nem-importance-btn { padding: 6px 6px; font-size: 10px; }
+  .nem-color-dot { width: 20px; height: 20px; }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   DARK MODE
+   ─────────────────────────────────────────────────────────── */
 html[data-theme="dark"] .nem-overlay {
   background: rgba(0, 0, 0, 0.65);
+}
+html[data-theme="dark"] .nem-sheet {
+  background: var(--surface, #1c1c1e);
+  border-color: var(--border-strong, rgba(255, 255, 255, 0.12));
+}
+html[data-theme="dark"] .nem-md-checkbox {
+  background: transparent;
 }
