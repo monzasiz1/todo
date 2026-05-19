@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Maximize2, Minimize2, Trash2, Archive, Save, Check, Calendar as CalendarIcon, Link2, Link2Off, Search, Lock, Users, Eye, UserPlus } from 'lucide-react';
+import { X, Maximize2, Minimize2, Trash2, Archive, Save, Check, Calendar as CalendarIcon, Link2, Link2Off, Search, Lock, Users, Eye, UserPlus, Pencil } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { useTaskStore } from '../store/taskStore';
 import { useAuthStore } from '../store/authStore';
 import { useFriendsStore } from '../store/friendsStore';
+import { useNotesStore } from '../store/notesStore';
 import '../styles/note-editor-modal.css';
 
 const NOTE_COLORS = [
@@ -87,7 +88,14 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   const currentUser = useAuthStore((s) => s.user);
   const currentUserId = currentUser?.id ? String(currentUser.id) : '';
   const isOwnerOfNote = !note?.user_id || (currentUserId && String(note.user_id) === currentUserId);
-  const readOnly = readOnlyProp || !isOwnerOfNote;
+  // Notes, die mit edit-Permission geteilt wurden, duerfen auch von Nicht-
+  // Eigentuemern bearbeitet werden. Backend liefert note.permission='edit'
+  // im /api/notes/shared-Pfad bzw. note.shared_permission='edit' wenn der
+  // Detail-Endpoint genutzt wird.
+  const hasEditPermission = !isOwnerOfNote && (
+    note?.permission === 'edit' || note?.shared_permission === 'edit'
+  );
+  const readOnly = readOnlyProp || (!isOwnerOfNote && !hasEditPermission);
   const [showPreview, setShowPreview] = useState(false);
   const [saveState, setSaveState] = useState('idle'); // 'idle' | 'saving' | 'saved'
   const [taskPickerOpen, setTaskPickerOpen] = useState(false);
@@ -111,10 +119,13 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   };
 
   // --------------------------------------------------------------------
-  // Mit Freunden teilen (participant_ids)
+  // Mit Freunden teilen (note_shares mit permission 'view'|'edit')
   // --------------------------------------------------------------------
   const friends = useFriendsStore((s) => s.friends);
   const fetchFriends = useFriendsStore((s) => s.fetchFriends);
+  const fetchNotesStore = useNotesStore((s) => s.fetchNotes);
+  const shareNoteApi = useNotesStore((s) => s.shareNoteWithFriend);
+  const unshareNoteApi = useNotesStore((s) => s.unshareNoteForFriend);
   const [friendPickerOpen, setFriendPickerOpen] = useState(false);
   const [friendQuery, setFriendQuery] = useState('');
 
@@ -126,16 +137,23 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // participant_ids -> Set fuer Lookups. Backend kann int[] zurueckgeben,
-  // friends.friend_user_id ist ggf. Number/String – immer als String halten.
-  const participantIdSet = useMemo(() => {
-    const ids = Array.isArray(note?.participant_ids) ? note.participant_ids : [];
-    return new Set(ids.map((v) => String(v)));
-  }, [note?.participant_ids]);
+  // Permissions-Map aus note.shares (Backend, sauberste Quelle).
+  // Fallback: participant_ids (alle 'view') fuer Notes von alten Versionen
+  // oder bevor das shares-Aggregat im Backend gelandet ist.
+  const sharesByUserId = useMemo(() => {
+    const map = new Map();
+    if (Array.isArray(note?.shares)) {
+      note.shares.forEach((s) => {
+        if (!s || s.user_id == null) return;
+        map.set(String(s.user_id), s.permission || 'view');
+      });
+    } else if (Array.isArray(note?.participant_ids)) {
+      note.participant_ids.forEach((id) => { if (id != null) map.set(String(id), 'view'); });
+    }
+    return map;
+  }, [note?.shares, note?.participant_ids]);
 
-  // Friend-Objekt -> Ziel-User-ID (das ist NICHT die friends.id-PK, sondern
-  // die User-ID des Freundes). Backend toleriert beide, normalisiert aber
-  // sauberer mit der echten User-ID.
+  // Friend-Objekt -> Ziel-User-ID (echte User-ID, nicht friendship-PK).
   const getFriendUserId = (friend) => {
     if (!friend) return null;
     return friend.friend_user_id || friend.user_id || friend.friend_id || friend.id || null;
@@ -148,9 +166,9 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
     if (!Array.isArray(friends)) return [];
     return friends.filter((f) => {
       const uid = getFriendUserId(f);
-      return uid && participantIdSet.has(String(uid));
+      return uid && sharesByUserId.has(String(uid));
     });
-  }, [friends, participantIdSet]);
+  }, [friends, sharesByUserId]);
 
   const availableFriends = useMemo(() => {
     if (!Array.isArray(friends)) return [];
@@ -159,37 +177,50 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
       .filter((f) => {
         const uid = getFriendUserId(f);
         if (!uid) return false;
-        if (participantIdSet.has(String(uid))) return false;
+        if (sharesByUserId.has(String(uid))) return false;
         if (!q) return true;
         return getFriendName(f).toLowerCase().includes(q) || (f.email || '').toLowerCase().includes(q);
       })
       .slice(0, 30);
-  }, [friends, friendQuery, participantIdSet]);
+  }, [friends, friendQuery, sharesByUserId]);
 
   const canShareWithFriends = isOwnerOfNote && !readOnly && !!note?.id;
 
-  const updateParticipants = async (nextIds) => {
-    try {
-      await onUpdate?.(note.id, { participant_ids: nextIds });
-    } catch (err) {
-      console.error('[NoteEditorModal] update participants failed:', err);
-    }
-  };
+  // Direkter Aufruf von shareNote/unshareNote (statt participant_ids zu
+  // patchen). So bleibt die Permission ('view' oder 'edit') erhalten und
+  // wird nicht vom Backend-Resync ueberschrieben.
+  const refreshNotes = () => { try { fetchNotesStore?.({ force: true }); } catch {} };
   const handleAddFriend = async (friend) => {
     if (!canShareWithFriends) return;
     const uid = getFriendUserId(friend);
     if (!uid) return;
-    const next = Array.from(new Set([...participantIdSet, String(uid)]));
     setFriendPickerOpen(false);
     setFriendQuery('');
-    await updateParticipants(next);
+    try {
+      await shareNoteApi?.(note.id, uid, 'view');
+      refreshNotes();
+    } catch (err) { console.error('[NoteEditorModal] add friend share failed:', err); }
   };
   const handleRemoveFriend = async (friend) => {
     if (!canShareWithFriends) return;
     const uid = getFriendUserId(friend);
     if (!uid) return;
-    const next = Array.from(participantIdSet).filter((id) => id !== String(uid));
-    await updateParticipants(next);
+    try {
+      await unshareNoteApi?.(note.id, uid);
+      refreshNotes();
+    } catch (err) { console.error('[NoteEditorModal] remove friend share failed:', err); }
+  };
+  const handleTogglePermission = async (friend, e) => {
+    e?.stopPropagation?.();
+    if (!canShareWithFriends) return;
+    const uid = getFriendUserId(friend);
+    if (!uid) return;
+    const current = sharesByUserId.get(String(uid)) || 'view';
+    const next = current === 'edit' ? 'view' : 'edit';
+    try {
+      await shareNoteApi?.(note.id, uid, next);
+      refreshNotes();
+    } catch (err) { console.error('[NoteEditorModal] toggle permission failed:', err); }
   };
   const availableTasks = useMemo(() => {
     if (!Array.isArray(tasks)) return [];
@@ -493,23 +524,43 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
             {canShareWithFriends && (
               <div className="nem-share-friends">
                 <div className="nem-share-friends-row">
-                  {sharedFriends.map((f) => (
-                    <button
-                      key={getFriendUserId(f)}
-                      type="button"
-                      className="nem-share-chip is-active"
-                      onClick={() => handleRemoveFriend(f)}
-                      title={`${getFriendName(f)} — klicken zum Entfernen`}
-                    >
-                      {getFriendAvatar(f) ? (
-                        <img src={getFriendAvatar(f)} alt="" className="nem-share-chip-avatar" />
-                      ) : (
-                        <span className="nem-share-chip-avatar nem-share-chip-avatar--initial">{getFriendInitial(f)}</span>
-                      )}
-                      <span className="nem-share-chip-name">{getFriendName(f)}</span>
-                      <X size={11} />
-                    </button>
-                  ))}
+                  {sharedFriends.map((f) => {
+                    const uid = getFriendUserId(f);
+                    const perm = sharesByUserId.get(String(uid)) || 'view';
+                    const isEdit = perm === 'edit';
+                    return (
+                      <span
+                        key={uid}
+                        className={`nem-share-chip is-active${isEdit ? ' is-edit' : ''}`}
+                        title={`${getFriendName(f)} — ${isEdit ? 'darf bearbeiten' : 'kann nur lesen'}`}
+                      >
+                        {getFriendAvatar(f) ? (
+                          <img src={getFriendAvatar(f)} alt="" className="nem-share-chip-avatar" />
+                        ) : (
+                          <span className="nem-share-chip-avatar nem-share-chip-avatar--initial">{getFriendInitial(f)}</span>
+                        )}
+                        <span className="nem-share-chip-name">{getFriendName(f)}</span>
+                        <button
+                          type="button"
+                          className={`nem-share-chip-perm${isEdit ? ' is-edit' : ''}`}
+                          onClick={(e) => handleTogglePermission(f, e)}
+                          title={isEdit ? 'Klicken: Nur-Lese-Recht' : 'Klicken: Schreibrecht geben'}
+                          aria-label={isEdit ? 'Schreibrecht entziehen' : 'Schreibrecht geben'}
+                        >
+                          {isEdit ? <Pencil size={11} /> : <Eye size={11} />}
+                        </button>
+                        <button
+                          type="button"
+                          className="nem-share-chip-remove"
+                          onClick={() => handleRemoveFriend(f)}
+                          title="Freigabe entfernen"
+                          aria-label="Freigabe entfernen"
+                        >
+                          <X size={11} />
+                        </button>
+                      </span>
+                    );
+                  })}
                   <button
                     type="button"
                     className="nem-share-add"

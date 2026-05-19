@@ -1548,7 +1548,7 @@ export default function NotesPage() {
             </svg>
           )}
 
-          {notes.filter(note => note != null && note.id != null).map((note) => (
+          {notes.filter(note => note != null && note.id != null && !note.is_foreign).map((note) => (
             <StickyNote
               key={note.id}
               note={note}

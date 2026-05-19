@@ -376,7 +376,10 @@ async function syncParticipantShares(pool, noteId, ownerIdText, prevParticipantI
       `INSERT INTO note_shares (note_id, friend_id, permission)
        VALUES ($1, $2, $3)
        ON CONFLICT (note_id, friend_id)
-       DO UPDATE SET permission = EXCLUDED.permission`,
+       DO UPDATE SET permission = CASE
+         WHEN note_shares.permission = 'edit' THEN 'edit'
+         ELSE EXCLUDED.permission
+       END`,
       [noteId, Number(id), permission]
     ).catch(() => null);
   }
@@ -429,9 +432,21 @@ module.exports = async function handler(req, res) {
       let ownNotes = [];
       try {
         const result = await pool.query(
-          `SELECT n.*, t.title AS linked_task_title
+          `SELECT n.*, t.title AS linked_task_title,
+                  COALESCE(sh.shares, '[]'::jsonb) AS shares
              FROM notes n
              LEFT JOIN tasks t ON t.id::text = n.linked_task_id::text
+             LEFT JOIN LATERAL (
+               SELECT jsonb_agg(jsonb_build_object(
+                        'user_id', ns.friend_id::text,
+                        'permission', ns.permission,
+                        'name', su.name,
+                        'avatar_url', su.avatar_url
+                      )) AS shares
+                 FROM note_shares ns
+                 LEFT JOIN users su ON su.id::text = ns.friend_id::text
+                WHERE ns.note_id = n.id
+             ) sh ON true
             WHERE n.user_id::text = $1
               ${completedFilter}
             ${orderBy}`,
