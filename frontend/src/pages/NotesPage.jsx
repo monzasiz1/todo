@@ -496,7 +496,12 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
       {linkedTasks.length > 0 && (
         <div className="note-linked-tasks">
           {linkedTasks.filter(Boolean).map((task) => (
-            <div key={task.id} className="linked-task-item" onClick={(e) => { e.stopPropagation(); onOpenTask?.(task); }} style={{ cursor: 'pointer' }}>
+            <div
+              key={task.id}
+              className="linked-task-item"
+              onClick={(e) => { e.stopPropagation(); onOpenTask?.(task); }}
+              style={{ cursor: 'pointer', '--task-color': task.color || '#4CAF50' }}
+            >
               <div className="task-preview">
                 <div 
                   className="task-color-indicator"

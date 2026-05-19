@@ -217,18 +217,40 @@
   transform-origin: 0 0;
   will-change: transform;
   cursor: default;
+  /* Performance: nur Tile-JPG + flache Fallback-Farbe. Die teuren grossen
+     Radial-Gradients sind in eine separate, kleinere Pseudo-Schicht
+     verschoben (siehe .notes-board::before unten) — das spart pro Frame
+     hunderte Megapixel Paint-Arbeit beim Pan/Zoom. */
   background-color: #ad7a4d;
   background-image:
-    /* Warmer Lichtschein oben links — liegt über dem Foto für Tiefe */
-    radial-gradient(ellipse 1800px 1300px at 12% 10%, rgba(255, 232, 185, 0.12), transparent 60%),
-    /* Schatten unten rechts */
-    radial-gradient(ellipse 1800px 1300px at 90% 92%, rgba(28, 16, 6, 0.18), transparent 65%),
-    /* Echte Kork-Foto-Textur, nahtlos gekachelt */
     url('/cork-board.jpg'),
-    /* Fallback warmer Verlauf falls Bild nicht lädt */
     linear-gradient(135deg, #c89469 0%, #b07e51 50%, #946334 100%);
-  background-size: auto, auto, 620px 620px, auto;
-  background-repeat: no-repeat, no-repeat, repeat, no-repeat;
+  background-size: 620px 620px, auto;
+  background-repeat: repeat, no-repeat;
+}
+
+/* Lichtschein/Schatten als eigene, kleine, nicht-transformierte Schicht
+   auf dem Viewport — vermeidet, dass das gesamte 3200x2400-Board beim
+   Zoom diese teuren Gradients neu malt. */
+.notes-viewport::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 90% 70% at 12% 10%, rgba(255, 232, 185, 0.10), transparent 60%),
+    radial-gradient(ellipse 90% 70% at 90% 92%, rgba(28, 16, 6, 0.18), transparent 65%);
+  z-index: 2;
+}
+
+/* Auf Mobile + Tablet: kein JPG-Tile, nur Solid — Pan/Zoom flutscht. */
+@media (max-width: 1024px) {
+  .notes-board {
+    background-image: linear-gradient(135deg, #b88562 0%, #a47550 60%, #8c5d36 100%);
+    background-size: auto;
+    background-repeat: no-repeat;
+  }
+  .notes-viewport::after { display: none; }
 }
 
 /* Foto deckt schon alle Granulen ab — die alte board-background-Schicht
@@ -596,11 +618,20 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 4px;
-  padding: 4px 6px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(78, 57, 36, 0.18);
+  gap: 6px;
+  padding: 5px 7px 5px 9px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.78));
+  border: 1px solid rgba(78, 57, 36, 0.22);
+  border-left: 3px solid var(--task-color, #4CAF50);
+  box-shadow: 0 2px 6px rgba(40, 25, 10, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(2px);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.linked-task-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(40, 25, 10, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .task-preview {
@@ -625,6 +656,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: #3a2c1e;
+  font-weight: 600;
 }
 
 .task-name,
@@ -633,6 +666,15 @@
 .task-type-label {
   font-size: 11px;
   color: #47382a;
+}
+
+.linked-task-item .task-date {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(60, 40, 20, 0.10);
+  color: #5a4530;
+  font-weight: 600;
+  font-size: 10px;
 }
 
 .task-unlink-btn,
@@ -1369,10 +1411,20 @@ html[data-theme="dark"] .zoom-indicator {
 html[data-theme="dark"] .notes-board {
   background-color: #5d4128;
   background-image:
-    radial-gradient(ellipse 1800px 1300px at 12% 10%, rgba(255, 220, 170, 0.06), transparent 60%),
-    radial-gradient(ellipse 1800px 1300px at 90% 92%, rgba(0, 0, 0, 0.45), transparent 65%),
     url('/cork-board.jpg'),
     linear-gradient(135deg, #6a4a30 0%, #503520 50%, #3a2614 100%);
+}
+
+html[data-theme="dark"] .notes-viewport::after {
+  background:
+    radial-gradient(ellipse 90% 70% at 12% 10%, rgba(255, 220, 170, 0.05), transparent 60%),
+    radial-gradient(ellipse 90% 70% at 90% 92%, rgba(0, 0, 0, 0.4), transparent 65%);
+}
+
+@media (max-width: 1024px) {
+  html[data-theme="dark"] .notes-board {
+    background-image: linear-gradient(135deg, #5a3f28 0%, #4a3220 60%, #382414 100%);
+  }
 }
 
 html[data-theme="dark"] .cork-board-background {
@@ -1440,6 +1492,17 @@ html[data-theme="dark"] .task-date,
 html[data-theme="dark"] .task-meta,
 html[data-theme="dark"] .task-type-label {
   color: var(--text-secondary, #a1a1aa);
+}
+
+/* Linked-Task-Pille auf Notes bleibt im Dark-Mode hell lesbar — die Pille
+   selbst hat einen halbtransparenten weissen Hintergrund, daher dunkler Text. */
+html[data-theme="dark"] .linked-task-item .task-name,
+html[data-theme="dark"] .linked-task-item .task-title {
+  color: #2a1f12;
+}
+html[data-theme="dark"] .linked-task-item .task-date {
+  color: #3a2c1e;
+  background: rgba(60, 40, 20, 0.12);
 }
 
 html[data-theme="dark"] .task-picker-empty {
