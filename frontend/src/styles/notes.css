@@ -656,18 +656,29 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #3a2c1e;
-  font-weight: 600;
 }
 
-.task-name,
-.task-date,
-.task-meta,
-.task-type-label {
+/* Hilfsklassen nur im Notes-Kontext (Linked-Pille + Task-Picker-Modal) einfaerben.
+   .task-title / .task-meta werden auch von TaskCard genutzt — daher hier NICHT global stylen. */
+.linked-task-item .task-name,
+.linked-task-item .task-date,
+.linked-task-item .task-meta,
+.linked-task-item .task-type-label,
+.task-picker-item .task-name,
+.task-picker-item .task-title,
+.task-picker-item .task-date,
+.task-picker-item .task-meta,
+.task-picker-item .task-type-label {
   font-size: 11px;
   color: #47382a;
 }
 
+/* Notes-Linked-Task-Pille: nur DORT dunkle, fette Schrift + Datum-Pille. */
+.linked-task-item .task-name,
+.linked-task-item .task-title {
+  color: #3a2c1e;
+  font-weight: 600;
+}
 .linked-task-item .task-date {
   padding: 1px 6px;
   border-radius: 999px;
@@ -1491,6 +1502,17 @@ html[data-theme="dark"] .task-name,
 html[data-theme="dark"] .task-date,
 html[data-theme="dark"] .task-meta,
 html[data-theme="dark"] .task-type-label {
+  color: var(--text-secondary, #a1a1aa);
+}
+
+/* Task-Picker-Modal: im Dark-Mode helle Schrift, da Kartenhintergrund dunkel. */
+html[data-theme="dark"] .task-picker-item .task-name,
+html[data-theme="dark"] .task-picker-item .task-title {
+  color: var(--text-primary, #f4f4f5);
+}
+html[data-theme="dark"] .task-picker-item .task-date,
+html[data-theme="dark"] .task-picker-item .task-meta,
+html[data-theme="dark"] .task-picker-item .task-type-label {
   color: var(--text-secondary, #a1a1aa);
 }
 
