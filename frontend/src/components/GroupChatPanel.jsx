@@ -203,6 +203,19 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
   const [dragShareSuccess, setDragShareSuccess] = useState(false);
   const [showPastEvents, setShowPastEvents] = useState(false);
   const [nowTs, setNowTs] = useState(Date.now());
+  // Resizable Desktop-Panel (nur wenn nicht pageMode/mobile).
+  const GCHAT_WIDTH_MIN = 320;
+  const GCHAT_WIDTH_MAX_PX = 900;
+  const [panelWidth, setPanelWidth] = useState(() => {
+    if (typeof window === 'undefined') return 360;
+    const stored = parseInt(localStorage.getItem('gchat:width') || '', 10);
+    if (Number.isFinite(stored) && stored >= GCHAT_WIDTH_MIN) {
+      return Math.min(stored, Math.min(GCHAT_WIDTH_MAX_PX, Math.round(window.innerWidth * 0.9)));
+    }
+    return 360;
+  });
+  const [isResizing, setIsResizing] = useState(false);
+  const resizeStartRef = useRef({ startX: 0, startWidth: 360 });
   const undoTimerRef = useRef(null);
   const conflictTimerRef = useRef(null);
   const dragSuccessTimerRef = useRef(null);
@@ -215,6 +228,40 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
   useEffect(() => {
     if (isActive && groups.length === 0) fetchGroups();
   }, [isActive]);
+
+  // ── Resize-Handle: PointerMove / PointerUp global verfolgen ───────────────
+  useEffect(() => {
+    if (!isResizing) return undefined;
+    const onMove = (e) => {
+      const { startX, startWidth } = resizeStartRef.current;
+      // Panel klebt rechts -> beim Ziehen nach links waechst die Breite.
+      const delta = startX - e.clientX;
+      const maxPx = Math.min(GCHAT_WIDTH_MAX_PX, Math.round(window.innerWidth * 0.9));
+      const next = Math.max(GCHAT_WIDTH_MIN, Math.min(maxPx, startWidth + delta));
+      setPanelWidth(next);
+    };
+    const onUp = () => {
+      setIsResizing(false);
+      try { localStorage.setItem('gchat:width', String(panelWidth)); } catch {}
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+    document.body.classList.add('gchat-resizing');
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+      document.body.classList.remove('gchat-resizing');
+    };
+  }, [isResizing, panelWidth]);
+
+  const handleResizeStart = (e) => {
+    if (pageMode) return;
+    e.preventDefault();
+    resizeStartRef.current = { startX: e.clientX, startWidth: panelWidth };
+    setIsResizing(true);
+  };
 
   // ── Auto-select first group ───────────────────────────────────────────────
   useEffect(() => {
@@ -830,6 +877,7 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
   const panelContent = (
         <motion.div
           className={`gchat-panel${pageMode ? ' gchat-page-mode' : ''}`}
+          style={pageMode ? undefined : { '--gchat-width': `${panelWidth}px` }}
           initial={pageMode ? { opacity: 0, x: 20 } : { x: '100%' }}
           animate={pageMode ? { opacity: 1, x: 0 } : { x: 0 }}
           exit={pageMode ? {} : { x: '100%' }}
@@ -837,6 +885,17 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
             ? { type: 'tween', duration: 0.22, ease: 'easeOut' }
             : { type: 'spring', stiffness: 340, damping: 32 }}
         >
+            {/* Resize-Handle (nur Desktop, nicht pageMode) */}
+            {!pageMode && (
+              <div
+                className={`gchat-resize-handle${isResizing ? ' is-resizing' : ''}`}
+                onPointerDown={handleResizeStart}
+                role="separator"
+                aria-orientation="vertical"
+                aria-label="Chat-Breite anpassen"
+                title="Ziehen zum Anpassen der Chat-Breite"
+              />
+            )}
             {/* ── Header ── */}
             <div className="gchat-header">
               {pageMode ? (

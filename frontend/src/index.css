@@ -24715,7 +24715,9 @@ html[data-theme="dark"] .group-role-chip.role-member {
   position: fixed;
   top: 0;
   right: 0;
-  width: 360px;
+  width: var(--gchat-width, 360px);
+  min-width: 320px;
+  max-width: min(900px, 90vw);
   height: 100dvh;
   background: var(--glass);
   backdrop-filter: blur(24px);
@@ -24727,9 +24729,57 @@ html[data-theme="dark"] .group-role-chip.role-member {
   z-index: 300;
   overflow: hidden;
 }
+
+/* Desktop resize handle: 6px wide gripper an der linken Kante */
+.gchat-resize-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 100%;
+  cursor: ew-resize;
+  z-index: 5;
+  background: transparent;
+  transition: background 0.15s ease;
+  touch-action: none;
+  user-select: none;
+}
+.gchat-resize-handle::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 36px;
+  border-radius: 2px;
+  background: var(--border);
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+.gchat-resize-handle:hover,
+.gchat-resize-handle.is-resizing {
+  background: color-mix(in srgb, var(--accent, #007AFF) 14%, transparent);
+}
+.gchat-resize-handle:hover::before,
+.gchat-resize-handle.is-resizing::before {
+  opacity: 1;
+  background: var(--accent, #007AFF);
+}
+body.gchat-resizing {
+  cursor: ew-resize !important;
+  user-select: none !important;
+}
+body.gchat-resizing * {
+  cursor: ew-resize !important;
+  user-select: none !important;
+}
+
 @media (max-width: 768px) {
   .gchat-panel {
     width: 100vw;
+    max-width: 100vw;
+    min-width: 0;
     border-left: none;
     border-top: none;
     border-radius: 0;
@@ -24738,6 +24788,12 @@ html[data-theme="dark"] .group-role-chip.role-member {
     height: auto;
     box-shadow: none;
   }
+  .gchat-resize-handle {
+    display: none;
+  }
+}
+.gchat-panel.gchat-page-mode .gchat-resize-handle {
+  display: none;
 }
 
 /* Header */
