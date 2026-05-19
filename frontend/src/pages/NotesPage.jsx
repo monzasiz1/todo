@@ -217,7 +217,10 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
       lastY: note.y ?? 100,
     };
 
-    e.preventDefault();
+    // preventDefault nur wenn das Event ueberhaupt cancelable ist
+    // (React's synthetisches onTouchStart ist passive → preventDefault wirkt nicht
+    // und spammt nur die Konsole). Native touchstart unten ist non-passive.
+    if (e.cancelable) e.preventDefault();
   }, [note.id, note.x, note.y, onSelect, dragDisabled]);
 
   const handlePointerMove = useCallback((e) => {
@@ -281,6 +284,16 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
     }
   }, [isDragging, handlePointerMove, handlePointerUp]);
 
+  // Touchstart als native non-passive Listener anhaengen, damit preventDefault
+  // tatsaechlich wirkt (React's onTouchStart ist seit React 18 passive).
+  useEffect(() => {
+    const el = noteRef.current;
+    if (!el) return;
+    const handler = (ev) => handlePointerDown(ev);
+    el.addEventListener('touchstart', handler, { passive: false });
+    return () => el.removeEventListener('touchstart', handler);
+  }, [handlePointerDown]);
+
   const handleLinkTask = useCallback(async (taskId) => {
     try {
       await onUpdate(note.id, { linked_task_id: taskId });
@@ -342,8 +355,7 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
         zIndex: isSelected ? 15 : isDragging ? 20 : 1,
         transform: `translateZ(0) rotate(${rotation}deg)`,
       }}
-      onMouseDown={handlePointerDown}
-      onTouchStart={handlePointerDown}>
+      onMouseDown={handlePointerDown}>
       
       {/* Visual indicator for linked tasks */}
       {linkedTasks.length > 0 && (
