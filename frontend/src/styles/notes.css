@@ -272,7 +272,9 @@
 .sticky-note {
   position: absolute;
   width: 190px;
-  min-height: 190px;
+  min-height: 170px;
+  /* KEINE max-height — so kann die Note vertikal mit dem Inhalt wachsen.
+     Sehr lange Notizen -> der Vollbild-Editor (Doppelklick / Expand-Btn). */
   padding: 14px 12px 12px;
   border-radius: 2px;
   border: 1px solid rgba(83, 61, 37, 0.25);
@@ -558,14 +560,19 @@
 }
 
 .note-content {
-  height: 125px;
-  overflow: hidden;
+  /* Auto-Grow: Inhaltsbereich waechst mit dem Text. Die Note selbst hat
+     keine max-height -> die Karte wird sichtbar groesser, je mehr drinsteht.
+     Bei sehr langen Notizen -> Doppelklick oeffnet den Vollbild-Editor. */
+  min-height: 95px;
+  max-height: 520px;
+  overflow: auto;
+  scrollbar-width: thin;
 }
 
 .note-textarea,
 .note-display {
   width: 100%;
-  height: 100%;
+  min-height: 100%;
   border: 0;
   outline: 0;
   background: transparent;
@@ -576,6 +583,13 @@
   resize: none;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.note-textarea {
+  /* Wird per JS auf scrollHeight gesetzt (auto-resize). Fallback fuer Browser
+     die das noch nicht koennen: field-sizing content. */
+  field-sizing: content;
+  height: auto;
 }
 
 .note-display:hover {
@@ -924,12 +938,13 @@
 
   .sticky-note {
     width: 170px;
-    min-height: 170px;
+    min-height: 160px;
     padding: 12px 10px;
   }
 
   .note-content {
-    height: 108px;
+    min-height: 84px;
+    max-height: 460px;
   }
 }
 
@@ -977,11 +992,12 @@
 
   .sticky-note {
     width: 156px;
-    min-height: 156px;
+    min-height: 150px;
   }
 
   .note-content {
-    height: 98px;
+    min-height: 76px;
+    max-height: 400px;
   }
 
   .note-textarea,
@@ -1328,14 +1344,14 @@
 
 /* Wenn Titel vorhanden ist, etwas weniger Platz für Content */
 .sticky-note.has-title .note-content {
-  height: 102px;
+  min-height: 102px;
 }
 
 @media (max-width: 900px) {
-  .sticky-note.has-title .note-content { height: 86px; }
+  .sticky-note.has-title .note-content { min-height: 86px; }
 }
 @media (max-width: 640px) {
-  .sticky-note.has-title .note-content { height: 76px; }
+  .sticky-note.has-title .note-content { min-height: 76px; }
   .note-title-input,
   .note-title-display { font-size: 13px; }
 }

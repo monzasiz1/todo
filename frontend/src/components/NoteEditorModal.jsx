@@ -1,0 +1,346 @@
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Maximize2, Minimize2, Trash2, Archive, Save, Check } from 'lucide-react';
+import '../styles/note-editor-modal.css';
+
+const NOTE_COLORS = [
+  { name: 'Gelb', bg: '#FFFE94', border: '#E6D35C' },
+  { name: 'Blau', bg: '#B3D9F7', border: '#5DADE2' },
+  { name: 'Grün', bg: '#A9F5A9', border: '#58D68D' },
+  { name: 'Rosa', bg: '#FFB3BA', border: '#F1948A' },
+  { name: 'Orange', bg: '#FFCC99', border: '#F39C12' },
+  { name: 'Lila', bg: '#E8DAEF', border: '#BB8FCE' },
+];
+
+function parseColor(content) {
+  const m = (content || '').match(/^\[COLOR:([^\]]+)\]\s*/);
+  if (m) {
+    const color = NOTE_COLORS.find((c) => c.name === m[1]);
+    return { color: color || NOTE_COLORS[0], rest: (content || '').slice(m[0].length) };
+  }
+  return { color: NOTE_COLORS[0], rest: content || '' };
+}
+
+function buildContent(rest, color) {
+  return color && color.name !== 'Gelb' ? `[COLOR:${color.name}] ${rest}` : rest;
+}
+
+// Live-Markdown-Vorschau (nutzt simple Block-/Inline-Regeln).
+function renderPreview(text) {
+  if (!text) return null;
+  const lines = text.split('\n');
+  return lines.map((line, idx) => {
+    if (!line.trim()) return <br key={`br-${idx}`} />;
+    const h1 = line.match(/^#\s+(.+)/);
+    if (h1) return <h1 key={idx}>{h1[1]}</h1>;
+    const h2 = line.match(/^##\s+(.+)/);
+    if (h2) return <h2 key={idx}>{h2[1]}</h2>;
+    const cb = line.match(/^(\s*)-\s\[( |x|X)\]\s?(.*)$/);
+    if (cb) {
+      const checked = cb[2].toLowerCase() === 'x';
+      return (
+        <div key={idx} className={`nem-md-check ${checked ? 'checked' : ''}`}>
+          <span className="nem-md-checkbox" aria-hidden>{checked ? <Check size={12} strokeWidth={3} /> : null}</span>
+          <span>{renderInline(cb[3])}</span>
+        </div>
+      );
+    }
+    const li = line.match(/^(\s*)[-*]\s+(.*)$/);
+    if (li) return <div key={idx} className="nem-md-li"><span className="nem-md-bullet">•</span><span>{renderInline(li[2])}</span></div>;
+    return <p key={idx}>{renderInline(line)}</p>;
+  });
+}
+
+function renderInline(text) {
+  if (!text) return null;
+  const re = /(\*\*[^*]+\*\*|\*[^*\n]+\*|`[^`\n]+`|https?:\/\/[^\s)]+)/g;
+  const parts = [];
+  let last = 0; let m; let i = 0;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    const tok = m[0];
+    if (tok.startsWith('**')) parts.push(<strong key={i}>{tok.slice(2, -2)}</strong>);
+    else if (tok.startsWith('`')) parts.push(<code key={i}>{tok.slice(1, -1)}</code>);
+    else if (tok.startsWith('*')) parts.push(<em key={i}>{tok.slice(1, -1)}</em>);
+    else parts.push(<a key={i} href={tok} target="_blank" rel="noopener noreferrer">{tok}</a>);
+    last = m.index + tok.length;
+    i++;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts;
+}
+
+export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onComplete }) {
+  const initialParsed = useMemo(() => parseColor(note?.content || ''), [note?.id]);
+  const [title, setTitle] = useState(note?.title || '');
+  const [content, setContent] = useState(initialParsed.rest);
+  const [color, setColor] = useState(initialParsed.color);
+  const [importance, setImportance] = useState(note?.importance || 'medium');
+  const [showPreview, setShowPreview] = useState(false);
+  const [saveState, setSaveState] = useState('idle'); // 'idle' | 'saving' | 'saved'
+  const textareaRef = useRef(null);
+  const saveTimerRef = useRef(null);
+  const initialKeyRef = useRef(`${note?.id}|${note?.title || ''}|${note?.content || ''}|${note?.importance || ''}`);
+
+  // ESC schliesst
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose?.();
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault();
+        flushSave();
+        onClose?.();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onClose]);
+
+  // Auto-Resize Textarea
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = 'auto';
+    ta.style.height = `${ta.scrollHeight}px`;
+  }, [content]);
+
+  // Debounced Auto-Save
+  const scheduleSave = useCallback((nextTitle, nextContent, nextColor, nextImportance) => {
+    if (!note?.id) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    setSaveState('saving');
+    saveTimerRef.current = setTimeout(async () => {
+      try {
+        await onUpdate?.(note.id, {
+          title: (nextTitle || '').trim(),
+          content: buildContent(nextContent, nextColor),
+          importance: nextImportance,
+        });
+        setSaveState('saved');
+        setTimeout(() => setSaveState('idle'), 1200);
+      } catch (err) {
+        console.error('[NoteEditorModal] auto-save failed:', err);
+        setSaveState('idle');
+      }
+    }, 700);
+  }, [note?.id, onUpdate]);
+
+  const flushSave = useCallback(() => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    const key = `${note?.id}|${title}|${buildContent(content, color)}|${importance}`;
+    if (key === initialKeyRef.current) return;
+    onUpdate?.(note.id, {
+      title: (title || '').trim(),
+      content: buildContent(content, color),
+      importance,
+    }).catch((err) => console.error('[NoteEditorModal] flush save failed:', err));
+  }, [note?.id, title, content, color, importance, onUpdate]);
+
+  useEffect(() => {
+    scheduleSave(title, content, color, importance);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, content, color, importance]);
+
+  // Beim Unmount sicher speichern
+  useEffect(() => () => { flushSave(); }, [flushSave]);
+
+  if (!note) return null;
+
+  const handleClose = () => {
+    flushSave();
+    onClose?.();
+  };
+
+  // Tab innerhalb der Textarea soll einrücken statt Fokus zu wechseln.
+  const onTextareaKeyDown = (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const ta = e.currentTarget;
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+      const next = `${content.slice(0, start)}  ${content.slice(end)}`;
+      setContent(next);
+      requestAnimationFrame(() => {
+        ta.selectionStart = ta.selectionEnd = start + 2;
+      });
+    }
+    // Auto-Continue von Listen / Checklisten
+    if (e.key === 'Enter' && !e.shiftKey) {
+      const ta = e.currentTarget;
+      const start = ta.selectionStart;
+      const before = content.slice(0, start);
+      const lineStart = before.lastIndexOf('\n') + 1;
+      const currentLine = before.slice(lineStart);
+      const cbMatch = currentLine.match(/^(\s*)-\s\[( |x|X)\]\s/);
+      const liMatch = currentLine.match(/^(\s*)([-*])\s/);
+      if (cbMatch || liMatch) {
+        if (currentLine.replace(/^(\s*)(-\s\[( |x|X)\]\s|[-*]\s)/, '').trim() === '') {
+          // Leere List-Item-Zeile -> Liste beenden
+          e.preventDefault();
+          const next = `${content.slice(0, lineStart)}${content.slice(start)}`;
+          setContent(next);
+          requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = lineStart; });
+          return;
+        }
+        e.preventDefault();
+        const prefix = cbMatch ? `${cbMatch[1]}- [ ] ` : `${liMatch[1]}${liMatch[2]} `;
+        const next = `${content.slice(0, start)}\n${prefix}${content.slice(start)}`;
+        setContent(next);
+        requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = start + 1 + prefix.length; });
+      }
+    }
+  };
+
+  return createPortal(
+    <AnimatePresence>
+      <motion.div
+        className="nem-overlay"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.18 }}
+        onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
+      >
+        <motion.div
+          className="nem-sheet"
+          style={{ backgroundColor: color.bg, borderColor: color.border }}
+          initial={{ y: 24, opacity: 0, scale: 0.98 }}
+          animate={{ y: 0, opacity: 1, scale: 1 }}
+          exit={{ y: 24, opacity: 0, scale: 0.98 }}
+          transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Notiz bearbeiten"
+        >
+          <div className="nem-header">
+            <input
+              type="text"
+              className="nem-title"
+              value={title}
+              maxLength={120}
+              placeholder="Titel…"
+              onChange={(e) => setTitle(e.target.value)}
+            />
+            <div className="nem-header-actions">
+              <span className={`nem-save-state nem-save-${saveState}`} aria-live="polite">
+                {saveState === 'saving' && 'Speichere…'}
+                {saveState === 'saved' && 'Gespeichert'}
+              </span>
+              <button
+                type="button"
+                className="nem-icon-btn"
+                onClick={() => setShowPreview((v) => !v)}
+                title={showPreview ? 'Editor' : 'Vorschau'}
+                aria-pressed={showPreview}
+              >
+                {showPreview ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+              </button>
+              <button
+                type="button"
+                className="nem-icon-btn"
+                onClick={handleClose}
+                title="Schliessen (Esc)"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+
+          <div className="nem-body">
+            {showPreview ? (
+              <div className="nem-preview">
+                {renderPreview(content) || <p className="nem-empty">Noch nichts geschrieben.</p>}
+              </div>
+            ) : (
+              <textarea
+                ref={textareaRef}
+                className="nem-textarea"
+                value={content}
+                placeholder={`Schreib los…\n\nTipps:\n  **fett**   *kursiv*   \`code\`\n  - Aufzaehlung\n  - [ ] Checkliste\n  # Ueberschrift`}
+                onChange={(e) => setContent(e.target.value)}
+                onKeyDown={onTextareaKeyDown}
+                autoFocus
+                spellCheck
+              />
+            )}
+          </div>
+
+          <div className="nem-footer">
+            <div className="nem-color-row" role="radiogroup" aria-label="Farbe">
+              {NOTE_COLORS.map((c) => (
+                <button
+                  key={c.name}
+                  type="button"
+                  role="radio"
+                  aria-checked={c.name === color.name}
+                  className={`nem-color-dot${c.name === color.name ? ' is-active' : ''}`}
+                  style={{ backgroundColor: c.bg, borderColor: c.border }}
+                  onClick={() => setColor(c)}
+                  title={c.name}
+                />
+              ))}
+            </div>
+
+            <div className="nem-importance-row">
+              {['low', 'medium', 'high'].map((level) => (
+                <button
+                  key={level}
+                  type="button"
+                  className={`nem-importance-btn${importance === level ? ' is-active' : ''}`}
+                  onClick={() => setImportance(level)}
+                  title={`Wichtigkeit: ${level}`}
+                >
+                  {level === 'low' ? '· · Niedrig' : level === 'medium' ? '· Mittel' : '! Hoch'}
+                </button>
+              ))}
+            </div>
+
+            <div className="nem-footer-actions">
+              <button
+                type="button"
+                className="nem-action-btn"
+                onClick={() => {
+                  flushSave();
+                  onComplete?.(note.id);
+                  onClose?.();
+                }}
+                title="Erledigt -> Archiv"
+              >
+                <Archive size={14} /> <span>Archivieren</span>
+              </button>
+              <button
+                type="button"
+                className="nem-action-btn danger"
+                onClick={() => {
+                  if (!window.confirm('Notiz wirklich loeschen?')) return;
+                  onDelete?.(note.id);
+                  onClose?.();
+                }}
+                title="Loeschen"
+              >
+                <Trash2 size={14} /> <span>Loeschen</span>
+              </button>
+              <button
+                type="button"
+                className="nem-action-btn primary"
+                onClick={handleClose}
+                title="Schliessen (auto-gespeichert)"
+              >
+                <Save size={14} /> <span>Fertig</span>
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>,
+    document.body,
+  );
+}

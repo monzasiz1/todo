@@ -1,9 +1,10 @@
 ﻿import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useDragControls } from 'framer-motion';
-import { Plus, ZoomIn, ZoomOut, X, CalendarDays, Pin, CheckSquare, Calendar, Check, Archive, RotateCcw, Trash2, LayoutGrid, Link2, Unlink } from 'lucide-react';
+import { Plus, ZoomIn, ZoomOut, X, CalendarDays, Pin, CheckSquare, Calendar, Check, Archive, RotateCcw, Trash2, LayoutGrid, Link2, Unlink, Maximize2 } from 'lucide-react';
 import { useOpenTask } from '../hooks/useOpenTask';
 import TaskDetailModal from '../components/TaskDetailModal';
+import NoteEditorModal from '../components/NoteEditorModal';
 import { useNotesStore } from '../store/notesStore';
 import { useTaskStore } from '../store/taskStore';
 import '../styles/notes.css';
@@ -101,7 +102,7 @@ function renderNoteMarkdown(text, onToggleLine) {
   return out;
 }
 
-function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange, isSelected, onSelect, tasks = [], onOpenTask, boardScaleRef, gridPos = null, dragDisabled = false, onDragLive }) {
+function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange, isSelected, onSelect, tasks = [], onOpenTask, boardScaleRef, gridPos = null, dragDisabled = false, onDragLive, onOpenEditor }) {
   const [isEditing, setIsEditing] = useState(false);
   const [content, setContent] = useState(note.content || '');
   const [title, setTitle] = useState(note.title || '');
@@ -111,6 +112,10 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
   const [isExpanded, setIsExpanded] = useState(false);
   const noteRef = useRef(null);
   const dragStartPos = useRef({ x: 0, y: 0 });
+  // Doppelklick-Erkennung auf .note-display: erster Klick startet
+  // setIsEditing erst nach kurzer Verzoegerung — kommt ein zweiter Klick
+  // davor, wird stattdessen der Vollbild-Editor geoeffnet.
+  const displayClickRef = useRef({ time: 0, timer: null });
   // Drag-Controls für swipe-to-close des Termin-Pickers — Drag startet
   // nur vom Handle/Header, damit Scrollen in der Liste nicht blockiert wird.
   const taskPickerDragControls = useDragControls();
@@ -357,7 +362,14 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
         zIndex: isSelected ? 15 : isDragging ? 20 : 1,
         transform: `translateZ(0) rotate(${rotation}deg)`,
       }}
-      onMouseDown={handlePointerDown}>
+      onMouseDown={handlePointerDown}
+      onDoubleClick={(e) => {
+        // Doppelklick auf der Note (nicht auf Buttons/Links/Eingabefeldern)
+        // oeffnet den Vollbild-Editor.
+        if (e.target.closest('button') || e.target.closest('input') || e.target.closest('textarea') || e.target.closest('a')) return;
+        e.stopPropagation();
+        onOpenEditor?.(note.id);
+      }}>
       
       {/* Visual indicator for linked tasks */}
       {linkedTasks.length > 0 && (
@@ -375,6 +387,16 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
         </span>
         {variantIndex === 3 && <span className="paperclip-icon" aria-hidden="true" />}
         <div className="note-actions">
+          <button
+            className="note-action-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenEditor?.(note.id);
+            }}
+            title="Im Vollbild-Editor oeffnen"
+          >
+            <Maximize2 size={12} />
+          </button>
           <button
             className="note-action-btn complete"
             onClick={(e) => {
@@ -441,6 +463,19 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
             className="note-textarea"
             value={content}
             onChange={(e) => setContent(e.target.value)}
+            onInput={(e) => {
+              // Auto-Grow: Textarea waechst mit dem Inhalt, .note-content
+              // capped per CSS und scrollt darueber hinaus.
+              const ta = e.currentTarget;
+              ta.style.height = 'auto';
+              ta.style.height = `${ta.scrollHeight}px`;
+            }}
+            ref={(el) => {
+              if (el && el.scrollHeight && el.style.height !== `${el.scrollHeight}px`) {
+                el.style.height = 'auto';
+                el.style.height = `${el.scrollHeight}px`;
+              }
+            }}
             onBlur={handleSave}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && e.ctrlKey) {
@@ -461,7 +496,35 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
               e.stopPropagation();
               // Klicks auf interaktive Markdown-Elemente (Checkbox/Link) starten den Editor nicht.
               if (e.target.closest('.note-md-checkbox') || e.target.closest('.note-md-link')) return;
-              setIsEditing(true);
+              const now = Date.now();
+              const last = displayClickRef.current.time;
+              if (now - last < 320) {
+                // Doppelklick erkannt -> Vollbild-Editor
+                if (displayClickRef.current.timer) {
+                  clearTimeout(displayClickRef.current.timer);
+                  displayClickRef.current.timer = null;
+                }
+                displayClickRef.current.time = 0;
+                onOpenEditor?.(note.id);
+                return;
+              }
+              displayClickRef.current.time = now;
+              if (displayClickRef.current.timer) clearTimeout(displayClickRef.current.timer);
+              displayClickRef.current.timer = setTimeout(() => {
+                displayClickRef.current.time = 0;
+                displayClickRef.current.timer = null;
+                setIsEditing(true);
+              }, 320);
+            }}
+            onDoubleClick={(e) => {
+              // Fallback (Browser dispatcht dblclick nativ): direkt oeffnen.
+              e.stopPropagation();
+              if (displayClickRef.current.timer) {
+                clearTimeout(displayClickRef.current.timer);
+                displayClickRef.current.timer = null;
+              }
+              displayClickRef.current.time = 0;
+              onOpenEditor?.(note.id);
             }}
           >
             {displayContent ? renderNoteMarkdown(displayContent, handleToggleLine) : null}
@@ -639,7 +702,8 @@ const StickyNote = memo(StickyNoteImpl, (prev, next) => (
   prev.gridPos?.x === next.gridPos?.x &&
   prev.gridPos?.y === next.gridPos?.y &&
   prev.dragDisabled === next.dragDisabled &&
-  prev.onDragLive === next.onDragLive
+  prev.onDragLive === next.onDragLive &&
+  prev.onOpenEditor === next.onOpenEditor
 ));
 
 const BOARD_W = 3200;
@@ -677,6 +741,8 @@ export default function NotesPage() {
   const [selectedNoteIds, setSelectedNoteIds] = useState([]);
   const [selectedConnectionId, setSelectedConnectionId] = useState(null);
   const [showMobileHint, setShowMobileHint] = useState(false);
+  // Vollbild-Editor-Modal ("Notizblatt"): id der Notiz oder null.
+  const [editorNoteId, setEditorNoteId] = useState(null);
 
   // Live-Drag-Position der gerade gezogenen Note. Wird per rAF aktualisiert,
   // damit Verbindungslinien smooth mitziehen, ohne pro Frame alle Notes neu zu
@@ -1469,6 +1535,7 @@ export default function NotesPage() {
               gridPos={gridPositions ? gridPositions.get(String(note.id)) : null}
               dragDisabled={isGrid}
               onDragLive={handleDragLive}
+              onOpenEditor={setEditorNoteId}
             />
           ))}
 
@@ -1597,6 +1664,21 @@ export default function NotesPage() {
         </div>,
         document.body
       )}
+
+      {/* Vollbild-Editor („Notizblatt") — wird per Doppelklick oder Maximize-Button geoeffnet */}
+      {editorNoteId != null && (() => {
+        const editorNote = notes.find((n) => n && n.id === editorNoteId);
+        if (!editorNote) return null;
+        return (
+          <NoteEditorModal
+            note={editorNote}
+            onClose={() => setEditorNoteId(null)}
+            onUpdate={handleUpdateNote}
+            onDelete={handleDeleteNote}
+            onComplete={handleCompleteNote}
+          />
+        );
+      })()}
     </div>
   );
 }
