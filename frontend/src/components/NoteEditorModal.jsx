@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Maximize2, Minimize2, Trash2, Archive, Save, Check, Calendar as CalendarIcon, Link2, Link2Off, Search, Lock, Users, Eye } from 'lucide-react';
+import { X, Maximize2, Minimize2, Trash2, Archive, Save, Check, Calendar as CalendarIcon, Link2, Link2Off, Search, Lock, Users, Eye, UserPlus } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { useTaskStore } from '../store/taskStore';
 import { useAuthStore } from '../store/authStore';
+import { useFriendsStore } from '../store/friendsStore';
 import '../styles/note-editor-modal.css';
 
 const NOTE_COLORS = [
@@ -107,6 +108,88 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
     const next = visibility === 'group' ? 'private' : 'group';
     try { await onUpdate?.(note.id, { visibility: next }); }
     catch (err) { console.error('[NoteEditorModal] toggle visibility failed:', err); }
+  };
+
+  // --------------------------------------------------------------------
+  // Mit Freunden teilen (participant_ids)
+  // --------------------------------------------------------------------
+  const friends = useFriendsStore((s) => s.friends);
+  const fetchFriends = useFriendsStore((s) => s.fetchFriends);
+  const [friendPickerOpen, setFriendPickerOpen] = useState(false);
+  const [friendQuery, setFriendQuery] = useState('');
+
+  // Friends-Liste laden, falls Store leer (z. B. Note direkt geoeffnet).
+  useEffect(() => {
+    if (!Array.isArray(friends) || friends.length === 0) {
+      try { fetchFriends?.(); } catch {}
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // participant_ids -> Set fuer Lookups. Backend kann int[] zurueckgeben,
+  // friends.friend_user_id ist ggf. Number/String – immer als String halten.
+  const participantIdSet = useMemo(() => {
+    const ids = Array.isArray(note?.participant_ids) ? note.participant_ids : [];
+    return new Set(ids.map((v) => String(v)));
+  }, [note?.participant_ids]);
+
+  // Friend-Objekt -> Ziel-User-ID (das ist NICHT die friends.id-PK, sondern
+  // die User-ID des Freundes). Backend toleriert beide, normalisiert aber
+  // sauberer mit der echten User-ID.
+  const getFriendUserId = (friend) => {
+    if (!friend) return null;
+    return friend.friend_user_id || friend.user_id || friend.friend_id || friend.id || null;
+  };
+  const getFriendName = (friend) => friend?.friend_name || friend?.name || friend?.email || 'Freund';
+  const getFriendInitial = (friend) => (getFriendName(friend)[0] || '?').toUpperCase();
+  const getFriendAvatar = (friend) => friend?.friend_avatar_url || friend?.avatar_url || null;
+
+  const sharedFriends = useMemo(() => {
+    if (!Array.isArray(friends)) return [];
+    return friends.filter((f) => {
+      const uid = getFriendUserId(f);
+      return uid && participantIdSet.has(String(uid));
+    });
+  }, [friends, participantIdSet]);
+
+  const availableFriends = useMemo(() => {
+    if (!Array.isArray(friends)) return [];
+    const q = friendQuery.trim().toLowerCase();
+    return friends
+      .filter((f) => {
+        const uid = getFriendUserId(f);
+        if (!uid) return false;
+        if (participantIdSet.has(String(uid))) return false;
+        if (!q) return true;
+        return getFriendName(f).toLowerCase().includes(q) || (f.email || '').toLowerCase().includes(q);
+      })
+      .slice(0, 30);
+  }, [friends, friendQuery, participantIdSet]);
+
+  const canShareWithFriends = isOwnerOfNote && !readOnly && !!note?.id;
+
+  const updateParticipants = async (nextIds) => {
+    try {
+      await onUpdate?.(note.id, { participant_ids: nextIds });
+    } catch (err) {
+      console.error('[NoteEditorModal] update participants failed:', err);
+    }
+  };
+  const handleAddFriend = async (friend) => {
+    if (!canShareWithFriends) return;
+    const uid = getFriendUserId(friend);
+    if (!uid) return;
+    const next = Array.from(new Set([...participantIdSet, String(uid)]));
+    setFriendPickerOpen(false);
+    setFriendQuery('');
+    await updateParticipants(next);
+  };
+  const handleRemoveFriend = async (friend) => {
+    if (!canShareWithFriends) return;
+    const uid = getFriendUserId(friend);
+    if (!uid) return;
+    const next = Array.from(participantIdSet).filter((id) => id !== String(uid));
+    await updateParticipants(next);
   };
   const availableTasks = useMemo(() => {
     if (!Array.isArray(tasks)) return [];
@@ -406,6 +489,78 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                 {visibility === 'group' ? <Users size={13} /> : <Lock size={13} />}
                 <span>{visibility === 'group' ? 'Mit Gruppe geteilt' : 'Privat'}</span>
               </button>
+            )}
+            {canShareWithFriends && (
+              <div className="nem-share-friends">
+                <div className="nem-share-friends-row">
+                  {sharedFriends.map((f) => (
+                    <button
+                      key={getFriendUserId(f)}
+                      type="button"
+                      className="nem-share-chip is-active"
+                      onClick={() => handleRemoveFriend(f)}
+                      title={`${getFriendName(f)} — klicken zum Entfernen`}
+                    >
+                      {getFriendAvatar(f) ? (
+                        <img src={getFriendAvatar(f)} alt="" className="nem-share-chip-avatar" />
+                      ) : (
+                        <span className="nem-share-chip-avatar nem-share-chip-avatar--initial">{getFriendInitial(f)}</span>
+                      )}
+                      <span className="nem-share-chip-name">{getFriendName(f)}</span>
+                      <X size={11} />
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className="nem-share-add"
+                    onClick={() => setFriendPickerOpen((v) => !v)}
+                    aria-expanded={friendPickerOpen}
+                    title="Mit Freund teilen"
+                  >
+                    <UserPlus size={13} />
+                    <span>{sharedFriends.length === 0 ? 'Mit Freund teilen' : 'Weiteren teilen'}</span>
+                  </button>
+                </div>
+                {friendPickerOpen && (
+                  <div className="nem-link-picker" role="listbox">
+                    <div className="nem-link-picker-search">
+                      <Search size={13} />
+                      <input
+                        type="text"
+                        placeholder="Freund suchen…"
+                        value={friendQuery}
+                        onChange={(e) => setFriendQuery(e.target.value)}
+                        autoFocus
+                      />
+                    </div>
+                    <div className="nem-link-picker-list">
+                      {availableFriends.length === 0 ? (
+                        <div className="nem-link-picker-empty">
+                          {Array.isArray(friends) && friends.length === 0
+                            ? 'Du hast noch keine Freunde hinzugefuegt.'
+                            : 'Keine passenden Freunde.'}
+                        </div>
+                      ) : availableFriends.map((f) => (
+                        <button
+                          key={getFriendUserId(f)}
+                          type="button"
+                          className="nem-link-picker-item"
+                          onClick={() => handleAddFriend(f)}
+                          role="option"
+                        >
+                          {getFriendAvatar(f) ? (
+                            <img src={getFriendAvatar(f)} alt="" className="nem-share-chip-avatar" />
+                          ) : (
+                            <span className="nem-share-chip-avatar nem-share-chip-avatar--initial">{getFriendInitial(f)}</span>
+                          )}
+                          <span className="nem-link-picker-title">{getFriendName(f)}</span>
+                          {f.email && <span className="nem-link-picker-meta">{f.email}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
             {taskPickerOpen && !linkedTask && (
               <div className="nem-link-picker" role="listbox">
