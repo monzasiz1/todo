@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Maximize2, Minimize2, Trash2, Archive, Save, Check, Calendar as CalendarIcon, Link2, Link2Off, Search } from 'lucide-react';
+import { X, Maximize2, Minimize2, Trash2, Archive, Save, Check, Calendar as CalendarIcon, Link2, Link2Off, Search, Lock, Users, Eye } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { useTaskStore } from '../store/taskStore';
+import { useAuthStore } from '../store/authStore';
 import '../styles/note-editor-modal.css';
 
 const NOTE_COLORS = [
@@ -74,12 +75,18 @@ function renderInline(text) {
   return parts;
 }
 
-export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onComplete }) {
+export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onComplete, readOnly: readOnlyProp = false }) {
   const initialParsed = useMemo(() => parseColor(note?.content || ''), [note?.id]);
   const [title, setTitle] = useState(note?.title || '');
   const [content, setContent] = useState(initialParsed.rest);
   const [color, setColor] = useState(initialParsed.color);
   const [importance, setImportance] = useState(note?.importance || 'medium');
+  // Owner-/Readonly-Logik: Notes von anderen Usern (z. B. an gemeinsame
+  // Tasks angeheftete Team-Notes) werden read-only dargestellt.
+  const currentUser = useAuthStore((s) => s.user);
+  const currentUserId = currentUser?.id ? String(currentUser.id) : '';
+  const isOwnerOfNote = !note?.user_id || (currentUserId && String(note.user_id) === currentUserId);
+  const readOnly = readOnlyProp || !isOwnerOfNote;
   const [showPreview, setShowPreview] = useState(false);
   const [saveState, setSaveState] = useState('idle'); // 'idle' | 'saving' | 'saved'
   const [taskPickerOpen, setTaskPickerOpen] = useState(false);
@@ -91,6 +98,16 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
     if (!note?.linked_task_id || !Array.isArray(tasks)) return null;
     return tasks.find((t) => t && String(t.id) === String(note.linked_task_id)) || null;
   }, [tasks, note?.linked_task_id]);
+  // Sichtbarkeit: 'private' (Default) oder 'group' — Toggle nur fuer Owner
+  // einer Notiz, die an eine Gruppentask haengt.
+  const visibility = note?.visibility === 'group' ? 'group' : 'private';
+  const canShareWithGroup = isOwnerOfNote && !!linkedTask && !!linkedTask.group_id;
+  const handleToggleVisibility = async () => {
+    if (!canShareWithGroup || readOnly) return;
+    const next = visibility === 'group' ? 'private' : 'group';
+    try { await onUpdate?.(note.id, { visibility: next }); }
+    catch (err) { console.error('[NoteEditorModal] toggle visibility failed:', err); }
+  };
   const availableTasks = useMemo(() => {
     if (!Array.isArray(tasks)) return [];
     const q = taskQuery.trim().toLowerCase();
@@ -152,6 +169,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   // Debounced Auto-Save
   const scheduleSave = useCallback((nextTitle, nextContent, nextColor, nextImportance) => {
     if (!note?.id) return;
+    if (readOnly) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     setSaveState('saving');
     saveTimerRef.current = setTimeout(async () => {
@@ -175,6 +193,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
       clearTimeout(saveTimerRef.current);
       saveTimerRef.current = null;
     }
+    if (readOnly) return;
     const key = `${note?.id}|${title}|${buildContent(content, color)}|${importance}`;
     if (key === initialKeyRef.current) return;
     onUpdate?.(note.id, {
@@ -276,8 +295,19 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
               maxLength={120}
               placeholder="Titel…"
               onChange={(e) => setTitle(e.target.value)}
+              readOnly={readOnly}
             />
             <div className="nem-header-actions">
+              {readOnly && (
+                <span className="nem-readonly-badge" title="Nur lesen">
+                  <Eye size={13} /> <span>Nur lesen</span>
+                </span>
+              )}
+              {!readOnly && visibility === 'group' && (
+                <span className="nem-readonly-badge nem-readonly-badge--shared" title="Mit Gruppe geteilt">
+                  <Users size={13} /> <span>Geteilt</span>
+                </span>
+              )}
               <span className={`nem-save-state nem-save-${saveState}`} aria-live="polite">
                 {saveState === 'saving' && 'Speichere…'}
                 {saveState === 'saved' && 'Gespeichert'}
@@ -315,7 +345,8 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                 placeholder={`Schreib los…\n\nTipps:\n  **fett**   *kursiv*   \`code\`\n  - Aufzaehlung\n  - [ ] Checkliste\n  # Ueberschrift`}
                 onChange={(e) => setContent(e.target.value)}
                 onKeyDown={onTextareaKeyDown}
-                autoFocus
+                autoFocus={!readOnly}
+                readOnly={readOnly}
                 spellCheck
               />
             )}
@@ -346,18 +377,34 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                   onClick={handleUnlinkTask}
                   title="Verknuepfung entfernen"
                   aria-label="Verknuepfung entfernen"
+                  disabled={readOnly}
+                  style={readOnly ? { display: 'none' } : undefined}
                 >
                   <Link2Off size={13} />
                 </button>
               </div>
             ) : (
+              !readOnly && (
+                <button
+                  type="button"
+                  className="nem-link-add"
+                  onClick={() => setTaskPickerOpen((v) => !v)}
+                  aria-expanded={taskPickerOpen}
+                >
+                  <Link2 size={14} /> <span>Termin anheften</span>
+                </button>
+              )
+            )}
+            {canShareWithGroup && (
               <button
                 type="button"
-                className="nem-link-add"
-                onClick={() => setTaskPickerOpen((v) => !v)}
-                aria-expanded={taskPickerOpen}
+                className={`nem-visibility-toggle${visibility === 'group' ? ' is-shared' : ''}`}
+                onClick={handleToggleVisibility}
+                title={visibility === 'group' ? 'Sichtbar fuer alle Gruppenmitglieder — klicken zum Privatisieren' : 'Nur fuer dich sichtbar — klicken zum Teilen mit Gruppe'}
+                aria-pressed={visibility === 'group'}
               >
-                <Link2 size={14} /> <span>Termin anheften</span>
+                {visibility === 'group' ? <Users size={13} /> : <Lock size={13} />}
+                <span>{visibility === 'group' ? 'Mit Gruppe geteilt' : 'Privat'}</span>
               </button>
             )}
             {taskPickerOpen && !linkedTask && (
@@ -398,7 +445,9 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
           </div>
 
           <div className="nem-footer">
-            <div className="nem-color-row" role="radiogroup" aria-label="Farbe">
+            {!readOnly && (
+              <>
+                <div className="nem-color-row" role="radiogroup" aria-label="Farbe">
               {NOTE_COLORS.map((c) => (
                 <button
                   key={c.name}
@@ -461,6 +510,20 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                 <Save size={14} /> <span>Fertig</span>
               </button>
             </div>
+              </>
+            )}
+            {readOnly && (
+              <div className="nem-footer-actions">
+                <button
+                  type="button"
+                  className="nem-action-btn primary"
+                  onClick={handleClose}
+                  title="Schliessen"
+                >
+                  <X size={14} /> <span>Schliessen</span>
+                </button>
+              </div>
+            )}
           </div>
         </motion.div>
       </motion.div>

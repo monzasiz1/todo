@@ -144,6 +144,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const currentUser = useMemo(() => {
     try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch { return null; }
   }, []);
+  const currentUserId = currentUser?.id != null ? String(currentUser.id) : '';
   const isOwnerResolved = useMemo(() => {
     const ownerId = Number(task?.user_id);
     const selfId = Number(currentUser?.id);
@@ -1223,6 +1224,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
           setPickerOpen={setNotePickerOpen}
           pickerQuery={notePickerQuery}
           setPickerQuery={setNotePickerQuery}
+          currentUserId={currentUserId}
         />
 
         {task.location && task.location.trim() && showMapChoice && createPortal(
@@ -1705,9 +1707,11 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const openedNote = openNoteId != null
     ? (Array.isArray(notesAll) ? notesAll.find((n) => String(n.id) === String(openNoteId)) : null)
     : null;
+  const openedNoteIsForeign = !!openedNote && !!currentUserId && String(openedNote.user_id) !== currentUserId;
   const noteEditorPortal = openedNote && createPortal(
     <NoteEditorModal
       note={openedNote}
+      readOnly={openedNoteIsForeign}
       onClose={() => setOpenNoteId(null)}
       onUpdate={async (id, updates) => { try { await updateNoteStore(id, updates); } catch (e) { console.error(e); } }}
       onDelete={async (id) => {
@@ -1781,7 +1785,7 @@ function parseNoteMeta(content) {
   return { accent, snippet };
 }
 
-function LinkedNotesSection({ task, notesAll, updateNoteStore, onOpenNote, pickerOpen, setPickerOpen, pickerQuery, setPickerQuery }) {
+function LinkedNotesSection({ task, notesAll, updateNoteStore, onOpenNote, pickerOpen, setPickerOpen, pickerQuery, setPickerQuery, currentUserId }) {
   const linkedNotes = useMemo(() => {
     if (!Array.isArray(notesAll) || !task?.id) return [];
     return notesAll.filter((n) => n && String(n.linked_task_id || '') === String(task.id));
@@ -1791,10 +1795,15 @@ function LinkedNotesSection({ task, notesAll, updateNoteStore, onOpenNote, picke
     if (!Array.isArray(notesAll)) return [];
     const q = pickerQuery.trim().toLowerCase();
     return notesAll
+      // Nur eigene Notes, die noch nicht an die aktuelle Task gehaengt sind,
+      // koennen via Picker angeheftet werden — fremde Team-Notes bleiben aussen vor.
+      .filter((n) => n && (!currentUserId || String(n.user_id) === String(currentUserId)))
       .filter((n) => n && String(n.linked_task_id || '') !== String(task?.id || ''))
       .filter((n) => !q || (n.title || '').toLowerCase().includes(q) || (n.content || '').toLowerCase().includes(q))
       .slice(0, 30);
-  }, [notesAll, pickerQuery, task?.id]);
+  }, [notesAll, pickerQuery, task?.id, currentUserId]);
+
+  const isTaskCreator = !!currentUserId && !!task?.user_id && String(task.user_id) === String(currentUserId);
 
   const handleAttach = async (noteId) => {
     try {
@@ -1814,6 +1823,14 @@ function LinkedNotesSection({ task, notesAll, updateNoteStore, onOpenNote, picke
     try { onOpenNote?.(note.id); } catch (err) { console.error(err); }
   };
 
+  const ownerInitials = (note) => {
+    const src = note.owner_name || '';
+    if (!src) return '?';
+    const parts = src.trim().split(/\s+/).filter(Boolean);
+    const init = parts.slice(0, 2).map((p) => p[0]?.toUpperCase() || '').join('');
+    return init || '?';
+  };
+
   return (
     <div className="task-detail-section task-detail-notes-section">
       <div className="task-detail-description-header">
@@ -1826,31 +1843,55 @@ function LinkedNotesSection({ task, notesAll, updateNoteStore, onOpenNote, picke
         <div className="task-detail-notes-list">
           {linkedNotes.map((note) => {
             const meta = parseNoteMeta(note.content);
+            const isOwn = !currentUserId || String(note.user_id) === String(currentUserId);
+            const isShared = note.visibility === 'group';
+            const canDetach = isOwn || isTaskCreator;
+            const chipClasses = [
+              'task-detail-note-chip',
+              !isOwn ? 'task-detail-note-chip--foreign' : '',
+              isOwn && !isShared ? 'task-detail-note-chip--private' : '',
+              isOwn && isShared ? 'task-detail-note-chip--shared' : '',
+            ].filter(Boolean).join(' ');
             return (
               <button
                 key={note.id}
                 type="button"
-                className="task-detail-note-chip"
+                className={chipClasses}
                 style={{ '--note-accent': meta.accent }}
                 onClick={() => handleOpenNote(note)}
-                title="Notiz oeffnen"
+                title={isOwn ? 'Notiz oeffnen' : `Notiz von ${note.owner_name || 'Teammitglied'} ansehen`}
               >
                 <span className="task-detail-note-chip-stripe" aria-hidden="true" />
+                {!isOwn ? (
+                  <span className="task-detail-note-chip-avatar" aria-hidden="true" title={note.owner_name || ''}>
+                    {note.owner_avatar_url ? (
+                      <img src={note.owner_avatar_url} alt="" />
+                    ) : (
+                      <span>{ownerInitials(note)}</span>
+                    )}
+                  </span>
+                ) : (
+                  <span className="task-detail-note-chip-badge" aria-hidden="true">
+                    {isShared ? <Users size={12} /> : <Lock size={12} />}
+                  </span>
+                )}
                 <span className="task-detail-note-chip-body">
                   <span className="task-detail-note-chip-title">{note.title || 'Ohne Titel'}</span>
                   {meta.snippet && <span className="task-detail-note-chip-snippet">{meta.snippet}</span>}
                 </span>
-                <span
-                  className="task-detail-note-chip-remove"
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => handleDetach(note.id, e)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleDetach(note.id, e); } }}
-                  title="Verknuepfung loesen"
-                  aria-label="Verknuepfung loesen"
-                >
-                  <Link2Off size={13} />
-                </span>
+                {canDetach && (
+                  <span
+                    className="task-detail-note-chip-remove"
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => handleDetach(note.id, e)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleDetach(note.id, e); } }}
+                    title={isOwn ? 'Verknuepfung loesen' : 'Notiz von dieser Task entfernen (Moderation)'}
+                    aria-label="Verknuepfung loesen"
+                  >
+                    <Link2Off size={13} />
+                  </span>
+                )}
               </button>
             );
           })}

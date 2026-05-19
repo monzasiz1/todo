@@ -31636,6 +31636,51 @@ html[data-theme="dark"] .gs-discover-skeleton {
   color: #fff;
 }
 
+/* ── Note-Chip Visibility-Varianten (Privacy-First) ────────── */
+.task-detail-note-chip-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin: 0 8px 0 4px;
+  border-radius: 50%;
+  background: var(--primary-bg, rgba(0,122,255,.12));
+  color: var(--primary, #007AFF);
+  font-size: 0.62rem;
+  font-weight: 700;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid var(--border, rgba(0,0,0,.06));
+}
+.task-detail-note-chip-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.task-detail-note-chip-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  margin-left: 6px;
+  color: var(--text-tertiary, #AEAEB2);
+  flex-shrink: 0;
+}
+.task-detail-note-chip--shared .task-detail-note-chip-badge {
+  color: var(--primary, #007AFF);
+}
+.task-detail-note-chip--foreign {
+  background: var(--surface-2, #F2F2F7);
+}
+.task-detail-note-chip--foreign .task-detail-note-chip-title::after {
+  content: ' · Team';
+  font-weight: 400;
+  font-size: 0.7rem;
+  color: var(--text-tertiary, #AEAEB2);
+}
+
 .task-detail-notes-add-wrap { position: relative; }
 .task-detail-notes-add {
   display: inline-flex;

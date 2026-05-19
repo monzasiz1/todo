@@ -136,6 +136,10 @@ async function ensureNotesStatusColumns(pool) {
     await pool.query('ALTER TABLE notes ADD COLUMN IF NOT EXISTS completed BOOLEAN DEFAULT FALSE');
     await pool.query('ALTER TABLE notes ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP NULL');
     await pool.query("ALTER TABLE notes ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'open'");
+    // visibility: 'private' (nur Owner) | 'group' (alle Mitglieder der Task-Gruppe).
+    // Index beschleunigt den GET-Filter beim Anzeigen von Team-Notes an Tasks.
+    await pool.query("ALTER TABLE notes ADD COLUMN IF NOT EXISTS visibility VARCHAR(16) DEFAULT 'private'");
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_notes_linked_task_visibility ON notes (linked_task_id, visibility) WHERE linked_task_id IS NOT NULL`);
     noteStatusColumnsEnsuredAt = now;
   } catch (err) {
     console.warn('[notes] ensure status columns failed:', err?.message || err);
@@ -491,6 +495,51 @@ module.exports = async function handler(req, res) {
         await syncParticipantShares(pool, note.id, userIdText, [], normalizedParticipantIds, null, normalizedResponsibleId).catch(() => null);
       }
 
+      // Zusaetzlich: Team-Notes (visibility='group') die an Tasks haengen,
+      // auf die der User Zugriff hat (eigene, geteilte, Gruppenmitglied).
+      // Performance: indexed via idx_notes_linked_task_visibility; ein einziges
+      // EXISTS-Subquery deckt alle Zugriffsarten ab.
+      if (!wantsArchive) {
+        try {
+          const teamResult = await pool.query(
+            `SELECT n.*, t.title AS linked_task_title,
+                    u.name AS owner_name, u.avatar_url AS owner_avatar_url
+               FROM notes n
+               JOIN tasks t ON t.id::text = n.linked_task_id::text
+               LEFT JOIN users u ON u.id = n.user_id
+              WHERE n.user_id::text <> $1
+                AND n.visibility = 'group'
+                AND COALESCE(n.completed, false) = false
+                AND (
+                  t.user_id = $2
+                  OR EXISTS (
+                    SELECT 1 FROM task_permissions tp
+                     WHERE tp.task_id = t.id AND tp.user_id = $2 AND tp.can_view = true
+                  )
+                  OR EXISTS (
+                    SELECT 1 FROM group_tasks gt
+                      JOIN group_members gm ON gm.group_id = gt.group_id AND gm.user_id = $2
+                     WHERE gt.task_id = t.id
+                  )
+                )
+              ORDER BY n.updated_at DESC`,
+            [userIdText, userId]
+          );
+          // Markiere als read-only fuer den anfragenden User
+          const teamNotes = (teamResult.rows || []).map((n) => ({
+            ...n,
+            is_foreign: true,
+            read_only: true,
+          }));
+          ownNotes = ownNotes.concat(teamNotes);
+        } catch (teamErr) {
+          // Fehler nicht fatal — Tabellen group_tasks/task_permissions koennten
+          // fehlen oder visibility-Spalte ist noch nicht migriert. Eigene Notes
+          // werden bereits korrekt zurueckgegeben.
+          console.warn('[notes] team-notes query skipped:', teamErr?.message || teamErr);
+        }
+      }
+
       return res.status(200).json({ notes: ownNotes });
     }
 
@@ -683,13 +732,20 @@ module.exports = async function handler(req, res) {
       `SELECT n.*, CASE
                   WHEN n.responsible_user_id = $3 THEN 'edit'
                   ELSE ns.permission
-                END AS shared_permission
+                END AS shared_permission,
+                tk.user_id AS linked_task_owner_id
          FROM notes n
          LEFT JOIN note_shares ns ON ns.note_id = n.id AND ns.friend_id::text = $2
+         LEFT JOIN tasks tk ON tk.id::text = n.linked_task_id::text
         WHERE n.id = $1
           AND (
             ${directNoteAccessClause}
             OR ${inheritedNoteAccessClause}
+            OR (
+              n.visibility = 'group'
+              AND tk.id IS NOT NULL
+              AND tk.user_id = $3
+            )
           )
         LIMIT 1`,
       [noteId, userIdText, userId]
@@ -703,6 +759,10 @@ module.exports = async function handler(req, res) {
     const isOwner = String(note.user_id) === userIdText;
     const isResponsible = String(note.responsible_user_id || '') === userIdText;
     const canEditNote = isOwner || isResponsible || note.shared_permission === 'edit';
+    // Task-Owner darf eine Team-Notiz von seiner Task entfernen (Moderation),
+    // aber sonst keine Inhalte editieren.
+    const isLinkedTaskOwner = !!note.linked_task_owner_id && String(note.linked_task_owner_id) === String(userId);
+    const canModerateDetach = !isOwner && note.visibility === 'group' && isLinkedTaskOwner;
 
     // PATCH /api/notes/:id
     if (
@@ -710,10 +770,29 @@ module.exports = async function handler(req, res) {
       (isLegacyNoteAction && req.method === 'POST' && ['update', 'edit'].includes(legacyMethod)) ||
       (isRootAction && ['update', 'edit'].includes(rootAction))
     ) {
+      // Moderations-Detach: Task-Owner darf eine fremde Team-Notiz von seiner
+      // Task entfernen — aber nur das Feld linked_task_id auf null setzen.
       if (!canEditNote) {
+        if (canModerateDetach) {
+          const body = req.body || {};
+          const linkedInput = body.linked_task_id !== undefined ? body.linked_task_id : body.linkedTaskId;
+          const isDetachOnly = (linkedInput === null || linkedInput === '' )
+            && Object.keys(body).filter((k) => !['linked_task_id', 'linkedTaskId', 'id', 'action', 'updates', 'data'].includes(k)).length === 0;
+          if (isDetachOnly) {
+            try {
+              const detach = await pool.query(
+                `UPDATE notes SET linked_task_id = NULL, updated_at = NOW() WHERE id = $1 RETURNING *`,
+                [noteId]
+              );
+              return res.status(200).json({ note: detach.rows[0] });
+            } catch (e) {
+              console.error('[notes] moderation-detach failed:', e);
+              return res.status(500).json({ error: 'Detach fehlgeschlagen' });
+            }
+          }
+        }
         return res.status(403).json({ error: 'Keine Berechtigung zum Bearbeiten' });
       }
-
       const rawBody = req.body || {};
       const nestedUpdates =
         rawBody && typeof rawBody.updates === 'object' && rawBody.updates !== null
@@ -760,6 +839,13 @@ module.exports = async function handler(req, res) {
           : 'open';
         fields.push(`status = $${idx++}`);
         values.push(validStatus);
+      }
+      if (updates.visibility !== undefined) {
+        const validVisibility = ['private', 'group'].includes(String(updates.visibility).toLowerCase())
+          ? String(updates.visibility).toLowerCase()
+          : 'private';
+        fields.push(`visibility = $${idx++}`);
+        values.push(validVisibility);
       }
       const linkedTaskInput = updates.linked_task_id !== undefined ? updates.linked_task_id : updates.linkedTaskId;
       if (linkedTaskInput !== undefined) {
