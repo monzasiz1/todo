@@ -519,6 +519,7 @@ module.exports = async function handler(req, res) {
           const teamResult = await pool.query(
             `SELECT n.*, t.title AS linked_task_title,
                     u.name AS owner_name, u.avatar_url AS owner_avatar_url,
+                    COALESCE(sh.shares, '[]'::jsonb) AS shares,
                     CASE
                       WHEN n.responsible_user_id::text = $1 THEN 'edit'
                       ELSE COALESCE(ns.permission, 'view')
@@ -527,6 +528,17 @@ module.exports = async function handler(req, res) {
                JOIN tasks t ON t.id::text = n.linked_task_id::text
                LEFT JOIN users u ON u.id::text = n.user_id::text
                LEFT JOIN note_shares ns ON ns.note_id = n.id AND ns.friend_id::text = $1
+               LEFT JOIN LATERAL (
+                 SELECT jsonb_agg(jsonb_build_object(
+                          'user_id', ns2.friend_id::text,
+                          'permission', ns2.permission,
+                          'name', su.name,
+                          'avatar_url', su.avatar_url
+                        )) AS shares
+                   FROM note_shares ns2
+                   LEFT JOIN users su ON su.id::text = ns2.friend_id::text
+                  WHERE ns2.note_id = n.id
+               ) sh ON true
               WHERE n.user_id::text <> $1
                 AND n.visibility = 'group'
                 AND COALESCE(n.completed, false) = false
@@ -717,11 +729,24 @@ module.exports = async function handler(req, res) {
                 ELSE COALESCE(ns.permission, 'view')
               END AS permission,
                   u.name AS owner_name,
+                  u.avatar_url AS owner_avatar_url,
+                  COALESCE(sh.shares, '[]'::jsonb) AS shares,
                   t.title AS linked_task_title
              FROM notes n
              LEFT JOIN note_shares ns ON ns.note_id = n.id AND ns.friend_id::text = $1
              JOIN users u ON u.id = n.user_id
              LEFT JOIN tasks t ON t.id::text = n.linked_task_id::text
+             LEFT JOIN LATERAL (
+               SELECT jsonb_agg(jsonb_build_object(
+                        'user_id', ns2.friend_id::text,
+                        'permission', ns2.permission,
+                        'name', su.name,
+                        'avatar_url', su.avatar_url
+                      )) AS shares
+                 FROM note_shares ns2
+                 LEFT JOIN users su ON su.id::text = ns2.friend_id::text
+                WHERE ns2.note_id = n.id
+             ) sh ON true
             WHERE n.user_id::text <> $1
               AND (
                 ${directAccessClause}

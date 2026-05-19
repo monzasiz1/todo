@@ -156,6 +156,21 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
     return map;
   }, [note?.shares, note?.participant_ids]);
 
+  // Vollständige Empfängerliste (Name+Avatar) direkt aus note.shares
+  // — funktioniert auch für Empfänger, die nicht in der eigenen Friends-
+  // Liste stehen (z. B. Gruppen-Note vom fremden Owner).
+  const recipientList = useMemo(() => {
+    if (!Array.isArray(note?.shares)) return [];
+    return note.shares
+      .filter((s) => s && s.user_id != null)
+      .map((s) => ({
+        user_id: String(s.user_id),
+        name: s.name || 'Unbekannt',
+        avatar_url: s.avatar_url || null,
+        permission: s.permission || 'view',
+      }));
+  }, [note?.shares]);
+
   // Friend-Objekt -> Ziel-User-ID (echte User-ID, nicht friendship-PK).
   const getFriendUserId = (friend) => {
     if (!friend) return null;
@@ -522,6 +537,48 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                 {visibility === 'group' ? <Users size={13} /> : <Lock size={13} />}
                 <span>{visibility === 'group' ? 'Mit Gruppe geteilt' : 'Privat'}</span>
               </button>
+            )}
+            {!isOwnerOfNote && (note?.owner_name || recipientList.length > 0) && (
+              <div className="nem-share-friends nem-share-friends--readonly">
+                <div className="nem-share-friends-row">
+                  {note?.owner_name && (
+                    <span
+                      className="nem-share-chip is-owner"
+                      title={`Geteilt von ${note.owner_name}`}
+                    >
+                      {note.owner_avatar_url ? (
+                        <img src={note.owner_avatar_url} alt="" className="nem-share-chip-avatar" />
+                      ) : (
+                        <span className="nem-share-chip-avatar nem-share-chip-avatar--initial">
+                          {(note.owner_name[0] || '?').toUpperCase()}
+                        </span>
+                      )}
+                      <span className="nem-share-chip-name">Von {note.owner_name}</span>
+                    </span>
+                  )}
+                  {recipientList.map((r) => {
+                    const isMe = r.user_id === currentUserId;
+                    const isEdit = r.permission === 'edit';
+                    return (
+                      <span
+                        key={r.user_id}
+                        className={`nem-share-chip${isEdit ? ' is-edit' : ''}${isMe ? ' is-me' : ''}`}
+                        title={`${isMe ? 'Du' : r.name} — ${isEdit ? 'darf bearbeiten' : 'kann nur lesen'}`}
+                      >
+                        {r.avatar_url ? (
+                          <img src={r.avatar_url} alt="" className="nem-share-chip-avatar" />
+                        ) : (
+                          <span className="nem-share-chip-avatar nem-share-chip-avatar--initial">
+                            {(r.name[0] || '?').toUpperCase()}
+                          </span>
+                        )}
+                        <span className="nem-share-chip-name">{isMe ? 'Du' : r.name}</span>
+                        {isEdit ? <Pencil size={12} /> : <Eye size={12} />}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
             )}
             {canShareWithFriends && (
               <div className="nem-share-friends">

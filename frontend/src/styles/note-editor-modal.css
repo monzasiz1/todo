@@ -195,6 +195,26 @@ body.note-editor-open .bottom-nav {
   border-color: #34C759;
   color: #1f8a3a;
 }
+/* Owner-Chip (zeigt bei Empfaenger an: "Von <Name>") */
+.nem-share-chip.is-owner {
+  background: rgba(0, 122, 255, 0.10);
+  border-color: rgba(0, 122, 255, 0.35);
+  color: #0a4fb8;
+  font-weight: 700;
+}
+html[data-theme="dark"] .nem-share-chip.is-owner {
+  background: rgba(88, 166, 255, 0.18);
+  border-color: rgba(88, 166, 255, 0.45);
+  color: #cfe3ff;
+}
+/* Eigener Empfaenger-Chip (Du) */
+.nem-share-chip.is-me {
+  background: rgba(0, 0, 0, 0.05);
+  border-style: dashed;
+}
+html[data-theme="dark"] .nem-share-chip.is-me {
+  background: rgba(255, 255, 255, 0.06);
+}
 .nem-share-chip-perm,
 .nem-share-chip-remove {
   display: inline-flex;
