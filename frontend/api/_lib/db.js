@@ -197,7 +197,7 @@ function getPool() {
     // Aggressives Idle-Timeout in serverless: Verbindung sofort freigeben,
     // damit gleichzeitige Lambda-Instanzen das Supabase pool_size=15 Limit
     // des Session-Poolers nicht sprengen.
-    const defaultIdle = isServerless ? 1000 : 10000;
+    const defaultIdle = isServerless ? 250 : 10000;
     const poolIdleTimeoutMs = parsePositiveInt(process.env.DB_POOL_IDLE_TIMEOUT_MS, defaultIdle);
     const poolConnTimeoutMs = parsePositiveInt(process.env.DB_POOL_CONN_TIMEOUT_MS, 10000);
 
@@ -234,7 +234,31 @@ function getPool() {
 
     pool.query = async (...args) => {
       if (schemaInitPromise) await schemaInitPromise;
-      return originalQuery(...args);
+      // Retry-Layer: bei Supabase-Pool-Engpass (EMAXCONNSESSION) und
+      // transienten Netzfehlern kurz mit Jitter warten und erneut versuchen.
+      // Verhindert, dass Cold-Start-Bursts Endpoints reihenweise auf 500 setzen.
+      const MAX_ATTEMPTS = 4;
+      let attempt = 0;
+      while (true) {
+        try {
+          return await originalQuery(...args);
+        } catch (err) {
+          const code = err && (err.code || '');
+          const msg = String((err && err.message) || '');
+          const isPoolExhausted =
+            code === 'EMAXCONNSESSION' ||
+            /max clients reached/i.test(msg) ||
+            /too many connections/i.test(msg) ||
+            code === 'ECONNRESET' ||
+            code === 'ETIMEDOUT';
+          attempt += 1;
+          if (!isPoolExhausted || attempt >= MAX_ATTEMPTS) throw err;
+          // 60 → 180 → 540 ms + Jitter
+          const base = 60 * Math.pow(3, attempt - 1);
+          const wait = base + Math.floor(Math.random() * 80);
+          await new Promise((r) => setTimeout(r, wait));
+        }
+      }
     };
   }
   return pool;
