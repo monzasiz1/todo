@@ -435,7 +435,9 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
 
   const getEventEndDate = (t) => {
     if (!t?.date) return null;
-    const datePart = String(t.date).slice(0, 10);
+    // Bei mehrtaegigen Eintraegen zaehlt das Enddatum (date_end), nicht der
+    // erste Tag - sonst gilt das Event schon nach Tag 1 als beendet.
+    const datePart = String(t.date_end || t.date).slice(0, 10);
     const rawEnd = String(t.time_end || t.time || '23:59').slice(0, 5);
     const parts = rawEnd.split(':');
     const hh = String(Math.min(23, Math.max(0, Number(parts[0]) || 23))).padStart(2, '0');
@@ -444,7 +446,11 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     return Number.isNaN(end.getTime()) ? null : end;
   };
 
-  const isOverdue = task?.date && !task?.completed && isPast(parseISO(task.date)) && !isToday(parseISO(task.date));
+  // Bei mehrtaegigen Tasks zaehlt das Enddatum: solange heute im Bereich
+  // [date, date_end] liegt, ist die Aufgabe nicht ueberfaellig.
+  const overdueRef = task?.date_end || task?.date;
+  const isOverdue = task?.date && !task?.completed && !!overdueRef
+    && isPast(parseISO(overdueRef)) && !isToday(parseISO(overdueRef));
   const priority = priorityConfig[task?.priority] || priorityConfig.medium;
   const PriorityIcon = priority.icon;
   // is_group_member: true = echtes Gruppenmitglied, false = extern per Permission geteilt
