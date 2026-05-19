@@ -75,6 +75,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const addToast = useTaskStore((s) => s.addToast);
   const notesAll = useNotesStore((s) => s.notes);
   const updateNoteStore = useNotesStore((s) => s.updateNote);
+  const fetchNotesStore = useNotesStore((s) => s.fetchNotes);
   const navigate = useNavigate();
   const [notePickerOpen, setNotePickerOpen] = useState(false);
   const [notePickerQuery, setNotePickerQuery] = useState('');
@@ -218,6 +219,18 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       }
     };
   }, []);
+
+  // Notes laden, falls Store noch leer (z.B. wenn Task direkt geoeffnet wurde
+  // ohne vorher /app/notes besucht zu haben). Auf Mobile passierte das, dass
+  // angeheftete Notizen nicht angezeigt wurden, weil notesAll leer war.
+  useEffect(() => {
+    if (!task?.id) return;
+    if (!Array.isArray(notesAll) || notesAll.length === 0) {
+      try { fetchNotesStore?.(); } catch {}
+    }
+    // Nur beim Oeffnen pruefen – kein Loop wenn notesAll sich aendert
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [task?.id]);
 
   useEffect(() => {
     if (!isMobile || pageMode) return;
@@ -1833,40 +1846,66 @@ function LinkedNotesSection({ task, notesAll, updateNoteStore, navigate, pickerO
         >
           <Link2 size={14} /> <span>{linkedNotes.length > 0 ? 'Weitere Notiz anheften' : 'Notiz anheften'}</span>
         </button>
-        {pickerOpen && (
-          <div className="task-detail-notes-picker" role="listbox">
-            <div className="task-detail-notes-picker-search">
-              <Search size={13} />
-              <input
-                type="text"
-                placeholder="Notiz suchen…"
-                value={pickerQuery}
-                onChange={(e) => setPickerQuery(e.target.value)}
-                autoFocus
-              />
-            </div>
-            <div className="task-detail-notes-picker-list">
-              {availableNotes.length === 0 ? (
-                <div className="task-detail-notes-picker-empty">Keine Notizen gefunden.</div>
-              ) : availableNotes.map((n) => {
-                const meta = parseNoteMeta(n.content);
-                return (
+        <AnimatePresence>
+          {pickerOpen && createPortal(
+            <motion.div
+              className="task-detail-notes-picker-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              onClick={() => { setPickerOpen(false); setPickerQuery(''); }}
+            >
+              <motion.div
+                className="task-detail-notes-picker"
+                role="listbox"
+                initial={{ opacity: 0, y: 12, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="task-detail-notes-picker-search">
+                  <Search size={13} />
+                  <input
+                    type="text"
+                    placeholder="Notiz suchen…"
+                    value={pickerQuery}
+                    onChange={(e) => setPickerQuery(e.target.value)}
+                    autoFocus
+                  />
                   <button
-                    key={n.id}
                     type="button"
-                    className="task-detail-notes-picker-item"
-                    onClick={() => handleAttach(n.id)}
-                    role="option"
-                  >
-                    <span className="task-detail-notes-picker-dot" style={{ background: meta.accent }} aria-hidden="true" />
-                    <span className="task-detail-notes-picker-title">{n.title || 'Ohne Titel'}</span>
-                    {meta.snippet && <span className="task-detail-notes-picker-snippet">{meta.snippet}</span>}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+                    className="task-detail-notes-picker-close"
+                    onClick={() => { setPickerOpen(false); setPickerQuery(''); }}
+                    aria-label="Schliessen"
+                  >×</button>
+                </div>
+                <div className="task-detail-notes-picker-list">
+                  {availableNotes.length === 0 ? (
+                    <div className="task-detail-notes-picker-empty">Keine Notizen gefunden.</div>
+                  ) : availableNotes.map((n) => {
+                    const meta = parseNoteMeta(n.content);
+                    return (
+                      <button
+                        key={n.id}
+                        type="button"
+                        className="task-detail-notes-picker-item"
+                        onClick={() => handleAttach(n.id)}
+                        role="option"
+                      >
+                        <span className="task-detail-notes-picker-dot" style={{ background: meta.accent }} aria-hidden="true" />
+                        <span className="task-detail-notes-picker-title">{n.title || 'Ohne Titel'}</span>
+                        {meta.snippet && <span className="task-detail-notes-picker-snippet">{meta.snippet}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            </motion.div>,
+            document.body
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

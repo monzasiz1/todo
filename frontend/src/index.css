@@ -31658,19 +31658,49 @@ html[data-theme="dark"] .gs-discover-skeleton {
   background: var(--primary-bg, rgba(0,122,255,.08));
 }
 .task-detail-notes-picker {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: calc(100% + 6px);
-  z-index: 50;
+  position: relative;
+  width: min(420px, calc(100vw - 32px));
+  max-height: min(70vh, 520px);
   background: var(--surface, #fff);
   border: 1px solid var(--border-strong, rgba(0,0,0,.12));
-  border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(0,0,0,.16);
+  border-radius: 16px;
+  box-shadow:
+    0 24px 60px rgba(15, 23, 42, 0.28),
+    0 6px 16px rgba(15, 23, 42, 0.12);
   overflow: hidden;
-  max-height: 340px;
   display: flex;
   flex-direction: column;
+}
+.task-detail-notes-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  background: rgba(15, 23, 42, 0.34);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.task-detail-notes-picker-close {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--surface-2, #F7F8FC);
+  color: var(--text-secondary, #8E8E93);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background .12s ease, color .12s ease;
+}
+.task-detail-notes-picker-close:hover {
+  background: var(--hover, rgba(28,28,30,.06));
+  color: var(--text, #1C1C1E);
 }
 .task-detail-notes-picker-search {
   display: flex;
@@ -31733,4 +31763,19 @@ html[data-theme="dark"] .gs-discover-skeleton {
   text-align: center;
   color: var(--text-secondary, #8E8E93);
   font-size: 0.82rem;
+}
+
+/* Mobile: Picker als Bottom-Sheet */
+@media (max-width: 720px) {
+  .task-detail-notes-picker {
+    width: 100%;
+    max-width: 100%;
+    max-height: 70dvh;
+    border-radius: 18px 18px 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .task-detail-notes-picker-backdrop {
+    align-items: flex-end;
+    justify-content: stretch;
+  }
 }
