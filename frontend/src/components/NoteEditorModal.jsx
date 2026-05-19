@@ -462,7 +462,6 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                 placeholder={`Schreib los…\n\nTipps:\n  **fett**   *kursiv*   \`code\`\n  - Aufzaehlung\n  - [ ] Checkliste\n  # Ueberschrift`}
                 onChange={(e) => setContent(e.target.value)}
                 onKeyDown={onTextareaKeyDown}
-                autoFocus={!readOnly}
                 readOnly={readOnly}
                 spellCheck
               />
