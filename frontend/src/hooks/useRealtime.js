@@ -251,7 +251,7 @@ export function useRealtime({ userId, enabled = true } = {}) {
             const gid = payload?.new?.group_id ?? payload?.old?.group_id;
             try {
               window.dispatchEvent(new CustomEvent('beequ:chat-changed', {
-                detail: { groupId: gid, eventType: payload.eventType },
+                detail: { groupId: gid, eventType: payload.eventType, via: 'pg' },
               }));
             } catch { /* ignore */ }
           }
@@ -260,6 +260,32 @@ export function useRealtime({ userId, enabled = true } = {}) {
           setStatus({ chatChannel: status, chatErr: err?.message });
         });
       _rt.channels.push({ channel: chatChannel });
+
+      // 2b) CHAT FAST-LANE — globaler Broadcast-Topic 'rt-chat'. Der Server
+      //    sendet direkt nach dem INSERT ein leichtgewichtiges
+      //    'new_message'-Event (~50-150ms statt ~500-1000ms bei
+      //    postgres_changes). Payload enthaelt nur group_id + message_id,
+      //    keine Inhalte (Broadcast umgeht RLS). GroupChatPanel filtert
+      //    selbst nach offener Gruppe und lehrt aktuelle Nachrichten ueber
+      //    die normale REST-API nach.
+      const chatBroadcastChannel = supabase
+        .channel('rt-chat')
+        .on(
+          'broadcast',
+          { event: 'new_message' },
+          (msg) => {
+            const gid = msg?.payload?.group_id;
+            try {
+              window.dispatchEvent(new CustomEvent('beequ:chat-changed', {
+                detail: { groupId: gid, eventType: 'INSERT', via: 'broadcast' },
+              }));
+            } catch { /* ignore */ }
+          }
+        )
+        .subscribe((status, err) => {
+          setStatus({ chatBroadcast: status, chatBroadcastErr: err?.message });
+        });
+      _rt.channels.push({ channel: chatBroadcastChannel });
 
       // 3) GRUPPEN — Aenderungen an groups + group_members refreshen die
       //    Gruppenliste. Hot-Pfad: neuer Member, Rolle geaendert, Gruppe

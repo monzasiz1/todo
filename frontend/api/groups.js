@@ -1,6 +1,7 @@
 const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
 const { sendPushToUser } = require('./_lib/pushService');
+const { broadcast: rtBroadcast } = require('./_lib/realtimeBroadcast');
 
 function parseVirtualId(id) {
   if (typeof id !== 'string' || !id.startsWith('v_')) return null;
@@ -1431,6 +1432,15 @@ module.exports = async function handler(req, res) {
       const groupMeta = await pool.query('SELECT name FROM groups WHERE id = $1 LIMIT 1', [groupId]);
       const groupName = groupMeta.rows[0]?.name || 'Gruppe';
       const preview = content.trim().slice(0, 120);
+
+      // Realtime-Broadcast (fire-and-forget): erreicht aktive Chat-Listener
+      // in ~50-150ms, deutlich schneller als postgres_changes (~500-1000ms).
+      // Payload bewusst minimal (Broadcast umgeht RLS) - Clients laden Inhalt
+      // ueber die normale REST-API nach.
+      rtBroadcast('rt-chat', 'new_message', {
+        group_id: Number(groupId) || groupId,
+        message_id: msg.id,
+      }).catch((err) => console.error('rtBroadcast (message) failed:', err));
 
       // Push-Notifications nicht awaiten: Response sofort senden, Push laeuft
       // im Hintergrund. Reduziert wahrgenommene Chat-Latenz deutlich.
