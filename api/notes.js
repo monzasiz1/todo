@@ -511,9 +511,8 @@ module.exports = async function handler(req, res) {
         responsible_user_id = null,
       } = req.body || {};
 
-      if (!title || !String(title).trim()) {
-        return res.status(400).json({ error: 'Titel ist erforderlich' });
-      }
+      // iOS-Notes-Stil: leerer Titel erlaubt (frueher 400 "Titel ist erforderlich")
+      const safeTitle = (title && String(title).trim()) ? String(title).trim() : '';
 
       const validImportance = ['low', 'medium', 'high'].includes(importance) ? importance : 'medium';
       const safeCompleted = !!completed;
@@ -557,7 +556,7 @@ module.exports = async function handler(req, res) {
            RETURNING *`,
           [
             ownerId.value,
-            String(title).trim(),
+            safeTitle,
             String(content || ''),
             validImportance,
             date || null,
@@ -584,7 +583,7 @@ module.exports = async function handler(req, res) {
              RETURNING *`,
             [
               ownerId.value,
-              String(title).trim(),
+              safeTitle,
               String(content || ''),
               validImportance,
               date || null,
@@ -604,7 +603,7 @@ module.exports = async function handler(req, res) {
              RETURNING *`,
             [
               ownerId.value,
-              String(title).trim(),
+              safeTitle,
               String(content || ''),
               validImportance,
               date || null,
