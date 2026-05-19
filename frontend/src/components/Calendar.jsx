@@ -108,7 +108,9 @@ const getEventGlowClass = (task) => {
 
 const getTaskEndDate = (task) => {
   if (!task?.date) return null;
-  const datePart = String(task.date).slice(0, 10);
+  // Bei mehrtaegigen Eintraegen zaehlt das tatsaechliche Enddatum (date_end),
+  // damit ein Event nicht schon am ersten Tag als beendet gilt.
+  const datePart = String(task.date_end || task.date).slice(0, 10);
   const rawEnd = String(task.time_end || task.time || '23:59').slice(0, 5);
   const parts = rawEnd.split(':');
   const hh = String(Math.min(23, Math.max(0, Number(parts[0]) || 23))).padStart(2, '0');

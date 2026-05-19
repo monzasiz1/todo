@@ -5,7 +5,7 @@ import AIInput from '../components/AIInput';
 import ManualTaskForm from '../components/ManualTaskForm';
 import TaskCard from '../components/TaskCard';
 import FocusTimer from '../components/FocusTimer';
-import { CheckCircle2, Circle, Clock, ChevronDown, CalendarDays, AlertTriangle, Target, Plus, X, ChevronsDown, Flame, Zap, TrendingUp, CheckCheck, Coffee, Sunset, Moon } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, ChevronDown, CalendarDays, AlertTriangle, Target, Plus, X, ChevronsDown, Flame, Zap, TrendingUp, CheckCheck, Coffee, Sunset, Moon, Cake } from 'lucide-react';
 import { isToday, isTomorrow, isThisWeek, isPast, parseISO, format, startOfDay, compareAsc } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { usePlan } from '../hooks/usePlan';
@@ -73,6 +73,19 @@ function deduplicateRecurring(tasks) {
   });
 }
 
+function isBirthdayTask(task) {
+  if (!task) return false;
+  const t = String(task.title || '').toLowerCase();
+  if (!t) return false;
+  return (
+    t.includes('geburtstag')
+    || t.includes('birthday')
+    || t.includes('🎂')
+    || /\bb-?day\b/.test(t)
+    || /\bbday\b/.test(t)
+  );
+}
+
 function groupTasksByDate(tasks) {
   const now = new Date();
   const nowTs = now.getTime();
@@ -85,6 +98,7 @@ function groupTasksByDate(tasks) {
   const later = [];
   const noDate = [];
   const pastEvents = [];
+  const birthdays = [];
 
   for (const task of tasks) {
     if (task.completed) continue;
@@ -95,12 +109,32 @@ function groupTasksByDate(tasks) {
     }
 
     const d = parseISO(task.date);
+    // Bei mehrtaegigen Eintraegen ist das Enddatum entscheidend: ein Event
+    // ist erst dann ueberfaellig, wenn das letzte Datum vorbei ist; und es
+    // soll auch "heute" auftauchen, solange today im Bereich [date, date_end]
+    // liegt.
+    const endStr = String(task.date_end || task.date).slice(0, 10);
+    const dEnd = parseISO(endStr);
+    const isMultiDay = endStr > String(task.date).slice(0, 10);
+    const todayInRange = isMultiDay && d <= now && dEnd >= todayStart;
 
-    if (isPast(d) && !isToday(d)) {
+    const isBirthday = isBirthdayTask(task);
+    const isThisWeekDate = isToday(d) || isTomorrow(d) || isThisWeek(d, { weekStartsOn: 1 });
+
+    // Geburtstage zusaetzlich in eigene Section, wenn sie Heute oder in
+    // dieser Woche stattfinden (oder noch in der Zukunft liegen).
+    if (isBirthday && (isThisWeekDate || d >= todayStart)) {
+      birthdays.push(task);
+    }
+
+    if (todayInRange) {
+      today.push(task);
+    } else if (isPast(dEnd) && !isToday(dEnd)) {
       // Beendete Termine archivieren – nicht als überfällig markieren
       if (isEventEnded(task, nowTs)) {
         pastEvents.push(task);
-      } else {
+      } else if (!isBirthday) {
+        // Geburtstage sollen nicht in "Ueberfaellig" landen.
         overdue.push(task);
       }
     } else if (isToday(d)) {
@@ -127,6 +161,7 @@ function groupTasksByDate(tasks) {
 
   return [
     { key: 'overdue', label: 'Überfällig', icon: AlertTriangle, color: '#FF3B30', tasks: sortGroup(overdue) },
+    { key: 'birthdays', label: 'Geburtstage', icon: Cake, color: '#FF2D92', tasks: sortGroup(birthdays) },
     { key: 'today', label: 'Heute', icon: Clock, color: '#FF9500', tasks: sortGroup(today) },
     { key: 'tomorrow', label: 'Morgen', icon: CalendarDays, color: '#007AFF', tasks: sortGroup(tomorrow) },
     { key: 'week', label: 'Diese Woche', icon: CalendarDays, color: '#5856D6', tasks: sortGroup(thisWeek) },

@@ -59,6 +59,26 @@ DO $$ BEGIN
 END $$;
 
 -- ── 4) SELECT-Policies (Realtime-Sichtbarkeit) ───────────────────────────
+-- Helper, der die Mitgliedschafts-Prüfung mit SECURITY DEFINER macht, damit
+-- die group_members-Policy nicht in eine Endlos-Rekursion läuft (Postgres
+-- evaluiert RLS auf der referenzierten Tabelle sonst erneut → 42P17).
+CREATE OR REPLACE FUNCTION public.app_is_group_member(_group_id int)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.group_members
+    WHERE group_id = _group_id
+      AND user_id = public.app_user_id()
+  );
+$$;
+REVOKE ALL ON FUNCTION public.app_is_group_member(int) FROM public;
+GRANT EXECUTE ON FUNCTION public.app_is_group_member(int) TO authenticated, anon;
+
 -- TASKS: User sieht eigene Tasks und Tasks, die in Gruppen geteilt sind,
 --        in denen er Mitglied ist.
 DROP POLICY IF EXISTS rt_select_own_tasks ON public.tasks;
@@ -67,11 +87,9 @@ CREATE POLICY rt_select_own_tasks ON public.tasks
   USING (
     user_id = public.app_user_id()
     OR EXISTS (
-      SELECT 1
-      FROM public.group_tasks gt
-      JOIN public.group_members gm ON gm.group_id = gt.group_id
+      SELECT 1 FROM public.group_tasks gt
       WHERE gt.task_id = tasks.id
-        AND gm.user_id = public.app_user_id()
+        AND public.app_is_group_member(gt.group_id)
     )
   );
 
@@ -85,46 +103,25 @@ CREATE POLICY rt_select_own_categories ON public.categories
 DROP POLICY IF EXISTS rt_select_member_groups ON public.groups;
 CREATE POLICY rt_select_member_groups ON public.groups
   FOR SELECT TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.group_members gm
-      WHERE gm.group_id = groups.id
-        AND gm.user_id = public.app_user_id()
-    )
-  );
+  USING (public.app_is_group_member(id));
 
 -- GROUP_MEMBERS: sichtbar wenn ich selbst Mitglied der Gruppe bin
 DROP POLICY IF EXISTS rt_select_group_members ON public.group_members;
 CREATE POLICY rt_select_group_members ON public.group_members
   FOR SELECT TO authenticated
-  USING (
-    group_id IN (
-      SELECT g.group_id FROM public.group_members g
-      WHERE g.user_id = public.app_user_id()
-    )
-  );
+  USING (public.app_is_group_member(group_id));
 
 -- GROUP_MESSAGES: sichtbar wenn ich Mitglied der Gruppe bin
 DROP POLICY IF EXISTS rt_select_group_messages ON public.group_messages;
 CREATE POLICY rt_select_group_messages ON public.group_messages
   FOR SELECT TO authenticated
-  USING (
-    group_id IN (
-      SELECT g.group_id FROM public.group_members g
-      WHERE g.user_id = public.app_user_id()
-    )
-  );
+  USING (public.app_is_group_member(group_id));
 
 -- GROUP_TASKS: sichtbar wenn ich Mitglied der Gruppe bin
 DROP POLICY IF EXISTS rt_select_group_tasks ON public.group_tasks;
 CREATE POLICY rt_select_group_tasks ON public.group_tasks
   FOR SELECT TO authenticated
-  USING (
-    group_id IN (
-      SELECT g.group_id FROM public.group_members g
-      WHERE g.user_id = public.app_user_id()
-    )
-  );
+  USING (public.app_is_group_member(group_id));
 
 -- USER_STATUS: alle authentifizierten User koennen Status anderer sehen
 -- (begrenzt auf "Freunde / Gruppenmitglieder" kann spaeter verfeinert werden).
