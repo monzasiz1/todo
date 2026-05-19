@@ -848,6 +848,16 @@ export default function NotesPage() {
       content: `[COLOR:${randomColor.name}] `,
       x: Math.round(x),
       y: Math.round(y),
+    }).catch((err) => {
+      // Frueher: Klick wirkte auf iOS PWA folgenlos, weil Fehler still verschluckt
+      // wurden. Jetzt klare Rueckmeldung.
+      console.error('[NotesPage] createNote failed:', err);
+      try {
+        useTaskStore.getState().addToast(
+          err?.message || 'Notiz konnte nicht erstellt werden',
+          'error',
+        );
+      } catch {}
     });
   }, [createNote]);
 

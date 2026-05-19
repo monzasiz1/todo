@@ -94,6 +94,26 @@ export const useNotesStore = create((set, get) => ({
   createNote: async (noteData) => {
     try {
       const result = await api.createNote?.(noteData);
+
+      // Offline / Netzwerk-Glitch (iOS PWA tritt das oft): Request wurde in
+      // die Offline-Queue eingereiht. Direkt optimistisch eine Platzhalter-
+      // Notiz in den State legen, damit "Neue Notiz" auf dem Handy nicht
+      // wirkungslos aussieht.
+      if (result && result.__queued) {
+        const tempNote = {
+          id: result.tempId,
+          ...noteData,
+          __offline: true,
+          created_at: new Date().toISOString(),
+        };
+        set((s) => {
+          const updated = [...s.notes, tempNote];
+          writeNotesCache(updated);
+          return { notes: updated };
+        });
+        return tempNote;
+      }
+
       const serverNote = result?.note;
 
       // Merge: server data takes priority (id, timestamps) but input data fills gaps
@@ -107,7 +127,11 @@ export const useNotesStore = create((set, get) => ({
           }
         : null; // don't add id-less optimistic entry — wait for real server response
 
-      if (!newNote || newNote.id == null) return newNote ?? noteData;
+      if (!newNote || newNote.id == null) {
+        // Server hat 2xx geliefert, aber kein note-Objekt -> Fehler bubblen,
+        // damit UI Feedback geben kann statt stiller "nichts passiert"-Bug.
+        throw new Error('Notiz konnte nicht erstellt werden (leere Server-Antwort).');
+      }
 
       set((s) => {
         const updated = [...s.notes, newNote];
