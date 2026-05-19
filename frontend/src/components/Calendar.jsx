@@ -125,6 +125,34 @@ const isEventEnded = (task, nowTs = Date.now()) => {
   return !!end && end.getTime() < nowTs;
 };
 
+// Liefert eine `background`-CSS-Property fuer einen Mehrtages-Termin-Balken,
+// bei dem die bereits vergangenen Tage anteilig grau eingefaerbt sind.
+// Berechnet den grauen Anteil global ueber das ganze Event (nicht nur ueber
+// das sichtbare Wochen-Segment), aber gibt einen Verlauf zurueck, der zur
+// Breite des aktuell gerenderten Segments passt.
+const GRAY_PAST = 'rgba(142,142,147,0.62)';
+const buildMultiDayBackground = (eventStartStr, eventEndStr, segStartStr, segEndStr, todayStr, accent) => {
+  if (!eventStartStr || !eventEndStr || eventEndStr <= eventStartStr) return accent;
+  if (!segStartStr || !segEndStr) return accent;
+  const dayMs = 86400000;
+  const eStart = new Date(`${eventStartStr}T00:00:00`).getTime();
+  const eEnd = new Date(`${eventEndStr}T00:00:00`).getTime();
+  const sStart = new Date(`${segStartStr}T00:00:00`).getTime();
+  const sEnd = new Date(`${segEndStr}T00:00:00`).getTime();
+  const today = new Date(`${todayStr}T00:00:00`).getTime();
+  const totalDays = Math.round((eEnd - eStart) / dayMs) + 1;
+  const segDays = Math.round((sEnd - sStart) / dayMs) + 1;
+  if (totalDays < 2 || segDays < 1) return accent;
+  // Tage des Events strikt vor heute (heute zaehlt als laufend, nicht vergangen).
+  const pastGlobal = Math.max(0, Math.min(totalDays, Math.round((today - eStart) / dayMs)));
+  const segOffset = Math.max(0, Math.round((sStart - eStart) / dayMs));
+  const pastInSeg = Math.max(0, Math.min(segDays, pastGlobal - segOffset));
+  if (pastInSeg <= 0) return accent;
+  if (pastInSeg >= segDays) return GRAY_PAST;
+  const frac = (pastInSeg / segDays) * 100;
+  return `linear-gradient(to right, ${GRAY_PAST} 0%, ${GRAY_PAST} ${frac}%, ${accent} ${frac}%, ${accent} 100%)`;
+};
+
 const isAllDayTask = (task) => {
   if (!task) return false;
   if (task.all_day === true) return true;
@@ -1410,6 +1438,18 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                     const showBorderLeft = !isMobile && !['multi-day-middle', 'multi-day-end'].includes(multiClass);
                     const showTaskLabel = !seg || dayIndexInWeek === seg.startIdx;
                     const slotOrder = assignedLane;
+                    // Bei Mehrtages-Eintraegen: bereits vergangene Tage anteilig grau einfaerben.
+                    const isMultiDayBar = !!seg && spanDaysInRow > 1 && !ended && !isHolidayTask;
+                    const multiDayBg = isMultiDayBar
+                      ? buildMultiDayBackground(
+                          String(t.date).slice(0, 10),
+                          String(t.date_end || t.date).slice(0, 10),
+                          format(d, 'yyyy-MM-dd'),
+                          format(addDays(d, spanDaysInRow - 1), 'yyyy-MM-dd'),
+                          format(new Date(nowTs), 'yyyy-MM-dd'),
+                          accentColor,
+                        )
+                      : null;
                     return (
                       <div
                         key={t.id}
@@ -1420,7 +1460,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                           gridRow: slotOrder + 1,
                           width: spanWidth,
                           maxWidth: spanWidth ? 'none' : '100%',
-                          background: isHolidayTask ? holidayColor : accentColor,
+                          background: isHolidayTask ? holidayColor : (multiDayBg || accentColor),
                           color: ended ? '#999' : '#fff',
                           borderLeft: 'none',
                           cursor: isHolidayTask ? 'default' : 'pointer',
@@ -1432,7 +1472,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                           gridRow: slotOrder + 1,
                           width: spanWidth,
                           maxWidth: spanWidth ? 'none' : '100%',
-                          background: isHolidayTask ? holidayColor : ended ? 'rgba(142,142,147,0.62)' : accentColor,
+                          background: isHolidayTask ? holidayColor : ended ? 'rgba(142,142,147,0.62)' : (multiDayBg || accentColor),
                           color: '#FFFFFF',
                           borderLeft: showBorderLeft ? '2px solid rgba(255,255,255,0.55)' : 'none',
                           cursor: isHolidayTask ? 'default' : (viewportState.isDesktop && !ended ? 'grab' : 'pointer'),
@@ -1676,12 +1716,25 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         ? (seg.span === 1 ? 'allday-span-single' : 'allday-span-start')
                         : '';
 
+                      const accent = t.category_color || t.group_category_color || t.group_color || '#4C7BD9';
+                      // Mehrtages-Termin: vergangene Tage anteilig grau
+                      const multiDayBg = (seg.isMultiDay && seg.span > 1 && !doneOrOld)
+                        ? buildMultiDayBackground(
+                            String(t.date).slice(0, 10),
+                            String(t.date_end || t.date).slice(0, 10),
+                            format(d, 'yyyy-MM-dd'),
+                            format(addDays(d, seg.span - 1), 'yyyy-MM-dd'),
+                            format(new Date(nowTs), 'yyyy-MM-dd'),
+                            accent,
+                          )
+                        : null;
+
                       return (
                         <button
                           key={t.id}
                           className={`desktop-week-all-day-event ${spanClass}${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${t.completed ? ' completed' : ''}`}
                           style={{
-                            background: doneOrOld ? 'rgba(142,142,147,0.4)' : (t.category_color || t.group_category_color || t.group_color || '#4C7BD9'),
+                            background: doneOrOld ? 'rgba(142,142,147,0.4)' : (multiDayBg || accent),
                             position: 'absolute',
                             top: `${topPx}px`,
                             left: '4px',
