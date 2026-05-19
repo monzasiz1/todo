@@ -31550,3 +31550,187 @@ html[data-theme="dark"] .gs-discover-skeleton {
   background-size: 200% 100%;
   border-color: var(--border);
 }
+
+
+/* ═════════════════════════════════════════════════════════════
+   TaskDetailModal: Verknuepfte Notizen (bidirektional)
+   ═════════════════════════════════════════════════════════════ */
+.task-detail-notes-section { padding-top: 16px; }
+.task-detail-notes-count {
+  margin-left: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: var(--primary-bg, rgba(0,122,255,.10));
+  color: var(--primary, #007AFF);
+  padding: 1px 7px;
+  border-radius: 999px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.task-detail-notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.task-detail-note-chip {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  padding: 0;
+  text-align: left;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, rgba(0,0,0,.06));
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+.task-detail-note-chip:hover {
+  border-color: var(--primary, #007AFF);
+  box-shadow: 0 4px 14px rgba(0,0,0,.08);
+  transform: translateY(-1px);
+}
+.task-detail-note-chip-stripe {
+  width: 4px;
+  flex-shrink: 0;
+  background: var(--note-accent, #E6D35C);
+}
+.task-detail-note-chip-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 8px 10px 0;
+  min-width: 0;
+}
+.task-detail-note-chip-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text, #1C1C1E);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.task-detail-note-chip-snippet {
+  font-size: 0.78rem;
+  color: var(--text-secondary, #8E8E93);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.task-detail-note-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  border-left: 1px solid var(--border, rgba(0,0,0,.06));
+  color: var(--text-tertiary, #AEAEB2);
+  background: transparent;
+  cursor: pointer;
+  transition: background .12s ease, color .12s ease;
+}
+.task-detail-note-chip-remove:hover {
+  background: var(--danger, #FF3B30);
+  color: #fff;
+}
+
+.task-detail-notes-add-wrap { position: relative; }
+.task-detail-notes-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px dashed var(--border-strong, rgba(0,0,0,.12));
+  background: transparent;
+  color: var(--text-secondary, #8E8E93);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color .12s ease, border-color .12s ease, background .12s ease;
+}
+.task-detail-notes-add:hover {
+  color: var(--primary, #007AFF);
+  border-color: var(--primary, #007AFF);
+  background: var(--primary-bg, rgba(0,122,255,.08));
+}
+.task-detail-notes-picker {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 50;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border-strong, rgba(0,0,0,.12));
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.16);
+  overflow: hidden;
+  max-height: 340px;
+  display: flex;
+  flex-direction: column;
+}
+.task-detail-notes-picker-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border, rgba(0,0,0,.06));
+  color: var(--text-secondary, #8E8E93);
+}
+.task-detail-notes-picker-search input {
+  border: none;
+  outline: none;
+  background: transparent;
+  flex: 1;
+  font-size: 0.86rem;
+  color: var(--text, #1C1C1E);
+}
+.task-detail-notes-picker-list { overflow-y: auto; padding: 4px; }
+.task-detail-notes-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.84rem;
+  color: var(--text, #1C1C1E);
+  min-width: 0;
+}
+.task-detail-notes-picker-item:hover { background: var(--hover, rgba(28,28,30,.06)); }
+.task-detail-notes-picker-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.task-detail-notes-picker-title {
+  font-weight: 600;
+  flex-shrink: 0;
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.task-detail-notes-picker-snippet {
+  color: var(--text-secondary, #8E8E93);
+  font-size: 0.78rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+.task-detail-notes-picker-empty {
+  padding: 14px;
+  text-align: center;
+  color: var(--text-secondary, #8E8E93);
+  font-size: 0.82rem;
+}

@@ -2,6 +2,7 @@
 import { createPortal } from 'react-dom';
 import { motion, useDragControls } from 'framer-motion';
 import { Plus, ZoomIn, ZoomOut, X, CalendarDays, Pin, CheckSquare, Calendar, Check, Archive, RotateCcw, Trash2, LayoutGrid, Link2, Unlink, Maximize2 } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useOpenTask } from '../hooks/useOpenTask';
 import TaskDetailModal from '../components/TaskDetailModal';
 import NoteEditorModal from '../components/NoteEditorModal';
@@ -713,6 +714,8 @@ const MAX_SCALE = 2.0;
 
 export default function NotesPage() {
   const { detailTask, openTask, closeTask } = useOpenTask();
+  const location = useLocation();
+  const navigate = useNavigate();
   const {
     notes, createNote, updateNote, deleteNote, fetchNotes,
     completeNote, restoreArchivedNote, fetchArchivedNotes,
@@ -743,6 +746,28 @@ export default function NotesPage() {
   const [showMobileHint, setShowMobileHint] = useState(false);
   // Vollbild-Editor-Modal ("Notizblatt"): id der Notiz oder null.
   const [editorNoteId, setEditorNoteId] = useState(null);
+
+  // Bridge: ?openNote=ID -> Editor oeffnen (zB Aufruf aus TaskDetailModal).
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const id = params.get('openNote');
+    if (!id) return;
+    setEditorNoteId(id);
+    // Query-Param entfernen, damit Reload nicht erneut auftriggert.
+    params.delete('openNote');
+    navigate({ pathname: location.pathname, search: params.toString() ? `?${params.toString()}` : '' }, { replace: true });
+  }, [location.search, location.pathname, navigate]);
+
+  // Bridge: NoteEditorModal dispatcht beequ:open-task -> hier oeffnen wir
+  // den Task ueber useOpenTask (bidirektionaler Click-Through).
+  useEffect(() => {
+    const handler = (ev) => {
+      const t = ev?.detail?.task;
+      if (t) openTask(t);
+    };
+    window.addEventListener('beequ:open-task', handler);
+    return () => window.removeEventListener('beequ:open-task', handler);
+  }, [openTask]);
 
   // Live-Drag-Position der gerade gezogenen Note. Wird per rAF aktualisiert,
   // damit Verbindungslinien smooth mitziehen, ohne pro Frame alle Notes neu zu

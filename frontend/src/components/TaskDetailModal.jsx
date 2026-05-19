@@ -1,15 +1,17 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTaskStore } from '../store/taskStore';
 import { useGroupStore } from '../store/groupStore';
+import { useNotesStore } from '../store/notesStore';
 import { lockScroll, unlockScroll } from '../utils/scrollLock';
 import { api } from '../utils/api';
 import {
   X, ArrowLeft, Calendar, CalendarCheck, Clock, Tag, Flag, CheckCircle2, Circle,
   Trash2, AlertTriangle, Repeat, Bell, FileText, ListChecks,
   Users, UserCheck, Eye, Edit3, Share2, MoreVertical, MessageCircle, Send, Video, ThumbsUp, ThumbsDown,
-  Lock, ChevronDown, Settings2, MapPin, ExternalLink
+  Lock, ChevronDown, Settings2, MapPin, ExternalLink, StickyNote, Link2, Link2Off, Search
 } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -71,6 +73,11 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const deleteTask = useTaskStore((s) => s.deleteTask);
   const fetchTasks = useTaskStore((s) => s.fetchTasks);
   const addToast = useTaskStore((s) => s.addToast);
+  const notesAll = useNotesStore((s) => s.notes);
+  const updateNoteStore = useNotesStore((s) => s.updateNote);
+  const navigate = useNavigate();
+  const [notePickerOpen, setNotePickerOpen] = useState(false);
+  const [notePickerQuery, setNotePickerQuery] = useState('');
   const [friends, setFriends] = useState([]);
   const [freshSender, setFreshSender] = useState(null); // cached-Task-unabhängige Sender-Daten
   const [showEdit, setShowEdit] = useState(false);
@@ -1189,6 +1196,19 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
           </div>
         </div>
 
+        {/* Verknuepfte Notizen (bidirektional via notes.linked_task_id) */}
+        <LinkedNotesSection
+          task={task}
+          notesAll={notesAll}
+          updateNoteStore={updateNoteStore}
+          navigate={navigate}
+          pickerOpen={notePickerOpen}
+          setPickerOpen={setNotePickerOpen}
+          pickerQuery={notePickerQuery}
+          setPickerQuery={setNotePickerQuery}
+          onClose={onClose}
+        />
+
         {task.location && task.location.trim() && showMapChoice && createPortal(
           <>
             <div className="task-detail-mapchoice-backdrop" onClick={() => setShowMapChoice(false)} />
@@ -1703,5 +1723,151 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       {deleteChoicePortal}
       {sharePortal}
     </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Verknuepfte Notizen (bidirektional). Liest notes aus dem Store,
+// filtert nach linked_task_id, erlaubt Anheften via inline-Picker.
+// Click auf Notiz-Chip oeffnet die Notiz im NoteEditorModal (auf der
+// NotesPage). Falls man nicht dort ist, navigiert ?openNote=ID.
+// ─────────────────────────────────────────────────────────────────
+const NOTE_COLOR_MAP = {
+  Gelb: '#E6D35C', Blau: '#5DADE2', 'Grün': '#58D68D', Gruen: '#58D68D',
+  Rosa: '#F1948A', Orange: '#F39C12', Lila: '#BB8FCE',
+};
+function parseNoteMeta(content) {
+  const raw = content || '';
+  const m = raw.match(/^\[COLOR:([^\]]+)\]\s*/);
+  const accent = m ? (NOTE_COLOR_MAP[m[1]] || '#E6D35C') : '#E6D35C';
+  const rest = m ? raw.slice(m[0].length) : raw;
+  const snippet = rest.replace(/^[#>\-*`\s]+/g, '').slice(0, 60);
+  return { accent, snippet };
+}
+
+function LinkedNotesSection({ task, notesAll, updateNoteStore, navigate, pickerOpen, setPickerOpen, pickerQuery, setPickerQuery, onClose }) {
+  const linkedNotes = useMemo(() => {
+    if (!Array.isArray(notesAll) || !task?.id) return [];
+    return notesAll.filter((n) => n && String(n.linked_task_id || '') === String(task.id));
+  }, [notesAll, task?.id]);
+
+  const availableNotes = useMemo(() => {
+    if (!Array.isArray(notesAll)) return [];
+    const q = pickerQuery.trim().toLowerCase();
+    return notesAll
+      .filter((n) => n && String(n.linked_task_id || '') !== String(task?.id || ''))
+      .filter((n) => !q || (n.title || '').toLowerCase().includes(q) || (n.content || '').toLowerCase().includes(q))
+      .slice(0, 30);
+  }, [notesAll, pickerQuery, task?.id]);
+
+  const handleAttach = async (noteId) => {
+    try {
+      await updateNoteStore(noteId, { linked_task_id: task.id });
+      setPickerOpen(false);
+      setPickerQuery('');
+    } catch (err) {
+      console.error('[TaskDetailModal] attach note failed:', err);
+    }
+  };
+  const handleDetach = async (noteId, e) => {
+    e?.stopPropagation();
+    try { await updateNoteStore(noteId, { linked_task_id: null }); } catch (err) { console.error(err); }
+  };
+  const handleOpenNote = (note) => {
+    // Navigiere zur NotesPage, NotesPage liest ?openNote=ID und oeffnet den Editor.
+    try {
+      navigate(`/app/notes?openNote=${encodeURIComponent(note.id)}`);
+      onClose?.();
+    } catch (err) { console.error(err); }
+  };
+
+  return (
+    <div className="task-detail-section task-detail-notes-section">
+      <div className="task-detail-description-header">
+        <StickyNote size={16} />
+        <span>Notizen</span>
+        {linkedNotes.length > 0 && <span className="task-detail-notes-count">{linkedNotes.length}</span>}
+      </div>
+
+      {linkedNotes.length > 0 && (
+        <div className="task-detail-notes-list">
+          {linkedNotes.map((note) => {
+            const meta = parseNoteMeta(note.content);
+            return (
+              <button
+                key={note.id}
+                type="button"
+                className="task-detail-note-chip"
+                style={{ '--note-accent': meta.accent }}
+                onClick={() => handleOpenNote(note)}
+                title="Notiz oeffnen"
+              >
+                <span className="task-detail-note-chip-stripe" aria-hidden="true" />
+                <span className="task-detail-note-chip-body">
+                  <span className="task-detail-note-chip-title">{note.title || 'Ohne Titel'}</span>
+                  {meta.snippet && <span className="task-detail-note-chip-snippet">{meta.snippet}</span>}
+                </span>
+                <span
+                  className="task-detail-note-chip-remove"
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => handleDetach(note.id, e)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleDetach(note.id, e); } }}
+                  title="Verknuepfung loesen"
+                  aria-label="Verknuepfung loesen"
+                >
+                  <Link2Off size={13} />
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="task-detail-notes-add-wrap">
+        <button
+          type="button"
+          className="task-detail-notes-add"
+          onClick={() => setPickerOpen((v) => !v)}
+          aria-expanded={pickerOpen}
+        >
+          <Link2 size={14} /> <span>{linkedNotes.length > 0 ? 'Weitere Notiz anheften' : 'Notiz anheften'}</span>
+        </button>
+        {pickerOpen && (
+          <div className="task-detail-notes-picker" role="listbox">
+            <div className="task-detail-notes-picker-search">
+              <Search size={13} />
+              <input
+                type="text"
+                placeholder="Notiz suchen…"
+                value={pickerQuery}
+                onChange={(e) => setPickerQuery(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="task-detail-notes-picker-list">
+              {availableNotes.length === 0 ? (
+                <div className="task-detail-notes-picker-empty">Keine Notizen gefunden.</div>
+              ) : availableNotes.map((n) => {
+                const meta = parseNoteMeta(n.content);
+                return (
+                  <button
+                    key={n.id}
+                    type="button"
+                    className="task-detail-notes-picker-item"
+                    onClick={() => handleAttach(n.id)}
+                    role="option"
+                  >
+                    <span className="task-detail-notes-picker-dot" style={{ background: meta.accent }} aria-hidden="true" />
+                    <span className="task-detail-notes-picker-title">{n.title || 'Ohne Titel'}</span>
+                    {meta.snippet && <span className="task-detail-notes-picker-snippet">{meta.snippet}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

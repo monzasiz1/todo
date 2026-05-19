@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Maximize2, Minimize2, Trash2, Archive, Save, Check } from 'lucide-react';
+import { X, Maximize2, Minimize2, Trash2, Archive, Save, Check, Calendar as CalendarIcon, Link2, Link2Off, Search } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import { de } from 'date-fns/locale';
+import { useTaskStore } from '../store/taskStore';
 import '../styles/note-editor-modal.css';
 
 const NOTE_COLORS = [
@@ -79,6 +82,43 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   const [importance, setImportance] = useState(note?.importance || 'medium');
   const [showPreview, setShowPreview] = useState(false);
   const [saveState, setSaveState] = useState('idle'); // 'idle' | 'saving' | 'saved'
+  const [taskPickerOpen, setTaskPickerOpen] = useState(false);
+  const [taskQuery, setTaskQuery] = useState('');
+
+  // Verknuepfter Termin / Aufgabe (bidirektional via notes.linked_task_id)
+  const tasks = useTaskStore((s) => s.tasks);
+  const linkedTask = useMemo(() => {
+    if (!note?.linked_task_id || !Array.isArray(tasks)) return null;
+    return tasks.find((t) => t && String(t.id) === String(note.linked_task_id)) || null;
+  }, [tasks, note?.linked_task_id]);
+  const availableTasks = useMemo(() => {
+    if (!Array.isArray(tasks)) return [];
+    const q = taskQuery.trim().toLowerCase();
+    return tasks
+      .filter((t) => t && !t.completed && String(t.id) !== String(note?.linked_task_id || ''))
+      .filter((t) => !q || (t.title || '').toLowerCase().includes(q))
+      .slice(0, 30);
+  }, [tasks, taskQuery, note?.linked_task_id]);
+
+  const handleLinkTask = async (taskId) => {
+    try {
+      await onUpdate?.(note.id, { linked_task_id: taskId });
+      setTaskPickerOpen(false);
+      setTaskQuery('');
+    } catch (err) {
+      console.error('[NoteEditorModal] link task failed:', err);
+    }
+  };
+  const handleUnlinkTask = async () => {
+    try { await onUpdate?.(note.id, { linked_task_id: null }); } catch (err) { console.error(err); }
+  };
+  const handleOpenLinkedTask = () => {
+    if (!linkedTask) return;
+    flushSave();
+    // Globaler Trigger: NotesPage (oder andere Mounter) oeffnen TaskDetailModal.
+    window.dispatchEvent(new CustomEvent('beequ:open-task', { detail: { task: linkedTask } }));
+    onClose?.();
+  };
   const textareaRef = useRef(null);
   const saveTimerRef = useRef(null);
   const initialKeyRef = useRef(`${note?.id}|${note?.title || ''}|${note?.content || ''}|${note?.importance || ''}`);
@@ -278,6 +318,82 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                 autoFocus
                 spellCheck
               />
+            )}
+          </div>
+
+          {/* Verknuepfter Termin / Aufgabe (bidirektional). */}
+          <div className="nem-link-row">
+            {linkedTask ? (
+              <div className="nem-link-chip is-linked" role="group" aria-label="Verknuepfter Termin">
+                <button
+                  type="button"
+                  className="nem-link-chip-main"
+                  onClick={handleOpenLinkedTask}
+                  title="Zum Termin springen"
+                >
+                  <CalendarIcon size={14} />
+                  <span className="nem-link-chip-title">{linkedTask.title || 'Termin'}</span>
+                  {linkedTask.date && (
+                    <span className="nem-link-chip-meta">
+                      {(() => { try { return format(parseISO(linkedTask.date), 'd. MMM', { locale: de }); } catch { return ''; } })()}
+                      {linkedTask.time ? ` · ${linkedTask.time}` : ''}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="nem-link-chip-remove"
+                  onClick={handleUnlinkTask}
+                  title="Verknuepfung entfernen"
+                  aria-label="Verknuepfung entfernen"
+                >
+                  <Link2Off size={13} />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="nem-link-add"
+                onClick={() => setTaskPickerOpen((v) => !v)}
+                aria-expanded={taskPickerOpen}
+              >
+                <Link2 size={14} /> <span>Termin anheften</span>
+              </button>
+            )}
+            {taskPickerOpen && !linkedTask && (
+              <div className="nem-link-picker" role="listbox">
+                <div className="nem-link-picker-search">
+                  <Search size={13} />
+                  <input
+                    type="text"
+                    placeholder="Termin suchen…"
+                    value={taskQuery}
+                    onChange={(e) => setTaskQuery(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+                <div className="nem-link-picker-list">
+                  {availableTasks.length === 0 ? (
+                    <div className="nem-link-picker-empty">Keine passenden Termine.</div>
+                  ) : availableTasks.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      className="nem-link-picker-item"
+                      onClick={() => handleLinkTask(t.id)}
+                      role="option"
+                    >
+                      <CalendarIcon size={12} />
+                      <span className="nem-link-picker-title">{t.title}</span>
+                      {t.date && (
+                        <span className="nem-link-picker-meta">
+                          {(() => { try { return format(parseISO(t.date), 'd. MMM', { locale: de }); } catch { return ''; } })()}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
 
