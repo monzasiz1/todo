@@ -20,18 +20,20 @@ const NOTE_COLORS = [
   { name: 'Lila', bg: '#E8DAEF', border: '#BB8FCE', shadow: '#8E44AD' },
 ];
 
-// ── Mini-Markdown (Inline): **fett**, *kursiv*, `code`, http(s)-Links ─────────
+// ── Mini-Markdown (Inline): **fett**, *kursiv*, __unterstrichen__, ~~strike~~, `code`, Links ─────────
 // Bewusst klein gehalten — kein dangerouslySetInnerHTML, kein XSS-Risiko.
 function renderInlineMd(text, baseKey) {
   if (!text) return null;
-  // Token-Regex: **bold**, *italic*, `code`, URL
-  const re = /(\*\*[^*]+\*\*|\*[^*\n]+\*|`[^`\n]+`|https?:\/\/[^\s)]+)/g;
+  // Token-Regex: **bold**, ~~strike~~, __underline__, *italic*, `code`, URL
+  const re = /(\*\*[^*]+\*\*|~~[^~]+~~|__[^_]+__|\*[^*\n]+\*|`[^`\n]+`|https?:\/\/[^\s)]+)/g;
   const parts = [];
   let last = 0; let m; let i = 0;
   while ((m = re.exec(text)) !== null) {
     if (m.index > last) parts.push(text.slice(last, m.index));
     const tok = m[0];
     if (tok.startsWith('**')) parts.push(<strong key={`${baseKey}-b-${i}`}>{tok.slice(2, -2)}</strong>);
+    else if (tok.startsWith('~~')) parts.push(<del key={`${baseKey}-s-${i}`}>{tok.slice(2, -2)}</del>);
+    else if (tok.startsWith('__')) parts.push(<u key={`${baseKey}-u-${i}`}>{tok.slice(2, -2)}</u>);
     else if (tok.startsWith('`')) parts.push(<code key={`${baseKey}-c-${i}`} className="note-md-code">{tok.slice(1, -1)}</code>);
     else if (tok.startsWith('*')) parts.push(<em key={`${baseKey}-i-${i}`}>{tok.slice(1, -1)}</em>);
     else parts.push(

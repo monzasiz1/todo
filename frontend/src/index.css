@@ -20095,40 +20095,38 @@ html[data-theme="dark"] .group-role-chip.role-member {
 .bq-hero-trust svg { color: rgba(255,255,255,0.38); }
 
 /* ════════════════════════════════════════════════════════════════════
-   BEEQU — LANDING HERO SCREENSHOT SHOWCASE (cinematic)
-   Inhalt: rotierende Headline · Tilted Browser-Frame · Side-Peeks ·
-   Floor-Reflection · Floating Pill-Tabs · Spotlights.
-   Quelle der Screenshots: frontend/public/bilder/*.
+   BEEQU — TRINITY 3D-CAROUSEL
+   Drei Screenshots gleichzeitig im 3D-Stage: aktiv mittig + gross,
+   prev/next seitlich kleiner und in rotateY geneigt. Spring-Animationen
+   beim Wechsel, klickbare Seitenkarten, Cursor-Parallax auf Active.
    ════════════════════════════════════════════════════════════════════ */
 
-/* Hero-Wrapper — eingebettet vom Hero. z-index muss ÜBER der
-   .bq-hero-bottom-fade liegen (sonst dimmt sie den Frame beim Scrollen). */
-.bq-hero-mock-wrap {
+.bq-trinity-wrap {
   width: 100%;
-  max-width: 1320px;
+  max-width: 1280px;
   padding: 32px 24px 0;
   position: relative;
-  z-index: 2;
+  z-index: 2; /* MUSS über .bq-hero-bottom-fade liegen */
   margin: 8px auto 0;
 }
 
-/* ───────── Caption (Headline über der Showcase) ───────── */
-.bq-shot-caption {
+/* ───────── Caption (rotierende Headline) ───────── */
+.bq-trinity-caption {
   position: relative;
-  z-index: 2;
-  min-height: 116px;
+  z-index: 4;
+  min-height: 124px;
   display: flex;
   align-items: flex-end;
   justify-content: center;
   text-align: center;
-  padding: 0 16px 24px;
+  padding: 0 16px 28px;
 }
-.bq-shot-caption-inner {
-  max-width: 720px;
+.bq-trinity-caption-inner {
+  max-width: 760px;
   display: grid;
   gap: 10px;
 }
-.bq-shot-caption-eyebrow {
+.bq-trinity-eyebrow {
   display: inline-flex;
   align-self: center;
   align-items: center;
@@ -20136,232 +20134,208 @@ html[data-theme="dark"] .group-role-chip.role-member {
   padding: 5px 14px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   font-size: 0.74rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(255, 255, 255, 0.68);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
-.bq-shot-caption-headline {
+.bq-trinity-headline {
   margin: 0;
-  font-size: clamp(1.6rem, 3vw, 2.3rem);
+  font-size: clamp(1.7rem, 3vw, 2.4rem);
   font-weight: 800;
   letter-spacing: -0.025em;
-  line-height: 1.1;
+  line-height: 1.08;
   color: #F5F7FB;
-  background: linear-gradient(180deg, #FFFFFF 0%, rgba(255,255,255,0.72) 100%);
+  background: linear-gradient(180deg, #FFFFFF 0%, rgba(255,255,255,0.7) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-.bq-shot-caption-sub {
+.bq-trinity-sub {
   margin: 0;
-  font-size: clamp(0.95rem, 1.4vw, 1.05rem);
+  font-size: clamp(0.95rem, 1.4vw, 1.08rem);
   line-height: 1.55;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.58);
   font-weight: 400;
 }
 
-/* ───────── Stage-Wrap (Frame + Peeks + Reflection) ───────── */
-.bq-shot-stage-wrap {
+/* ───────── Stage (3D-Bühne) ───────── */
+.bq-trinity-stage {
+  --bq-tx: 0deg;
+  --bq-ty: 0deg;
   position: relative;
-  perspective: 1600px;
-  perspective-origin: 50% 35%;
-  padding: 28px 0 0;
+  width: 100%;
+  aspect-ratio: 16 / 8.2;
+  max-height: 620px;
+  perspective: 1800px;
+  perspective-origin: 50% 45%;
+  transform-style: preserve-3d;
 }
 
-/* Spotlights (atmospheric, hinter dem Frame) */
-.bq-shot-spot {
+/* Atmosphärische Spots */
+.bq-trinity-spot {
   position: absolute;
   border-radius: 50%;
-  filter: blur(70px);
-  opacity: 0.55;
+  filter: blur(80px);
+  opacity: 0.5;
   pointer-events: none;
   z-index: 0;
 }
-.bq-shot-spot-a {
-  width: 540px; height: 540px;
-  left: -8%; top: -10%;
+.bq-trinity-spot-a {
+  width: 560px; height: 560px;
+  left: -6%; top: -8%;
   background: radial-gradient(circle, #4DA3FF 0%, transparent 65%);
-  animation: bq-shot-float-a 16s ease-in-out infinite;
+  animation: bq-trinity-float-a 16s ease-in-out infinite;
 }
-.bq-shot-spot-b {
-  width: 460px; height: 460px;
-  right: -10%; bottom: -8%;
+.bq-trinity-spot-b {
+  width: 480px; height: 480px;
+  right: -8%; bottom: -10%;
   background: radial-gradient(circle, #AF52DE 0%, transparent 65%);
-  animation: bq-shot-float-b 18s ease-in-out infinite;
+  animation: bq-trinity-float-b 18s ease-in-out infinite;
 }
-@keyframes bq-shot-float-a {
+@keyframes bq-trinity-float-a {
   0%, 100% { transform: translate(0, 0) scale(1); }
-  50%      { transform: translate(60px, 40px) scale(1.07); }
+  50%      { transform: translate(50px, 30px) scale(1.06); }
 }
-@keyframes bq-shot-float-b {
+@keyframes bq-trinity-float-b {
   0%, 100% { transform: translate(0, 0) scale(1); }
-  50%      { transform: translate(-50px, -30px) scale(1.06); }
+  50%      { transform: translate(-40px, -20px) scale(1.06); }
 }
 
-/* ───────── Side-Peeks (vorherige + nächste Vorschau) ───────── */
-.bq-shot-peek {
+/* Floor-Glow direkt unter der aktiven Karte — sieht aus wie Studio-Licht */
+.bq-trinity-floor {
   position: absolute;
-  top: 12%;
-  width: 22%;
-  max-width: 280px;
-  aspect-ratio: 16 / 10;
-  background: #0E1422;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  overflow: hidden;
-  cursor: pointer;
-  opacity: 0.32;
-  filter: blur(1.5px) saturate(0.85);
-  transition:
-    opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
-    filter 0.45s ease;
-  z-index: 1;
-  padding: 0;
-  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.5);
-}
-.bq-shot-peek img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: top center;
-  display: block;
-}
-.bq-shot-peek-prev {
-  left: 0;
-  transform: rotateY(18deg) translateX(-8%) translateZ(-80px);
-  transform-origin: right center;
-}
-.bq-shot-peek-next {
-  right: 0;
-  transform: rotateY(-18deg) translateX(8%) translateZ(-80px);
-  transform-origin: left center;
-}
-.bq-shot-peek:hover,
-.bq-shot-peek:focus-visible {
-  opacity: 0.85;
-  filter: blur(0) saturate(1);
-}
-.bq-shot-peek-prev:hover,
-.bq-shot-peek-prev:focus-visible {
-  transform: rotateY(14deg) translateX(-6%) translateZ(-40px);
-}
-.bq-shot-peek-next:hover,
-.bq-shot-peek-next:focus-visible {
-  transform: rotateY(-14deg) translateX(6%) translateZ(-40px);
+  left: 50%;
+  bottom: -4%;
+  width: 70%;
+  height: 80px;
+  background: radial-gradient(ellipse at center,
+              rgba(77, 163, 255, 0.32) 0%,
+              rgba(77, 163, 255, 0.12) 40%,
+              transparent 75%);
+  filter: blur(24px);
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 0;
 }
 
-/* ───────── Frame (Browser-Window mit 3D-Tilt) ───────── */
-.bq-shot-frame {
-  position: relative;
-  z-index: 2;
-  width: min(96%, 1180px);
-  margin: 0 auto;
+/* ───────── Karten (3 Slots) ───────── */
+.bq-trinity-card {
+  position: absolute;
+  inset: 0;
+  width: 64%;
+  height: 100%;
+  left: 50%;
+  margin-left: -32%;
   background: #0E1422;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
+  border-radius: 18px;
   overflow: hidden;
-  transform: rotateX(2.2deg) rotateY(-0.5deg) translateZ(0);
-  transform-origin: 50% 100%;
+  transform-origin: 50% 50%;
+  transform-style: preserve-3d;
   box-shadow:
-    0 60px 140px rgba(2, 6, 23, 0.65),
-    0 20px 50px rgba(2, 6, 23, 0.5),
-    0 0 0 1px rgba(77, 163, 255, 0.05),
+    0 60px 140px rgba(2, 6, 23, 0.7),
+    0 18px 40px rgba(2, 6, 23, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.07);
-  transition:
-    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  will-change: transform, opacity, filter;
 }
-.bq-shot-frame:hover {
-  transform: rotateX(0deg) rotateY(0deg) translateY(-6px) translateZ(0);
-  box-shadow:
-    0 70px 160px rgba(2, 6, 23, 0.75),
-    0 24px 60px rgba(2, 6, 23, 0.55),
-    0 0 0 1px rgba(77, 163, 255, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.09);
+.bq-trinity-card-active {
+  cursor: default;
+}
+.bq-trinity-card-active {
+  transform: rotateX(var(--bq-tx)) rotateY(var(--bq-ty));
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.bq-trinity-card-prev:hover,
+.bq-trinity-card-next:hover {
+  filter: blur(0.5px) !important;
+  opacity: 0.85 !important;
 }
 
-/* Chrome */
-.bq-shot-chrome {
+/* Chrome (slimmer, premium) */
+.bq-trinity-chrome {
   position: relative;
   z-index: 2;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 13px 18px;
+  padding: 12px 18px;
   background:
     linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0)),
     #131A29;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
 }
-.bq-shot-chrome .bq-dot {
-  width: 12px; height: 12px;
+.bq-trinity-chrome .bq-dot {
+  width: 11px; height: 11px;
   border-radius: 50%;
   flex-shrink: 0;
   box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.25);
 }
-.bq-shot-url {
+.bq-trinity-url {
   flex: 1;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   margin: 0 auto;
-  padding: 6px 16px;
+  padding: 5px 14px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 10px;
-  font-size: 0.8rem;
+  border-radius: 9px;
+  font-size: 0.78rem;
   font-weight: 500;
   color: rgba(245, 247, 251, 0.75);
-  max-width: 420px;
+  max-width: 380px;
   justify-content: center;
   font-variant-numeric: tabular-nums;
 }
-.bq-shot-url-host  { color: rgba(245, 247, 251, 0.55); }
-.bq-shot-url-sep   { color: rgba(245, 247, 251, 0.35); margin: 0 2px; }
-.bq-shot-url-path  { color: #F5F7FB; font-weight: 600; }
+.bq-trinity-url-host  { color: rgba(245, 247, 251, 0.55); }
+.bq-trinity-url-sep   { color: rgba(245, 247, 251, 0.35); margin: 0 2px; }
+.bq-trinity-url-path  { color: #F5F7FB; font-weight: 600; }
 
-.bq-shot-live {
+.bq-trinity-live {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 5px 11px;
+  gap: 6px;
+  padding: 4px 10px;
   border-radius: 999px;
   background: rgba(48, 209, 88, 0.14);
   color: #30D158;
   font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   flex-shrink: 0;
   border: 1px solid rgba(48, 209, 88, 0.22);
 }
-.bq-shot-live-dot {
+.bq-trinity-live-dot {
   width: 6px; height: 6px;
   border-radius: 50%;
   background: #30D158;
   box-shadow: 0 0 0 0 rgba(48, 209, 88, 0.55);
-  animation: bq-shot-pulse 1.6s ease-out infinite;
+  animation: bq-trinity-pulse 1.6s ease-out infinite;
 }
-@keyframes bq-shot-pulse {
+@keyframes bq-trinity-pulse {
   0%   { box-shadow: 0 0 0 0 rgba(48, 209, 88, 0.55); }
   100% { box-shadow: 0 0 0 10px rgba(48, 209, 88, 0); }
 }
 
-/* Stage */
-.bq-shot-stage {
+/* Screen */
+.bq-trinity-screen {
   position: relative;
-  z-index: 1;
-  aspect-ratio: 16 / 9;
   background: #0B1220;
+  height: calc(100% - 49px); /* unter dem Chrome */
   overflow: hidden;
 }
-.bq-shot-img {
-  position: absolute;
-  inset: 0;
+.bq-trinity-screen img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -20370,7 +20344,9 @@ html[data-theme="dark"] .group-role-chip.role-member {
   user-select: none;
   -webkit-user-drag: none;
 }
-.bq-shot-shine {
+
+/* Diagonaler Glanz nur auf active */
+.bq-trinity-shine {
   position: absolute;
   inset: 0;
   background: linear-gradient(115deg,
@@ -20378,209 +20354,263 @@ html[data-theme="dark"] .group-role-chip.role-member {
               rgba(255, 255, 255, 0.08) 50%,
               transparent 65%);
   mix-blend-mode: overlay;
-  animation: bq-shot-shine 9s ease-in-out infinite;
+  animation: bq-trinity-shine 9s ease-in-out infinite;
   pointer-events: none;
 }
-@keyframes bq-shot-shine {
+@keyframes bq-trinity-shine {
   0%, 100% { transform: translateX(-30%); opacity: 0; }
   35%      { opacity: 1; }
   65%      { opacity: 1; }
   100%     { transform: translateX(30%); opacity: 0; }
 }
-.bq-shot-progress {
+
+/* Progress am unteren Screen-Rand */
+.bq-trinity-progress {
   position: absolute;
   left: 0; right: 0; bottom: 0;
   height: 3px;
   background: rgba(255, 255, 255, 0.06);
   z-index: 3;
 }
-.bq-shot-progress-bar {
+.bq-trinity-progress-bar {
   height: 100%;
   width: 0;
   background: linear-gradient(90deg, #4DA3FF, #AF52DE);
   border-radius: 0 3px 3px 0;
-  animation: bq-shot-progress 5.5s linear forwards;
+  animation: bq-trinity-progress 5.5s linear forwards;
 }
-.bq-shot-progress-bar.is-paused {
+.bq-trinity-progress-bar.is-paused {
   animation-play-state: paused;
 }
-@keyframes bq-shot-progress {
+@keyframes bq-trinity-progress {
   from { width: 0; }
   to   { width: 100%; }
 }
 
-/* ───────── Tabs (floating pills unter dem Frame) ───────── */
-.bq-shot-tabs {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 36px;
-  padding: 0 16px;
-}
-.bq-shot-tab {
+/* ───────── Navigation Arrows ───────── */
+.bq-trinity-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: rgba(11, 18, 32, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #F5F7FB;
   display: inline-flex;
   align-items: center;
-  gap: 9px;
-  padding: 11px 20px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: rgba(245, 247, 251, 0.7);
-  font: inherit;
-  font-size: 0.92rem;
-  font-weight: 600;
+  justify-content: center;
   cursor: pointer;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  z-index: 5;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+  opacity: 0;
+}
+.bq-trinity-stage:hover .bq-trinity-arrow {
+  opacity: 1;
+}
+.bq-trinity-arrow:hover {
+  background: rgba(77, 163, 255, 0.85);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-50%) scale(1.05);
+}
+.bq-trinity-arrow-prev { left: 3%; }
+.bq-trinity-arrow-next { right: 3%; }
+
+/* ───────── Segment-Navigation unten ───────── */
+.bq-trinity-segs {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 38px;
+  padding: 0 8px;
+  max-width: 880px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.bq-trinity-seg {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  color: rgba(245, 247, 251, 0.55);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: left;
   transition:
     background 0.3s ease,
     color 0.3s ease,
-    transform 0.3s ease,
-    box-shadow 0.3s ease,
-    border-color 0.3s ease;
+    border-color 0.3s ease,
+    transform 0.3s ease;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
-.bq-shot-tab:hover {
-  background: rgba(255, 255, 255, 0.09);
+.bq-trinity-seg:hover {
+  background: rgba(255, 255, 255, 0.07);
   color: #F5F7FB;
   transform: translateY(-1px);
 }
-.bq-shot-tab.active {
-  color: #ffffff;
-  background:
-    linear-gradient(135deg, rgba(77, 163, 255, 0.95), rgba(175, 82, 222, 0.95));
-  border-color: rgba(255, 255, 255, 0.18);
-  box-shadow:
-    0 12px 28px rgba(77, 163, 255, 0.35),
-    0 0 0 1px rgba(255, 255, 255, 0.12) inset;
+.bq-trinity-seg.active {
+  color: #FFFFFF;
+  background: rgba(77, 163, 255, 0.1);
+  border-color: rgba(77, 163, 255, 0.32);
 }
-.bq-shot-tab-icon {
+.bq-trinity-seg-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px; height: 22px;
-  border-radius: 7px;
-  background: rgba(255, 255, 255, 0.06);
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
   color: inherit;
-  flex-shrink: 0;
 }
-.bq-shot-tab.active .bq-shot-tab-icon {
-  background: rgba(255, 255, 255, 0.18);
+.bq-trinity-seg.active .bq-trinity-seg-icon {
+  background: rgba(77, 163, 255, 0.2);
+  color: #7CC0FF;
 }
-.bq-shot-tab-label {
+.bq-trinity-seg-label {
   letter-spacing: -0.005em;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+.bq-trinity-seg-rail {
+  width: 100%;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 999px;
+  overflow: hidden;
+  display: block;
+}
+.bq-trinity-seg-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #4DA3FF, #AF52DE);
+  border-radius: 999px;
+  animation: bq-trinity-progress 5.5s linear forwards;
+}
+.bq-trinity-seg-fill.is-paused {
+  animation-play-state: paused;
 }
 
 /* ───────── Responsive ───────── */
-/* ───────── Responsive: side-peeks erst ab breitem Desktop ───────── */
-@media (max-width: 1240px) {
-  .bq-shot-peek { display: none; }
-  .bq-shot-frame { width: min(100%, 1100px); }
+
+/* Mittlere Schirme: Karten enger gestaffelt */
+@media (max-width: 1100px) {
+  .bq-trinity-stage { aspect-ratio: 16 / 9.2; }
+  .bq-trinity-card { width: 72%; margin-left: -36%; }
 }
 
-/* Tablet / kleines Notebook */
+/* Tablet: Seitenkarten klein, Stage flacher */
 @media (max-width: 900px) {
-  .bq-hero-mock-wrap { padding: 24px 18px 0; max-width: 760px; }
-  .bq-shot-caption { min-height: 92px; padding: 0 12px 18px; }
-  .bq-shot-caption-headline { font-size: clamp(1.4rem, 3.6vw, 1.85rem); }
-  .bq-shot-caption-sub { font-size: 0.96rem; }
-  .bq-shot-stage-wrap { padding-top: 18px; }
-  .bq-shot-frame {
-    border-radius: 16px;
-    transform: rotateX(1deg);
-  }
-  .bq-shot-frame:hover { transform: translateY(-3px); }
-  .bq-shot-spot-a { width: 360px; height: 360px; }
-  .bq-shot-spot-b { width: 320px; height: 320px; }
+  .bq-trinity-wrap { padding: 20px 16px 0; }
+  .bq-trinity-caption { min-height: 96px; padding: 0 8px 18px; }
+  .bq-trinity-stage { aspect-ratio: 16 / 10; max-height: 480px; }
+  .bq-trinity-card { width: 82%; margin-left: -41%; border-radius: 14px; }
+  .bq-trinity-arrow { width: 38px; height: 38px; }
+  .bq-trinity-spot-a { width: 360px; height: 360px; }
+  .bq-trinity-spot-b { width: 320px; height: 320px; }
 }
 
-/* Phones */
+/* Phone: Single-Card-Carousel — Seitenkarten ausgeblendet */
 @media (max-width: 640px) {
-  .bq-hero-mock-wrap { padding: 14px 12px 0; }
-  .bq-shot-caption { min-height: auto; padding: 0 6px 14px; gap: 6px; }
-  .bq-shot-caption-eyebrow {
+  .bq-trinity-wrap { padding: 12px 10px 0; }
+  .bq-trinity-caption {
+    min-height: auto;
+    padding: 0 6px 14px;
+    gap: 6px;
+  }
+  .bq-trinity-eyebrow {
     font-size: 0.66rem;
     padding: 4px 11px;
-    letter-spacing: 0.05em;
   }
-  .bq-shot-caption-headline {
-    font-size: clamp(1.25rem, 6vw, 1.55rem);
+  .bq-trinity-headline {
+    font-size: clamp(1.25rem, 6.5vw, 1.6rem);
     letter-spacing: -0.02em;
   }
-  .bq-shot-caption-sub {
-    font-size: 0.86rem;
+  .bq-trinity-sub {
+    font-size: 0.88rem;
     line-height: 1.5;
   }
-  .bq-shot-stage-wrap { padding-top: 8px; }
-  .bq-shot-frame {
-    border-radius: 13px;
-    transform: none;
-    width: 100%;
-    border-width: 0.5px;
+  .bq-trinity-stage {
+    aspect-ratio: 16 / 11;
+    max-height: 380px;
   }
-  .bq-shot-frame:hover { transform: none; }
-  .bq-shot-chrome {
+  /* Single-Card: alle ausser active werden unsichtbar */
+  .bq-trinity-card {
+    width: 100%;
+    margin-left: -50%;
+    border-radius: 13px;
+  }
+  .bq-trinity-card-prev,
+  .bq-trinity-card-next {
+    opacity: 0 !important;
+    pointer-events: none;
+  }
+  .bq-trinity-chrome {
     padding: 9px 10px;
     gap: 5px;
   }
-  .bq-shot-chrome .bq-dot { width: 9px; height: 9px; }
-  .bq-shot-url {
+  .bq-trinity-chrome .bq-dot { width: 9px; height: 9px; }
+  .bq-trinity-url {
     max-width: 180px;
     font-size: 0.7rem;
     padding: 4px 10px;
-    border-radius: 7px;
   }
-  .bq-shot-live { display: none; }
-  .bq-shot-stage { aspect-ratio: 16 / 10; } /* nicht zu flach auf Phone */
-  .bq-shot-progress { height: 2px; }
-  .bq-shot-tabs {
-    margin-top: 18px;
-    gap: 6px;
-    padding: 0 4px;
+  .bq-trinity-live { display: none; }
+  .bq-trinity-arrow {
+    opacity: 1; /* immer sichtbar auf phone */
+    width: 36px; height: 36px;
+    background: rgba(11, 18, 32, 0.85);
   }
-  .bq-shot-tab {
-    padding: 8px 12px;
-    font-size: 0.78rem;
-    gap: 6px;
-    border-radius: 999px;
-  }
-  .bq-shot-tab-icon { width: 18px; height: 18px; }
-  .bq-shot-tab-icon svg { width: 12px; height: 12px; }
-  /* Spotlights deutlich kleiner damit sie nicht überall hinleuchten */
-  .bq-shot-spot-a {
-    width: 240px; height: 240px;
+  .bq-trinity-spot-a {
+    width: 260px; height: 260px;
     left: -30%; opacity: 0.4;
   }
-  .bq-shot-spot-b {
+  .bq-trinity-spot-b {
     width: 220px; height: 220px;
     right: -30%; opacity: 0.4;
   }
+  .bq-trinity-floor { display: none; }
+  .bq-trinity-segs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 22px;
+    padding: 0 4px;
+  }
+  .bq-trinity-seg {
+    padding: 10px 12px 12px;
+    font-size: 0.8rem;
+  }
+  .bq-trinity-seg-icon { width: 24px; height: 24px; }
+  .bq-trinity-seg-label { font-size: 0.84rem; }
 }
 
-/* Sehr kleine Geräte (iPhone SE etc.) — nur Icons in Tabs */
+/* Sehr kleine Phones */
 @media (max-width: 380px) {
-  .bq-shot-tab-label { display: none; }
-  .bq-shot-tab {
-    padding: 9px 12px;
-    aspect-ratio: 1;
-  }
-  .bq-shot-tab-icon {
-    width: 16px;
-    height: 16px;
-    background: transparent;
-  }
+  .bq-trinity-headline { font-size: 1.15rem; }
+  .bq-trinity-stage { aspect-ratio: 16 / 12; }
+  .bq-trinity-segs { grid-template-columns: 1fr 1fr; }
 }
 
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .bq-shot-spot-a,
-  .bq-shot-spot-b,
-  .bq-shot-shine,
-  .bq-shot-live-dot { animation: none; }
-  .bq-shot-progress-bar { animation: none; width: 100%; }
-  .bq-shot-frame { transform: none; }
-  .bq-shot-peek { transition: none; }
+  .bq-trinity-spot-a,
+  .bq-trinity-spot-b,
+  .bq-trinity-shine,
+  .bq-trinity-live-dot { animation: none; }
+  .bq-trinity-progress-bar,
+  .bq-trinity-seg-fill { animation: none; width: 100%; }
+  .bq-trinity-card-active { transition: none; transform: none; }
 }
 
 

@@ -1,7 +1,13 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Maximize2, Minimize2, Trash2, Archive, Save, Check, Calendar as CalendarIcon, Link2, Link2Off, Search, Lock, Users, Eye, UserPlus, Pencil } from 'lucide-react';
+import {
+  X, Maximize2, Minimize2, Trash2, Archive, Save, Check,
+  Calendar as CalendarIcon, Link2, Link2Off, Search, Lock, Users, Eye,
+  UserPlus, Pencil,
+  Bold, Italic, Underline, Strikethrough, Code, Heading1, Heading2,
+  List, ListOrdered, CheckSquare, Quote, Table,
+} from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { useTaskStore } from '../store/taskStore';
@@ -60,13 +66,17 @@ function renderPreview(text) {
 
 function renderInline(text) {
   if (!text) return null;
-  const re = /(\*\*[^*]+\*\*|\*[^*\n]+\*|`[^`\n]+`|https?:\/\/[^\s)]+)/g;
+  // Reihenfolge ist wichtig: laengere Token (**, ~~, __) zuerst,
+  // damit *italic* nicht **bold** vorgreift.
+  const re = /(\*\*[^*]+\*\*|~~[^~]+~~|__[^_]+__|\*[^*\n]+\*|`[^`\n]+`|https?:\/\/[^\s)]+)/g;
   const parts = [];
   let last = 0; let m; let i = 0;
   while ((m = re.exec(text)) !== null) {
     if (m.index > last) parts.push(text.slice(last, m.index));
     const tok = m[0];
     if (tok.startsWith('**')) parts.push(<strong key={i}>{tok.slice(2, -2)}</strong>);
+    else if (tok.startsWith('~~')) parts.push(<del key={i}>{tok.slice(2, -2)}</del>);
+    else if (tok.startsWith('__')) parts.push(<u key={i}>{tok.slice(2, -2)}</u>);
     else if (tok.startsWith('`')) parts.push(<code key={i}>{tok.slice(1, -1)}</code>);
     else if (tok.startsWith('*')) parts.push(<em key={i}>{tok.slice(1, -1)}</em>);
     else parts.push(<a key={i} href={tok} target="_blank" rel="noopener noreferrer">{tok}</a>);
@@ -75,6 +85,56 @@ function renderInline(text) {
   }
   if (last < text.length) parts.push(text.slice(last));
   return parts;
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Formatierungs-Toolbar (Rich-Text-Style)
+// Buttons fuegen Markdown-Tokens ein. Horizontal scrollbar auf
+// schmalen Screens, kompakte Icon-Buttons fuer Desktop + Mobile.
+// ────────────────────────────────────────────────────────────────────
+const FORMAT_GROUPS = [
+  [
+    { type: 'h1',         icon: Heading1,      label: 'Ueberschrift 1' },
+    { type: 'h2',         icon: Heading2,      label: 'Ueberschrift 2' },
+  ],
+  [
+    { type: 'bold',       icon: Bold,          label: 'Fett (Strg+B)' },
+    { type: 'italic',     icon: Italic,        label: 'Kursiv (Strg+I)' },
+    { type: 'underline',  icon: Underline,     label: 'Unterstrichen' },
+    { type: 'strike',     icon: Strikethrough, label: 'Durchgestrichen' },
+    { type: 'code',       icon: Code,          label: 'Inline-Code' },
+  ],
+  [
+    { type: 'list',       icon: List,          label: 'Aufzaehlung' },
+    { type: 'ordered',    icon: ListOrdered,   label: 'Nummerierte Liste' },
+    { type: 'check',      icon: CheckSquare,   label: 'Checkliste' },
+    { type: 'quote',      icon: Quote,         label: 'Zitat' },
+    { type: 'table',      icon: Table,         label: 'Tabelle einfuegen' },
+  ],
+];
+
+function FormatToolbar({ onAction }) {
+  return (
+    <div className="nem-toolbar" role="toolbar" aria-label="Textformatierung">
+      {FORMAT_GROUPS.map((group, gIdx) => (
+        <div key={gIdx} className="nem-toolbar-group">
+          {group.map(({ type, icon: Icon, label }) => (
+            <button
+              key={type}
+              type="button"
+              className="nem-toolbar-btn"
+              onMouseDown={(e) => e.preventDefault() /* Fokus in Textarea behalten */}
+              onClick={() => onAction(type)}
+              title={label}
+              aria-label={label}
+            >
+              <Icon size={16} strokeWidth={2} />
+            </button>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onComplete, readOnly: readOnlyProp = false }) {
@@ -416,6 +476,92 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
     }
   };
 
+  // ──────────────────────────────────────────────────────────────────
+  // Formatierungs-Toolbar: fuegt Markdown-Tokens am Cursor / um die
+  // Selektion ein. Caret wird so platziert, dass die naechste Eingabe
+  // direkt innerhalb der Formatierung landet.
+  // ──────────────────────────────────────────────────────────────────
+  const applyFormat = useCallback((type) => {
+    if (readOnly) return;
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart ?? content.length;
+    const end = ta.selectionEnd ?? content.length;
+    const selected = content.slice(start, end);
+
+    // Inline-Wrapper (Bold/Italic/...): vor und nach Selektion einfuegen.
+    const inlineWrap = (left, right = left, placeholder = 'Text') => {
+      const inner = selected || placeholder;
+      const inserted = `${left}${inner}${right}`;
+      const next = content.slice(0, start) + inserted + content.slice(end);
+      setContent(next);
+      requestAnimationFrame(() => {
+        ta.focus();
+        if (selected) {
+          ta.selectionStart = start + left.length;
+          ta.selectionEnd = end + left.length;
+        } else {
+          const caret = start + left.length + inner.length;
+          ta.selectionStart = ta.selectionEnd = caret;
+          // Platzhalter selektieren, damit User direkt drueber tippt.
+          ta.selectionStart = start + left.length;
+          ta.selectionEnd = start + left.length + inner.length;
+        }
+      });
+    };
+
+    // Zeilen-Prefix (Heading/Liste/...): vor jede betroffene Zeile setzen.
+    const linePrefix = (prefix) => {
+      const lineStart = content.lastIndexOf('\n', start - 1) + 1;
+      let lineEnd = content.indexOf('\n', end);
+      if (lineEnd === -1) lineEnd = content.length;
+      const block = content.slice(lineStart, lineEnd);
+      const updated = block
+        .split('\n')
+        .map((line) => (line.startsWith(prefix) ? line : `${prefix}${line}`))
+        .join('\n');
+      const next = content.slice(0, lineStart) + updated + content.slice(lineEnd);
+      setContent(next);
+      requestAnimationFrame(() => {
+        ta.focus();
+        const delta = updated.length - block.length;
+        ta.selectionStart = start + prefix.length;
+        ta.selectionEnd = end + delta;
+      });
+    };
+
+    // Block-Insert (Tabelle): an Cursor einfuegen, ggf. Leerzeile davor.
+    const blockInsert = (block) => {
+      const before = content.slice(0, start);
+      const needsLead = before.length > 0 && !before.endsWith('\n');
+      const lead = needsLead ? '\n' : '';
+      const inserted = `${lead}${block}`;
+      const next = before + inserted + content.slice(end);
+      setContent(next);
+      requestAnimationFrame(() => {
+        ta.focus();
+        const caret = start + inserted.length;
+        ta.selectionStart = ta.selectionEnd = caret;
+      });
+    };
+
+    switch (type) {
+      case 'bold':       return inlineWrap('**', '**', 'fett');
+      case 'italic':     return inlineWrap('*', '*', 'kursiv');
+      case 'underline':  return inlineWrap('__', '__', 'unterstrichen');
+      case 'strike':     return inlineWrap('~~', '~~', 'durchgestrichen');
+      case 'code':       return inlineWrap('`', '`', 'code');
+      case 'h1':         return linePrefix('# ');
+      case 'h2':         return linePrefix('## ');
+      case 'list':       return linePrefix('- ');
+      case 'ordered':    return linePrefix('1. ');
+      case 'check':      return linePrefix('- [ ] ');
+      case 'quote':      return linePrefix('> ');
+      case 'table':      return blockInsert('| Spalte 1 | Spalte 2 | Spalte 3 |\n| --- | --- | --- |\n| Wert | Wert | Wert |\n| Wert | Wert | Wert |\n');
+      default:           return undefined;
+    }
+  }, [content, readOnly]);
+
   return createPortal(
     <AnimatePresence>
       <motion.div
@@ -489,16 +635,21 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                 {renderPreview(content) || <p className="nem-empty">Noch nichts geschrieben.</p>}
               </div>
             ) : (
-              <textarea
-                ref={textareaRef}
-                className="nem-textarea"
-                value={content}
-                placeholder={`Schreib los…\n\nTipps:\n  **fett**   *kursiv*   \`code\`\n  - Aufzaehlung\n  - [ ] Checkliste\n  # Ueberschrift`}
-                onChange={(e) => setContent(e.target.value)}
-                onKeyDown={onTextareaKeyDown}
-                readOnly={readOnly}
-                spellCheck
-              />
+              <>
+                {!readOnly && (
+                  <FormatToolbar onAction={applyFormat} />
+                )}
+                <textarea
+                  ref={textareaRef}
+                  className="nem-textarea"
+                  value={content}
+                  placeholder={`Schreib los…\n\nTipps:\n  **fett**   *kursiv*   __unterstrichen__   ~~durchgestrichen~~   \`code\`\n  - Aufzaehlung\n  - [ ] Checkliste\n  # Ueberschrift`}
+                  onChange={(e) => setContent(e.target.value)}
+                  onKeyDown={onTextareaKeyDown}
+                  readOnly={readOnly}
+                  spellCheck
+                />
+              </>
             )}
           </div>
 

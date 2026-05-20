@@ -400,6 +400,7 @@ function FeatureShowcase({ features }) {
 export default function LandingPage() {
   const heroRef = useRef(null);
   const frameRef = useRef(null);
+  const trinityStageRef = useRef(null);
   const [showLogin,    setShowLogin]    = useState(false);
   const [showRegister, setShowRegister] = useState(false);
   const [loginEmail,      setLoginEmail]      = useState('');
@@ -708,126 +709,145 @@ export default function LandingPage() {
           </motion.div>
         </motion.div>
 
-        {/* ── cinematic screenshot showcase ── */}
+        {/* ── Trinity 3D-Carousel ── */}
         <motion.div
-          className="bq-hero-mock-wrap"
-          initial={{ opacity: 0, y: 48, scale: 0.97 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
+          className="bq-trinity-wrap"
+          initial={{ opacity: 0, y: 48 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.35, ease }}
         >
-          {/* Rotating headline above the showcase */}
-          <div className="bq-shot-caption" aria-live="polite">
+          {/* Rotating headline above the carousel */}
+          <div className="bq-trinity-caption" aria-live="polite">
             <AnimatePresence mode="wait">
               <motion.div
                 key={`cap-${heroShots[heroShotIdx].id}`}
-                initial={{ opacity: 0, y: 8 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.32, ease }}
-                className="bq-shot-caption-inner"
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.36, ease }}
+                className="bq-trinity-caption-inner"
               >
-                <span className="bq-shot-caption-eyebrow">{heroShots[heroShotIdx].eyebrow}</span>
-                <h3 className="bq-shot-caption-headline">{heroShots[heroShotIdx].headline}</h3>
-                <p className="bq-shot-caption-sub">{heroShots[heroShotIdx].sub}</p>
+                <span className="bq-trinity-eyebrow">{heroShots[heroShotIdx].eyebrow}</span>
+                <h3 className="bq-trinity-headline">{heroShots[heroShotIdx].headline}</h3>
+                <p className="bq-trinity-sub">{heroShots[heroShotIdx].sub}</p>
               </motion.div>
             </AnimatePresence>
           </div>
 
+          {/* Stage with 3 cards in 3D */}
           <div
-            className="bq-shot-stage-wrap"
+            ref={trinityStageRef}
+            className="bq-trinity-stage"
             onMouseEnter={() => setHeroShotPaused(true)}
-            onMouseLeave={() => setHeroShotPaused(false)}
+            onMouseLeave={() => {
+              setHeroShotPaused(false);
+              if (trinityStageRef.current) {
+                trinityStageRef.current.style.setProperty('--bq-tx', '0deg');
+                trinityStageRef.current.style.setProperty('--bq-ty', '0deg');
+              }
+            }}
+            onMouseMove={(e) => {
+              const el = trinityStageRef.current;
+              if (!el) return;
+              const r = el.getBoundingClientRect();
+              const px = (e.clientX - r.left) / r.width - 0.5;
+              const py = (e.clientY - r.top) / r.height - 0.5;
+              el.style.setProperty('--bq-tx', `${(-py * 4).toFixed(2)}deg`);
+              el.style.setProperty('--bq-ty', `${(px * 5).toFixed(2)}deg`);
+            }}
           >
-            <div className="bq-shot-spot bq-shot-spot-a" aria-hidden />
-            <div className="bq-shot-spot bq-shot-spot-b" aria-hidden />
+            <div className="bq-trinity-spot bq-trinity-spot-a" aria-hidden />
+            <div className="bq-trinity-spot bq-trinity-spot-b" aria-hidden />
+            <div className="bq-trinity-floor" aria-hidden />
 
-            {/* Side peeks: previous + next slides */}
-            {heroShots.length > 1 && (
-              <>
-                <button
+            {heroShots.map((shot, i) => {
+              const total = heroShots.length;
+              const rel = ((i - heroShotIdx) + total) % total;
+              let slot = 'hidden';
+              if (rel === 0) slot = 'active';
+              else if (rel === 1) slot = 'next';
+              else if (rel === total - 1) slot = 'prev';
+
+              const positions = {
+                active: { x: '0%', y: '0%', scale: 1, rotateY: 0, opacity: 1, filter: 'blur(0px)' },
+                prev:   { x: '-62%', y: '4%', scale: 0.72, rotateY: 32, opacity: 0.55, filter: 'blur(1.5px)' },
+                next:   { x: '62%',  y: '4%', scale: 0.72, rotateY: -32, opacity: 0.55, filter: 'blur(1.5px)' },
+                hidden: { x: '0%',   y: '0%', scale: 0.5, rotateY: 0, opacity: 0,   filter: 'blur(8px)' },
+              };
+              const zIndex = slot === 'active' ? 3 : slot === 'hidden' ? 0 : 2;
+
+              return (
+                <motion.button
+                  key={shot.id}
                   type="button"
-                  className="bq-shot-peek bq-shot-peek-prev"
-                  aria-label={`Vorherige Vorschau (${heroShots[(heroShotIdx - 1 + heroShots.length) % heroShots.length].label})`}
-                  onClick={() => setHeroShotIdx((heroShotIdx - 1 + heroShots.length) % heroShots.length)}
+                  className={`bq-trinity-card bq-trinity-card-${slot}`}
+                  style={{ zIndex, pointerEvents: slot === 'hidden' ? 'none' : 'auto' }}
+                  animate={positions[slot]}
+                  transition={{ type: 'spring', stiffness: 200, damping: 28, mass: 0.9 }}
+                  onClick={() => setHeroShotIdx(i)}
+                  aria-label={slot === 'active' ? `${shot.label} — aktuelle Ansicht` : `Wechsle zu ${shot.label}`}
+                  aria-current={slot === 'active'}
                 >
-                  <img
-                    src={heroShots[(heroShotIdx - 1 + heroShots.length) % heroShots.length].src}
-                    alt=""
-                    aria-hidden
-                    draggable={false}
-                  />
-                </button>
-                <button
-                  type="button"
-                  className="bq-shot-peek bq-shot-peek-next"
-                  aria-label={`Nächste Vorschau (${heroShots[(heroShotIdx + 1) % heroShots.length].label})`}
-                  onClick={() => setHeroShotIdx((heroShotIdx + 1) % heroShots.length)}
-                >
-                  <img
-                    src={heroShots[(heroShotIdx + 1) % heroShots.length].src}
-                    alt=""
-                    aria-hidden
-                    draggable={false}
-                  />
-                </button>
-              </>
-            )}
+                  <div className="bq-trinity-chrome">
+                    <span className="bq-dot" style={{ background: '#FF5F57' }} />
+                    <span className="bq-dot" style={{ background: '#FFBD2E' }} />
+                    <span className="bq-dot" style={{ background: '#28CA41' }} />
+                    <span className="bq-trinity-url">
+                      <span className="bq-trinity-url-host">beequ.app</span>
+                      <span className="bq-trinity-url-sep">/</span>
+                      <span className="bq-trinity-url-path">{shot.label.toLowerCase()}</span>
+                    </span>
+                    {slot === 'active' && (
+                      <span className="bq-trinity-live">
+                        <span className="bq-trinity-live-dot" />
+                        Live
+                      </span>
+                    )}
+                  </div>
+                  <div className="bq-trinity-screen">
+                    <img
+                      src={shot.src}
+                      alt={`BeeQu — ${shot.label}`}
+                      draggable={false}
+                      loading={slot === 'active' ? 'eager' : 'lazy'}
+                    />
+                    {slot === 'active' && (
+                      <>
+                        <div className="bq-trinity-shine" aria-hidden />
+                        <div className="bq-trinity-progress" aria-hidden>
+                          <div
+                            key={shot.id + (heroShotPaused ? '-p' : '')}
+                            className={`bq-trinity-progress-bar${heroShotPaused ? ' is-paused' : ''}`}
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </motion.button>
+              );
+            })}
 
-            <div className="bq-shot-frame">
-              {/* chrome */}
-              <div className="bq-shot-chrome">
-                <span className="bq-dot" style={{ background: '#FF5F57' }} />
-                <span className="bq-dot" style={{ background: '#FFBD2E' }} />
-                <span className="bq-dot" style={{ background: '#28CA41' }} />
-                <span className="bq-shot-url">
-                  <span className="bq-shot-url-host">beequ.app</span>
-                  <span className="bq-shot-url-sep">/</span>
-                  <span className="bq-shot-url-path">{heroShots[heroShotIdx].label.toLowerCase()}</span>
-                </span>
-                <span className="bq-shot-live">
-                  <span className="bq-shot-live-dot" />
-                  Live Vorschau
-                </span>
-              </div>
-
-              {/* stage */}
-              <div className="bq-shot-stage">
-                <AnimatePresence mode="wait">
-                  <motion.img
-                    key={heroShots[heroShotIdx].id}
-                    src={heroShots[heroShotIdx].src}
-                    alt={`BeeQu — ${heroShots[heroShotIdx].label}`}
-                    className="bq-shot-img"
-                    initial={{ opacity: 0, scale: 1.03 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.985 }}
-                    transition={{ duration: 0.55, ease }}
-                    loading="lazy"
-                    draggable={false}
-                  />
-                </AnimatePresence>
-                <div className="bq-shot-shine" aria-hidden />
-                <div className="bq-shot-progress" aria-hidden>
-                  <div
-                    key={heroShots[heroShotIdx].id + (heroShotPaused ? '-p' : '')}
-                    className={`bq-shot-progress-bar${heroShotPaused ? ' is-paused' : ''}`}
-                  />
-                </div>
-              </div>
-            </div>
-            {/* Floor reflection — mirrors the active screenshot */}
-            <div className="bq-shot-reflection" aria-hidden>
-              <img
-                key={`refl-${heroShots[heroShotIdx].id}`}
-                src={heroShots[heroShotIdx].src}
-                alt=""
-                draggable={false}
-              />
-            </div>
+            {/* Navigation arrows (desktop) */}
+            <button
+              type="button"
+              className="bq-trinity-arrow bq-trinity-arrow-prev"
+              aria-label="Vorherige Ansicht"
+              onClick={() => setHeroShotIdx((heroShotIdx - 1 + heroShots.length) % heroShots.length)}
+            >
+              <ArrowRight size={18} style={{ transform: 'rotate(180deg)' }} />
+            </button>
+            <button
+              type="button"
+              className="bq-trinity-arrow bq-trinity-arrow-next"
+              aria-label="Nächste Ansicht"
+              onClick={() => setHeroShotIdx((heroShotIdx + 1) % heroShots.length)}
+            >
+              <ArrowRight size={18} />
+            </button>
           </div>
 
-          {/* Tab strip — floating pills below the frame */}
-          <div className="bq-shot-tabs" role="tablist" aria-label="App-Vorschau wechseln">
+          {/* Progress segments */}
+          <div className="bq-trinity-segs" role="tablist" aria-label="App-Vorschau wechseln">
             {heroShots.map((shot, i) => {
               const Icon = shot.icon;
               const active = i === heroShotIdx;
@@ -837,11 +857,19 @@ export default function LandingPage() {
                   type="button"
                   role="tab"
                   aria-selected={active}
-                  className={`bq-shot-tab${active ? ' active' : ''}`}
+                  className={`bq-trinity-seg${active ? ' active' : ''}`}
                   onClick={() => setHeroShotIdx(i)}
                 >
-                  <span className="bq-shot-tab-icon"><Icon size={15} /></span>
-                  <span className="bq-shot-tab-label">{shot.label}</span>
+                  <span className="bq-trinity-seg-icon"><Icon size={14} /></span>
+                  <span className="bq-trinity-seg-label">{shot.label}</span>
+                  <span className="bq-trinity-seg-rail">
+                    {active && (
+                      <span
+                        key={`fill-${shot.id}-${heroShotPaused ? 'p' : 'r'}`}
+                        className={`bq-trinity-seg-fill${heroShotPaused ? ' is-paused' : ''}`}
+                      />
+                    )}
+                  </span>
                 </button>
               );
             })}
