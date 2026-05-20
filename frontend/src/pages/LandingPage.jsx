@@ -53,17 +53,17 @@ function getPlanRows(plan) {
 }
 
 const bentoFeatures = [
-  { icon: Sparkles,    color: '#007AFF', bg: 'rgba(0,122,255,0.1)',   title: 'KI-Texteingabe',         desc: '"Sprint-Review Freitag 10 Uhr, hohe Prio" — BeeQu erkennt Titel, Datum, Uhrzeit, Kategorie und Priorität automatisch.', plan: 'Pro & Team', wide: true },
-  { icon: CalendarDays,color: '#5856D6', bg: 'rgba(88,86,214,0.1)',   title: 'Ultra-Kalender',         desc: 'Wochen- & Monatsansicht. Drag & Drop direkt im Raster, Termine verschieben mit einem Wisch.',                                plan: 'Alle Pläne' },
-  { icon: MessageSquare,color:'#34C759', bg: 'rgba(52,199,89,0.1)',   title: 'Team-Chat mit Events',  desc: 'Echtzeit-Chat in Gruppen, mit eingebetteten Terminen, Reaktionen, Abstimmungen und Anhängen.',                              plan: 'Team' },
-  { icon: FolderKanban,color: '#FF9500', bg: 'rgba(255,149,0,0.1)',   title: 'Gruppen-Projekt-Board', desc: 'Geteilte Aufgaben, Fortschritts-Balken und Status-Spalten — der ganzen Gruppe immer sichtbar.',                              plan: 'Pro & Team' },
+  { icon: Sparkles,    color: '#007AFF', bg: 'rgba(0,122,255,0.1)',   title: 'KI-Texteingabe',         desc: '"Sprint-Review Freitag 10 Uhr, hohe Prio" — BeeQu erkennt Titel, Datum, Uhrzeit, Kategorie und Priorität automatisch.', plan: 'Alle Pläne', wide: true },
+  { icon: CalendarDays,color: '#5856D6', bg: 'rgba(88,86,214,0.1)',   title: 'Ultra-Kalender',         desc: 'Wochen- & Monatsansicht. Drag & Drop direkt im Raster, Mehrtages-Events und ein eigener Familien-Layer.',                       plan: 'Alle Pläne' },
+  { icon: MessageSquare,color:'#34C759', bg: 'rgba(52,199,89,0.1)',   title: 'Team-Chat mit Events',  desc: 'Echtzeit-Chat in Gruppen mit eingebetteten Terminen, Reaktionen und Datei-Anhängen.',                                          plan: 'Team' },
+  { icon: FolderKanban,color: '#FF9500', bg: 'rgba(255,149,0,0.1)',   title: 'Geteilte Gruppen-Aufgaben', desc: 'Aufgaben mit deiner Gruppe teilen, gemeinsam abhaken, Fortschritt sehen — Familie, WG oder Team.',                         plan: 'Alle Pläne' },
   { icon: Repeat,      color: '#FF375F', bg: 'rgba(255,55,95,0.1)',   title: 'Wiederkehrende Tasks',  desc: 'Täglich, wöchentlich, monatlich, jährlich oder benutzerdefiniert — einmal anlegen, läuft von allein.',                       plan: 'Pro & Team' },
-  { icon: Timer,       color: '#AF52DE', bg: 'rgba(175,82,222,0.1)',  title: 'Focus-Timer',           desc: 'Pomodoro-Sessions mit Push-Benachrichtigung am Ende. Läuft auch im Hintergrund weiter.',                                       plan: 'Alle Pläne' },
-  { icon: FileText,    color: '#00C7BE', bg: 'rgba(0,199,190,0.1)',   title: 'Notizen-Board',         desc: 'Sticky-Notes mit Drag & Drop auf einem freien Board. Verbindungen, Farben, Verknüpfung zu Aufgaben.',                          plan: 'Alle Pläne' },
+  { icon: Timer,       color: '#AF52DE', bg: 'rgba(175,82,222,0.1)',  title: 'Focus-Timer',           desc: 'Sessions à 5, 10, 15, 25 oder 45 Minuten mit Push-Alert am Ende. Läuft auch im Hintergrund weiter.',                          plan: 'Alle Pläne' },
+  { icon: FileText,    color: '#00C7BE', bg: 'rgba(0,199,190,0.1)',   title: 'Notizen-Board',         desc: 'Sticky-Notes mit Drag & Drop auf einem freien Board. Farben, Anheften und Teilen mit Gruppen.',                                plan: 'Alle Pläne' },
   { icon: BarChart2,   color: '#FF9500', bg: 'rgba(255,149,0,0.1)',   title: 'Statistiken & Insights',desc: 'Wochenquote, erledigte Aufgaben pro Kategorie, produktivste Tage — alles auf einen Blick im Dashboard.',                       plan: 'Pro & Team' },
-  { icon: Paperclip,   color: '#FF3B30', bg: 'rgba(255,59,48,0.1)',   title: 'Dateianhänge',          desc: 'Dokumente, Bilder, PDFs direkt an Aufgaben heften — bis 4 MB pro Datei, in Sekunden geladen.',                                  plan: 'Pro & Team' },
-  { icon: Bell,        color: '#5856D6', bg: 'rgba(88,86,214,0.1)',   title: 'Smarte Erinnerungen',   desc: 'Push-Benachrichtigungen genau dann, wenn es zählt. Funktioniert auch offline & im Hintergrund.',                                plan: 'Alle Pläne' },
-  { icon: MoveDiagonal,color: '#007AFF', bg: 'rgba(0,122,255,0.1)',   title: 'ICS-Kalender-Sync',     desc: 'Exportiere deinen BeeQu-Kalender als ICS-Feed — abonnierbar in Apple, Google & Outlook.',                                       plan: 'Pro & Team' },
+  { icon: Paperclip,   color: '#FF3B30', bg: 'rgba(255,59,48,0.1)',   title: 'Dateianhänge',          desc: 'Dokumente, Bilder, PDFs direkt an Aufgaben heften — Vorschau und Download direkt in der Karte.',                                plan: 'Pro & Team' },
+  { icon: Bell,        color: '#5856D6', bg: 'rgba(88,86,214,0.1)',   title: 'Smarte Erinnerungen',   desc: 'Push-Benachrichtigungen genau dann, wenn es zählt — auf Web, Desktop und installierter PWA.',                                  plan: 'Alle Pläne' },
+  { icon: MoveDiagonal,color: '#007AFF', bg: 'rgba(0,122,255,0.1)',   title: 'ICS-Import & -Export',  desc: 'Bestehende Kalender (Google, Apple, Outlook) als .ics importieren — und deine Aufgaben als .ics herunterladen.',                plan: 'Pro & Team' },
   { icon: Smartphone,  color: '#34C759', bg: 'rgba(52,199,89,0.1)',   title: 'PWA — überall installierbar', desc: 'iOS, Android, macOS, Windows. Offline-fähig, Push, Home-Screen-Icon. Kein App-Store nötig.',                              plan: 'Alle Pläne' },
 ];
 
@@ -73,21 +73,36 @@ const heroShots = [
     id: 'dashboard',
     label: 'Dashboard',
     src: '/bilder/dashboard.png',
-    hint: 'KI-Eingabe · Fokus heute · Tages-Sektionen',
+    eyebrow: '01 · KI-Eingabe',
+    headline: 'Tippen statt klicken.',
+    sub: 'Ein Satz reicht — Datum, Uhrzeit, Kategorie und Priorität werden automatisch erkannt.',
     icon: LayoutDashboard,
+  },
+  {
+    id: 'aufgaben',
+    label: 'Aufgaben',
+    src: '/bilder/aufgaben.png',
+    eyebrow: '02 · Heute · Morgen · Später',
+    headline: 'Alle Aufgaben. Nichts vergessen.',
+    sub: 'Filter nach Priorität, gruppiert nach Datum, durchsuchbar — direkt aus dem Dashboard.',
+    icon: ListTodo,
   },
   {
     id: 'kalender',
     label: 'Kalender',
     src: '/bilder/kalender.png',
-    hint: 'Monatsansicht · Termine · Drag & Drop',
+    eyebrow: '03 · Monats- & Wochen-Ansicht',
+    headline: 'Termine im Griff.',
+    sub: 'Eigene und geteilte Kalender im Wechsel. Mehrtages-Events, Drag & Drop direkt im Raster.',
     icon: CalendarDays,
   },
   {
     id: 'gruppen',
     label: 'Gruppen',
     src: '/bilder/gruppen.png',
-    hint: 'Collaboration Space · Mitglieder · Rollen',
+    eyebrow: '04 · Collaboration Space',
+    headline: 'Familie. Team. WG.',
+    sub: 'Mitglieder verwalten, Rollen vergeben, Aufgaben gemeinsam abarbeiten.',
     icon: UsersRound,
   },
 ];
@@ -163,20 +178,20 @@ function FeatureDemo({ feature }) {
       </div>
     );
   }
-  if (title === 'Gruppen-Projekt-Board') {
+  if (title === 'Geteilte Gruppen-Aufgaben') {
     return (
       <div className="bq-demo-card">
         <div className="bq-demo-row">
-          <strong>Marketing Team</strong>
+          <strong>Familie Mustermann</strong>
           <div className="bq-demo-avatars">
-            <span className="bq-demo-avatar" style={{ background: '#FF9500' }}>A</span>
-            <span className="bq-demo-avatar" style={{ background: '#5856D6' }}>M</span>
-            <span className="bq-demo-avatar" style={{ background: '#34C759' }}>J</span>
-            <span className="bq-demo-avatar bq-demo-avatar-mute">+4</span>
+            <span className="bq-demo-avatar" style={{ background: '#FF9500' }}>I</span>
+            <span className="bq-demo-avatar" style={{ background: '#5856D6' }}>O</span>
+            <span className="bq-demo-avatar" style={{ background: '#34C759' }}>P</span>
+            <span className="bq-demo-avatar bq-demo-avatar-mute">+3</span>
           </div>
         </div>
         <div className="bq-demo-progress"><i style={{ background: color, width: '68%' }} /></div>
-        <div className="bq-demo-meta"><span>12 / 18 Tasks</span><span style={{ color }}>+3 diese Woche</span></div>
+        <div className="bq-demo-meta"><span>12 / 18 Aufgaben</span><span style={{ color }}>+3 diese Woche</span></div>
       </div>
     );
   }
@@ -250,10 +265,10 @@ function FeatureDemo({ feature }) {
       </div>
     );
   }
-  if (title === 'ICS-Kalender-Sync') {
+  if (title === 'ICS-Import & -Export') {
     return (
       <div className="bq-demo-card">
-        <div className="bq-demo-row"><MoveDiagonal size={14} style={{ color }} /> beequ.ics <span className="bq-demo-chip" style={accent}>abonnierbar</span></div>
+        <div className="bq-demo-row"><MoveDiagonal size={14} style={{ color }} /> beequ.ics <span className="bq-demo-chip" style={accent}>Export</span></div>
         <div className="bq-demo-row" style={{ opacity: 0.85 }}>📅 Apple Kalender</div>
         <div className="bq-demo-row" style={{ opacity: 0.85 }}>📅 Google Calendar</div>
         <div className="bq-demo-row" style={{ opacity: 0.85 }}>📅 Outlook</div>
@@ -693,87 +708,143 @@ export default function LandingPage() {
           </motion.div>
         </motion.div>
 
-        {/* ── floating app mock ── */}
+        {/* ── cinematic screenshot showcase ── */}
         <motion.div
           className="bq-hero-mock-wrap"
           initial={{ opacity: 0, y: 48, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.7, delay: 0.35, ease }}
         >
+          {/* Rotating headline above the showcase */}
+          <div className="bq-shot-caption" aria-live="polite">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`cap-${heroShots[heroShotIdx].id}`}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.32, ease }}
+                className="bq-shot-caption-inner"
+              >
+                <span className="bq-shot-caption-eyebrow">{heroShots[heroShotIdx].eyebrow}</span>
+                <h3 className="bq-shot-caption-headline">{heroShots[heroShotIdx].headline}</h3>
+                <p className="bq-shot-caption-sub">{heroShots[heroShotIdx].sub}</p>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
           <div
-            className="bq-shot-frame"
+            className="bq-shot-stage-wrap"
             onMouseEnter={() => setHeroShotPaused(true)}
             onMouseLeave={() => setHeroShotPaused(false)}
           >
-            <div className="bq-shot-glow-a" aria-hidden />
-            <div className="bq-shot-glow-b" aria-hidden />
+            <div className="bq-shot-spot bq-shot-spot-a" aria-hidden />
+            <div className="bq-shot-spot bq-shot-spot-b" aria-hidden />
 
-            {/* chrome */}
-            <div className="bq-shot-chrome">
-              <span className="bq-dot" style={{ background: '#FF5F57' }} />
-              <span className="bq-dot" style={{ background: '#FFBD2E' }} />
-              <span className="bq-dot" style={{ background: '#28CA41' }} />
-              <span className="bq-shot-url">
-                <span className="bq-shot-url-host">beequ.app</span>
-                <span className="bq-shot-url-sep">·</span>
-                <span className="bq-shot-url-path">{heroShots[heroShotIdx].label}</span>
-              </span>
-              <span className="bq-shot-live">
-                <span className="bq-shot-live-dot" />
-                Live Vorschau
-              </span>
-            </div>
+            {/* Side peeks: previous + next slides */}
+            {heroShots.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  className="bq-shot-peek bq-shot-peek-prev"
+                  aria-label={`Vorherige Vorschau (${heroShots[(heroShotIdx - 1 + heroShots.length) % heroShots.length].label})`}
+                  onClick={() => setHeroShotIdx((heroShotIdx - 1 + heroShots.length) % heroShots.length)}
+                >
+                  <img
+                    src={heroShots[(heroShotIdx - 1 + heroShots.length) % heroShots.length].src}
+                    alt=""
+                    aria-hidden
+                    draggable={false}
+                  />
+                </button>
+                <button
+                  type="button"
+                  className="bq-shot-peek bq-shot-peek-next"
+                  aria-label={`Nächste Vorschau (${heroShots[(heroShotIdx + 1) % heroShots.length].label})`}
+                  onClick={() => setHeroShotIdx((heroShotIdx + 1) % heroShots.length)}
+                >
+                  <img
+                    src={heroShots[(heroShotIdx + 1) % heroShots.length].src}
+                    alt=""
+                    aria-hidden
+                    draggable={false}
+                  />
+                </button>
+              </>
+            )}
 
-            {/* stage */}
-            <div className="bq-shot-stage">
-              <AnimatePresence mode="wait">
-                <motion.img
-                  key={heroShots[heroShotIdx].id}
-                  src={heroShots[heroShotIdx].src}
-                  alt={`BeeQu — ${heroShots[heroShotIdx].label}`}
-                  className="bq-shot-img"
-                  initial={{ opacity: 0, scale: 1.025 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.985 }}
-                  transition={{ duration: 0.55, ease }}
-                  loading="lazy"
-                  draggable={false}
-                />
-              </AnimatePresence>
-              <div className="bq-shot-shine" aria-hidden />
-              {/* Auto-Rotations-Progress, setzt sich pro Slide zurück */}
-              <div className="bq-shot-progress" aria-hidden>
-                <div
-                  key={heroShots[heroShotIdx].id + (heroShotPaused ? '-p' : '')}
-                  className={`bq-shot-progress-bar${heroShotPaused ? ' is-paused' : ''}`}
-                />
+            <div className="bq-shot-frame">
+              {/* chrome */}
+              <div className="bq-shot-chrome">
+                <span className="bq-dot" style={{ background: '#FF5F57' }} />
+                <span className="bq-dot" style={{ background: '#FFBD2E' }} />
+                <span className="bq-dot" style={{ background: '#28CA41' }} />
+                <span className="bq-shot-url">
+                  <span className="bq-shot-url-host">beequ.app</span>
+                  <span className="bq-shot-url-sep">/</span>
+                  <span className="bq-shot-url-path">{heroShots[heroShotIdx].label.toLowerCase()}</span>
+                </span>
+                <span className="bq-shot-live">
+                  <span className="bq-shot-live-dot" />
+                  Live Vorschau
+                </span>
+              </div>
+
+              {/* stage */}
+              <div className="bq-shot-stage">
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={heroShots[heroShotIdx].id}
+                    src={heroShots[heroShotIdx].src}
+                    alt={`BeeQu — ${heroShots[heroShotIdx].label}`}
+                    className="bq-shot-img"
+                    initial={{ opacity: 0, scale: 1.03 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.985 }}
+                    transition={{ duration: 0.55, ease }}
+                    loading="lazy"
+                    draggable={false}
+                  />
+                </AnimatePresence>
+                <div className="bq-shot-shine" aria-hidden />
+                <div className="bq-shot-progress" aria-hidden>
+                  <div
+                    key={heroShots[heroShotIdx].id + (heroShotPaused ? '-p' : '')}
+                    className={`bq-shot-progress-bar${heroShotPaused ? ' is-paused' : ''}`}
+                  />
+                </div>
               </div>
             </div>
-
-            {/* tab strip */}
-            <div className="bq-shot-tabs" role="tablist" aria-label="App-Vorschau wechseln">
-              {heroShots.map((shot, i) => {
-                const Icon = shot.icon;
-                const active = i === heroShotIdx;
-                return (
-                  <button
-                    key={shot.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={active}
-                    className={`bq-shot-tab${active ? ' active' : ''}`}
-                    onClick={() => setHeroShotIdx(i)}
-                  >
-                    <span className="bq-shot-tab-icon"><Icon size={14} /></span>
-                    <span className="bq-shot-tab-text">
-                      <strong>{shot.label}</strong>
-                      <small>{shot.hint}</small>
-                    </span>
-                    <span className="bq-shot-tab-num">0{i + 1}</span>
-                  </button>
-                );
-              })}
+            {/* Floor reflection — mirrors the active screenshot */}
+            <div className="bq-shot-reflection" aria-hidden>
+              <img
+                key={`refl-${heroShots[heroShotIdx].id}`}
+                src={heroShots[heroShotIdx].src}
+                alt=""
+                draggable={false}
+              />
             </div>
+          </div>
+
+          {/* Tab strip — floating pills below the frame */}
+          <div className="bq-shot-tabs" role="tablist" aria-label="App-Vorschau wechseln">
+            {heroShots.map((shot, i) => {
+              const Icon = shot.icon;
+              const active = i === heroShotIdx;
+              return (
+                <button
+                  key={shot.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  className={`bq-shot-tab${active ? ' active' : ''}`}
+                  onClick={() => setHeroShotIdx(i)}
+                >
+                  <span className="bq-shot-tab-icon"><Icon size={15} /></span>
+                  <span className="bq-shot-tab-label">{shot.label}</span>
+                </button>
+              );
+            })}
           </div>
         </motion.div>
       </section>
@@ -785,8 +856,8 @@ export default function LandingPage() {
             { icon: Sparkles,    text: 'KI versteht natürliche Sprache' },
             { icon: CalendarDays,text: 'Drag & Drop im Kalender' },
             { icon: MessageSquare,text:'Team-Chat mit Events' },
-            { icon: FolderKanban,text: 'Geteilte Projekt-Boards' },
-            { icon: Timer,       text: 'Focus-Timer & Pomodoro' },
+            { icon: FolderKanban,text: 'Geteilte Gruppen-Aufgaben' },
+            { icon: Timer,       text: 'Focus-Timer mit Push-Alert' },
             { icon: Bell,        text: 'Push-Erinnerungen' },
             { icon: Leaf,        text: '1 % für Stripe Climate' },
           ].map(({ icon: Icon, text }, i) => (
