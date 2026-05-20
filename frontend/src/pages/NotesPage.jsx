@@ -1,7 +1,7 @@
 ﻿import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useDragControls } from 'framer-motion';
-import { Plus, ZoomIn, ZoomOut, X, CalendarDays, Pin, CheckSquare, Calendar, Check, Archive, RotateCcw, Trash2, LayoutGrid, Link2, Unlink, Maximize2, Wand2, Palette } from 'lucide-react';
+import { Plus, ZoomIn, ZoomOut, X, CalendarDays, Pin, CheckSquare, Calendar, Check, Archive, RotateCcw, Trash2, LayoutGrid, Link2, Unlink, Maximize2, Wand2, Palette, Search } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useOpenTask } from '../hooks/useOpenTask';
 import TaskDetailModal from '../components/TaskDetailModal';
@@ -142,7 +142,7 @@ function computeChecklistProgress(rawContent) {
   return { total, done, percent: Math.round((done / total) * 100) };
 }
 
-function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange, isSelected, onSelect, tasks = [], onOpenTask, boardScaleRef, gridPos = null, dragDisabled = false, onDragLive, onOpenEditor }) {
+function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange, isSelected, onSelect, tasks = [], onOpenTask, boardScaleRef, gridPos = null, dragDisabled = false, onDragLive, onOpenEditor, isDimmed = false }) {
   const [isEditing, setIsEditing] = useState(false);
   const [content, setContent] = useState(note.content || '');
   const [title, setTitle] = useState(note.title || '');
@@ -425,7 +425,7 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
   return (
     <div
       ref={noteRef}
-      className={`sticky-note ${isSelected ? 'selected' : ''} ${isDragging ? 'dragging' : ''} ${linkedTasks.length > 0 ? 'has-linked-task' : ''} ${hasTitle ? 'has-title' : ''}`}
+      className={`sticky-note ${isSelected ? 'selected' : ''} ${isDragging ? 'dragging' : ''} ${linkedTasks.length > 0 ? 'has-linked-task' : ''} ${hasTitle ? 'has-title' : ''} ${isDimmed ? 'is-dimmed' : ''}`}
       data-variant={variantIndex}
       style={{
         position: 'absolute',
@@ -861,7 +861,8 @@ const StickyNote = memo(StickyNoteImpl, (prev, next) => (
   prev.gridPos?.y === next.gridPos?.y &&
   prev.dragDisabled === next.dragDisabled &&
   prev.onDragLive === next.onDragLive &&
-  prev.onOpenEditor === next.onOpenEditor
+  prev.onOpenEditor === next.onOpenEditor &&
+  prev.isDimmed === next.isDimmed
 ));
 
 const BOARD_W = 3200;
@@ -882,6 +883,9 @@ export default function NotesPage() {
   const tasks = useTaskStore((s) => s.tasks);
   const fetchTasks = useTaskStore((s) => s.fetchTasks);
   const [showArchive, setShowArchive] = useState(false);
+  // Suche im Board: dimmt nicht-passende Notes, behaelt aber alle
+  // Positionen, damit das Layout nicht springt.
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [scale, setScale] = useState(1);
   // Initial-Pan: grobe Schätzung der Canvas-Mitte relativ zum Viewport.
@@ -1308,6 +1312,23 @@ export default function NotesPage() {
     return map;
   }, [isGrid, notes]);
 
+  // Suchindex: Set der IDs, die zum aktuellen searchQuery passen.
+  // null = keine aktive Suche -> alle Notes voll sichtbar. Beim Suchen
+  // dimmen wir Non-Matches nur via CSS, statt sie zu entfernen, damit
+  // das Board-Layout (Verbindungen, Positionen) konsistent bleibt.
+  const matchedNoteIds = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return null;
+    const stripHtml = (html) => String(html || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+    const out = new Set();
+    for (const n of (notes || [])) {
+      if (!n || n.id == null) continue;
+      const hay = `${n.title || ''} ${stripHtml(n.content)} ${n.color || ''}`.toLowerCase();
+      if (hay.includes(q)) out.add(n.id);
+    }
+    return out;
+  }, [notes, searchQuery]);
+
   // Connections fuer Render aufbereiten (nur Linien, deren beide Notes
   // aktuell sichtbar sind — geteilte Verbindungen mit fehlender Note ueberspringen).
   const renderableConnections = useMemo(() => {
@@ -1659,6 +1680,34 @@ export default function NotesPage() {
 
         <div className="board-controls">
           <NoteShareRequestsBanner />
+          <div className={`notes-search ${searchQuery ? 'has-value' : ''}`}>
+            <Search size={14} className="notes-search-icon" aria-hidden="true" />
+            <input
+              type="search"
+              className="notes-search-input"
+              placeholder="Notizen durchsuchen..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Escape') setSearchQuery(''); }}
+              aria-label="Notizen durchsuchen"
+            />
+            {searchQuery && (
+              <>
+                <span className="notes-search-count" aria-live="polite">
+                  {(matchedNoteIds?.size ?? 0)}/{notes.length}
+                </span>
+                <button
+                  type="button"
+                  className="notes-search-clear"
+                  onClick={() => setSearchQuery('')}
+                  title="Suche zuruecksetzen"
+                  aria-label="Suche zuruecksetzen"
+                >
+                  <X size={12} />
+                </button>
+              </>
+            )}
+          </div>
           <button className="board-control-btn" onClick={handleZoomOut} disabled={scale <= MIN_SCALE} title="Verkleinern">
             <ZoomOut size={16} />
           </button>
@@ -1819,6 +1868,7 @@ export default function NotesPage() {
               dragDisabled={isGrid}
               onDragLive={handleDragLive}
               onOpenEditor={setEditorNoteId}
+              isDimmed={matchedNoteIds != null && !matchedNoteIds.has(note.id)}
             />
           ))}
 

@@ -122,6 +122,82 @@
   flex-shrink: 0;
 }
 
+/* Board-Suche: dimmed Non-Matches im Free- und Grid-Layout. */
+.notes-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm, 10px);
+  border: 1px solid var(--border-strong, rgba(0, 0, 0, 0.12));
+  background: var(--surface, #fff);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+  min-width: 180px;
+}
+.notes-search:focus-within {
+  border-color: var(--accent, #2563eb);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+}
+.notes-search.has-value {
+  border-color: var(--accent, #2563eb);
+}
+.notes-search-icon {
+  color: var(--text-muted, #6b7280);
+  flex-shrink: 0;
+}
+.notes-search-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text, #1C1C1E);
+  font-size: 13px;
+  font-family: inherit;
+}
+.notes-search-input::-webkit-search-cancel-button { display: none; }
+.notes-search-count {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted, #6b7280);
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--surface-muted, rgba(0, 0, 0, 0.05));
+}
+.notes-search-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted, #6b7280);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+.notes-search-clear:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--text, #1C1C1E);
+}
+
+/* Dimmed Notes (Non-Matches der Volltextsuche). pointer-events: none
+   verhindert, dass man versehentlich auf eine gedimmte Note klickt. */
+.sticky-note.is-dimmed {
+  opacity: 0.18;
+  filter: grayscale(0.4);
+  pointer-events: none;
+  transition: opacity 160ms ease, filter 160ms ease;
+}
+
+@media (max-width: 720px) {
+  .notes-search { min-width: 140px; }
+}
+
+
 .board-control-btn {
   display: inline-flex;
   align-items: center;
@@ -1925,7 +2001,7 @@ html[data-theme="dark"] .notes-connections-layer .connection-glow {
   }
 }
 /* ===========================================================
-   Note Share-Requests — Header-Button mit Badge + Modal
+   Note Share-Requests ï¿½ Header-Button mit Badge + Modal
    =========================================================== */
 .note-share-requests-btn {
   position: relative;
