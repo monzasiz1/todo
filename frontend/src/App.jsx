@@ -15,6 +15,7 @@ import OfflineBanner from './components/OfflineBanner';
 // (Lighthouse: ~140 KB nicht genutztes JS, ~72 KB nicht genutztes CSS).
 const CalendarPage = lazy(() => import('./pages/CalendarPage'));
 const NotesPage = lazy(() => import('./pages/NotesPage'));
+const WhiteboardPage = lazy(() => import('./pages/WhiteboardPage'));
 const GroupsPage = lazy(() => import('./pages/GroupsPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const PricingPage = lazy(() => import('./pages/PricingPage'));
@@ -230,6 +231,7 @@ export default function App() {
             <Route index element={<Dashboard />} />
             <Route path="calendar" element={<Suspense fallback={null}><CalendarPage /></Suspense>} />
             <Route path="notes" element={<Suspense fallback={null}><NotesPage /></Suspense>} />
+            <Route path="whiteboard" element={<Suspense fallback={null}><WhiteboardPage /></Suspense>} />
             <Route path="groups" element={<Suspense fallback={null}><GroupsPage /></Suspense>} />
             <Route path="profile" element={<Suspense fallback={null}><ProfilePage /></Suspense>} />
             <Route path="pricing" element={<Suspense fallback={null}><PricingPage /></Suspense>} />

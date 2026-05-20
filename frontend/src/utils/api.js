@@ -875,5 +875,23 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ action: 'delete', id }),
     }),
+
+  // Whiteboard Strokes
+  getWhiteboardStrokes: () => request('/whiteboard-strokes'),
+  createWhiteboardStroke: (stroke) =>
+    request('/whiteboard-strokes', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'create', ...stroke }),
+    }),
+  deleteWhiteboardStroke: (id) =>
+    request('/whiteboard-strokes', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'delete', id }),
+    }),
+  clearWhiteboardStrokes: () =>
+    request('/whiteboard-strokes', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'clear' }),
+    }),
 };
 

@@ -1,7 +1,7 @@
 ﻿import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useDragControls } from 'framer-motion';
-import { Plus, ZoomIn, ZoomOut, X, CalendarDays, Pin, CheckSquare, Calendar, Check, Archive, RotateCcw, Trash2, LayoutGrid, Link2, Unlink, Maximize2, Wand2 } from 'lucide-react';
+import { Plus, ZoomIn, ZoomOut, X, CalendarDays, Pin, CheckSquare, Calendar, Check, Archive, RotateCcw, Trash2, LayoutGrid, Link2, Unlink, Maximize2, Wand2, Palette } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useOpenTask } from '../hooks/useOpenTask';
 import TaskDetailModal from '../components/TaskDetailModal';
@@ -1697,6 +1697,13 @@ export default function NotesPage() {
             aria-pressed={connectMode}
           >
             <Link2 size={16} />
+          </button>
+          <button
+            className="board-control-btn"
+            onClick={() => navigate('/app/whiteboard')}
+            title="Whiteboard oeffnen"
+          >
+            <Palette size={16} />
           </button>
           <button
             className="board-control-btn"

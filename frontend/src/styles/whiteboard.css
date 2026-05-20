@@ -1,0 +1,223 @@
+/* Whiteboard - Pan/Zoom Canvas Styles. Bewusst .wb-* Namespace, damit
+   wir nichts mit den .nem-* (Notes) oder generischen Klassen kollidieren. */
+
+.wb-page {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: #f4f4f5;
+  z-index: 50;
+}
+
+.wb-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #ffffff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
+  flex-wrap: wrap;
+}
+
+.wb-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #111827;
+}
+
+.wb-count {
+  font-weight: 400;
+  font-size: 12px;
+  color: #6b7280;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f3f4f6;
+}
+
+.wb-saving {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #2563eb;
+  font-weight: 500;
+}
+
+.wb-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.wb-tool-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  background: #f3f4f6;
+  border-radius: 10px;
+}
+
+.wb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.wb-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.wb-btn.is-active {
+  background: #ffffff;
+  color: #111827;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.wb-btn-ghost {
+  background: transparent;
+  color: #6b7280;
+}
+
+.wb-btn-ghost:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.wb-btn-danger {
+  color: #b91c1c;
+}
+
+.wb-btn-danger:hover {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.wb-zoom-label {
+  font-variant-numeric: tabular-nums;
+  min-width: 52px;
+}
+
+.wb-colors {
+  padding: 4px;
+}
+
+.wb-color {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 120ms ease, border-color 120ms ease;
+}
+
+.wb-color:hover {
+  transform: scale(1.08);
+}
+
+.wb-color.is-active {
+  border-color: #ffffff;
+  box-shadow: 0 0 0 2px #111827;
+}
+
+.wb-sizes {
+  padding: 4px;
+}
+
+.wb-size {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.wb-size:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.wb-size.is-active {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.wb-size-dot {
+  display: inline-block;
+  border-radius: 50%;
+}
+
+.wb-canvas-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.wb-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.wb-loading,
+.wb-hint {
+  position: absolute;
+  pointer-events: none;
+  font-size: 13px;
+  color: #6b7280;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 10px 16px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.wb-loading {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.wb-hint {
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: min(520px, calc(100% - 40px));
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .wb-toolbar {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+  .wb-count {
+    display: none;
+  }
+}
