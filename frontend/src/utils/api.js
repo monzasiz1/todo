@@ -761,6 +761,11 @@ export const api = {
       body: JSON.stringify({ note_id: noteId }),
     }),
 
+  // Activity-Feed (chronologischer Verlauf einer Note: created, edited,
+  // shared, unshared, completed, …). Sichtbar fuer alle mit Lese-Zugriff.
+  getNoteActivity: (noteId, { limit = 50 } = {}) =>
+    request(`/notes/${encodeURIComponent(noteId)}/activity?limit=${limit}`),
+
   connectNotes: (noteId1, noteId2, relationshipType = 'related') =>
     request('/notes', {
       method: 'POST',

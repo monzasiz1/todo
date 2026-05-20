@@ -15,6 +15,7 @@ import { useAuthStore } from '../store/authStore';
 import { useFriendsStore } from '../store/friendsStore';
 import { useNotesStore } from '../store/notesStore';
 import { toDisplayHtml, sanitizeHtml } from '../lib/noteFormat';
+import NoteActivityPanel from './NoteActivityPanel';
 import '../styles/note-editor-modal.css';
 
 const NOTE_COLORS = [
@@ -886,6 +887,17 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
               </div>
             )}
           </div>
+
+          {/* Aktivitaetsverlauf — chronologische Liste aller Aenderungen
+              an dieser Notiz (created, edited, shared, …). Default zu;
+              schliesst nicht den Editor. Refresh-Key wird bei jedem
+              note.updated_at-Tick (Realtime-Sync) hochgezaehlt. */}
+          {note?.id && (
+            <NoteActivityPanel
+              noteId={note.id}
+              refreshKey={note?.updated_at || 0}
+            />
+          )}
 
           <div className="nem-footer">
             {!readOnly && (

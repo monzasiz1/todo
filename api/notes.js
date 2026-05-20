@@ -153,6 +153,69 @@ async function ensureNotesStatusColumns(pool) {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────
+// Activity-Feed: pro Note ein zeitlich sortierter Verlauf (created,
+// updated, shared, unshared, link/unlink-task, completed/restored,
+// share-accepted/declined). Auto-Migration, idempotent.
+// ─────────────────────────────────────────────────────────────────────
+let noteActivityEnsuredAt = 0;
+const NOTE_ACTIVITY_TTL_MS = 10 * 60 * 1000;
+async function ensureNoteActivityTable(pool) {
+  const now = Date.now();
+  if (now - noteActivityEnsuredAt < NOTE_ACTIVITY_TTL_MS) return;
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS note_activity (
+        id BIGSERIAL PRIMARY KEY,
+        note_id TEXT NOT NULL,
+        actor_user_id INTEGER NULL REFERENCES users(id) ON DELETE SET NULL,
+        type VARCHAR(40) NOT NULL,
+        payload JSONB DEFAULT '{}'::jsonb,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `);
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_note_activity_note_created ON note_activity (note_id, created_at DESC)');
+    noteActivityEnsuredAt = now;
+  } catch (err) {
+    console.warn('[notes] ensure note_activity failed:', err?.message || err);
+  }
+}
+
+async function recordNoteActivity(pool, { noteId, actorUserId, type, payload }) {
+  if (!noteId || !type) return;
+  try {
+    await ensureNoteActivityTable(pool);
+    const actorId = Number(actorUserId);
+    await pool.query(
+      `INSERT INTO note_activity (note_id, actor_user_id, type, payload)
+       VALUES ($1, $2, $3, $4::jsonb)`,
+      [
+        String(noteId),
+        Number.isInteger(actorId) && actorId > 0 ? actorId : null,
+        String(type).slice(0, 40),
+        JSON.stringify(payload || {}),
+      ]
+    );
+  } catch (err) {
+    // Activity-Log darf niemals den Haupt-Request brechen.
+    console.warn('[notes] recordNoteActivity failed:', err?.message || err);
+  }
+}
+
+// Diff: ermittelt welche Felder sich zwischen prev und next geaendert
+// haben, damit der Activity-Eintrag den Grund nennt (nicht nur "updated").
+function diffNoteUpdate(prev, next) {
+  const changed = [];
+  if (!prev || !next) return changed;
+  const fields = ['title', 'content', 'importance', 'date', 'visibility', 'status', 'completed', 'linked_task_id'];
+  for (const f of fields) {
+    const a = prev[f] === undefined ? null : prev[f];
+    const b = next[f] === undefined ? null : next[f];
+    if (String(a ?? '') !== String(b ?? '')) changed.push(f);
+  }
+  return changed;
+}
+
 async function normalizeNotesOwnerIdForDb(pool, rawUserId) {
   const userType = await getNotesUserIdColumnType(pool);
   const asText = String(rawUserId);
@@ -728,6 +791,12 @@ module.exports = async function handler(req, res) {
 
       // Realtime-Broadcast (Owner + alle Sharee bekommen rt-notes-<id>).
       await broadcastNoteChange(pool, createdNote.id, 'created').catch(() => {});
+      await recordNoteActivity(pool, {
+        noteId: createdNote.id,
+        actorUserId: user.id,
+        type: 'created',
+        payload: { title: createdNote.title || '' },
+      });
 
       return res.status(201).json({ note: createdNote });
     }
@@ -799,6 +868,12 @@ module.exports = async function handler(req, res) {
           return res.status(404).json({ error: 'Anfrage nicht gefunden' });
         }
         await broadcastNoteChange(pool, noteIdRaw, 'shared').catch(() => {});
+        await recordNoteActivity(pool, {
+          noteId: noteIdRaw,
+          actorUserId: user.id,
+          type: 'share_accepted',
+          payload: {},
+        });
         return res.status(200).json({ share: upd.rows[0] });
       }
 
@@ -818,6 +893,12 @@ module.exports = async function handler(req, res) {
       await broadcastNoteChange(pool, noteIdRaw, 'unshared', {
         extraUserIds: [Number(userIdText)],
       }).catch(() => {});
+      await recordNoteActivity(pool, {
+        noteId: noteIdRaw,
+        actorUserId: user.id,
+        type: 'share_declined',
+        payload: {},
+      });
       return res.status(200).json({ declined: true });
     }
 
@@ -1158,6 +1239,30 @@ module.exports = async function handler(req, res) {
       // damit deren Shared-Liste die Note ggf. wieder ausblendet.
       const updateExtras = participantsChanged && Array.isArray(prevParticipantIds) ? prevParticipantIds : [];
       await broadcastNoteChange(pool, noteId, 'updated', { extraUserIds: updateExtras }).catch(() => {});
+
+      // Activity-Log: konkrete Aenderung (Titel/Inhalt/Status/Verknuepfung)
+      const changedFields = diffNoteUpdate(note, finalNote);
+      if (changedFields.length > 0 || participantsChanged) {
+        let activityType = 'edited';
+        if (changedFields.length === 1 && changedFields[0] === 'completed') {
+          activityType = finalNote.completed ? 'completed' : 'reopened';
+        } else if (changedFields.includes('linked_task_id')) {
+          activityType = finalNote.linked_task_id ? 'linked_task' : 'unlinked_task';
+        } else if (changedFields.includes('visibility')) {
+          activityType = finalNote.visibility === 'group' ? 'made_group' : 'made_private';
+        } else if (participantsChanged) {
+          activityType = 'participants_changed';
+        }
+        await recordNoteActivity(pool, {
+          noteId,
+          actorUserId: user.id,
+          type: activityType,
+          payload: {
+            fields: changedFields,
+            title: finalNote.title || '',
+          },
+        });
+      }
       return res.status(200).json({ note: finalNote });
     }
 
@@ -1186,6 +1291,7 @@ module.exports = async function handler(req, res) {
       await pool.query('DELETE FROM note_shares WHERE note_id = $1', [noteId]);
       await pool.query('DELETE FROM note_connections WHERE note_id_1 = $1 OR note_id_2 = $1', [noteId]);
       await pool.query('DELETE FROM notes WHERE id = $1 AND user_id::text = $2', [noteId, userIdText]);
+      try { await pool.query('DELETE FROM note_activity WHERE note_id = $1', [String(noteId)]); } catch { /* table may not exist yet */ }
 
       await broadcastNoteChange(pool, noteId, 'deleted', { extraUserIds: deletedRecipients }).catch(() => {});
 
@@ -1222,7 +1328,18 @@ module.exports = async function handler(req, res) {
         );
       }
 
-      return res.status(200).json({ note: updated.rows[0] });
+      const updatedNote = updated.rows[0];
+      const wasLinked = !!note.linked_task_id;
+      const isLinked = !!updatedNote.linked_task_id;
+      if (wasLinked !== isLinked) {
+        await recordNoteActivity(pool, {
+          noteId,
+          actorUserId: user.id,
+          type: isLinked ? 'linked_task' : 'unlinked_task',
+          payload: { task_id: updatedNote.linked_task_id || null },
+        });
+      }
+      return res.status(200).json({ note: updatedNote });
     }
 
     // POST /api/notes/:id/share
@@ -1278,6 +1395,12 @@ module.exports = async function handler(req, res) {
       );
 
       await broadcastNoteChange(pool, noteId, 'shared').catch(() => {});
+      await recordNoteActivity(pool, {
+        noteId,
+        actorUserId: user.id,
+        type: 'shared',
+        payload: { target_user_id: Number(targetUserId), permission: validPermission },
+      });
 
       return res.status(201).json({ share: shared.rows[0] });
     }
@@ -1339,11 +1462,43 @@ module.exports = async function handler(req, res) {
       await broadcastNoteChange(pool, noteId, 'unshared', {
         extraUserIds: [targetUserId],
       }).catch(() => {});
+      if (removed.rows.length > 0) {
+        await recordNoteActivity(pool, {
+          noteId,
+          actorUserId: user.id,
+          type: 'unshared',
+          payload: { target_user_id: Number(targetUserId) },
+        });
+      }
 
       return res.status(200).json({
         removed: removed.rows.length > 0,
         share: removed.rows[0] || null,
       });
+    }
+
+    // GET /api/notes/:id/activity — chronologischer Verlauf der Notiz
+    // (created, edited, shared, unshared, completed, …). Sichtbar fuer
+    // alle, die die Note auch lesen duerfen (Owner + akzeptierte Sharees).
+    if (segments.length === 2 && segments[1] === 'activity' && req.method === 'GET') {
+      await ensureNoteActivityTable(pool);
+      try {
+        const limit = Math.min(Math.max(parseInt(req.query?.limit, 10) || 50, 1), 200);
+        const rows = await pool.query(
+          `SELECT a.id, a.note_id, a.actor_user_id, a.type, a.payload, a.created_at,
+                  u.name AS actor_name, u.avatar_url AS actor_avatar_url, u.avatar_color AS actor_avatar_color
+             FROM note_activity a
+             LEFT JOIN users u ON u.id = a.actor_user_id
+            WHERE a.note_id = $1
+            ORDER BY a.created_at DESC, a.id DESC
+            LIMIT $2`,
+          [String(noteId), limit]
+        );
+        return res.status(200).json({ activity: rows.rows });
+      } catch (err) {
+        console.warn('[notes] activity fetch failed:', err?.message || err);
+        return res.status(200).json({ activity: [] });
+      }
     }
 
     // GET /api/notes/:id/connections

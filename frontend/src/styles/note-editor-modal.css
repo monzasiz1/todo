@@ -1037,3 +1037,113 @@ html[data-theme="dark"] .nem-sheet {
 html[data-theme="dark"] .nem-md-checkbox {
   background: transparent;
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   Aktivitaetsverlauf (NoteActivityPanel)
+   Sitzt zwischen Link-Row und Footer, default eingeklappt. Subtiler
+   Look, passt sich an die Note-Akzentfarbe an (--nem-accent).
+   ───────────────────────────────────────────────────────────────────── */
+.nem-act {
+  border-top: 1px solid var(--nem-border, rgba(0, 0, 0, 0.08));
+  background: rgba(0, 0, 0, 0.02);
+}
+.nem-act-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--nem-text-soft, #475569);
+  letter-spacing: 0.01em;
+  transition: background 0.15s ease;
+}
+.nem-act-toggle:hover { background: rgba(0, 0, 0, 0.035); }
+.nem-act-toggle:focus-visible { outline: 2px solid var(--nem-accent, #64748b); outline-offset: -2px; }
+.nem-act-chev {
+  margin-left: auto;
+  transition: transform 0.18s ease;
+  opacity: 0.6;
+}
+.nem-act-chev.is-open { transform: rotate(180deg); }
+
+.nem-act-panel {
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.55);
+}
+.nem-act-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 18px 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--nem-text-soft, #64748b);
+  font-weight: 600;
+}
+.nem-act-refresh {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  color: inherit;
+  padding: 4px;
+  border-radius: 4px;
+  display: inline-flex;
+}
+.nem-act-refresh:hover { background: rgba(0, 0, 0, 0.06); }
+.nem-act-refresh:disabled { opacity: 0.4; cursor: default; }
+.nem-act-refresh .is-spin { animation: nem-act-spin 0.9s linear infinite; }
+@keyframes nem-act-spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+
+.nem-act-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 18px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.nem-act-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--nem-text, #1f2937);
+}
+.nem-act-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  object-fit: cover;
+  background: #cbd5e1;
+}
+.nem-act-avatar--initial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--nem-accent, #64748b);
+  text-transform: uppercase;
+}
+.nem-act-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.nem-act-line { line-height: 1.35; }
+.nem-act-actor { font-weight: 600; }
+.nem-act-verb { color: var(--nem-text-soft, #475569); }
+.nem-act-time { font-size: 11.5px; color: var(--nem-text-soft, #64748b); }
+.nem-act-empty {
+  padding: 8px 18px 14px;
+  font-size: 12.5px;
+  color: var(--nem-text-soft, #64748b);
+  font-style: italic;
+}
+.nem-act-empty--error { color: #b91c1c; font-style: normal; }
