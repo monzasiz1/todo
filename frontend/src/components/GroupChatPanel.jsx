@@ -323,10 +323,21 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
     };
     document.addEventListener('visibilitychange', onVisibility);
 
+    // Realtime-Reconnect: wenn der WebSocket nach einem Verbindungsabbruch
+    // wieder SUBSCRIBED ist, koennen wir Nachrichten waehrend des Aussetzers
+    // verpasst haben. Sofort neu laden — und Polling-Intervall neu setzen
+    // (kann sich von 30s auf 60s entspannen, sobald Realtime wieder lebt).
+    const onReconnect = () => {
+      loadMessages();
+      startPoll();
+    };
+    window.addEventListener('beequ:realtime-reconnected', onReconnect);
+
     return () => {
       clearInterval(pollRef.current);
       window.removeEventListener('beequ:chat-changed', onChatChanged);
       window.removeEventListener('beequ:groups-changed', onGroupsChanged);
+      window.removeEventListener('beequ:realtime-reconnected', onReconnect);
       document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [isActive, selectedGroupId, loadMessages, fetchGroups]);

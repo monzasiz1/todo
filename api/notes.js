@@ -1,5 +1,6 @@
 const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
+const { broadcastNoteChange } = require('./_lib/notesBroadcast');
 
 let linkedTaskColumnTypeCache = null;
 let linkedTaskColumnTypeCacheAt = 0;
@@ -712,6 +713,9 @@ module.exports = async function handler(req, res) {
         await syncParticipantShares(pool, createdNote.id, userIdText, [], safeParticipantIds, null, safeResponsibleId);
       }
 
+      // Realtime-Broadcast (Owner + alle Sharee bekommen rt-notes-<id>).
+      await broadcastNoteChange(pool, createdNote.id, 'created').catch(() => {});
+
       return res.status(201).json({ note: createdNote });
     }
 
@@ -1049,6 +1053,10 @@ module.exports = async function handler(req, res) {
       if (participantsChanged || String(prevResponsibleId || '') !== String(nextResponsibleId || '')) {
         await syncParticipantShares(pool, noteId, userIdText, prevParticipantIds, nextParticipantIds, prevResponsibleId, nextResponsibleId);
       }
+      // Bei Participant-Wechsel auch die vorher beteiligten User benachrichtigen,
+      // damit deren Shared-Liste die Note ggf. wieder ausblendet.
+      const updateExtras = participantsChanged && Array.isArray(prevParticipantIds) ? prevParticipantIds : [];
+      await broadcastNoteChange(pool, noteId, 'updated', { extraUserIds: updateExtras }).catch(() => {});
       return res.status(200).json({ note: finalNote });
     }
 
@@ -1061,9 +1069,24 @@ module.exports = async function handler(req, res) {
         return res.status(403).json({ error: 'Nur Eigentuemer kann loeschen' });
       }
 
+      // Vor dem DELETE die betroffenen User einsammeln, damit Realtime-Broadcast
+      // sie noch erreichen kann (nach DELETE waeren die Rows weg).
+      let deletedRecipients = [];
+      try {
+        const recRes = await pool.query(
+          'SELECT friend_id FROM note_shares WHERE note_id = $1',
+          [noteId]
+        );
+        deletedRecipients = recRes.rows.map((r) => r.friend_id).filter(Boolean);
+      } catch { /* ignore */ }
+      // Owner selbst auch dazunehmen (wird gleich aus notes geloescht).
+      deletedRecipients.push(note.user_id);
+
       await pool.query('DELETE FROM note_shares WHERE note_id = $1', [noteId]);
       await pool.query('DELETE FROM note_connections WHERE note_id_1 = $1 OR note_id_2 = $1', [noteId]);
       await pool.query('DELETE FROM notes WHERE id = $1 AND user_id::text = $2', [noteId, userIdText]);
+
+      await broadcastNoteChange(pool, noteId, 'deleted', { extraUserIds: deletedRecipients }).catch(() => {});
 
       return res.status(200).json({ success: true });
     }
@@ -1149,6 +1172,8 @@ module.exports = async function handler(req, res) {
         [noteId, targetUserId, validPermission]
       );
 
+      await broadcastNoteChange(pool, noteId, 'shared').catch(() => {});
+
       return res.status(201).json({ share: shared.rows[0] });
     }
 
@@ -1202,6 +1227,13 @@ module.exports = async function handler(req, res) {
           RETURNING *`,
         [noteId, targetUserId]
       );
+
+      // Den gerade entfernten Sharee zusaetzlich benachrichtigen — der ist
+      // jetzt nicht mehr in note_shares und wuerde sonst kein Event mehr
+      // bekommen, also kein Removal aus seiner UI sehen.
+      await broadcastNoteChange(pool, noteId, 'unshared', {
+        extraUserIds: [targetUserId],
+      }).catch(() => {});
 
       return res.status(200).json({
         removed: removed.rows.length > 0,

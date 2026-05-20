@@ -860,21 +860,41 @@ export default function NotesPage() {
   // Auto-Refresh: wenn der Tab/Fenster wieder Fokus bekommt oder sichtbar
   // wird, Notes & Tasks neu laden. Loest "andere User schreibt Note, ich
   // sehe es nicht" ohne dedizierten Realtime-Channel.
+  //
+  // Zusaetzlich hoeren wir auf 'beequ:notes-changed' (vom useRealtime-Hook
+  // via Supabase Broadcast + postgres_changes) — damit kommen Updates in
+  // <1 Sekunde rein und das Polling-Intervall ist nur noch Safety-Net.
+  // Wenn Realtime aktiv ist, koennen wir den Poll auf 60s entspannen.
   useEffect(() => {
     const refresh = () => {
       if (document.visibilityState === 'hidden') return;
       try { fetchNotes?.({ force: true }); } catch {}
       try { fetchConnections?.(); } catch {}
     };
+    const onNotesChanged = () => {
+      // Auch wenn Tab gerade nicht sichtbar ist: Store aktualisieren, damit
+      // beim Re-Open sofort der frische Stand da ist.
+      try { fetchNotes?.({ force: true }); } catch {}
+      try { fetchConnections?.(); } catch {}
+    };
+    const onReconnect = () => refresh();
+
     window.addEventListener('focus', refresh);
     document.addEventListener('visibilitychange', refresh);
-    // Zusaetzlich: Sanftes Background-Polling alle 30s waehrend Tab sichtbar.
+    window.addEventListener('beequ:notes-changed', onNotesChanged);
+    window.addEventListener('beequ:realtime-reconnected', onReconnect);
+
+    // Sanftes Background-Polling waehrend Tab sichtbar. Bei aktivem
+    // Realtime nur alle 60s (Safety-Net), sonst alle 30s.
+    const pollMs = (typeof window !== 'undefined' && window.__beequRealtimeActive) ? 60000 : 30000;
     const pollId = window.setInterval(() => {
       if (document.visibilityState === 'visible') refresh();
-    }, 30000);
+    }, pollMs);
     return () => {
       window.removeEventListener('focus', refresh);
       document.removeEventListener('visibilitychange', refresh);
+      window.removeEventListener('beequ:notes-changed', onNotesChanged);
+      window.removeEventListener('beequ:realtime-reconnected', onReconnect);
       window.clearInterval(pollId);
     };
   }, [fetchNotes, fetchConnections]);

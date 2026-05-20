@@ -24,13 +24,31 @@ function setRealtimeActive(v) {
 // eingeben um den aktuellen Stand zu sehen.
 function setStatus(patch) {
   try {
-    window.__beequRealtime = { ...(window.__beequRealtime || {}), ...patch, ts: Date.now() };
+    const prev = window.__beequRealtime || {};
+    window.__beequRealtime = { ...prev, ...patch, ts: Date.now() };
     // Wichtig: NUR den Patch loggen, nicht den merged state — sonst sieht es
     // so aus als ob `phase` sich oft auf "token-set" wiederholt (in Wirklichkeit
     // sind das spaetere Subscribe-/Presence-Statusupdates die den alten phase
     // mit-loggen wuerden).
     // eslint-disable-next-line no-console
     console.info('[realtime]', { ...patch, ts: window.__beequRealtime.ts });
+
+    // Reconnect-Signal: Sobald irgendein Channel von !SUBSCRIBED zu
+    // SUBSCRIBED wechselt, feuern wir ein globales Event. Konsumenten
+    // (z.B. GroupChatPanel, NotesPage) koennen so nach einem Verbindungs-
+    // abbruch sofort ihre Liste neu laden, statt auf das naechste Polling-
+    // Intervall zu warten.
+    for (const key of Object.keys(patch)) {
+      const nextVal = patch[key];
+      const prevVal = prev[key];
+      if (nextVal === 'SUBSCRIBED' && prevVal && prevVal !== 'SUBSCRIBED') {
+        try {
+          window.dispatchEvent(new CustomEvent('beequ:realtime-reconnected', {
+            detail: { channel: key },
+          }));
+        } catch { /* ignore */ }
+      }
+    }
   } catch { /* ignore */ }
 }
 
@@ -316,6 +334,69 @@ export function useRealtime({ userId, enabled = true } = {}) {
           setStatus({ groupsChannel: status, groupsErr: err?.message });
         });
       _rt.channels.push({ channel: groupsChannel, cancel: refetchGroups.cancel });
+
+      // 3b) NOTES — Aenderungen an notes/note_shares/note_connections
+      //     refreshen die Notes-Liste. Wir nutzen zwei Channels parallel:
+      //
+      //     • postgres_changes (RLS-gesichert, ~500-1000ms) als Fallback,
+      //       falls der Broadcast-Pfad (z.B. fehlendes SERVICE_ROLE_KEY) nicht
+      //       greift. Pfad funktioniert auch bei Direct-DB-Writes ausserhalb
+      //       der API.
+      //
+      //     • broadcast 'rt-notes-<userId>' (Server-getrieben, ~50-150ms) als
+      //       Fast-Lane. api/notes.js sendet nach jedem Write einen Trigger
+      //       (note_id + op, KEINE Inhalte) an alle betroffenen User. Skaliert
+      //       weil jeder Client nur seinen eigenen Topic abonniert.
+      const refetchNotes = debounce(async (detail) => {
+        try {
+          const { useNotesStore } = await import('../store/notesStore');
+          const store = useNotesStore.getState();
+          await store.fetchNotes?.({ force: true });
+          await store.fetchConnections?.();
+        } catch { /* ignore */ }
+        try {
+          window.dispatchEvent(new CustomEvent('beequ:notes-changed', {
+            detail: detail || {},
+          }));
+        } catch { /* ignore */ }
+      }, 250);
+
+      const notesChannel = supabase
+        .channel(`rt-notes-pg-${userId}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'notes' },
+          () => refetchNotes({ via: 'pg', table: 'notes' })
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'note_shares' },
+          () => refetchNotes({ via: 'pg', table: 'note_shares' })
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'note_connections' },
+          () => refetchNotes({ via: 'pg', table: 'note_connections' })
+        )
+        .subscribe((status, err) => {
+          setStatus({ notesChannel: status, notesErr: err?.message });
+        });
+      _rt.channels.push({ channel: notesChannel, cancel: refetchNotes.cancel });
+
+      const notesBroadcastChannel = supabase
+        .channel(`rt-notes-${userId}`)
+        .on(
+          'broadcast',
+          { event: 'note_changed' },
+          (msg) => {
+            const payload = msg?.payload || {};
+            refetchNotes({ via: 'broadcast', ...payload });
+          }
+        )
+        .subscribe((status, err) => {
+          setStatus({ notesBroadcast: status, notesBroadcastErr: err?.message });
+        });
+      _rt.channels.push({ channel: notesBroadcastChannel });
 
       // 4) ONLINE-PRESENCE — Channel 'rt-presence'. Jeder verbundene Client
       //    'tracked' seine user_id; alle anderen sehen joins/leaves sofort.
