@@ -395,7 +395,17 @@ export const useTaskStore = create((set, get) => ({
       const created = Array.isArray(data.created_tasks) && data.created_tasks.length > 0
         ? data.created_tasks
         : [data.task];
-      set((s) => ({ tasks: [...created, ...s.tasks], rangeCache: {} }));
+      // WICHTIG: lastTasksFetchKey/At hier (vor emitTasksChanged) reseten,
+      // damit Subscriber die ohne {force:true} fetchen wuerden, garantiert
+      // einen frischen Server-Roundtrip machen und nicht versehentlich den
+      // stillFresh-Skip ausloesen (Symptom war: neuer Termin/Aufgabe
+      // erscheint erst nach App-Neustart oder manuellem Refresh).
+      set((s) => ({
+        tasks: [...created, ...s.tasks],
+        rangeCache: {},
+        lastTasksFetchKey: '',
+        lastTasksFetchAt: 0,
+      }));
       writeCachedTaskRanges({});
       emitTasksChanged();
       const groupMsg = data.group?.name ? ` · Gruppe: ${data.group.name}` : '';
@@ -404,8 +414,6 @@ export const useTaskStore = create((set, get) => ({
         : '';
       const typeMsg = task.type === 'event' ? '📅 Termin' : '✅ Aufgabe';
       get().addToast(`${typeMsg} erstellt${groupMsg}${recurrenceMsg}`);
-        // Invalidate dashboard cache to ensure Dashboard stays in sync with new task
-        set((s) => ({ lastTasksFetchKey: '', lastTasksFetchAt: 0 }));
       return data;
     } catch (err) {
       get().addToast(err.message, 'error');
