@@ -41,11 +41,24 @@ module.exports = async function handler(req, res) {
       const { name, email, password } = req.body;
       if (!name || !email || !password)
         return res.status(400).json({ error: 'Alle Felder sind erforderlich' });
-      if (password.length < 6)
-        return res.status(400).json({ error: 'Passwort muss mindestens 6 Zeichen lang sein' });
+
+      // Eingabe-Validation (App-Store-Compliance + Anti-Abuse):
+      // - Name: 2-80 Zeichen, trim
+      // - E-Mail: einfache RFC-konforme Form, <= 254 Zeichen
+      // - Passwort: mind. 8 Zeichen, mind. 1 Buchstabe + 1 Ziffer, <= 128
+      const trimmedName = String(name).trim();
+      const trimmedEmail = String(email).trim().toLowerCase();
+      if (trimmedName.length < 2 || trimmedName.length > 80)
+        return res.status(400).json({ error: 'Name muss 2 bis 80 Zeichen lang sein' });
+      if (trimmedEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail))
+        return res.status(400).json({ error: 'Bitte eine gueltige E-Mail-Adresse angeben' });
+      if (typeof password !== 'string' || password.length < 8 || password.length > 128)
+        return res.status(400).json({ error: 'Passwort muss zwischen 8 und 128 Zeichen lang sein' });
+      if (!/[A-Za-z]/.test(password) || !/\d/.test(password))
+        return res.status(400).json({ error: 'Passwort muss mindestens einen Buchstaben und eine Ziffer enthalten' });
 
       const pool = getPool();
-      const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+      const existing = await pool.query('SELECT id FROM users WHERE email = $1', [trimmedEmail]);
       if (existing.rows.length > 0)
         return res.status(409).json({ error: 'E-Mail bereits registriert' });
 
@@ -62,7 +75,7 @@ module.exports = async function handler(req, res) {
           `INSERT INTO users (name, email, password, email_verification_code, email_verification_code_expires_at, email_verified)
            VALUES ($1, $2, $3, $4, $5, FALSE)
            RETURNING id, name, email, avatar_url, avatar_color, plan, created_at`,
-          [name, email, hashedPassword, verificationCode, codeExpiresAt]
+          [trimmedName, trimmedEmail, hashedPassword, verificationCode, codeExpiresAt]
         );
       } catch (colErr) {
         if (colErr.message && colErr.message.includes('column')) {
@@ -71,7 +84,7 @@ module.exports = async function handler(req, res) {
             `INSERT INTO users (name, email, password)
              VALUES ($1, $2, $3)
              RETURNING id, name, email, avatar_url, avatar_color, plan, created_at`,
-            [name, email, hashedPassword]
+            [trimmedName, trimmedEmail, hashedPassword]
           );
         } else {
           throw colErr;
@@ -101,7 +114,7 @@ module.exports = async function handler(req, res) {
       try {
         const sendVerificationCodeMail = getSendVerificationCodeMail();
         if (sendVerificationCodeMail) {
-          await sendVerificationCodeMail({ to: email, name, code: verificationCode });
+          await sendVerificationCodeMail({ to: trimmedEmail, name: trimmedName, code: verificationCode });
         }
       } catch (mailErr) {
         console.error('Verifikationsmail Fehler:', mailErr.message);

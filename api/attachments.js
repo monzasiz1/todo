@@ -1,5 +1,5 @@
 const { getPool } = require('./_lib/db');
-const { verifyToken, cors, getJwtSecret } = require('./_lib/auth');
+const { verifyToken, cors, signDownloadToken, verifyDownloadToken } = require('./_lib/auth');
 
 function parseVirtualId(id) {
   if (typeof id !== 'string' || !id.startsWith('v_')) return null;
@@ -61,19 +61,23 @@ module.exports = async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  // Support token in query param (for file downloads in new tabs)
-  let user = verifyToken(req);
-  if (!user && req.query.token) {
-    try {
-      const jwt = require('jsonwebtoken');
-      user = jwt.verify(req.query.token, getJwtSecret());
-    } catch {}
-  }
-  if (!user) return res.status(401).json({ error: 'Nicht autorisiert' });
-
   const pool = getPool();
   const subPath = req.query.__path || '';
   const segments = subPath.split('/').filter(Boolean);
+
+  // Auth: Header-Bearer als Standard. Fuer den Download-Endpoint
+  // (GET /:taskId/:attachmentId) wird zusaetzlich ein kurzlebiges,
+  // an taskId+attachmentId gebundenes Token via ?token=... akzeptiert,
+  // damit Bild-Thumbnails / Tab-Downloads ohne Bearer-Header laden.
+  let user = verifyToken(req);
+  const isDownloadCall = segments.length === 2 && req.method === 'GET';
+  if (!user && isDownloadCall && req.query.token) {
+    user = verifyDownloadToken(req.query.token, {
+      taskId: normalizeTaskId(segments[0]),
+      attachmentId: parseInt(segments[1], 10),
+    });
+  }
+  if (!user) return res.status(401).json({ error: 'Nicht autorisiert' });
 
   // GET /api/attachments/:taskId – list attachments for a task
   if (segments.length === 1 && req.method === 'GET') {
@@ -89,7 +93,13 @@ module.exports = async function handler(req, res) {
          FROM task_attachments WHERE task_id = $1 ORDER BY created_at ASC`,
         [taskId]
       );
-      return res.json({ attachments: rows });
+      // Jede Attachment-Zeile bekommt eine fertige, kurzlebige Download-URL.
+      // Das ersetzt den frueheren long-lived JWT-in-Query-Hack im Frontend.
+      const attachments = rows.map((row) => {
+        const token = signDownloadToken({ userId: user.id, taskId, attachmentId: row.id });
+        return { ...row, download_url: `/api/attachments/${taskId}/${row.id}?token=${token}` };
+      });
+      return res.json({ attachments });
     } catch (err) {
       console.error('Attachments list error:', err);
       return res.status(500).json({ error: 'Fehler beim Laden' });

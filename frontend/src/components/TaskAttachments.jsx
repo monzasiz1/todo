@@ -85,7 +85,7 @@ export default function TaskAttachments({ taskId, canEdit = true, compact = fals
   };
 
   const handleOpen = (attachment) => {
-    const url = api.getAttachmentUrl(taskId, attachment.id);
+    const url = api.getAttachmentUrl(taskId, attachment.id, attachment.download_url);
     window.open(url, '_blank');
   };
 
@@ -131,7 +131,7 @@ export default function TaskAttachments({ taskId, canEdit = true, compact = fals
               <div className="task-attachment-icon" onClick={() => handleOpen(att)}>
                 {isImage ? (
                   <img
-                    src={api.getAttachmentUrl(taskId, att.id)}
+                    src={api.getAttachmentUrl(taskId, att.id, att.download_url)}
                     alt={att.file_name}
                     className="task-attachment-thumb"
                     loading="lazy"

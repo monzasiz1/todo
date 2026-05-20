@@ -418,9 +418,14 @@ export const api = {
   deleteAttachment: (taskId, attachmentId) =>
     request(`/attachments/${taskId}/${attachmentId}`, { method: 'DELETE' }),
 
-  getAttachmentUrl: (taskId, attachmentId) => {
-    const token = localStorage.getItem('token');
-    return `${API_URL}/attachments/${taskId}/${attachmentId}${token ? `?token=${token}` : ''}`;
+  getAttachmentUrl: (taskId, attachmentId, downloadUrl) => {
+    // Bevorzugt die signierte Short-TTL-URL (15 min), die das Backend
+    // jetzt in jedem Attachment-Listen-Response mitliefert (`download_url`).
+    // Fallback: nur fuer Abwaertskompatibilitaet falls eine alte Komponente
+    // die URL ohne Token braucht — Backend wird sie ohne gueltiges Token
+    // mit 401 ablehnen.
+    if (downloadUrl) return `${API_URL.replace(/\/api$/, '')}${downloadUrl}`;
+    return `${API_URL}/attachments/${taskId}/${attachmentId}`;
   },
 
   // Categories
