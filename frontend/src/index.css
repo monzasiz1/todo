@@ -19887,6 +19887,7 @@ html[data-theme="dark"] .group-role-chip.role-member {
   flex-direction: column;
   align-items: center;
   padding-top: 160px;
+  padding-bottom: 100px;
   padding-bottom: 0;
   overflow: hidden;
   position: relative;
@@ -20067,13 +20068,14 @@ html[data-theme="dark"] .group-role-chip.role-member {
    Quelle der Screenshots: frontend/public/bilder/*.
    ════════════════════════════════════════════════════════════════════ */
 
-/* Hero-Wrapper — eingebettet vom Hero */
+/* Hero-Wrapper — eingebettet vom Hero. z-index muss ÜBER der
+   .bq-hero-bottom-fade liegen (sonst dimmt sie den Frame beim Scrollen). */
 .bq-hero-mock-wrap {
   width: 100%;
   max-width: 1320px;
   padding: 32px 24px 0;
   position: relative;
-  z-index: 1;
+  z-index: 2;
   margin: 8px auto 0;
 }
 
@@ -20374,35 +20376,6 @@ html[data-theme="dark"] .group-role-chip.role-member {
   to   { width: 100%; }
 }
 
-/* ───────── Floor-Reflection (Spiegelung unter dem Frame) ───────── */
-.bq-shot-reflection {
-  position: relative;
-  width: min(96%, 1180px);
-  margin: 6px auto 0;
-  aspect-ratio: 16 / 5;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 1;
-  transform: rotateX(2.2deg);
-  transform-origin: 50% 0%;
-  opacity: 0.32;
-  -webkit-mask-image: linear-gradient(to bottom,
-                       rgba(0, 0, 0, 0.7) 0%,
-                       rgba(0, 0, 0, 0.3) 30%,
-                       transparent 90%);
-          mask-image: linear-gradient(to bottom,
-                       rgba(0, 0, 0, 0.7) 0%,
-                       rgba(0, 0, 0, 0.3) 30%,
-                       transparent 90%);
-}
-.bq-shot-reflection img {
-  width: 100%;
-  height: auto;
-  display: block;
-  transform: scaleY(-1);
-  filter: blur(2px) saturate(0.85);
-}
-
 /* ───────── Tabs (floating pills unter dem Frame) ───────── */
 .bq-shot-tabs {
   position: relative;
@@ -20468,28 +20441,103 @@ html[data-theme="dark"] .group-role-chip.role-member {
 }
 
 /* ───────── Responsive ───────── */
-@media (max-width: 1100px) {
+/* ───────── Responsive: side-peeks erst ab breitem Desktop ───────── */
+@media (max-width: 1240px) {
   .bq-shot-peek { display: none; }
-  .bq-shot-frame { width: min(100%, 1080px); }
+  .bq-shot-frame { width: min(100%, 1100px); }
 }
-@media (max-width: 820px) {
-  .bq-hero-mock-wrap { padding: 18px 14px 0; }
-  .bq-shot-caption { min-height: auto; padding: 0 8px 18px; }
-  .bq-shot-caption-headline { font-size: clamp(1.35rem, 5vw, 1.7rem); }
-  .bq-shot-caption-sub { font-size: 0.92rem; }
+
+/* Tablet / kleines Notebook */
+@media (max-width: 900px) {
+  .bq-hero-mock-wrap { padding: 24px 18px 0; max-width: 760px; }
+  .bq-shot-caption { min-height: 92px; padding: 0 12px 18px; }
+  .bq-shot-caption-headline { font-size: clamp(1.4rem, 3.6vw, 1.85rem); }
+  .bq-shot-caption-sub { font-size: 0.96rem; }
+  .bq-shot-stage-wrap { padding-top: 18px; }
   .bq-shot-frame {
-    border-radius: 14px;
-    transform: none;
-    width: 100%;
+    border-radius: 16px;
+    transform: rotateX(1deg);
   }
   .bq-shot-frame:hover { transform: translateY(-3px); }
-  .bq-shot-chrome { padding: 10px 12px; gap: 6px; }
-  .bq-shot-url { max-width: 200px; font-size: 0.72rem; padding: 5px 10px; }
+  .bq-shot-spot-a { width: 360px; height: 360px; }
+  .bq-shot-spot-b { width: 320px; height: 320px; }
+}
+
+/* Phones */
+@media (max-width: 640px) {
+  .bq-hero-mock-wrap { padding: 14px 12px 0; }
+  .bq-shot-caption { min-height: auto; padding: 0 6px 14px; gap: 6px; }
+  .bq-shot-caption-eyebrow {
+    font-size: 0.66rem;
+    padding: 4px 11px;
+    letter-spacing: 0.05em;
+  }
+  .bq-shot-caption-headline {
+    font-size: clamp(1.25rem, 6vw, 1.55rem);
+    letter-spacing: -0.02em;
+  }
+  .bq-shot-caption-sub {
+    font-size: 0.86rem;
+    line-height: 1.5;
+  }
+  .bq-shot-stage-wrap { padding-top: 8px; }
+  .bq-shot-frame {
+    border-radius: 13px;
+    transform: none;
+    width: 100%;
+    border-width: 0.5px;
+  }
+  .bq-shot-frame:hover { transform: none; }
+  .bq-shot-chrome {
+    padding: 9px 10px;
+    gap: 5px;
+  }
+  .bq-shot-chrome .bq-dot { width: 9px; height: 9px; }
+  .bq-shot-url {
+    max-width: 180px;
+    font-size: 0.7rem;
+    padding: 4px 10px;
+    border-radius: 7px;
+  }
   .bq-shot-live { display: none; }
-  .bq-shot-reflection { display: none; }
-  .bq-shot-tabs { margin-top: 22px; gap: 8px; }
-  .bq-shot-tab { padding: 9px 14px; font-size: 0.84rem; }
-  .bq-shot-tab-icon { width: 20px; height: 20px; }
+  .bq-shot-stage { aspect-ratio: 16 / 10; } /* nicht zu flach auf Phone */
+  .bq-shot-progress { height: 2px; }
+  .bq-shot-tabs {
+    margin-top: 18px;
+    gap: 6px;
+    padding: 0 4px;
+  }
+  .bq-shot-tab {
+    padding: 8px 12px;
+    font-size: 0.78rem;
+    gap: 6px;
+    border-radius: 999px;
+  }
+  .bq-shot-tab-icon { width: 18px; height: 18px; }
+  .bq-shot-tab-icon svg { width: 12px; height: 12px; }
+  /* Spotlights deutlich kleiner damit sie nicht überall hinleuchten */
+  .bq-shot-spot-a {
+    width: 240px; height: 240px;
+    left: -30%; opacity: 0.4;
+  }
+  .bq-shot-spot-b {
+    width: 220px; height: 220px;
+    right: -30%; opacity: 0.4;
+  }
+}
+
+/* Sehr kleine Geräte (iPhone SE etc.) — nur Icons in Tabs */
+@media (max-width: 380px) {
+  .bq-shot-tab-label { display: none; }
+  .bq-shot-tab {
+    padding: 9px 12px;
+    aspect-ratio: 1;
+  }
+  .bq-shot-tab-icon {
+    width: 16px;
+    height: 16px;
+    background: transparent;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -30603,8 +30651,11 @@ html[data-theme="dark"] .task-edit-location-option:hover {
   opacity: 0.85;
 }
 
-/* Ort: volle Breite wenn allein in der letzten Reihe des Grids */
-.task-detail-grid > .task-detail-item--location:last-child:nth-child(odd) {
+/* Ort: volle Breite wenn rechts Platz frei ist (letztes Item im Grid),
+   unabhaengig von DOM-Index. Wichtig, wenn ein vorheriges Item wie
+   Zeitraum (mehrtaegig) bereits 2 Spalten belegt und die DOM-Paritaet
+   verschiebt. */
+.task-detail-grid > .task-detail-item--location:last-child {
   grid-column: 1 / -1;
 }
 
