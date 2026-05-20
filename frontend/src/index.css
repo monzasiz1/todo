@@ -8348,15 +8348,15 @@ body.cal-is-dragging * {
   line-height: 1.3;
 }
 .task-detail-item .task-detail-time-range {
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   min-width: 0;
   max-width: 100%;
   gap: 4px;
+  row-gap: 4px;
 }
 .task-detail-item .task-detail-time-chip {
-  flex: 0 1 auto;
-  min-width: 0;
-  /* keine Padding/Font-Overrides hier — Basis-Regeln in .task-detail-time-chip greifen */
+  flex: 0 0 auto;
+  /* nicht schrumpfen — sonst wird die Uhrzeit clippt */
   white-space: nowrap;
 }
 .task-detail-item .task-detail-time-arrow {
@@ -8645,9 +8645,9 @@ body.cal-is-dragging * {
   background: color-mix(in srgb, var(--primary) 18%, transparent);
   border: 1px solid color-mix(in srgb, var(--primary) 32%, transparent);
   border-radius: 6px;
-  padding: 2px 7px;
+  padding: 3px 7px;
   letter-spacing: 0.01em;
-  line-height: 1.2;
+  line-height: 1;
   min-height: 20px;
   display: inline-flex;
   align-items: center;
