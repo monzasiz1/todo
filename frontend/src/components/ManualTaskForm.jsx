@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, Calendar, CalendarCheck, ChevronDown, Clock, Edit3, Eye, FileText, Flag, ListTodo, Lock, Plus, Repeat, Save, Tag, ThumbsUp, UserCheck, Users, UsersRound, Video, X } from 'lucide-react';
+import { Bell, Calendar, CalendarCheck, ChevronDown, Clock, Edit3, Eye, FileText, Flag, ListTodo, Lock, MapPin, Plus, Repeat, Save, Tag, ThumbsUp, UserCheck, Users, UsersRound, Video, X } from 'lucide-react';
 import { useTaskStore } from '../store/taskStore';
 import { api } from '../utils/api';
 import AvatarBadge from './AvatarBadge';
+import LocationAutocomplete from './LocationAutocomplete';
 import { useFriendsStore } from '../store/friendsStore';
 
 const PRIORITIES = [
@@ -87,6 +88,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
   const [taskType, setTaskType] = useState('task');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [location, setLocation] = useState('');
   const [date, setDate] = useState(toDateValue(defaultDate));
   const [dateEnd, setDateEnd] = useState('');
   const [time, setTime] = useState('');
@@ -136,6 +138,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
     setTaskType('task');
     setTitle('');
     setDescription('');
+    setLocation('');
     setDate(toDateValue(defaultDate));
     setDateEnd('');
     setTime('');
@@ -195,6 +198,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
         type: taskType,
         title: title.trim(),
         description: description.trim() || null,
+        location: location.trim() || null,
         date: date || null,
         date_end: dateEnd || null,
         time: allDay ? null : (time || null),
@@ -373,6 +377,15 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
                 placeholder="Optional: Details oder Notizen"
                 className="task-edit-input task-edit-textarea"
                 rows={3}
+              />
+            </div>
+
+            <div className="task-edit-field" style={{ marginBottom: 0 }}>
+              <label><MapPin size={14} /> Ort</label>
+              <LocationAutocomplete
+                value={location}
+                onChange={setLocation}
+                placeholder="Strasse, PLZ, Ort... (Vorschlaege erscheinen)"
               />
             </div>
 
