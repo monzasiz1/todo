@@ -153,6 +153,11 @@ async function ensureNotesStatusColumns(pool) {
     // 'Gelb', 'Blau', 'Rosa'). Ersetzt den Legacy-Prefix '[COLOR:Name]'
     // im content. Backfill geschieht transparent auf INSERT/UPDATE.
     await pool.query("ALTER TABLE notes ADD COLUMN IF NOT EXISTS color VARCHAR(16) NULL");
+    // Board-Positionen (frei positionierbarer Sticky-Note-Modus).
+    // Bislang nur per 42703-Fallback gehandhabt; explizites Anlegen
+    // erspart bei jedem Board-Drag einen Retry-Roundtrip.
+    await pool.query('ALTER TABLE notes ADD COLUMN IF NOT EXISTS x DOUBLE PRECISION NULL');
+    await pool.query('ALTER TABLE notes ADD COLUMN IF NOT EXISTS y DOUBLE PRECISION NULL');
     // Share-Request-Flow: Empfaenger muss aktiv bestaetigen, bevor eine
     // geteilte Notiz in seiner "Mit mir geteilt"-Liste auftaucht. Default
     // 'accepted' fuer Backward-Compat (Bestandsdaten bleiben sichtbar).

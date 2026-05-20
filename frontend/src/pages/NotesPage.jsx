@@ -1,7 +1,7 @@
 ﻿import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useDragControls } from 'framer-motion';
-import { Plus, ZoomIn, ZoomOut, X, CalendarDays, Pin, CheckSquare, Calendar, Check, Archive, RotateCcw, Trash2, LayoutGrid, Link2, Unlink, Maximize2 } from 'lucide-react';
+import { Plus, ZoomIn, ZoomOut, X, CalendarDays, Pin, CheckSquare, Calendar, Check, Archive, RotateCcw, Trash2, LayoutGrid, Link2, Unlink, Maximize2, Wand2 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useOpenTask } from '../hooks/useOpenTask';
 import TaskDetailModal from '../components/TaskDetailModal';
@@ -1207,6 +1207,43 @@ export default function NotesPage() {
     }
   }, [updateNote]);
 
+  // Tidy / Auto-Arrange: ordnet alle nicht-archivierten Notizen in einem
+  // sauberen Raster an (ausgehend von 60/60 oben-links). Persistiert die
+  // neuen x/y-Werte einzeln — langsam aber sicher, bei Fehlern werden
+  // die uebrigen Notizen trotzdem positioniert. Bestaetigung per confirm,
+  // damit das Layout nicht versehentlich zerstoert wird.
+  const handleAutoArrange = useCallback(async () => {
+    const active = (notes || []).filter((n) => !(n.completed || n.status === 'archived'));
+    if (active.length === 0) return;
+    const ok = window.confirm(
+      `${active.length} Notizen im Raster anordnen? Die aktuellen Positionen werden ueberschrieben.`
+    );
+    if (!ok) return;
+    const COL_W = 260;
+    const ROW_H = 240;
+    const PAD_X = 60;
+    const PAD_Y = 60;
+    const COLS = Math.max(1, Math.floor(((boardRef.current?.clientWidth || 1600) - PAD_X * 2) / COL_W));
+    const sorted = [...active].sort((a, b) => {
+      const at = new Date(a.created_at || a.updated_at || 0).getTime();
+      const bt = new Date(b.created_at || b.updated_at || 0).getTime();
+      return at - bt;
+    });
+    for (let i = 0; i < sorted.length; i += 1) {
+      const row = Math.floor(i / COLS);
+      const col = i % COLS;
+      const x = PAD_X + col * COL_W;
+      const y = PAD_Y + row * ROW_H;
+      // Sequenziell, damit der Server nicht von parallelen PATCHes
+      // ueberrannt wird. Fehler einzeln loggen, Schleife laeuft weiter.
+      try {
+        await updateNote(sorted[i].id, { x, y });
+      } catch (err) {
+        console.warn('[NotesPage] auto-arrange update failed for', sorted[i].id, err?.message || err);
+      }
+    }
+  }, [notes, updateNote]);
+
   const handleSelectNote = useCallback((noteId) => {
     setSelectedNoteIds([noteId]);
 
@@ -1642,6 +1679,15 @@ export default function NotesPage() {
           >
             <LayoutGrid size={16} />
           </button>
+          {!isGrid && notes.length > 1 && (
+            <button
+              className="board-control-btn"
+              onClick={handleAutoArrange}
+              title="Notizen automatisch im Raster anordnen"
+            >
+              <Wand2 size={16} />
+            </button>
+          )}
           <button
             className={`board-control-btn ${connectMode ? 'active' : ''}`}
             onClick={handleToggleConnectMode}
