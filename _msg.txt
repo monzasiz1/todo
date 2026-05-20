@@ -1,0 +1,19 @@
+﻿feat(notes): Hashtag-Tag-System - Filter-Bar + Chips auf Sticky-Notes
+
+- Hashtags wie #idee, #bug, #2026 werden automatisch aus Titel
+  und Inhalt einer Notiz extrahiert (Regex, max 30 Zeichen,
+  Umlaute erlaubt, lowercase, max 20 pro Notiz).
+- Neue Filter-Leiste unter dem Header zeigt die haeufigsten
+  Tags als Chips inkl. Count. Klick aktiviert/deaktiviert
+  Tag-Filter, mehrere Tags wirken als AND-Filter. "Alle"-Button
+  raeumt alle Filter weg.
+- Sticky-Notes zeigen ihre eigenen Tags am unteren Rand
+  (max 6 Chips). Klick auf einen Note-Tag aktiviert ihn als
+  globalen Filter.
+- Suchfeld kombiniert mit Tag-Filtern. Praefix "#" sucht
+  ausschliesslich in Tag-Liste (Substring-Match), sonst wird
+  die Tag-Liste mit in den Such-Heuhaufen aufgenommen.
+- Mobile: Tagbar nicht sticky (Header-Platz), Chips groesser
+  fuer Touch-Targets.
+- Kein Backend-Schema-Change - Tags sind reine Client-Logik
+  aus dem vorhandenen content/title.

@@ -142,7 +142,7 @@ function computeChecklistProgress(rawContent) {
   return { total, done, percent: Math.round((done / total) * 100) };
 }
 
-function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange, isSelected, onSelect, tasks = [], onOpenTask, boardScaleRef, gridPos = null, dragDisabled = false, onDragLive, onOpenEditor, isDimmed = false }) {
+function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange, isSelected, onSelect, tasks = [], onOpenTask, boardScaleRef, gridPos = null, dragDisabled = false, onDragLive, onOpenEditor, isDimmed = false, noteTags = [], onTagClick }) {
   const [isEditing, setIsEditing] = useState(false);
   const [content, setContent] = useState(note.content || '');
   const [title, setTitle] = useState(note.title || '');
@@ -675,6 +675,28 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
         )}
       </div>
 
+      {noteTags.length > 0 && (
+        <div
+          className="note-tags"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          {noteTags.slice(0, 6).map((t) => (
+            <button
+              key={t}
+              type="button"
+              className="note-tag-chip"
+              title={`Nach #${t} filtern`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onTagClick?.(t);
+              }}
+            >
+              #{t}
+            </button>
+          ))}
+        </div>
+      )}
+
       {linkedTasks.length > 0 && (
         <div className="note-linked-tasks">
           {linkedTasks.filter(Boolean).map((task) => (
@@ -862,13 +884,42 @@ const StickyNote = memo(StickyNoteImpl, (prev, next) => (
   prev.dragDisabled === next.dragDisabled &&
   prev.onDragLive === next.onDragLive &&
   prev.onOpenEditor === next.onOpenEditor &&
-  prev.isDimmed === next.isDimmed
+  prev.isDimmed === next.isDimmed &&
+  prev.onTagClick === next.onTagClick &&
+  prev.noteTags?.length === next.noteTags?.length &&
+  (prev.noteTags || []).every((t, i) => t === (next.noteTags || [])[i])
 ));
 
 const BOARD_W = 3200;
 const BOARD_H = 2400;
 const MIN_SCALE = 0.3;
 const MAX_SCALE = 2.0;
+
+// ── Hashtag-Extraktion ──────────────────────────────────────────────
+// Erkennt #tag in Titel + Content (HTML wird gestrippt). Liefert eine
+// unique, lowercased Liste in der Reihenfolge des ersten Vorkommens.
+// Tags: 1-30 Zeichen aus [a-z0-9_-], case-insensitive. Erlaubt deutsche
+// Umlaute (\u00e4\u00f6\u00fc\u00df) und Backend-vertraeglich.
+const TAG_RE = /(?:^|\s)#([a-z0-9_\-\u00e4\u00f6\u00fc\u00df]{1,30})/gi;
+function extractNoteTags(note) {
+  if (!note) return [];
+  const title = String(note.title || '');
+  const html = String(note.content || '');
+  const text = html.replace(/<[^>]+>/g, ' ');
+  const haystack = `${title} ${text}`;
+  const seen = new Set();
+  const out = [];
+  let m;
+  TAG_RE.lastIndex = 0;
+  while ((m = TAG_RE.exec(haystack)) !== null) {
+    const tag = String(m[1] || '').toLowerCase();
+    if (!tag || seen.has(tag)) continue;
+    seen.add(tag);
+    out.push(tag);
+    if (out.length >= 20) break;
+  }
+  return out;
+}
 
 export default function NotesPage() {
   const { detailTask, openTask, closeTask } = useOpenTask();
@@ -888,6 +939,9 @@ export default function NotesPage() {
   // Suche im Board: dimmt nicht-passende Notes, behaelt aber alle
   // Positionen, damit das Layout nicht springt.
   const [searchQuery, setSearchQuery] = useState('');
+  // Aktiv ausgewaehlte Hashtag-Filter (Set lowercase). AND-Logik: eine
+  // Notiz muss ALLE aktiven Tags besitzen, um sichtbar zu bleiben.
+  const [activeTags, setActiveTags] = useState(() => new Set());
 
   const [scale, setScale] = useState(1);
   // Initial-Pan: grobe Schätzung der Canvas-Mitte relativ zum Viewport.
@@ -1318,18 +1372,68 @@ export default function NotesPage() {
   // null = keine aktive Suche -> alle Notes voll sichtbar. Beim Suchen
   // dimmen wir Non-Matches nur via CSS, statt sie zu entfernen, damit
   // das Board-Layout (Verbindungen, Positionen) konsistent bleibt.
+  // Tags aus Content + Titel pro Notiz extrahieren.
+  const tagsByNoteId = useMemo(() => {
+    const map = new Map();
+    for (const n of (notes || [])) {
+      if (!n || n.id == null) continue;
+      map.set(n.id, extractNoteTags(n));
+    }
+    return map;
+  }, [notes]);
+
+  // Alle bekannten Tags nach Haeufigkeit sortiert (max 30 zur Anzeige).
+  const allTagsRanked = useMemo(() => {
+    const counts = new Map();
+    for (const tags of tagsByNoteId.values()) {
+      for (const t of tags) counts.set(t, (counts.get(t) || 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0]))
+      .slice(0, 30)
+      .map(([tag, count]) => ({ tag, count }));
+  }, [tagsByNoteId]);
+
+  const toggleTag = useCallback((tag) => {
+    setActiveTags((prev) => {
+      const next = new Set(prev);
+      if (next.has(tag)) next.delete(tag);
+      else next.add(tag);
+      return next;
+    });
+  }, []);
+  const clearTagFilters = useCallback(() => setActiveTags(new Set()), []);
+
   const matchedNoteIds = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return null;
+    const raw = searchQuery.trim();
+    const q = raw.toLowerCase();
+    // "#tag" als Suchsyntax: filtert ausschliesslich auf Tags (substring).
+    const hashOnly = raw.startsWith('#');
+    const hashQuery = hashOnly ? raw.replace(/^#+/, '').toLowerCase() : '';
+    const tagActive = activeTags.size > 0;
+    if (!q && !tagActive) return null;
     const stripHtml = (html) => String(html || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
     const out = new Set();
     for (const n of (notes || [])) {
       if (!n || n.id == null) continue;
-      const hay = `${n.title || ''} ${stripHtml(n.content)} ${n.color || ''}`.toLowerCase();
+      const tags = tagsByNoteId.get(n.id) || [];
+      // Aktive Tag-Filter: ALLE muessen vorhanden sein (AND).
+      if (tagActive) {
+        let allHit = true;
+        for (const at of activeTags) { if (!tags.includes(at)) { allHit = false; break; } }
+        if (!allHit) continue;
+      }
+      if (hashOnly) {
+        if (!hashQuery) { out.add(n.id); continue; }
+        if (tags.some((t) => t.includes(hashQuery))) out.add(n.id);
+        continue;
+      }
+      if (!q) { out.add(n.id); continue; }
+      const hay = `${n.title || ''} ${stripHtml(n.content)} ${n.color || ''} ${tags.map((t) => '#' + t).join(' ')}`.toLowerCase();
       if (hay.includes(q)) out.add(n.id);
     }
     return out;
-  }, [notes, searchQuery]);
+  }, [notes, searchQuery, activeTags, tagsByNoteId]);
 
   // Connections fuer Render aufbereiten (nur Linien, deren beide Notes
   // aktuell sichtbar sind — geteilte Verbindungen mit fehlender Note ueberspringen).
@@ -1887,6 +1991,42 @@ export default function NotesPage() {
         </div>
       )}
 
+      {/* Hashtag-Filter-Leiste: zeigt die haeufigsten Tags als Chips,
+          aktive Tags sind hervorgehoben. AND-Filter (alle aktiven Tags
+          muessen vorhanden sein). Auf Mobile horizontal scrollbar. */}
+      {allTagsRanked.length > 0 && (
+        <div className="notes-tagbar" role="toolbar" aria-label="Tag-Filter">
+          <div className="notes-tagbar-scroll">
+            {activeTags.size > 0 && (
+              <button
+                type="button"
+                className="notes-tag-chip is-clear"
+                onClick={clearTagFilters}
+                title="Alle Tag-Filter zuruecksetzen"
+              >
+                <X size={11} /> Alle
+              </button>
+            )}
+            {allTagsRanked.map(({ tag, count }) => {
+              const active = activeTags.has(tag);
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  className={`notes-tag-chip ${active ? 'is-active' : ''}`}
+                  onClick={() => toggleTag(tag)}
+                  aria-pressed={active}
+                  title={`${count} Notiz${count === 1 ? '' : 'en'} mit #${tag}`}
+                >
+                  <span className="notes-tag-chip-hash">#</span>{tag}
+                  <span className="notes-tag-chip-count">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Viewport: clips canvas, captures pointer/touch */}
       <div
         ref={viewportRef}
@@ -1988,6 +2128,8 @@ export default function NotesPage() {
               onDragLive={handleDragLive}
               onOpenEditor={setEditorNoteId}
               isDimmed={matchedNoteIds != null && !matchedNoteIds.has(note.id)}
+              noteTags={tagsByNoteId.get(note.id) || []}
+              onTagClick={toggleTag}
             />
           ))}
 
