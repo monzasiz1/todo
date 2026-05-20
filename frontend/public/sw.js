@@ -1,5 +1,5 @@
 ﻿const CACHE_NAME = 'beequ-v14';
-const API_CACHE_NAME = 'beequ-api-v1';
+const API_CACHE_NAME = 'beequ-api-v2';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -14,6 +14,12 @@ const PRECACHE_MANIFEST = self.__PRECACHE_MANIFEST__ || [];
 
 // API-Pfade, die NICHT im SW-Cache landen sollen (sensible / mutierende
 // Endpunkte, oder solche bei denen Frische zwingend ist).
+//
+// Wichtig: Alle user-spezifischen Listen-Endpunkte stehen hier drin. Sonst
+// liefert die Stale-While-Revalidate-Strategie nach einem DELETE/CREATE
+// direkt wieder die ALTE Liste aus dem Cache (Task/Note "kommt zurueck"),
+// bis der zweite Refetch durchgelaufen ist. Das war die Hauptursache fuer
+// "Loeschen geht, Task kommt wieder" und das gleiche Symptom bei Notes.
 const API_CACHE_BLOCKLIST = [
   '/auth/login',
   '/auth/register',
@@ -24,10 +30,19 @@ const API_CACHE_BLOCKLIST = [
   '/billing',
   '/notifications/log',
   '/tasks/reminders/due',
-  // Notes immer frisch: Cache fuehrte in der PWA zu veralteten Listen
-  // und "Nicht autorisiert"-Eindruecken, wenn cached Antwort vom alten
-  // Token kam. Network-Only ist hier wichtiger als Offline-Verhalten.
   '/notes',
+  '/tasks',
+  '/categories',
+  '/comments',
+  '/note-connections',
+  '/canvas-texts',
+  '/task-votes',
+  '/friends',
+  '/groups',
+  '/teams',
+  '/permissions',
+  '/notifications',
+  '/profile',
 ];
 
 // Max. Alter eines API-Cache-Eintrags, ab dem er beim Offline-Fallback
