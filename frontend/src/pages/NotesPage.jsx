@@ -656,6 +656,45 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
         </div>
       )}
 
+      {/* Share-Indikator: zeigt klein in der Ecke, dass die Notiz geteilt ist,
+          ohne den inneren Content-Bereich zu verkleinern (absolute Position). */}
+      {(() => {
+        const sharesArr = Array.isArray(note?.shares) ? note.shares : [];
+        const isRecipient = !!note?.is_shared_note;
+        if (!isRecipient && sharesArr.length === 0) return null;
+        if (isRecipient) {
+          const ownerName = note?.owner_name || 'Eigentuemer';
+          const initial = (ownerName[0] || '?').toUpperCase();
+          return (
+            <div className="note-share-indicator note-share-indicator--from" title={`Geteilt von ${ownerName}`} onPointerDown={(e) => e.stopPropagation()}>
+              {note?.owner_avatar_url ? (
+                <img src={note.owner_avatar_url} alt="" className="nsi-avatar" />
+              ) : (
+                <span className="nsi-avatar nsi-avatar--initial">{initial}</span>
+              )}
+            </div>
+          );
+        }
+        const visible = sharesArr.slice(0, 3);
+        const overflow = Math.max(0, sharesArr.length - visible.length);
+        const tooltip = `Geteilt mit ${sharesArr.map((s) => s?.name || '?').join(', ')}`;
+        return (
+          <div className="note-share-indicator note-share-indicator--to" title={tooltip} onPointerDown={(e) => e.stopPropagation()}>
+            {visible.map((s, i) => {
+              const init = (s?.name?.[0] || '?').toUpperCase();
+              return s?.avatar_url ? (
+                <img key={s.user_id || i} src={s.avatar_url} alt="" className="nsi-avatar" />
+              ) : (
+                <span key={s.user_id || i} className="nsi-avatar nsi-avatar--initial">{init}</span>
+              );
+            })}
+            {overflow > 0 && (
+              <span className="nsi-avatar nsi-avatar--overflow">+{overflow}</span>
+            )}
+          </div>
+        );
+      })()}
+
       {showTaskPicker && createPortal(
         <div
           className="task-picker-overlay"
