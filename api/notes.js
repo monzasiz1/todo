@@ -1354,6 +1354,11 @@ module.exports = async function handler(req, res) {
             fields: changedFields,
             title: finalNote.title || '',
           },
+          // Autosave-Spam abfangen: kleine Edits innerhalb von 10 Minuten
+          // werden zu einem Eintrag zusammengefasst. Hard-State-Wechsel
+          // (completed/reopened/linked_task/...) sind eigene Typen und
+          // werden dadurch nicht gemergt.
+          dedupeWindowMs: activityType === 'edited' ? 10 * 60 * 1000 : 0,
         });
       }
 
