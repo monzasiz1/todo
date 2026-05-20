@@ -4,46 +4,37 @@ import { MapPin, ExternalLink, Loader2 } from 'lucide-react';
 // ─────────────────────────────────────────────────────────────────────────
 // LocationAutocomplete
 // ─────────────────────────────────────────────────────────────────────────
-// Text-Eingabe fuer Adresse mit Live-Vorschlaegen aus OpenStreetMap
-// Nominatim (kostenlos, kein API-Key). Vorschlaege erscheinen als kleines
-// Dropdown unterhalb des Inputs.
+// Text-Eingabe fuer Adresse mit Live-Vorschlaegen. Wir rufen unseren
+// eigenen Backend-Proxy `/api/geocode` auf, der dahinter Mapbox (oder
+// Nominatim als Fallback) anfragt. So bleibt der Mapbox-Token serverseitig
+// und das Quota laesst sich zentral begrenzen.
 //
 // Hinweise:
-//   • Nominatim erlaubt max ~1 req/s pro Client. Wir debouncen 350ms.
-//   • Mindestens 3 Zeichen, sonst kein Request.
-//   • Falls der Browser offline ist oder Nominatim 429/5xx liefert,
-//     verhalten wir uns wie ein normaler Input (Vorschlaege bleiben leer).
-//   • Klick auf Vorschlag schreibt nur den display_name in den State —
-//     keine Lat/Lng-Speicherung (Backend kennt nur tasks.location TEXT).
+//   • Debounced 350ms, mindestens 3 Zeichen.
+//   • Proxy verlangt Auth-Token (Bearer). Ohne Login → leere Liste.
+//   • Antwortformat: { items: [{ display, road, houseNumber, postcode, city, country }] }
 // ─────────────────────────────────────────────────────────────────────────
 
-const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
+const GEOCODE_URL = '/api/geocode';
 
 async function fetchSuggestions(query, { signal, lang = 'de' } = {}) {
-  const url = `${NOMINATIM_URL}?format=json&addressdetails=1&limit=6&accept-language=${encodeURIComponent(lang)}&q=${encodeURIComponent(query)}`;
-  const res = await fetch(url, {
-    signal,
-    headers: {
-      // Nominatim verlangt einen Referer ODER User-Agent. Browser setzt
-      // beides automatisch — wir setzen keine zusaetzlichen Header, um
-      // keinen CORS-Preflight auszuloesen.
-      Accept: 'application/json',
-    },
-  });
-  if (!res.ok) throw new Error(`Nominatim ${res.status}`);
+  const token = (typeof window !== 'undefined') ? localStorage.getItem('token') : null;
+  const url = `${GEOCODE_URL}?q=${encodeURIComponent(query)}&lang=${encodeURIComponent(lang)}&limit=6`;
+  const headers = { Accept: 'application/json' };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(url, { signal, headers });
+  if (!res.ok) throw new Error(`geocode ${res.status}`);
   const data = await res.json();
-  return Array.isArray(data) ? data : [];
+  return Array.isArray(data?.items) ? data.items : [];
 }
 
 function formatSuggestion(item) {
-  // Kompakter Anzeigetext: "Strasse Hausnummer, PLZ Ort, Land"
-  const a = item.address || {};
-  const street = [a.road, a.house_number].filter(Boolean).join(' ');
-  const cityLine = [a.postcode, a.city || a.town || a.village || a.municipality].filter(Boolean).join(' ');
-  const country = a.country;
-  const parts = [street || a.amenity || a.neighbourhood, cityLine, country].filter(Boolean);
-  if (parts.length === 0) return item.display_name;
-  return parts.join(', ');
+  if (!item) return '';
+  // Wenn Proxy schon einen vollstaendigen Anzeigetext geliefert hat → nutzen.
+  if (item.display) return item.display;
+  const street = [item.road, item.houseNumber].filter(Boolean).join(' ');
+  const cityLine = [item.postcode, item.city].filter(Boolean).join(' ');
+  return [street, cityLine, item.country].filter(Boolean).join(', ');
 }
 
 export default function LocationAutocomplete({
@@ -190,7 +181,7 @@ export default function LocationAutocomplete({
         <ul className="task-edit-location-dropdown" role="listbox">
           {suggestions.map((item, idx) => (
             <li
-              key={item.place_id || `${item.lat}-${item.lon}-${idx}`}
+              key={`${item.lat ?? 'x'}-${item.lng ?? 'y'}-${idx}`}
               role="option"
               aria-selected={idx === activeIdx}
               className={`task-edit-location-option ${idx === activeIdx ? 'is-active' : ''}`}

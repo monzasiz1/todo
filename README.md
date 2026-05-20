@@ -209,6 +209,7 @@ Im Vercel Dashboard → Settings → Environment Variables:
 | `DB_POOL_IDLE_TIMEOUT_MS` | Optional: Idle-Timeout des DB-Pools (Empfehlung: `10000`) |
 | `DB_POOL_CONN_TIMEOUT_MS` | Optional: Verbindungs-Timeout des DB-Pools (Empfehlung: `10000`) |
 | `DB_SCHEMA_INIT_ON_START` | Optional: Auto-Schema-Init beim Cold Start (`false` in Produktion) |
+| `MAPBOX_TOKEN` | Optional: Mapbox-Token fuer Adress-Autocomplete (`/api/geocode`). Fehlt der Token, faellt der Proxy automatisch auf OpenStreetMap Nominatim zurueck. |
 
 Wichtig: Für Supabase auf Vercel den Pooler-Host/Port (`...pooler.supabase.com:6543`) verwenden.
 
