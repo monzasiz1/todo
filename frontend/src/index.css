@@ -19727,16 +19727,32 @@ html[data-theme="dark"] .group-role-chip.role-member {
   display: inline-block;
 }
 
-/* Hero-Bottom: smooth fade into next section */
+/* Hero-Bottom: smooth fade into next section
+   Vorher: linearer transparent→#fff Verlauf auf #06060A erzeugte
+   einen sichtbaren grauen Wash-Streifen. Jetzt: laenger (220px),
+   bleibt die ersten 35% komplett dunkel und rampt dann in einer
+   weichen Kurve auf Weiss hoch. */
 .bq-hero { position: relative; }
 .bq-hero::after {
   content: '';
   position: absolute;
-  left: 0; right: 0; bottom: 0;
-  height: 120px;
-  background: linear-gradient(180deg, transparent 0%, #ffffff 100%);
+  left: 0; right: 0; bottom: -1px;
+  height: 220px;
+  background: linear-gradient(
+    180deg,
+    rgba(6, 6, 10, 0) 0%,
+    rgba(6, 6, 10, 0) 32%,
+    rgba(255, 255, 255, 0.03) 55%,
+    rgba(255, 255, 255, 0.18) 72%,
+    rgba(255, 255, 255, 0.55) 88%,
+    rgba(255, 255, 255, 0.92) 97%,
+    #ffffff 100%
+  );
   pointer-events: none;
   z-index: 3;
+}
+@media (max-width: 768px) {
+  .bq-hero::after { height: 160px; }
 }
 
 /* Features section animated bg */

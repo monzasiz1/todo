@@ -441,6 +441,31 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
     onClose?.();
   };
 
+  // Caret an das Ende des Editors stellen (in eine neue leere
+  // <p>-Zeile, falls der letzte Block nicht editierbar/leer ist).
+  // Wird benutzt, wenn der User unter eine Tabelle / Liste / Quote klickt
+  // — sonst bleibt der Cursor in der Tabelle gefangen.
+  const moveCaretToEnd = useCallback(() => {
+    const el = editorRef.current;
+    if (!el) return;
+    el.focus();
+    // Sicherstellen, dass am Ende ein bearbeitbares <p> steht.
+    const last = el.lastElementChild;
+    const isBlockNeedingTail = last && /^(TABLE|UL|OL|BLOCKQUOTE|PRE|HR|H1|H2|H3)$/.test(last.tagName)
+      || (last && last.tagName === 'DIV' && last.classList.contains('ne-check'));
+    if (!last || isBlockNeedingTail) {
+      const p = document.createElement('p');
+      p.appendChild(document.createElement('br'));
+      el.appendChild(p);
+    }
+    const range = document.createRange();
+    const target = el.lastElementChild || el;
+    range.selectNodeContents(target);
+    range.collapse(false);
+    const sel = window.getSelection();
+    if (sel) { sel.removeAllRanges(); sel.addRange(range); }
+  }, []);
+
   // Tab im Editor: 2-Space-Einrueckung statt Fokuswechsel.
   const onEditorKeyDown = (e) => {
     if (e.key === 'Tab') {
@@ -458,7 +483,9 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
     setContent(el.innerHTML);
   }, []);
 
-  // Klick auf Checkbox im Editor: checked-Attribut spiegeln und syncen.
+  // Klick im Editor: Checkbox-Toggle ODER Klick in den Leerraum
+  // unter dem letzten Block -> Caret ans Ende (damit man unter
+  // Tabellen/Listen weiterschreiben kann).
   const onEditorClick = useCallback((e) => {
     const t = e.target;
     if (t && t.tagName === 'INPUT' && t.getAttribute('type') === 'checkbox') {
@@ -470,8 +497,16 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
         else t.removeAttribute('checked');
         onEditorInput();
       });
+      return;
     }
-  }, [readOnly, onEditorInput]);
+    if (readOnly) return;
+    // Klick direkt auf den Editor-Container (also Leerraum unter dem
+    // letzten Block) -> Caret ans Ende + ggf. neue Zeile anlegen.
+    if (t === editorRef.current) {
+      moveCaretToEnd();
+      onEditorInput();
+    }
+  }, [readOnly, onEditorInput, moveCaretToEnd]);
 
   // ──────────────────────────────────────────────────────────────────
   // Formatierungs-Toolbar (WYSIWYG)
@@ -512,7 +547,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
       case 'ordered':    exec('insertOrderedList'); break;
       case 'check': {
         const inner = hasSelection ? escHtml(sel.toString()) : 'Aufgabe';
-        exec('insertHTML', `<div class="ne-check"><input type="checkbox"> <span>${inner}</span></div>`);
+        exec('insertHTML', `<div class="ne-check"><input type="checkbox"> <span>${inner}</span></div><p><br></p>`);
         break;
       }
       case 'table': {
@@ -525,12 +560,16 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
           '</tbody></table><p><br></p>'
         );
         exec('insertHTML', tableHtml);
+        // Sicherstellen, dass darunter eine bearbeitbare Zeile bleibt
+        // und der Cursor dort landet (insertHTML laesst den Cursor sonst
+        // gerne im letzten <td> stehen).
+        requestAnimationFrame(() => moveCaretToEnd());
         break;
       }
       default: break;
     }
     onEditorInput();
-  }, [readOnly, onEditorInput]);
+  }, [readOnly, onEditorInput, moveCaretToEnd]);
 
   return createPortal(
     <AnimatePresence>

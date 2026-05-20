@@ -475,6 +475,11 @@ html[data-theme="dark"] .nem-toolbar-btn:focus-visible {
 .nem-editor {
   width: 100%;
   min-height: 280px;
+  /* Extra Klickflaeche unter dem letzten Block, damit man unter
+     Tabellen/Listen direkt weiterschreiben kann (Klick auf Leerraum
+     setzt Caret ans Ende). */
+  padding-bottom: 96px;
+  cursor: text;
   outline: 0;
   border: 0;
   background: transparent;
