@@ -24,6 +24,7 @@ const TYPE_VERBS = {
   participants_changed: 'hat die Teilnehmer geändert',
   comment_added: 'hat einen Kommentar geschrieben',
   user_mentioned: 'hat jemanden erwähnt',
+  restored_version: 'hat eine frühere Version wiederhergestellt',
 };
 
 function relativeTime(iso) {

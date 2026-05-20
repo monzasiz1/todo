@@ -2,6 +2,11 @@ const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
 const { broadcastNoteChange } = require('./_lib/notesBroadcast');
 const { ensureNoteActivityTable, recordNoteActivity } = require('./_lib/noteActivity');
+const {
+  snapshotNoteVersion,
+  listNoteVersions,
+  getNoteVersion,
+} = require('./_lib/noteVersions');
 const { parseMentionsFromHtml, resolveMentions } = require('./_lib/mentions');
 const { sendPushToUser } = require('./_lib/pushService');
 
@@ -1313,6 +1318,18 @@ module.exports = async function handler(req, res) {
 
       // Activity-Log: konkrete Aenderung (Titel/Inhalt/Status/Verknuepfung)
       const changedFields = diffNoteUpdate(note, finalNote);
+      // Versions-Snapshot: nur wenn Title oder Content geaendert wurden.
+      // snapshotNoteVersion drosselt selbst (max alle 30s) und backfilled
+      // den "alten" Zustand (= note, der Pre-UPDATE-Snapshot).
+      if (changedFields.includes('title') || changedFields.includes('content')) {
+        snapshotNoteVersion(pool, {
+          noteId,
+          prevTitle: note.title,
+          prevContent: note.content,
+          prevColor: note.color || null,
+          actorUserId: user.id,
+        }).catch(() => null);
+      }
       if (changedFields.length > 0 || participantsChanged) {
         let activityType = 'edited';
         if (changedFields.length === 1 && changedFields[0] === 'completed') {
@@ -1647,6 +1664,110 @@ module.exports = async function handler(req, res) {
       } catch (err) {
         console.warn('[notes] activity fetch failed:', err?.message || err);
         return res.status(200).json({ activity: [] });
+      }
+    }
+
+    // GET /api/notes/:id/versions — Liste aller Snapshots (Metadaten,
+    // ohne content). Nur fuer Leser der Note sichtbar.
+    if (segments.length === 2 && segments[1] === 'versions' && req.method === 'GET') {
+      try {
+        const versions = await listNoteVersions(pool, noteId);
+        return res.status(200).json({ versions });
+      } catch (err) {
+        console.warn('[notes] versions list failed:', err?.message || err);
+        return res.status(200).json({ versions: [] });
+      }
+    }
+
+    // GET /api/notes/:id/versions/:no — eine einzelne Version inkl.
+    // content (zum Vergleichen / Preview).
+    if (segments.length === 3 && segments[1] === 'versions' && req.method === 'GET') {
+      try {
+        const version = await getNoteVersion(pool, noteId, segments[2]);
+        if (!version) return res.status(404).json({ error: 'Version nicht gefunden' });
+        return res.status(200).json({ version });
+      } catch (err) {
+        console.warn('[notes] version fetch failed:', err?.message || err);
+        return res.status(500).json({ error: 'Version konnte nicht geladen werden' });
+      }
+    }
+
+    // POST /api/notes/:id/versions/:no/restore — gewaehlte Version als
+    // aktuellen Stand setzen. Erst ein Snapshot des AKTUELLEN Standes,
+    // dann UPDATE auf Title/Content/Color der ausgewaehlten Version.
+    if (segments.length === 4 && segments[1] === 'versions' && segments[3] === 'restore' && req.method === 'POST') {
+      try {
+        const version = await getNoteVersion(pool, noteId, segments[2]);
+        if (!version) return res.status(404).json({ error: 'Version nicht gefunden' });
+
+        // Berechtigung pruefen: nur Eigentuemer ODER Edit-Sharee darf restoren.
+        const noteRow = await pool.query('SELECT user_id FROM notes WHERE id = $1', [noteId]);
+        if (noteRow.rows.length === 0) return res.status(404).json({ error: 'Notiz nicht gefunden' });
+        const isOwner = String(noteRow.rows[0].user_id) === userIdText;
+        let canEdit = isOwner;
+        if (!canEdit) {
+          try {
+            const shareRow = await pool.query(
+              'SELECT permission FROM note_shares WHERE note_id = $1 AND friend_id::text = $2 LIMIT 1',
+              [noteId, userIdText]
+            );
+            canEdit = shareRow.rows.length > 0 && shareRow.rows[0].permission === 'edit';
+          } catch { /* note_shares fehlt evtl. */ }
+        }
+        if (!canEdit) return res.status(403).json({ error: 'Keine Berechtigung' });
+
+        // Snapshot des aktuellen Stands vor dem Restore (Throttle 0s
+        // ueberschreiben, damit der jetzige Stand definitiv gesichert wird).
+        const currentRow = await pool.query('SELECT title, content, color FROM notes WHERE id = $1', [noteId]);
+        const cur = currentRow.rows[0] || {};
+        // Direktes Insert mit eigener version_no (ueberspringt 30s-Throttle).
+        try {
+          const lastRow = await pool.query(
+            'SELECT version_no FROM note_versions WHERE note_id = $1 ORDER BY version_no DESC LIMIT 1',
+            [noteId]
+          );
+          const nextNo = lastRow.rows.length > 0 ? Number(lastRow.rows[0].version_no) + 1 : 1;
+          await pool.query(
+            `INSERT INTO note_versions (note_id, version_no, title, content, color, created_by)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+            [noteId, nextNo, cur.title ?? null, cur.content ?? null, cur.color ?? null, user.id]
+          );
+        } catch (snapErr) {
+          console.warn('[notes] pre-restore snapshot failed:', snapErr?.message || snapErr);
+        }
+
+        // UPDATE auf Version (color-Spalte optional, fallback ohne)
+        let restored;
+        try {
+          restored = await pool.query(
+            `UPDATE notes SET title = $1, content = $2, color = $3, updated_at = NOW()
+              WHERE id = $4 RETURNING *`,
+            [version.title ?? null, version.content ?? '', version.color ?? null, noteId]
+          );
+        } catch (err) {
+          if (err.code === '42703') {
+            restored = await pool.query(
+              `UPDATE notes SET title = $1, content = $2, updated_at = NOW()
+                WHERE id = $3 RETURNING *`,
+              [version.title ?? null, version.content ?? '', noteId]
+            );
+          } else {
+            throw err;
+          }
+        }
+
+        await recordNoteActivity(pool, {
+          noteId,
+          actorUserId: user.id,
+          type: 'restored_version',
+          payload: { version_no: Number(version.version_no) },
+        }).catch(() => null);
+        await broadcastNoteChange(pool, noteId, 'updated').catch(() => {});
+
+        return res.status(200).json({ note: restored.rows[0], restored_version: Number(version.version_no) });
+      } catch (err) {
+        console.error('[notes] version restore failed:', err);
+        return res.status(500).json({ error: 'Version konnte nicht wiederhergestellt werden' });
       }
     }
 

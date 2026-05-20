@@ -1,15 +1,27 @@
-﻿feat(notes): Checklist-Fortschritt auf der Note-Card
+﻿feat(notes): Version History (Verlauf inkl. Restore)
 
-Zeigt unter dem Titel einen kompakten Fortschrittsbalken inkl. Zaehler
-(z. B. '3/5'), sobald die Notiz mindestens eine Checklist-Box enthaelt.
-Unterstuetzt beide Inhaltsformate:
-- Markdown: '- [ ]' / '- [x]'
-- HTML (WYSIWYG): <input type='checkbox' checked>
+Pro Notiz werden Snapshots aelterer Staende automatisch erstellt
+(Throttle 30s, max 50 pro Notiz). Im Editor gibt es einen neuen
+'History'-Button im Header der ein Slide-in-Panel oeffnet mit Liste
+aller Versionen inkl. Autor + Zeit, Vorschau und Wiederherstellen.
+Beim Restore wird der aktuelle Stand vorher als neue Version
+gesichert, damit nichts verloren geht.
 
-Wird auf der Card neben dem regulaeren Content gerendert, ohne den
-Inhalt zu verdraengen. Bei 100 Prozent wird das Zaehler-Label
-durchgestrichen. Fuellfarbe nutzt die Note-Farbe.
+Backend:
+- api/_lib/noteVersions.js: ensureNoteVersionsTable, snapshotNoteVersion
+  (Throttle 30s), listNoteVersions, getNoteVersion
+- api/notes.js PATCH: nach UPDATE Snapshot des Pre-Zustands wenn
+  title/content geaendert wurden
+- api/notes.js Endpoints:
+  GET    /api/notes/:id/versions
+  GET    /api/notes/:id/versions/:no
+  POST   /api/notes/:id/versions/:no/restore  (Pre-Snapshot + UPDATE)
+- recordNoteActivity 'restored_version' (mit version_no im payload)
 
-- NotesPage.jsx: computeChecklistProgress Helper + checklistProgress
-  useMemo + Render direkt vor .note-content
-- notes.css: .note-checklist-progress(-bar|-fill|-label) Styles
+Frontend:
+- utils/api.js: listNoteVersions, getNoteVersion, restoreNoteVersion
+- components/NoteVersionsPanel.jsx: Liste mit Avatar/Zeit, Vorschau
+  (HTML sanitized / Plain-Text Pre), Restore mit Confirm
+- NoteEditorModal: History-Icon im Header, AnimatePresence-Slide-in
+- NoteActivityPanel: TYPE_VERBS um 'restored_version' erweitert
+- styles/note-editor-modal.css: .nem-ver-* Styles + .nem-icon-btn.is-active

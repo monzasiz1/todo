@@ -6,7 +6,7 @@ import {
   Calendar as CalendarIcon, Link2, Link2Off, Search, Lock, Users, Eye,
   UserPlus, Pencil,
   Bold, Italic, Underline, Strikethrough, Code, Heading1, Heading2,
-  List, ListOrdered, CheckSquare, Quote, Table,
+  List, ListOrdered, CheckSquare, Quote, Table, History,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -17,6 +17,7 @@ import { useNotesStore } from '../store/notesStore';
 import { toDisplayHtml, sanitizeHtml } from '../lib/noteFormat';
 import NoteActivityPanel from './NoteActivityPanel';
 import NoteCommentsPanel from './NoteCommentsPanel';
+import NoteVersionsPanel from './NoteVersionsPanel';
 import '../styles/note-editor-modal.css';
 
 const NOTE_COLORS = [
@@ -180,6 +181,9 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   const [saveState, setSaveState] = useState('idle'); // 'idle' | 'saving' | 'saved'
   const [taskPickerOpen, setTaskPickerOpen] = useState(false);
   const [taskQuery, setTaskQuery] = useState('');
+  // Versions-Panel (Verlauf) als Slide-in im Header.
+  const [showVersions, setShowVersions] = useState(false);
+  const [versionsBust, setVersionsBust] = useState(0);
 
   // Verknuepfter Termin / Aufgabe (bidirektional via notes.linked_task_id)
   const tasks = useTaskStore((s) => s.tasks);
@@ -654,6 +658,15 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
               </span>
               <button
                 type="button"
+                className={`nem-icon-btn${showVersions ? ' is-active' : ''}`}
+                onClick={() => setShowVersions((v) => !v)}
+                title="Verlauf"
+                aria-pressed={showVersions}
+              >
+                <History size={18} />
+              </button>
+              <button
+                type="button"
                 className="nem-icon-btn"
                 onClick={handleClose}
                 title="Schliessen (Esc)"
@@ -926,6 +939,23 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
               noteOwnerId={note?.user_id}
             />
           )}
+
+          <AnimatePresence>
+            {showVersions && note?.id && (
+              <NoteVersionsPanel
+                key={`ver-${note.id}-${versionsBust}`}
+                noteId={note.id}
+                canEdit={!readOnly}
+                onClose={() => setShowVersions(false)}
+                onRestored={() => {
+                  // Erzwinge Reload des Editors: notesStore re-fetcht via
+                  // Broadcast; lokal triggern wir den useEffect, der
+                  // bei updated_at-Aenderung den Editor synct.
+                  setVersionsBust((n) => n + 1);
+                }}
+              />
+            )}
+          </AnimatePresence>
 
           <div className="nem-footer">
             {!readOnly && (

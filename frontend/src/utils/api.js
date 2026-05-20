@@ -786,6 +786,16 @@ export const api = {
   getMentionableUsers: (noteId) =>
     request(`/notes/${encodeURIComponent(noteId)}/mentionable`),
 
+  // Version History fuer eine Note.
+  listNoteVersions: (noteId) =>
+    request(`/notes/${encodeURIComponent(noteId)}/versions`),
+  getNoteVersion: (noteId, versionNo) =>
+    request(`/notes/${encodeURIComponent(noteId)}/versions/${encodeURIComponent(versionNo)}`),
+  restoreNoteVersion: (noteId, versionNo) =>
+    request(`/notes/${encodeURIComponent(noteId)}/versions/${encodeURIComponent(versionNo)}/restore`, {
+      method: 'POST',
+    }),
+
   connectNotes: (noteId1, noteId2, relationshipType = 'related') =>
     request('/notes', {
       method: 'POST',
