@@ -857,6 +857,28 @@ export default function NotesPage() {
     }
   }, [fetchNotes, fetchTasks, fetchConnections]);
 
+  // Auto-Refresh: wenn der Tab/Fenster wieder Fokus bekommt oder sichtbar
+  // wird, Notes & Tasks neu laden. Loest "andere User schreibt Note, ich
+  // sehe es nicht" ohne dedizierten Realtime-Channel.
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === 'hidden') return;
+      try { fetchNotes?.({ force: true }); } catch {}
+      try { fetchConnections?.(); } catch {}
+    };
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    // Zusaetzlich: Sanftes Background-Polling alle 30s waehrend Tab sichtbar.
+    const pollId = window.setInterval(() => {
+      if (document.visibilityState === 'visible') refresh();
+    }, 30000);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+      window.clearInterval(pollId);
+    };
+  }, [fetchNotes, fetchConnections]);
+
   // ── helpers ──────────────────────────────────────────────────────────────
   const clampPan = useCallback((x, y, s) => {
     if (!viewportRef.current) return { x, y };
