@@ -1,10 +1,24 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, ChevronDown, Send, Trash2, RotateCw } from 'lucide-react';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { api } from '../utils/api';
 import { useAuthStore } from '../store/authStore';
+
+// Normalisiert einen Anzeigenamen zu einem stabilen Mention-Handle.
+// Muss zur Backend-Logik in api/_lib/mentions.js passen.
+function toHandle(name) {
+  if (!name) return '';
+  return String(name)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\u00df/g, 'ss')
+    .replace(/[^a-z0-9_.\-]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '');
+}
 
 function relativeTime(iso) {
   if (!iso) return '';
@@ -46,6 +60,81 @@ export default function NoteCommentsPanel({ noteId, refreshKey = 0, defaultOpen 
   const currentUser = useAuthStore((s) => s.user);
   const currentUserId = currentUser?.id ? String(currentUser.id) : '';
   const isOwner = noteOwnerId && String(noteOwnerId) === currentUserId;
+
+  // ─── @-Mention Autocomplete ─────────────────────────────────────────
+  // mentionQuery = null wenn off, sonst aktueller Such-Substring nach '@'
+  const [mentionable, setMentionable] = useState([]);
+  const [mentionLoaded, setMentionLoaded] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState(null);
+  const [mentionStartIdx, setMentionStartIdx] = useState(-1);
+  const [mentionHighlight, setMentionHighlight] = useState(0);
+
+  // Mentionable-Liste lazy laden, sobald der User '@' tippt.
+  const loadMentionable = useCallback(async () => {
+    if (!noteId || mentionLoaded) return;
+    try {
+      const data = await api.getMentionableUsers(noteId);
+      setMentionable(Array.isArray(data?.users) ? data.users : []);
+    } catch (_) {
+      setMentionable([]);
+    } finally {
+      setMentionLoaded(true);
+    }
+  }, [noteId, mentionLoaded]);
+
+  const mentionMatches = useMemo(() => {
+    if (mentionQuery == null) return [];
+    const q = mentionQuery.toLowerCase();
+    const list = mentionable.filter((u) => {
+      if (!u?.name) return false;
+      if (!q) return true;
+      const handle = toHandle(u.name);
+      return handle.includes(q) || u.name.toLowerCase().includes(q);
+    });
+    return list.slice(0, 6);
+  }, [mentionable, mentionQuery]);
+
+  // Wertet die aktuelle Caret-Position aus und entscheidet, ob das
+  // Mention-Popup aufgehen soll (´@´ direkt nach Wortgrenze).
+  const updateMentionState = (value, caret) => {
+    const upto = value.slice(0, caret);
+    const m = upto.match(/(^|[^A-Za-z0-9_])@([A-Za-z0-9_.\-]*)$/);
+    if (!m) {
+      setMentionQuery(null);
+      setMentionStartIdx(-1);
+      return;
+    }
+    const queryStr = m[2] || '';
+    // start = Position des '@' im value
+    const startIdx = caret - queryStr.length - 1;
+    setMentionQuery(queryStr.toLowerCase());
+    setMentionStartIdx(startIdx);
+    setMentionHighlight(0);
+    loadMentionable();
+  };
+
+  const insertMention = (userObj) => {
+    if (!textareaRef.current || mentionStartIdx < 0) return;
+    const handle = toHandle(userObj.name);
+    if (!handle) return;
+    const before = draft.slice(0, mentionStartIdx);
+    const afterStart = mentionStartIdx + 1 + (mentionQuery ? mentionQuery.length : 0);
+    const after = draft.slice(afterStart);
+    const insert = `@${handle} `;
+    const next = `${before}${insert}${after}`;
+    setDraft(next);
+    setMentionQuery(null);
+    setMentionStartIdx(-1);
+    // Caret hinter den eingefuegten Mention setzen
+    const newCaret = before.length + insert.length;
+    requestAnimationFrame(() => {
+      const ta = textareaRef.current;
+      if (ta) {
+        ta.focus();
+        ta.setSelectionRange(newCaret, newCaret);
+      }
+    });
+  };
 
   const load = useCallback(async () => {
     if (!noteId) return;
@@ -111,11 +200,42 @@ export default function NoteCommentsPanel({ noteId, refreshKey = 0, defaultOpen 
   };
 
   const handleKeyDown = (e) => {
+    // Mention-Popup faengt Tastatur ab
+    if (mentionQuery != null && mentionMatches.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setMentionHighlight((i) => (i + 1) % mentionMatches.length);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setMentionHighlight((i) => (i - 1 + mentionMatches.length) % mentionMatches.length);
+        return;
+      }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        insertMention(mentionMatches[mentionHighlight]);
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setMentionQuery(null);
+        setMentionStartIdx(-1);
+        return;
+      }
+    }
     // Enter sendet; Shift+Enter macht Zeilenumbruch.
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
+  };
+
+  const handleDraftChange = (e) => {
+    const value = e.target.value;
+    setDraft(value);
+    const caret = e.target.selectionStart ?? value.length;
+    updateMentionState(value, caret);
   };
 
   const count = items.length;
@@ -197,17 +317,45 @@ export default function NoteCommentsPanel({ noteId, refreshKey = 0, defaultOpen 
 
             {canWrite && (
               <div className="nem-cm-compose">
-                <textarea
-                  ref={textareaRef}
-                  className="nem-cm-input"
-                  rows={2}
-                  placeholder="Kommentar schreiben… (Enter sendet, Shift+Enter neue Zeile)"
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  maxLength={4000}
-                  disabled={sending}
-                />
+                <div className="nem-cm-input-wrap">
+                  <textarea
+                    ref={textareaRef}
+                    className="nem-cm-input"
+                    rows={2}
+                    placeholder="Kommentar schreiben… (Enter sendet, @ erwaehnt jemanden)"
+                    value={draft}
+                    onChange={handleDraftChange}
+                    onKeyDown={handleKeyDown}
+                    onBlur={() => {
+                      // Mention-Popup nach kurzer Verzoegerung schliessen,
+                      // damit Click auf Eintrag noch durchgeht.
+                      setTimeout(() => setMentionQuery(null), 120);
+                    }}
+                    maxLength={4000}
+                    disabled={sending}
+                  />
+                  {mentionQuery != null && mentionMatches.length > 0 && (
+                    <ul className="nem-cm-mention-pop" role="listbox">
+                      {mentionMatches.map((u, idx) => (
+                        <li
+                          key={u.id}
+                          role="option"
+                          aria-selected={idx === mentionHighlight}
+                          className={`nem-cm-mention-item${idx === mentionHighlight ? ' is-active' : ''}`}
+                          onMouseDown={(ev) => {
+                            ev.preventDefault();
+                            insertMention(u);
+                          }}
+                          onMouseEnter={() => setMentionHighlight(idx)}
+                        >
+                          <Avatar name={u.name} url={u.avatar_url} color={u.avatar_color} />
+                          <span className="nem-cm-mention-name">{u.name}</span>
+                          <span className="nem-cm-mention-handle">@{toHandle(u.name)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
                 <button
                   type="button"
                   className="nem-cm-send"

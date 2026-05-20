@@ -8,6 +8,8 @@ const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
 const { broadcastNoteChange } = require('./_lib/notesBroadcast');
 const { recordNoteActivity } = require('./_lib/noteActivity');
+const { parseMentions, resolveMentions } = require('./_lib/mentions');
+const { sendPushToUser } = require('./_lib/pushService');
 
 let noteCommentsEnsuredAt = 0;
 const NOTE_COMMENTS_TTL_MS = 10 * 60 * 1000;
@@ -166,6 +168,44 @@ module.exports = async (req, res) => {
           preview: textStr.slice(0, 120),
         },
       });
+
+      // Mentions: @handles im Kommentar aufloesen + Beteiligte
+      // benachrichtigen (Push + In-App via notification_log) und einen
+      // 'user_mentioned' Activity-Eintrag pro Empfaenger schreiben.
+      try {
+        const handles = parseMentions(textStr);
+        if (handles.length > 0) {
+          const targets = await resolveMentions(pool, handles, userId, noteIdStr);
+          for (const t of targets) {
+            if (t.id === userId) continue; // Self-Mention ignorieren
+            await sendPushToUser(
+              t.id,
+              {
+                title: `${author.name || 'Jemand'} hat dich erwaehnt`,
+                body: textStr.slice(0, 140),
+                tag: `note-mention-${noteIdStr}-${created.id}`,
+                url: `/notes?open=${encodeURIComponent(noteIdStr)}`,
+              },
+              'note_mention',
+              null,
+              null
+            ).catch(() => null);
+            await recordNoteActivity(pool, {
+              noteId: noteIdStr,
+              actorUserId: userId,
+              type: 'user_mentioned',
+              payload: {
+                mentioned_user_id: t.id,
+                mentioned_name: t.name,
+                source: 'comment',
+                comment_id: created.id,
+              },
+            });
+          }
+        }
+      } catch (mentErr) {
+        console.warn('[note-comments] mention dispatch failed:', mentErr?.message || mentErr);
+      }
 
       return res.status(201).json({
         comment: {

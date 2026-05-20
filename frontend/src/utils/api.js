@@ -781,6 +781,11 @@ export const api = {
       method: 'DELETE',
     }),
 
+  // Mentionable Users fuer eine Note (Friends + Note-Teilnehmer). Wird vom
+  // @-Autocomplete-Dropdown im Kommentar-Feld benutzt.
+  getMentionableUsers: (noteId) =>
+    request(`/notes/${encodeURIComponent(noteId)}/mentionable`),
+
   connectNotes: (noteId1, noteId2, relationshipType = 'related') =>
     request('/notes', {
       method: 'POST',

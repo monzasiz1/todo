@@ -1330,3 +1330,48 @@ html[data-theme="dark"] .nem-md-checkbox {
 }
 .nem-cm-send:hover:not(:disabled) { transform: translateY(-1px); }
 .nem-cm-send:disabled { opacity: 0.4; cursor: default; }
+
+/* ─── Mention-Autocomplete im Kommentar-Eingabefeld ─────────────────── */
+.nem-cm-input-wrap {
+  position: relative;
+  flex: 1;
+  display: flex;
+}
+.nem-cm-input-wrap .nem-cm-input { flex: 1; }
+.nem-cm-mention-pop {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+  z-index: 50;
+}
+.nem-cm-mention-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--nem-text, #1f2937);
+  transition: background 0.12s ease;
+}
+.nem-cm-mention-item.is-active,
+.nem-cm-mention-item:hover { background: rgba(0, 0, 0, 0.06); }
+.nem-cm-mention-item .nem-cm-avatar { width: 22px; height: 22px; font-size: 10px; }
+.nem-cm-mention-name { font-weight: 600; }
+.nem-cm-mention-handle {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--nem-text-soft, #64748b);
+  opacity: 0.8;
+}

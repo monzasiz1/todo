@@ -2,6 +2,8 @@ const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
 const { broadcastNoteChange } = require('./_lib/notesBroadcast');
 const { ensureNoteActivityTable, recordNoteActivity } = require('./_lib/noteActivity');
+const { parseMentionsFromHtml, resolveMentions } = require('./_lib/mentions');
+const { sendPushToUser } = require('./_lib/pushService');
 
 let linkedTaskColumnTypeCache = null;
 let linkedTaskColumnTypeCacheAt = 0;
@@ -1223,6 +1225,50 @@ module.exports = async function handler(req, res) {
           },
         });
       }
+
+      // Mentions: nur neu hinzugekommene @handles benachrichtigen, damit
+      // jeder kleine Edit nicht erneut alle Erwaehnten pingt.
+      try {
+        if (changedFields.includes('content') || changedFields.includes('title')) {
+          const prevHandles = new Set(parseMentionsFromHtml(
+            `${note?.title || ''} ${note?.content || ''}`
+          ));
+          const nextHandlesArr = parseMentionsFromHtml(
+            `${finalNote?.title || ''} ${finalNote?.content || ''}`
+          );
+          const newHandles = nextHandlesArr.filter((h) => !prevHandles.has(h));
+          if (newHandles.length > 0) {
+            const targets = await resolveMentions(pool, newHandles, user.id, noteId);
+            for (const t of targets) {
+              if (t.id === user.id) continue;
+              await sendPushToUser(
+                t.id,
+                {
+                  title: `${user.name || 'Jemand'} hat dich in einer Notiz erwaehnt`,
+                  body: (finalNote?.title || 'Notiz').slice(0, 140),
+                  tag: `note-mention-${noteId}`,
+                  url: `/notes?open=${encodeURIComponent(noteId)}`,
+                },
+                'note_mention',
+                null,
+                null
+              ).catch(() => null);
+              await recordNoteActivity(pool, {
+                noteId,
+                actorUserId: user.id,
+                type: 'user_mentioned',
+                payload: {
+                  mentioned_user_id: t.id,
+                  mentioned_name: t.name,
+                  source: 'note',
+                },
+              });
+            }
+          }
+        }
+      } catch (mentErr) {
+        console.warn('[notes] mention dispatch failed:', mentErr?.message || mentErr);
+      }
       return res.status(200).json({ note: finalNote });
     }
 
@@ -1435,6 +1481,40 @@ module.exports = async function handler(req, res) {
         removed: removed.rows.length > 0,
         share: removed.rows[0] || null,
       });
+    }
+
+    // GET /api/notes/:id/mentionable — Liste tagbarer User (Friends
+    // accepted + bereits akzeptierte Sharees der Notiz). Wird vom Frontend
+    // fuer das @-Autocomplete-Dropdown verwendet. Sichtbar fuer alle, die
+    // die Note lesen duerfen.
+    if (segments.length === 2 && segments[1] === 'mentionable' && req.method === 'GET') {
+      try {
+        const params = [user.id, String(noteId)];
+        const r = await pool.query(
+          `SELECT DISTINCT u.id, u.name, u.avatar_color, u.avatar_url
+             FROM users u
+             WHERE u.id <> $1 AND (
+               u.id IN (
+                 SELECT CASE WHEN f.user_id = $1 THEN f.friend_id ELSE f.user_id END
+                   FROM friends f
+                  WHERE (f.user_id = $1 OR f.friend_id = $1)
+                    AND f.status = 'accepted'
+               )
+               OR u.id IN (SELECT user_id FROM notes WHERE id::text = $2)
+               OR u.id IN (
+                 SELECT friend_id FROM note_shares
+                  WHERE note_id::text = $2 AND status = 'accepted'
+               )
+             )
+             ORDER BY u.name ASC
+             LIMIT 100`,
+          params
+        );
+        return res.status(200).json({ users: r.rows || [] });
+      } catch (err) {
+        console.warn('[notes] mentionable fetch failed:', err?.message || err);
+        return res.status(200).json({ users: [] });
+      }
     }
 
     // GET /api/notes/:id/activity — chronologischer Verlauf der Notiz
