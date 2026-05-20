@@ -701,6 +701,13 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     setSharingToChat(true);
     try {
       await api.shareTaskToGroupChat(task.group_id, task.id);
+      // GroupChatPanel sofort refreshen (sonst erscheint die Nachricht erst beim
+      // nächsten Poll-Intervall, das je nach Realtime-Status 30s–5min dauern kann).
+      try {
+        window.dispatchEvent(new CustomEvent('beequ:chat-changed', {
+          detail: { groupId: Number(task.group_id) },
+        }));
+      } catch { /* ignore */ }
       addToast('📤 In den Gruppen-Chat geteilt');
     } catch (err) {
       addToast(err.message || 'Teilen fehlgeschlagen', 'error');
