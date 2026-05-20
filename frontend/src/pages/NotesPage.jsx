@@ -2136,13 +2136,57 @@ export default function NotesPage() {
           {notes.length === 0 && (
             <div className="empty-board">
               <div className="empty-board-content">
-                <Pin size={48} />
-                <h2>Keine Notizen vorhanden</h2>
-                <p>Klicke auf "Neue Notiz" um deine erste Notiz zu erstellen!</p>
+                <div className="empty-board-icon"><Pin size={32} /></div>
+                <h2>Dein Notizen-Board ist leer</h2>
+                <p>Sammle Ideen, Skizzen und Aufgaben - frei platzierbar, durchsuchbar und mit Hashtags filterbar.</p>
                 <button className="board-control-btn primary large" onClick={handleCreateNote}>
                   <Plus size={18} />
                   Erste Notiz erstellen
                 </button>
+                <div className="empty-board-tiles">
+                  <div className="empty-board-tile">
+                    <strong>Frei platzieren</strong>
+                    <span>Notizen per Drag &amp; Drop verschieben oder Auto-Layout nutzen.</span>
+                  </div>
+                  <div className="empty-board-tile">
+                    <strong>#Hashtags</strong>
+                    <span>Schreibe <code>#idee</code> oder <code>#bug</code> - Tags werden automatisch erkannt und filterbar.</span>
+                  </div>
+                  <div className="empty-board-tile">
+                    <strong>Verknuepfen</strong>
+                    <span>Notizen mit Aufgaben oder anderen Notizen verbinden - inkl. Whiteboard-Modus.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {notes.length > 0
+            && matchedNoteIds != null
+            && matchedNoteIds.size === 0 && (
+            <div className="empty-board empty-board--no-results">
+              <div className="empty-board-content">
+                <div className="empty-board-icon"><Search size={28} /></div>
+                <h2>Keine Treffer</h2>
+                <p>
+                  {activeTags.size > 0 && searchQuery
+                    ? 'Weder Suche noch Tag-Filter liefern Ergebnisse.'
+                    : activeTags.size > 0
+                      ? 'Keine Notiz hat alle aktiven Tags.'
+                      : 'Deine Suche liefert keine Ergebnisse.'}
+                </p>
+                <div className="empty-board-actions">
+                  {searchQuery && (
+                    <button className="board-control-btn" onClick={() => setSearchQuery('')}>
+                      Suche loeschen
+                    </button>
+                  )}
+                  {activeTags.size > 0 && (
+                    <button className="board-control-btn" onClick={clearTagFilters}>
+                      Tag-Filter loeschen
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}
