@@ -289,6 +289,57 @@ export const useNotesStore = create((set, get) => ({
     }
   },
 
+  // Eingehende Share-Anfragen ("X moechte eine Notiz mit dir teilen").
+  shareRequests: [],
+  shareRequestsLoading: false,
+
+  fetchShareRequests: async () => {
+    set({ shareRequestsLoading: true });
+    try {
+      const data = await api.getNoteShareRequests?.();
+      const requests = data?.requests || [];
+      set({ shareRequests: requests, shareRequestsLoading: false });
+      return requests;
+    } catch (err) {
+      console.warn('[notesStore] fetchShareRequests failed:', err?.message || err);
+      set({ shareRequestsLoading: false });
+      return [];
+    }
+  },
+
+  acceptShareRequest: async (noteId) => {
+    try {
+      await api.acceptNoteShareRequest?.(noteId);
+      // Anfrage aus Liste entfernen und Notes neu laden, damit die
+      // jetzt akzeptierte Notiz in der Hauptliste erscheint.
+      set((state) => ({
+        shareRequests: state.shareRequests.filter(
+          (r) => String(r.note_id) !== String(noteId)
+        ),
+      }));
+      await get().fetchNotes({ force: true });
+      return true;
+    } catch (err) {
+      set({ error: err.message });
+      throw err;
+    }
+  },
+
+  declineShareRequest: async (noteId) => {
+    try {
+      await api.declineNoteShareRequest?.(noteId);
+      set((state) => ({
+        shareRequests: state.shareRequests.filter(
+          (r) => String(r.note_id) !== String(noteId)
+        ),
+      }));
+      return true;
+    } catch (err) {
+      set({ error: err.message });
+      throw err;
+    }
+  },
+
   // Get notes shared with me
   getSharedNotes: async () => {
     try {

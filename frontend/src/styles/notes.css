@@ -1924,3 +1924,180 @@ html[data-theme="dark"] .notes-connections-layer .connection-glow {
     padding: 8px 12px 8px 14px;
   }
 }
+/* ===========================================================
+   Note Share-Requests — Header-Button mit Badge + Modal
+   =========================================================== */
+.note-share-requests-btn {
+  position: relative;
+}
+.note-share-requests-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--danger, #ef4444);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--bg, #fff);
+  pointer-events: none;
+}
+html[data-theme="dark"] .note-share-requests-badge {
+  box-shadow: 0 0 0 2px var(--surface, #1f1f27);
+}
+.note-share-requests-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9000;
+  padding: 16px;
+}
+.note-share-requests-modal {
+  width: 100%;
+  max-width: 480px;
+  max-height: 80vh;
+  background: var(--card-solid, var(--surface, #fff));
+  color: var(--text, #1d1d1f);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.note-share-requests-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border, rgba(0, 0, 0, 0.06));
+}
+.note-share-requests-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+.note-share-requests-header .icon-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary, #6b7280);
+  padding: 6px;
+  border-radius: 8px;
+}
+.note-share-requests-header .icon-btn:hover {
+  background: var(--hover, rgba(0, 0, 0, 0.05));
+  color: var(--text, #1d1d1f);
+}
+.note-share-requests-empty {
+  padding: 36px 18px;
+  text-align: center;
+  color: var(--text-secondary, #6b7280);
+  font-size: 14px;
+}
+.note-share-requests-error {
+  margin: 12px 18px 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--danger, #ef4444) 10%, transparent);
+  color: var(--danger, #ef4444);
+  font-size: 13px;
+  border: 1px solid color-mix(in srgb, var(--danger, #ef4444) 30%, transparent);
+}
+.note-share-requests-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+  overflow-y: auto;
+}
+.note-share-request-item {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.06));
+  background: var(--card-solid, #fff);
+  margin-bottom: 8px;
+}
+html[data-theme="dark"] .note-share-request-item {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.note-share-request-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.note-share-request-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.note-share-request-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text, #1d1d1f);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.note-share-request-sub {
+  font-size: 13px;
+  color: var(--text-secondary, #6b7280);
+}
+.note-share-request-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.note-share-request-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.1));
+  background: transparent;
+  color: var(--text, #1d1d1f);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.note-share-request-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.note-share-request-btn.accept {
+  background: var(--primary, #007AFF);
+  color: #fff;
+  border-color: transparent;
+}
+.note-share-request-btn.accept:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--primary, #007AFF) 90%, black);
+}
+.note-share-request-btn.decline:hover:not(:disabled) {
+  border-color: var(--danger, #ef4444);
+  color: var(--danger, #ef4444);
+}
+html[data-theme="dark"] .note-share-request-btn {
+  color: var(--text, #f5f5f7);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+html[data-theme="dark"] .note-share-requests-modal {
+  background: linear-gradient(180deg, #1c1f27 0%, #161922 100%);
+  border-color: rgba(255, 255, 255, 0.08);
+}

@@ -141,6 +141,12 @@ async function ensureNotesStatusColumns(pool) {
     // Index beschleunigt den GET-Filter beim Anzeigen von Team-Notes an Tasks.
     await pool.query("ALTER TABLE notes ADD COLUMN IF NOT EXISTS visibility VARCHAR(16) DEFAULT 'private'");
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_notes_linked_task_visibility ON notes (linked_task_id, visibility) WHERE linked_task_id IS NOT NULL`);
+    // Share-Request-Flow: Empfaenger muss aktiv bestaetigen, bevor eine
+    // geteilte Notiz in seiner "Mit mir geteilt"-Liste auftaucht. Default
+    // 'accepted' fuer Backward-Compat (Bestandsdaten bleiben sichtbar).
+    // Neue Shares setzen explizit status='pending'.
+    await pool.query("ALTER TABLE note_shares ADD COLUMN IF NOT EXISTS status VARCHAR(16) NOT NULL DEFAULT 'accepted'");
+    await pool.query("CREATE INDEX IF NOT EXISTS idx_note_shares_friend_status ON note_shares (friend_id, status)");
     noteStatusColumnsEnsuredAt = now;
   } catch (err) {
     console.warn('[notes] ensure status columns failed:', err?.message || err);
@@ -316,9 +322,16 @@ async function normalizeParticipantIdsForDb(pool, participantIds, userId) {
 }
 
 function buildAccessibleNoteClause(noteAlias, noteShareAlias, userIdTextParam, userIdParam) {
+  // Eine Notiz ist fuer den User zugaenglich wenn:
+  //  - er der Owner ist, ODER
+  //  - er als Empfaenger akzeptiert hat (note_shares.status='accepted'), ODER
+  //  - er als Participant gelistet ist, ODER
+  //  - er als Verantwortlicher eingetragen ist.
+  // Pending-Shares zaehlen explizit NICHT, damit der Empfaenger erst aktiv
+  // bestaetigen muss bevor die Notiz erscheint.
   return `(
     ${noteAlias}.user_id::text = ${userIdTextParam}
-    OR ${noteShareAlias}.friend_id::text = ${userIdTextParam}
+    OR (${noteShareAlias}.friend_id::text = ${userIdTextParam} AND COALESCE(${noteShareAlias}.status, 'accepted') = 'accepted')
     OR ${userIdParam} = ANY(COALESCE(${noteAlias}.participant_ids, '{}'::integer[]))
     OR ${noteAlias}.responsible_user_id = ${userIdParam}
   )`;
@@ -374,8 +387,8 @@ async function syncParticipantShares(pool, noteId, ownerIdText, prevParticipantI
     if (prevPermission === permission) continue;
 
     await pool.query(
-      `INSERT INTO note_shares (note_id, friend_id, permission)
-       VALUES ($1, $2, $3)
+      `INSERT INTO note_shares (note_id, friend_id, permission, status)
+       VALUES ($1, $2, $3, 'pending')
        ON CONFLICT (note_id, friend_id)
        DO UPDATE SET permission = CASE
          WHEN note_shares.permission = 'edit' THEN 'edit'
@@ -719,12 +732,100 @@ module.exports = async function handler(req, res) {
       return res.status(201).json({ note: createdNote });
     }
 
+    // GET /api/notes/share-requests
+    // Liefert offene Share-Anfragen, die der eingeloggte User akzeptieren
+    // oder ablehnen muss. Bestandsshares (status='accepted' / Default)
+    // tauchen hier NICHT auf.
+    if (
+      segments.length === 1
+      && segments[0] === 'share-requests'
+      && req.method === 'GET'
+    ) {
+      try {
+        const pending = await pool.query(
+          `SELECT n.id AS note_id,
+                  n.title,
+                  n.content,
+                  n.updated_at,
+                  ns.permission,
+                  ns.created_at AS shared_at,
+                  u.id AS owner_id,
+                  u.name AS owner_name,
+                  u.avatar_url AS owner_avatar_url,
+                  u.avatar_color AS owner_avatar_color
+             FROM note_shares ns
+             JOIN notes n ON n.id = ns.note_id
+             JOIN users u ON u.id = n.user_id
+            WHERE ns.friend_id::text = $1
+              AND ns.status = 'pending'
+            ORDER BY ns.created_at DESC`,
+          [userIdText]
+        );
+        return res.status(200).json({ requests: pending.rows });
+      } catch (err) {
+        // Falls die Spalte noch nicht migriert ist, liefere leere Liste.
+        if (err && /column .*status/i.test(String(err.message || ''))) {
+          return res.status(200).json({ requests: [] });
+        }
+        throw err;
+      }
+    }
+
+    // POST /api/notes/share-requests/accept   body: { note_id }
+    // POST /api/notes/share-requests/decline  body: { note_id }
+    if (
+      segments.length === 2
+      && segments[0] === 'share-requests'
+      && ['accept', 'decline'].includes(segments[1])
+      && req.method === 'POST'
+    ) {
+      const action = segments[1];
+      const noteIdRaw = (req.body && req.body.note_id) || null;
+      if (!noteIdRaw || !isValidNoteIdString(noteIdRaw)) {
+        return res.status(400).json({ error: 'note_id ist erforderlich' });
+      }
+
+      if (action === 'accept') {
+        const upd = await pool.query(
+          `UPDATE note_shares
+              SET status = 'accepted'
+            WHERE note_id::text = $1
+              AND friend_id::text = $2
+              AND status = 'pending'
+            RETURNING *`,
+          [String(noteIdRaw), userIdText]
+        );
+        if (upd.rows.length === 0) {
+          return res.status(404).json({ error: 'Anfrage nicht gefunden' });
+        }
+        await broadcastNoteChange(pool, noteIdRaw, 'shared').catch(() => {});
+        return res.status(200).json({ share: upd.rows[0] });
+      }
+
+      // decline: Share-Zeile entfernen damit weder Owner noch Empfaenger
+      // diese Anfrage erneut sieht. Owner kann jederzeit erneut teilen.
+      const del = await pool.query(
+        `DELETE FROM note_shares
+          WHERE note_id::text = $1
+            AND friend_id::text = $2
+            AND status = 'pending'
+          RETURNING *`,
+        [String(noteIdRaw), userIdText]
+      );
+      if (del.rows.length === 0) {
+        return res.status(404).json({ error: 'Anfrage nicht gefunden' });
+      }
+      await broadcastNoteChange(pool, noteIdRaw, 'unshared', {
+        extraUserIds: [Number(userIdText)],
+      }).catch(() => {});
+      return res.status(200).json({ declined: true });
+    }
+
     // GET /api/notes/shared
     if (
       (segments.length === 1 && segments[0] === 'shared' && req.method === 'GET') ||
       (segments.length === 0 && req.method === 'GET' && requestedView === 'shared')
-    ) {
-      const directAccessClause = buildAccessibleNoteClause('n', 'ns', '$1', '$2');
+    ) {      const directAccessClause = buildAccessibleNoteClause('n', 'ns', '$1', '$2');
       const inheritedAccessClause = buildInheritedConnectionClause('n', '$1', '$2');
       try {
         const shared = await pool.query(
@@ -1163,9 +1264,13 @@ module.exports = async function handler(req, res) {
 
       const validPermission = ['view', 'comment', 'edit'].includes(permission) ? permission : 'view';
 
+      // Neue Shares starten als 'pending' damit der Empfaenger zustimmen
+      // muss. Wenn eine Zeile bereits existiert (z.B. Permission wird
+      // geaendert), bleibt der bestehende Status erhalten und nur die
+      // Permission wird upgedatet.
       const shared = await pool.query(
-        `INSERT INTO note_shares (note_id, friend_id, permission)
-         VALUES ($1, $2, $3)
+        `INSERT INTO note_shares (note_id, friend_id, permission, status)
+         VALUES ($1, $2, $3, 'pending')
          ON CONFLICT (note_id, friend_id)
          DO UPDATE SET permission = EXCLUDED.permission
          RETURNING *`,

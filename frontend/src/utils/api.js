@@ -745,6 +745,22 @@ export const api = {
 
   getArchivedNotes: () => request('/notes?view=archived'),
 
+  // Eingehende Share-Anfragen (opt-in: muss aktiv akzeptiert werden, sonst
+  // taucht die Notiz nicht in der "Mit mir geteilt"-Liste auf).
+  getNoteShareRequests: () => request('/notes/share-requests'),
+
+  acceptNoteShareRequest: (noteId) =>
+    request('/notes/share-requests/accept', {
+      method: 'POST',
+      body: JSON.stringify({ note_id: noteId }),
+    }),
+
+  declineNoteShareRequest: (noteId) =>
+    request('/notes/share-requests/decline', {
+      method: 'POST',
+      body: JSON.stringify({ note_id: noteId }),
+    }),
+
   connectNotes: (noteId1, noteId2, relationshipType = 'related') =>
     request('/notes', {
       method: 'POST',

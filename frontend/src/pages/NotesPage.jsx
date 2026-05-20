@@ -6,6 +6,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useOpenTask } from '../hooks/useOpenTask';
 import TaskDetailModal from '../components/TaskDetailModal';
 import NoteEditorModal from '../components/NoteEditorModal';
+import NoteShareRequestsBanner from '../components/NoteShareRequestsBanner';
 import { useNotesStore } from '../store/notesStore';
 import { useTaskStore } from '../store/taskStore';
 import '../styles/notes.css';
@@ -1463,6 +1464,7 @@ export default function NotesPage() {
         </div>
 
         <div className="board-controls">
+          <NoteShareRequestsBanner />
           <button className="board-control-btn" onClick={handleZoomOut} disabled={scale <= MIN_SCALE} title="Verkleinern">
             <ZoomOut size={16} />
           </button>
