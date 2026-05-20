@@ -417,6 +417,16 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   // PATCH -> Broadcast -> externe Aktualisierung ...". Wir vergleichen
   // die Signatur bevor wir ueberhaupt einen Save planen.
   const lastSavedKeyRef = useRef(initialKeyRef.current);
+  // Mobile/IME-Schutz: document.activeElement === editorRef ist auf
+  // Mobile-Browsern unzuverlaessig (virtuelle Tastatur, Autocomplete-
+  // Bar, IME-Composition). Wir tracken die letzte User-Eingabe per
+  // Timestamp und sperren Live-Sync fuer 1.5s nach jedem Keystroke.
+  const userTypingRef = useRef(0);
+  const composingRef = useRef(false);
+  // Verhindert Live-Sync-Schreibungen waehrend ein eigener PATCH noch
+  // unterwegs ist (Server koennte mit aelterem Stand antworten / Broadcast
+  // koennte zwischendurch eintreffen).
+  const savingInFlightRef = useRef(false);
 
   // ESC schliesst
   useEffect(() => {
@@ -458,7 +468,15 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   useEffect(() => {
     const el = editorRef.current;
     if (!el) return;
-    if (document.activeElement === el) return; // User tippt gerade
+    // Nicht ueberschreiben, solange:
+    //  - der User gerade tippt (activeElement-Check IST unzuverlaessig
+    //    auf Mobile, daher zusaetzlich userTypingRef-Timestamp + IME)
+    //  - eine eigene PATCH-Anfrage noch unterwegs ist (Broadcast koennte
+    //    aelteren Stand zurueckspielen, der unsere lokale Eingabe killt)
+    if (document.activeElement === el) return;
+    if (composingRef.current) return;
+    if (savingInFlightRef.current) return;
+    if (Date.now() - userTypingRef.current < 1500) return;
     const parsed = parseColor(note?.content || '');
     const nextHtml = toDisplayHtml(parsed.rest);
     const nextTitle = note?.title || '';
@@ -497,6 +515,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     setSaveState('saving');
     saveTimerRef.current = setTimeout(async () => {
+      savingInFlightRef.current = true;
       try {
         await onUpdate?.(note.id, {
           title: trimmedTitle,
@@ -510,6 +529,10 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
       } catch (err) {
         console.error('[NoteEditorModal] auto-save failed:', err);
         setSaveState('idle');
+      } finally {
+        // Kurz noch sperren, damit der nachfolgende Broadcast/Refetch
+        // nicht in die Live-Sync laeuft (Race-Schutz).
+        setTimeout(() => { savingInFlightRef.current = false; }, 250);
       }
     }, 700);
   }, [note?.id, onUpdate, readOnly]);
@@ -622,9 +645,25 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   const onEditorInput = useCallback(() => {
     const el = editorRef.current;
     if (!el) return;
+    // Mobile-Schutz: Timestamp setzen, Live-Sync sperrt 1.5s.
+    userTypingRef.current = Date.now();
     // Keine Sanitization waehrend des Tippens (sonst Caret-Reset).
     // Wird vor jedem Speichern in scheduleSave/flushSave gesaeubert.
     setContent(el.innerHTML);
+  }, []);
+
+  // IME / virtuelle Tastatur Composition (Android/iOS-Autocorrect).
+  // Solange composing true ist, darf Live-Sync nicht in den Editor
+  // schreiben - sonst stuerzt die Auto-Vervollstaendigung ab.
+  const onCompositionStart = useCallback(() => {
+    composingRef.current = true;
+    userTypingRef.current = Date.now();
+  }, []);
+  const onCompositionEnd = useCallback(() => {
+    composingRef.current = false;
+    userTypingRef.current = Date.now();
+    const el = editorRef.current;
+    if (el) setContent(el.innerHTML);
   }, []);
 
   // Klick im Editor: Checkbox-Toggle ODER Klick in den Leerraum
@@ -938,6 +977,8 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
               onInput={onEditorInput}
               onKeyDown={onEditorKeyDown}
               onClick={onEditorClick}
+              onCompositionStart={onCompositionStart}
+              onCompositionEnd={onCompositionEnd}
             />
           </div>
 
