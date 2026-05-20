@@ -8,11 +8,12 @@ import {
   X, Calendar, CalendarCheck, Clock, Tag, Flag, FileText, Bell,
   Save, Users, UserCheck, Lock, Eye, Edit3, Video, ThumbsUp,
   ChevronDown, Sparkles, Loader2, AlertTriangle, UsersRound, Repeat, ListTodo,
-  MapPin, ExternalLink
+  MapPin
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import AvatarBadge from './AvatarBadge';
 import TaskAttachments from './TaskAttachments';
+import LocationAutocomplete from './LocationAutocomplete';
 
 const PRIORITIES = [
   { value: 'low', label: 'Niedrig', color: 'var(--success)' },
@@ -568,31 +569,11 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
           {/* Location */}
           <div className="task-edit-field">
             <label><MapPin size={14} /> Ort</label>
-            <div className="task-edit-location-row">
-              <input
-                type="text"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="Adresse, Café, Park... (Google Maps)"
-                className="task-edit-input task-edit-location-input"
-              />
-              {location.trim() && (
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.trim())}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="task-edit-location-preview-btn"
-                  title="In Google Maps öffnen"
-                >
-                  <ExternalLink size={14} />
-                </a>
-              )}
-            </div>
-            {location.trim() && (
-              <div className="task-edit-location-hint">
-                <MapPin size={11} /> Wird in den Aufgaben-Details als Karte angezeigt.
-              </div>
-            )}
+            <LocationAutocomplete
+              value={location}
+              onChange={setLocation}
+              placeholder="Strasse, PLZ, Ort... (Vorschlaege erscheinen)"
+            />
           </div>
 
           {/* Date */}

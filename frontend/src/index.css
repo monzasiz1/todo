@@ -30252,6 +30252,91 @@ body.is-electron.is-mac .desktop-titlebar-center {
   color: var(--text-secondary, #8E8E93);
 }
 
+/* Autocomplete-Dropdown (LocationAutocomplete.jsx) */
+.task-edit-location-wrap {
+  position: relative;
+}
+.task-edit-location-input-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+.task-edit-location-input-wrap .task-edit-location-input {
+  width: 100%;
+  padding-right: 32px;
+}
+.task-edit-location-loading {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  color: var(--text-secondary, #8E8E93);
+  pointer-events: none;
+}
+.task-edit-location-spin {
+  animation: tel-spin 0.9s linear infinite;
+}
+@keyframes tel-spin {
+  to { transform: rotate(360deg); }
+}
+.task-edit-location-dropdown {
+  position: absolute;
+  z-index: 50;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border-color, rgba(0,0,0,0.08));
+  border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.14), 0 2px 6px rgba(0,0,0,0.06);
+  max-height: 280px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.task-edit-location-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13.5px;
+  line-height: 1.35;
+  color: var(--text-primary, #1c1c1e);
+  transition: background 0.12s ease;
+}
+.task-edit-location-option.is-active,
+.task-edit-location-option:hover {
+  background: rgba(0, 122, 255, 0.10);
+}
+.task-edit-location-option-icon {
+  margin-top: 2px;
+  flex-shrink: 0;
+  color: #007AFF;
+}
+.task-edit-location-option-text {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+html[data-theme="dark"] .task-edit-location-dropdown {
+  background: #1c1c1e;
+  border-color: rgba(255,255,255,0.10);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.4);
+}
+html[data-theme="dark"] .task-edit-location-option {
+  color: rgba(255,255,255,0.92);
+}
+html[data-theme="dark"] .task-edit-location-option.is-active,
+html[data-theme="dark"] .task-edit-location-option:hover {
+  background: rgba(10,132,255,0.20);
+}
+
 /* Detail Card */
 .task-detail-location-card {
   margin-top: 14px;

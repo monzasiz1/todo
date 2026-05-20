@@ -21,6 +21,23 @@ const APP_TIME_ZONE = resolveAppTimeZone(process.env.APP_TIME_ZONE);
 // Keep local wall-clock semantics (DST-safe): convert local date+time to timestamptz first, then subtract offset.
 const EVENT_DUE_AT_SQL = `(((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp AT TIME ZONE '${APP_TIME_ZONE}') - INTERVAL '${EVENT_REMINDER_OFFSET}')`;
 
+// ─── Schema-Migration: tasks.location ─────────────────────────────────────
+// Wird einmalig pro Function-Instance + alle 5 Minuten ausgefuehrt, damit
+// ein vergessener Migration-Run nicht das Speichern von Standort-Daten
+// blockiert. ADD COLUMN IF NOT EXISTS ist idempotent.
+let locationColumnEnsuredAt = 0;
+const LOCATION_COLUMN_TTL_MS = 5 * 60 * 1000;
+async function ensureLocationColumn(pool) {
+  const now = Date.now();
+  if (now - locationColumnEnsuredAt < LOCATION_COLUMN_TTL_MS) return;
+  try {
+    await pool.query('ALTER TABLE tasks ADD COLUMN IF NOT EXISTS location TEXT');
+    locationColumnEnsuredAt = now;
+  } catch (err) {
+    console.warn('[tasks] ensureLocationColumn failed:', err.message);
+  }
+}
+
 function formatReminderDateForLog(value) {
   const reminderDate = new Date(value);
   if (Number.isNaN(reminderDate.getTime())) {
@@ -1275,7 +1292,7 @@ module.exports = async function handler(req, res) {
   if (segments.length === 1 && segments[0] !== 'range' && segments[0] !== 'reorder' && req.method === 'PUT') {
     try {
       let taskId = segments[0];
-      const { title, description, date, date_end, time, time_end, priority, category_id, reminder_at,
+      const { title, description, location, date, date_end, time, time_end, priority, category_id, reminder_at,
               recurrence_rule, recurrence_interval, recurrence_end, type, enable_group_rsvp } = req.body;
       const taskType = type === 'event' ? 'event' : (type === 'task' ? 'task' : undefined);
       
@@ -1295,6 +1312,7 @@ module.exports = async function handler(req, res) {
       // Only update fields that were explicitly sent in the request body.
       const hasTitle = Object.prototype.hasOwnProperty.call(req.body, 'title');
       const hasDescription = Object.prototype.hasOwnProperty.call(req.body, 'description');
+      const hasLocation = Object.prototype.hasOwnProperty.call(req.body, 'location');
       const hasDate = Object.prototype.hasOwnProperty.call(req.body, 'date');
       const hasDateEnd = Object.prototype.hasOwnProperty.call(req.body, 'date_end');
       const hasTime = Object.prototype.hasOwnProperty.call(req.body, 'time');
@@ -1309,6 +1327,9 @@ module.exports = async function handler(req, res) {
       const hasEnableGroupRsvp = Object.prototype.hasOwnProperty.call(req.body, 'enable_group_rsvp');
 
       const runUpdate = async () => {
+        if (hasLocation) {
+          await ensureLocationColumn(pool);
+        }
         const setClauses = [];
         const values = [];
         const addSet = (clause, value) => {
@@ -1318,6 +1339,7 @@ module.exports = async function handler(req, res) {
 
         if (hasTitle) addSet('title', title);
         if (hasDescription) addSet('description', description);
+        if (hasLocation) addSet('location', (typeof location === 'string' ? location.trim() : '') || null);
         if (hasDate) addSet('date', date);
         if (hasDateEnd) addSet('date_end', date_end || null);
         if (hasTime) addSet('time', time);
@@ -2262,7 +2284,7 @@ module.exports = async function handler(req, res) {
   // POST /api/tasks
   if (segments.length === 0 && req.method === 'POST') {
     try {
-      const { title, description, date, date_end, time, time_end, priority, category_id, reminder_at,
+      const { title, description, location, date, date_end, time, time_end, priority, category_id, reminder_at,
               recurrence_rule, recurrence_interval, recurrence_end, group_id, group_category_id,
               visibility, permissions, type, enable_group_rsvp } = req.body;
       if (!title) {
@@ -2324,12 +2346,17 @@ module.exports = async function handler(req, res) {
       // Occurrences are generated on-the-fly in range/dashboard queries.
       // (No more bulk INSERT of hundreds of child rows.)
 
+      const normalizedLocation = (typeof location === 'string' ? location.trim() : '') || null;
+      if (normalizedLocation) {
+        await ensureLocationColumn(pool);
+      }
+
       const result = await pool.query(
-        `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order,
+        `INSERT INTO tasks (user_id, title, description, location, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order,
         recurrence_rule, recurrence_interval, recurrence_end, visibility, type, enable_group_rsvp)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
          RETURNING *`,
-        [user.id, title, description || null, date || null, date_end || null, time || null, time_end || null,
+        [user.id, title, description || null, normalizedLocation, date || null, date_end || null, time || null, time_end || null,
          priority || 'medium', category_id || null, reminder_at || null,
         maxOrder.rows[0].next_order, recurrenceRule, recurrenceInterval, recurrenceEnd, finalVisibility, taskType, enable_group_rsvp === true]
       );
