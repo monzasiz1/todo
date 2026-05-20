@@ -412,6 +412,11 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   const editorRef = useRef(null);
   const saveTimerRef = useRef(null);
   const initialKeyRef = useRef(`${note?.id}|${note?.title || ''}|${note?.content || ''}|${note?.color || ''}|${note?.importance || ''}`);
+  // Letzter Stand, der serverseitig als "in sync" gilt - verhindert
+  // den Loop "externe Aktualisierung -> setContent -> scheduleSave ->
+  // PATCH -> Broadcast -> externe Aktualisierung ...". Wir vergleichen
+  // die Signatur bevor wir ueberhaupt einen Save planen.
+  const lastSavedKeyRef = useRef(initialKeyRef.current);
 
   // ESC schliesst
   useEffect(() => {
@@ -446,33 +451,60 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   // editiert eine geteilte Notiz und das Polling zieht neue Daten), den
   // Editor-Inhalt aktualisieren \u2014 aber NUR wenn der User gerade nicht
   // selbst in dem Editor tippt (sonst Caret-Reset / Datenverlust).
+  // Wichtig: nach dem Sync MUSS lastSavedKeyRef aktualisiert werden,
+  // sonst feuert die scheduleSave-useEffect (Z. unten) den naechsten
+  // PATCH und es entsteht ein Endlos-Loop "save -> broadcast -> sync
+  // -> save -> ..." (siehe Versions-Spam).
   useEffect(() => {
     const el = editorRef.current;
     if (!el) return;
     if (document.activeElement === el) return; // User tippt gerade
     const parsed = parseColor(note?.content || '');
     const nextHtml = toDisplayHtml(parsed.rest);
-    if (nextHtml === el.innerHTML) return; // nichts geaendert
+    const nextTitle = note?.title || '';
+    const nextColorName = note?.color || parsed.color?.name || '';
+    const nextImportance = note?.importance || 'medium';
+    // Signatur immer auf den vom Server bestaetigten Stand setzen,
+    // auch wenn sich der innerHTML-Vergleich nicht aendert (z.B. nach
+    // dem ersten echten Save kommt der Inhalt identisch zurueck).
+    lastSavedKeyRef.current = `${note?.id}|${nextTitle}|${buildContent(nextHtml, parsed.color || color)}|${nextColorName}|${nextImportance}`;
+    if (nextHtml === el.innerHTML) return; // nichts zu rendern
     el.innerHTML = nextHtml;
     setContent(nextHtml);
     if (parsed.color) setColor(parsed.color);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [note?.content]);
+  }, [note?.content, note?.title, note?.color, note?.importance]);
 
-  // Debounced Auto-Save
+  // Debounced Auto-Save. Skipt, wenn der aktuelle Stand bereits dem
+  // letzten serverbestaetigten Stand entspricht (lastSavedKeyRef).
+  // Dadurch werden "Echo-Saves" nach Live-Sync verhindert, die sonst
+  // jede Sekunde neue Versions-Snapshots ausgeloest haben.
   const scheduleSave = useCallback((nextTitle, nextContent, nextColor, nextImportance) => {
     if (!note?.id) return;
     if (readOnly) return;
+    const trimmedTitle = (nextTitle || '').trim();
+    const builtContent = buildContent(nextContent, nextColor);
+    const colorName = nextColor?.name || '';
+    const sig = `${note.id}|${trimmedTitle}|${builtContent}|${colorName}|${nextImportance}`;
+    if (sig === lastSavedKeyRef.current) {
+      setSaveState('idle');
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+      return;
+    }
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     setSaveState('saving');
     saveTimerRef.current = setTimeout(async () => {
       try {
         await onUpdate?.(note.id, {
-          title: (nextTitle || '').trim(),
-          content: buildContent(nextContent, nextColor),
-          color: nextColor?.name || null,
+          title: trimmedTitle,
+          content: builtContent,
+          color: colorName || null,
           importance: nextImportance,
         });
+        lastSavedKeyRef.current = sig;
         setSaveState('saved');
         setTimeout(() => setSaveState('idle'), 1200);
       } catch (err) {
@@ -480,7 +512,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
         setSaveState('idle');
       }
     }, 700);
-  }, [note?.id, onUpdate]);
+  }, [note?.id, onUpdate, readOnly]);
 
   const flushSave = useCallback(() => {
     if (saveTimerRef.current) {
@@ -488,15 +520,20 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
       saveTimerRef.current = null;
     }
     if (readOnly) return;
-    const key = `${note?.id}|${title}|${buildContent(content, color)}|${color?.name || ''}|${importance}`;
+    const builtContent = buildContent(content, color);
+    const colorName = color?.name || '';
+    const key = `${note?.id}|${title}|${builtContent}|${colorName}|${importance}`;
     if (key === initialKeyRef.current) return;
+    if (key === lastSavedKeyRef.current) return; // nichts neues seit dem letzten Save
     onUpdate?.(note.id, {
       title: (title || '').trim(),
-      content: buildContent(content, color),
-      color: color?.name || null,
+      content: builtContent,
+      color: colorName || null,
       importance,
-    }).catch((err) => console.error('[NoteEditorModal] flush save failed:', err));
-  }, [note?.id, title, content, color, importance, onUpdate]);
+    })
+      .then(() => { lastSavedKeyRef.current = key; })
+      .catch((err) => console.error('[NoteEditorModal] flush save failed:', err));
+  }, [note?.id, title, content, color, importance, onUpdate, readOnly]);
 
   useEffect(() => {
     scheduleSave(title, content, color, importance);
@@ -1145,14 +1182,16 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
           <AnimatePresence>
             {showVersions && note?.id && (
               <NoteVersionsPanel
-                key={`ver-${note.id}-${versionsBust}`}
+                key={`ver-${note.id}`}
                 noteId={note.id}
                 canEdit={!readOnly}
                 onClose={() => setShowVersions(false)}
                 onRestored={() => {
-                  // Erzwinge Reload des Editors: notesStore re-fetcht via
-                  // Broadcast; lokal triggern wir den useEffect, der
-                  // bei updated_at-Aenderung den Editor synct.
+                  // Restore: das Panel laedt seine Liste selbst neu;
+                  // der Editor erhaelt den neuen note.content per
+                  // Broadcast/Polling und der Live-Sync-useEffect
+                  // aktualisiert den contentEditable schonend, ohne
+                  // einen weiteren Save auszuloesen (lastSavedKeyRef).
                   setVersionsBust((n) => n + 1);
                 }}
               />

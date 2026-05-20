@@ -7,9 +7,16 @@
 // Tabelle wird per ensure-on-write (TTL-cached) erstellt. Failt nie
 // hart - Versions sind eine Komfort-Funktion, kein blocker.
 
-const SNAPSHOT_MIN_INTERVAL_MS = 30 * 1000;
+const SNAPSHOT_MIN_INTERVAL_MS = 90 * 1000;
 const MAX_VERSIONS = 50;
 const ENSURE_TTL_MS = 10 * 60 * 1000;
+
+// Whitespace-normalisierter Vergleich, damit reine Formatter-Aenderungen
+// (z.B. zusaetzliche Leerzeichen im HTML) keinen neuen Snapshot anlegen.
+function normalizeForCompare(value) {
+  if (value === null || value === undefined) return '';
+  return String(value).replace(/\s+/g, ' ').trim();
+}
 
 let ensuredAt = 0;
 
@@ -48,12 +55,26 @@ async function snapshotNoteVersion(pool, { noteId, prevTitle, prevContent, prevC
 
     // letzten Snapshot pruefen (Throttle + naechste version_no bestimmen)
     const last = await pool.query(
-      'SELECT version_no, created_at FROM note_versions WHERE note_id = $1 ORDER BY version_no DESC LIMIT 1',
+      'SELECT version_no, title, content, color, created_at FROM note_versions WHERE note_id = $1 ORDER BY version_no DESC LIMIT 1',
       [noteIdStr]
     );
     if (last.rows.length > 0) {
       const ageMs = Date.now() - new Date(last.rows[0].created_at).getTime();
       if (ageMs < SNAPSHOT_MIN_INTERVAL_MS) return null;
+      // De-Dup: identischer Inhalt (whitespace-normalisiert) -> kein neuer Snapshot.
+      const prevNormTitle = normalizeForCompare(last.rows[0].title);
+      const prevNormContent = normalizeForCompare(last.rows[0].content);
+      const prevNormColor = normalizeForCompare(last.rows[0].color);
+      const nextNormTitle = normalizeForCompare(prevTitle);
+      const nextNormContent = normalizeForCompare(prevContent);
+      const nextNormColor = normalizeForCompare(prevColor);
+      if (
+        prevNormTitle === nextNormTitle
+        && prevNormContent === nextNormContent
+        && prevNormColor === nextNormColor
+      ) {
+        return null;
+      }
     }
     const nextVersionNo = last.rows.length > 0 ? (Number(last.rows[0].version_no) || 0) + 1 : 1;
 
