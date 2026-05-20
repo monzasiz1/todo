@@ -8631,33 +8631,36 @@ body.cal-is-dragging * {
 }
 
 .task-detail-time-range {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 2px;
+  gap: 4px;
+  margin-top: 3px;
 }
 
 .task-detail-time-chip {
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   font-weight: 700;
   color: var(--primary);
   background: var(--primary-bg);
-  border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
-  border-radius: 8px;
-  padding: 3px 10px;
+  border: 1px solid color-mix(in srgb, var(--primary) 22%, transparent);
+  border-radius: 7px;
+  padding: 2px 8px;
   letter-spacing: 0.01em;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
 }
 
 .task-detail-time-chip--end {
   color: #5856D6;
-  background: rgba(88,86,214,0.08);
-  border-color: rgba(88,86,214,0.2);
+  background: rgba(88,86,214,0.10);
+  border-color: rgba(88,86,214,0.24);
 }
 
 .task-detail-time-arrow {
-  font-size: 13px;
-  color: #9ca3af;
+  font-size: 11px;
+  color: var(--text-tertiary, #9ca3af);
   line-height: 1;
+  margin: 0 1px;
 }
 
 .task-detail-category-badge {
@@ -8666,6 +8669,22 @@ body.cal-is-dragging * {
   font-weight: 600;
   padding: 3px 10px;
   border-radius: 8px;
+}
+
+/* Kleinere Variante fuer Gruppenkategorie (Desktop + Mobile) */
+.task-detail-category-badge--group {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 7px 2px 6px;
+  border-radius: 6px;
+  letter-spacing: 0.01em;
+  gap: 4px !important;
+  min-height: 18px;
+  line-height: 1.25;
+}
+.task-detail-category-badge--group .task-detail-category-dot {
+  width: 6px !important;
+  height: 6px !important;
 }
 
 .task-detail-footer-info {
