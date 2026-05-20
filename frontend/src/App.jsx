@@ -58,6 +58,33 @@ function StandaloneRedirector() {
     }
   }, [location, navigate]);
 
+  // Globales Unauthorized-Handling: Wenn irgendein API-Aufruf 401 wirft
+  // (Token abgelaufen / serverseitig invalidiert), wurde der Token in
+  // api.js bereits aus localStorage entfernt. Hier rumeln wir den
+  // authStore-State zurueck und navigieren zum Login statt nur einen Toast
+  // anzuzeigen. So passiert das, was der User in der PWA tatsaechlich
+  // erwartet, anstatt in einer halb-eingeloggten Schwebezustand zu landen.
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const onUnauthorized = () => {
+      const store = useAuthStore.getState();
+      if (typeof store.logout === 'function') {
+        try { store.logout(); } catch { /* ignore */ }
+      } else {
+        try {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+        } catch { /* ignore */ }
+      }
+      const here = window.location.pathname || '';
+      if (!here.startsWith('/app/login') && !here.startsWith('/login')) {
+        navigate('/app/login', { replace: true });
+      }
+    };
+    window.addEventListener('beequ:unauthorized', onUnauthorized);
+    return () => window.removeEventListener('beequ:unauthorized', onUnauthorized);
+  }, [navigate]);
+
   // Electron-Tray-Navigation: Wenn der User im Tray-Menue z.B. "Kalender"
   // klickt, sendet der Hauptprozess uns die Zielroute.
   React.useEffect(() => {

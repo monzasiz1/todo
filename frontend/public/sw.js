@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = 'beequ-v13';
+﻿const CACHE_NAME = 'beequ-v14';
 const API_CACHE_NAME = 'beequ-api-v1';
 const STATIC_ASSETS = [
   '/',
@@ -24,6 +24,10 @@ const API_CACHE_BLOCKLIST = [
   '/billing',
   '/notifications/log',
   '/tasks/reminders/due',
+  // Notes immer frisch: Cache fuehrte in der PWA zu veralteten Listen
+  // und "Nicht autorisiert"-Eindruecken, wenn cached Antwort vom alten
+  // Token kam. Network-Only ist hier wichtiger als Offline-Verhalten.
+  '/notes',
 ];
 
 // Max. Alter eines API-Cache-Eintrags, ab dem er beim Offline-Fallback

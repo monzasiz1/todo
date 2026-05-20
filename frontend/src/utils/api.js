@@ -110,6 +110,25 @@ async function request(endpoint, options = {}) {
       const unauthorized = new Error(serverMsg || 'Nicht autorisiert');
       unauthorized.status = 401;
       if (payload) unauthorized.payload = payload;
+
+      // Bei 401 auf NICHT-Auth-Endpunkten ist die Session abgelaufen (Token
+      // ungueltig / abgelaufen / Server-Secret rotiert). In der PWA fuehrt das
+      // sonst nur zu einem generischen "Nicht autorisiert"-Toast, ohne dass
+      // der User zum Login zurueckkommt. Wir leeren hier die Session-Daten
+      // und feuern ein globales Event, auf das App.jsx/AuthStore reagieren
+      // und sauber zum Login leiten kann.
+      const isAuthEndpoint = endpoint.startsWith('/auth/');
+      if (!isAuthEndpoint && typeof window !== 'undefined' && localStorage.getItem('token')) {
+        try {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+        } catch { /* ignore */ }
+        try {
+          window.dispatchEvent(new CustomEvent('beequ:unauthorized', {
+            detail: { message: unauthorized.message, endpoint },
+          }));
+        } catch { /* ignore */ }
+      }
       throw unauthorized;
     }
 
