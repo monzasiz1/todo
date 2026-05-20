@@ -1132,8 +1132,8 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
                         )}
 
                         <div className="gchat-msg-col">
-                          {showSender && !isOwn && (
-                            <span className="gchat-sender-name">{msg.sender_name}</span>
+                          {showSender && (
+                            <span className="gchat-sender-name">{isOwn ? 'Du' : msg.sender_name}</span>
                           )}
 
                           {/* ── Poll card ── */}
