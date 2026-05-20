@@ -31700,6 +31700,7 @@ html[data-theme="dark"] .gs-discover-skeleton {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    overflow: auto;
   }
 
   .calendar-page-wrap .calendar-wrapper:not(.calendar-is-fullscreen) {
@@ -31707,10 +31708,10 @@ html[data-theme="dark"] .gs-discover-skeleton {
     flex-direction: column;
     height: calc(100dvh - 160px);
     min-height: 520px;
-    max-height: calc(100dvh - 80px);
+    max-height: none;
     width: 100%;
     min-width: 640px;
-    max-width: 100%;
+    max-width: none;
     overflow: hidden;
     resize: both;
     position: relative;

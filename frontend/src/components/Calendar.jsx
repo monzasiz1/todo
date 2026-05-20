@@ -785,12 +785,12 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     try {
       const savedH = localStorage.getItem(hKey);
       const ph = savedH ? parseInt(savedH, 10) : NaN;
-      if (Number.isFinite(ph) && ph >= 480 && ph <= 4000) {
+      if (Number.isFinite(ph) && ph >= 480 && ph <= 8000) {
         wrapper.style.height = `${ph}px`;
       }
       const savedW = localStorage.getItem(wKey);
       const pw = savedW ? parseInt(savedW, 10) : NaN;
-      if (Number.isFinite(pw) && pw >= 640 && pw <= 6000) {
+      if (Number.isFinite(pw) && pw >= 640 && pw <= 12000) {
         wrapper.style.width = `${pw}px`;
       }
     } catch {
@@ -809,10 +809,10 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       if (raf) cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
         try {
-          if (h >= 480 && h <= 4000) {
+          if (h >= 480 && h <= 8000) {
             localStorage.setItem(hKey, String(h));
           }
-          if (w >= 640 && w <= 6000) {
+          if (w >= 640 && w <= 12000) {
             localStorage.setItem(wKey, String(w));
           }
         } catch {
