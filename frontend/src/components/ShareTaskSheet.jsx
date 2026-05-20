@@ -167,11 +167,17 @@ export default function ShareTaskSheet({ task, open, onClose }) {
   const subject = useMemo(() => (task?.title ? `Aufgabe: ${task.title}` : 'Aufgabe geteilt'), [task]);
   const shareLink = useMemo(() => {
     if (!task?.id) return '';
+    // Origin bevorzugt aus dem aktuellen Browser-Kontext. Fallback aus ENV,
+    // damit kein hardcoded Domain in der Bundle steht (z. B. wenn die App
+    // unter einem Custom-Domain laeuft).
+    const envOrigin = (typeof import.meta !== 'undefined' && import.meta?.env?.VITE_APP_URL) || '';
     try {
-      const origin = typeof window !== 'undefined' && window.location?.origin ? window.location.origin : 'https://beequ.app';
+      const origin = typeof window !== 'undefined' && window.location?.origin
+        ? window.location.origin
+        : (envOrigin || 'https://beequ.app');
       return `${origin}/app/tasks/${task.id}`;
     } catch (_) {
-      return `https://beequ.app/app/tasks/${task.id}`;
+      return `${envOrigin || 'https://beequ.app'}/app/tasks/${task.id}`;
     }
   }, [task]);
 

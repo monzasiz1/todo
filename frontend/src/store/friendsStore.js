@@ -72,61 +72,54 @@ export const useFriendsStore = create((set, get) => ({
   acceptFriend: async (id) => {
     try {
       await api.acceptFriend(id);
+      // Server hat den Status veraendert -> Liste neu laden.
+      get().fetchFriends();
     } catch (err) {
-      // 404 = Anfrage existiert nicht mehr (z.B. bereits angenommen/abgelehnt
-      // oder durch lokalen Cache veralteter Eintrag). Eintrag optimistisch
-      // aus der Liste werfen, damit der Karte nicht endlos stehen bleibt.
       const msg = String(err?.message || '');
       if (msg.includes('404') || /nicht gefunden/i.test(msg)) {
+        // 404 = Anfrage existiert nicht mehr (bereits beantwortet oder
+        // veralteter Cache). Optimistisch entfernen — KEIN Refetch,
+        // sonst kann der Eintrag durch eine Race-Condition kurz wieder
+        // erscheinen.
         const pending = get().pending.filter((p) => p.id !== id);
-        const next = { ...get(), pending };
         set({ pending });
-        writeFriendsCache(next);
+        writeFriendsCache({ ...get(), pending });
       } else {
         set({ error: err.message });
       }
-    } finally {
-      // Immer mit Server synchronisieren – auch im Fehlerfall, damit der
-      // lokale Cache nicht weiter „pending" zeigt, wenn der Server bereits
-      // einen anderen Status kennt.
-      get().fetchFriends();
     }
   },
 
   declineFriend: async (id) => {
     try {
       await api.declineFriend(id);
+      get().fetchFriends();
     } catch (err) {
       const msg = String(err?.message || '');
       if (msg.includes('404') || /nicht gefunden/i.test(msg)) {
         const pending = get().pending.filter((p) => p.id !== id);
-        const next = { ...get(), pending };
         set({ pending });
-        writeFriendsCache(next);
+        writeFriendsCache({ ...get(), pending });
       } else {
         set({ error: err.message });
       }
-    } finally {
-      get().fetchFriends();
     }
   },
 
   removeFriend: async (id) => {
     try {
       await api.removeFriend(id);
+      get().fetchFriends();
     } catch (err) {
       const msg = String(err?.message || '');
       if (msg.includes('404') || /nicht gefunden/i.test(msg)) {
         const friends = get().friends.filter((f) => f.id !== id);
         const pending = get().pending.filter((p) => p.id !== id);
-        const next = { ...get(), friends, pending };
         set({ friends, pending });
-        writeFriendsCache(next);
+        writeFriendsCache({ ...get(), friends, pending });
       } else {
         set({ error: err.message });
       }
-    } finally {
-      get().fetchFriends();
     }
   },
 

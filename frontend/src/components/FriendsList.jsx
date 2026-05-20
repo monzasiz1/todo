@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { lockScroll, unlockScroll } from '../utils/scrollLock';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -29,6 +29,21 @@ export default function FriendsList({ onClose }) {
   useEffect(() => { fetchFriends(); }, []);
   useEffect(() => { lockScroll(); return () => unlockScroll(); }, []);
 
+  // Zentraler Toast-Timer mit Cleanup beim Unmount, damit setState nicht
+  // auf einer unmounted Komponente landet.
+  const toastTimerRef = useRef(null);
+  useEffect(() => () => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+  }, []);
+  const showMessage = useCallback((msg) => {
+    setMessage(msg);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => {
+      toastTimerRef.current = null;
+      setMessage(null);
+    }, 3000);
+  }, []);
+
   const handleInvite = async (e) => {
     e.preventDefault();
     if (!email.trim()) return;
@@ -36,12 +51,11 @@ export default function FriendsList({ onClose }) {
     const result = await inviteFriend(email.trim());
     setSending(false);
     if (result.success) {
-      setMessage({ type: 'success', text: 'Einladung gesendet!' });
+      showMessage({ type: 'success', text: 'Einladung gesendet!' });
       setEmail('');
     } else {
-      setMessage({ type: 'error', text: result.error || 'Fehler beim Einladen' });
+      showMessage({ type: 'error', text: result.error || 'Fehler beim Einladen' });
     }
-    setTimeout(() => setMessage(null), 3000);
   };
 
   const handleRedeemCode = async (e) => {
@@ -51,12 +65,11 @@ export default function FriendsList({ onClose }) {
     const result = await redeemInviteCode(inviteCode.trim());
     setSending(false);
     if (result.success) {
-      setMessage({ type: 'success', text: 'Einladung angenommen!' });
+      showMessage({ type: 'success', text: 'Einladung angenommen!' });
       setInviteCode('');
     } else {
-      setMessage({ type: 'error', text: result.error || 'Ungültiger Code' });
+      showMessage({ type: 'error', text: result.error || 'Ungültiger Code' });
     }
-    setTimeout(() => setMessage(null), 3000);
   };
 
   const incomingPending = pending.filter(p => p.direction === 'incoming');
