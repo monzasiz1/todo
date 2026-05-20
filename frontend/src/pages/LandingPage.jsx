@@ -877,6 +877,16 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
+      {/* divider: hero (dark) → strip (light) — sanfter Wave-Übergang */}
+      <div className="bq-divider bq-divider-to-strip" aria-hidden>
+        <svg viewBox="0 0 1440 110" preserveAspectRatio="none">
+          <path
+            d="M0,72 C220,12 480,98 720,52 C960,8 1200,92 1440,38 L1440,110 L0,110 Z"
+            fill="#fafafa"
+          />
+        </svg>
+      </div>
+
       {/* ══════════ STRIP ══════════ */}
       <div className="bq-strip">
         <div className="bq-strip-inner">

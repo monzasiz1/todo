@@ -29363,6 +29363,21 @@ body.is-electron.is-mac .desktop-titlebar-center {
 .bq-divider-to-ai svg path { fill: #F4F1EB; }
 .bq-divider-to-pricing svg path { fill: #FFFFFF; }
 
+/* Hero (dark #06060A) → Strip (light #fafafa) — standalone Divider mit
+   eigenem dunklen Hintergrund. Wave-SVG bildet weiche Kurve von Dark
+   nach Light, ohne in die Trinity-Segs hineinzuragen. */
+.bq-divider-to-strip {
+  height: 110px;
+  margin-top: 0;
+  margin-bottom: -1px;
+  background: #06060A;
+  overflow: hidden;
+}
+.bq-divider-to-strip svg path { fill: #fafafa; }
+@media (max-width: 820px) {
+  .bq-divider-to-strip { height: 72px; }
+}
+
 /* Divider-Deko: schwebende Sparkles bzw. Glow-Pille on top of curve */
 .bq-divider-sparkle,
 .bq-divider-glow {
