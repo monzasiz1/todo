@@ -1186,7 +1186,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       Object.entries(mobileWeekColRefs.current).forEach(([i, el]) => {
         if (!el) return;
         const r = el.getBoundingClientRect();
-        if (ev.clientX >= r.left && ev.clientX <= r.right) idx = parseInt(i);
+        if (ev.clientX >= r.left && ev.clientX <= r.right) idx = parseInt(i, 10);
       });
       return idx;
     };

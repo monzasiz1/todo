@@ -1582,7 +1582,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
                       onClick={() => setShowSubgroupList((s) => !s)}>
                       <div className="task-detail-shared-avatars">
                         {task.subgroup_members.slice(0, 5).map((u, i) => (
-                          <span key={i} className="task-detail-shared-avatar" style={{ zIndex: 10 - i, marginLeft: i > 0 ? -10 : 0 }} title={u.name}>
+                          <span key={u.user_id || u.id || u.name || i} className="task-detail-shared-avatar" style={{ zIndex: 10 - i, marginLeft: i > 0 ? -10 : 0 }} title={u.name}>
                             <AvatarBadge name={u.name} color={u.avatar_color || '#007AFF'} avatarUrl={u.avatar_url} size={26} />
                           </span>
                         ))}
@@ -1598,7 +1598,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
                         <motion.div className="task-detail-subgroup-list-wrap" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
                           <div className="task-detail-subgroup-list">
                             {task.subgroup_members.map((u, i) => (
-                              <div key={i} className="task-detail-subgroup-member-row">
+                              <div key={u.user_id || u.id || u.name || i} className="task-detail-subgroup-member-row">
                                 <AvatarBadge name={u.name} color={u.avatar_color || '#007AFF'} avatarUrl={u.avatar_url} size={26} />
                                 <span className="task-detail-subgroup-member-name">{u.name}</span>
                               </div>

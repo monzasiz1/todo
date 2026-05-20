@@ -437,7 +437,7 @@ export default function FriendsList({ onClose }) {
                 <div className="friend-profile-categories">
                   <div className="friend-profile-section-title">Top Kategorien</div>
                   {d.stats.category_breakdown.map((cat, i) => (
-                    <div key={i} className="friend-profile-cat-bar">
+                    <div key={cat.name || i} className="friend-profile-cat-bar">
                       <div className="friend-profile-cat-info">
                         <span className="friend-profile-cat-dot" style={{ background: cat.color }} />
                         <span className="friend-profile-cat-name">{cat.name}</span>

@@ -18,7 +18,7 @@ export default function InstallPrompt() {
 
     // Check if dismissed recently (24h cooldown)
     const dismissed = localStorage.getItem('pwa-dismissed');
-    if (dismissed && Date.now() - parseInt(dismissed) < 86400000) return;
+    if (dismissed && Date.now() - parseInt(dismissed, 10) < 86400000) return;
 
     // iOS detection
     const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;

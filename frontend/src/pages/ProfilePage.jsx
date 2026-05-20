@@ -137,12 +137,19 @@ export default function ProfilePage() {
 
   const fileInputRef = useRef(null);
 
-  const { refreshUser } = useAuthStore.getState();
+  // Zustand-Selektoren liefern stabile Funktions-Identitaeten.
+  const refreshUser = useAuthStore((s) => s.refreshUser);
   useEffect(() => {
     // Nach jedem Mount: User-Status frisch laden
+    let cancelled = false;
     (async () => {
-      await refreshUser();
-      await loadProfile();
+      try {
+        await refreshUser();
+        if (cancelled) return;
+        await loadProfile();
+      } catch (err) {
+        console.error('ProfilePage initial load failed:', err);
+      }
     })();
     api.getTeamsStatus().then((d) => setTeamsConnected(d.connected)).catch(() => setTeamsConnected(false));
 
@@ -156,7 +163,10 @@ export default function ProfilePage() {
       showToast('❌ Microsoft-Verbindung fehlgeschlagen: ' + params.get('teams_error'), 'error');
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, []);
+    return () => { cancelled = true; };
+    // loadProfile/showToast sind komponenten-lokal stabil; refreshUser kommt aus Zustand.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshUser]);
 
   // KRITISCH: Profile State mit AuthStore User synchronisieren
   useEffect(() => {
@@ -168,9 +178,21 @@ export default function ProfilePage() {
     }
   }, [user]);
 
+  // Tracked timers, damit setState nach unmount nicht warned.
+  const toastTimerRef = useRef(null);
+  const glowTimerRef = useRef(null);
+  useEffect(() => () => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    if (glowTimerRef.current) clearTimeout(glowTimerRef.current);
+  }, []);
+
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => {
+      toastTimerRef.current = null;
+      setToast(null);
+    }, 3000);
   };
 
   const start2FASetup = async () => {
@@ -455,9 +477,13 @@ export default function ProfilePage() {
       try {
         const audio = new Audio('/levelup.mp3');
         audio.volume = 0.5;
-        audio.play();
+        audio.play().catch(() => {});
       } catch {}
-      setTimeout(() => setGlowLevel(false), 1800);
+      if (glowTimerRef.current) clearTimeout(glowTimerRef.current);
+      glowTimerRef.current = setTimeout(() => {
+        glowTimerRef.current = null;
+        setGlowLevel(false);
+      }, 1800);
     }
     prevLevelRef.current = level;
   }, [level]);
@@ -576,7 +602,7 @@ export default function ProfilePage() {
               <div className="pv2-cats">
                 <div className="pv2-cats-label">Top Kategorien</div>
                 {stats.category_breakdown.map((cat, i) => (
-                  <div key={i} className="pv2-cat-row">
+                  <div key={cat.name || i} className="pv2-cat-row">
                     <div className="pv2-cat-info">
                       <span className="pv2-cat-dot" style={{ background: cat.color }} />
                       <span className="pv2-cat-name">{cat.name}</span>
@@ -1163,7 +1189,7 @@ export default function ProfilePage() {
             <div className="profile-categories-section">
               <h4 className="profile-subsection-title">Top Kategorien</h4>
               {stats.category_breakdown.map((cat, i) => (
-                <div key={i} className="profile-category-bar">
+                <div key={cat.name || i} className="profile-category-bar">
                   <div className="profile-category-info">
                     <span className="profile-category-dot" style={{ background: cat.color }} />
                     <span>{cat.name}</span>

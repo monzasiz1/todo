@@ -1293,7 +1293,7 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
                                         </div>
                                         <div className="gchat-rsvp-popup-list">
                                           {users.map((u, i) => (
-                                            <div key={i} className="gchat-rsvp-popup-row">
+                                            <div key={u.user_id || u.id || u.name || i} className="gchat-rsvp-popup-row">
                                               {u.avatar_url
                                                 ? <img className="gchat-rsvp-popup-avatar gchat-rsvp-popup-avatar--img" src={u.avatar_url} alt={u.name} />
                                                 : <span className="gchat-rsvp-popup-avatar" style={{ background: u.avatar_color || (isYes ? '#4C7BD9' : '#8e8e93') }}>{String(u.name || '?').charAt(0).toUpperCase()}</span>
