@@ -14,6 +14,7 @@ import { useTaskStore } from '../store/taskStore';
 import { useAuthStore } from '../store/authStore';
 import { useFriendsStore } from '../store/friendsStore';
 import { useNotesStore } from '../store/notesStore';
+import { toDisplayHtml, sanitizeHtml } from '../lib/noteFormat';
 import '../styles/note-editor-modal.css';
 
 const NOTE_COLORS = [
@@ -140,7 +141,9 @@ function FormatToolbar({ onAction }) {
 export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onComplete, readOnly: readOnlyProp = false }) {
   const initialParsed = useMemo(() => parseColor(note?.content || ''), [note?.id]);
   const [title, setTitle] = useState(note?.title || '');
-  const [content, setContent] = useState(initialParsed.rest);
+  // Content wird ab sofort als HTML gespeichert (WYSIWYG-Editor). Bestands-
+  // Notizen sind Markdown -> on-load nach HTML konvertieren.
+  const [content, setContent] = useState(() => toDisplayHtml(initialParsed.rest));
   const [color, setColor] = useState(initialParsed.color);
   const [importance, setImportance] = useState(note?.importance || 'medium');
   // Owner-/Readonly-Logik: Notes von anderen Usern (z. B. an gemeinsame
@@ -159,7 +162,6 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   // (z.B. wenn TaskDetailModal die Note als "foreign" markiert, der User
   // sie aber via note_shares mit edit bearbeiten darf).
   const readOnly = (readOnlyProp && !hasEditPermission) || (!isOwnerOfNote && !hasEditPermission);
-  const [showPreview, setShowPreview] = useState(false);
   const [saveState, setSaveState] = useState('idle'); // 'idle' | 'saving' | 'saved'
   const [taskPickerOpen, setTaskPickerOpen] = useState(false);
   const [taskQuery, setTaskQuery] = useState('');
@@ -328,7 +330,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
     window.dispatchEvent(new CustomEvent('beequ:open-task', { detail: { task: linkedTask } }));
     onClose?.();
   };
-  const textareaRef = useRef(null);
+  const editorRef = useRef(null);
   const saveTimerRef = useRef(null);
   const initialKeyRef = useRef(`${note?.id}|${note?.title || ''}|${note?.content || ''}|${note?.importance || ''}`);
 
@@ -350,13 +352,16 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onClose]);
 
-  // Auto-Resize Textarea
+  // Init / Re-Init des contentEditable Editors, wenn sich die Notiz
+  // wechselt. innerHTML wird nur EINMAL pro Notiz gesetzt, damit React
+  // nicht bei jedem Keystroke das DOM ueberschreibt (Caret-Reset).
   useEffect(() => {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    ta.style.height = 'auto';
-    ta.style.height = `${ta.scrollHeight}px`;
-  }, [content]);
+    const el = editorRef.current;
+    if (!el) return;
+    const html = toDisplayHtml(initialParsed.rest);
+    el.innerHTML = html;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [note?.id]);
 
   // Debounced Auto-Save
   const scheduleSave = useCallback((nextTitle, nextContent, nextColor, nextImportance) => {
@@ -436,131 +441,96 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
     onClose?.();
   };
 
-  // Tab innerhalb der Textarea soll einrücken statt Fokus zu wechseln.
-  const onTextareaKeyDown = (e) => {
+  // Tab im Editor: 2-Space-Einrueckung statt Fokuswechsel.
+  const onEditorKeyDown = (e) => {
     if (e.key === 'Tab') {
       e.preventDefault();
-      const ta = e.currentTarget;
-      const start = ta.selectionStart;
-      const end = ta.selectionEnd;
-      const next = `${content.slice(0, start)}  ${content.slice(end)}`;
-      setContent(next);
-      requestAnimationFrame(() => {
-        ta.selectionStart = ta.selectionEnd = start + 2;
-      });
-    }
-    // Auto-Continue von Listen / Checklisten
-    if (e.key === 'Enter' && !e.shiftKey) {
-      const ta = e.currentTarget;
-      const start = ta.selectionStart;
-      const before = content.slice(0, start);
-      const lineStart = before.lastIndexOf('\n') + 1;
-      const currentLine = before.slice(lineStart);
-      const cbMatch = currentLine.match(/^(\s*)-\s\[( |x|X)\]\s/);
-      const liMatch = currentLine.match(/^(\s*)([-*])\s/);
-      if (cbMatch || liMatch) {
-        if (currentLine.replace(/^(\s*)(-\s\[( |x|X)\]\s|[-*]\s)/, '').trim() === '') {
-          // Leere List-Item-Zeile -> Liste beenden
-          e.preventDefault();
-          const next = `${content.slice(0, lineStart)}${content.slice(start)}`;
-          setContent(next);
-          requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = lineStart; });
-          return;
-        }
-        e.preventDefault();
-        const prefix = cbMatch ? `${cbMatch[1]}- [ ] ` : `${liMatch[1]}${liMatch[2]} `;
-        const next = `${content.slice(0, start)}\n${prefix}${content.slice(start)}`;
-        setContent(next);
-        requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = start + 1 + prefix.length; });
-      }
+      document.execCommand('insertText', false, '  ');
     }
   };
 
+  // Editor-Input -> State syncen (debounced Save kickt automatisch).
+  const onEditorInput = useCallback(() => {
+    const el = editorRef.current;
+    if (!el) return;
+    // Keine Sanitization waehrend des Tippens (sonst Caret-Reset).
+    // Wird vor jedem Speichern in scheduleSave/flushSave gesaeubert.
+    setContent(el.innerHTML);
+  }, []);
+
+  // Klick auf Checkbox im Editor: checked-Attribut spiegeln und syncen.
+  const onEditorClick = useCallback((e) => {
+    const t = e.target;
+    if (t && t.tagName === 'INPUT' && t.getAttribute('type') === 'checkbox') {
+      if (readOnly) { e.preventDefault(); return; }
+      // Browser togglet die .checked Property; wir spiegeln aufs Attribut,
+      // damit innerHTML-Serialisierung den Zustand persistiert.
+      requestAnimationFrame(() => {
+        if (t.checked) t.setAttribute('checked', '');
+        else t.removeAttribute('checked');
+        onEditorInput();
+      });
+    }
+  }, [readOnly, onEditorInput]);
+
   // ──────────────────────────────────────────────────────────────────
-  // Formatierungs-Toolbar: fuegt Markdown-Tokens am Cursor / um die
-  // Selektion ein. Caret wird so platziert, dass die naechste Eingabe
-  // direkt innerhalb der Formatierung landet.
+  // Formatierungs-Toolbar (WYSIWYG)
+  // Inline-Formate via document.execCommand. Tabellen/Checklisten als
+  // HTML-Fragmente direkt eingefuegt. Kein Platzhaltertext, wenn der
+  // User bereits Text markiert hat (wrappt nur die Auswahl).
   // ──────────────────────────────────────────────────────────────────
   const applyFormat = useCallback((type) => {
     if (readOnly) return;
-    const ta = textareaRef.current;
-    if (!ta) return;
-    const start = ta.selectionStart ?? content.length;
-    const end = ta.selectionEnd ?? content.length;
-    const selected = content.slice(start, end);
-
-    // Inline-Wrapper (Bold/Italic/...): vor und nach Selektion einfuegen.
-    const inlineWrap = (left, right = left, placeholder = 'Text') => {
-      const inner = selected || placeholder;
-      const inserted = `${left}${inner}${right}`;
-      const next = content.slice(0, start) + inserted + content.slice(end);
-      setContent(next);
-      requestAnimationFrame(() => {
-        ta.focus();
-        if (selected) {
-          ta.selectionStart = start + left.length;
-          ta.selectionEnd = end + left.length;
-        } else {
-          const caret = start + left.length + inner.length;
-          ta.selectionStart = ta.selectionEnd = caret;
-          // Platzhalter selektieren, damit User direkt drueber tippt.
-          ta.selectionStart = start + left.length;
-          ta.selectionEnd = start + left.length + inner.length;
-        }
-      });
-    };
-
-    // Zeilen-Prefix (Heading/Liste/...): vor jede betroffene Zeile setzen.
-    const linePrefix = (prefix) => {
-      const lineStart = content.lastIndexOf('\n', start - 1) + 1;
-      let lineEnd = content.indexOf('\n', end);
-      if (lineEnd === -1) lineEnd = content.length;
-      const block = content.slice(lineStart, lineEnd);
-      const updated = block
-        .split('\n')
-        .map((line) => (line.startsWith(prefix) ? line : `${prefix}${line}`))
-        .join('\n');
-      const next = content.slice(0, lineStart) + updated + content.slice(lineEnd);
-      setContent(next);
-      requestAnimationFrame(() => {
-        ta.focus();
-        const delta = updated.length - block.length;
-        ta.selectionStart = start + prefix.length;
-        ta.selectionEnd = end + delta;
-      });
-    };
-
-    // Block-Insert (Tabelle): an Cursor einfuegen, ggf. Leerzeile davor.
-    const blockInsert = (block) => {
-      const before = content.slice(0, start);
-      const needsLead = before.length > 0 && !before.endsWith('\n');
-      const lead = needsLead ? '\n' : '';
-      const inserted = `${lead}${block}`;
-      const next = before + inserted + content.slice(end);
-      setContent(next);
-      requestAnimationFrame(() => {
-        ta.focus();
-        const caret = start + inserted.length;
-        ta.selectionStart = ta.selectionEnd = caret;
-      });
-    };
+    const el = editorRef.current;
+    if (!el) return;
+    el.focus();
+    const sel = window.getSelection();
+    const hasSelection = sel && sel.rangeCount > 0 && !sel.isCollapsed;
+    const exec = (cmd, val = null) => document.execCommand(cmd, false, val);
+    const escHtml = (s) => String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
     switch (type) {
-      case 'bold':       return inlineWrap('**', '**', 'fett');
-      case 'italic':     return inlineWrap('*', '*', 'kursiv');
-      case 'underline':  return inlineWrap('__', '__', 'unterstrichen');
-      case 'strike':     return inlineWrap('~~', '~~', 'durchgestrichen');
-      case 'code':       return inlineWrap('`', '`', 'code');
-      case 'h1':         return linePrefix('# ');
-      case 'h2':         return linePrefix('## ');
-      case 'list':       return linePrefix('- ');
-      case 'ordered':    return linePrefix('1. ');
-      case 'check':      return linePrefix('- [ ] ');
-      case 'quote':      return linePrefix('> ');
-      case 'table':      return blockInsert('| Spalte 1 | Spalte 2 | Spalte 3 |\n| --- | --- | --- |\n| Wert | Wert | Wert |\n| Wert | Wert | Wert |\n');
-      default:           return undefined;
+      case 'bold':       exec('bold'); break;
+      case 'italic':     exec('italic'); break;
+      case 'underline':  exec('underline'); break;
+      case 'strike':     exec('strikeThrough'); break;
+      case 'code': {
+        if (hasSelection) {
+          const txt = sel.toString();
+          exec('insertHTML', `<code>${escHtml(txt)}</code>`);
+        } else {
+          // Leere Code-Span, Cursor landet drin (ZWS damit Browser den Tag haelt).
+          exec('insertHTML', '<code>\u200b</code>');
+        }
+        break;
+      }
+      case 'h1':         exec('formatBlock', 'H1'); break;
+      case 'h2':         exec('formatBlock', 'H2'); break;
+      case 'quote':      exec('formatBlock', 'BLOCKQUOTE'); break;
+      case 'list':       exec('insertUnorderedList'); break;
+      case 'ordered':    exec('insertOrderedList'); break;
+      case 'check': {
+        const inner = hasSelection ? escHtml(sel.toString()) : 'Aufgabe';
+        exec('insertHTML', `<div class="ne-check"><input type="checkbox"> <span>${inner}</span></div>`);
+        break;
+      }
+      case 'table': {
+        // Echte HTML-Tabelle (3 Spalten, Header + 2 Datenzeilen) direkt eingefuegt.
+        const tableHtml = (
+          '<table class="ne-table"><tbody>' +
+          '<tr><th>Spalte 1</th><th>Spalte 2</th><th>Spalte 3</th></tr>' +
+          '<tr><td>Wert</td><td>Wert</td><td>Wert</td></tr>' +
+          '<tr><td>Wert</td><td>Wert</td><td>Wert</td></tr>' +
+          '</tbody></table><p><br></p>'
+        );
+        exec('insertHTML', tableHtml);
+        break;
+      }
+      default: break;
     }
-  }, [content, readOnly]);
+    onEditorInput();
+  }, [readOnly, onEditorInput]);
 
   return createPortal(
     <AnimatePresence>
@@ -612,15 +582,6 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
               <button
                 type="button"
                 className="nem-icon-btn"
-                onClick={() => setShowPreview((v) => !v)}
-                title={showPreview ? 'Editor' : 'Vorschau'}
-                aria-pressed={showPreview}
-              >
-                {showPreview ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-              </button>
-              <button
-                type="button"
-                className="nem-icon-btn"
                 onClick={handleClose}
                 title="Schliessen (Esc)"
               >
@@ -630,27 +591,20 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
           </div>
 
           <div className="nem-body">
-            {showPreview ? (
-              <div className="nem-preview">
-                {renderPreview(content) || <p className="nem-empty">Noch nichts geschrieben.</p>}
-              </div>
-            ) : (
-              <>
-                {!readOnly && (
-                  <FormatToolbar onAction={applyFormat} />
-                )}
-                <textarea
-                  ref={textareaRef}
-                  className="nem-textarea"
-                  value={content}
-                  placeholder={`Schreib los…\n\nTipps:\n  **fett**   *kursiv*   __unterstrichen__   ~~durchgestrichen~~   \`code\`\n  - Aufzaehlung\n  - [ ] Checkliste\n  # Ueberschrift`}
-                  onChange={(e) => setContent(e.target.value)}
-                  onKeyDown={onTextareaKeyDown}
-                  readOnly={readOnly}
-                  spellCheck
-                />
-              </>
+            {!readOnly && (
+              <FormatToolbar onAction={applyFormat} />
             )}
+            <div
+              ref={editorRef}
+              className="nem-editor"
+              contentEditable={!readOnly}
+              suppressContentEditableWarning
+              spellCheck
+              data-placeholder="Schreib los…"
+              onInput={onEditorInput}
+              onKeyDown={onEditorKeyDown}
+              onClick={onEditorClick}
+            />
           </div>
 
           {/* Verknuepfter Termin / Aufgabe (bidirektional). */}

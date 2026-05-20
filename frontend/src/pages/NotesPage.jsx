@@ -9,6 +9,7 @@ import NoteEditorModal from '../components/NoteEditorModal';
 import NoteShareRequestsBanner from '../components/NoteShareRequestsBanner';
 import { useNotesStore } from '../store/notesStore';
 import { useTaskStore } from '../store/taskStore';
+import { looksLikeHtml, toDisplayHtml, sanitizeHtml } from '../lib/noteFormat';
 import '../styles/notes.css';
 
 const NOTE_COLORS = [
@@ -140,6 +141,8 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
   }, [note.content]);
 
   const isLongText = useMemo(() => {
+    // HTML-Inhalte (WYSIWYG-Editor) NIE kuerzen — wuerde Tags zerschneiden.
+    if (looksLikeHtml(actualContent)) return false;
     // Mehr Platz fuer Listen / Checklisten: erst ab 220 Zeichen kuerzen.
     // Wenn der Inhalt Checklisten oder Mehrzeiler enthaelt, NIE kuerzen.
     if (/\n/.test(actualContent)) return false;
@@ -150,6 +153,12 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
     if (!isLongText || isExpanded) return actualContent;
     return actualContent.slice(0, 220) + '...';
   }, [actualContent, isLongText, isExpanded]);
+
+  // HTML-Content (vom WYSIWYG-Editor) erkennen und fuer sicheres
+  // Rendering vorbereiten. Bestands-Notizen in Markdown laufen weiter
+  // ueber renderNoteMarkdown.
+  const isHtmlContent = useMemo(() => looksLikeHtml(displayContent), [displayContent]);
+  const htmlForDisplay = useMemo(() => (isHtmlContent ? toDisplayHtml(displayContent) : ''), [isHtmlContent, displayContent]);
 
   // 0 = pin+curl-BR, 1 = sheen, 2 = tape, 3 = clip+curl-BL
   const variantIndex = useMemo(() => {
@@ -189,6 +198,26 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
     const contentWithColor = `[COLOR:${noteColor.name}] ${updated}`;
     try { await onUpdate(note.id, { content: contentWithColor }); }
     catch (err) { console.error('Checklist-Toggle failed:', err); }
+  }, [actualContent, noteColor.name, note.id, onUpdate]);
+
+  // HTML-Checkbox-Toggle (WYSIWYG-Notizen): findet die n-te Checkbox
+  // im sanitized HTML, togglet ihr checked-Attribut und speichert.
+  const handleToggleHtmlCheckbox = useCallback(async (cbIndex) => {
+    if (cbIndex < 0) return;
+    const html = looksLikeHtml(actualContent) ? actualContent : toDisplayHtml(actualContent);
+    const tmp = document.createElement('div');
+    tmp.innerHTML = sanitizeHtml(html);
+    const checkboxes = tmp.querySelectorAll('input[type="checkbox"]');
+    const target = checkboxes[cbIndex];
+    if (!target) return;
+    if (target.hasAttribute('checked')) target.removeAttribute('checked');
+    else target.setAttribute('checked', '');
+    const nextHtml = sanitizeHtml(tmp.innerHTML);
+    const contentWithColor = noteColor.name !== 'Gelb'
+      ? `[COLOR:${noteColor.name}] ${nextHtml}`
+      : nextHtml;
+    try { await onUpdate(note.id, { content: contentWithColor }); }
+    catch (err) { console.error('HTML-Checklist-Toggle failed:', err); }
   }, [actualContent, noteColor.name, note.id, onUpdate]);
 
   // rAF-throttled drag — never thrash layout, single style write per frame
@@ -531,7 +560,33 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
               onOpenEditor?.(note.id);
             }}
           >
-            {displayContent ? renderNoteMarkdown(displayContent, handleToggleLine) : null}
+            {displayContent ? (
+              isHtmlContent ? (
+                <div
+                  className="note-html"
+                  dangerouslySetInnerHTML={{ __html: htmlForDisplay }}
+                  onClickCapture={(e) => {
+                    const t = e.target;
+                    if (t && t.tagName === 'INPUT' && t.getAttribute && t.getAttribute('type') === 'checkbox') {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      // n-ten Checkbox-Index im Container ermitteln
+                      const container = e.currentTarget;
+                      const all = container.querySelectorAll('input[type="checkbox"]');
+                      const idx = Array.prototype.indexOf.call(all, t);
+                      if (idx >= 0) handleToggleHtmlCheckbox(idx);
+                    }
+                  }}
+                  onPointerDown={(e) => {
+                    const t = e.target;
+                    if (t && t.tagName === 'INPUT') e.stopPropagation();
+                    if (t && t.tagName === 'A') e.stopPropagation();
+                  }}
+                />
+              ) : (
+                renderNoteMarkdown(displayContent, handleToggleLine)
+              )
+            ) : null}
             {isLongText && !isExpanded && (
               <button 
                 className="expand-text-btn"

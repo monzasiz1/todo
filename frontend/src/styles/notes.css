@@ -2101,3 +2101,191 @@ html[data-theme="dark"] .note-share-requests-modal {
   background: linear-gradient(180deg, #1c1f27 0%, #161922 100%);
   border-color: rgba(255, 255, 255, 0.08);
 }
+
+/* ════════════════════════════════════════════════════════════════
+   WYSIWYG-Notes (HTML-Content vom contentEditable-Editor)
+   .note-html ist der Wrapper im StickyNote (NotesPage)
+════════════════════════════════════════════════════════════════ */
+.note-display .note-html {
+  font-size: 13px;
+  line-height: 1.4;
+  word-break: break-word;
+  color: inherit;
+}
+.note-display .note-html :first-child { margin-top: 0; }
+.note-display .note-html :last-child  { margin-bottom: 0; }
+.note-display .note-html p  { margin: 2px 0; }
+.note-display .note-html h1 { font-size: 16px; font-weight: 700; margin: 6px 0 2px; line-height: 1.25; }
+.note-display .note-html h2 { font-size: 14px; font-weight: 700; margin: 5px 0 2px; line-height: 1.25; }
+.note-display .note-html h3 { font-size: 13px; font-weight: 700; margin: 4px 0 2px; }
+.note-display .note-html strong { font-weight: 700; }
+.note-display .note-html em { font-style: italic; }
+.note-display .note-html u  { text-decoration: underline; }
+.note-display .note-html del, .note-display .note-html s, .note-display .note-html strike { text-decoration: line-through; opacity: 0.85; }
+.note-display .note-html a  { color: inherit; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+.note-display .note-html ul, .note-display .note-html ol { margin: 3px 0; padding-left: 18px; }
+.note-display .note-html li { margin: 1px 0; }
+.note-display .note-html code {
+  background: rgba(0,0,0,0.06);
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", monospace;
+  font-size: 0.92em;
+}
+.note-display .note-html blockquote {
+  margin: 4px 0;
+  padding: 2px 8px;
+  border-left: 2px solid currentColor;
+  opacity: 0.85;
+  border-radius: 0 4px 4px 0;
+}
+.note-display .note-html table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 4px 0;
+  font-size: 12px;
+  background: rgba(255,255,255,0.5);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.note-display .note-html table th,
+.note-display .note-html table td {
+  border: 1px solid rgba(0,0,0,0.12);
+  padding: 3px 6px;
+  text-align: left;
+  vertical-align: top;
+}
+.note-display .note-html table th {
+  background: rgba(0,0,0,0.06);
+  font-weight: 600;
+}
+.note-display .note-html .ne-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 2px 0;
+}
+.note-display .note-html .ne-check input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  margin: 2px 0 0;
+  border: 1.5px solid rgba(0,0,0,0.35);
+  border-radius: 3px;
+  background: rgba(255,255,255,0.7);
+  cursor: pointer;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.note-display .note-html .ne-check input[type="checkbox"]:checked {
+  background: #2D7DE1;
+  border-color: #2D7DE1;
+}
+.note-display .note-html .ne-check input[type="checkbox"]:checked::after {
+  content: '';
+  width: 4px; height: 7px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+.note-display .note-html .ne-check input[type="checkbox"]:checked + span {
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+.note-display .note-html .ne-check span { flex: 1 1 auto; }
+
+/* ════════════════════════════════════════════════════════════════
+   WYSIWYG-Notes (HTML-Content vom contentEditable-Editor)
+   .note-html ist der Wrapper im StickyNote (NotesPage)
+════════════════════════════════════════════════════════════════ */
+.note-display .note-html {
+  font-size: 13px;
+  line-height: 1.4;
+  word-break: break-word;
+  color: inherit;
+}
+.note-display .note-html :first-child { margin-top: 0; }
+.note-display .note-html :last-child  { margin-bottom: 0; }
+.note-display .note-html p  { margin: 2px 0; }
+.note-display .note-html h1 { font-size: 16px; font-weight: 700; margin: 6px 0 2px; line-height: 1.25; }
+.note-display .note-html h2 { font-size: 14px; font-weight: 700; margin: 5px 0 2px; line-height: 1.25; }
+.note-display .note-html h3 { font-size: 13px; font-weight: 700; margin: 4px 0 2px; }
+.note-display .note-html strong { font-weight: 700; }
+.note-display .note-html em { font-style: italic; }
+.note-display .note-html u  { text-decoration: underline; }
+.note-display .note-html del, .note-display .note-html s, .note-display .note-html strike { text-decoration: line-through; opacity: 0.85; }
+.note-display .note-html a  { color: inherit; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+.note-display .note-html ul, .note-display .note-html ol { margin: 3px 0; padding-left: 18px; }
+.note-display .note-html li { margin: 1px 0; }
+.note-display .note-html code {
+  background: rgba(0,0,0,0.06);
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", monospace;
+  font-size: 0.92em;
+}
+.note-display .note-html blockquote {
+  margin: 4px 0;
+  padding: 2px 8px;
+  border-left: 2px solid currentColor;
+  opacity: 0.85;
+  border-radius: 0 4px 4px 0;
+}
+.note-display .note-html table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 4px 0;
+  font-size: 12px;
+  background: rgba(255,255,255,0.5);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.note-display .note-html table th,
+.note-display .note-html table td {
+  border: 1px solid rgba(0,0,0,0.12);
+  padding: 3px 6px;
+  text-align: left;
+  vertical-align: top;
+}
+.note-display .note-html table th {
+  background: rgba(0,0,0,0.06);
+  font-weight: 600;
+}
+.note-display .note-html .ne-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 2px 0;
+}
+.note-display .note-html .ne-check input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  margin: 2px 0 0;
+  border: 1.5px solid rgba(0,0,0,0.35);
+  border-radius: 3px;
+  background: rgba(255,255,255,0.7);
+  cursor: pointer;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.note-display .note-html .ne-check input[type="checkbox"]:checked {
+  background: #2D7DE1;
+  border-color: #2D7DE1;
+}
+.note-display .note-html .ne-check input[type="checkbox"]:checked::after {
+  content: '';
+  width: 4px; height: 7px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+.note-display .note-html .ne-check input[type="checkbox"]:checked + span {
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+.note-display .note-html .ne-check span { flex: 1 1 auto; }
