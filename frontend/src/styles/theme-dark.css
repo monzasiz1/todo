@@ -722,16 +722,6 @@ html[data-theme="dark"] .profile-action-btn-cancel:hover {
   background: var(--surface-2);
 }
 
-/* ── Bento Landing Mock-Elemente (nicht-Showcase) ───────────────────── */
-html[data-theme="dark"] .bq-mock-sidebar,
-html[data-theme="dark"] .bq-mock-ai-card,
-html[data-theme="dark"] .bq-ai-demo-card,
-html[data-theme="dark"] .bq-outline {
-  background: var(--card-solid);
-  color: var(--text);
-  border-color: var(--border);
-}
-
 /* CTA-Section (eingeladene helle Buttons auf dunklem Hintergrund) bleibt
    absichtlich hell — .bq-cta-primary nicht überschreiben. */
 

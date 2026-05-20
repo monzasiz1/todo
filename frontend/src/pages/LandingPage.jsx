@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   AlertCircle, ArrowRight, ArrowUp, BarChart2, Bell, CalendarDays,
-  Check, CheckCircle2, ChevronDown, Clock, FileText, Flag,
+  Check, CheckCircle2, Clock, FileText, Flag,
   Key, Layers3, LayoutDashboard, ListTodo, Mail, Paperclip, Repeat,
-  Sparkles, Tag, Target, UsersRound, User, X, Zap, Download,
+  Sparkles, Tag, UsersRound, User, X, Zap, Download,
   Leaf, Timer, MessageSquare, FolderKanban, MoveDiagonal, Smartphone,
 } from 'lucide-react';
 import { PLANS } from '../lib/plans';
@@ -67,91 +67,30 @@ const bentoFeatures = [
   { icon: Smartphone,  color: '#34C759', bg: 'rgba(52,199,89,0.1)',   title: 'PWA — überall installierbar', desc: 'iOS, Android, macOS, Windows. Offline-fähig, Push, Home-Screen-Icon. Kein App-Store nötig.',                              plan: 'Alle Pläne' },
 ];
 
-const mockTasks = [
+// Echte App-Screenshots — kein Mock. Liegen unter frontend/public/bilder/.
+const heroShots = [
   {
-    title: 'Sprint-Review vorbereiten',
-    subtitle: 'Agenda und Status fuer das Team finalisieren',
-    cat: 'Produkt',
-    catColor: '#34C759',
-    prio: 'medium',
-    time: 'Heute, 10:00 Uhr - 11:30 Uhr',
-    day: '2',
-    month: 'MAI',
-    type: 'Termin',
-    done: false,
-    section: 'today',
-    tags: ['Abstimmung', 'Team'],
+    id: 'dashboard',
+    label: 'Dashboard',
+    src: '/bilder/dashboard.png',
+    hint: 'KI-Eingabe · Fokus heute · Tages-Sektionen',
+    icon: LayoutDashboard,
   },
   {
-    title: 'Rechnung freigeben',
-    subtitle: 'Budget fuer Kampagne bestaetigen',
-    cat: 'Finanzen',
-    catColor: '#FF3B30',
-    prio: 'urgent',
-    time: 'Heute, 17:00 Uhr',
-    day: '2',
-    month: 'MAI',
-    type: 'Aufgabe',
-    done: false,
-    section: 'today',
-    tags: [],
+    id: 'kalender',
+    label: 'Kalender',
+    src: '/bilder/kalender.png',
+    hint: 'Monatsansicht · Termine · Drag & Drop',
+    icon: CalendarDays,
   },
   {
-    title: 'Reisekosten einreichen',
-    subtitle: 'Belege fuer April hochladen',
-    cat: 'Finanzen',
-    catColor: '#FF3B30',
-    prio: 'urgent',
-    time: '4. Mai',
-    day: '4',
-    month: 'MAI',
-    type: 'Aufgabe',
-    done: false,
-    section: 'later',
-    tags: [],
-  },
-  {
-    title: 'Design-System Check-in',
-    subtitle: 'Komponentenstand mit dem UI-Team abstimmen',
-    cat: 'Design',
-    catColor: '#00C7BE',
-    prio: 'low',
-    time: '6. Mai, 15:00 Uhr - 16:00 Uhr',
-    day: '6',
-    month: 'MAI',
-    type: 'Termin',
-    done: false,
-    section: 'later',
-    tags: ['Woechentlich'],
-  },
-  {
-    title: 'Kundentermin abstimmen',
-    subtitle: 'Naechsten Projektmeilenstein vorbereiten',
-    cat: 'Arbeit',
-    catColor: '#5856D6',
-    prio: 'medium',
-    time: '7. Mai',
-    day: '7',
-    month: 'MAI',
-    type: 'Termin',
-    done: false,
-    section: 'later',
-    tags: ['Follow-up'],
+    id: 'gruppen',
+    label: 'Gruppen',
+    src: '/bilder/gruppen.png',
+    hint: 'Collaboration Space · Mitglieder · Rollen',
+    icon: UsersRound,
   },
 ];
-
-const mockSidebarCategories = [
-  { name: 'Alle', color: '#007AFF', n: 28 },
-  { name: 'Arbeit', color: '#007AFF', n: 6 },
-  { name: 'Produkt', color: '#34C759', n: 5 },
-  { name: 'Design', color: '#00C7BE', n: 4 },
-  { name: 'Finanzen', color: '#FF3B30', n: 2 },
-  { name: 'Recherche', color: '#5856D6', n: 3 },
-  { name: 'Privat', color: '#AF52DE', n: 4 },
-  { name: 'Gesundheit', color: '#FF9500', n: 4 },
-];
-
-const prioBar = { urgent: '#FF3B30', high: '#FF9500', medium: '#007AFF', low: '#34C759' };
 
 const aiExamples = [
   { input: '"Sprint Review Freitag 10 Uhr, hohe Prioritaet"', title: 'Sprint Review', date: 'Freitag', time: '10:00', cat: 'Produkt', prio: 'Hoch' },
@@ -464,13 +403,8 @@ export default function LandingPage() {
   const [aiIdx, setAiIdx] = useState(0);
   const [pricingInterval, setPricingInterval] = useState('month'); // 'month' | 'year'
   const [mobileCtaVisible, setMobileCtaVisible] = useState(false);
-  const [mockFilter, setMockFilter] = useState('all');
-  const [mockCollapsed, setMockCollapsed] = useState({ today: false, later: false });
-  const [mockSearchOpen, setMockSearchOpen] = useState(false);
-  const [mockQuery, setMockQuery] = useState('');
-  const [mockTaskState, setMockTaskState] = useState(() =>
-    mockTasks.map((task, idx) => ({ ...task, id: `${idx}-${task.title}` }))
-  );
+  const [heroShotIdx, setHeroShotIdx] = useState(0);
+  const [heroShotPaused, setHeroShotPaused] = useState(false);
   const { login, register, verifyCode, loading } = useAuthStore();
   const navigate = useNavigate();
 
@@ -551,38 +485,14 @@ export default function LandingPage() {
 
   const ai = aiExamples[aiIdx];
 
-  const visibleMockTasks = useMemo(() => {
-    const q = mockQuery.trim().toLowerCase();
-    return mockTaskState.filter((task) => {
-      const byFilter =
-        mockFilter === 'all' ? true :
-        task.prio === mockFilter;
-
-      if (!byFilter) return false;
-      if (!q) return true;
-
-      return (
-        String(task.title || '').toLowerCase().includes(q) ||
-        String(task.cat || '').toLowerCase().includes(q)
-      );
-    });
-  }, [mockFilter, mockQuery, mockTaskState]);
-
-  const toggleMockTask = (taskId) => {
-    setMockTaskState((prev) => prev.map((task) => (
-      task.id === taskId ? { ...task, done: !task.done } : task
-    )));
-  };
-
-  const visibleTodayTasks = useMemo(
-    () => visibleMockTasks.filter((task) => task.section === 'today'),
-    [visibleMockTasks]
-  );
-
-  const visibleLaterTasks = useMemo(
-    () => visibleMockTasks.filter((task) => task.section === 'later'),
-    [visibleMockTasks]
-  );
+  // Auto-Rotation der Hero-Screenshots; pausiert beim Hover über dem Frame.
+  useEffect(() => {
+    if (heroShotPaused) return undefined;
+    const t = setInterval(() => {
+      setHeroShotIdx((i) => (i + 1) % heroShots.length);
+    }, 5500);
+    return () => clearInterval(t);
+  }, [heroShotPaused]);
 
   // Landing ist eine Marketing-Surface und folgt NICHT der App-Theme-Wahl.
   // Wir erzwingen light, solange diese Seite gemountet ist — ohne localStorage
@@ -790,301 +700,81 @@ export default function LandingPage() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.7, delay: 0.35, ease }}
         >
-          <div className="bq-mock-shell">
+          <div
+            className="bq-shot-frame"
+            onMouseEnter={() => setHeroShotPaused(true)}
+            onMouseLeave={() => setHeroShotPaused(false)}
+          >
+            <div className="bq-shot-glow-a" aria-hidden />
+            <div className="bq-shot-glow-b" aria-hidden />
+
             {/* chrome */}
-            <div className="bq-mock-chrome">
+            <div className="bq-shot-chrome">
               <span className="bq-dot" style={{ background: '#FF5F57' }} />
               <span className="bq-dot" style={{ background: '#FFBD2E' }} />
               <span className="bq-dot" style={{ background: '#28CA41' }} />
-              <span className="bq-mock-url">beequ.app — Dashboard</span>
+              <span className="bq-shot-url">
+                <span className="bq-shot-url-host">beequ.app</span>
+                <span className="bq-shot-url-sep">·</span>
+                <span className="bq-shot-url-path">{heroShots[heroShotIdx].label}</span>
+              </span>
+              <span className="bq-shot-live">
+                <span className="bq-shot-live-dot" />
+                Live Vorschau
+              </span>
             </div>
 
-            {/* body */}
-            <div className="bq-mock-body">
-
-              {/* sidebar */}
-              <aside className="bq-mock-sidebar">
-                <div className="bq-mock-logo">
-                  <img src="/icons/icon.png" alt="" className="bq-mock-logo-img" />
-                  <span>BeeQu</span>
-                </div>
-                <nav className="bq-mock-nav">
-                  {[
-                    { icon: LayoutDashboard, label: 'Dashboard', active: true  },
-                    { icon: CalendarDays,    label: 'Kalender',  active: false },
-                    { icon: Sparkles,        label: 'Notizen',   active: false },
-                    { icon: UsersRound,      label: 'Gruppen',   active: false },
-                    { icon: UsersRound,      label: 'Freunde',   active: false },
-                    { icon: Bell,            label: 'Benachrichtigungen', active: false },
-                  ].map(({ icon: Icon, label, active }) => (
-                    <div key={label} className={`bq-mock-nav-item${active ? ' active' : ''}`}>
-                      <Icon size={15} />
-                      <span>{label}</span>
-                    </div>
-                  ))}
-                </nav>
-                <div className="bq-mock-ai-hint">
-                  <div className="bq-mock-ai-hint-head">
-                    <Sparkles size={12} />
-                    <span>KI-Eingabe</span>
-                  </div>
-                  <p>Schreib z.B. "Freitag Reinigung 18 Uhr" und die KI erkennt alles.</p>
-                </div>
-                <div className="bq-mock-cats">
-                  <div className="bq-mock-cats-label-row">
-                    <span className="bq-mock-cats-label">KATEGORIEN</span>
-                    <span className="bq-mock-cats-manage">Verwalten</span>
-                  </div>
-                  {mockSidebarCategories.map(({ name, color, n }) => (
-                    <div key={name} className="bq-mock-cat">
-                      <span className="bq-mock-cat-dot" style={{ background: color }} />
-                      <span className="bq-mock-cat-name">{name}</span>
-                      <span className="bq-mock-cat-n">{n}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="bq-mock-user-card">
-                  <div className="bq-mock-user-avatar">D</div>
-                  <div className="bq-mock-user-meta">
-                    <strong>Demo Workspace</strong>
-                    <span>hello@beequ.app</span>
-                  </div>
-                </div>
-              </aside>
-
-              {/* main */}
-              <div className="bq-mock-main">
-                <div className="bq-mock-greeting">
-                  <h3>Guten Abend 👋</h3>
-                  <p>Was steht heute an?</p>
-                </div>
-
-                {/* AI Input — rotating gradient */}
-                <div className="bq-mock-ai-glow">
-                  <div className="bq-mock-ai-card">
-                    <div className="bq-mock-ai-row">
-                      <Sparkles size={16} className="bq-mock-ai-spark" />
-                      <span className="bq-mock-ai-placeholder">Sag der KI was du tun möchtest…</span>
-                      <div className="bq-mock-ai-submit"><ArrowUp size={13} /></div>
-                    </div>
-                    <div className="bq-mock-ai-tags">
-                      <span className="bq-mock-tag bq-tag-date">Freitag</span>
-                      <span className="bq-mock-tag bq-tag-time">10:00</span>
-                      <span className="bq-mock-tag bq-tag-prio">Hoch</span>
-                      <span className="bq-mock-tag bq-tag-cat">Produkt</span>
-                    </div>
-                    <div className="bq-mock-ai-helper">
-                      "Freitag Reinigung 18 Uhr" · "Loesche Zahnarzt" · "Wo hab ich noch Kapazitaeten?" · "Wann kann ich zum Sport?"
-                    </div>
-                  </div>
-                  <button className="bq-mock-manual">
-                    <span>+ Manuell erstellen</span>
-                    <span className="bq-mock-manual-sub">Aufgabe ohne KI anlegen</span>
-                  </button>
-                </div>
-
-                {/* Insights */}
-                <div className="bq-mock-insights">
-                  <div className="bq-mock-ins-head">
-                    <div className="bq-mock-ins-title"><Target size={12} />Fokus heute</div>
-                    <div className="bq-mock-ins-metas">
-                      <span>Heute: 4</span><span>Überfällig: 1</span><span>Woche: 82%</span>
-                    </div>
-                  </div>
-                  <div className="bq-mock-ins-list">
-                    <div className="bq-mock-ins-item">
-                      <div className="bq-mock-ins-icon alert">!</div>
-                      <span>3 Aufgaben fällig bis 18:00 Uhr</span>
-                    </div>
-                    <div className="bq-mock-ins-item">
-                      <div className="bq-mock-ins-icon calm">✓</div>
-                      <span>5,5h freie Zeit für fokussierte Aufgaben</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Filter bar */}
-                <div className="bq-mock-filter">
-                  <button
-                    type="button"
-                    className={`bq-mock-filter-btn${mockFilter === 'all' ? ' active' : ''}`}
-                    onClick={() => setMockFilter('all')}
-                  >
-                    Alle
-                  </button>
-                  <button
-                    type="button"
-                    className={`bq-mock-filter-btn${mockFilter === 'urgent' ? ' active' : ''}`}
-                    onClick={() => setMockFilter('urgent')}
-                  >
-                    <span className="bq-fd" style={{ background: '#FF3B30' }} />Dringend
-                  </button>
-                  <button
-                    type="button"
-                    className={`bq-mock-filter-btn${mockFilter === 'high' ? ' active' : ''}`}
-                    onClick={() => setMockFilter('high')}
-                  >
-                    <span className="bq-fd" style={{ background: '#FF9500' }} />Hoch
-                  </button>
-                  <button
-                    type="button"
-                    className={`bq-mock-filter-btn${mockFilter === 'medium' ? ' active' : ''}`}
-                    onClick={() => setMockFilter('medium')}
-                  >
-                    <span className="bq-fd" style={{ background: '#007AFF' }} />Mittel
-                  </button>
-                  <button
-                    type="button"
-                    className={`bq-mock-filter-btn${mockFilter === 'low' ? ' active' : ''}`}
-                    onClick={() => setMockFilter('low')}
-                  >
-                    <span className="bq-fd" style={{ background: '#34C759' }} />Niedrig
-                  </button>
-                  <span className="bq-mock-filter-sep" />
-                  <button
-                    type="button"
-                    className={`bq-mock-filter-btn bq-mock-search${mockSearchOpen ? ' active' : ''}`}
-                    onClick={() => setMockSearchOpen((prev) => !prev)}
-                  >
-                    🔍 Suchen
-                  </button>
-                  {mockSearchOpen && (
-                    <input
-                      type="text"
-                      value={mockQuery}
-                      onChange={(e) => setMockQuery(e.target.value)}
-                      className="bq-mock-search-input"
-                      placeholder="Titel oder Kategorie"
-                      aria-label="Mock Suche"
-                    />
-                  )}
-                </div>
-
-                {/* Task section */}
-                <div className="bq-mock-section">
-                  <button
-                    type="button"
-                    className="bq-mock-sec-head"
-                    onClick={() => setMockCollapsed((prev) => ({ ...prev, today: !prev.today }))}
-                  >
-                    <div className="bq-mock-sec-left">
-                      <div className="bq-mock-sec-icon warning">!</div>
-                      <span>Heute</span>
-                    </div>
-                    <span className="bq-mock-count">{visibleTodayTasks.length}</span>
-                    <ChevronDown size={14} className={`bq-mock-chevron${mockCollapsed.today ? ' collapsed' : ''}`} />
-                  </button>
-
-                  {!mockCollapsed.today && (
-                    <div className="bq-mock-task-list">
-                      {visibleTodayTasks.length === 0 && (
-                        <div className="bq-mock-empty">Keine passenden Aufgaben</div>
-                      )}
-                      {visibleTodayTasks.map(({ id, title, subtitle, cat, catColor, prio, time, day, month, type, tags, done }) => {
-                        const isEvent = type === 'Termin';
-                        return (
-                        <div key={id} className={`bq-mock-task ${isEvent ? 'event' : 'todo'}${done ? ' done' : ''}`}>
-                          <div className="bq-mock-task-bar" style={{ background: prioBar[prio] }} />
-                          <div className={`bq-mock-date-chip ${isEvent ? 'event' : 'todo'}`}>
-                            {isEvent ? (
-                              <span className="bq-mock-date-icon"><CalendarDays size={11} /></span>
-                            ) : (
-                              <button
-                                type="button"
-                                className={`bq-mock-date-toggle${done ? ' checked' : ''}`}
-                                onClick={() => toggleMockTask(id)}
-                                aria-label={`Aufgabe ${title} umschalten`}
-                              >
-                                {done ? <Check size={12} strokeWidth={3} /> : <div className="bq-mock-date-circle" />}
-                              </button>
-                            )}
-                            <span>{month}</span>
-                            <strong>{day}</strong>
-                          </div>
-                          <div className="bq-mock-task-body">
-                            <div className="bq-mock-task-title-row">
-                              <span className={`bq-mock-type-pill ${type === 'Termin' ? 'event' : 'task'}`}>{type}</span>
-                              <strong className={done ? 'struck' : ''}>{title}</strong>
-                            </div>
-                            <div className="bq-mock-task-subtitle">{subtitle}</div>
-                            <div className="bq-mock-task-meta">
-                              <span className="bq-mock-cat-badge" style={{ background: `${catColor}22`, color: catColor }}>{cat}</span>
-                              {tags?.map((tag) => (
-                                <span key={tag} className="bq-mock-repeat-badge"><Repeat size={9} />{tag}</span>
-                              ))}
-                              <span className="bq-mock-meta-item"><Clock size={10} />{time}</span>
-                            </div>
-                          </div>
-                        </div>
-                      )})}
-                    </div>
-                  )}
-                </div>
-
-                <div className="bq-mock-section">
-                  <button
-                    type="button"
-                    className="bq-mock-sec-head"
-                    onClick={() => setMockCollapsed((prev) => ({ ...prev, later: !prev.later }))}
-                  >
-                    <div className="bq-mock-sec-left">
-                      <div className="bq-mock-sec-icon bq-mock-sec-icon-neutral">•</div>
-                      <span>Spaeter</span>
-                    </div>
-                    <span className="bq-mock-count">{visibleLaterTasks.length}</span>
-                    <ChevronDown size={14} className={`bq-mock-chevron${mockCollapsed.later ? ' collapsed' : ''}`} />
-                  </button>
-
-                  {!mockCollapsed.later && (
-                    <div className="bq-mock-task-list">
-                      {visibleLaterTasks.length === 0 && (
-                        <div className="bq-mock-empty">Keine passenden Aufgaben</div>
-                      )}
-                      {visibleLaterTasks.map(({ id, title, subtitle, cat, catColor, prio, time, day, month, type, tags, done }) => {
-                        const isEvent = type === 'Termin';
-                        return (
-                        <div key={id} className={`bq-mock-task ${isEvent ? 'event' : 'todo'}${done ? ' done' : ''}`}>
-                          <div className="bq-mock-task-bar" style={{ background: prioBar[prio] }} />
-                          <div className={`bq-mock-date-chip ${isEvent ? 'event' : 'todo'}`}>
-                            {isEvent ? (
-                              <span className="bq-mock-date-icon"><CalendarDays size={11} /></span>
-                            ) : (
-                              <button
-                                type="button"
-                                className={`bq-mock-date-toggle${done ? ' checked' : ''}`}
-                                onClick={() => toggleMockTask(id)}
-                                aria-label={`Aufgabe ${title} umschalten`}
-                              >
-                                {done ? <Check size={12} strokeWidth={3} /> : <div className="bq-mock-date-circle" />}
-                              </button>
-                            )}
-                            <span>{month}</span>
-                            <strong>{day}</strong>
-                          </div>
-                          <div className="bq-mock-task-body">
-                            <div className="bq-mock-task-title-row">
-                              <span className={`bq-mock-type-pill ${type === 'Termin' ? 'event' : 'task'}`}>{type}</span>
-                              <strong className={done ? 'struck' : ''}>{title}</strong>
-                            </div>
-                            <div className="bq-mock-task-subtitle">{subtitle}</div>
-                            <div className="bq-mock-task-meta">
-                              <span className="bq-mock-cat-badge" style={{ background: `${catColor}22`, color: catColor }}>{cat}</span>
-                              {tags?.map((tag) => (
-                                <span key={tag} className="bq-mock-repeat-badge"><Repeat size={9} />{tag}</span>
-                              ))}
-                              <span className="bq-mock-meta-item"><Clock size={10} />{time}</span>
-                            </div>
-                          </div>
-                        </div>
-                      )})}
-                    </div>
-                  )}
-                </div>
+            {/* stage */}
+            <div className="bq-shot-stage">
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={heroShots[heroShotIdx].id}
+                  src={heroShots[heroShotIdx].src}
+                  alt={`BeeQu — ${heroShots[heroShotIdx].label}`}
+                  className="bq-shot-img"
+                  initial={{ opacity: 0, scale: 1.025 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.985 }}
+                  transition={{ duration: 0.55, ease }}
+                  loading="lazy"
+                  draggable={false}
+                />
+              </AnimatePresence>
+              <div className="bq-shot-shine" aria-hidden />
+              {/* Auto-Rotations-Progress, setzt sich pro Slide zurück */}
+              <div className="bq-shot-progress" aria-hidden>
+                <div
+                  key={heroShots[heroShotIdx].id + (heroShotPaused ? '-p' : '')}
+                  className={`bq-shot-progress-bar${heroShotPaused ? ' is-paused' : ''}`}
+                />
               </div>
+            </div>
 
-            </div>{/* /body */}
-          </div>{/* /mock-shell */}
+            {/* tab strip */}
+            <div className="bq-shot-tabs" role="tablist" aria-label="App-Vorschau wechseln">
+              {heroShots.map((shot, i) => {
+                const Icon = shot.icon;
+                const active = i === heroShotIdx;
+                return (
+                  <button
+                    key={shot.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    className={`bq-shot-tab${active ? ' active' : ''}`}
+                    onClick={() => setHeroShotIdx(i)}
+                  >
+                    <span className="bq-shot-tab-icon"><Icon size={14} /></span>
+                    <span className="bq-shot-tab-text">
+                      <strong>{shot.label}</strong>
+                      <small>{shot.hint}</small>
+                    </span>
+                    <span className="bq-shot-tab-num">0{i + 1}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </motion.div>
       </section>
 
