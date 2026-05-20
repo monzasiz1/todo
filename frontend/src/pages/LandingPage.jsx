@@ -584,6 +584,33 @@ export default function LandingPage() {
     [visibleMockTasks]
   );
 
+  // Landing ist eine Marketing-Surface und folgt NICHT der App-Theme-Wahl.
+  // Wir erzwingen light, solange diese Seite gemountet ist — ohne localStorage
+  // zu verändern, damit die Nutzer-Präferenz nach dem Login erhalten bleibt.
+  useEffect(() => {
+    const root = document.documentElement;
+    const prevTheme = root.getAttribute('data-theme');
+    const prevColorScheme = root.style.colorScheme;
+    const force = () => {
+      if (root.getAttribute('data-theme') !== 'light') {
+        root.setAttribute('data-theme', 'light');
+      }
+      if (root.style.colorScheme !== 'light') {
+        root.style.colorScheme = 'light';
+      }
+    };
+    force();
+    // Falls theme.js (system-Listener) data-theme erneut setzt: zurückbiegen.
+    const obs = new MutationObserver(force);
+    obs.observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => {
+      obs.disconnect();
+      if (prevTheme === null) root.removeAttribute('data-theme');
+      else root.setAttribute('data-theme', prevTheme);
+      root.style.colorScheme = prevColorScheme;
+    };
+  }, []);
+
   useEffect(() => {
     const hero = heroRef.current;
     if (!hero) return undefined;
