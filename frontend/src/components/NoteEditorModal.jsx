@@ -540,8 +540,17 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [title, content, color, importance]);
 
-  // Beim Unmount sicher speichern
-  useEffect(() => () => { flushSave(); }, [flushSave]);
+  // Beim Unmount sicher speichern. WICHTIG: useEffect-Deps duerfen NICHT
+  // [flushSave] sein, weil flushSave per useCallback bei jedem Keystroke
+  // (title/content/color/importance Aenderung) eine neue Referenz bekommt.
+  // Sonst feuert die Cleanup-Funktion auf JEDEM Re-Render einen
+  // sofortigen PATCH und der Editor laeuft in eine endlose Save-Loop
+  // ("Text wird neu geschrieben, halb weg, neu, hoert nicht auf").
+  // Wir spiegeln den aktuellen flushSave in eine Ref und rufen ihn nur
+  // beim echten Unmount.
+  const flushSaveRef = useRef(flushSave);
+  useEffect(() => { flushSaveRef.current = flushSave; }, [flushSave]);
+  useEffect(() => () => { flushSaveRef.current?.(); }, []);
 
   // Body-Klasse setzen: BottomNav ausblenden + Body-Scroll sperren ohne
   // Layout-Shift (Vermeidet, dass sich der notes-board-header verschiebt).
