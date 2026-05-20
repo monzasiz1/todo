@@ -9669,14 +9669,46 @@ body.cal-is-dragging * {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px;
-  border-radius: 12px;
-  background: var(--bg);
-  transition: all 0.2s;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--card-solid, var(--card, #fff));
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
 
 .friend-card:hover {
-  background: rgba(0, 0, 0, 0.04);
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+  background: color-mix(in srgb, var(--primary) 4%, var(--card-solid, var(--card, #fff)));
+}
+
+.friend-card.pending {
+  border-color: color-mix(in srgb, var(--primary) 25%, var(--border));
+}
+
+.friend-card.outgoing {
+  border-style: dashed;
+  background: color-mix(in srgb, var(--text) 3%, var(--card-solid, var(--card, #fff)));
+}
+
+[data-theme="dark"] .friend-card,
+.dark .friend-card {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+}
+
+[data-theme="dark"] .friend-card:hover,
+.dark .friend-card:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+[data-theme="dark"] .friend-card.outgoing,
+.dark .friend-card.outgoing {
+  background: rgba(255, 255, 255, 0.025);
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .friend-avatar {
@@ -9712,6 +9744,72 @@ body.cal-is-dragging * {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Status-Pill fuer ausgehende Anfragen ("Ausstehend"). Bekommt einen
+   warmen Akzent damit die Aussage "wartet noch" visuell klar wird. */
+.friend-status-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: var(--warning, #b07a00);
+  background: color-mix(in srgb, var(--warning, #FF9500) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning, #FF9500) 30%, transparent);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .friend-status-label,
+.dark .friend-status-label {
+  color: #ffb84d;
+  background: rgba(255, 149, 0, 0.16);
+  border-color: rgba(255, 149, 0, 0.32);
+}
+
+/* Action-Buttons in der Card sollen optisch ruhig sein. */
+.friend-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.friend-action-btn:hover {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 25%, transparent);
+}
+
+.friend-action-btn.success:hover {
+  background: color-mix(in srgb, var(--success, #34C759) 14%, transparent);
+  color: var(--success, #34C759);
+  border-color: color-mix(in srgb, var(--success, #34C759) 30%, transparent);
+}
+
+.friend-action-btn.danger:hover {
+  background: color-mix(in srgb, var(--danger, #FF3B30) 14%, transparent);
+  color: var(--danger, #FF3B30);
+  border-color: color-mix(in srgb, var(--danger, #FF3B30) 30%, transparent);
+}
+
+.friend-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 /* Desktop scheduler look (reference-style) */
