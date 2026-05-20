@@ -37,6 +37,14 @@ function saveState(state) {
     if (!state) localStorage.removeItem(LS_KEY);
     else localStorage.setItem(LS_KEY, JSON.stringify(state));
   } catch { /* ignore */ }
+  // Same-tab listeners (z. B. FocusTimerPin) brauchen ein Signal, weil das
+  // native `storage`-Event nur in anderen Tabs feuert. Dadurch koennen
+  // Subscriber auf Polling verzichten.
+  try {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('beequ:focus-timer-changed'));
+    }
+  } catch { /* ignore */ }
 }
 
 function formatMMSS(seconds) {

@@ -195,17 +195,28 @@ const useNotificationStore = create((set, get) => ({
     }
   },
 
-  // Fetch notification log
-  fetchLog: async () => {
-    set({ loading: true });
+  // Fetch notification log.
+  // `silent=true` unterdrueckt das `loading`-Flag — wichtig fuer Hintergrund-
+  // Polling, damit der Bell-Button nicht alle 8-15s einen Loading-Render
+  // ausloest und damit das offene Panel nicht im Skeleton flackert.
+  fetchLog: async ({ silent = false } = {}) => {
+    if (!silent) set({ loading: true });
     try {
       const data = await api.getNotificationLog({ limit: 50 });
       const newNotifications = data?.notifications || [];
-      set({ notifications: newNotifications, loading: false });
-      writeNotifCache({ ...notifCached, notifications: newNotifications });
+      // Nur setzen, wenn sich etwas geaendert hat — vermeidet unnoetige Renders.
+      const prev = get().notifications || [];
+      const changed = prev.length !== newNotifications.length
+        || prev.some((n, i) => n?.id !== newNotifications[i]?.id || n?.seen !== newNotifications[i]?.seen);
+      if (changed) {
+        set({ notifications: newNotifications, loading: false });
+        writeNotifCache({ ...notifCached, notifications: newNotifications });
+      } else if (!silent) {
+        set({ loading: false });
+      }
     } catch (err) {
       console.warn('[NotificationStore] fetchLog failed:', err.message);
-      set({ loading: false });
+      if (!silent) set({ loading: false });
       // Keep existing notifications from cache
     }
   },

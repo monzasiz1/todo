@@ -51,7 +51,8 @@ export default function NotificationBell() {
 
   const startPolling = useCallback((fast = false) => {
     if (pollRef.current) clearInterval(pollRef.current);
-    pollRef.current = setInterval(() => fetchLog(), fast ? 8000 : 15000);
+    // Polls als `silent` markieren — kein Loading-Flag, kein Skeleton-Flash.
+    pollRef.current = setInterval(() => fetchLog({ silent: true }), fast ? 8000 : 15000);
   }, [fetchLog]);
 
   useEffect(() => {

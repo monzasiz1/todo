@@ -449,21 +449,27 @@ export default function Dashboard() {
       }
     }, 60000);
 
-    const refreshOnFocus = () => {
+    const fetchDashboard = (opts = {}) => {
       fetchTasks({
         dashboard: 'true',
         limit: DASHBOARD_FETCH_LIMIT,
         horizon_days: DASHBOARD_HORIZON_DAYS,
         completed_lookback_days: DASHBOARD_COMPLETED_LOOKBACK_DAYS,
-      }, { force: true });
+      }, opts);
+    };
+
+    // Debounce: `focus` und `visibilitychange` feuern beide beim Tab-Return.
+    // Ohne Debounce schickt das zwei identische API-Calls in Millisekunden-Abstand.
+    let refreshTimer = null;
+    const refreshOnFocus = () => {
+      if (refreshTimer) return;
+      refreshTimer = setTimeout(() => {
+        refreshTimer = null;
+        if (!document.hidden) fetchDashboard({ force: true });
+      }, 300);
     };
     const refreshOnTaskChanged = () => {
-      fetchTasks({
-        dashboard: 'true',
-        limit: DASHBOARD_FETCH_LIMIT,
-        horizon_days: DASHBOARD_HORIZON_DAYS,
-        completed_lookback_days: DASHBOARD_COMPLETED_LOOKBACK_DAYS,
-      }, { force: true });
+      fetchDashboard({ force: true });
     };
     window.addEventListener('focus', refreshOnFocus);
     document.addEventListener('visibilitychange', refreshOnFocus);
@@ -471,6 +477,7 @@ export default function Dashboard() {
 
     return () => {
       clearInterval(interval);
+      if (refreshTimer) clearTimeout(refreshTimer);
       window.removeEventListener('focus', refreshOnFocus);
       document.removeEventListener('visibilitychange', refreshOnFocus);
       window.removeEventListener('beequ:tasks-changed', refreshOnTaskChanged);

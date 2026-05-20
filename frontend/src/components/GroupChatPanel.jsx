@@ -288,13 +288,13 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
 
     clearInterval(pollRef.current);
     // Polling-Strategie (Egress-schonend):
-    //   • Realtime aktiv  + Tab sichtbar  → 60s Safety-Refresh
+    //   • Realtime aktiv  + Tab sichtbar  → 5 min Safety-Heartbeat
     //   • Realtime aktiv  + Tab versteckt → kein Poll
-    //   • Realtime aus    + Tab sichtbar  → 30s
+    //   • Realtime aus    + Tab sichtbar  → 30 s
     //   • Realtime aus    + Tab versteckt → kein Poll (refresh on visible)
     const computeInterval = () => {
       if (typeof document !== 'undefined' && document.hidden) return 0;
-      return (typeof window !== 'undefined' && window.__beequRealtimeActive) ? 60000 : 30000;
+      return (typeof window !== 'undefined' && window.__beequRealtimeActive) ? 300000 : 30000;
     };
     const startPoll = () => {
       clearInterval(pollRef.current);

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Timer } from 'lucide-react';
@@ -17,6 +17,18 @@ function loadState() {
   }
 }
 
+// Shallow-Compare nur fuer die Felder, die das UI tatsaechlich rendert.
+// Verhindert Re-Renders, wenn nur die Objekt-Referenz neu ist.
+function sameTimerState(a, b) {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return a.endsAt === b.endsAt
+    && a.paused === b.paused
+    && a.durationSec === b.durationSec
+    && a.remainingAtPauseSec === b.remainingAtPauseSec
+    && a.label === b.label;
+}
+
 function formatMMSS(seconds) {
   if (seconds < 0) seconds = 0;
   const m = Math.floor(seconds / 60);
@@ -31,62 +43,92 @@ function formatMMSS(seconds) {
  */
 export default function FocusTimerPin({ variant = 'desktop' }) {
   const navigate = useNavigate();
-  const [state, setState] = useState(() => loadState());
+  const stateRef = useRef(loadState());
+  const [state, setStateRaw] = useState(stateRef.current);
   const [now, setNow] = useState(() => Date.now());
   const [cardVisible, setCardVisible] = useState(false);
 
-  // Poll localStorage (state change happens in FocusTimer component, no event bus)
+  // Schreibt State nur, wenn sich UI-relevante Felder geaendert haben.
+  // Spart pro Sekunde mind. einen Render im typischen Idle-Fall.
+  const setState = (next) => {
+    if (sameTimerState(stateRef.current, next)) return;
+    stateRef.current = next;
+    setStateRaw(next);
+  };
+
+  // Event-getriebene Aktualisierung: FocusTimer.saveState() feuert
+  // `beequ:focus-timer-changed`. Cross-Tab via natives `storage`-Event.
+  // Eigener 1s-Tick aktualisiert nur die Restzeit-Anzeige.
   useEffect(() => {
-    const id = window.setInterval(() => {
-      setState(loadState());
-      setNow(Date.now());
-    }, 250);
-    const onStorage = (e) => {
-      if (e.key === LS_KEY) setState(loadState());
-    };
+    const sync = () => setState(loadState());
+    const onStorage = (e) => { if (e.key === LS_KEY) sync(); };
+
+    window.addEventListener('beequ:focus-timer-changed', sync);
     window.addEventListener('storage', onStorage);
+
+    // Sekundentick nur fuer `now`; pausiert wenn Tab nicht sichtbar.
+    let tickId = null;
+    const startTick = () => {
+      if (tickId) return;
+      tickId = window.setInterval(() => setNow(Date.now()), 1000);
+    };
+    const stopTick = () => {
+      if (tickId) { window.clearInterval(tickId); tickId = null; }
+    };
+    const onVisibility = () => {
+      if (document.hidden) stopTick();
+      else { sync(); setNow(Date.now()); startTick(); }
+    };
+    if (!document.hidden) startTick();
+    document.addEventListener('visibilitychange', onVisibility);
+
     return () => {
-      window.clearInterval(id);
+      window.removeEventListener('beequ:focus-timer-changed', sync);
       window.removeEventListener('storage', onStorage);
+      document.removeEventListener('visibilitychange', onVisibility);
+      stopTick();
     };
   }, []);
 
   // Beobachte den grossen Timer-Card. Wenn sichtbar -> Pin verstecken.
+  // MutationObserver triggert Re-Scan nur bei tatsaechlichen DOM-Aenderungen.
   useEffect(() => {
-    let observer = null;
-    let pollId = null;
+    let intersectionObserver = null;
+    let mutationObserver = null;
     let attached = null;
 
     const attach = (el) => {
       if (!el || attached === el) return;
-      if (observer) observer.disconnect();
+      if (intersectionObserver) intersectionObserver.disconnect();
       attached = el;
-      observer = new IntersectionObserver(
+      intersectionObserver = new IntersectionObserver(
         ([entry]) => setCardVisible(entry.isIntersecting && entry.intersectionRatio > 0.25),
         { threshold: [0, 0.25, 0.5, 1] }
       );
-      observer.observe(el);
+      intersectionObserver.observe(el);
     };
 
     const detach = () => {
-      if (observer) observer.disconnect();
-      observer = null;
+      if (intersectionObserver) intersectionObserver.disconnect();
+      intersectionObserver = null;
       attached = null;
       setCardVisible(false);
     };
 
     const scan = () => {
       const el = document.querySelector('.focus-timer-card');
-      if (el) attach(el);
-      else detach();
+      if (el && el !== attached) attach(el);
+      else if (!el && attached) detach();
     };
 
     scan();
-    pollId = window.setInterval(scan, 800);
+    // Re-Scan nur wenn sich der DOM-Subtree aendert (Route-Wechsel, Modal etc.)
+    mutationObserver = new MutationObserver(scan);
+    mutationObserver.observe(document.body, { childList: true, subtree: true });
 
     return () => {
-      window.clearInterval(pollId);
-      if (observer) observer.disconnect();
+      if (mutationObserver) mutationObserver.disconnect();
+      if (intersectionObserver) intersectionObserver.disconnect();
     };
   }, []);
 
