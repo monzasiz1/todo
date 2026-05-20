@@ -20,6 +20,7 @@ export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const isNotesRoute = location.pathname === '/app/notes';
+  const isCalendarRoute = location.pathname === '/app/calendar';
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
@@ -151,7 +152,7 @@ export default function Layout() {
 
       {/* Main Content */}
       <main className={`app-main ${sidebarCollapsed ? 'desktop-sidebar-collapsed' : ''}`}>
-        <div className={`app-content-shell ${isNotesRoute ? 'notes-full-width' : ''}`}>
+        <div className={`app-content-shell ${isNotesRoute ? 'notes-full-width' : ''} ${isCalendarRoute ? 'calendar-full-width' : ''}`}>
           <Outlet />
         </div>
       </main>
