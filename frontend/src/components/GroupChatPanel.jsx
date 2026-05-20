@@ -1098,8 +1098,7 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
                     const isEnded = isEndedEvent(msg);
                     const hasTime = !msg.is_poll && !isEventMsg && !isTaskMsg && detectTimeHint(msg.content);
                     const showSender =
-                      !isOwn &&
-                      (idx === 0 || visibleMessages[idx - 1].user_id !== msg.user_id);
+                      idx === 0 || visibleMessages[idx - 1].user_id !== msg.user_id;
 
                     return (
                       <div
