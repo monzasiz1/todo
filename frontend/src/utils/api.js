@@ -399,6 +399,23 @@ export const api = {
       body: JSON.stringify({ input }),
     }),
 
+  // Notes AI: Zusammenfassung, Rewrite, Tag-Vorschlaege.
+  summarizeNote: (input) =>
+    request('/ai/note-summarize', {
+      method: 'POST',
+      body: JSON.stringify({ input }),
+    }),
+  rewriteNote: (input, style = 'cleanup') =>
+    request('/ai/note-rewrite', {
+      method: 'POST',
+      body: JSON.stringify({ input, style }),
+    }),
+  suggestNoteTags: (input) =>
+    request('/ai/note-tags', {
+      method: 'POST',
+      body: JSON.stringify({ input }),
+    }),
+
   // Help Chat
   helpChat: (message, history = []) =>
     request('/help/chat', {

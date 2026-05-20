@@ -6,7 +6,7 @@ import {
   Calendar as CalendarIcon, Link2, Link2Off, Search, Lock, Users, Eye,
   UserPlus, Pencil,
   Bold, Italic, Underline, Strikethrough, Code, Heading1, Heading2,
-  List, ListOrdered, CheckSquare, Quote, Table, History,
+  List, ListOrdered, CheckSquare, Quote, Table, History, Sparkles, Loader2,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -15,6 +15,7 @@ import { useAuthStore } from '../store/authStore';
 import { useFriendsStore } from '../store/friendsStore';
 import { useNotesStore } from '../store/notesStore';
 import { toDisplayHtml, sanitizeHtml } from '../lib/noteFormat';
+import { api } from '../utils/api';
 import NoteActivityPanel from './NoteActivityPanel';
 import NoteCommentsPanel from './NoteCommentsPanel';
 import NoteVersionsPanel from './NoteVersionsPanel';
@@ -119,7 +120,28 @@ const FORMAT_GROUPS = [
   ],
 ];
 
-function FormatToolbar({ onAction }) {
+function FormatToolbar({ onAction, onAiAction, aiBusy = false }) {
+  const [aiOpen, setAiOpen] = useState(false);
+  const aiRef = useRef(null);
+
+  useEffect(() => {
+    if (!aiOpen) return undefined;
+    const onDoc = (e) => {
+      if (aiRef.current && !aiRef.current.contains(e.target)) setAiOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [aiOpen]);
+
+  const AI_ITEMS = [
+    { key: 'summarize', label: 'Zusammenfassen', hint: '2-4 Bulletpoints' },
+    { key: 'rewrite:cleanup', label: 'Verbessern', hint: 'Rechtschreibung + Klarheit' },
+    { key: 'rewrite:short', label: 'Kuerzen', hint: 'Auf das Wesentliche' },
+    { key: 'rewrite:formal', label: 'Formaler', hint: 'Sachlich, Sie-Form' },
+    { key: 'rewrite:casual', label: 'Lockerer', hint: 'Freundlich, Du-Form' },
+    { key: 'tags', label: 'Tags vorschlagen', hint: '3-6 Tags' },
+  ];
+
   return (
     <div className="nem-toolbar" role="toolbar" aria-label="Textformatierung">
       {FORMAT_GROUPS.map((group, gIdx) => (
@@ -139,6 +161,44 @@ function FormatToolbar({ onAction }) {
           ))}
         </div>
       ))}
+      {onAiAction && (
+        <div className="nem-toolbar-group nem-toolbar-ai" ref={aiRef}>
+          <button
+            type="button"
+            className={`nem-toolbar-btn nem-toolbar-ai-btn${aiOpen ? ' is-active' : ''}`}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => setAiOpen((o) => !o)}
+            title="KI-Aktionen"
+            aria-label="KI-Aktionen"
+            disabled={aiBusy}
+            aria-haspopup="menu"
+            aria-expanded={aiOpen}
+          >
+            <Sparkles size={16} strokeWidth={2} />
+            <span className="nem-toolbar-ai-label">AI</span>
+          </button>
+          {aiOpen && (
+            <div className="nem-ai-menu" role="menu">
+              {AI_ITEMS.map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  className="nem-ai-menu-item"
+                  role="menuitem"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    setAiOpen(false);
+                    onAiAction(item.key);
+                  }}
+                >
+                  <span className="nem-ai-menu-label">{item.label}</span>
+                  <span className="nem-ai-menu-hint">{item.hint}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -552,6 +612,113 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   // HTML-Fragmente direkt eingefuegt. Kein Platzhaltertext, wenn der
   // User bereits Text markiert hat (wrappt nur die Auswahl).
   // ──────────────────────────────────────────────────────────────────
+  // ──────────────────────────────────────────────────────────────────
+  // KI-Aktionen ueber die FormatToolbar (Sparkles-Dropdown).
+  // Ein einziger zentraler Handler nimmt den aktuellen Editor-Content,
+  // schickt ihn ans Backend und legt das Ergebnis in aiSuggest ab.
+  // Der User kann das Ergebnis annehmen (Editor aktualisieren) oder
+  // verwerfen. Wir mutieren den Editor NIE direkt - schuetzt vor
+  // ungewollten Aenderungen.
+  // ──────────────────────────────────────────────────────────────────
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiSuggest, setAiSuggest] = useState(null);
+  // { kind: 'summary'|'rewrite'|'tags', label, preview, applyHtml, applyText, raw }
+
+  const escapeHtml = useCallback((s) => String(s ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;'), []);
+
+  const handleAiAction = useCallback(async (actionKey) => {
+    if (readOnly || !editorRef.current) return;
+    if (aiBusy) return;
+    const current = editorRef.current.innerHTML || '';
+    if (!current.trim() || current.replace(/<[^>]*>/g, '').trim().length < 5) {
+      window.alert('Bitte erst etwas Text in die Notiz schreiben.');
+      return;
+    }
+    setAiBusy(true);
+    setAiSuggest(null);
+    try {
+      if (actionKey === 'summarize') {
+        const data = await api.summarizeNote(current);
+        const summary = String(data?.result?.summary || '').trim();
+        if (!summary) throw new Error('Leere Zusammenfassung');
+        // Bulletpoints kommen als '- ...' Zeilen.
+        const lines = summary.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+        const listHtml = `<p><strong>Zusammenfassung:</strong></p><ul>${
+          lines.map((l) => `<li>${escapeHtml(l.replace(/^[-*]\s*/, ''))}</li>`).join('')
+        }</ul>`;
+        setAiSuggest({
+          kind: 'summary',
+          label: 'Zusammenfassung anhaengen',
+          preview: lines.map((l) => l.replace(/^[-*]\s*/, '\u2022 ')).join('\n'),
+          mode: 'append',
+          applyHtml: listHtml,
+        });
+      } else if (actionKey.startsWith('rewrite:')) {
+        const style = actionKey.split(':')[1];
+        const data = await api.rewriteNote(current, style);
+        const rewritten = String(data?.result?.rewritten || '').trim();
+        if (!rewritten) throw new Error('Leerer Rewrite');
+        // Plain-Text -> einfaches HTML (Absaetze).
+        const html = rewritten.split(/\n{2,}/).map((p) =>
+          `<p>${escapeHtml(p).replace(/\n/g, '<br>')}</p>`
+        ).join('');
+        const labelMap = {
+          cleanup: 'Verbesserten Text uebernehmen',
+          short: 'Gekuerzten Text uebernehmen',
+          formal: 'Formalen Text uebernehmen',
+          casual: 'Lockeren Text uebernehmen',
+        };
+        setAiSuggest({
+          kind: 'rewrite',
+          label: labelMap[style] || 'Text uebernehmen',
+          preview: rewritten,
+          mode: 'replace',
+          applyHtml: html,
+        });
+      } else if (actionKey === 'tags') {
+        const data = await api.suggestNoteTags(current);
+        const tags = Array.isArray(data?.result?.tags) ? data.result.tags : [];
+        if (tags.length === 0) throw new Error('Keine Tags');
+        const chips = `<p>${tags.map((t) => `<code>#${escapeHtml(t)}</code>`).join(' ')}</p>`;
+        setAiSuggest({
+          kind: 'tags',
+          label: 'Tags am Anfang einfuegen',
+          preview: tags.map((t) => `#${t}`).join('  '),
+          mode: 'prepend',
+          applyHtml: chips,
+        });
+      }
+    } catch (err) {
+      console.error('[NoteEditorModal] AI action failed:', err);
+      window.alert('KI-Aktion fehlgeschlagen. Bitte erneut versuchen.');
+    } finally {
+      setAiBusy(false);
+    }
+  }, [readOnly, aiBusy, escapeHtml]);
+
+  const applyAiSuggest = useCallback(() => {
+    const el = editorRef.current;
+    if (!el || !aiSuggest) return;
+    const current = el.innerHTML || '';
+    let next = current;
+    if (aiSuggest.mode === 'append') {
+      next = current + aiSuggest.applyHtml;
+    } else if (aiSuggest.mode === 'prepend') {
+      next = aiSuggest.applyHtml + current;
+    } else {
+      next = aiSuggest.applyHtml;
+    }
+    el.innerHTML = next;
+    setContent(next);
+    setAiSuggest(null);
+    // Debounced Save triggern, damit der Stand persistiert wird.
+    scheduleSave(title, next, color, importance);
+  }, [aiSuggest, title, color, importance, scheduleSave]);
+
+  // ──────────────────────────────────────────────────────────────────
+  // applyFormat (Bold, Italic, Listen, ...).
   const applyFormat = useCallback((type) => {
     if (readOnly) return;
     const el = editorRef.current;
@@ -678,7 +845,42 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
 
           <div className="nem-body">
             {!readOnly && (
-              <FormatToolbar onAction={applyFormat} />
+              <FormatToolbar
+                onAction={applyFormat}
+                onAiAction={handleAiAction}
+                aiBusy={aiBusy}
+              />
+            )}
+            {aiBusy && (
+              <div className="nem-ai-status" role="status" aria-live="polite">
+                <Loader2 size={14} className="nem-ai-spin" />
+                <span>KI denkt nach…</span>
+              </div>
+            )}
+            {aiSuggest && !aiBusy && (
+              <div className="nem-ai-suggest" role="region" aria-label="KI-Vorschlag">
+                <div className="nem-ai-suggest-head">
+                  <Sparkles size={14} />
+                  <strong>KI-Vorschlag</strong>
+                </div>
+                <pre className="nem-ai-suggest-preview">{aiSuggest.preview}</pre>
+                <div className="nem-ai-suggest-actions">
+                  <button
+                    type="button"
+                    className="nem-ai-suggest-btn is-primary"
+                    onClick={applyAiSuggest}
+                  >
+                    {aiSuggest.label}
+                  </button>
+                  <button
+                    type="button"
+                    className="nem-ai-suggest-btn"
+                    onClick={() => setAiSuggest(null)}
+                  >
+                    Verwerfen
+                  </button>
+                </div>
+              </div>
             )}
             <div
               ref={editorRef}

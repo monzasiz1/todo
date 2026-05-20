@@ -6,6 +6,9 @@ const {
   classifyIntentWithAI,
   answerCalendarQueryWithAI,
   parseChecklistWithAI,
+  summarizeNoteWithAI,
+  rewriteNoteWithAI,
+  suggestNoteTagsWithAI,
 } = require('./_lib/mistral');
 
 function toDateOnly(value) {
@@ -354,6 +357,53 @@ module.exports = async function handler(req, res) {
     } catch (err) {
       console.error('AI note-checklist error:', err);
       return res.status(500).json({ error: 'KI-Checklist-Analyse fehlgeschlagen' });
+    }
+  }
+
+  // POST /api/ai/note-summarize — 2-4 Bulletpoints aus einer Notiz.
+  if (action === 'note-summarize') {
+    try {
+      const { input } = req.body || {};
+      if (!String(input || '').trim()) {
+        return res.status(400).json({ error: 'Eingabe ist erforderlich' });
+      }
+      const result = await summarizeNoteWithAI(input);
+      return res.json({ result });
+    } catch (err) {
+      console.error('AI note-summarize error:', err);
+      return res.status(500).json({ error: 'KI-Zusammenfassung fehlgeschlagen' });
+    }
+  }
+
+  // POST /api/ai/note-rewrite — Inhalt ueberarbeiten (style: cleanup|short|formal|casual).
+  if (action === 'note-rewrite') {
+    try {
+      const { input, style } = req.body || {};
+      if (!String(input || '').trim()) {
+        return res.status(400).json({ error: 'Eingabe ist erforderlich' });
+      }
+      const allowed = ['cleanup', 'short', 'formal', 'casual'];
+      const safeStyle = allowed.includes(style) ? style : 'cleanup';
+      const result = await rewriteNoteWithAI(input, safeStyle);
+      return res.json({ result, style: safeStyle });
+    } catch (err) {
+      console.error('AI note-rewrite error:', err);
+      return res.status(500).json({ error: 'KI-Rewrite fehlgeschlagen' });
+    }
+  }
+
+  // POST /api/ai/note-tags — Tag-Vorschlaege.
+  if (action === 'note-tags') {
+    try {
+      const { input } = req.body || {};
+      if (!String(input || '').trim()) {
+        return res.status(400).json({ error: 'Eingabe ist erforderlich' });
+      }
+      const result = await suggestNoteTagsWithAI(input);
+      return res.json({ result });
+    } catch (err) {
+      console.error('AI note-tags error:', err);
+      return res.status(500).json({ error: 'KI-Tag-Vorschlaege fehlgeschlagen' });
     }
   }
 

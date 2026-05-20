@@ -538,11 +538,184 @@ JSON Format:
   }
 }
 
+// ── Notes AI: Zusammenfassung, Rewrite, Tag-Vorschlaege ────────────
+//
+// Inputs sind frei (Plain-Text oder simples HTML). Wir strippen Tags
+// auf der Server-Seite vor dem Prompt, damit der LLM nicht durch Markup
+// abgelenkt wird. Ergebnisse sind reiner Text/Listen — Markup wird im
+// Frontend (optional) wieder erzeugt.
+
+function stripHtmlForAi(input) {
+  return String(input || '')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<\/(p|div|li|h[1-6]|br)>/gi, '\n')
+    .replace(/<br\s*\/?>(?:\s*)/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+    .slice(0, 6000);
+}
+
+async function summarizeNoteWithAI(input) {
+  const key = process.env.MISTRAL_API_KEY;
+  if (!key) throw new Error('MISTRAL_API_KEY nicht konfiguriert');
+  const text = stripHtmlForAi(input);
+  if (!text) return { summary: '', confidence: 0.0 };
+
+  const systemPrompt = `Du fasst Notizen auf Deutsch zusammen.
+
+Regeln:
+- 2 bis 4 kurze Bulletpoints, jeweils maximal 1 Satz.
+- Behalte konkrete Fakten (Namen, Daten, Zahlen) bei.
+- Keine Floskeln, keine Wiederholungen, kein Markup.
+- Antworte NUR mit validem JSON.
+
+JSON Format:
+{
+  "summary": "string (Bullets durch \\n - getrennt)",
+  "confidence": 0.0-1.0
+}`;
+
+  const response = await fetch(MISTRAL_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+    body: JSON.stringify({
+      model: 'mistral-small-latest',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: text },
+      ],
+      temperature: 0.2,
+      max_tokens: 400,
+      response_format: { type: 'json_object' },
+    }),
+  });
+  if (!response.ok) throw new Error(`Mistral API Fehler: ${response.status}`);
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error('Keine Antwort von Mistral');
+  try {
+    const parsed = JSON.parse(content);
+    return {
+      summary: String(parsed.summary || '').trim(),
+      confidence: Number(parsed.confidence) || 0.5,
+    };
+  } catch {
+    return { summary: '', confidence: 0.2 };
+  }
+}
+
+async function rewriteNoteWithAI(input, style = 'cleanup') {
+  const key = process.env.MISTRAL_API_KEY;
+  if (!key) throw new Error('MISTRAL_API_KEY nicht konfiguriert');
+  const text = stripHtmlForAi(input);
+  if (!text) return { rewritten: '', confidence: 0.0 };
+
+  const styleHint = {
+    cleanup: 'Behalte Inhalt und Tonalitaet, verbessere Grammatik, Rechtschreibung und Lesbarkeit. Keine Kuerzungen.',
+    short: 'Kuerze auf das Wesentliche (max 50 Prozent der Laenge). Keine Fakten weglassen.',
+    formal: 'Schreibe sachlich und foermlich (Sie-Form, klare Saetze). Inhalt unveraendert.',
+    casual: 'Schreibe locker und freundlich (Du-Form, kurze Saetze). Inhalt unveraendert.',
+  }[style] || 'Behalte Inhalt und Tonalitaet, verbessere Grammatik und Lesbarkeit.';
+
+  const systemPrompt = `Du ueberarbeitest Notizen auf Deutsch.
+
+${styleHint}
+
+Regeln:
+- Antworte mit dem ueberarbeiteten Text als reiner Plain-Text.
+- KEIN Markdown, KEINE Anfuehrungszeichen drumherum, KEINE Erklaerung.
+- Behalte Absatz-Struktur (Leerzeilen).`;
+
+  const response = await fetch(MISTRAL_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+    body: JSON.stringify({
+      model: 'mistral-small-latest',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: text },
+      ],
+      temperature: 0.3,
+      max_tokens: 1200,
+    }),
+  });
+  if (!response.ok) throw new Error(`Mistral API Fehler: ${response.status}`);
+  const data = await response.json();
+  const rewritten = data.choices?.[0]?.message?.content?.trim() || '';
+  return { rewritten, confidence: rewritten ? 0.8 : 0.0 };
+}
+
+async function suggestNoteTagsWithAI(input) {
+  const key = process.env.MISTRAL_API_KEY;
+  if (!key) throw new Error('MISTRAL_API_KEY nicht konfiguriert');
+  const text = stripHtmlForAi(input);
+  if (!text) return { tags: [], confidence: 0.0 };
+
+  const systemPrompt = `Du schlaegst Tags fuer Notizen vor.
+
+Regeln:
+- 3 bis 6 kurze Tags (1-2 Worte, kleingeschrieben, Deutsch).
+- Themen-/Kategorie-orientiert (z. B. "einkauf", "projekt-x", "urlaub").
+- Keine Sonderzeichen ausser Bindestrich.
+- Antworte NUR mit validem JSON.
+
+JSON Format:
+{
+  "tags": ["string", ...],
+  "confidence": 0.0-1.0
+}`;
+
+  const response = await fetch(MISTRAL_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+    body: JSON.stringify({
+      model: 'mistral-small-latest',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: text },
+      ],
+      temperature: 0.2,
+      max_tokens: 200,
+      response_format: { type: 'json_object' },
+    }),
+  });
+  if (!response.ok) throw new Error(`Mistral API Fehler: ${response.status}`);
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error('Keine Antwort von Mistral');
+  try {
+    const parsed = JSON.parse(content);
+    const tags = Array.isArray(parsed.tags)
+      ? parsed.tags
+          .map((t) => String(t || '').trim().toLowerCase().replace(/[^a-z0-9\-äöüß ]+/g, '').replace(/\s+/g, '-'))
+          .filter((t) => t.length >= 2 && t.length <= 24)
+          .slice(0, 6)
+      : [];
+    return {
+      tags,
+      confidence: Number(parsed.confidence) || 0.5,
+    };
+  } catch {
+    return { tags: [], confidence: 0.2 };
+  }
+}
+
 module.exports = {
   parseTaskWithAI,
   parsePermissionsWithAI,
   classifyIntentWithAI,
   answerCalendarQueryWithAI,
   parseChecklistWithAI,
+  summarizeNoteWithAI,
+  rewriteNoteWithAI,
+  suggestNoteTagsWithAI,
 };
 
