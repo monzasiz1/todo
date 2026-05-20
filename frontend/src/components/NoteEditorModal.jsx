@@ -363,6 +363,23 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [note?.id]);
 
+  // Live-Sync: wenn die Notiz fremd aktualisiert wird (z.B. der Eigentuemer
+  // editiert eine geteilte Notiz und das Polling zieht neue Daten), den
+  // Editor-Inhalt aktualisieren \u2014 aber NUR wenn der User gerade nicht
+  // selbst in dem Editor tippt (sonst Caret-Reset / Datenverlust).
+  useEffect(() => {
+    const el = editorRef.current;
+    if (!el) return;
+    if (document.activeElement === el) return; // User tippt gerade
+    const parsed = parseColor(note?.content || '');
+    const nextHtml = toDisplayHtml(parsed.rest);
+    if (nextHtml === el.innerHTML) return; // nichts geaendert
+    el.innerHTML = nextHtml;
+    setContent(nextHtml);
+    if (parsed.color) setColor(parsed.color);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [note?.content]);
+
   // Debounced Auto-Save
   const scheduleSave = useCallback((nextTitle, nextContent, nextColor, nextImportance) => {
     if (!note?.id) return;
