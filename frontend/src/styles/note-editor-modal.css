@@ -422,16 +422,29 @@ html[data-theme="dark"] .nem-toolbar-btn:focus-visible {
   color: #58A6FF;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+  /* Auf Mobile hat .nem-body padding: 4px 18px 18px  — sticky-Offset und
+     negative Margins muessen exakt dazu passen, sonst ragt die Toolbar
+     in den Header oder es entsteht ein Spalt zur Body-Kante. */
   .nem-toolbar {
+    top: -4px;
+    margin: -4px -18px 10px;
     padding: 5px 8px;
     gap: 4px;
   }
   .nem-toolbar-group { padding: 0 2px; gap: 1px; }
+  .nem-toolbar-group + .nem-toolbar-group::before { top: 4px; bottom: 4px; }
   .nem-toolbar-btn { width: 32px; height: 32px; }
 }
+@media (max-width: 420px) {
+  /* Sehr schmal: Buttons kompakter + horizontal-scroll erhalten,
+     damit alle Format-Aktionen (inkl. Table) erreichbar bleiben. */
+  .nem-toolbar { gap: 2px; padding: 4px 6px; }
+  .nem-toolbar-group { padding: 0 1px; }
+  .nem-toolbar-btn { width: 30px; height: 30px; border-radius: 6px; }
+}
 @media (max-width: 360px) {
-  .nem-toolbar-btn { width: 30px; height: 30px; }
+  .nem-toolbar-btn { width: 28px; height: 28px; }
 }
 
 .nem-textarea {
