@@ -223,13 +223,15 @@ const useNotificationStore = create((set, get) => ({
 
   // Update a single preference toggle
   updatePref: async (type, enabled) => {
-    const newPrefs = { ...get().prefs, [type]: enabled };
+    const prevPrefs = { ...get().prefs };
+    const newPrefs = { ...prevPrefs, [type]: enabled };
     set({ prefs: newPrefs });
     try {
       await api.updateNotificationPrefs(newPrefs);
     } catch {
-      // revert on error
-      set({ prefs: { ...newPrefs, [type]: !enabled } });
+      // Rollback auf den exakten vorherigen Stand — verliert keine
+      // Aenderungen aus parallelen Updates (z. B. anderer Tab).
+      set({ prefs: prevPrefs });
     }
   },
 

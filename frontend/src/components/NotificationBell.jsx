@@ -48,6 +48,9 @@ export default function NotificationBell() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const ref = useRef(null);
   const pollRef = useRef(null);
+  // Track previous `open` so we only mark-as-seen on a true close transition
+  // (verhindert, dass beim initialen Mount alles direkt als gesehen markiert wird).
+  const prevOpenRef = useRef(false);
 
   const startPolling = useCallback((fast = false) => {
     if (pollRef.current) clearInterval(pollRef.current);
@@ -60,16 +63,21 @@ export default function NotificationBell() {
     fetchLog();
     startPolling(false);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, []);
+  }, [checkStatus, fetchLog, startPolling]);
 
   useEffect(() => {
     if (open) { fetchLog(); startPolling(true); }
     else startPolling(false);
-  }, [open]);
+  }, [open, fetchLog, startPolling]);
 
   useEffect(() => {
-    if (!open && notifications.length > 0) markAsSeen();
-  }, [open]);
+    // Nur markieren, wenn das Panel tatsaechlich von "offen" -> "zu" wechselt.
+    // Beim initialen Mount (prev=false, open=false) passiert nichts.
+    if (prevOpenRef.current && !open && notifications.length > 0) {
+      markAsSeen();
+    }
+    prevOpenRef.current = open;
+  }, [open, notifications.length, markAsSeen]);
 
   useEffect(() => {
     if (!open) return;
