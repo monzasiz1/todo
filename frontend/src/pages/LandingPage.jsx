@@ -125,177 +125,419 @@ const fadeIn = {
 
 /* ─────────────── interactive feature showcase ─────────────── */
 
-function FeatureDemo({ feature }) {
-  const { title, color, bg, icon: Icon } = feature;
-  const accent = { color, background: bg };
-
-  // Mini-Demo-Komposition je Feature (kein voller Mockup, nur ausdrucksstarke Andeutung)
-  if (title === 'KI-Texteingabe') {
-    return (
-      <div className="bq-demo-card">
-        <div className="bq-demo-input" style={{ borderColor: color, background: bg }}>
-          <Sparkles size={16} style={{ color }} />
-          <span className="bq-demo-typing">„Sprint-Review Freitag 10 Uhr, hohe Prio"</span>
-        </div>
-        <div className="bq-demo-chips">
-          <span className="bq-demo-chip" style={accent}>Freitag</span>
-          <span className="bq-demo-chip" style={accent}>10:00</span>
-          <span className="bq-demo-chip" style={accent}>Produkt</span>
-          <span className="bq-demo-chip" style={accent}>Hoch</span>
-        </div>
-      </div>
-    );
-  }
-  if (title === 'Ultra-Kalender') {
-    return (
-      <div className="bq-demo-card">
-        <div className="bq-demo-cal-head">Mai 2026</div>
-        <div className="bq-demo-cal">
-          {['M','D','M','D','F','S','S'].map((d) => <div key={d} className="bq-demo-cal-h">{d}</div>)}
-          {Array.from({ length: 21 }).map((_, i) => {
-            const day = i + 1;
-            const has = [2,4,7,11,13,16].includes(day);
-            const today = day === 10;
-            return (
-              <div key={i} className={`bq-demo-cal-c${has?' has':''}${today?' today':''}`}
-                   style={today ? { background: bg, color, borderColor: color } : undefined}>
-                {day}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-  if (title === 'Team-Chat mit Events') {
-    return (
-      <div className="bq-demo-card">
-        <div className="bq-demo-msg"><span className="bq-demo-avatar" style={{ background: color }}>M</span><span>„Termin verschoben auf 14:00 ✓"</span></div>
-        <div className="bq-demo-msg bq-demo-msg-event" style={{ borderColor: color, background: bg }}>
-          <CalendarDays size={14} style={{ color }} /> <strong>Sprint-Review</strong> · Fr 10:00
-        </div>
-        <div className="bq-demo-msg"><span className="bq-demo-avatar" style={{ background: '#FF9500' }}>J</span><span className="bq-demo-typing">tippt</span></div>
-      </div>
-    );
-  }
-  if (title === 'Geteilte Gruppen-Aufgaben') {
-    return (
-      <div className="bq-demo-card">
-        <div className="bq-demo-row">
-          <strong>Familie Mustermann</strong>
-          <div className="bq-demo-avatars">
-            <span className="bq-demo-avatar" style={{ background: '#FF9500' }}>I</span>
-            <span className="bq-demo-avatar" style={{ background: '#5856D6' }}>O</span>
-            <span className="bq-demo-avatar" style={{ background: '#34C759' }}>P</span>
-            <span className="bq-demo-avatar bq-demo-avatar-mute">+3</span>
-          </div>
-        </div>
-        <div className="bq-demo-progress"><i style={{ background: color, width: '68%' }} /></div>
-        <div className="bq-demo-meta"><span>12 / 18 Aufgaben</span><span style={{ color }}>+3 diese Woche</span></div>
-      </div>
-    );
-  }
-  if (title === 'Wiederkehrende Tasks') {
-    return (
-      <div className="bq-demo-card">
-        <div className="bq-demo-row"><Repeat size={14} style={{ color }} /> Sport <span className="bq-demo-chip" style={accent}>Mo · Mi · Fr</span></div>
-        <div className="bq-demo-row"><Repeat size={14} style={{ color }} /> Standup <span className="bq-demo-chip" style={accent}>Täglich 09:00</span></div>
-        <div className="bq-demo-row"><Repeat size={14} style={{ color }} /> Monatsbericht <span className="bq-demo-chip" style={accent}>Letzter Tag</span></div>
-      </div>
-    );
-  }
-  if (title === 'Focus-Timer') {
-    return (
-      <div className="bq-demo-card bq-demo-center">
-        <div className="bq-demo-ring" style={{ '--bq-ring-color': color }}>
-          <svg viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(0,0,0,0.06)" strokeWidth="6" />
-            <circle cx="50" cy="50" r="44" fill="none" stroke={color} strokeWidth="6"
-                    strokeDasharray="276" strokeDashoffset="92" strokeLinecap="round"
-                    transform="rotate(-90 50 50)" />
-          </svg>
-          <div className="bq-demo-ring-text"><strong>17:42</strong><span>Fokus</span></div>
-        </div>
-      </div>
-    );
-  }
-  if (title === 'Notizen-Board') {
-    return (
-      <div className="bq-demo-board">
-        <div className="bq-demo-sticky" style={{ background: '#FFF6C8' }}>Newsletter Q3<br /><small>Idee</small></div>
-        <div className="bq-demo-sticky" style={{ background: '#D5F0FF' }}>Launch-Plan<br /><small>In Arbeit</small></div>
-        <div className="bq-demo-sticky" style={{ background: '#DCFCE7' }}>Recherche<br /><small>Fertig</small></div>
-        <svg className="bq-demo-board-lines" viewBox="0 0 300 140" aria-hidden>
-          <path d="M70 30 C 110 50, 130 60, 160 70" stroke={color} strokeWidth="1.5" fill="none" strokeDasharray="3 3" />
-        </svg>
-      </div>
-    );
-  }
-  if (title === 'Statistiken & Insights') {
-    return (
-      <div className="bq-demo-card">
-        <div className="bq-demo-meta"><span>Diese Woche</span><span style={{ color: '#34C759' }}>+18 %</span></div>
-        <div className="bq-demo-chart">
-          {[0.45,0.7,0.55,0.82,0.65,0.95,0.6].map((v, i) => (
-            <i key={i} style={{ height: `${v*100}%`, background: `linear-gradient(180deg, ${color}, ${color}33)` }} />
-          ))}
-        </div>
-        <div className="bq-demo-meta"><span>Erledigt: <strong style={{ color }}>47</strong></span><span>Streak: <strong style={{ color }}>12 T.</strong></span></div>
-      </div>
-    );
-  }
-  if (title === 'Dateianhänge') {
-    return (
-      <div className="bq-demo-card">
-        <div className="bq-demo-file"><span className="bq-demo-file-ico" style={accent}>📄</span><div><div>Briefing-Q2.pdf</div><small>2,4 MB</small></div></div>
-        <div className="bq-demo-file"><span className="bq-demo-file-ico" style={accent}>🖼</span><div><div>moodboard.jpg</div><small>1,1 MB</small></div></div>
-      </div>
-    );
-  }
-  if (title === 'Smarte Erinnerungen') {
-    return (
-      <div className="bq-demo-card bq-demo-center">
-        <div className="bq-demo-bell" style={{ background: bg, borderColor: color, color }}>
-          <Bell size={28} />
-        </div>
-        <div className="bq-demo-toast">
-          <small>in 15 Min · Push</small>
-          <div>Meeting mit Team</div>
-        </div>
-      </div>
-    );
-  }
-  if (title === 'ICS-Import & -Export') {
-    return (
-      <div className="bq-demo-card">
-        <div className="bq-demo-row"><MoveDiagonal size={14} style={{ color }} /> beequ.ics <span className="bq-demo-chip" style={accent}>Export</span></div>
-        <div className="bq-demo-row" style={{ opacity: 0.85 }}>📅 Apple Kalender</div>
-        <div className="bq-demo-row" style={{ opacity: 0.85 }}>📅 Google Calendar</div>
-        <div className="bq-demo-row" style={{ opacity: 0.85 }}>📅 Outlook</div>
-      </div>
-    );
-  }
-  if (title === 'PWA — überall installierbar') {
-    return (
-      <div className="bq-demo-card bq-demo-center">
-        <div className="bq-demo-devices">
-          <Smartphone size={36} style={{ color }} />
-          <LayoutDashboard size={44} style={{ color: '#5856D6' }} />
-          <Layers3 size={32} style={{ color: '#FF9500' }} />
-        </div>
-        <div className="bq-demo-meta" style={{ justifyContent: 'center', gap: 14 }}>
-          <span>iOS</span><span>Android</span><span>macOS</span><span>Windows</span>
-        </div>
-      </div>
-    );
-  }
-  // Fallback
+/* small reusable bits for the dark "app screenshot" mock */
+function MockFrame({ children, label }) {
   return (
-    <div className="bq-demo-card bq-demo-center">
-      <div className="bq-demo-bell" style={{ background: bg, borderColor: color, color }}>
-        <Icon size={28} />
+    <div className="bq-mock">
+      <div className="bq-mock-chrome">
+        <span className="bq-mock-dot" style={{ background: '#FF5F57' }} />
+        <span className="bq-mock-dot" style={{ background: '#FEBC2E' }} />
+        <span className="bq-mock-dot" style={{ background: '#28C840' }} />
+        <span className="bq-mock-label">{label || 'BeeQu'}</span>
+      </div>
+      <div className="bq-mock-body">{children}</div>
+    </div>
+  );
+}
+
+function MockTaskCard({ title, kind = 'AUFGABE', day = '21', mon = 'MAI', meta, badge, chips }) {
+  return (
+    <div className="bq-mk-task">
+      <div className="bq-mk-task-date">
+        <span className="bq-mk-task-mon">{mon}</span>
+        <span className="bq-mk-task-day">{day}</span>
+      </div>
+      <div className="bq-mk-task-main">
+        <div className="bq-mk-task-head">
+          <strong>{title}</strong>
+          <span className={`bq-mk-badge bq-mk-badge-${kind.toLowerCase()}`}>{kind}</span>
+          {badge}
+        </div>
+        {chips && <div className="bq-mk-chip-row">{chips}</div>}
+        {meta && <div className="bq-mk-task-meta">{meta}</div>}
       </div>
     </div>
+  );
+}
+
+function FeatureDemo({ feature }) {
+  const { title, color, bg, icon: Icon } = feature;
+
+  if (title === 'KI-Texteingabe') {
+    return (
+      <MockFrame label="BeeQu · Dashboard">
+        <div className="bq-mk-greet">Guten Tag <span>👋</span></div>
+        <div className="bq-mk-sub">Was steht heute an?</div>
+        <div className="bq-mk-ai-input">
+          <span className="bq-mk-ai-sparkle"><Sparkles size={16} /></span>
+          <span className="bq-mk-ai-placeholder">„Sprint-Review Freitag 10 Uhr, hohe Prio"<span className="bq-mk-caret">|</span></span>
+          <button className="bq-mk-ai-send" aria-hidden><ArrowRight size={16} /></button>
+        </div>
+        <div className="bq-mk-ai-hints">
+          💡 <em>„Freitag Reinigung 18 Uhr"</em> · <em>„Lösche Zahnarzt"</em> · <em>„Wann kann ich zum Sport?"</em>
+        </div>
+        <div className="bq-mk-ai-result">
+          <span className="bq-mk-chip bq-mk-chip-blue">Freitag</span>
+          <span className="bq-mk-chip bq-mk-chip-blue">10:00</span>
+          <span className="bq-mk-chip bq-mk-chip-violet">Produkt</span>
+          <span className="bq-mk-chip bq-mk-chip-red">Hoch</span>
+        </div>
+      </MockFrame>
+    );
+  }
+
+  if (title === 'Ultra-Kalender') {
+    const events = {
+      1:  { label: 'Tag der Arbeit',   tone: 'red' },
+      14: { label: 'Christi Himmelfahrt', tone: 'red' },
+      20: { label: 'Zimmer aufräumen', tone: 'blue' },
+      21: { label: '15:00 Tanzkurs',   tone: 'red' },
+      25: { label: 'Pfingstmontag',    tone: 'red' },
+      26: { label: '16:25 Zahnarzt',   tone: 'blue' },
+    };
+    const days = [];
+    // leading: April 27-30
+    for (let d = 27; d <= 30; d++) days.push({ n: d, dim: true });
+    for (let d = 1; d <= 17; d++) days.push({ n: d, ev: events[d] });
+    return (
+      <MockFrame label="BeeQu · Kalender">
+        <div className="bq-mk-cal-head">
+          <strong>Mai 2026</strong>
+          <div className="bq-mk-cal-tabs">
+            <span className="bq-mk-cal-tab bq-mk-cal-tab-active">Monat</span>
+            <span className="bq-mk-cal-tab">Woche</span>
+          </div>
+        </div>
+        <div className="bq-mk-cal-filters">
+          <span className="bq-mk-cal-filter bq-mk-cal-filter-active">👤 Mein</span>
+          <span className="bq-mk-cal-filter">👪 Familie</span>
+        </div>
+        <div className="bq-mk-cal-grid">
+          {['MO','DI','MI','DO','FR','SA','SO'].map((d) => (
+            <div key={d} className="bq-mk-cal-dh">{d}</div>
+          ))}
+          {days.map((c, i) => (
+            <div key={i} className={`bq-mk-cal-cell${c.dim ? ' dim' : ''}`}>
+              <span className={`bq-mk-cal-num${c.ev?.tone === 'red' ? ' is-holiday' : ''}`}>{c.n}</span>
+              {c.ev && <span className={`bq-mk-cal-event bq-mk-cal-event-${c.ev.tone}`}>{c.ev.label}</span>}
+            </div>
+          ))}
+        </div>
+      </MockFrame>
+    );
+  }
+
+  if (title === 'Team-Chat mit Events') {
+    return (
+      <MockFrame label="BeeQu · Familie">
+        <div className="bq-mk-chat">
+          <div className="bq-mk-chat-msg">
+            <span className="bq-mk-chat-av" style={{ background: '#FF9500' }}>S</span>
+            <div className="bq-mk-chat-bubble">
+              <strong>Sarah</strong>
+              <span>Können wir Freitag um 10 zur Sprint-Review?</span>
+            </div>
+          </div>
+          <div className="bq-mk-chat-msg bq-mk-chat-msg-me">
+            <div className="bq-mk-chat-bubble bq-mk-chat-bubble-me">
+              <span>Passt — leg ich gleich an 👌</span>
+            </div>
+            <span className="bq-mk-chat-av" style={{ background: '#4DA3FF' }}>K</span>
+          </div>
+          <div className="bq-mk-chat-msg">
+            <span className="bq-mk-chat-av" style={{ background: '#34C759' }}>M</span>
+            <div className="bq-mk-chat-event">
+              <div className="bq-mk-chat-event-row">
+                <CalendarDays size={14} /> <strong>Sprint-Review</strong>
+                <span className="bq-mk-badge bq-mk-badge-termin">TERMIN</span>
+              </div>
+              <div className="bq-mk-chat-event-meta">Fr 10:00 – 11:00 · auto erkannt</div>
+              <div className="bq-mk-chat-event-actions">
+                <span className="bq-mk-mini-btn">Übernehmen</span>
+                <span className="bq-mk-mini-btn ghost">Ignorieren</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </MockFrame>
+    );
+  }
+
+  if (title === 'Geteilte Gruppen-Aufgaben') {
+    return (
+      <MockFrame label="BeeQu · Gruppe">
+        <div className="bq-mk-grp-head">
+          <span className="bq-mk-grp-emoji">👪</span>
+          <div>
+            <strong>Familie</strong>
+            <div className="bq-mk-grp-sub"><span className="bq-mk-chip-mini">Mitglied</span> COLLABORATION SPACE</div>
+          </div>
+        </div>
+        <div className="bq-mk-grp-stats">
+          <div className="bq-mk-grp-stat"><span>MITGLIEDER</span><strong>6</strong></div>
+          <div className="bq-mk-grp-stat"><span>AKTIVE AUFGABEN</span><strong>4</strong></div>
+          <div className="bq-mk-grp-stat"><span>ABGESCHLOSSEN</span><strong style={{ color: '#34C759' }}>68%</strong></div>
+          <div className="bq-mk-grp-stat"><span>ADMINS</span><strong style={{ color: '#FF375F' }}>1</strong></div>
+        </div>
+        <div className="bq-mk-grp-members">
+          {[
+            { i: 'M', c: '#7C4DFF', n: 'Max Mustermann' },
+            { i: 'K', c: '#4DA3FF', n: 'Kira Mustermann (Du)' },
+            { i: 'I', c: '#34C759', n: 'Iris Mustermann' },
+            { i: 'O', c: '#007AFF', n: 'Oskar Mustermann' },
+          ].map((m) => (
+            <div key={m.n} className="bq-mk-grp-member">
+              <span className="bq-mk-grp-av" style={{ background: m.c }}>{m.i}</span>
+              <span>{m.n}</span>
+            </div>
+          ))}
+        </div>
+      </MockFrame>
+    );
+  }
+
+  if (title === 'Wiederkehrende Tasks') {
+    return (
+      <MockFrame label="BeeQu · Aufgaben">
+        <MockTaskCard
+          title="Konzertprobe" kind="TERMIN" day="20" mon="MAI"
+          chips={<span className="bq-mk-chip bq-mk-chip-blue"><Repeat size={11} /> Wöchentlich</span>}
+          meta={<>📅 Heute · 🕐 19:00 – 21:00 Uhr</>}
+        />
+        <MockTaskCard
+          title="Standup" kind="TERMIN" day="21" mon="MAI"
+          chips={<span className="bq-mk-chip bq-mk-chip-blue"><Repeat size={11} /> Täglich · 09:00</span>}
+          meta={<>Morgen · 09:00 – 09:15 Uhr</>}
+        />
+        <MockTaskCard
+          title="Monatsbericht" kind="AUFGABE" day="31" mon="MAI"
+          chips={<span className="bq-mk-chip bq-mk-chip-violet"><Repeat size={11} /> Letzter Tag des Monats</span>}
+          meta={<>31. Mai · ganztägig</>}
+        />
+      </MockFrame>
+    );
+  }
+
+  if (title === 'Focus-Timer') {
+    return (
+      <MockFrame label="BeeQu · Fokus">
+        <div className="bq-mk-focus-bar">
+          <div className="bq-mk-focus-ico"><Timer size={20} /></div>
+          <div className="bq-mk-focus-text">
+            <strong>Fokus-Timer</strong>
+            <span>Klick zum Starten · 5–45 min</span>
+          </div>
+        </div>
+        <div className="bq-mk-focus-presets">
+          {[5, 10, 15, 25, 45].map((m, i) => (
+            <span key={m} className={`bq-mk-focus-chip${i === 3 ? ' is-active' : ''}`}>{m} min</span>
+          ))}
+        </div>
+        <div className="bq-mk-focus-ring">
+          <svg viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="6" />
+            <circle cx="50" cy="50" r="44" fill="none" stroke="#AF52DE" strokeWidth="6"
+              strokeDasharray="276" strokeDashoffset="92" strokeLinecap="round"
+              transform="rotate(-90 50 50)" />
+          </svg>
+          <div className="bq-mk-focus-ring-txt">
+            <strong>17:42</strong>
+            <span>von 25:00 · Fokus</span>
+          </div>
+        </div>
+      </MockFrame>
+    );
+  }
+
+  if (title === 'Notizen-Board') {
+    return (
+      <MockFrame label="BeeQu · Notes">
+        <div className="bq-mk-notes-head">
+          <strong>Notizen-Board</strong>
+          <span className="bq-mk-chip-mini">+ Neue Note</span>
+        </div>
+        <div className="bq-mk-notes-board">
+          <div className="bq-mk-note" style={{ background: '#FFE066', transform: 'rotate(-2deg)' }}>
+            <div className="bq-mk-note-title">Einkauf Wochenende</div>
+            <div className="bq-mk-note-body">Brot · Eier · Milch · Kaffee</div>
+            <div className="bq-mk-note-foot">📌 angeheftet</div>
+          </div>
+          <div className="bq-mk-note" style={{ background: '#BFDBFE', transform: 'rotate(1.5deg)' }}>
+            <div className="bq-mk-note-title">Ideen Geburtstag</div>
+            <div className="bq-mk-note-body">Picknick im Park, Karaoke abends</div>
+            <div className="bq-mk-note-foot bq-mk-note-shared">👥 mit Sarah · Bearbeiten</div>
+          </div>
+          <div className="bq-mk-note" style={{ background: '#BBF7D0', transform: 'rotate(-0.8deg)' }}>
+            <div className="bq-mk-note-title">Urlaub planen</div>
+            <div className="bq-mk-note-body">Flüge prüfen, Pässe checken</div>
+            <div className="bq-mk-note-foot bq-mk-note-shared">👥 mit Max · Lesen</div>
+          </div>
+          <div className="bq-mk-note" style={{ background: '#FBCFE8', transform: 'rotate(2deg)' }}>
+            <div className="bq-mk-note-title">Buch-Empfehlungen</div>
+            <div className="bq-mk-note-body">Atomic Habits, Deep Work…</div>
+            <div className="bq-mk-note-foot">privat</div>
+          </div>
+        </div>
+      </MockFrame>
+    );
+  }
+
+  if (title === 'Statistiken & Insights') {
+    return (
+      <MockFrame label="BeeQu · Dashboard">
+        <div className="bq-mk-insights-head">
+          <span><span className="bq-mk-bullet" style={{ background: '#4DA3FF' }} /> Fokus heute</span>
+          <div className="bq-mk-insights-pills">
+            <span className="bq-mk-chip-mini">Heute: 1</span>
+            <span className="bq-mk-chip-mini">Überfällig: 0</span>
+            <span className="bq-mk-chip-mini">Woche: 0%</span>
+          </div>
+        </div>
+        <div className="bq-mk-focus-bar">
+          <div className="bq-mk-focus-ico"><Timer size={20} /></div>
+          <div className="bq-mk-focus-text">
+            <strong>Fokus-Timer</strong>
+            <span>Klick zum Starten · 5–45 min</span>
+          </div>
+        </div>
+        <div className="bq-mk-hint">
+          <span className="bq-mk-hint-tag" style={{ color: '#4DA3FF' }}>⚡ NACHMITTAG</span>
+          <div>Nachmittag läuft – 1 Aufgabe noch offen. Konzentriere dich auf eine Aufgabe auf einmal.</div>
+        </div>
+        <div className="bq-mk-hint">
+          <span className="bq-mk-hint-tag" style={{ color: '#34C759' }}>✓ HEUTE FORTSCHRITT</span>
+          <div>1 Aufgaben heute geplant. Starte mit der ersten — Momentum entsteht durch Action.</div>
+        </div>
+        <div className="bq-mk-hint">
+          <span className="bq-mk-hint-tag" style={{ color: '#AF52DE' }}>📅 TERMINE</span>
+          <div>6,2h frei, 2 Termine bald. Plane Puffer davor und danach.</div>
+        </div>
+      </MockFrame>
+    );
+  }
+
+  if (title === 'Dateianhänge') {
+    return (
+      <MockFrame label="BeeQu · Task-Detail">
+        <div className="bq-mk-task-head" style={{ marginBottom: 4 }}>
+          <strong>Briefing Q2 fertigstellen</strong>
+          <span className="bq-mk-badge bq-mk-badge-aufgabe">AUFGABE</span>
+        </div>
+        <div className="bq-mk-task-meta" style={{ marginBottom: 12 }}>📅 Heute · 🕐 14:00 · 🔵 Mittel</div>
+        <div className="bq-mk-att-head">📎 Anhänge <span>3</span></div>
+        <div className="bq-mk-att-list">
+          <div className="bq-mk-att">
+            <span className="bq-mk-att-ico" style={{ background: 'rgba(255,59,48,0.18)', color: '#FF6B6B' }}>PDF</span>
+            <div><div>Briefing-Q2.pdf</div><small>2,4 MB · vor 2 Std.</small></div>
+          </div>
+          <div className="bq-mk-att">
+            <span className="bq-mk-att-ico" style={{ background: 'rgba(0,199,190,0.18)', color: '#5EEAD4' }}>JPG</span>
+            <div><div>moodboard.jpg</div><small>1,1 MB · gestern</small></div>
+          </div>
+          <div className="bq-mk-att">
+            <span className="bq-mk-att-ico" style={{ background: 'rgba(88,86,214,0.22)', color: '#8B87FF' }}>DOC</span>
+            <div><div>Agenda-Meeting.docx</div><small>340 KB · gestern</small></div>
+          </div>
+        </div>
+      </MockFrame>
+    );
+  }
+
+  if (title === 'Smarte Erinnerungen') {
+    return (
+      <MockFrame label="BeeQu · System">
+        <div className="bq-mk-toast">
+          <div className="bq-mk-toast-icon">
+            <Bell size={18} />
+          </div>
+          <div className="bq-mk-toast-body">
+            <div className="bq-mk-toast-head">
+              <strong>BeeQu</strong>
+              <span>jetzt</span>
+            </div>
+            <div className="bq-mk-toast-title">Sprint-Review startet in 15 Min</div>
+            <div className="bq-mk-toast-sub">Fr · 10:00 – 11:00 · Produkt</div>
+          </div>
+        </div>
+        <div className="bq-mk-toast">
+          <div className="bq-mk-toast-icon" style={{ background: 'rgba(175,82,222,0.18)', color: '#C58CF7' }}>
+            <Timer size={18} />
+          </div>
+          <div className="bq-mk-toast-body">
+            <div className="bq-mk-toast-head">
+              <strong>Fokus beendet</strong>
+              <span>vor 1 Min</span>
+            </div>
+            <div className="bq-mk-toast-title">25 Min Deep Work geschafft 🎉</div>
+            <div className="bq-mk-toast-sub">Pause oder weiter?</div>
+          </div>
+        </div>
+      </MockFrame>
+    );
+  }
+
+  if (title === 'ICS-Import & -Export') {
+    return (
+      <MockFrame label="BeeQu · Kalender importieren">
+        <div className="bq-mk-imp-head">
+          <strong>Kalender importieren</strong>
+          <span className="bq-mk-chip-mini">.ics</span>
+        </div>
+        <div className="bq-mk-imp-drop">
+          <Download size={20} />
+          <div><strong>Datei hierher ziehen</strong><small>oder Datei auswählen</small></div>
+        </div>
+        <div className="bq-mk-imp-sources">
+          <div className="bq-mk-imp-src"><span>📅</span> Google Calendar</div>
+          <div className="bq-mk-imp-src"><span>📅</span> Apple Kalender</div>
+          <div className="bq-mk-imp-src"><span>📅</span> Outlook / Office 365</div>
+        </div>
+        <div className="bq-mk-imp-export">
+          <span>Eigene Aufgaben exportieren</span>
+          <span className="bq-mk-mini-btn">beequ.ics ↓</span>
+        </div>
+      </MockFrame>
+    );
+  }
+
+  if (title === 'PWA — überall installierbar') {
+    return (
+      <MockFrame label="BeeQu · überall">
+        <div className="bq-mk-devices">
+          <div className="bq-mk-dev bq-mk-dev-laptop">
+            <div className="bq-mk-dev-screen">
+              <div className="bq-mk-dev-bar"><span /><span /><span /></div>
+              <div className="bq-mk-dev-rows"><i /><i /><i /><i /></div>
+            </div>
+            <div className="bq-mk-dev-foot" />
+          </div>
+          <div className="bq-mk-dev bq-mk-dev-phone">
+            <div className="bq-mk-dev-screen">
+              <div className="bq-mk-dev-notch" />
+              <div className="bq-mk-dev-rows"><i /><i /><i /></div>
+            </div>
+          </div>
+        </div>
+        <div className="bq-mk-dev-labels">
+          <span className="bq-mk-chip-mini">iOS</span>
+          <span className="bq-mk-chip-mini">Android</span>
+          <span className="bq-mk-chip-mini">macOS</span>
+          <span className="bq-mk-chip-mini">Windows</span>
+          <span className="bq-mk-chip-mini">Web</span>
+        </div>
+      </MockFrame>
+    );
+  }
+
+  // Fallback
+  return (
+    <MockFrame>
+      <div className="bq-demo-center" style={{ padding: 30 }}>
+        <div className="bq-demo-bell" style={{ background: bg, borderColor: color, color }}>
+          <Icon size={28} />
+        </div>
+      </div>
+    </MockFrame>
   );
 }
 
