@@ -144,6 +144,10 @@ async function ensureNotesStatusColumns(pool) {
     // Index beschleunigt den GET-Filter beim Anzeigen von Team-Notes an Tasks.
     await pool.query("ALTER TABLE notes ADD COLUMN IF NOT EXISTS visibility VARCHAR(16) DEFAULT 'private'");
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_notes_linked_task_visibility ON notes (linked_task_id, visibility) WHERE linked_task_id IS NOT NULL`);
+    // Farbe der Notiz (Display-Name aus dem Frontend-Color-Picker, z.B.
+    // 'Gelb', 'Blau', 'Rosa'). Ersetzt den Legacy-Prefix '[COLOR:Name]'
+    // im content. Backfill geschieht transparent auf INSERT/UPDATE.
+    await pool.query("ALTER TABLE notes ADD COLUMN IF NOT EXISTS color VARCHAR(16) NULL");
     // Share-Request-Flow: Empfaenger muss aktiv bestaetigen, bevor eine
     // geteilte Notiz in seiner "Mit mir geteilt"-Liste auftaucht. Default
     // 'accepted' fuer Backward-Compat (Bestandsdaten bleiben sichtbar).
@@ -169,13 +173,55 @@ async function ensureNotesStatusColumns(pool) {
 function diffNoteUpdate(prev, next) {
   const changed = [];
   if (!prev || !next) return changed;
-  const fields = ['title', 'content', 'importance', 'date', 'visibility', 'status', 'completed', 'linked_task_id'];
+  const fields = ['title', 'content', 'importance', 'date', 'visibility', 'status', 'completed', 'linked_task_id', 'color'];
   for (const f of fields) {
     const a = prev[f] === undefined ? null : prev[f];
     const b = next[f] === undefined ? null : next[f];
     if (String(a ?? '') !== String(b ?? '')) changed.push(f);
   }
   return changed;
+}
+
+// Akzeptierte Farb-Display-Namen aus dem Frontend-Color-Picker. Wenn das
+// Frontend andere Werte schickt, wird auf null normalisiert (Default-Look
+// im UI). Begrenzt damit kein Wildwuchs in der DB landet.
+const VALID_NOTE_COLORS = new Set([
+  'Gelb', 'Rosa', 'Blau', 'Gruen', 'Lila', 'Orange', 'Tuerkis', 'Grau',
+  // Legacy / alternative Schreibweisen
+  'Gruen ', 'Grün', 'Tuerkis ', 'Türkis',
+]);
+
+function normalizeNoteColor(value) {
+  if (value === null || value === undefined) return null;
+  const str = String(value).trim();
+  if (!str) return null;
+  if (str.length > 16) return null;
+  // Frontend nutzt aktuell deutsche Display-Namen; wir akzeptieren alles
+  // bis 16 Zeichen, normalisieren aber Umlaute auf die ASCII-Variante
+  // damit DB-Werte konsistent sind.
+  const ascii = str
+    .replace(/ü/g, 'ue').replace(/Ü/g, 'Ue')
+    .replace(/ö/g, 'oe').replace(/Ö/g, 'Oe')
+    .replace(/ä/g, 'ae').replace(/Ä/g, 'Ae')
+    .replace(/ß/g, 'ss')
+    .trim();
+  return ascii.slice(0, 16);
+}
+
+// Trennt legacy '[COLOR:Name] ' Prefix vom content. Frontend hat das
+// frueher in den content geschrieben. Auf INSERT/UPDATE strippen wir
+// den Prefix und uebernehmen den Color-Namen in die neue Spalte.
+function extractColorPrefix(rawContent) {
+  if (rawContent === null || rawContent === undefined) {
+    return { color: null, content: '' };
+  }
+  const str = String(rawContent);
+  const m = str.match(/^\s*\[COLOR:([^\]]+)\]\s*/);
+  if (!m) return { color: null, content: str };
+  return {
+    color: normalizeNoteColor(m[1]),
+    content: str.slice(m[0].length),
+  };
 }
 
 async function normalizeNotesOwnerIdForDb(pool, rawUserId) {
@@ -620,6 +666,23 @@ module.exports = async function handler(req, res) {
         }
       }
 
+      // Color-Backfill: alte Notes haben '[COLOR:Name]' im content statt
+      // in der color-Spalte. Wir extrahieren on-the-fly (Response wird
+      // 'sauber' ausgeliefert) und stossen einen UPDATE im Hintergrund an,
+      // damit kuenftige Reads die Spalte direkt nutzen koennen.
+      for (const note of ownNotes) {
+        if (!note || note.is_foreign) continue;
+        if (note.color) continue;
+        const ext = extractColorPrefix(note.content || '');
+        if (!ext.color) continue;
+        note.color = ext.color;
+        note.content = ext.content;
+        pool.query(
+          'UPDATE notes SET color = $1, content = $2 WHERE id = $3 AND color IS NULL',
+          [ext.color, ext.content, note.id]
+        ).catch(() => null);
+      }
+
       return res.status(200).json({ notes: ownNotes });
     }
 
@@ -638,10 +701,18 @@ module.exports = async function handler(req, res) {
         y = null,
         participant_ids = [],
         responsible_user_id = null,
+        color: colorInput,
       } = req.body || {};
 
       // iOS-Notes-Stil: leerer Titel erlaubt (frueher 400 "Titel ist erforderlich")
       const safeTitle = (title && String(title).trim()) ? String(title).trim() : '';
+
+      // Color-DB-Spalte: explizit gesetzter color-Wert hat Vorrang vor
+      // Legacy '[COLOR:...]' Prefix im content. Prefix wird in jedem
+      // Fall vom gespeicherten content gestripped.
+      const { color: contentColor, content: cleanContent } = extractColorPrefix(content);
+      const safeColor = normalizeNoteColor(colorInput !== undefined ? colorInput : contentColor);
+      const storedContent = cleanContent;
 
       const validImportance = ['low', 'medium', 'high'].includes(importance) ? importance : 'medium';
       const safeCompleted = !!completed;
@@ -677,16 +748,16 @@ module.exports = async function handler(req, res) {
         : null;
 
       let insert;
-      // Try with participant columns first; fall back gracefully if columns don't exist yet
+      // Try with participant + color columns first; fall back gracefully if columns don't exist yet
       try {
         insert = await pool.query(
-          `INSERT INTO notes (user_id, title, content, importance, date, completed, completed_at, status, linked_task_id, x, y, participant_ids, responsible_user_id)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          `INSERT INTO notes (user_id, title, content, importance, date, completed, completed_at, status, linked_task_id, x, y, participant_ids, responsible_user_id, color)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
            RETURNING *`,
           [
             ownerId.value,
             safeTitle,
-            String(content || ''),
+            storedContent,
             validImportance,
             date || null,
             safeCompleted,
@@ -697,6 +768,7 @@ module.exports = async function handler(req, res) {
             y === null || y === undefined ? null : Number(y),
             safeParticipantIds,
             safeResponsibleId,
+            safeColor,
           ]
         );
       } catch (err) {
@@ -704,7 +776,7 @@ module.exports = async function handler(req, res) {
         const isMissingColumn = err.code === '42703';
         if (!isMissingColumn && !isMissingPositionColumnError(err) && !isLinkedTaskTypeError(err)) throw err;
 
-        // Fallback: insert without participant columns (and without position if needed)
+        // Fallback: insert without participant / color columns (and without position if needed)
         try {
           insert = await pool.query(
             `INSERT INTO notes (user_id, title, content, importance, date, completed, completed_at, status, linked_task_id, x, y)
@@ -713,7 +785,7 @@ module.exports = async function handler(req, res) {
             [
               ownerId.value,
               safeTitle,
-              String(content || ''),
+              storedContent,
               validImportance,
               date || null,
               safeCompleted,
@@ -733,7 +805,7 @@ module.exports = async function handler(req, res) {
             [
               ownerId.value,
               safeTitle,
-              String(content || ''),
+              storedContent,
               validImportance,
               date || null,
               safeCompleted,
@@ -903,6 +975,16 @@ module.exports = async function handler(req, res) {
             ORDER BY n.updated_at DESC, n.created_at DESC`,
           [userIdText, userId]
         );
+        // Color-Backfill auch hier (read-only fuer Sharees, kein UPDATE).
+        for (const note of shared.rows) {
+          if (note && !note.color) {
+            const ext = extractColorPrefix(note.content || '');
+            if (ext.color) {
+              note.color = ext.color;
+              note.content = ext.content;
+            }
+          }
+        }
         return res.status(200).json({ notes: shared.rows });
       } catch {
         const sharedNoJoin = await pool.query(
@@ -1011,9 +1093,29 @@ module.exports = async function handler(req, res) {
         fields.push(`title = $${idx++}`);
         values.push(String(updates.title || '').trim());
       }
+      // Color-Spalte: explizit gesetzter color-Wert hat Vorrang. Wenn nur
+      // content kommt und einen Legacy '[COLOR:...]' Prefix hat, ziehen
+      // wir die Farbe daraus und schreiben sie in die Spalte, der content
+      // wird ohne Prefix gespeichert.
+      let pendingColorUpdate = null; // null = nicht aendern, sonst Wert (incl null)
+      let cleanedUpdateContent = null;
+      if (updates.content !== undefined) {
+        const ext = extractColorPrefix(updates.content);
+        cleanedUpdateContent = ext.content;
+        if (updates.color === undefined && ext.color) {
+          pendingColorUpdate = ext.color;
+        }
+      }
+      if (updates.color !== undefined) {
+        pendingColorUpdate = normalizeNoteColor(updates.color);
+      }
       if (updates.content !== undefined) {
         fields.push(`content = $${idx++}`);
-        values.push(String(updates.content || ''));
+        values.push(String(cleanedUpdateContent ?? ''));
+      }
+      if (pendingColorUpdate !== null || updates.color !== undefined) {
+        fields.push(`color = $${idx++}`);
+        values.push(pendingColorUpdate);
       }
       if (updates.importance !== undefined) {
         const validImportance = ['low', 'medium', 'high'].includes(updates.importance)
@@ -1130,7 +1232,14 @@ module.exports = async function handler(req, res) {
         }
         if (updates.content !== undefined) {
           rebuiltFields.push(`content = $${paramIdx++}`);
-          rebuiltValues.push(String(updates.content || ''));
+          rebuiltValues.push(String(cleanedUpdateContent ?? updates.content ?? ''));
+        }
+        // color-Spalte auch im Fallback uebernehmen (falls Migration durch
+        // ist). Fehlt die Spalte, schmeisst PG erneut 42703 - wird durch
+        // try/catch eine Ebene tiefer abgefangen.
+        if (pendingColorUpdate !== null || updates.color !== undefined) {
+          rebuiltFields.push(`color = $${paramIdx++}`);
+          rebuiltValues.push(pendingColorUpdate);
         }
         if (updates.importance !== undefined) {
           const validImportance = ['low', 'medium', 'high'].includes(updates.importance) ? updates.importance : 'medium';

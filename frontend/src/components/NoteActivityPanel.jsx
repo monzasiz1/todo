@@ -12,18 +12,18 @@ const TYPE_VERBS = {
   created: 'hat die Notiz erstellt',
   edited: 'hat die Notiz bearbeitet',
   completed: 'hat die Notiz erledigt',
-  reopened: 'hat die Notiz wieder geoeffnet',
+  reopened: 'hat die Notiz wieder geöffnet',
   shared: 'hat die Notiz geteilt',
   unshared: 'hat eine Freigabe entfernt',
   share_accepted: 'hat die Freigabe angenommen',
   share_declined: 'hat die Freigabe abgelehnt',
-  linked_task: 'hat einen Termin verknuepft',
+  linked_task: 'hat einen Termin verknüpft',
   unlinked_task: 'hat den Termin entfernt',
   made_group: 'hat die Notiz mit der Gruppe geteilt',
   made_private: 'hat die Notiz privat gestellt',
-  participants_changed: 'hat die Teilnehmer geaendert',
+  participants_changed: 'hat die Teilnehmer geändert',
   comment_added: 'hat einen Kommentar geschrieben',
-  user_mentioned: 'hat jemanden erwaehnt',
+  user_mentioned: 'hat jemanden erwähnt',
 };
 
 function relativeTime(iso) {
@@ -88,7 +88,7 @@ export default function NoteActivityPanel({ noteId, refreshKey = 0, defaultOpen 
   const count = items.length;
 
   const renderedItems = useMemo(() => items.map((row) => {
-    const verb = TYPE_VERBS[row.type] || 'hat eine Aenderung gemacht';
+    const verb = TYPE_VERBS[row.type] || 'hat eine Änderung gemacht';
     const isMe = row.actor_user_id && String(row.actor_user_id) === currentUserId;
     const actorName = isMe ? 'Du' : (row.actor_name || 'Jemand');
     return (
@@ -114,7 +114,7 @@ export default function NoteActivityPanel({ noteId, refreshKey = 0, defaultOpen 
         aria-expanded={open}
       >
         <Activity size={14} />
-        <span>Aktivitaetsverlauf{count > 0 ? ` · ${count}` : ''}</span>
+        <span>Aktivitätsverlauf{count > 0 ? ` · ${count}` : ''}</span>
         <ChevronDown size={14} className={`nem-act-chev${open ? ' is-open' : ''}`} aria-hidden />
       </button>
       <AnimatePresence initial={false}>
@@ -127,7 +127,7 @@ export default function NoteActivityPanel({ noteId, refreshKey = 0, defaultOpen 
             transition={{ duration: 0.18 }}
           >
             <div className="nem-act-head">
-              <span className="nem-act-head-title">Letzte Aktivitaeten</span>
+              <span className="nem-act-head-title">Letzte Aktivitäten</span>
               <button
                 type="button"
                 className="nem-act-refresh"
@@ -144,7 +144,7 @@ export default function NoteActivityPanel({ noteId, refreshKey = 0, defaultOpen 
             ) : error ? (
               <div className="nem-act-empty nem-act-empty--error">{error}</div>
             ) : items.length === 0 ? (
-              <div className="nem-act-empty">Noch keine Aktivitaeten.</div>
+              <div className="nem-act-empty">Noch keine Aktivitäten.</div>
             ) : (
               <ul className="nem-act-list">{renderedItems}</ul>
             )}

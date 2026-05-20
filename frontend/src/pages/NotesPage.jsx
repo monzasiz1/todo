@@ -126,6 +126,13 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
   const taskPickerDragControls = useDragControls();
 
   const noteColor = useMemo(() => {
+    // Bevorzugt die neue notes.color-Spalte. Legacy '[COLOR:Name]' Prefix
+    // im content bleibt als Fallback fuer alte / noch nicht backfillete
+    // Notes erhalten.
+    if (note.color) {
+      const match = NOTE_COLORS.find((c) => c.name.toLowerCase() === String(note.color).toLowerCase());
+      if (match) return match;
+    }
     const contentStr = note.content || '';
     const colorMatch = contentStr.match(/^\[COLOR:([^\]]+)\]/);
     if (colorMatch) {
@@ -133,10 +140,11 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
       return NOTE_COLORS.find(c => c.name === colorName) || NOTE_COLORS[0];
     }
     return NOTE_COLORS[0];
-  }, [note.content]);
+  }, [note.color, note.content]);
 
   const actualContent = useMemo(() => {
     const contentStr = note.content || '';
+    // Legacy-Prefix nur strippen falls Backend ihn (noch) nicht entfernt hat.
     return contentStr.replace(/^\[COLOR:[^\]]+\]\s*/, '');
   }, [note.content]);
 
@@ -178,14 +186,14 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
   }, [tasks, note.linked_task_id]);
 
   const handleSave = useCallback(async () => {
-    const contentWithColor = `[COLOR:${noteColor.name}] ${content.trim()}`;
-    if (contentWithColor !== note.content) {
-      await onUpdate(note.id, { content: contentWithColor });
+    const cleanContent = content.trim();
+    if (cleanContent !== (note.content || '').trim()) {
+      await onUpdate(note.id, { content: cleanContent, color: noteColor.name });
     }
     setIsEditing(false);
   }, [content, note.content, note.id, onUpdate, noteColor.name]);
 
-  // Checkbox-Toggle in einer bestimmten Zeile (Persistenz inkl. COLOR-Prefix).
+  // Checkbox-Toggle in einer bestimmten Zeile (color geht ueber Spalte).
   const handleToggleLine = useCallback(async (lineIndex) => {
     const text = actualContent || '';
     const lines = text.split('\n');
@@ -195,13 +203,11 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
     const newMark = m[2].toLowerCase() === 'x' ? ' ' : 'x';
     lines[lineIndex] = `${m[1]}${newMark}${m[3]}`;
     const updated = lines.join('\n');
-    const contentWithColor = `[COLOR:${noteColor.name}] ${updated}`;
-    try { await onUpdate(note.id, { content: contentWithColor }); }
+    try { await onUpdate(note.id, { content: updated, color: noteColor.name }); }
     catch (err) { console.error('Checklist-Toggle failed:', err); }
   }, [actualContent, noteColor.name, note.id, onUpdate]);
 
-  // HTML-Checkbox-Toggle (WYSIWYG-Notizen): findet die n-te Checkbox
-  // im sanitized HTML, togglet ihr checked-Attribut und speichert.
+  // HTML-Checkbox-Toggle (WYSIWYG-Notizen).
   const handleToggleHtmlCheckbox = useCallback(async (cbIndex) => {
     if (cbIndex < 0) return;
     const html = looksLikeHtml(actualContent) ? actualContent : toDisplayHtml(actualContent);
@@ -213,10 +219,7 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
     if (target.hasAttribute('checked')) target.removeAttribute('checked');
     else target.setAttribute('checked', '');
     const nextHtml = sanitizeHtml(tmp.innerHTML);
-    const contentWithColor = noteColor.name !== 'Gelb'
-      ? `[COLOR:${noteColor.name}] ${nextHtml}`
-      : nextHtml;
-    try { await onUpdate(note.id, { content: contentWithColor }); }
+    try { await onUpdate(note.id, { content: nextHtml, color: noteColor.name }); }
     catch (err) { console.error('HTML-Checklist-Toggle failed:', err); }
   }, [actualContent, noteColor.name, note.id, onUpdate]);
 
@@ -1076,7 +1079,8 @@ export default function NotesPage() {
     try {
       const created = await createNote({
         title: '',
-        content: `[COLOR:${randomColor.name}] `,
+        content: '',
+        color: randomColor.name,
         x: Math.round(x),
         y: Math.round(y),
       });
@@ -1788,9 +1792,12 @@ export default function NotesPage() {
               ) : (
                 <ul className="notes-archive-list">
                   {archivedNotes.map((note) => {
-                    const colorMatch = (note.content || '').match(/^\[COLOR:([^\]]+)\]/);
-                    const colorName = colorMatch ? colorMatch[1] : 'Gelb';
-                    const color = NOTE_COLORS.find((c) => c.name === colorName) || NOTE_COLORS[0];
+                    let colorName = note.color || null;
+                    if (!colorName) {
+                      const colorMatch = (note.content || '').match(/^\[COLOR:([^\]]+)\]/);
+                      colorName = colorMatch ? colorMatch[1] : 'Gelb';
+                    }
+                    const color = NOTE_COLORS.find((c) => String(c.name).toLowerCase() === String(colorName).toLowerCase()) || NOTE_COLORS[0];
                     const text = (note.content || '').replace(/^\[COLOR:[^\]]+\]\s*/, '').trim() || '(leer)';
                     const completedAt = note.completed_at
                       ? new Date(note.completed_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' })

@@ -37,8 +37,10 @@ function parseColor(content) {
   return { color: NOTE_COLORS[0], rest: content || '' };
 }
 
-function buildContent(rest, color) {
-  return color && color.name !== 'Gelb' ? `[COLOR:${color.name}] ${rest}` : rest;
+function buildContent(rest /* , color */) {
+  // Color wird ab sofort als eigenes Feld an die API geschickt; der
+  // Legacy '[COLOR:Name]' Prefix wird nicht mehr in content geschrieben.
+  return String(rest ?? '');
 }
 
 // Live-Markdown-Vorschau (nutzt simple Block-/Inline-Regeln).
@@ -141,12 +143,23 @@ function FormatToolbar({ onAction }) {
 }
 
 export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onComplete, readOnly: readOnlyProp = false }) {
+  // Color-DB-Spalte: wenn note.color gesetzt ist, hat sie Vorrang vor
+  // Legacy '[COLOR:Name]'-Prefix im content. Backend strippt den Prefix
+  // beim Save und backfilled die Spalte beim ersten GET; parseColor
+  // bleibt nur als Fallback fuer Race-Conditions / alte Cache-Stände.
   const initialParsed = useMemo(() => parseColor(note?.content || ''), [note?.id]);
+  const initialColor = useMemo(() => {
+    if (note?.color) {
+      const match = NOTE_COLORS.find((c) => c.name.toLowerCase() === String(note.color).toLowerCase());
+      if (match) return match;
+    }
+    return initialParsed.color;
+  }, [note?.id, note?.color, initialParsed.color]);
   const [title, setTitle] = useState(note?.title || '');
   // Content wird ab sofort als HTML gespeichert (WYSIWYG-Editor). Bestands-
   // Notizen sind Markdown -> on-load nach HTML konvertieren.
   const [content, setContent] = useState(() => toDisplayHtml(initialParsed.rest));
-  const [color, setColor] = useState(initialParsed.color);
+  const [color, setColor] = useState(initialColor);
   const [importance, setImportance] = useState(note?.importance || 'medium');
   // Owner-/Readonly-Logik: Notes von anderen Usern (z. B. an gemeinsame
   // Tasks angeheftete Team-Notes) werden read-only dargestellt.
@@ -334,7 +347,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   };
   const editorRef = useRef(null);
   const saveTimerRef = useRef(null);
-  const initialKeyRef = useRef(`${note?.id}|${note?.title || ''}|${note?.content || ''}|${note?.importance || ''}`);
+  const initialKeyRef = useRef(`${note?.id}|${note?.title || ''}|${note?.content || ''}|${note?.color || ''}|${note?.importance || ''}`);
 
   // ESC schliesst
   useEffect(() => {
@@ -393,6 +406,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
         await onUpdate?.(note.id, {
           title: (nextTitle || '').trim(),
           content: buildContent(nextContent, nextColor),
+          color: nextColor?.name || null,
           importance: nextImportance,
         });
         setSaveState('saved');
@@ -410,11 +424,12 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
       saveTimerRef.current = null;
     }
     if (readOnly) return;
-    const key = `${note?.id}|${title}|${buildContent(content, color)}|${importance}`;
+    const key = `${note?.id}|${title}|${buildContent(content, color)}|${color?.name || ''}|${importance}`;
     if (key === initialKeyRef.current) return;
     onUpdate?.(note.id, {
       title: (title || '').trim(),
       content: buildContent(content, color),
+      color: color?.name || null,
       importance,
     }).catch((err) => console.error('[NoteEditorModal] flush save failed:', err));
   }, [note?.id, title, content, color, importance, onUpdate]);

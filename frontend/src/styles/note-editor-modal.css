@@ -1375,3 +1375,143 @@ html[data-theme="dark"] .nem-md-checkbox {
   color: var(--nem-text-soft, #64748b);
   opacity: 0.8;
 }
+
+/* ═════════════════════════════════════════════════════════════════════
+   ACTIVITY + COMMENTS — DARK MODE
+   Die Panels hatten nur Light-Theme-Defaults — auf data-theme="dark"
+   waren Hintergründe weiss/grau und die Eingabe ein heller Block.
+   Hier setzen wir die Tokens für beide Panels konsistent.
+   ═════════════════════════════════════════════════════════════════════ */
+
+html[data-theme="dark"] .nem-act,
+html[data-theme="dark"] .nem-cm {
+  border-top-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+}
+html[data-theme="dark"] .nem-act-toggle,
+html[data-theme="dark"] .nem-cm-toggle {
+  color: rgba(245, 247, 251, 0.72);
+}
+html[data-theme="dark"] .nem-act-toggle:hover,
+html[data-theme="dark"] .nem-cm-toggle:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #F5F7FB;
+}
+
+html[data-theme="dark"] .nem-act-panel,
+html[data-theme="dark"] .nem-cm-panel {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+html[data-theme="dark"] .nem-act-head,
+html[data-theme="dark"] .nem-cm-head {
+  color: rgba(245, 247, 251, 0.55);
+}
+
+html[data-theme="dark"] .nem-act-refresh,
+html[data-theme="dark"] .nem-cm-refresh {
+  color: rgba(245, 247, 251, 0.6);
+}
+html[data-theme="dark"] .nem-act-refresh:hover,
+html[data-theme="dark"] .nem-cm-refresh:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #F5F7FB;
+}
+
+html[data-theme="dark"] .nem-act-item,
+html[data-theme="dark"] .nem-cm-item {
+  color: #F5F7FB;
+}
+html[data-theme="dark"] .nem-act-actor,
+html[data-theme="dark"] .nem-cm-author {
+  color: #F5F7FB;
+}
+html[data-theme="dark"] .nem-act-verb,
+html[data-theme="dark"] .nem-act-time,
+html[data-theme="dark"] .nem-cm-meta,
+html[data-theme="dark"] .nem-cm-time {
+  color: rgba(245, 247, 251, 0.55);
+}
+html[data-theme="dark"] .nem-act-empty,
+html[data-theme="dark"] .nem-cm-empty {
+  color: rgba(245, 247, 251, 0.5);
+}
+html[data-theme="dark"] .nem-act-empty--error,
+html[data-theme="dark"] .nem-cm-empty--error {
+  color: #FF6482;
+}
+
+html[data-theme="dark"] .nem-act-avatar,
+html[data-theme="dark"] .nem-cm-avatar {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Compose-Bereich: dunkles Glass-Panel, helle Eingabe-Box */
+html[data-theme="dark"] .nem-cm-compose {
+  background: rgba(255, 255, 255, 0.03);
+  border-top-color: rgba(255, 255, 255, 0.07);
+}
+html[data-theme="dark"] .nem-cm-input {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #F5F7FB;
+  caret-color: var(--primary, #4DA3FF);
+}
+html[data-theme="dark"] .nem-cm-input::placeholder {
+  color: rgba(245, 247, 251, 0.4);
+}
+html[data-theme="dark"] .nem-cm-input:focus {
+  border-color: var(--nem-accent, #4DA3FF);
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--nem-accent, #4DA3FF) 28%, transparent);
+}
+html[data-theme="dark"] .nem-cm-send {
+  /* nem-accent + weißer Text bleiben, aber Schatten passt sich an */
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+html[data-theme="dark"] .nem-cm-del {
+  color: rgba(245, 247, 251, 0.45);
+}
+html[data-theme="dark"] .nem-cm-del:hover {
+  color: #FF6482;
+  background: rgba(255, 100, 130, 0.14);
+}
+
+/* Mention-Popover */
+html[data-theme="dark"] .nem-cm-mention-pop {
+  background: #1B2236;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.55),
+    0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+html[data-theme="dark"] .nem-cm-mention-item {
+  color: #F5F7FB;
+}
+html[data-theme="dark"] .nem-cm-mention-item.is-active,
+html[data-theme="dark"] .nem-cm-mention-item:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+html[data-theme="dark"] .nem-cm-mention-handle {
+  color: rgba(245, 247, 251, 0.5);
+}
+
+/* ── Light-Theme Polish: subtileres Surface-Tinting für Lesbarkeit ── */
+.nem-act,
+.nem-cm {
+  background: rgba(15, 23, 42, 0.025); /* leichter blau-grau Hauch statt rgba(0,0,0,0.02) */
+}
+.nem-act-panel,
+.nem-cm-panel {
+  background: rgba(248, 250, 252, 0.7);
+}
+.nem-cm-compose {
+  background: #ffffff;
+}
+.nem-cm-input {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.1);
+}
+.nem-cm-input:focus {
+  background: #ffffff;
+}

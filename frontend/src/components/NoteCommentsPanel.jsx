@@ -188,14 +188,14 @@ export default function NoteCommentsPanel({ noteId, refreshKey = 0, defaultOpen 
   };
 
   const handleDelete = async (commentId) => {
-    if (!window.confirm('Kommentar wirklich loeschen?')) return;
+    if (!window.confirm('Kommentar wirklich löschen?')) return;
     const prev = items;
     setItems((cs) => cs.filter((c) => c.id !== commentId));
     try {
       await api.deleteNoteComment(commentId);
     } catch (err) {
       setItems(prev);
-      setError(err?.message || 'Loeschen fehlgeschlagen');
+      setError(err?.message || 'Löschen fehlgeschlagen');
     }
   };
 
@@ -300,8 +300,8 @@ export default function NoteCommentsPanel({ noteId, refreshKey = 0, defaultOpen 
                               type="button"
                               className="nem-cm-del"
                               onClick={() => handleDelete(c.id)}
-                              title="Loeschen"
-                              aria-label="Kommentar loeschen"
+                              title="Löschen"
+                              aria-label="Kommentar löschen"
                             >
                               <Trash2 size={12} />
                             </button>
@@ -322,7 +322,7 @@ export default function NoteCommentsPanel({ noteId, refreshKey = 0, defaultOpen 
                     ref={textareaRef}
                     className="nem-cm-input"
                     rows={2}
-                    placeholder="Kommentar schreiben… (Enter sendet, @ erwaehnt jemanden)"
+                    placeholder="Kommentar schreiben… (Enter sendet, @ erwähnt jemanden)"
                     value={draft}
                     onChange={handleDraftChange}
                     onKeyDown={handleKeyDown}
