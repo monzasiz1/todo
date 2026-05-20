@@ -1,21 +1,15 @@
-﻿feat(notes): color als DB-Spalte (Farb-DB-Spalte)
+﻿feat(notes): Checklist-Fortschritt auf der Note-Card
 
-Migration vom Legacy '[COLOR:Name]' Inhalts-Prefix auf eine eigene
-Spalte notes.color VARCHAR(16). Auto-Migrate via ensureNotesStatusColumns.
-Server strippt den Prefix transparent auf INSERT/UPDATE und akzeptiert
-color als eigenes Body-Feld. Bestehende Notes mit Prefix funktionieren
-weiter; beim naechsten GET wird die Spalte fuer eigene Notes per
-Hintergrund-UPDATE backfilled.
+Zeigt unter dem Titel einen kompakten Fortschrittsbalken inkl. Zaehler
+(z. B. '3/5'), sobald die Notiz mindestens eine Checklist-Box enthaelt.
+Unterstuetzt beide Inhaltsformate:
+- Markdown: '- [ ]' / '- [x]'
+- HTML (WYSIWYG): <input type='checkbox' checked>
 
-Backend (api/notes.js):
-- ensureNotesStatusColumns: ALTER TABLE notes ADD COLUMN color
-- normalizeNoteColor (ASCII, max 16) + extractColorPrefix Helper
-- POST + PATCH (Haupt- und Fallback-UPDATE) honorieren color
-- diffNoteUpdate trackt 'color' fuer Activity-Log
-- GET ownNotes + shared: on-the-fly Color-Backfill aus Legacy-Prefix
+Wird auf der Card neben dem regulaeren Content gerendert, ohne den
+Inhalt zu verdraengen. Bei 100 Prozent wird das Zaehler-Label
+durchgestrichen. Fuellfarbe nutzt die Note-Farbe.
 
-Frontend:
-- NoteEditorModal: liest note.color, fallback parseColor; Save sendet
-  color separat, buildContent ohne Prefix; initialKeyRef incl. color
-- NotesPage: noteColor bevorzugt note.color, Save-Pfade ohne Prefix,
-  Create-Flow sendet color als eigenes Feld, Archiv-Liste liest color
+- NotesPage.jsx: computeChecklistProgress Helper + checklistProgress
+  useMemo + Render direkt vor .note-content
+- notes.css: .note-checklist-progress(-bar|-fill|-label) Styles

@@ -107,6 +107,41 @@ function renderNoteMarkdown(text, onToggleLine) {
   return out;
 }
 
+// ── Checklist-Fortschritt ──────────────────────────────────────────────
+// Zaehlt Markdown-Checkboxen (- [ ] / - [x]) und HTML-Checkboxen
+// (<input type="checkbox" checked>). Liefert { total, done, percent }
+// oder null wenn keine Checklist im content vorhanden ist.
+function computeChecklistProgress(rawContent) {
+  if (!rawContent) return null;
+  const str = String(rawContent);
+  let total = 0;
+  let done = 0;
+  if (looksLikeHtml(str)) {
+    // HTML-Pfad: per DOMParser sicher zaehlen, keine Regex auf HTML.
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(str, 'text/html');
+      const boxes = doc.querySelectorAll('input[type="checkbox"]');
+      boxes.forEach((b) => {
+        total += 1;
+        if (b.hasAttribute('checked')) done += 1;
+      });
+    } catch {
+      return null;
+    }
+  } else {
+    // Markdown-Pfad
+    const re = /^\s*-\s\[( |x|X)\]\s?/gm;
+    let m;
+    while ((m = re.exec(str)) !== null) {
+      total += 1;
+      if (m[1].toLowerCase() === 'x') done += 1;
+    }
+  }
+  if (total <= 0) return null;
+  return { total, done, percent: Math.round((done / total) * 100) };
+}
+
 function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange, isSelected, onSelect, tasks = [], onOpenTask, boardScaleRef, gridPos = null, dragDisabled = false, onDragLive, onOpenEditor }) {
   const [isEditing, setIsEditing] = useState(false);
   const [content, setContent] = useState(note.content || '');
@@ -167,6 +202,11 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
   // ueber renderNoteMarkdown.
   const isHtmlContent = useMemo(() => looksLikeHtml(displayContent), [displayContent]);
   const htmlForDisplay = useMemo(() => (isHtmlContent ? toDisplayHtml(displayContent) : ''), [isHtmlContent, displayContent]);
+
+  // Checklist-Fortschritt fuer die Card-Anzeige. Basiert auf dem ECHTEN
+  // content, nicht auf displayContent (damit auch gekuerzte/expanded
+  // Zustaende konsistent sind).
+  const checklistProgress = useMemo(() => computeChecklistProgress(actualContent), [actualContent]);
 
   // 0 = pin+curl-BR, 1 = sheen, 2 = tape, 3 = clip+curl-BL
   const variantIndex = useMemo(() => {
@@ -490,6 +530,23 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
           title={hasTitle ? note.title : 'Titel hinzufügen'}
         >
           {hasTitle ? note.title : ''}
+        </div>
+      )}
+
+      {checklistProgress && (
+        <div
+          className={`note-checklist-progress${checklistProgress.percent === 100 ? ' is-complete' : ''}`}
+          title={`${checklistProgress.done} von ${checklistProgress.total} erledigt`}
+        >
+          <div className="note-checklist-progress-bar">
+            <div
+              className="note-checklist-progress-fill"
+              style={{ width: `${checklistProgress.percent}%`, background: noteColor.shadow || noteColor.border }}
+            />
+          </div>
+          <span className="note-checklist-progress-label">
+            {checklistProgress.done}/{checklistProgress.total}
+          </span>
         </div>
       )}
 
