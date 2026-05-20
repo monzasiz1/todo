@@ -1018,6 +1018,110 @@ html[data-theme="dark"] .nem-editor blockquote {
   }
 }
 
+/* ─────────────────────────────────────────────────────────────
+   MOBILE Phase 2: groessere Touch-Targets, bessere Tastatur-
+   Vermeidung, scrollbare Toolbar mit deutlichen Affordances.
+   Apple/Google empfehlen >=44px Touch-Targets.
+   ─────────────────────────────────────────────────────────── */
+@media (max-width: 720px) {
+  /* Header-Icon-Buttons: 44x44 statt 34x34 */
+  .nem-icon-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+
+  /* Toolbar etwas hoeher + groessere Tap-Flaeche */
+  .nem-toolbar {
+    padding: 8px 12px;
+    gap: 4px;
+    /* Untere Schattenkante hervorheben, dass sie scrollbar wirkt */
+    box-shadow: inset -16px 0 16px -14px rgba(0,0,0,0.08);
+  }
+  .nem-toolbar-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+  }
+  /* Trennlinie zwischen Gruppen sichtbarer auf Mobile */
+  .nem-toolbar-group + .nem-toolbar-group::before {
+    top: 8px;
+    bottom: 8px;
+  }
+
+  /* Color-Dots groesser */
+  .nem-color-dot {
+    width: 30px;
+    height: 30px;
+  }
+
+  /* Footer-Actions deutliche 44er Targets */
+  .nem-action-btn {
+    min-height: 44px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    font-weight: 600;
+  }
+  .nem-importance-btn {
+    min-height: 36px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    font-size: 12px;
+  }
+
+  /* Save-State darf den knappen Header nicht sprengen */
+  .nem-header-actions {
+    gap: 4px;
+  }
+  .nem-save-state {
+    display: none;       /* spart Platz; Status sieht man am Editor-State */
+  }
+  .nem-readonly-badge span { display: none; }
+  .nem-readonly-badge {
+    padding: 6px 8px;
+    border-radius: 10px;
+  }
+
+  /* Editor selbst: groessere Schrift fuer komfortables Tippen,
+     iOS verhindert Auto-Zoom bei 16px+. */
+  .nem-editor {
+    font-size: 16px;
+    line-height: 1.55;
+    min-height: calc(100dvh - 360px);
+    padding-bottom: 12px;
+  }
+
+  /* Body bekommt Bottom-Padding fuer iOS-Safe-Area, damit der Editor
+     nicht hinter dem Home-Indicator endet, wenn der Footer ausgeblendet
+     ist (Tastatur offen). */
+  .nem-body {
+    padding-bottom: max(18px, env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Wenn Tastatur offen: Footer kann verdeckt sein - das ist OK
+     da Autosave laeuft. Wir machen den Footer sticky am Boden,
+     damit er sichtbar bleibt bis die Tastatur kommt. */
+  .nem-footer {
+    position: sticky;
+    bottom: 0;
+    background: var(--surface, #fff);
+    border-top: 1px solid var(--border, rgba(0,0,0,0.08));
+    box-shadow: 0 -2px 12px rgba(0,0,0,0.04);
+  }
+  html[data-theme="dark"] .nem-footer {
+    background: var(--surface, #1c1c1e);
+    border-top-color: rgba(255,255,255,0.08);
+    box-shadow: 0 -2px 12px rgba(0,0,0,0.4);
+  }
+
+  /* KI-Suggest-Box: groessere Buttons */
+  .nem-ai-suggest-btn {
+    min-height: 42px;
+    padding: 10px 14px;
+    border-radius: 10px;
+  }
+}
+
 /* Sehr schmale Phones (iPhone SE etc.) */
 @media (max-width: 380px) {
   .nem-importance-btn { padding: 6px 6px; font-size: 10px; }
