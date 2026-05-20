@@ -1,5 +1,5 @@
 const { getPool } = require('./_lib/db');
-const { verifyToken, cors } = require('./_lib/auth');
+const { verifyToken, cors, getJwtSecret } = require('./_lib/auth');
 
 function parseVirtualId(id) {
   if (typeof id !== 'string' || !id.startsWith('v_')) return null;
@@ -28,6 +28,35 @@ const ALLOWED_TYPES = [
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ];
 
+// Liefert true, wenn der User die Task lesen darf:
+// (a) Owner, (b) explizit ueber task_permissions berechtigt, oder
+// (c) Mitglied einer Gruppe, in der die Task geteilt ist.
+async function userCanAccessTask(pool, userId, taskId) {
+  const { rows } = await pool.query(
+    `SELECT 1
+       FROM tasks t
+      WHERE t.id = $1
+        AND (
+          t.user_id = $2
+          OR EXISTS (SELECT 1 FROM task_permissions tp
+                      WHERE tp.task_id = t.id AND tp.user_id = $2)
+          OR EXISTS (SELECT 1 FROM group_tasks gt
+                       JOIN group_members gm ON gm.group_id = gt.group_id
+                      WHERE gt.task_id = t.id AND gm.user_id = $2)
+        )
+      LIMIT 1`,
+    [taskId, userId]
+  );
+  return rows.length > 0;
+}
+
+// Inline-Anzeige nur fuer harmlose Bilder erlauben \u2014 alles andere als
+// Download ausliefern, damit kein Script via HTML/SVG/PDF im selben
+// Origin ausgefuehrt werden kann.
+const INLINE_TYPES = new Set([
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic',
+]);
+
 module.exports = async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -37,7 +66,7 @@ module.exports = async function handler(req, res) {
   if (!user && req.query.token) {
     try {
       const jwt = require('jsonwebtoken');
-      user = jwt.verify(req.query.token, process.env.JWT_SECRET || 'fallback-dev-secret');
+      user = jwt.verify(req.query.token, getJwtSecret());
     } catch {}
   }
   if (!user) return res.status(401).json({ error: 'Nicht autorisiert' });
@@ -52,6 +81,9 @@ module.exports = async function handler(req, res) {
     if (isNaN(taskId)) return res.status(400).json({ error: 'Ungültige Task-ID' });
 
     try {
+      if (!(await userCanAccessTask(pool, user.id, taskId))) {
+        return res.status(403).json({ error: 'Keine Berechtigung' });
+      }
       const { rows } = await pool.query(
         `SELECT id, task_id, file_name, file_type, file_size, created_at
          FROM task_attachments WHERE task_id = $1 ORDER BY created_at ASC`,
@@ -67,10 +99,13 @@ module.exports = async function handler(req, res) {
   // GET /api/attachments/:taskId/:attachmentId – download a single attachment
   if (segments.length === 2 && req.method === 'GET') {
     const taskId = normalizeTaskId(segments[0]);
-    const attachmentId = parseInt(segments[1]);
+    const attachmentId = parseInt(segments[1], 10);
     if (isNaN(taskId) || isNaN(attachmentId)) return res.status(400).json({ error: 'Ungültige ID' });
 
     try {
+      if (!(await userCanAccessTask(pool, user.id, taskId))) {
+        return res.status(403).json({ error: 'Keine Berechtigung' });
+      }
       const { rows } = await pool.query(
         'SELECT file_name, file_type, file_data FROM task_attachments WHERE id = $1 AND task_id = $2',
         [attachmentId, taskId]
@@ -79,8 +114,12 @@ module.exports = async function handler(req, res) {
 
       const file = rows[0];
       const buffer = Buffer.from(file.file_data, 'base64');
-      res.setHeader('Content-Type', file.file_type);
-      res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.file_name)}"`);
+      const safeType = ALLOWED_TYPES.includes(file.file_type) ? file.file_type : 'application/octet-stream';
+      const disposition = INLINE_TYPES.has(safeType) ? 'inline' : 'attachment';
+      res.setHeader('Content-Type', safeType);
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'");
+      res.setHeader('Content-Disposition', `${disposition}; filename="${encodeURIComponent(file.file_name)}"`);
       res.setHeader('Content-Length', buffer.length);
       return res.send(buffer);
     } catch (err) {

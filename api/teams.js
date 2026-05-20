@@ -1,5 +1,5 @@
 const { getPool } = require('./_lib/db');
-const { verifyToken, cors } = require('./_lib/auth');
+const { verifyToken, cors, getJwtSecret } = require('./_lib/auth');
 const { cacheManager } = require('./_lib/cache');
 const jwt = require('jsonwebtoken');
 
@@ -90,7 +90,7 @@ module.exports = async (req, res) => {
 
     let userId;
     try {
-      const decoded = jwt.verify(state, process.env.JWT_SECRET);
+      const decoded = jwt.verify(state, getJwtSecret());
       userId = decoded.id;
     } catch {
       return res.redirect(302, '/profile?teams_error=invalid_state');
@@ -158,7 +158,7 @@ module.exports = async (req, res) => {
     }
 
     // Embed the user's JWT as state so we can identify them on callback
-    const state = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '10m' });
+    const state = jwt.sign({ id: user.id }, getJwtSecret(), { expiresIn: '10m' });
 
     const params = new URLSearchParams({
       client_id: CLIENT_ID,

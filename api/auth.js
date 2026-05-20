@@ -268,11 +268,12 @@ module.exports = async function handler(req, res) {
           const otp = getOtp();
           let valid2fa = false;
           if (!otp) {
-            console.error('[2FA-CRITICAL] getOtp() returned null — otplib nicht verfügbar');
-            // KRITISCHER FALLBACK: Bei System-Problemen 2FA temporär bypassen
-            console.error('[2FA-CRITICAL] System-Problem — temporärer 2FA-Bypass für User:', user.id);
-            await pool.query('UPDATE users SET twofa_enabled = FALSE WHERE id = $1', [user.id]);
-            // Continue with normal login
+            // FAIL-CLOSED: otplib ist nicht verfuegbar. NIEMALS 2FA disablen
+            // und durchlassen — das waere ein vollstaendiger 2FA-Bypass.
+            console.error('[2FA-CRITICAL] getOtp() returned null — otplib nicht verfuegbar. Login verweigert.');
+            return res.status(503).json({
+              error: '2FA-System voruebergehend nicht verfuegbar. Bitte spaeter erneut versuchen oder Support kontaktieren.',
+            });
           } else {
             try {
               valid2fa = otp.verify({ 

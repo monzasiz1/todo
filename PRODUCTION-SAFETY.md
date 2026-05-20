@@ -50,9 +50,10 @@ curl https://your-domain.com/api/profile \
 ## 🛡️ CRITICAL SAFETY MEASURES
 
 ### Auto-Recovery Mechanisms (✅ Implementiert)
-- Korrupte 2FA-States werden auto-repariert
-- otplib-Ausfälle führen zu temporärer 2FA-Deaktivierung statt User-Lockout
+- Korrupte 2FA-States (enabled ohne Secret) werden auto-repariert: 2FA wird sauber deaktiviert, Login normal weiter
+- otplib-Ausfälle führen zu **HTTP 503 / fail-closed Login** (NIEMALS 2FA-Bypass)
 - Schema-Fallbacks in Profile API
+- JWT_SECRET wird beim Start validiert (Crash bei fehlendem Secret in Production)
 
 ### Monitoring Required
 - Daily Health Check Alerts
