@@ -766,6 +766,21 @@ export const api = {
   getNoteActivity: (noteId, { limit = 50 } = {}) =>
     request(`/notes/${encodeURIComponent(noteId)}/activity?limit=${limit}`),
 
+  // Kommentare auf Notes (separater Endpoint, eigene Tabelle note_comments)
+  getNoteComments: (noteId) =>
+    request(`/note-comments?noteId=${encodeURIComponent(noteId)}`),
+
+  addNoteComment: (noteId, text, emoji) =>
+    request('/note-comments', {
+      method: 'POST',
+      body: JSON.stringify({ noteId, text, emoji: emoji || null }),
+    }),
+
+  deleteNoteComment: (commentId) =>
+    request(`/note-comments?commentId=${encodeURIComponent(commentId)}`, {
+      method: 'DELETE',
+    }),
+
   connectNotes: (noteId1, noteId2, relationshipType = 'related') =>
     request('/notes', {
       method: 'POST',

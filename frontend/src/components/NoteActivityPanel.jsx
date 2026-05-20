@@ -22,6 +22,7 @@ const TYPE_VERBS = {
   made_group: 'hat die Notiz mit der Gruppe geteilt',
   made_private: 'hat die Notiz privat gestellt',
   participants_changed: 'hat die Teilnehmer geaendert',
+  comment_added: 'hat einen Kommentar geschrieben',
 };
 
 function relativeTime(iso) {

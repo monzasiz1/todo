@@ -16,6 +16,7 @@ import { useFriendsStore } from '../store/friendsStore';
 import { useNotesStore } from '../store/notesStore';
 import { toDisplayHtml, sanitizeHtml } from '../lib/noteFormat';
 import NoteActivityPanel from './NoteActivityPanel';
+import NoteCommentsPanel from './NoteCommentsPanel';
 import '../styles/note-editor-modal.css';
 
 const NOTE_COLORS = [
@@ -896,6 +897,18 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
             <NoteActivityPanel
               noteId={note.id}
               refreshKey={note?.updated_at || 0}
+            />
+          )}
+
+          {/* Kommentare (separater Endpoint /api/note-comments). Alle mit
+              Lese-Zugriff koennen kommentieren; Owner darf jeden Kommentar
+              loeschen, Autor seinen eigenen. */}
+          {note?.id && (
+            <NoteCommentsPanel
+              noteId={note.id}
+              refreshKey={note?.updated_at || 0}
+              canWrite={!readOnly || hasEditPermission || isOwnerOfNote}
+              noteOwnerId={note?.user_id}
             />
           )}
 

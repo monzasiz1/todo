@@ -10,8 +10,11 @@ import {
   Users, UserPlus, Globe, Plus, Hash, Copy, Check, ChevronRight, ChevronDown, Crown,
   Shield, UserMinus, Settings, Trash2, LogOut, X,
   Calendar, CalendarCheck, Clock, Flag, Search, ArrowLeft, ListTodo,
-  Camera, Tag, AlertTriangle, Pencil, ChevronsDown, ThumbsUp, Bell, EyeOff, RotateCcw
+  Camera, Tag, AlertTriangle, Pencil, ChevronsDown, ThumbsUp, Bell, EyeOff, RotateCcw,
+  Activity, CalendarClock, Sparkles
 } from 'lucide-react';
+import { formatDistanceToNowStrict, isToday as isTodayDate, parseISO, format as formatDate } from 'date-fns';
+import { de as deLocale } from 'date-fns/locale';
 import AvatarBadge from '../components/AvatarBadge';
 import { usePlan } from '../hooks/usePlan';
 import UpgradeModal from '../components/UpgradeModal';
@@ -230,19 +233,73 @@ export default function GroupsPage() {
 // ============================================
 // Group List
 // ============================================
-const STAT_DEFS = [
-  { key: 'totalGroups', label: 'Gruppen', icon: Users, color: '#007AFF' },
-  { key: 'totalMembers', label: 'Mitglieder', icon: Users, color: '#34C759' },
-  { key: 'totalTasks', label: 'Einträge', icon: ListTodo, color: '#5856D6' },
-  { key: 'adminOrOwnerCount', label: 'Leitungsrollen', icon: Crown, color: '#FF9500' },
-];
+
+// Hilfen für relative Zeit / kommendes Event
+function parseTaskDate(t) {
+  if (!t?.date) return null;
+  const datePart = String(t.date).slice(0, 10);
+  const timePart = String(t.time || '00:00').slice(0, 5);
+  const d = new Date(`${datePart}T${timePart}:00`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function nextUpcomingEventFor(groupId, tasks) {
+  const now = Date.now();
+  let best = null;
+  let bestTime = Infinity;
+  for (const t of tasks || []) {
+    if (t.group_id !== groupId) continue;
+    if (t.type !== 'event') continue;
+    if (t.completed) continue;
+    const d = parseTaskDate(t);
+    if (!d) continue;
+    const time = d.getTime();
+    if (time < now) continue;
+    if (time < bestTime) {
+      bestTime = time;
+      best = { ...t, _date: d };
+    }
+  }
+  return best;
+}
+
+function countTasksTodayFor(groupId, tasks) {
+  let n = 0;
+  for (const t of tasks || []) {
+    if (t.group_id !== groupId) continue;
+    if (t.completed) continue;
+    const d = parseTaskDate(t);
+    if (d && isTodayDate(d)) n += 1;
+  }
+  return n;
+}
+
+function relativeFromNow(value) {
+  if (!value) return null;
+  try {
+    const d = typeof value === 'string' ? parseISO(value) : new Date(value);
+    if (Number.isNaN(d.getTime())) return null;
+    return formatDistanceToNowStrict(d, { addSuffix: true, locale: deLocale });
+  } catch { return null; }
+}
+
+function formatEventWhen(date) {
+  if (!date) return '';
+  try {
+    if (isTodayDate(date)) {
+      return `Heute, ${formatDate(date, 'HH:mm', { locale: deLocale })}`;
+    }
+    return formatDate(date, "EEE d. MMM · HH:mm", { locale: deLocale });
+  } catch { return ''; }
+}
 
 function GroupListLoadingSkeleton() {
   return (
-    <div className="group-loading-skeleton" aria-live="polite" aria-busy="true">
-      {[0, 1, 2].map((idx) => (
-        <div key={idx} className="group-loading-card beequ-shimmer" />
-      ))}
+    <div className="bq-groups-skeleton" aria-live="polite" aria-busy="true">
+      <div className="bq-groups-skeleton-bento">
+        {[0, 1, 2].map((i) => <div key={i} className="bq-groups-skeleton-tile beequ-shimmer" />)}
+      </div>
+      {[0, 1, 2].map((i) => <div key={i} className="bq-groups-skeleton-card beequ-shimmer" />)}
     </div>
   );
 }
@@ -271,6 +328,7 @@ function GroupDetailLoadingSkeleton({ onBack }) {
 
 function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick, onSearchGroupsClick }) {
   const [query, setQuery] = useState('');
+  const tasks = useTaskStore((s) => s.tasks);
 
   const normalizedGroups = useMemo(() => {
     return (groups || []).map((g) => ({
@@ -280,23 +338,38 @@ function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick, o
     }));
   }, [groups]);
 
+  // Pro-Group-Computations: nächstes Event, heutige Aufgaben, letzte Aktivität
+  const enrichedGroups = useMemo(() => {
+    return normalizedGroups.map((g) => {
+      const nextEvent = nextUpcomingEventFor(g.id, tasks);
+      const tasksToday = countTasksTodayFor(g.id, tasks);
+      const activityRel = relativeFromNow(g.updated_at);
+      return { ...g, _nextEvent: nextEvent, _tasksToday: tasksToday, _activityRel: activityRel };
+    });
+  }, [normalizedGroups, tasks]);
+
   const filteredGroups = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return normalizedGroups;
-    return normalizedGroups.filter((g) => {
+    if (!q) return enrichedGroups;
+    return enrichedGroups.filter((g) => {
       const name = String(g.name || '').toLowerCase();
       const role = String(g.role || '').toLowerCase();
       return name.includes(q) || role.includes(q);
     });
-  }, [normalizedGroups, query]);
+  }, [enrichedGroups, query]);
 
-  const stats = useMemo(() => {
-    const totalGroups = normalizedGroups.length;
-    const totalMembers = normalizedGroups.reduce((sum, g) => sum + g.member_count, 0);
-    const totalTasks = normalizedGroups.reduce((sum, g) => sum + g.task_count, 0);
-    const adminOrOwnerCount = normalizedGroups.filter((g) => g.role === 'owner' || g.role === 'admin').length;
-    return { totalGroups, totalMembers, totalTasks, adminOrOwnerCount };
-  }, [normalizedGroups]);
+  // Bento-Aggregates über ALLE Gruppen
+  const bento = useMemo(() => {
+    const totalActive = enrichedGroups.reduce((s, g) => s + g.task_count, 0);
+    const totalToday = enrichedGroups.reduce((s, g) => s + g._tasksToday, 0);
+    const totalMembers = enrichedGroups.reduce((s, g) => s + g.member_count, 0);
+    const earliest = enrichedGroups.reduce((acc, g) => {
+      if (!g._nextEvent) return acc;
+      if (!acc) return { event: g._nextEvent, group: g };
+      return g._nextEvent._date < acc.event._date ? { event: g._nextEvent, group: g } : acc;
+    }, null);
+    return { totalActive, totalToday, totalMembers, earliest };
+  }, [enrichedGroups]);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -305,58 +378,92 @@ function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick, o
         <p>Gemeinsam planen und organisieren</p>
       </div>
 
-      <section className="groups-hub">
-        {/* Stats */}
-        <div className="groups-hub-stats" aria-label="Gruppen Statistiken">
-          {STAT_DEFS.map((def) => {
-            const Icon = def.icon;
-            return (
-              <article
-                key={def.key}
-                className="groups-hub-stat-card"
-                style={{ '--stat-color': def.color }}
-              >
-                <div className="groups-hub-stat-icon">
-                  <Icon size={16} />
-                </div>
-                <div className="groups-hub-stat-text">
-                  <strong>{stats[def.key]}</strong>
-                  <span>{def.label}</span>
-                </div>
-              </article>
-            );
-          })}
+      <section className="bq-groups">
+        {/* Bento Quickview */}
+        <div className="bq-groups-bento" aria-label="Team-Überblick">
+          <article className="bq-groups-bento-card is-primary">
+            <div className="bq-groups-bento-icon"><ListTodo size={16} /></div>
+            <div className="bq-groups-bento-num">
+              <strong>{bento.totalActive}</strong>
+              <span>Team-Aufgaben</span>
+            </div>
+            <div className="bq-groups-bento-foot">
+              <span className="bq-groups-bento-pulse" aria-hidden />
+              {bento.totalToday > 0
+                ? `${bento.totalToday} heute fällig`
+                : 'Heute nichts dringend'}
+            </div>
+          </article>
+
+          <article className="bq-groups-bento-card is-event">
+            <div className="bq-groups-bento-icon"><CalendarClock size={16} /></div>
+            <div className="bq-groups-bento-num">
+              <strong className="bq-groups-bento-eventtitle" title={bento.earliest?.event?.title}>
+                {bento.earliest ? bento.earliest.event.title : 'Kein Event'}
+              </strong>
+              <span>Nächstes Team-Event</span>
+            </div>
+            <div className="bq-groups-bento-foot">
+              {bento.earliest
+                ? `${formatEventWhen(bento.earliest.event._date)} · ${bento.earliest.group.name}`
+                : 'Plane ein gemeinsames Event'}
+            </div>
+          </article>
+
+          <article className="bq-groups-bento-card is-members">
+            <div className="bq-groups-bento-icon"><Users size={16} /></div>
+            <div className="bq-groups-bento-num">
+              <strong>{bento.totalMembers}</strong>
+              <span>Mitglieder gesamt</span>
+            </div>
+            <div className="bq-groups-bento-foot">
+              {enrichedGroups.length > 0
+                ? `verteilt auf ${enrichedGroups.length} ${enrichedGroups.length === 1 ? 'Gruppe' : 'Gruppen'}`
+                : 'Lade Team-Member ein'}
+            </div>
+          </article>
         </div>
 
-        {/* Actions */}
-        <div className="group-actions-row">
-          <button className="group-action-btn primary" onClick={onCreateClick}>
-            <Plus size={18} /> Gruppe erstellen
+        {/* Quick Actions */}
+        <div className="bq-groups-actions">
+          <button className="bq-groups-action is-primary" onClick={onCreateClick}>
+            <span className="bq-groups-action-ico"><Plus size={16} /></span>
+            <span className="bq-groups-action-text">
+              <strong>Neue Gruppe</strong>
+              <small>Eigenen Team-Space starten</small>
+            </span>
           </button>
-          <button className="group-action-btn secondary" onClick={onJoinClick}>
-            <Hash size={18} /> Per Code beitreten
+          <button className="bq-groups-action" onClick={onJoinClick}>
+            <span className="bq-groups-action-ico"><Hash size={16} /></span>
+            <span className="bq-groups-action-text">
+              <strong>Per Code beitreten</strong>
+              <small>Einladung einlösen</small>
+            </span>
           </button>
-          <button className="group-action-btn tertiary" onClick={onSearchGroupsClick}>
-            <Globe size={18} /> Gruppe suchen
+          <button className="bq-groups-action" onClick={onSearchGroupsClick}>
+            <span className="bq-groups-action-ico"><Globe size={16} /></span>
+            <span className="bq-groups-action-text">
+              <strong>Öffentliche finden</strong>
+              <small>Communities entdecken</small>
+            </span>
           </button>
         </div>
 
-        {/* Search — nur anzeigen, wenn ueberhaupt Gruppen existieren */}
+        {/* Search */}
         {groups.length > 0 && (
-          <div className="groups-search-wrap">
-            <Search size={16} />
+          <div className="bq-groups-search">
+            <Search size={16} aria-hidden />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Gruppe oder Rolle suchen..."
-              className="groups-search-input"
               aria-label="Gruppen durchsuchen"
             />
             {query && (
               <button
                 type="button"
-                className="groups-search-clear"
+                className="bq-groups-search-clear"
                 onClick={() => setQuery('')}
                 aria-label="Suche leeren"
               >
@@ -370,100 +477,114 @@ function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick, o
       {loading && groups.length === 0 ? (
         <GroupListLoadingSkeleton />
       ) : filteredGroups.length === 0 && groups.length > 0 ? (
-        <div className="group-empty">
-          <div className="group-empty-icon"><Search size={32} /></div>
+        <div className="bq-groups-empty">
+          <div className="bq-groups-empty-icon"><Search size={28} /></div>
           <h3>Keine Treffer</h3>
-          <p>Versuche einen anderen Suchbegriff</p>
+          <p>Versuche einen anderen Suchbegriff.</p>
         </div>
       ) : filteredGroups.length === 0 ? (
-        <div className="group-empty">
-          <div className="group-empty-icon"><Users size={40} /></div>
+        <div className="bq-groups-empty">
+          <div className="bq-groups-empty-icon"><Users size={32} /></div>
           <h3>Noch keine Gruppen</h3>
-          <p>Erstelle eine Gruppe oder tritt einer bei</p>
-          <button className="group-action-btn primary" style={{ marginTop: 18, alignSelf: 'center' }} onClick={onCreateClick}>
-            <Plus size={16} /> Erste Gruppe anlegen
+          <p>Erstelle deinen ersten Team-Space oder tritt mit einem Code bei.</p>
+          <button className="bq-groups-action is-primary" style={{ marginTop: 14 }} onClick={onCreateClick}>
+            <span className="bq-groups-action-ico"><Plus size={16} /></span>
+            <span className="bq-groups-action-text">
+              <strong>Erste Gruppe anlegen</strong>
+              <small>In 30 Sekunden startklar</small>
+            </span>
           </button>
         </div>
       ) : (
-        <div className="group-list">
+        <div className="bq-groups-list">
           {filteredGroups.map((g, i) => {
             const roleConf = ROLE_CONFIG[g.role] || ROLE_CONFIG.member;
             const cardColor = g.color || '#007AFF';
             const RoleIcon = roleConf.icon || Users;
-            const teamCaption = g.member_count > 1
-              ? `${g.member_count} Personen planen hier gemeinsam.`
-              : 'Dein Space ist bereit fuer die erste Zusammenarbeit.';
-            const activityCaption = g.task_count > 0
-              ? `${g.task_count} Eintraege halten das Team im Flow.`
-              : 'Noch leer - perfekt fuer einen starken Start.';
-            const previewMembers = Array.from({ length: Math.min(Math.max(g.member_count, 1), 3) }, (_, idx) => idx);
+            const recentlyActive = g._activityRel &&
+              /\b(Sekund|sekund|Minute|minut)/.test(g._activityRel);
+
             return (
-              <motion.div
+              <motion.button
                 key={g.id}
-                className="group-card"
+                type="button"
+                className="bq-group-card"
+                style={{ '--bq-g-color': cardColor }}
                 onClick={() => onOpenGroup(g.id)}
-                initial={{ opacity: 0, y: 16 }}
+                initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05, duration: 0.28, ease: 'easeOut' }}
-                whileHover={{ y: -5, scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
+                transition={{ delay: i * 0.04, duration: 0.28, ease: 'easeOut' }}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.99 }}
+                aria-label={`Gruppe ${g.name} öffnen`}
               >
-                {/* Cover */}
-                <div
-                  className="group-card-cover"
-                  style={{
-                    background: `linear-gradient(135deg, ${cardColor}ee 0%, ${cardColor}88 100%)`,
-                  }}
-                >
-                  <div className="group-card-cover-glow" style={{ background: cardColor }} />
-                  <div className="group-card-cover-orb" />
-                  <div className="group-card-cover-pattern" />
+                <span className="bq-group-card-bar" aria-hidden />
+
+                <div className="bq-group-card-avatar-wrap">
                   <AvatarBadge
                     name={g.name}
                     color={cardColor}
                     avatarUrl={g.image_url}
-                    size={52}
-                    className="group-card-cover-avatar"
+                    size={56}
                   />
-                  <div className="group-card-presence">
-                    <div className="group-card-presence-stack" aria-hidden>
-                      {previewMembers.map((memberIdx) => (
-                        <span key={memberIdx} className="group-card-presence-avatar">
-                          {String(g.name || 'G').charAt(memberIdx).toUpperCase() || 'G'}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="group-card-presence-copy">
-                      <span>Team Space</span>
-                      <strong>{g.member_count} aktiv</strong>
-                    </div>
-                  </div>
-
+                  {recentlyActive && (
+                    <span className="bq-group-card-livedot" aria-label="Gerade aktiv" />
+                  )}
                 </div>
 
-                {/* Body */}
-                <div className="group-card-body">
-                  <span className="group-card-eyebrow">Gemeinsam organisieren</span>
-                  <h3 className="group-card-title">{g.name}</h3>
-                  <p className="group-card-description">{teamCaption} {activityCaption}</p>
-                  <div className="group-card-meta">
-                    <span className="group-card-chip">
-                      <Users size={11} /> {g.member_count}
-                    </span>
-                    <span className="group-card-chip">
-                      <ListTodo size={11} /> {g.task_count}
+                <div className="bq-group-card-main">
+                  <div className="bq-group-card-row1">
+                    <h3 className="bq-group-card-title">{g.name}</h3>
+                    <span className="bq-group-card-role" style={{ color: roleConf.color }}>
+                      <RoleIcon size={11} /> {roleConf.label}
                     </span>
                   </div>
+
+                  <div className="bq-group-card-chips">
+                    <span className="bq-group-card-chip">
+                      <Users size={11} />
+                      <strong>{g.member_count}</strong>
+                      <em>{g.member_count === 1 ? 'Person' : 'Personen'}</em>
+                    </span>
+                    <span className="bq-group-card-chip">
+                      <ListTodo size={11} />
+                      <strong>{g.task_count}</strong>
+                      <em>Einträge</em>
+                    </span>
+                    {g._tasksToday > 0 && (
+                      <span className="bq-group-card-chip bq-group-card-chip-today">
+                        <Sparkles size={11} />
+                        <strong>{g._tasksToday}</strong>
+                        <em>heute</em>
+                      </span>
+                    )}
+                  </div>
+
+                  {g._nextEvent ? (
+                    <div className="bq-group-card-event">
+                      <CalendarClock size={13} />
+                      <span className="bq-group-card-event-title">{g._nextEvent.title}</span>
+                      <span className="bq-group-card-event-when">{formatEventWhen(g._nextEvent._date)}</span>
+                    </div>
+                  ) : (
+                    <div className="bq-group-card-event is-placeholder">
+                      <Calendar size={13} />
+                      <span>Kein anstehendes Team-Event</span>
+                    </div>
+                  )}
+
+                  {g._activityRel && (
+                    <div className="bq-group-card-activity">
+                      <Activity size={11} />
+                      <span>Zuletzt aktiv {g._activityRel}</span>
+                    </div>
+                  )}
                 </div>
 
-                {/* Arrow */}
-                <div className="group-card-footer">
-                  <span className="group-card-footer-copy">Space öffnen</span>
-                  <div className="group-card-arrow">
-                    <ChevronRight size={16} />
-                  </div>
+                <div className="bq-group-card-arrow" aria-hidden>
+                  <ChevronRight size={18} />
                 </div>
-              </motion.div>
+              </motion.button>
             );
           })}
         </div>
