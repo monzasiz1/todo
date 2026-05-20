@@ -769,8 +769,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     };
   }, []);
 
-  // Desktop-Resize: User kann den Kalender-Wrapper unten rechts ziehen
-  // (CSS `resize: vertical`). Wir merken uns die letzte Hoehe pro User in
+  // Desktop-Resize: User kann den Kalender-Wrapper unten rechts diagonal
+  // ziehen (CSS `resize: both`). Wir merken uns Hoehe + Breite pro User in
   // localStorage und stellen sie beim naechsten Besuch wieder her.
   // Nur ab 1025px aktiv (siehe CSS-Media-Query).
   useEffect(() => {
@@ -778,14 +778,20 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     if (!wrapper || typeof window === 'undefined') return;
     if (window.innerWidth < CALENDAR_DESKTOP_BREAKPOINT) return;
 
-    const storageKey = getUserSpecificKey('beequ_calendar_desktop_h');
+    const hKey = getUserSpecificKey('beequ_calendar_desktop_h');
+    const wKey = getUserSpecificKey('beequ_calendar_desktop_w');
 
     // Restore
     try {
-      const saved = localStorage.getItem(storageKey);
-      const px = saved ? parseInt(saved, 10) : NaN;
-      if (Number.isFinite(px) && px >= 480 && px <= 4000) {
-        wrapper.style.height = `${px}px`;
+      const savedH = localStorage.getItem(hKey);
+      const ph = savedH ? parseInt(savedH, 10) : NaN;
+      if (Number.isFinite(ph) && ph >= 480 && ph <= 4000) {
+        wrapper.style.height = `${ph}px`;
+      }
+      const savedW = localStorage.getItem(wKey);
+      const pw = savedW ? parseInt(savedW, 10) : NaN;
+      if (Number.isFinite(pw) && pw >= 640 && pw <= 6000) {
+        wrapper.style.width = `${pw}px`;
       }
     } catch {
       // ignore
@@ -799,11 +805,15 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       const entry = entries[0];
       if (!entry) return;
       const h = Math.round(entry.contentRect.height);
+      const w = Math.round(entry.contentRect.width);
       if (raf) cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
         try {
           if (h >= 480 && h <= 4000) {
-            localStorage.setItem(storageKey, String(h));
+            localStorage.setItem(hKey, String(h));
+          }
+          if (w >= 640 && w <= 6000) {
+            localStorage.setItem(wKey, String(w));
           }
         } catch {
           // ignore quota errors

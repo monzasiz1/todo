@@ -31708,8 +31708,11 @@ html[data-theme="dark"] .gs-discover-skeleton {
     height: calc(100dvh - 160px);
     min-height: 520px;
     max-height: calc(100dvh - 80px);
+    width: 100%;
+    min-width: 640px;
+    max-width: 100%;
     overflow: hidden;
-    resize: vertical;
+    resize: both;
     position: relative;
   }
 
