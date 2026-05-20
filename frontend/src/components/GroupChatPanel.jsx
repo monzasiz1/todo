@@ -1049,7 +1049,7 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
                         >
                           {pinnedMessages.map((m) => (
                             <div key={m.id} className="gchat-pinned-msg">
-                              <span className="gchat-pinned-sender">{m.sender_name}:</span>
+                              <span className="gchat-pinned-sender">{m.user_id === user?.id ? 'Du' : m.sender_name}:</span>
                               <span className="gchat-pinned-content">{m.content}</span>
                             </div>
                           ))}
@@ -1183,7 +1183,7 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
                               <div className="gchat-shared-event-meta">
                                 {msg.linked_task_date && <span>📆 {String(msg.linked_task_date).substring(0, 10)}</span>}
                                 {msg.linked_task_time && <span>🕕 {String(msg.linked_task_time).substring(0, 5)} Uhr</span>}
-                                <span>👤 erstellt von {msg.sender_name}</span>
+                                <span>👤 erstellt von {isOwn ? 'dir' : msg.sender_name}</span>
                               </div>
                               {msg.responsible_name && (
                                 <div className="gchat-shared-event-owner">
@@ -1338,7 +1338,7 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
                               <div className="gchat-shared-event-meta">
                                 {msg.linked_task_date && <span>📆 {String(msg.linked_task_date).substring(0, 10)}</span>}
                                 {msg.linked_task_time && <span>🕕 {String(msg.linked_task_time).substring(0, 5)} Uhr</span>}
-                                <span>👤 erstellt von {msg.sender_name}</span>
+                                <span>👤 erstellt von {isOwn ? 'dir' : msg.sender_name}</span>
                               </div>
                               <div className="gchat-shared-event-actions">
                                 <button

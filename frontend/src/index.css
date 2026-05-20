@@ -31686,3 +31686,91 @@ html[data-theme="dark"] .gs-discover-skeleton {
     justify-content: stretch;
   }
 }
+
+/* ===========================================================
+   CALENDAR — Desktop (>=1025px) Professional Layout
+   - .calendar-wrapper fuellt verfuegbare App-Main-Hoehe (responsive)
+   - Monat: grid-auto-rows minmax(120px, 1fr) — fuellt bis zum Boden
+   - Woche: Stunden-Spalte scrollt im Wrapper, Header bleibt sticky
+   - Optional: User kann den Wrapper am unteren Rand groesser ziehen
+     (CSS `resize: vertical`, Hoehe wird in localStorage persistiert)
+   =========================================================== */
+@media (min-width: 1025px) {
+  .calendar-page-wrap {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .calendar-page-wrap .calendar-wrapper:not(.calendar-is-fullscreen) {
+    display: flex;
+    flex-direction: column;
+    height: calc(100dvh - 160px);
+    min-height: 520px;
+    max-height: calc(100dvh - 80px);
+    overflow: hidden;
+    resize: vertical;
+    position: relative;
+  }
+
+  .calendar-page-wrap .calendar-wrapper:not(.calendar-is-fullscreen) .calendar-header {
+    flex-shrink: 0;
+  }
+
+  .calendar-page-wrap .calendar-wrapper:not(.calendar-is-fullscreen).calendar-view-month .calendar-grid {
+    flex: 1 1 auto;
+    min-height: 0;
+    grid-template-rows: auto;
+    grid-auto-rows: minmax(120px, 1fr);
+    align-content: stretch;
+    overflow: hidden;
+  }
+
+  .calendar-page-wrap .calendar-wrapper:not(.calendar-is-fullscreen).calendar-view-month .calendar-day {
+    min-height: 0 !important;
+  }
+
+  .calendar-page-wrap .calendar-wrapper:not(.calendar-is-fullscreen).calendar-view-week .mobile-week-grid-wrap,
+  .calendar-page-wrap .calendar-wrapper:not(.calendar-is-fullscreen).calendar-view-day .mobile-week-grid-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .calendar-page-wrap .calendar-wrapper:not(.calendar-is-fullscreen).calendar-view-week .mobile-week-grid-scroll,
+  .calendar-page-wrap .calendar-wrapper:not(.calendar-is-fullscreen).calendar-view-day .mobile-week-grid-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  /* Dezenter Hinweis-Pfeil unten rechts auf die Resize-Funktion.
+     Ueberlagert nicht den nativen Browser-Resize-Handle (pointer-events: none). */
+  .calendar-page-wrap .calendar-wrapper:not(.calendar-is-fullscreen)::after {
+    content: '';
+    position: absolute;
+    right: 3px;
+    bottom: 3px;
+    width: 14px;
+    height: 14px;
+    pointer-events: none;
+    opacity: 0.4;
+    background:
+      linear-gradient(135deg,
+        transparent 0 6px,
+        var(--text-tertiary, #9098ac) 6px 7px,
+        transparent 7px 9px,
+        var(--text-tertiary, #9098ac) 9px 10px,
+        transparent 10px 12px,
+        var(--text-tertiary, #9098ac) 12px 13px,
+        transparent 13px);
+    border-bottom-right-radius: 12px;
+  }
+}
+
+/* Sehr grosse Desktops: noch komfortablere Mindesthoehe pro Zelle */
+@media (min-width: 1440px) {
+  .calendar-page-wrap .calendar-wrapper:not(.calendar-is-fullscreen).calendar-view-month .calendar-grid {
+    grid-auto-rows: minmax(140px, 1fr);
+  }
+}

@@ -769,6 +769,55 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     };
   }, []);
 
+  // Desktop-Resize: User kann den Kalender-Wrapper unten rechts ziehen
+  // (CSS `resize: vertical`). Wir merken uns die letzte Hoehe pro User in
+  // localStorage und stellen sie beim naechsten Besuch wieder her.
+  // Nur ab 1025px aktiv (siehe CSS-Media-Query).
+  useEffect(() => {
+    const wrapper = calendarWrapperRef.current;
+    if (!wrapper || typeof window === 'undefined') return;
+    if (window.innerWidth < CALENDAR_DESKTOP_BREAKPOINT) return;
+
+    const storageKey = getUserSpecificKey('beequ_calendar_desktop_h');
+
+    // Restore
+    try {
+      const saved = localStorage.getItem(storageKey);
+      const px = saved ? parseInt(saved, 10) : NaN;
+      if (Number.isFinite(px) && px >= 480 && px <= 4000) {
+        wrapper.style.height = `${px}px`;
+      }
+    } catch {
+      // ignore
+    }
+
+    // Persist on resize (debounced via rAF, ignore initial mount)
+    let raf = 0;
+    let didMount = false;
+    const ro = new ResizeObserver((entries) => {
+      if (!didMount) { didMount = true; return; }
+      const entry = entries[0];
+      if (!entry) return;
+      const h = Math.round(entry.contentRect.height);
+      if (raf) cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        try {
+          if (h >= 480 && h <= 4000) {
+            localStorage.setItem(storageKey, String(h));
+          }
+        } catch {
+          // ignore quota errors
+        }
+      });
+    });
+    ro.observe(wrapper);
+
+    return () => {
+      ro.disconnect();
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+
   useEffect(() => {
     let mounted = true;
     let intervalId = null;
