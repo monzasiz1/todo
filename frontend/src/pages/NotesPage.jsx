@@ -1,7 +1,7 @@
 ﻿import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useDragControls } from 'framer-motion';
-import { Plus, ZoomIn, ZoomOut, X, CalendarDays, Pin, CheckSquare, Calendar, Check, Archive, RotateCcw, Trash2, LayoutGrid, Link2, Unlink, Maximize2, Wand2, Palette, Search } from 'lucide-react';
+import { Plus, ZoomIn, ZoomOut, X, CalendarDays, Pin, CheckSquare, Calendar, Check, Archive, RotateCcw, Trash2, LayoutGrid, Link2, Unlink, Maximize2, Wand2, Palette, Search, MoreHorizontal } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useOpenTask } from '../hooks/useOpenTask';
 import TaskDetailModal from '../components/TaskDetailModal';
@@ -883,6 +883,8 @@ export default function NotesPage() {
   const tasks = useTaskStore((s) => s.tasks);
   const fetchTasks = useTaskStore((s) => s.fetchTasks);
   const [showArchive, setShowArchive] = useState(false);
+  // Mobile: zeigt Bottom-Sheet mit Zoom/Layout/Connect/Whiteboard/Archiv
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   // Suche im Board: dimmt nicht-passende Notes, behaelt aber alle
   // Positionen, damit das Layout nicht springt.
   const [searchQuery, setSearchQuery] = useState('');
@@ -1708,65 +1710,182 @@ export default function NotesPage() {
               </>
             )}
           </div>
-          <button className="board-control-btn" onClick={handleZoomOut} disabled={scale <= MIN_SCALE} title="Verkleinern">
-            <ZoomOut size={16} />
-          </button>
-          <span className="zoom-indicator">{Math.round(scale * 100)}%</span>
-          <button className="board-control-btn" onClick={handleZoomIn} disabled={scale >= MAX_SCALE} title="Vergrößern">
-            <ZoomIn size={16} />
-          </button>
-          {notes.length > 0 && (
-            <button className="board-control-btn" onClick={handleFitAll} title="Alle Notizen anzeigen">
-              <ZoomOut size={14} /><ZoomIn size={14} />
+          <div className="board-controls-secondary">
+            <button className="board-control-btn" onClick={handleZoomOut} disabled={scale <= MIN_SCALE} title="Verkleinern">
+              <ZoomOut size={16} />
             </button>
-          )}
-          <button
-            className={`board-control-btn ${isGrid ? 'active' : ''}`}
-            onClick={toggleLayoutMode}
-            title={isGrid ? 'Freies Layout (Drag & Drop)' : 'Raster-Layout aktivieren'}
-            aria-pressed={isGrid}
-          >
-            <LayoutGrid size={16} />
-          </button>
-          {!isGrid && notes.length > 1 && (
+            <span className="zoom-indicator">{Math.round(scale * 100)}%</span>
+            <button className="board-control-btn" onClick={handleZoomIn} disabled={scale >= MAX_SCALE} title="Vergrößern">
+              <ZoomIn size={16} />
+            </button>
+            {notes.length > 0 && (
+              <button className="board-control-btn" onClick={handleFitAll} title="Alle Notizen anzeigen">
+                <ZoomOut size={14} /><ZoomIn size={14} />
+              </button>
+            )}
+            <button
+              className={`board-control-btn ${isGrid ? 'active' : ''}`}
+              onClick={toggleLayoutMode}
+              title={isGrid ? 'Freies Layout (Drag & Drop)' : 'Raster-Layout aktivieren'}
+              aria-pressed={isGrid}
+            >
+              <LayoutGrid size={16} />
+            </button>
+            {!isGrid && notes.length > 1 && (
+              <button
+                className="board-control-btn"
+                onClick={handleAutoArrange}
+                title="Notizen automatisch im Raster anordnen"
+              >
+                <Wand2 size={16} />
+              </button>
+            )}
+            <button
+              className={`board-control-btn ${connectMode ? 'active' : ''}`}
+              onClick={handleToggleConnectMode}
+              title={connectMode
+                ? (connectSourceId ? 'Zweite Notiz waehlen … (Klick zum Abbrechen)' : 'Verbindungs-Modus beenden')
+                : 'Notizen verbinden (Mindmap)'}
+              aria-pressed={connectMode}
+            >
+              <Link2 size={16} />
+            </button>
             <button
               className="board-control-btn"
-              onClick={handleAutoArrange}
-              title="Notizen automatisch im Raster anordnen"
+              onClick={() => navigate('/app/whiteboard')}
+              title="Whiteboard oeffnen"
             >
-              <Wand2 size={16} />
+              <Palette size={16} />
             </button>
-          )}
+            <button
+              className="board-control-btn"
+              onClick={() => setShowArchive(true)}
+              title="Archiv (erledigte Notizen)"
+            >
+              <Archive size={16} />
+            </button>
+          </div>
+          {/* Mobile-only: Mehr-Menue oeffnet Bottom-Sheet mit den Secondary-Aktionen */}
           <button
-            className={`board-control-btn ${connectMode ? 'active' : ''}`}
-            onClick={handleToggleConnectMode}
-            title={connectMode
-              ? (connectSourceId ? 'Zweite Notiz waehlen … (Klick zum Abbrechen)' : 'Verbindungs-Modus beenden')
-              : 'Notizen verbinden (Mindmap)'}
-            aria-pressed={connectMode}
+            type="button"
+            className="board-control-btn board-more-btn"
+            onClick={() => setMobileMoreOpen(true)}
+            title="Weitere Aktionen"
+            aria-label="Weitere Aktionen"
           >
-            <Link2 size={16} />
+            <MoreHorizontal size={18} />
           </button>
-          <button
-            className="board-control-btn"
-            onClick={() => navigate('/app/whiteboard')}
-            title="Whiteboard oeffnen"
-          >
-            <Palette size={16} />
-          </button>
-          <button
-            className="board-control-btn"
-            onClick={() => setShowArchive(true)}
-            title="Archiv (erledigte Notizen)"
-          >
-            <Archive size={16} />
-          </button>
-          <button className="board-control-btn primary large" onClick={handleCreateNote} title="Neue Notiz erstellen">
+          <button className="board-control-btn primary large" onClick={handleCreateNote} title="Neue Notiz erstellen" aria-label="Neue Notiz erstellen">
             <Plus size={18} />
             <span className="btn-label">Neue Notiz</span>
           </button>
         </div>
       </div>
+
+      {/* Mobile Bottom-Sheet: Sekundaere Board-Aktionen */}
+      {mobileMoreOpen && (
+        <div
+          className="board-mobile-sheet-backdrop"
+          onClick={() => setMobileMoreOpen(false)}
+          role="presentation"
+        >
+          <div
+            className="board-mobile-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Board-Aktionen"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="board-mobile-sheet-handle" aria-hidden="true" />
+            <div className="board-mobile-sheet-title">Board-Aktionen</div>
+
+            <div className="board-mobile-sheet-zoom">
+              <button
+                type="button"
+                className="board-control-btn"
+                onClick={() => { handleZoomOut(); }}
+                disabled={scale <= MIN_SCALE}
+                aria-label="Verkleinern"
+              >
+                <ZoomOut size={18} />
+              </button>
+              <span className="zoom-indicator" aria-live="polite">{Math.round(scale * 100)}%</span>
+              <button
+                type="button"
+                className="board-control-btn"
+                onClick={() => { handleZoomIn(); }}
+                disabled={scale >= MAX_SCALE}
+                aria-label="Vergroessern"
+              >
+                <ZoomIn size={18} />
+              </button>
+              {notes.length > 0 && (
+                <button
+                  type="button"
+                  className="board-control-btn"
+                  onClick={() => { handleFitAll(); setMobileMoreOpen(false); }}
+                  aria-label="Alle Notizen anzeigen"
+                >
+                  <Maximize2 size={16} />
+                </button>
+              )}
+            </div>
+
+            <div className="board-mobile-sheet-grid">
+              <button
+                type="button"
+                className={`board-mobile-sheet-item ${isGrid ? 'is-active' : ''}`}
+                onClick={() => { toggleLayoutMode(); setMobileMoreOpen(false); }}
+              >
+                <LayoutGrid size={20} />
+                <span>{isGrid ? 'Freies Layout' : 'Raster-Layout'}</span>
+              </button>
+              {!isGrid && notes.length > 1 && (
+                <button
+                  type="button"
+                  className="board-mobile-sheet-item"
+                  onClick={() => { handleAutoArrange(); setMobileMoreOpen(false); }}
+                >
+                  <Wand2 size={20} />
+                  <span>Auto-Anordnen</span>
+                </button>
+              )}
+              <button
+                type="button"
+                className={`board-mobile-sheet-item ${connectMode ? 'is-active' : ''}`}
+                onClick={() => { handleToggleConnectMode(); setMobileMoreOpen(false); }}
+              >
+                <Link2 size={20} />
+                <span>{connectMode ? 'Verbinden beenden' : 'Verbinden'}</span>
+              </button>
+              <button
+                type="button"
+                className="board-mobile-sheet-item"
+                onClick={() => { navigate('/app/whiteboard'); setMobileMoreOpen(false); }}
+              >
+                <Palette size={20} />
+                <span>Whiteboard</span>
+              </button>
+              <button
+                type="button"
+                className="board-mobile-sheet-item"
+                onClick={() => { setShowArchive(true); setMobileMoreOpen(false); }}
+              >
+                <Archive size={20} />
+                <span>Archiv</span>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              className="board-mobile-sheet-close"
+              onClick={() => setMobileMoreOpen(false)}
+            >
+              Schliessen
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Viewport: clips canvas, captures pointer/touch */}
       <div
