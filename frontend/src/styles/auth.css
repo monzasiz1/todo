@@ -13,6 +13,9 @@
   position: relative;
   padding: 80px 16px 40px;
   box-sizing: border-box;
+  /* Card-Inhalt immer hell rendern – verhindert dunkle Browser-Defaults
+     (Autofill, Password-Reveal-Icons, Scrollbars) auf Systemen im Dark-Mode. */
+  color-scheme: light;
 }
 
 /* Ambient glow */
@@ -101,6 +104,8 @@
   width: 34px;
   height: 34px;
   border-radius: 9px;
+  background: #fff;
+  object-fit: cover;
   box-shadow: 0 2px 8px rgba(0,122,255,0.18);
 }
 
@@ -200,6 +205,23 @@
   box-shadow: 0 0 0 4px rgba(0,122,255,0.1);
 }
 .bq-input-wrap:focus-within .bq-input-icon { color: #007AFF; }
+
+/* ── Autofill-Fix (Chrome/Safari): verhindert dunkle/gelbliche Hintergründe
+   und stellt sicher, dass Text immer lesbar bleibt. */
+.bq-input-wrap input:-webkit-autofill,
+.bq-input-wrap input:-webkit-autofill:hover,
+.bq-input-wrap input:-webkit-autofill:focus,
+.bq-input-wrap input:-webkit-autofill:active {
+  -webkit-text-fill-color: #1C1C1E;
+  -webkit-box-shadow: 0 0 0 1000px #F9F9F9 inset;
+  box-shadow: 0 0 0 1000px #F9F9F9 inset;
+  caret-color: #1C1C1E;
+  transition: background-color 9999s ease-in-out 0s;
+}
+.bq-input-wrap input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset, 0 0 0 4px rgba(0,122,255,0.1);
+  box-shadow: 0 0 0 1000px #ffffff inset, 0 0 0 4px rgba(0,122,255,0.1);
+}
 
 /* ── Submit button ── */
 .bq-auth-submit {
