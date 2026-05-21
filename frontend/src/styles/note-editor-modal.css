@@ -848,7 +848,7 @@ html[data-theme="dark"] .nem-editor blockquote {
   left: 12px;
   right: 12px;
   bottom: calc(100% + 4px);
-  z-index: 10;
+  z-index: 90;
   background: var(--surface, #fff);
   border: 1px solid var(--border-strong, rgba(0, 0, 0, 0.12));
   border-radius: 12px;
@@ -1876,6 +1876,9 @@ html[data-theme="dark"] .nem-ai-menu-item:hover { background: rgba(255,255,255,0
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
+  }
+  .nem-link-row.is-picker-open {
+    overflow: visible;
   }
   .nem-link-row > * { flex: 0 0 auto; }
   .nem-link-row .nem-share-friends,

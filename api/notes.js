@@ -18,6 +18,8 @@ let notesUserIdTypeCacheAt = 0;
 const NOTES_USER_TYPE_CACHE_TTL_MS = 60 * 1000;
 let noteStatusColumnsEnsuredAt = 0;
 const NOTE_STATUS_COLUMNS_TTL_MS = 5 * 60 * 1000;
+let getEffectivePermsFn = null;
+let getEffectivePermsLoaded = false;
 
 function isUuid(value) {
   return (
@@ -273,9 +275,29 @@ async function resolveAccessibleTaskId(pool, rawTaskId, userId) {
                  WHERE tp.task_id = t.id AND tp.user_id = $2 AND tp.can_view = true
               )
               OR EXISTS (
-                SELECT 1 FROM group_tasks gt
-                  JOIN group_members gm ON gm.group_id = gt.group_id AND gm.user_id = $2
+                SELECT 1
+                  FROM group_tasks gt
                  WHERE gt.task_id = t.id
+                   AND (
+                     (
+                       gt.subgroup_id IS NULL
+                       AND EXISTS (
+                         SELECT 1
+                           FROM group_members gm
+                          WHERE gm.group_id = gt.group_id
+                            AND gm.user_id = $2
+                       )
+                     )
+                     OR (
+                       gt.subgroup_id IS NOT NULL
+                       AND EXISTS (
+                         SELECT 1
+                           FROM group_subgroup_members gsm
+                          WHERE gsm.subgroup_id = gt.subgroup_id
+                            AND gsm.user_id = $2
+                       )
+                     )
+                   )
               )
             )
           LIMIT 1`,
@@ -305,10 +327,78 @@ async function resolveAccessibleTaskId(pool, rawTaskId, userId) {
   }
 }
 
+function getEffectivePermsSafe() {
+  if (!getEffectivePermsLoaded) {
+    getEffectivePermsLoaded = true;
+    try {
+      ({ getEffectivePerms: getEffectivePermsFn } = require('./groups'));
+    } catch {
+      getEffectivePermsFn = null;
+    }
+  }
+  return getEffectivePermsFn;
+}
+
+async function canUserManageGroupNotesForTask(pool, taskId, userId) {
+  if (taskId === null || taskId === undefined || String(taskId).trim() === '') return true;
+
+  const taskIdText = String(taskId).trim();
+  try {
+    const memberships = await pool.query(
+      `SELECT DISTINCT gt.group_id
+         FROM group_tasks gt
+         JOIN group_members gm
+           ON gm.group_id = gt.group_id
+          AND gm.user_id = $2
+        WHERE gt.task_id::text = $1
+          AND (
+            gt.subgroup_id IS NULL
+            OR EXISTS (
+              SELECT 1
+                FROM group_subgroup_members gsm
+               WHERE gsm.subgroup_id = gt.subgroup_id
+                 AND gsm.user_id = $2
+            )
+          )`,
+      [taskIdText, userId]
+    );
+
+    if (!memberships.rows.length) {
+      const hasGroupTask = await pool.query(
+        'SELECT 1 FROM group_tasks WHERE task_id::text = $1 LIMIT 1',
+        [taskIdText]
+      );
+      return hasGroupTask.rows.length === 0;
+    }
+
+    const getEffectivePerms = getEffectivePermsSafe();
+    if (typeof getEffectivePerms !== 'function') return true;
+
+    for (const row of memberships.rows) {
+      try {
+        const eff = await getEffectivePerms(pool, row.group_id, userId);
+        if (!eff) continue;
+        if (eff.role === 'owner' || eff.role === 'admin') return true;
+        if (eff.perms && eff.perms.manage_notes === true) return true;
+      } catch (permErr) {
+        console.warn('[notes] getEffectivePerms failed for group:', row.group_id, permErr?.message || permErr);
+      }
+    }
+
+    return false;
+  } catch (err) {
+    console.warn('[notes] manage-notes task check failed:', err?.message || err);
+    return true;
+  }
+}
+
 async function normalizeLinkedTaskForDb(pool, rawTaskId, userId) {
   try {
     const accessibleId = await resolveAccessibleTaskId(pool, rawTaskId, userId);
     if (accessibleId === null) return { value: null, hasInput: false, allowed: false };
+
+    const canManageGroupNotes = await canUserManageGroupNotesForTask(pool, accessibleId, userId);
+    if (!canManageGroupNotes) return { value: null, hasInput: true, allowed: false };
 
     const colType = await getLinkedTaskColumnType(pool);
     const asText = String(accessibleId);
@@ -620,10 +710,27 @@ module.exports = async function handler(req, res) {
                       WHEN EXISTS (
                         SELECT 1
                           FROM group_tasks gtm
-                          JOIN group_members gmm
-                            ON gmm.group_id = gtm.group_id
                          WHERE gtm.task_id::text = t.id::text
-                           AND gmm.user_id::text = $1
+                           AND (
+                             (
+                               gtm.subgroup_id IS NULL
+                               AND EXISTS (
+                                 SELECT 1
+                                   FROM group_members gmm
+                                  WHERE gmm.group_id = gtm.group_id
+                                    AND gmm.user_id::text = $1
+                               )
+                             )
+                             OR (
+                               gtm.subgroup_id IS NOT NULL
+                               AND EXISTS (
+                                 SELECT 1
+                                   FROM group_subgroup_members gsm
+                                  WHERE gsm.subgroup_id = gtm.subgroup_id
+                                    AND gsm.user_id::text = $1
+                               )
+                             )
+                           )
                       ) THEN 'edit'
                       ELSE COALESCE(ns.permission, 'view')
                     END AS shared_permission
@@ -654,10 +761,29 @@ module.exports = async function handler(req, res) {
                        AND tp.can_view = true
                   )
                   OR EXISTS (
-                    SELECT 1 FROM group_tasks gt
-                      JOIN group_members gm ON gm.group_id = gt.group_id
+                    SELECT 1
+                      FROM group_tasks gt
                      WHERE gt.task_id::text = t.id::text
-                       AND gm.user_id::text = $1
+                       AND (
+                         (
+                           gt.subgroup_id IS NULL
+                           AND EXISTS (
+                             SELECT 1
+                               FROM group_members gm
+                              WHERE gm.group_id = gt.group_id
+                                AND gm.user_id::text = $1
+                           )
+                         )
+                         OR (
+                           gt.subgroup_id IS NOT NULL
+                           AND EXISTS (
+                             SELECT 1
+                               FROM group_subgroup_members gsm
+                              WHERE gsm.subgroup_id = gt.subgroup_id
+                                AND gsm.user_id::text = $1
+                           )
+                         )
+                       )
                   )
                 )
               ORDER BY n.updated_at DESC`,
@@ -666,14 +792,24 @@ module.exports = async function handler(req, res) {
           // Markiere als foreign; read_only nur wenn keine edit-Permission via note_shares.
           // So koennen Empfaenger mit Schreibrecht die Note auch im Canvas bearbeiten,
           // waehrend reine Gruppen-Leser sie weiterhin nur lesen koennen.
-          const teamNotes = (teamResult.rows || []).map((n) => {
-            const canEdit = n.shared_permission === 'edit';
+          const taskManageCache = new Map();
+          const teamNotes = await Promise.all((teamResult.rows || []).map(async (n) => {
+            let canEdit = n.shared_permission === 'edit';
+            if (canEdit && n.visibility === 'group' && n.linked_task_id) {
+              const key = String(n.linked_task_id);
+              if (!taskManageCache.has(key)) {
+                const allowed = await canUserManageGroupNotesForTask(pool, n.linked_task_id, userId);
+                taskManageCache.set(key, allowed);
+              }
+              canEdit = taskManageCache.get(key) === true;
+            }
             return {
               ...n,
+              shared_permission: canEdit ? 'edit' : 'view',
               is_foreign: true,
               read_only: !canEdit,
             };
-          });
+          }));
           console.log('[notes] team-notes fetched:', teamNotes.length, 'for user', userIdText);
           ownNotes = ownNotes.concat(teamNotes);
         } catch (teamErr) {
@@ -1039,10 +1175,27 @@ module.exports = async function handler(req, res) {
                 EXISTS (
                   SELECT 1
                     FROM group_tasks gtm
-                    JOIN group_members gmm
-                      ON gmm.group_id = gtm.group_id
                    WHERE gtm.task_id::text = tk.id::text
-                     AND gmm.user_id = $3
+                     AND (
+                       (
+                         gtm.subgroup_id IS NULL
+                         AND EXISTS (
+                           SELECT 1
+                             FROM group_members gmm
+                            WHERE gmm.group_id = gtm.group_id
+                              AND gmm.user_id = $3
+                         )
+                       )
+                       OR (
+                         gtm.subgroup_id IS NOT NULL
+                         AND EXISTS (
+                           SELECT 1
+                             FROM group_subgroup_members gsm
+                            WHERE gsm.subgroup_id = gtm.subgroup_id
+                              AND gsm.user_id = $3
+                         )
+                       )
+                     )
                 ) AS linked_task_group_member
          FROM notes n
          LEFT JOIN note_shares ns ON ns.note_id = n.id AND ns.friend_id::text = $2
@@ -1059,10 +1212,27 @@ module.exports = async function handler(req, res) {
                 OR EXISTS (
                   SELECT 1
                     FROM group_tasks gtm
-                    JOIN group_members gmm
-                      ON gmm.group_id = gtm.group_id
                    WHERE gtm.task_id::text = tk.id::text
-                     AND gmm.user_id = $3
+                     AND (
+                       (
+                         gtm.subgroup_id IS NULL
+                         AND EXISTS (
+                           SELECT 1
+                             FROM group_members gmm
+                            WHERE gmm.group_id = gtm.group_id
+                              AND gmm.user_id = $3
+                         )
+                       )
+                       OR (
+                         gtm.subgroup_id IS NOT NULL
+                         AND EXISTS (
+                           SELECT 1
+                             FROM group_subgroup_members gsm
+                            WHERE gsm.subgroup_id = gtm.subgroup_id
+                              AND gsm.user_id = $3
+                         )
+                       )
+                     )
                 )
               )
             )
@@ -1078,10 +1248,14 @@ module.exports = async function handler(req, res) {
     const note = noteAccess.rows[0];
     const isOwner = String(note.user_id) === userIdText;
     const isResponsible = String(note.responsible_user_id || '') === userIdText;
+    let canEditViaGroupTask = note.visibility === 'group' && note.linked_task_group_member === true;
+    if (canEditViaGroupTask && note.linked_task_id) {
+      canEditViaGroupTask = await canUserManageGroupNotesForTask(pool, note.linked_task_id, userId);
+    }
     const canEditNote = isOwner
       || isResponsible
       || note.shared_permission === 'edit'
-      || (note.visibility === 'group' && note.linked_task_group_member === true);
+      || canEditViaGroupTask;
     // Task-Owner darf eine Team-Notiz von seiner Task entfernen (Moderation),
     // aber sonst keine Inhalte editieren.
     const isLinkedTaskOwner = !!note.linked_task_owner_id && String(note.linked_task_owner_id) === String(userId);

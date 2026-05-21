@@ -1095,7 +1095,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
           </div>
 
           {/* Verknuepfter Termin / Aufgabe (bidirektional). */}
-          <div className="nem-link-row">
+          <div className={`nem-link-row${(taskPickerOpen || friendPickerOpen) ? ' is-picker-open' : ''}`}>
             {linkedTask ? (
               <div className="nem-link-chip is-linked" role="group" aria-label="Verknuepfter Termin">
                 <button
