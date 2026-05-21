@@ -9,6 +9,7 @@ const {
 } = require('./_lib/noteVersions');
 const { parseMentionsFromHtml, resolveMentions } = require('./_lib/mentions');
 const { sendPushToUser } = require('./_lib/pushService');
+const { buildAuthorshipMap } = require('./_lib/noteAuthorship');
 
 let linkedTaskColumnTypeCache = null;
 let linkedTaskColumnTypeCacheAt = 0;
@@ -1877,6 +1878,60 @@ module.exports = async function handler(req, res) {
       } catch (err) {
         console.warn('[notes] activity fetch failed:', err?.message || err);
         return res.status(200).json({ activity: [] });
+      }
+    }
+
+    // GET /api/notes/:id/authorship — Per-Block-Authorship aus dem
+    // Versionsverlauf. Liefert { authorship: {blockKey: userId},
+    // authors: {userId: {id, name, avatar_color, avatar_url}} }.
+    // Bewusst on-the-fly, keine DB-Spalte — Versions sind die Quelle
+    // der Wahrheit. Nur fuer Leser der Note erreichbar.
+    if (segments.length === 2 && segments[1] === 'authorship' && req.method === 'GET') {
+      try {
+        const versionsRes = await pool.query(
+          `SELECT version_no, content, created_by, created_at
+             FROM note_versions
+            WHERE note_id = $1
+            ORDER BY version_no ASC`,
+          [String(noteId)]
+        ).catch(() => ({ rows: [] }));
+        const versionsAsc = versionsRes.rows || [];
+
+        const ownerId = note.user_id ? String(note.user_id) : null;
+        const map = buildAuthorshipMap({
+          versionsAsc,
+          currentContent: note.content || '',
+          currentEditorId: ownerId,
+          ownerId,
+        });
+
+        const ids = Array.from(new Set(Object.values(map))).filter(Boolean);
+        const authors = {};
+        if (ids.length > 0) {
+          try {
+            const urows = await pool.query(
+              `SELECT id::text AS id, name, avatar_color, avatar_url
+                 FROM users
+                WHERE id::text = ANY($1::text[])`,
+              [ids]
+            );
+            for (const row of urows.rows) {
+              authors[row.id] = {
+                id: row.id,
+                name: row.name || null,
+                avatar_color: row.avatar_color || null,
+                avatar_url: row.avatar_url || null,
+              };
+            }
+          } catch (e) {
+            console.warn('[notes] authorship users lookup failed:', e?.message || e);
+          }
+        }
+
+        return res.status(200).json({ authorship: map, authors });
+      } catch (err) {
+        console.warn('[notes] authorship failed:', err?.message || err);
+        return res.status(200).json({ authorship: {}, authors: {} });
       }
     }
 

@@ -16,6 +16,7 @@ import { useAuthStore } from '../store/authStore';
 import { useFriendsStore } from '../store/friendsStore';
 import { useNotesStore } from '../store/notesStore';
 import { toDisplayHtml, sanitizeHtml, htmlToMarkdown, safeFileName } from '../lib/noteFormat';
+import { walkEditorBlocks } from '../lib/noteAuthorship';
 import { api } from '../utils/api';
 import NoteActivityPanel from './NoteActivityPanel';
 import NoteCommentsPanel from './NoteCommentsPanel';
@@ -300,10 +301,14 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   // Unterer Bereich (Link-/Insights-Row + Footer-Sekundaeraktionen) ist auf
   // Handy/Tablet standardmaessig eingeklappt, damit der Editor max. Platz hat.
   const [bottomOpen, setBottomOpen] = useState(false);
-  // Subtiler "Signing"-Hinweis: letzter Bearbeiter aus dem Versionsverlauf,
-  // sofern es NICHT der aktuelle Nutzer war. Bewusst leichtgewichtig — nur
-  // Metadaten (Name, Avatar, Zeitpunkt), kein Diff.
-  const [lastEditor, setLastEditor] = useState(null);
+  // Per-Block-Authorship: ein leichter farbiger Balken links neben jedem
+  // Absatz markiert den urspruenglichen Autor. Daten werden on-the-fly
+  // aus dem Versionsverlauf rekonstruiert (siehe api/notes.js /authorship).
+  // authorMap = { blockKey: userId }, authors = { userId: details }.
+  const [authorMap, setAuthorMap] = useState({});
+  const [authors, setAuthors] = useState({});
+  // Resize-Tick triggert eine Neuberechnung der Bar-Positionen.
+  const [authorRailTick, setAuthorRailTick] = useState(0);
   const closeMobileSheet = useCallback(() => { setMobileSheet(null); setSheetDragY(0); }, []);
 
   // Swipe-to-dismiss fuer das Mobile-Action-Sheet (siehe NotesPage).
@@ -628,36 +633,27 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [note?.id]);
 
-  // "Signing"-Info: letzten externen Bearbeiter aus dem Versionsverlauf
-  // laden. Bewusst dezent — nur wenn ein ANDERER User zuletzt editiert
-  // hat, erscheint ein kleiner Chip im Header. Failures schlucken wir
-  // still, da das Feature rein informativ ist.
+  // Per-Block-Authorship aus dem Versionsverlauf laden. Liefert eine
+  // Map {blockKey: userId} fuer die aktuellen Bloecke der Notiz +
+  // User-Details. Wird bei Note-Wechsel und nach jedem Save (via
+  // versionsBust) neu gezogen — Snapshots werden serverseitig
+  // gedrosselt (~30s), daher kein Spam.
   useEffect(() => {
     let cancelled = false;
-    if (!note?.id) { setLastEditor(null); return undefined; }
+    if (!note?.id) { setAuthorMap({}); setAuthors({}); return undefined; }
     (async () => {
       try {
-        const data = await api.listNoteVersions(note.id);
+        const data = await api.getNoteAuthorship(note.id);
         if (cancelled) return;
-        const versions = Array.isArray(data?.versions) ? data.versions : [];
-        const ext = versions.find((v) => {
-          if (!v?.created_by) return false;
-          return String(v.created_by) !== currentUserId;
-        });
-        if (!ext) { setLastEditor(null); return; }
-        setLastEditor({
-          id: String(ext.created_by),
-          name: ext.author_name || 'Jemand',
-          avatarUrl: ext.author_avatar_url || null,
-          avatarColor: ext.author_avatar_color || null,
-          at: ext.created_at || null,
-        });
+        setAuthorMap(data?.authorship && typeof data.authorship === 'object' ? data.authorship : {});
+        setAuthors(data?.authors && typeof data.authors === 'object' ? data.authors : {});
+        setAuthorRailTick((t) => t + 1);
       } catch {
-        if (!cancelled) setLastEditor(null);
+        if (!cancelled) { setAuthorMap({}); setAuthors({}); }
       }
     })();
     return () => { cancelled = true; };
-  }, [note?.id, currentUserId, versionsBust]);
+  }, [note?.id, versionsBust]);
 
   // Live-Sync: wenn die Notiz fremd aktualisiert wird (z.B. der Eigentuemer
   // editiert eine geteilte Notiz und das Polling zieht neue Daten), den
@@ -1179,39 +1175,6 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
             </div>
           </div>
 
-          {lastEditor && (
-            <div className="nem-signing" role="note" aria-label="Letzte Bearbeitung">
-              <AvatarBadge
-                name={lastEditor.name}
-                color={lastEditor.avatarColor || '#007AFF'}
-                avatarUrl={lastEditor.avatarUrl}
-                size={18}
-                className="nem-signing__avatar"
-              />
-              <span className="nem-signing__text">
-                Zuletzt bearbeitet von <strong>{lastEditor.name}</strong>
-                {lastEditor.at && (
-                  <>
-                    {' '}·{' '}
-                    <time
-                      dateTime={lastEditor.at}
-                      title={(() => {
-                        try { return format(parseISO(lastEditor.at), "dd.MM.yyyy, HH:mm 'Uhr'", { locale: de }); }
-                        catch { return ''; }
-                      })()}
-                    >
-                      {(() => {
-                        try {
-                          return formatDistanceToNow(parseISO(lastEditor.at), { addSuffix: true, locale: de });
-                        } catch { return ''; }
-                      })()}
-                    </time>
-                  </>
-                )}
-              </span>
-            </div>
-          )}
-
           <div className="nem-body">
             {!readOnly && (
               <FormatToolbar
@@ -1251,19 +1214,28 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                 </div>
               </div>
             )}
-            <div
-              ref={editorRef}
-              className="nem-editor"
-              contentEditable={!readOnly}
-              suppressContentEditableWarning
-              spellCheck
-              data-placeholder="Schreib los…"
-              onInput={onEditorInput}
-              onKeyDown={onEditorKeyDown}
-              onClick={onEditorClick}
-              onCompositionStart={onCompositionStart}
-              onCompositionEnd={onCompositionEnd}
-            />
+            <div className="nem-editor-shell">
+              <NoteAuthorRail
+                editorRef={editorRef}
+                authorMap={authorMap}
+                authors={authors}
+                currentUserId={currentUserId}
+                tick={authorRailTick}
+              />
+              <div
+                ref={editorRef}
+                className="nem-editor"
+                contentEditable={!readOnly}
+                suppressContentEditableWarning
+                spellCheck
+                data-placeholder="Schreib los…"
+                onInput={onEditorInput}
+                onKeyDown={onEditorKeyDown}
+                onClick={onEditorClick}
+                onCompositionStart={onCompositionStart}
+                onCompositionEnd={onCompositionEnd}
+              />
+            </div>
           </div>
 
           {/* Verknuepfter Termin / Aufgabe (bidirektional). */}
@@ -1854,5 +1826,84 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
       </motion.div>
     </AnimatePresence>,
     document.body,
+  );
+}
+
+
+// ------------------------------------------------------------
+// NoteAuthorRail � schmaler farbiger Balken links neben Bloecken,
+// die NICHT vom aktuellen Nutzer stammen. Position wird live
+// aus dem contentEditable-DOM berechnet (MutationObserver +
+// ResizeObserver). Eigene Bloecke bleiben absichtlich unmarkiert,
+// damit das Bild ruhig bleibt.
+// ------------------------------------------------------------
+function NoteAuthorRail({ editorRef, authorMap, authors, currentUserId, tick }) {
+  const [bars, setBars] = useState([]);
+  const rafRef = useRef(0);
+
+  const compute = useCallback(() => {
+    const editor = editorRef.current;
+    if (!editor) { setBars([]); return; }
+    const blocks = walkEditorBlocks(editor);
+    if (blocks.length === 0) { setBars([]); return; }
+    const editorRect = editor.getBoundingClientRect();
+    const out = [];
+    blocks.forEach((b, idx) => {
+      const userId = authorMap[b.key];
+      if (!userId) return;
+      if (String(userId) === String(currentUserId || '')) return;
+      const author = authors[String(userId)];
+      if (!author) return;
+      const r = b.el.getBoundingClientRect();
+      if (r.height < 4) return;
+      out.push({
+        key: `${b.key}_${idx}`,
+        top: r.top - editorRect.top,
+        height: r.height,
+        color: author.avatar_color || '#007AFF',
+        name: author.name || 'Mitglied',
+      });
+    });
+    setBars(out);
+  }, [editorRef, authorMap, authors, currentUserId]);
+
+  useEffect(() => { compute(); }, [compute, tick]);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return undefined;
+    const schedule = () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(compute);
+    };
+    const mo = new MutationObserver(schedule);
+    mo.observe(editor, { childList: true, subtree: true, characterData: true });
+    let ro = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(schedule);
+      ro.observe(editor);
+    }
+    window.addEventListener('resize', schedule);
+    return () => {
+      mo.disconnect();
+      if (ro) ro.disconnect();
+      window.removeEventListener('resize', schedule);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [editorRef, compute]);
+
+  if (bars.length === 0) return null;
+
+  return (
+    <div className="nem-author-rail" aria-hidden="true">
+      {bars.map((b) => (
+        <span
+          key={b.key}
+          className="nem-author-bar"
+          style={{ top: b.top + 'px', height: b.height + 'px', background: b.color }}
+          title={`Geschrieben von ${b.name}`}
+        />
+      ))}
+    </div>
   );
 }

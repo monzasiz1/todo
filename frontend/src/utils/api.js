@@ -852,6 +852,9 @@ export const api = {
     request(`/notes/${encodeURIComponent(noteId)}/versions/${encodeURIComponent(versionNo)}/restore`, {
       method: 'POST',
     }),
+  // Per-Block-Authorship: { authorship: {blockKey: userId}, authors: {userId: details} }
+  getNoteAuthorship: (noteId) =>
+    request(`/notes/${encodeURIComponent(noteId)}/authorship`),
 
   connectNotes: (noteId1, noteId2, relationshipType = 'related') =>
     request('/notes', {
