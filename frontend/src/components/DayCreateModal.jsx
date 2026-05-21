@@ -273,12 +273,15 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
               (() => {
                 const endedEvent = isEventEnded(task);
                 const holidayEntry = isHolidayEntry(task);
+                const startDay = String(task?.date || '').slice(0, 10);
+                const endDay = String(task?.date_end || task?.date || '').slice(0, 10);
+                const isTrueMultiDayEvent = task?.type === 'event' && !!startDay && !!endDay && endDay > startDay;
                 const catColor = task.group_category_color || task.category_color;
                 const accentColor = catColor || (task.group_id ? (task.group_color || '#5856D6') : null);
                 const catName = task.group_category_name || task.category;
                 // Kraeftigere Akzentfarbe (frueher 12 = ~7% Alpha, jetzt 33 = ~20%).
                 const accentBg = accentColor ? `${accentColor}33` : 'var(--hover)';
-                const progress = !endedEvent && !holidayEntry
+                const progress = isTrueMultiDayEvent && !endedEvent && !holidayEntry
                   ? buildProgressBackground(task, accentBg, 'var(--hover)')
                   : null;
                 const liveBg = progress ? progress.bg : null;
