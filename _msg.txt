@@ -1,0 +1,7 @@
+﻿Gruppen: hueebsches Custom-Rollen-Menu fuer Mitglieder
+
+- MemberCustomRoleSelect: natives select ersetzt durch eigenes Popover-Menu
+- Klick-ausserhalb + Esc schliesst Menu
+- Menu-Items mit Rollen-Avatar, Name und Permission-Count
+- Aktives Item wird mit Check markiert
+- Chip im Member-Eintrag zeigt Rollen-Punkt und Chevron, Standard-Variante mit dashed border

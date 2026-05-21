@@ -2557,12 +2557,29 @@ function MemberCustomRoleSelect({ groupId, member, roles }) {
   const currentId = member.custom_role_id || '';
   const currentRole = roles.find((r) => r.id === currentId);
   const [saving, setSaving] = useState(false);
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
 
-  const onChange = async (e) => {
-    const val = e.target.value || null;
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDocClick = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+    };
+    const onEsc = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('keydown', onEsc);
+    };
+  }, [open]);
+
+  const choose = async (roleId) => {
+    setOpen(false);
+    if ((roleId || null) === (currentId || null)) return;
     setSaving(true);
     try {
-      await assignCustomRole(groupId, member.user_id, val);
+      await assignCustomRole(groupId, member.user_id, roleId || null);
     } catch (err) {
       addToast(err?.message || 'Zuweisung fehlgeschlagen');
     } finally {
@@ -2570,38 +2587,133 @@ function MemberCustomRoleSelect({ groupId, member, roles }) {
     }
   };
 
+  const chipBg = currentRole ? `${currentRole.color}1a` : 'var(--hover, rgba(120,120,128,0.08))';
+  const chipColor = currentRole ? currentRole.color : 'var(--text-secondary, #8E8E93)';
+  const chipBorder = currentRole
+    ? `1px solid ${currentRole.color}55`
+    : '1px dashed var(--border, rgba(120,120,128,0.35))';
+
   return (
-    <span
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 6,
-        marginTop: 6, fontSize: 11, fontWeight: 600,
-        padding: '2px 4px 2px 8px', borderRadius: 999,
-        background: currentRole ? `${currentRole.color}1a` : 'var(--hover, rgba(120,120,128,0.1))',
-        color: currentRole ? currentRole.color : 'var(--text-secondary, #8E8E93)',
-        border: currentRole ? `1px solid ${currentRole.color}55` : '1px solid var(--border, rgba(120,120,128,0.2))',
-      }}
-    >
-      {currentRole ? (
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: currentRole.color }} />
-      ) : (
-        <Crown size={10} />
-      )}
-      <select
-        value={currentId}
+    <span ref={wrapRef} style={{ position: 'relative', display: 'inline-block', marginTop: 6 }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
         disabled={saving}
-        onChange={onChange}
+        title={currentRole ? `Rolle: ${currentRole.name}` : 'Rolle zuweisen'}
         style={{
-          background: 'transparent', border: 'none', outline: 'none',
-          fontSize: 11, fontWeight: 600, color: 'inherit', cursor: 'pointer',
-          padding: '2px 4px',
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '3px 8px 3px 7px', borderRadius: 999,
+          background: chipBg, color: chipColor, border: chipBorder,
+          fontSize: 11, fontWeight: 600,
+          cursor: saving ? 'wait' : 'pointer',
+          opacity: saving ? 0.6 : 1,
+          maxWidth: 180, transition: 'all 140ms ease',
         }}
       >
-        <option value="">Standard</option>
-        {roles.map((r) => (
-          <option key={r.id} value={r.id}>{r.name}</option>
-        ))}
-      </select>
+        {currentRole ? (
+          <span style={{
+            width: 8, height: 8, borderRadius: '50%', background: currentRole.color, flexShrink: 0,
+          }} />
+        ) : (
+          <Crown size={11} style={{ flexShrink: 0 }} />
+        )}
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {currentRole ? currentRole.name : 'Rolle zuweisen'}
+        </span>
+        <ChevronDown size={11} style={{ opacity: 0.7, flexShrink: 0 }} />
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          style={{
+            position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 50,
+            minWidth: 180, maxWidth: 240,
+            background: 'var(--surface, #fff)',
+            border: '1px solid var(--border, rgba(120,120,128,0.25))',
+            borderRadius: 12,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+            padding: 4, overflow: 'hidden',
+          }}
+        >
+          <RoleMenuItem
+            active={!currentRole}
+            color={null}
+            label="Standard"
+            sub="Gruppen-Standardrechte"
+            onClick={() => choose('')}
+          />
+          {roles.length > 0 && (
+            <div style={{
+              height: 1, background: 'var(--border, rgba(120,120,128,0.18))', margin: '4px 2px',
+            }} />
+          )}
+          {roles.map((r) => {
+            const active = r.id === currentId;
+            const count = r.permissions
+              ? Object.values(r.permissions).filter(Boolean).length
+              : 0;
+            return (
+              <RoleMenuItem
+                key={r.id}
+                active={active}
+                color={r.color}
+                label={r.name}
+                sub={`${count} Berechtigungen`}
+                onClick={() => choose(r.id)}
+              />
+            );
+          })}
+        </div>
+      )}
     </span>
+  );
+}
+
+function RoleMenuItem({ active, color, label, sub, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      role="menuitem"
+      style={{
+        display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+        padding: '8px 10px', borderRadius: 8, border: 'none',
+        background: active ? 'var(--hover, rgba(120,120,128,0.12))' : 'transparent',
+        color: 'var(--text, inherit)', textAlign: 'left', cursor: 'pointer',
+      }}
+      onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = 'var(--hover, rgba(120,120,128,0.08))'; }}
+      onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = 'transparent'; }}
+    >
+      {color ? (
+        <span style={{
+          width: 18, height: 18, borderRadius: '50%', background: color,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          color: '#fff', fontSize: 10, fontWeight: 700, flexShrink: 0,
+        }}>
+          {(label || '?').slice(0, 1).toUpperCase()}
+        </span>
+      ) : (
+        <span style={{
+          width: 18, height: 18, borderRadius: '50%',
+          background: 'var(--hover, rgba(120,120,128,0.15))',
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          color: 'var(--text-secondary, #8E8E93)', flexShrink: 0,
+        }}>
+          <Crown size={10} />
+        </span>
+      )}
+      <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+        <span style={{
+          fontSize: 13, fontWeight: 600,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>{label}</span>
+        {sub && (
+          <span style={{ fontSize: 11, opacity: 0.6, marginTop: 1 }}>{sub}</span>
+        )}
+      </span>
+      {active && <Check size={14} style={{ color: 'var(--accent, #007AFF)', flexShrink: 0 }} />}
+    </button>
   );
 }
 
