@@ -225,18 +225,11 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     };
   }, []);
 
-  // Notes beim Oeffnen der Task neu laden. Wichtig: auch wenn der Store
-  // bereits eigene Notes enthaelt, koennen Team-Notes von anderen Usern (zu
-  // dieser Task) erst nach einem fetch sichtbar werden.
+  // Notes beim Oeffnen der Task immer frisch laden. Wichtig: Team-Notes von
+  // anderen Usern koennen sonst wegen 30s-Cachefenster kurz fehlen.
   useEffect(() => {
     if (!task?.id) return;
-    // Smart-Refetch: nur Hard-Refresh wenn Daten >30 s alt sind.
-    // Sonst nutzt der Store-Cache (SWR) — kein Flackern, kein Cold-Start.
-    try {
-      const lastFetchAt = useNotesStore.getState().lastFetchAt || 0;
-      const stale = Date.now() - lastFetchAt > 30000;
-      fetchNotesStore?.({ force: stale });
-    } catch {}
+    try { fetchNotesStore?.({ force: true }); } catch {}
     // Nur beim Oeffnen pruefen – kein Loop wenn notesAll sich aendert
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [task?.id]);

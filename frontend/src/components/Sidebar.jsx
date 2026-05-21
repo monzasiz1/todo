@@ -36,7 +36,8 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
   const { planId } = usePlan();
   const [showFriends, setShowFriends] = useState(false);
   const [showCategories, setShowCategories] = useState(false);
-  const [categoriesCollapsed, setCategoriesCollapsed] = useState(false);
+  const [sourcesCollapsed, setSourcesCollapsed] = useState(true);
+  const [categoriesCollapsed, setCategoriesCollapsed] = useState(true);
   const location = useLocation();
 
   useEffect(() => {
@@ -168,23 +169,37 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
       </div>
 
       {/* Categories */}
-      <div className="sidebar-section-title">Quellen</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 12 }}>
-        {sourceItems.map((item) => (
-          <div
-            key={item.value}
-            className={`sidebar-category ${source === item.value ? 'active' : ''}`}
-            onClick={() => {
-              setFilter('source', item.value);
-              onClose?.();
-            }}
-            title={isCollapsed ? item.label : undefined}
+      <div className="sidebar-section-title sidebar-section-head">
+        <span>Quellen</span>
+        <div className="sidebar-section-actions">
+          <button
+            className={`sidebar-collapse-btn ${!sourcesCollapsed ? 'open' : ''}`}
+            onClick={() => setSourcesCollapsed((v) => !v)}
+            aria-label={sourcesCollapsed ? 'Quellen ausklappen' : 'Quellen einklappen'}
+            title={sourcesCollapsed ? 'Ausklappen' : 'Einklappen'}
           >
-            <div className="sidebar-category-dot" style={{ background: source === item.value ? 'var(--primary)' : 'var(--text-tertiary)' }} />
-            <span className="sidebar-category-label">{item.label}</span>
-            <span className="sidebar-category-count">{item.count}</span>
-          </div>
-        ))}
+            <ChevronDown size={16} />
+          </button>
+        </div>
+      </div>
+      <div className={`sidebar-categories-wrap ${sourcesCollapsed ? 'collapsed' : 'open'}`}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 12 }}>
+          {sourceItems.map((item) => (
+            <div
+              key={item.value}
+              className={`sidebar-category ${source === item.value ? 'active' : ''}`}
+              onClick={() => {
+                setFilter('source', item.value);
+                onClose?.();
+              }}
+              title={isCollapsed ? item.label : undefined}
+            >
+              <div className="sidebar-category-dot" style={{ background: source === item.value ? 'var(--primary)' : 'var(--text-tertiary)' }} />
+              <span className="sidebar-category-label">{item.label}</span>
+              <span className="sidebar-category-count">{item.count}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="sidebar-section-title sidebar-section-head">

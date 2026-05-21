@@ -1,1 +1,1 @@
-﻿feat(dashboard): Quellenfilter um Direkt/Gruppenshares und Einzel-Gruppen erweitern
+﻿fix(notes): Gruppen-Notes an Task im Detail stets frisch nachladen
