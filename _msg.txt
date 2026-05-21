@@ -1,7 +1,10 @@
-﻿style(taskcard): Subgroup-Badge auf Combo-Badge-Groesse angleichen
+﻿style(taskcard): Group/Combo/Subgroup-Badges auf einheitliche Hoehe
 
-.task-subgroup-badge nutzt jetzt dieselbe Geometrie wie
-.task-group-combo-badge (padding 1px 7px 1px 5px, radius 7px,
-min-height 18px, margin-top 2px). Damit erscheinen Gruppen-
-und Untergruppen-Badge auf TaskCards in einer konsistenten
-Hoehe nebeneinander.
+.task-group-badge nutzt jetzt dieselbe Geometrie wie combo +
+subgroup (padding 1px 7px 1px 5px, radius 7px, font-size 10,
+min-height 18px, margin-top 2px). Zusaetzlich:
+- Avatar in .task-group-badge: size 12 -> 10 (passt zu combo).
+- Subgroup-Mitglieder-Avatare: size 18 -> 12 (sprengten zuvor
+  die 18px Hoehe der Badge).
+- Inline fontSize 11 in subgroup-name entfernt (erbt nun das
+  Badge-fontSize von 10).

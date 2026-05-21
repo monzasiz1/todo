@@ -574,7 +574,7 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
               name={task.group_name}
               color={task.group_color || '#5856D6'}
               avatarUrl={task.group_image_url}
-              size={12}
+              size={10}
             />
             {task.group_name}
           </span>
@@ -598,11 +598,11 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
         {task.subgroup_id && !hideGroupBadge && (
           <span className="task-subgroup-badge" title={`Untergruppe: ${task.subgroup_name || ''}`} style={{ background: task.subgroup_color ? `${task.subgroup_color}18` : 'rgba(88,86,214,0.08)', borderColor: task.subgroup_color ? `${task.subgroup_color}44` : 'rgba(88,86,214,0.2)' }}>
             <Lock size={10} />
-            <span style={{ fontSize: 11, fontWeight: 600 }}>{task.subgroup_name || 'Untergruppe'}</span>
+            <span style={{ fontWeight: 600 }}>{task.subgroup_name || 'Untergruppe'}</span>
             {Array.isArray(task.subgroup_members) && task.subgroup_members.length > 0 && (
               <span className="task-subgroup-avatars">
                 {task.subgroup_members.slice(0, 4).map((m) => (
-                  <AvatarBadge key={m.user_id} name={m.name} color={m.avatar_color || '#007AFF'} avatarUrl={m.avatar_url} size={18} title={m.name} />
+                  <AvatarBadge key={m.user_id} name={m.name} color={m.avatar_color || '#007AFF'} avatarUrl={m.avatar_url} size={12} title={m.name} />
                 ))}
                 {task.subgroup_members.length > 4 && (
                   <span style={{ fontSize: 10, color: 'var(--text-secondary)', marginLeft: 2 }}>+{task.subgroup_members.length - 4}</span>
