@@ -38,6 +38,52 @@ async function ensureLocationColumn(pool) {
   }
 }
 
+// ─── Gruppen-Berechtigung pruefen ──────────────────────────────────────────
+// Liefert {allowed, reason, message}. Greift fuer Gruppen-Tasks:
+//   * Owner/Admin der Gruppe → immer erlaubt
+//   * Task-Owner UND Member  → benoetigt edit_own_tasks (per Custom-Rolle
+//                              oder Default member_permissions)
+//   * Nicht-Owner und Member → verboten (nur Admins editieren fremde Tasks)
+// Bei Tasks ohne Gruppen-Zuordnung: { allowed: true }.
+async function canEditGroupTask(pool, taskId, userId) {
+  const taskRes = await pool.query('SELECT user_id FROM tasks WHERE id = $1', [taskId]);
+  if (!taskRes.rows.length) return { allowed: false, reason: 'not_found', message: 'Aufgabe nicht gefunden' };
+  const isOwn = Number(taskRes.rows[0].user_id) === Number(userId);
+  let groups;
+  try {
+    groups = await pool.query(
+      `SELECT gt.group_id, gm.role
+         FROM group_tasks gt
+         JOIN group_members gm ON gm.group_id = gt.group_id AND gm.user_id = $2
+        WHERE gt.task_id = $1`,
+      [taskId, userId]
+    );
+  } catch (err) {
+    console.warn('[tasks] canEditGroupTask membership lookup failed:', err.message);
+    return { allowed: true };
+  }
+  if (!groups.rows.length) return { allowed: true };
+  let getEffectivePerms = null;
+  try { ({ getEffectivePerms } = require('./groups')); } catch { /* ignore */ }
+  for (const g of groups.rows) {
+    if (g.role === 'owner' || g.role === 'admin') continue;
+    if (!isOwn) {
+      return { allowed: false, reason: 'not_admin', message: 'Nur Admins koennen fremde Gruppen-Tasks bearbeiten' };
+    }
+    if (typeof getEffectivePerms === 'function') {
+      try {
+        const eff = await getEffectivePerms(pool, g.group_id, userId);
+        if (eff && eff.perms && !eff.perms.edit_own_tasks) {
+          return { allowed: false, reason: 'no_perm', message: 'Eigene Gruppen-Tasks bearbeiten ist fuer deine Rolle gesperrt' };
+        }
+      } catch (err) {
+        console.warn('[tasks] getEffectivePerms failed:', err.message);
+      }
+    }
+  }
+  return { allowed: true };
+}
+
 function formatReminderDateForLog(value) {
   const reminderDate = new Date(value);
   if (Number.isNaN(reminderDate.getTime())) {
@@ -1086,6 +1132,12 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ error: 'Termine können nicht als erledigt markiert werden' });
       }
 
+      // Gruppen-Rolle/Permissions pruefen
+      const toggleCheck = await canEditGroupTask(pool, taskId, user.id);
+      if (!toggleCheck.allowed) {
+        return res.status(403).json({ error: toggleCheck.message || 'Keine Berechtigung' });
+      }
+
       // Owner, has edit permission, or is a member of the group this task belongs to
       const result = await pool.query(
         `UPDATE tasks SET completed = NOT completed, updated_at = NOW(), last_edited_by = $3
@@ -1307,6 +1359,12 @@ module.exports = async function handler(req, res) {
           return res.status(404).json({ error: 'Vorlage nicht gefunden' });
         }
         taskId = String(concreteRow.id);
+      }
+
+      // Gruppen-Rolle/Permissions pruefen
+      const editCheck = await canEditGroupTask(pool, taskId, user.id);
+      if (!editCheck.allowed) {
+        return res.status(403).json({ error: editCheck.message || 'Keine Berechtigung' });
       }
 
       // Only update fields that were explicitly sent in the request body.
@@ -1537,6 +1595,14 @@ module.exports = async function handler(req, res) {
       } else {
         // Legacy default
         action = isOwner ? 'full' : 'dismiss';
+      }
+
+      // Bei full-delete zusaetzlich Gruppen-Rolle pruefen (edit_own_tasks).
+      if (action === 'full') {
+        const delCheck = await canEditGroupTask(pool, taskId, user.id);
+        if (!delCheck.allowed) {
+          return res.status(403).json({ error: delCheck.message || 'Keine Berechtigung' });
+        }
       }
 
       if (action === 'full') {

@@ -1,7 +1,9 @@
-﻿Gruppen: hueebsches Custom-Rollen-Menu fuer Mitglieder
+﻿Gruppen: Rollen wirken jetzt strikt auf Task-Edits
 
-- MemberCustomRoleSelect: natives select ersetzt durch eigenes Popover-Menu
-- Klick-ausserhalb + Esc schliesst Menu
-- Menu-Items mit Rollen-Avatar, Name und Permission-Count
-- Aktives Item wird mit Check markiert
-- Chip im Member-Eintrag zeigt Rollen-Punkt und Chevron, Standard-Variante mit dashed border
+api/tasks.js:
+- Neuer Helper canEditGroupTask: pruefen ob User in einer Gruppe sitzt, in der die Task liegt, und ob die effektiven Berechtigungen (inkl. Custom-Rolle) Bearbeitung erlauben
+- Owner/Admin der Gruppe darf immer
+- Member darf nur eigene Task editieren wenn edit_own_tasks aktiv ist
+- Nicht-Owner-Member darf fremde Gruppen-Task gar nicht editieren
+- Eingebaut in PUT /api/tasks/:id, PATCH /api/tasks/:id/toggle und DELETE /api/tasks/:id (mode=full)
+- 403 mit klarer deutscher Fehlermeldung statt stiller Allow
