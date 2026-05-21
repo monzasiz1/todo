@@ -7,7 +7,7 @@ import {
   UserPlus, Pencil,
   Bold, Italic, Underline, Strikethrough, Code, Heading1, Heading2,
   List, ListOrdered, CheckSquare, Quote, Table, History, Sparkles, Loader2,
-  Download,
+  Download, MoreHorizontal, Palette, Flag,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -285,6 +285,9 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   // Versions-Panel (Verlauf) als Slide-in im Header.
   const [showVersions, setShowVersions] = useState(false);
   const [versionsBust, setVersionsBust] = useState(0);
+  // Mobile Action-Sheet: 'more' | 'color' | 'importance' | null
+  const [mobileSheet, setMobileSheet] = useState(null);
+  const closeMobileSheet = useCallback(() => setMobileSheet(null), []);
 
   // Verknuepfter Termin / Aufgabe (bidirektional via notes.linked_task_id)
   const tasks = useTaskStore((s) => s.tasks);
@@ -1403,6 +1406,223 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
               </div>
             )}
           </div>
+
+          {/* Mobile-Bottom-Bar (iOS-Pill-Stil) — nur auf <=720px sichtbar,
+              ersetzt visuell den Desktop-Footer. Sekundaere Aktionen sind
+              im Aktions-Sheet hinter dem "Mehr"-Button verfuegbar. */}
+          {!readOnly && (
+            <div className="nem-mobile-bar" role="toolbar" aria-label="Notiz-Aktionen">
+              <button
+                type="button"
+                className="nem-mobile-pill nem-mobile-pill--color"
+                style={{ backgroundColor: color.bg, borderColor: color.border }}
+                onClick={() => setMobileSheet(mobileSheet === 'color' ? null : 'color')}
+                aria-label={`Farbe: ${color.name} (aendern)`}
+                aria-haspopup="dialog"
+                aria-expanded={mobileSheet === 'color'}
+              >
+                <Palette size={16} strokeWidth={2.2} />
+              </button>
+              <button
+                type="button"
+                className={`nem-mobile-pill nem-mobile-pill--importance is-${importance}`}
+                onClick={() => setMobileSheet(mobileSheet === 'importance' ? null : 'importance')}
+                aria-label={`Wichtigkeit: ${importance === 'low' ? 'Niedrig' : importance === 'medium' ? 'Mittel' : 'Hoch'} (aendern)`}
+                aria-haspopup="dialog"
+                aria-expanded={mobileSheet === 'importance'}
+              >
+                <Flag size={16} strokeWidth={2.2} />
+              </button>
+              <button
+                type="button"
+                className="nem-mobile-pill nem-mobile-pill--more"
+                onClick={() => setMobileSheet(mobileSheet === 'more' ? null : 'more')}
+                aria-label="Weitere Aktionen"
+                aria-haspopup="menu"
+                aria-expanded={mobileSheet === 'more'}
+              >
+                <MoreHorizontal size={18} strokeWidth={2.2} />
+              </button>
+              <button
+                type="button"
+                className="nem-mobile-pill nem-mobile-pill--done"
+                onClick={handleClose}
+                title="Fertig (auto-gespeichert)"
+              >
+                <Check size={16} strokeWidth={2.6} />
+                <span>Fertig</span>
+              </button>
+            </div>
+          )}
+          {readOnly && (
+            <div className="nem-mobile-bar nem-mobile-bar--readonly" role="toolbar" aria-label="Notiz-Aktionen">
+              <button
+                type="button"
+                className="nem-mobile-pill nem-mobile-pill--done"
+                onClick={handleClose}
+              >
+                <X size={16} strokeWidth={2.6} />
+                <span>Schliessen</span>
+              </button>
+            </div>
+          )}
+
+          {/* Mobile Action-Sheet */}
+          {mobileSheet && (
+            <div
+              className="nem-mobile-sheet-backdrop"
+              role="presentation"
+              onClick={closeMobileSheet}
+            >
+              <div
+                className={`nem-mobile-sheet nem-mobile-sheet--${mobileSheet}`}
+                role="dialog"
+                aria-modal="true"
+                aria-label={
+                  mobileSheet === 'color' ? 'Farbe waehlen'
+                  : mobileSheet === 'importance' ? 'Wichtigkeit waehlen'
+                  : 'Weitere Aktionen'
+                }
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="nem-mobile-sheet-grip" aria-hidden="true" />
+                <div className="nem-mobile-sheet-title">
+                  {mobileSheet === 'color' && 'Farbe'}
+                  {mobileSheet === 'importance' && 'Wichtigkeit'}
+                  {mobileSheet === 'more' && 'Aktionen'}
+                </div>
+
+                {mobileSheet === 'color' && (
+                  <div className="nem-mobile-color-grid" role="radiogroup" aria-label="Farbe">
+                    {NOTE_COLORS.map((c) => (
+                      <button
+                        key={c.name}
+                        type="button"
+                        role="radio"
+                        aria-checked={c.name === color.name}
+                        className={`nem-mobile-color-swatch${c.name === color.name ? ' is-active' : ''}`}
+                        style={{ backgroundColor: c.bg, borderColor: c.border }}
+                        onClick={() => { setColor(c); closeMobileSheet(); }}
+                      >
+                        <span className="nem-mobile-color-name">{c.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {mobileSheet === 'importance' && (
+                  <div className="nem-mobile-importance-list">
+                    {[
+                      { key: 'low', label: 'Niedrig', hint: 'Weniger dringend' },
+                      { key: 'medium', label: 'Mittel', hint: 'Standard' },
+                      { key: 'high', label: 'Hoch', hint: 'Wichtig / dringend' },
+                    ].map((it) => (
+                      <button
+                        key={it.key}
+                        type="button"
+                        className={`nem-mobile-sheet-item is-${it.key}${importance === it.key ? ' is-active' : ''}`}
+                        onClick={() => { setImportance(it.key); closeMobileSheet(); }}
+                      >
+                        <span className={`nem-mobile-importance-dot is-${it.key}`} aria-hidden="true" />
+                        <span className="nem-mobile-sheet-item-text">
+                          <span className="nem-mobile-sheet-item-label">{it.label}</span>
+                          <span className="nem-mobile-sheet-item-hint">{it.hint}</span>
+                        </span>
+                        {importance === it.key && <Check size={16} />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {mobileSheet === 'more' && (
+                  <div className="nem-mobile-sheet-list">
+                    <button
+                      type="button"
+                      className="nem-mobile-sheet-item"
+                      onClick={() => { closeMobileSheet(); setShowVersions(true); }}
+                    >
+                      <History size={18} />
+                      <span className="nem-mobile-sheet-item-text">
+                        <span className="nem-mobile-sheet-item-label">Verlauf</span>
+                        <span className="nem-mobile-sheet-item-hint">Aeltere Fassungen ansehen</span>
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className="nem-mobile-sheet-item"
+                      onClick={() => { closeMobileSheet(); handleExportMarkdown(); }}
+                    >
+                      <Download size={18} />
+                      <span className="nem-mobile-sheet-item-text">
+                        <span className="nem-mobile-sheet-item-label">Als Markdown exportieren</span>
+                        <span className="nem-mobile-sheet-item-hint">.md-Datei herunterladen</span>
+                      </span>
+                    </button>
+                    {canShareWithGroup && (
+                      <button
+                        type="button"
+                        className="nem-mobile-sheet-item"
+                        onClick={() => { closeMobileSheet(); handleToggleVisibility(); }}
+                      >
+                        {visibility === 'group' ? <Lock size={18} /> : <Users size={18} />}
+                        <span className="nem-mobile-sheet-item-text">
+                          <span className="nem-mobile-sheet-item-label">
+                            {visibility === 'group' ? 'Privatisieren' : 'Mit Gruppe teilen'}
+                          </span>
+                          <span className="nem-mobile-sheet-item-hint">
+                            {visibility === 'group' ? 'Nur fuer dich sichtbar' : 'Fuer alle Gruppenmitglieder'}
+                          </span>
+                        </span>
+                      </button>
+                    )}
+                    {!readOnly && (
+                      <button
+                        type="button"
+                        className="nem-mobile-sheet-item"
+                        onClick={() => {
+                          closeMobileSheet();
+                          flushSave();
+                          onComplete?.(note.id);
+                          onClose?.();
+                        }}
+                      >
+                        <Archive size={18} />
+                        <span className="nem-mobile-sheet-item-text">
+                          <span className="nem-mobile-sheet-item-label">Archivieren</span>
+                          <span className="nem-mobile-sheet-item-hint">Als erledigt markieren</span>
+                        </span>
+                      </button>
+                    )}
+                    {!readOnly && (
+                      <button
+                        type="button"
+                        className="nem-mobile-sheet-item is-danger"
+                        onClick={() => {
+                          closeMobileSheet();
+                          if (!window.confirm('Notiz wirklich loeschen?')) return;
+                          onDelete?.(note.id);
+                          onClose?.();
+                        }}
+                      >
+                        <Trash2 size={18} />
+                        <span className="nem-mobile-sheet-item-text">
+                          <span className="nem-mobile-sheet-item-label">Loeschen</span>
+                          <span className="nem-mobile-sheet-item-hint">Endgueltig entfernen</span>
+                        </span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="nem-mobile-sheet-cancel"
+                      onClick={closeMobileSheet}
+                    >
+                      Abbrechen
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </motion.div>
       </motion.div>
     </AnimatePresence>,
