@@ -61,26 +61,57 @@ function blockKey(text) {
 
 // Hauptalgorithmus: gegeben sortierte Versionen (ASC nach version_no) +
 // aktueller Notiz-State, liefere {key → userId} fuer alle Bloecke des
-// aktuellen States. Blocks ohne Version-Treffer (z.B. ganz frisch
-// eingetippt seit letztem Snapshot) fallen auf currentEditorId zurueck.
+// aktuellen States.
+//
+// WICHTIG zur Semantik von note_versions:
+//   - snapshotNoteVersion speichert den Stand VOR dem Save als Version.
+//   - version.created_by ist der User, der den Save AUSGELOEST hat
+//     (also den Stand danach geschrieben hat) — NICHT der Autor des
+//     im Snapshot enthaltenen content.
+//
+// Daraus folgt:
+//   - versions[0].content wurde vom Notiz-Owner geschrieben.
+//   - versions[i].content (i>0) wurde von versions[i-1].created_by
+//     geschrieben.
+//   - Der AKTUELLE Notiz-Content wurde vom letzten versions[*].created_by
+//     geschrieben (oder vom Owner, falls noch keine Version existiert).
+//
+// Ein Block wird dem Autor der AELTESTEN "Stage" zugeordnet, in der er
+// erstmals auftaucht.
 function buildAuthorshipMap({ versionsAsc, currentContent, currentEditorId, ownerId }) {
-  const currentBlocks = extractBlocks(currentContent);
-  const authorByKey = {};
-  // Walk versionen oldest→newest: erstes Auftreten eines Blocks gewinnt.
+  const ownerStr = ownerId ? String(ownerId) : null;
+  // Stages aufbauen: jede Stage = {content, author} wobei author der
+  // tatsaechliche Schreiber dieses content-Stands ist.
+  const stages = [];
+  let prevSaver = ownerStr;
   for (const v of versionsAsc || []) {
-    const blocks = extractBlocks(v.content || '');
-    const creator = v.created_by ? String(v.created_by) : (ownerId ? String(ownerId) : null);
-    if (!creator) continue;
+    stages.push({ content: v.content || '', author: prevSaver });
+    if (v.created_by) prevSaver = String(v.created_by);
+  }
+  // Aktueller Stand: vom letzten Speicherer (oder Owner, falls noch
+  // keine Version existiert). currentEditorId ist nur Notfall-Fallback.
+  const currentAuthor = prevSaver
+    || (currentEditorId ? String(currentEditorId) : null)
+    || ownerStr;
+  stages.push({ content: currentContent || '', author: currentAuthor });
+
+  // Walk stages oldest→newest: erstes Auftreten eines Blocks gewinnt.
+  const authorByKey = {};
+  for (const stage of stages) {
+    if (!stage.author) continue;
+    const blocks = extractBlocks(stage.content);
     for (const text of blocks) {
       const key = blockKey(text);
       if (!key) continue;
-      if (!(key in authorByKey)) authorByKey[key] = creator;
+      if (!(key in authorByKey)) authorByKey[key] = stage.author;
     }
   }
-  // Aktuelle Bloecke filtern + Fallbacks setzen.
+
+  // Aktuelle Bloecke filtern + Fallback (letzter Speicherer) setzen.
+  const currentBlocks = extractBlocks(currentContent);
   const result = {};
   const seen = new Set();
-  const fallback = currentEditorId ? String(currentEditorId) : (ownerId ? String(ownerId) : null);
+  const fallback = currentAuthor;
   for (const text of currentBlocks) {
     const key = blockKey(text);
     if (!key || seen.has(key)) continue;
