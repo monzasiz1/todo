@@ -7963,18 +7963,39 @@ body.cal-is-dragging * {
 @media (min-width: 900px) {
   .task-detail-modal {
     max-width: 880px;
+    /* Feste Hoehe (= max-height) ist im Grid-Modus noetig, damit die
+       Spalten (.task-detail-main / .task-detail-aside) eine begrenzte
+       Hoehe erben und ihr `overflow-y: auto` ueberhaupt greifen kann.
+       Ohne `height` waere die Grid-Zeile so hoch wie der Inhalt → kein
+       Scroll, Inhalt wird abgeschnitten. */
+    height: calc(100dvh - 80px);
     display: grid;
     grid-template-columns: 1fr 340px;
+    grid-template-rows: minmax(0, 1fr);
     overflow: hidden;
     align-items: stretch;
   }
+}
 
+@media (min-width: 900px) and (max-height: 900px) {
+  .task-detail-modal {
+    height: calc(100dvh - 48px);
+  }
+}
+@media (min-width: 900px) and (max-height: 760px) {
+  .task-detail-modal {
+    height: calc(100dvh - 32px);
+  }
+}
+
+@media (min-width: 900px) {
   .task-detail-main {
     overflow-y: auto;
     overflow-x: hidden;
     display: flex;
     flex-direction: column;
     min-height: 0;
+    height: 100%;
     scrollbar-width: thin;
     scrollbar-color: rgba(0,0,0,0.12) transparent;
   }
@@ -7987,6 +8008,7 @@ body.cal-is-dragging * {
     background: linear-gradient(180deg, color-mix(in srgb, var(--bg) 70%, var(--card-solid)), var(--bg));
     border-left: 1px solid var(--border);
     min-height: 0;
+    height: 100%;
     scrollbar-width: thin;
     scrollbar-color: rgba(0,0,0,0.12) transparent;
     /* Kleiner Atemraum nach oben, damit die erste Karte (Gruppen-Header,
