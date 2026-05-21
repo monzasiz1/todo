@@ -1,12 +1,5 @@
-﻿Gruppen: Mitglieder-Berechtigungen pro Gruppe
+﻿Schema: Migration fuer groups.member_permissions (Supabase)
 
-- Neue JSONB-Spalte groups.member_permissions mit on-demand Migration
-- Defaults: Tasks/Notizen/Chat fuer Member erlaubt, Einladen/Kategorien/Untergruppen nur Admin
-- Owner und Admins haben immer alle Rechte
-- Neuer Endpoint PUT /api/groups/:id/permissions (admin+)
-- Backend-Enforcement: Tasks erstellen, Chat senden, Untergruppen anlegen,
-  Kategorien anlegen, Nutzer einladen pruefen nun member_permissions
-- Frontend: neues Panel GroupPermissionsPanel in Gruppen-Einstellungen
-  mit Toggle-Switches fuer alle 7 Permissions
-- api/groups.js exportiert getGroupMemberPerms fuer andere API-Module
-- tasks.js POST verweigert Member ohne create_tasks-Recht mit 403
+- Neue Datei backend/models/add_group_member_permissions.sql
+- ALTER TABLE ... ADD COLUMN IF NOT EXISTS member_permissions JSONB
+- Optional in Supabase-SQL-Editor ausfuehren; App migriert sonst on-demand
