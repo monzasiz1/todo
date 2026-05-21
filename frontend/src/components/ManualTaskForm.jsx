@@ -103,6 +103,8 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
   const [groupId, setGroupId] = useState('');
   const [groupCategories, setGroupCategories] = useState([]);
   const [groupCategoryId, setGroupCategoryId] = useState('');
+  const [subgroups, setSubgroups] = useState([]);
+  const [subgroupId, setSubgroupId] = useState('');
   const [enableGroupRsvp, setEnableGroupRsvp] = useState(false);
   const [visibility, setVisibility] = useState('private');
   const [permissions, setPermissions] = useState([]);
@@ -152,6 +154,8 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
     setGroupId('');
     setGroupCategoryId('');
     setGroupCategories([]);
+    setSubgroupId('');
+    setSubgroups([]);
     setEnableGroupRsvp(false);
     setVisibility('private');
     setPermissions([]);
@@ -211,6 +215,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
         recurrence_end: recurrenceEnd || null,
         group_id: groupId || null,
         group_category_id: groupId ? (groupCategoryId || null) : null,
+        subgroup_id: groupId ? (subgroupId || null) : null,
         enable_group_rsvp: groupId ? enableGroupRsvp : false,
         visibility,
         permissions: visibility === 'selected_users'
@@ -272,6 +277,8 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
     if (!groupId) {
       setGroupCategories([]);
       setGroupCategoryId('');
+      setSubgroups([]);
+      setSubgroupId('');
       return () => {
         mounted = false;
       };
@@ -292,6 +299,23 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
         if (!mounted) return;
         setGroupCategories([]);
         setGroupCategoryId('');
+      });
+
+    api.getGroupSubgroups(groupId)
+      .then((data) => {
+        if (!mounted) return;
+        const subs = Array.isArray(data?.subgroups) ? data.subgroups : (Array.isArray(data) ? data : []);
+        setSubgroups(subs);
+        setSubgroupId((prev) => {
+          if (!prev) return '';
+          const exists = subs.some((sg) => String(sg.id) === String(prev));
+          return exists ? prev : '';
+        });
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setSubgroups([]);
+        setSubgroupId('');
       });
 
     return () => {
@@ -608,6 +632,36 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
                     >
                       <span className="cat-pill-dot" style={{ background: cat.color || '#8E8E93' }} />
                       {cat.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {groupId && subgroups.length > 0 && (
+              <div className="task-edit-field" style={{ marginBottom: 0 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <UsersRound size={14} /> Untergruppe
+                </label>
+                <div className="cat-pill-picker">
+                  <button
+                    type="button"
+                    className={`cat-pill${!subgroupId ? ' active' : ''}`}
+                    onClick={() => setSubgroupId('')}
+                  >
+                    <span className="cat-pill-dot" style={{ background: 'var(--text-tertiary)' }} />
+                    Keine
+                  </button>
+                  {subgroups.map((sg) => (
+                    <button
+                      key={sg.id}
+                      type="button"
+                      className={`cat-pill${String(subgroupId) === String(sg.id) ? ' active' : ''}`}
+                      style={String(subgroupId) === String(sg.id) ? { background: `${sg.color || '#007AFF'}22`, borderColor: sg.color || '#007AFF', color: sg.color || '#007AFF' } : {}}
+                      onClick={() => setSubgroupId(String(sg.id))}
+                    >
+                      <span className="cat-pill-dot" style={{ background: sg.color || '#007AFF' }} />
+                      {sg.name}
                     </button>
                   ))}
                 </div>

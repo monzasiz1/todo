@@ -2285,7 +2285,7 @@ module.exports = async function handler(req, res) {
   if (segments.length === 0 && req.method === 'POST') {
     try {
       const { title, description, location, date, date_end, time, time_end, priority, category_id, reminder_at,
-              recurrence_rule, recurrence_interval, recurrence_end, group_id, group_category_id,
+              recurrence_rule, recurrence_interval, recurrence_end, group_id, group_category_id, subgroup_id,
               visibility, permissions, type, enable_group_rsvp } = req.body;
       if (!title) {
         return res.status(400).json({ error: 'Titel ist erforderlich' });
@@ -2298,6 +2298,7 @@ module.exports = async function handler(req, res) {
 
       let groupInfo = null;
       let groupCategoryInfo = null;
+      let subgroupInfo = null;
       if (group_id) {
         const groupAccess = await pool.query(
           `SELECT g.id, g.name, g.color, g.image_url
@@ -2324,6 +2325,20 @@ module.exports = async function handler(req, res) {
             return res.status(400).json({ error: 'Ungültige Gruppenkategorie' });
           }
           groupCategoryInfo = groupCategoryResult.rows[0];
+        }
+
+        if (subgroup_id !== undefined && subgroup_id !== null && String(subgroup_id) !== '') {
+          const subgroupResult = await pool.query(
+            `SELECT id, name, color
+             FROM group_subgroups
+             WHERE id = $1 AND group_id = $2
+             LIMIT 1`,
+            [subgroup_id, group_id]
+          );
+          if (subgroupResult.rows.length === 0) {
+            return res.status(400).json({ error: 'Ungültige Untergruppe' });
+          }
+          subgroupInfo = subgroupResult.rows[0];
         }
       }
 
@@ -2377,10 +2392,10 @@ module.exports = async function handler(req, res) {
 
       if (groupInfo) {
         await pool.query(
-          `INSERT INTO group_tasks (group_id, task_id, created_by, group_category_id)
-           VALUES ($1, $2, $3, $4)
+          `INSERT INTO group_tasks (group_id, task_id, created_by, group_category_id, subgroup_id)
+           VALUES ($1, $2, $3, $4, $5)
            ON CONFLICT DO NOTHING`,
-          [groupInfo.id, firstTask.id, user.id, groupCategoryInfo?.id || null]
+          [groupInfo.id, firstTask.id, user.id, groupCategoryInfo?.id || null, subgroupInfo?.id || null]
         );
 
         // Immediate team notification for other members (log + push best-effort)
