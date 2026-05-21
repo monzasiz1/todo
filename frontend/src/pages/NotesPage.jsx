@@ -142,6 +142,19 @@ function computeChecklistProgress(rawContent) {
   return { total, done, percent: Math.round((done / total) * 100) };
 }
 
+function toPlainText(value) {
+  if (!value) return '';
+  const raw = String(value);
+  try {
+    const doc = new DOMParser().parseFromString(raw, 'text/html');
+    return String(doc.body?.textContent || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  } catch {
+    return raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+}
+
 function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange, isSelected, onSelect, tasks = [], onOpenTask, boardScaleRef, gridPos = null, dragDisabled = false, onDragLive, onOpenEditor, isDimmed = false, noteTags = [], onTagClick, unreadCount = 0, hasUnreadMention = false }) {
   const isReadOnly = note?.read_only === true
     || (note?.is_foreign === true && note?.shared_permission !== 'edit' && note?.permission !== 'edit');
@@ -2417,7 +2430,7 @@ export default function NotesPage() {
                       colorName = colorMatch ? colorMatch[1] : 'Gelb';
                     }
                     const color = NOTE_COLORS.find((c) => String(c.name).toLowerCase() === String(colorName).toLowerCase()) || NOTE_COLORS[0];
-                    const text = (note.content || '').replace(/^\[COLOR:[^\]]+\]\s*/, '').trim() || '(leer)';
+                    const text = toPlainText(note.title || '') || '(Ohne Titel)';
                     const completedAt = note.completed_at
                       ? new Date(note.completed_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' })
                       : '';
