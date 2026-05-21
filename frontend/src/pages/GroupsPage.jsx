@@ -803,6 +803,29 @@ function GroupDetail({ groupId, onBack }) {
   const isAdmin = myRole === 'owner' || myRole === 'admin';
   const isOwner = myRole === 'owner';
 
+  // Effektive Berechtigungen fuer den aktuellen User in dieser Gruppe.
+  // Owner/Admin = alle true. Member: Custom-Rolle falls zugewiesen, sonst
+  // group.member_permissions, sonst Defaults. Genauso wie der Server rechnet.
+  const myPerms = useMemo(() => {
+    const all = {
+      create_tasks: true, edit_own_tasks: true, manage_notes: true, chat: true,
+      invite: true, create_categories: true, create_subgroups: true,
+    };
+    const defaults = {
+      create_tasks: true, edit_own_tasks: true, manage_notes: true, chat: true,
+      invite: false, create_categories: false, create_subgroups: false,
+    };
+    if (isAdmin) return all;
+    const me = (members || []).find((m) => String(m.user_id) === String(user?.id));
+    const groupPerms = { ...defaults, ...(currentGroup?.member_permissions || {}) };
+    if (me?.custom_role_id && Array.isArray(currentGroup?.custom_roles)) {
+      const role = currentGroup.custom_roles.find((r) => r.id === me.custom_role_id);
+      if (role && role.permissions) return { ...defaults, ...role.permissions };
+    }
+    return groupPerms;
+  }, [isAdmin, members, user?.id, currentGroup?.member_permissions, currentGroup?.custom_roles]);
+  const can = (key) => isAdmin || !!myPerms[key];
+
   useEffect(() => { fetchGroup(groupId); }, [groupId]);
   useEffect(() => { setVisibleCount(15); }, [tab]);
 
@@ -1115,8 +1138,14 @@ function GroupDetail({ groupId, onBack }) {
             >
               <EyeOff size={16} /> Entfernte
             </button>
-            <button className="group-add-task-btn" onClick={() => setShowAddTask(true)}>
-              <Plus size={16} /> Eintrag hinzufügen
+            <button
+              className="group-add-task-btn"
+              onClick={() => can('create_tasks') ? setShowAddTask(true) : addToast('Eintraege erstellen ist fuer deine Rolle gesperrt')}
+              disabled={!can('create_tasks')}
+              title={can('create_tasks') ? 'Eintrag hinzufuegen' : 'Fuer deine Rolle gesperrt'}
+              style={!can('create_tasks') ? { opacity: 0.55, cursor: 'not-allowed' } : undefined}
+            >
+              {can('create_tasks') ? <Plus size={16} /> : <Shield size={14} />} Eintrag hinzufügen
             </button>
           </div>
 
@@ -1316,8 +1345,8 @@ function GroupDetail({ groupId, onBack }) {
             </div>
           )}
 
-          {/* Invite user panel (admin only) */}
-          {isAdmin && (
+          {/* Invite user panel (admin oder member mit invite-recht) */}
+          {can('invite') && (
             <div className="group-invite-user-section">
               <button
                 className="group-invite-user-toggle-btn"

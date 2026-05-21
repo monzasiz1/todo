@@ -2,6 +2,25 @@ const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
 const { sendPushToUser } = require('./_lib/pushService');
 const { broadcast: rtBroadcast } = require('./_lib/realtimeBroadcast');
+const { invalidateCacheOnEvent } = require('./_lib/cache-invalidation-handler');
+
+// Hilfsfunktion: Cache aller Mitglieder einer Gruppe invalidieren, wenn
+// Berechtigungen oder Rollen geaendert wurden. Best-effort, nie throwen.
+async function invalidateGroupMembersCache(pool, groupId) {
+  try {
+    const r = await pool.query(
+      'SELECT user_id FROM group_members WHERE group_id = $1',
+      [groupId]
+    );
+    for (const row of r.rows) {
+      try {
+        await invalidateCacheOnEvent(String(row.user_id), 'group_change', { groupId: String(groupId) });
+      } catch { /* ignore single user failures */ }
+    }
+  } catch (e) {
+    if (process.env.DEBUG_CACHE) console.warn('[groups] invalidateGroupMembersCache failed:', e?.message);
+  }
+}
 
 // Server-side spiegel der Plan-Limits (muss mit frontend/src/lib/plans.js sync sein)
 const PLAN_LIMITS = {
@@ -783,6 +802,7 @@ module.exports = async function handler(req, res) {
         `UPDATE groups SET member_permissions = $1::jsonb, updated_at = NOW() WHERE id = $2`,
         [JSON.stringify(merged), groupId]
       );
+      await invalidateGroupMembersCache(pool, groupId);
       return res.json({ permissions: merged });
     } catch (err) {
       console.error('Update group permissions error:', err);
@@ -806,11 +826,17 @@ module.exports = async function handler(req, res) {
       role.id = crypto.randomBytes(8).toString('hex');
       const current = await getGroupCustomRoles(pool, groupId);
       if (current.length >= 20) return res.status(400).json({ error: 'Maximal 20 Rollen pro Gruppe' });
+      // Eindeutigkeit Rollenname (case-insensitive)
+      const nameKey = String(role.name || '').trim().toLowerCase();
+      if (current.some((r) => String(r.name || '').trim().toLowerCase() === nameKey)) {
+        return res.status(400).json({ error: 'Eine Rolle mit diesem Namen existiert bereits' });
+      }
       const next = [...current, role];
       await pool.query(
         `UPDATE groups SET custom_roles = $1::jsonb, updated_at = NOW() WHERE id = $2`,
         [JSON.stringify(next), groupId]
       );
+      await invalidateGroupMembersCache(pool, groupId);
       return res.json({ role, roles: next });
     } catch (err) {
       console.error('Create role error:', err);
@@ -834,12 +860,18 @@ module.exports = async function handler(req, res) {
       const current = await getGroupCustomRoles(pool, groupId);
       const idx = current.findIndex((r) => r.id === roleId);
       if (idx === -1) return res.status(404).json({ error: 'Rolle nicht gefunden' });
+      // Eindeutigkeit Rollenname (case-insensitive, ausser sich selbst)
+      const nameKey = String(incoming.name || '').trim().toLowerCase();
+      if (current.some((r) => r.id !== roleId && String(r.name || '').trim().toLowerCase() === nameKey)) {
+        return res.status(400).json({ error: 'Eine Rolle mit diesem Namen existiert bereits' });
+      }
       const next = current.slice();
       next[idx] = { ...incoming, id: roleId };
       await pool.query(
         `UPDATE groups SET custom_roles = $1::jsonb, updated_at = NOW() WHERE id = $2`,
         [JSON.stringify(next), groupId]
       );
+      await invalidateGroupMembersCache(pool, groupId);
       return res.json({ role: next[idx], roles: next });
     } catch (err) {
       console.error('Update role error:', err);
@@ -873,6 +905,7 @@ module.exports = async function handler(req, res) {
       } catch (e) {
         if (e && e.code !== '42703') console.error('Reset custom_role_id error:', e.message);
       }
+      await invalidateGroupMembersCache(pool, groupId);
       return res.json({ success: true, roles: next });
     } catch (err) {
       console.error('Delete role error:', err);
@@ -912,6 +945,7 @@ module.exports = async function handler(req, res) {
         }
         throw e;
       }
+      try { await invalidateCacheOnEvent(String(targetUserId), 'group_change', { groupId: String(groupId) }); } catch { /* ignore */ }
       return res.json({ success: true, custom_role_id: nextRoleId });
     } catch (err) {
       console.error('Assign custom role error:', err);
