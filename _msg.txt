@@ -1,16 +1,10 @@
-﻿Subgroups: edit + UI polish
+﻿feat(groups): Standard- und Custom-Rollen in einem Panel vereinen
 
-- api/groups.js: neuer PUT /api/groups/:id/subgroups/:subgroupId Endpoint.
-  Erlaubt Admin/Owner, name + color + member_ids einer Untergruppe zu
-  aktualisieren. Member-Liste wird komplett ersetzt wenn member_ids
-  uebergeben ist; Member werden gegen group_members validiert.
-- frontend/src/utils/api.js: updateGroupSubgroup(groupId, subgroupId, data).
-- SubgroupManager (GroupsPage.jsx): kompletter Redesign.
-  * Karten-Layout mit farbigem Dot, Name, Member-Pill (Anzahl oder
-    'Alle Mitglieder'), Avatar-Stack max 8 + Overflow-Counter.
-  * Bearbeiten-Button (Pencil) pro Untergruppe oeffnet Inline-Editor
-    mit Name, Farbpresets + Color-Picker, Mitglieder-Picker
-    (Grid, ausgewaehlt = blauer Rahmen).
-  * Anlegen-Form ebenfalls aufgehuebscht: Farbpresets, Live-Dot,
-    Abbrechen-Button, Mitglieder-Counter.
-- Build geprueft, push.
+- GroupPermissionsPanel render entfernt; Standard-Berechtigungen
+  erscheinen jetzt als nicht loeschbare "Standard"-Rolle oben in
+  "Rollen & Berechtigungen".
+- CustomRoleRow akzeptiert isDefault: ohne Namens-/Farb-Editor und
+  ohne Loeschen-Button, mit Standard-Badge und Hinweistext.
+- onUpdate-Callback fuer Standard-Rolle persistiert via
+  updateGroupPermissions; Verhalten am Server unveraendert.
+- Panel-Subtitle zeigt "1 Standard - N eigene Rollen".

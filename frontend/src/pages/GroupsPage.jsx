@@ -1619,13 +1619,6 @@ function GroupDetail({ groupId, onBack }) {
               <SubgroupManager groupId={groupId} members={members} subgroups={subgroups} onRefresh={() => fetchGroup(groupId)} />
             </div>
             <div style={{ gridColumn: '1 / -1' }}>
-              <GroupPermissionsPanel
-                groupId={groupId}
-                currentGroup={currentGroup}
-                isOwner={myRole === 'owner'}
-              />
-            </div>
-            <div style={{ gridColumn: '1 / -1' }}>
               <GroupCustomRolesPanel
                 groupId={groupId}
                 currentGroup={currentGroup}
@@ -2581,11 +2574,23 @@ function GroupCustomRolesPanel({ groupId, currentGroup }) {
   const createCustomRole = useGroupStore((s) => s.createCustomRole);
   const updateCustomRole = useGroupStore((s) => s.updateCustomRole);
   const deleteCustomRole = useGroupStore((s) => s.deleteCustomRole);
+  const updateGroupPermissions = useGroupStore((s) => s.updateGroupPermissions);
   const addToast = useTaskStore((s) => s.addToast);
   const roles = currentGroup?.custom_roles || [];
-  const [expanded, setExpanded] = useState(false);
-  const [editingId, setEditingId] = useState(null);
+  const [expanded, setExpanded] = useState(true);
+  const [editingId, setEditingId] = useState('__default__');
   const [creating, setCreating] = useState(false);
+
+  // Synthetische "Standard"-Rolle aus group.member_permissions. Wird genau
+  // wie eine Custom-Rolle dargestellt, ist aber nicht loeschbar/umbenennbar
+  // und persistiert via PUT /permissions. Gilt fuer alle Member ohne
+  // custom_role_id (siehe getEffectivePerms im Server).
+  const defaultRole = {
+    id: '__default__',
+    name: 'Standard',
+    color: '#8E8E93',
+    permissions: { ...DEFAULT_PERMISSIONS_FALLBACK, ...(currentGroup?.member_permissions || {}) },
+  };
 
   const handleCreate = async () => {
     try {
@@ -2618,9 +2623,9 @@ function GroupCustomRolesPanel({ groupId, currentGroup }) {
           <Crown size={16} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700 }}>Benutzerdefinierte Rollen</div>
+          <div style={{ fontSize: 14, fontWeight: 700 }}>Rollen &amp; Berechtigungen</div>
           <div style={{ fontSize: 11, opacity: 0.65, marginTop: 1 }}>
-            {roles.length} {roles.length === 1 ? 'Rolle' : 'Rollen'} &middot; eigene Permission-Sets fuer Mitgliedergruppen
+            1 Standard &middot; {roles.length} {roles.length === 1 ? 'eigene Rolle' : 'eigene Rollen'}
           </div>
         </div>
         <ChevronDown size={16} style={{
@@ -2631,13 +2636,27 @@ function GroupCustomRolesPanel({ groupId, currentGroup }) {
 
       {expanded && (
         <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {/* Standard-Rolle (synthetic) */}
+          <CustomRoleRow
+            role={defaultRole}
+            expanded={editingId === '__default__'}
+            onToggle={() => setEditingId(editingId === '__default__' ? null : '__default__')}
+            onUpdate={async (data) => {
+              // Nur Permissions persistieren; Name/Farbe sind fix.
+              if (data && data.permissions) {
+                await updateGroupPermissions(groupId, data.permissions);
+              }
+            }}
+            onDelete={null}
+            isDefault
+          />
           {roles.length === 0 && (
             <div style={{
-              fontSize: 12, opacity: 0.65, padding: '12px 10px',
+              fontSize: 12, opacity: 0.65, padding: '10px',
               background: 'var(--hover, rgba(120,120,128,0.06))',
               borderRadius: 10, textAlign: 'center',
             }}>
-              Noch keine Rollen. Lege z.B. "Moderator", "Gast" oder "Editor" an.
+              Lege zusaetzlich eigene Rollen an, z.B. "Moderator", "Gast" oder "Editor". Mitglieder mit eigener Rolle ignorieren die Standardrechte.
             </div>
           )}
           {roles.map((role) => (
@@ -2679,7 +2698,7 @@ function GroupCustomRolesPanel({ groupId, currentGroup }) {
   );
 }
 
-function CustomRoleRow({ role, expanded, onToggle, onUpdate, onDelete }) {
+function CustomRoleRow({ role, expanded, onToggle, onUpdate, onDelete, isDefault = false }) {
   const addToast = useTaskStore((s) => s.addToast);
   const [name, setName] = useState(role.name);
   const [color, setColor] = useState(role.color);
@@ -2742,11 +2761,19 @@ function CustomRoleRow({ role, expanded, onToggle, onUpdate, onDelete }) {
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           color: '#fff', fontSize: 11, fontWeight: 700, flexShrink: 0,
         }}>
-          {(role.name || '?').slice(0, 1).toUpperCase()}
+          {isDefault ? <Shield size={12} /> : (role.name || '?').slice(0, 1).toUpperCase()}
         </span>
         <span style={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {role.name}
         </span>
+        {isDefault && (
+          <span style={{
+            fontSize: 10, fontWeight: 700, letterSpacing: 0.3,
+            padding: '2px 7px', borderRadius: 999,
+            background: 'rgba(0,122,255,0.14)', color: 'var(--accent, #007AFF)',
+            textTransform: 'uppercase', flexShrink: 0,
+          }}>Standard</span>
+        )}
         <span style={{ fontSize: 11, opacity: 0.6 }}>{activeCount}/{PERMISSION_DEFS.length}</span>
         <ChevronDown size={14} style={{
           transform: expanded ? 'rotate(180deg)' : 'rotate(0)',
@@ -2756,37 +2783,48 @@ function CustomRoleRow({ role, expanded, onToggle, onUpdate, onDelete }) {
 
       {expanded && (
         <div style={{ padding: '4px 10px 10px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <input
-              type="text"
-              value={name}
-              maxLength={40}
-              onChange={(e) => setName(e.target.value)}
-              onBlur={saveMeta}
-              placeholder="Rollenname"
-              style={{
-                flex: 1, minWidth: 0,
-                padding: '7px 10px', borderRadius: 8, fontSize: 13,
-                border: '1px solid var(--border, rgba(120,120,128,0.25))',
-                background: 'var(--surface, #fff)', color: 'var(--text, inherit)',
-              }}
-            />
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', maxWidth: 180 }}>
-              {ROLE_COLOR_PRESETS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => { setColor(c); onUpdate({ name, color: c, permissions: perms }).catch(() => {}); }}
-                  aria-label={`Farbe ${c}`}
-                  style={{
-                    width: 18, height: 18, borderRadius: '50%', background: c,
-                    border: color === c ? '2px solid var(--text, #000)' : '1px solid rgba(255,255,255,0.4)',
-                    cursor: 'pointer', padding: 0,
-                  }}
-                />
-              ))}
+          {!isDefault && (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input
+                type="text"
+                value={name}
+                maxLength={40}
+                onChange={(e) => setName(e.target.value)}
+                onBlur={saveMeta}
+                placeholder="Rollenname"
+                style={{
+                  flex: 1, minWidth: 0,
+                  padding: '7px 10px', borderRadius: 8, fontSize: 13,
+                  border: '1px solid var(--border, rgba(120,120,128,0.25))',
+                  background: 'var(--surface, #fff)', color: 'var(--text, inherit)',
+                }}
+              />
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', maxWidth: 180 }}>
+                {ROLE_COLOR_PRESETS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => { setColor(c); onUpdate({ name, color: c, permissions: perms }).catch(() => {}); }}
+                    aria-label={`Farbe ${c}`}
+                    style={{
+                      width: 18, height: 18, borderRadius: '50%', background: c,
+                      border: color === c ? '2px solid var(--text, #000)' : '1px solid rgba(255,255,255,0.4)',
+                      cursor: 'pointer', padding: 0,
+                    }}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+          {isDefault && (
+            <div style={{
+              fontSize: 12, opacity: 0.7, padding: '6px 10px', borderRadius: 8,
+              background: 'rgba(0,122,255,0.08)', color: 'var(--text-secondary, #555)',
+              lineHeight: 1.45,
+            }}>
+              Diese Berechtigungen gelten fuer alle Mitglieder, die keine eigene Rolle zugewiesen bekommen.
+            </div>
+          )}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
             {PERMISSION_DEFS.map((def) => (
               <PermissionPill
@@ -2799,20 +2837,22 @@ function CustomRoleRow({ role, expanded, onToggle, onUpdate, onDelete }) {
               />
             ))}
           </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button
-              type="button"
-              onClick={onDelete}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 5,
-                padding: '6px 10px', borderRadius: 8,
-                background: 'rgba(255,59,48,0.12)', color: '#FF3B30',
-                border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-              }}
-            >
-              <Trash2 size={12} /> Rolle loeschen
-            </button>
-          </div>
+          {!isDefault && onDelete && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={onDelete}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: '6px 10px', borderRadius: 8,
+                  background: 'rgba(255,59,48,0.12)', color: '#FF3B30',
+                  border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                }}
+              >
+                <Trash2 size={12} /> Rolle loeschen
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
