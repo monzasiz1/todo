@@ -2362,40 +2362,57 @@ html[data-theme="dark"] .nem-mobile-sheet {
 }
 
 
-/* Per-Block-Authorship: schmaler farbiger Balken links neben jedem
-   Absatz, der NICHT vom aktuellen Nutzer stammt. Bewusst dezent —
-   3px breit, 60% Deckkraft, kein Schatten. Position wird live aus
-   dem contentEditable-DOM berechnet (siehe NoteAuthorRail). */
+/* Per-Block-Authorship: winziger Avatar links neben dem ersten
+   Block einer Autoren-Sequenz. Wird auf allen Geraeten angezeigt
+   (auch eigene Bloecke), damit die Markierung konsistent bleibt.
+   Position wird live aus dem contentEditable-DOM berechnet
+   (siehe NoteAuthorRail). */
 .nem-editor-shell {
   position: relative;
 }
 .nem-editor-shell .nem-editor {
-  padding-left: 14px;
+  padding-left: 22px;
 }
 .nem-author-rail {
   position: absolute;
   top: 0;
   left: 0;
-  width: 6px;
+  width: 18px;
   height: 100%;
   pointer-events: none;
   z-index: 1;
 }
-.nem-author-bar {
+.nem-author-avatar {
   position: absolute;
   left: 0;
-  width: 3px;
-  border-radius: 2px;
-  opacity: 0.7;
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   pointer-events: auto;
   cursor: help;
-  transition: opacity 0.15s ease, width 0.15s ease;
+  opacity: 0.85;
+  transform: translateY(2px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
 }
-.nem-author-bar:hover {
+.nem-author-avatar:hover {
   opacity: 1;
-  width: 4px;
+  transform: translateY(2px) scale(1.15);
 }
-html[data-theme="dark"] .nem-author-bar {
-  opacity: 0.78;
+.nem-author-avatar.is-self {
+  opacity: 0.55;
 }
+.nem-author-avatar.is-self:hover {
+  opacity: 0.85;
+}
+@media (max-width: 720px) {
+  .nem-editor-shell .nem-editor {
+    padding-left: 20px;
+  }
+  .nem-author-rail {
+    width: 16px;
+  }
+}
+
 

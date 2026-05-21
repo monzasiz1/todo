@@ -1831,40 +1831,46 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
 
 
 // ------------------------------------------------------------
-// NoteAuthorRail � schmaler farbiger Balken links neben Bloecken,
-// die NICHT vom aktuellen Nutzer stammen. Position wird live
-// aus dem contentEditable-DOM berechnet (MutationObserver +
-// ResizeObserver). Eigene Bloecke bleiben absichtlich unmarkiert,
-// damit das Bild ruhig bleibt.
+// NoteAuthorRail — winziger Avatar links neben jedem Block,
+// der einem bekannten Autor zugeordnet werden konnte. Wird auf
+// allen Geraeten angezeigt (auch fuer eigene Bloecke), damit die
+// Markierung konsistent sichtbar bleibt. Position wird live aus
+// dem contentEditable-DOM berechnet.
 // ------------------------------------------------------------
 function NoteAuthorRail({ editorRef, authorMap, authors, currentUserId, tick }) {
-  const [bars, setBars] = useState([]);
+  const [marks, setMarks] = useState([]);
   const rafRef = useRef(0);
 
   const compute = useCallback(() => {
     const editor = editorRef.current;
-    if (!editor) { setBars([]); return; }
+    if (!editor) { setMarks([]); return; }
     const blocks = walkEditorBlocks(editor);
-    if (blocks.length === 0) { setBars([]); return; }
+    if (blocks.length === 0) { setMarks([]); return; }
     const editorRect = editor.getBoundingClientRect();
+    let lastUserId = null;
     const out = [];
     blocks.forEach((b, idx) => {
       const userId = authorMap[b.key];
-      if (!userId) return;
-      if (String(userId) === String(currentUserId || '')) return;
+      if (!userId) { lastUserId = null; return; }
       const author = authors[String(userId)];
-      if (!author) return;
+      if (!author) { lastUserId = null; return; }
       const r = b.el.getBoundingClientRect();
-      if (r.height < 4) return;
+      if (r.height < 4) { lastUserId = null; return; }
+      // Nur beim Autorwechsel anzeigen — vermeidet visuelles Rauschen
+      // bei mehreren aufeinander folgenden Bloecken desselben Autors.
+      const isFirstOfRun = String(userId) !== String(lastUserId || '');
+      lastUserId = userId;
+      if (!isFirstOfRun) return;
       out.push({
         key: `${b.key}_${idx}`,
         top: r.top - editorRect.top,
-        height: r.height,
-        color: author.avatar_color || '#007AFF',
         name: author.name || 'Mitglied',
+        color: author.avatar_color || '#007AFF',
+        avatarUrl: author.avatar_url || null,
+        isSelf: String(userId) === String(currentUserId || ''),
       });
     });
-    setBars(out);
+    setMarks(out);
   }, [editorRef, authorMap, authors, currentUserId]);
 
   useEffect(() => { compute(); }, [compute, tick]);
@@ -1892,17 +1898,24 @@ function NoteAuthorRail({ editorRef, authorMap, authors, currentUserId, tick }) 
     };
   }, [editorRef, compute]);
 
-  if (bars.length === 0) return null;
+  if (marks.length === 0) return null;
 
   return (
     <div className="nem-author-rail" aria-hidden="true">
-      {bars.map((b) => (
+      {marks.map((m) => (
         <span
-          key={b.key}
-          className="nem-author-bar"
-          style={{ top: b.top + 'px', height: b.height + 'px', background: b.color }}
-          title={`Geschrieben von ${b.name}`}
-        />
+          key={m.key}
+          className={`nem-author-avatar${m.isSelf ? ' is-self' : ''}`}
+          style={{ top: m.top + 'px' }}
+          title={`Geschrieben von ${m.name}`}
+        >
+          <AvatarBadge
+            name={m.name}
+            color={m.color}
+            avatarUrl={m.avatarUrl}
+            size={14}
+          />
+        </span>
       ))}
     </div>
   );
