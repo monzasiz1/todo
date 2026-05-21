@@ -1087,16 +1087,38 @@ html[data-theme="dark"] .nem-share-chip-remove {
 }
 
 /* ────────────────────────────────────────────────────────────
-   Activity & Comments cards
+   Insights row — Activity + Comments cards side-by-side.
+   When either is expanded (.is-open), it spans the full row so the
+   list/comments-feed has comfortable width. The other card collapses
+   visually below it.
    ──────────────────────────────────────────────────────────── */
+.nem-insights-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 10px 14px 0;
+  align-items: start;
+}
+/* When one card is open, both move below each other (open one spans
+   full width, closed sibling sits beneath as a slim pill). */
+.nem-insights-row:has(.is-open) {
+  grid-template-columns: 1fr;
+}
+
 .nem-act,
 .nem-cm {
-  margin: 12px 14px 0;
-  border-radius: var(--nem-radius-card);
+  border-radius: 14px;
   border: 1px solid var(--nem-border-soft);
-  background: color-mix(in srgb, var(--nem-surface) 92%, var(--nem-accent, #007aff) 3%);
-  box-shadow: var(--nem-shadow-card);
+  background: color-mix(in srgb, var(--nem-surface) 94%, transparent);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
   overflow: hidden;
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.nem-act.is-open,
+.nem-cm.is-open {
+  background: color-mix(in srgb, var(--nem-surface) 90%, var(--nem-accent, #007aff) 5%);
+  border-color: color-mix(in srgb, var(--nem-accent, var(--nem-primary)) 26%, var(--nem-border));
+  box-shadow: var(--nem-shadow-card);
 }
 
 .nem-act-toggle,
@@ -1105,17 +1127,26 @@ html[data-theme="dark"] .nem-share-chip-remove {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 16px;
-  min-height: 46px;
+  padding: 9px 14px;
+  min-height: 38px;
   background: transparent;
   border: 0;
   cursor: pointer;
   font: inherit;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 650;
   color: var(--nem-text);
   letter-spacing: 0.005em;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.nem-act-toggle > svg:first-child,
+.nem-cm-toggle > svg:first-child {
+  color: var(--nem-text-soft);
+  flex-shrink: 0;
+}
+.nem-act.is-open .nem-act-toggle > svg:first-child,
+.nem-cm.is-open .nem-cm-toggle > svg:first-child {
+  color: var(--nem-accent, var(--nem-primary));
 }
 .nem-act-toggle:hover,
 .nem-cm-toggle:hover { background: color-mix(in srgb, var(--nem-primary) 6%, transparent); }
@@ -1748,16 +1779,20 @@ html[data-theme="dark"] .nem-importance-btn.is-active {
   .nem-share-chip-perm,
   .nem-share-chip-remove { width: 20px; height: 20px; }
 
-  /* Activity/comments compact */
+  /* Insights row — stack on mobile, 1 column */
+  .nem-insights-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 8px 10px 0;
+  }
   .nem-act,
   .nem-cm {
-    margin: 10px 10px 0;
-    border-radius: 14px;
+    border-radius: 12px;
   }
   .nem-act-toggle,
   .nem-cm-toggle {
-    min-height: 42px;
-    padding: 10px 14px;
+    min-height: 40px;
+    padding: 9px 12px;
     font-size: 12.5px;
   }
   .nem-cm-list { max-height: 240px; padding: 4px 14px 6px; }

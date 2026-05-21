@@ -408,10 +408,12 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
     if (!note?.linked_task_id || !Array.isArray(tasks)) return null;
     return tasks.find((t) => t && String(t.id) === String(note.linked_task_id)) || null;
   }, [tasks, note?.linked_task_id]);
-  // Sichtbarkeit: 'private' (Default) oder 'group' — Toggle nur fuer Owner
-  // einer Notiz, die an eine Gruppentask haengt.
+  // Sichtbarkeit: 'private' (Default) oder 'group'. Der manuelle Toggle
+  // entfaellt — wenn eine Notiz an eine Gruppentask haengt, ist Sichtbarkeit
+  // durch die Task-Verknuepfung impliziert und der Privat/Geteilt-Switch
+  // wird ausgeblendet.
   const visibility = note?.visibility === 'group' ? 'group' : 'private';
-  const canShareWithGroup = isOwnerOfNote && !!linkedTask && !!linkedTask.group_id;
+  const canShareWithGroup = false;
   const handleToggleVisibility = async () => {
     if (!canShareWithGroup || readOnly) return;
     const next = visibility === 'group' ? 'private' : 'group';
@@ -1407,27 +1409,24 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
             )}
           </div>
 
-          {/* Aktivitaetsverlauf — chronologische Liste aller Aenderungen
-              an dieser Notiz (created, edited, shared, …). Default zu;
-              schliesst nicht den Editor. Refresh-Key wird bei jedem
-              note.updated_at-Tick (Realtime-Sync) hochgezaehlt. */}
+          {/* Insights-Row: Aktivitaetsverlauf + Kommentare als kompakte
+              Side-by-Side-Cards (Desktop/Tablet). Auf Mobile stapeln sie
+              sich. Ausgeklappt spannt die jeweilige Karte beide Spalten
+              ueber die :has(.is-open)-Regel im CSS, damit das Panel volle
+              Breite bekommt. */}
           {note?.id && (
-            <NoteActivityPanel
-              noteId={note.id}
-              refreshKey={note?.updated_at || 0}
-            />
-          )}
-
-          {/* Kommentare (separater Endpoint /api/note-comments). Alle mit
-              Lese-Zugriff koennen kommentieren; Owner darf jeden Kommentar
-              loeschen, Autor seinen eigenen. */}
-          {note?.id && (
-            <NoteCommentsPanel
-              noteId={note.id}
-              refreshKey={note?.updated_at || 0}
-              canWrite={!readOnly || hasEditPermission || isOwnerOfNote}
-              noteOwnerId={note?.user_id}
-            />
+            <div className="nem-insights-row">
+              <NoteActivityPanel
+                noteId={note.id}
+                refreshKey={note?.updated_at || 0}
+              />
+              <NoteCommentsPanel
+                noteId={note.id}
+                refreshKey={note?.updated_at || 0}
+                canWrite={!readOnly || hasEditPermission || isOwnerOfNote}
+                noteOwnerId={note?.user_id}
+              />
+            </div>
           )}
 
           <AnimatePresence>
