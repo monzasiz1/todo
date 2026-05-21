@@ -225,6 +225,8 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
   const [taskGroupId, setTaskGroupId] = useState(task.group_id || null);
   const [groupCategories, setGroupCategories] = useState([]);
   const [taskGroupCategoryId, setTaskGroupCategoryId] = useState(task.group_category_id || '');
+  const [groupSubgroups, setGroupSubgroups] = useState([]);
+  const [taskSubgroupId, setTaskSubgroupId] = useState(task.subgroup_id || '');
   const [enableGroupRsvp, setEnableGroupRsvp] = useState(task.enable_group_rsvp === true);
   const [showGroups, setShowGroups] = useState(!!task.group_id);
 
@@ -290,6 +292,8 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
     if (!taskGroupId) {
       setGroupCategories([]);
       setTaskGroupCategoryId('');
+      setGroupSubgroups([]);
+      setTaskSubgroupId('');
       return () => {
         mounted = false;
       };
@@ -310,6 +314,23 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
         if (!mounted) return;
         setGroupCategories([]);
         setTaskGroupCategoryId('');
+      });
+
+    api.getGroupSubgroups(taskGroupId)
+      .then((data) => {
+        if (!mounted) return;
+        const subs = Array.isArray(data?.subgroups) ? data.subgroups : (Array.isArray(data) ? data : []);
+        setGroupSubgroups(subs);
+        setTaskSubgroupId((prev) => {
+          if (!prev) return '';
+          const exists = subs.some((sg) => String(sg.id) === String(prev));
+          return exists ? prev : '';
+        });
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setGroupSubgroups([]);
+        setTaskSubgroupId('');
       });
 
     return () => {
@@ -420,18 +441,35 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
         const newGroupId = taskGroupId || null;
         const groupChanged = oldGroupId !== newGroupId;
         const groupCategoryChanged = String(taskGroupCategoryId || '') !== String(task.group_category_id || '');
+        const subgroupChanged = String(taskSubgroupId || '') !== String(task.subgroup_id || '');
         if (oldGroupId !== newGroupId) {
           // Remove from old group
           if (oldGroupId) {
             await api.removeGroupTask(oldGroupId, seriesTaskId);
           }
         }
-        // Add/update in selected group (also updates group category on same-group edits)
-        if (newGroupId && (groupChanged || groupCategoryChanged)) {
+        // Add/update in selected group (also updates group category/subgroup on same-group edits)
+        if (newGroupId && groupChanged) {
           await api.addGroupTask(newGroupId, {
             existing_task_id: seriesTaskId,
             group_category_id: taskGroupCategoryId || null,
+            subgroup_id: taskSubgroupId || null,
           });
+        } else if (newGroupId && (groupCategoryChanged || subgroupChanged)) {
+          // PATCH existing assignment to update category/subgroup
+          try {
+            await api.updateGroupTask(newGroupId, seriesTaskId, {
+              group_category_id: taskGroupCategoryId || null,
+              subgroup_id: taskSubgroupId || null,
+            });
+          } catch {
+            // Fallback to addGroupTask (upsert) if PATCH fails
+            await api.addGroupTask(newGroupId, {
+              existing_task_id: seriesTaskId,
+              group_category_id: taskGroupCategoryId || null,
+              subgroup_id: taskSubgroupId || null,
+            });
+          }
         }
       } catch {
         // Ignore if group tables don't exist
@@ -861,6 +899,34 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
                               >
                                 <span className="cat-pill-dot" style={{ background: cat.color || '#8E8E93' }} />
                                 {cat.name}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {taskGroupId && groupSubgroups.length > 0 && (
+                        <div className="task-edit-field" style={{ marginTop: 8, marginBottom: 0 }}>
+                          <label><UsersRound size={14} /> Untergruppe</label>
+                          <div className="cat-pill-picker">
+                            <button
+                              type="button"
+                              className={`cat-pill${!taskSubgroupId ? ' active' : ''}`}
+                              onClick={() => setTaskSubgroupId('')}
+                            >
+                              <span className="cat-pill-dot" style={{ background: 'var(--text-tertiary)' }} />
+                              Keine
+                            </button>
+                            {groupSubgroups.map((sg) => (
+                              <button
+                                key={sg.id}
+                                type="button"
+                                className={`cat-pill${String(taskSubgroupId) === String(sg.id) ? ' active' : ''}`}
+                                style={String(taskSubgroupId) === String(sg.id) ? { background: `${sg.color || '#007AFF'}22`, borderColor: sg.color || '#007AFF', color: sg.color || '#007AFF' } : {}}
+                                onClick={() => setTaskSubgroupId(String(sg.id))}
+                              >
+                                <span className="cat-pill-dot" style={{ background: sg.color || '#007AFF' }} />
+                                {sg.name}
                               </button>
                             ))}
                           </div>

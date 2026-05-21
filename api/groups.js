@@ -1004,6 +1004,17 @@ module.exports = async function handler(req, res) {
         selectedGroupCategory = gcResult.rows[0];
       }
 
+      // Validate subgroup belongs to group
+      if (subgroup_id !== undefined && subgroup_id !== null && String(subgroup_id) !== '') {
+        const sgCheck = await pool.query(
+          'SELECT id FROM group_subgroups WHERE id = $1 AND group_id = $2 LIMIT 1',
+          [subgroup_id, groupId]
+        );
+        if (sgCheck.rows.length === 0) {
+          return res.status(400).json({ error: 'Ungültige Untergruppe' });
+        }
+      }
+
       let task;
 
       if (existing_task_id) {
@@ -1025,11 +1036,12 @@ module.exports = async function handler(req, res) {
 
         for (const tid of allTaskIds) {
           await pool.query(
-            `INSERT INTO group_tasks (group_id, task_id, created_by, group_category_id)
-             VALUES ($1, $2, $3, $4)
+            `INSERT INTO group_tasks (group_id, task_id, created_by, group_category_id, subgroup_id)
+             VALUES ($1, $2, $3, $4, $5)
              ON CONFLICT (group_id, task_id)
-             DO UPDATE SET group_category_id = EXCLUDED.group_category_id`,
-            [groupId, tid, user.id, selectedGroupCategory?.id || null]
+             DO UPDATE SET group_category_id = EXCLUDED.group_category_id,
+                           subgroup_id = EXCLUDED.subgroup_id`,
+            [groupId, tid, user.id, selectedGroupCategory?.id || null, subgroup_id || null]
           );
         }
       } else {
@@ -1119,10 +1131,42 @@ module.exports = async function handler(req, res) {
       const groupId = segments[0];
       const taskId = segments[2];
       const membership = await getMembership(groupId);
-      if (!membership || !['owner', 'admin'].includes(membership.role)) {
-        return res.status(403).json({ error: 'Nur Admins können Aufgaben-Untergruppen ändern' });
+      if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
+
+      // Members may update only their own tasks; admins/owners any.
+      if (membership.role === 'member') {
+        const check = await pool.query(
+          'SELECT created_by FROM group_tasks WHERE group_id = $1 AND task_id = $2',
+          [groupId, taskId]
+        );
+        if (check.rows[0]?.created_by !== user.id) {
+          return res.status(403).json({ error: 'Du kannst nur eigene Aufgaben ändern' });
+        }
       }
+
       const { subgroup_id, group_category_id } = req.body;
+
+      // Validate subgroup belongs to group
+      if (subgroup_id !== undefined && subgroup_id !== null && String(subgroup_id) !== '') {
+        const sgCheck = await pool.query(
+          'SELECT id FROM group_subgroups WHERE id = $1 AND group_id = $2 LIMIT 1',
+          [subgroup_id, groupId]
+        );
+        if (sgCheck.rows.length === 0) {
+          return res.status(400).json({ error: 'Ungültige Untergruppe' });
+        }
+      }
+      // Validate group_category belongs to group
+      if (group_category_id !== undefined && group_category_id !== null && String(group_category_id) !== '') {
+        const gcCheck = await pool.query(
+          'SELECT id FROM group_categories WHERE id = $1 AND group_id = $2 LIMIT 1',
+          [group_category_id, groupId]
+        );
+        if (gcCheck.rows.length === 0) {
+          return res.status(400).json({ error: 'Ungültige Gruppenkategorie' });
+        }
+      }
+
       const updates = [];
       const params = [];
       if (subgroup_id !== undefined) { updates.push(`subgroup_id = $${params.length + 1}`); params.push(subgroup_id || null); }
