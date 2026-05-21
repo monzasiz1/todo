@@ -349,13 +349,20 @@ html[data-theme="dark"] .nem-share-chip-remove:hover {
 .nem-toolbar {
   position: sticky;
   top: -16px; /* visuell am Body-Top kleben (padding-top 16px ausgleichen) */
-  z-index: 5;
+  /* z-index hoch genug, damit Editor-Inhalt (Bilder, Tabellen, eigene
+     Stacking-Contexts via transform/opacity) beim Scrollen sauber
+     UNTER der Toolbar verschwindet und nicht darueber gerendert wird. */
+  z-index: 30;
   margin: -16px -20px 12px;
   padding: 6px 10px;
   display: flex;
   align-items: center;
   gap: 6px;
+  /* Voll deckender Hintergrund: surface-2 fallback ist opak.
+     isolation: isolate erzeugt einen eigenen Stacking-Context, damit
+     z-index 30 wirklich gegen den Editor-Inhalt durchsetzt. */
   background: var(--surface-2, #F7F8FC);
+  isolation: isolate;
   border-bottom: 1px solid var(--border, rgba(0,0,0,0.06));
   overflow-x: auto;
   overflow-y: hidden;
@@ -412,7 +419,10 @@ html[data-theme="dark"] .nem-share-chip-remove:hover {
   background: var(--primary-bg, rgba(0,122,255,.18));
 }
 html[data-theme="dark"] .nem-toolbar {
-  background: rgba(255,255,255,0.04);
+  /* Dark-Mode: vorher rgba(255,255,255,0.04) — fast durchsichtig, dadurch
+     schien der Editor-Inhalt durch die sticky Toolbar. Jetzt opak. */
+  background: var(--surface-2, #1a1a1d);
+  border-bottom-color: rgba(255,255,255,0.08);
 }
 html[data-theme="dark"] .nem-toolbar-btn {
   color: var(--text-secondary, #b0b0b8);
