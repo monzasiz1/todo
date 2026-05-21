@@ -5979,380 +5979,393 @@ body.cal-is-dragging * {
  * Mobile bleibt unveraendert.
  * ============================================================ */
 @media (min-width: 1025px) {
+  /* ---------- Panel ---------- */
   .dashboard-page > .smart-insights {
     position: relative;
     overflow: hidden;
     isolation: isolate;
     margin: 0 0 22px;
-    padding: 26px 26px 24px;
-    border-radius: 28px;
-    border: 1px solid rgba(99, 102, 241, 0.22);
+    padding: 26px 28px;
+    border-radius: 24px;
+    border: 1px solid rgba(15, 23, 42, 0.07);
     background:
-      radial-gradient(60% 90% at 0% 0%, rgba(99, 102, 241, 0.42), transparent 60%),
-      radial-gradient(60% 90% at 100% 0%, rgba(34, 211, 238, 0.30), transparent 65%),
-      radial-gradient(60% 90% at 50% 110%, rgba(168, 85, 247, 0.28), transparent 60%),
-      linear-gradient(155deg, #0b1027 0%, #121838 48%, #161246 100%);
-    color: #e2e8f0;
+      radial-gradient(800px 320px at -10% -30%, rgba(99, 102, 241, 0.10), transparent 60%),
+      radial-gradient(700px 280px at 110% 120%, rgba(34, 211, 238, 0.10), transparent 60%),
+      #ffffff;
     box-shadow:
-      0 32px 64px rgba(6, 10, 30, 0.5),
-      0 4px 12px rgba(6, 10, 30, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      0 1px 0 rgba(15, 23, 42, 0.04),
+      0 24px 48px rgba(15, 23, 42, 0.08);
+
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    grid-template-areas:
+      "head head"
+      "focus list";
+    column-gap: 32px;
+    row-gap: 22px;
+    align-items: start;
   }
 
-  /* Subtiles Grid-Muster ueber dem Panel */
-  .dashboard-page > .smart-insights::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(148, 163, 255, 0.06) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(148, 163, 255, 0.06) 1px, transparent 1px);
-    background-size: 28px 28px;
-    -webkit-mask-image: radial-gradient(120% 80% at 50% 0%, #000 35%, transparent 80%);
-            mask-image: radial-gradient(120% 80% at 50% 0%, #000 35%, transparent 80%);
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  /* Header: Titel links + segmentierte Stat-Leiste rechts */
+  /* ---------- Header ---------- */
   .dashboard-page .smart-insights-head {
-    position: relative;
-    z-index: 1;
+    grid-area: head;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 24px;
-    margin: 0 0 22px;
+    gap: 20px;
     padding: 0 0 18px;
-    border-bottom: 1px solid rgba(148, 163, 255, 0.16);
+    margin: 0;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.07);
   }
 
   .dashboard-page .smart-insights-title {
     display: inline-flex;
     align-items: center;
-    gap: 14px;
-    font-size: 22px;
+    gap: 12px;
+    font-size: 20px;
     font-weight: 800;
-    letter-spacing: -0.025em;
-    color: #f8fafc;
-    text-shadow: 0 1px 12px rgba(99, 102, 241, 0.35);
+    letter-spacing: -0.02em;
+    color: #0f172a;
   }
 
   .dashboard-page .smart-insights-title::before {
     content: '';
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
-    background: radial-gradient(circle, #6ee7b7 30%, #22d3ee 100%);
-    box-shadow:
-      0 0 0 4px rgba(110, 231, 183, 0.18),
-      0 0 18px rgba(34, 211, 238, 0.65);
-    animation: smart-pulse 2.4s ease-in-out infinite;
+    background: #22c55e;
+    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.16);
+    animation: si-dot-pulse 2.2s ease-in-out infinite;
   }
 
-  @keyframes smart-pulse {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50%      { transform: scale(1.18); opacity: 0.78; }
+  @keyframes si-dot-pulse {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.16); }
+    50%      { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0.06); }
   }
 
   .dashboard-page .smart-insights-title svg {
-    width: 20px;
-    height: 20px;
-    color: #a5b4fc;
-    filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.55));
+    width: 18px;
+    height: 18px;
+    color: #6366f1;
   }
 
-  /* Segmentierte Stat-Leiste statt einzelner Pills */
   .dashboard-page .smart-insights-meta-wrap {
     display: inline-flex;
-    align-items: stretch;
-    gap: 0;
-    padding: 4px;
-    border-radius: 16px;
-    border: 1px solid rgba(148, 163, 255, 0.22);
-    background: rgba(15, 23, 42, 0.48);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.06),
-      0 4px 18px rgba(6, 10, 30, 0.35);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
+    gap: 8px;
     max-width: none;
   }
 
   .dashboard-page .smart-insights-meta {
-    position: relative;
-    margin: 0;
-    padding: 8px 16px;
-    border: none;
-    border-radius: 12px;
-    background: transparent;
-    color: #c7d2fe;
+    padding: 7px 13px;
+    border-radius: 999px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: #ffffff;
+    color: #475569;
     font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.02em;
-    box-shadow: none;
+    letter-spacing: 0.01em;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    white-space: nowrap;
   }
 
-  .dashboard-page .smart-insights-meta + .smart-insights-meta::before {
+  /* ============================================================
+   * FOKUS TIMER — Runder, animierter Hero-Button
+   * ============================================================ */
+  .dashboard-page .smart-insights > .focus-timer-card {
+    grid-area: focus;
+    position: relative;
+    margin: 0;
+    width: 240px;
+    height: 240px;
+    padding: 0;
+    border-radius: 50%;
+    border: none;
+    overflow: visible;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0;
+
+    background:
+      radial-gradient(circle at 30% 25%, #ffffff 0%, #f1f5f9 60%, #e2e8f0 100%);
+    box-shadow:
+      0 24px 48px rgba(99, 102, 241, 0.22),
+      0 6px 16px rgba(15, 23, 42, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 1),
+      inset 0 -2px 6px rgba(15, 23, 42, 0.06);
+    cursor: pointer;
+    transition: transform 0.25s ease, box-shadow 0.3s ease;
+    justify-self: center;
+    align-self: start;
+  }
+
+  /* Rotierender Conic-Gradient als weicher Glow um den Button */
+  .dashboard-page .smart-insights > .focus-timer-card::before {
     content: '';
     position: absolute;
-    left: -1px;
-    top: 22%;
-    bottom: 22%;
-    width: 1px;
-    background: rgba(148, 163, 255, 0.22);
+    inset: -10px;
+    border-radius: 50%;
+    background: conic-gradient(
+      from 0deg,
+      #6366f1,
+      #22d3ee,
+      #a855f7,
+      #ec4899,
+      #6366f1
+    );
+    filter: blur(14px);
+    opacity: 0.55;
+    z-index: -1;
+    animation: si-spin 6s linear infinite;
+    transition: opacity 0.3s ease, inset 0.3s ease;
   }
 
-  /* Fokus-Timer als Hero-Button-Band */
-  .dashboard-page .smart-insights > .focus-timer-card {
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    margin: 0 0 20px;
-    min-height: 132px;
-    padding: 20px 88px 20px 24px;
-    border-radius: 22px;
-    border: 1px solid rgba(125, 211, 252, 0.4);
-    background:
-      radial-gradient(120% 200% at 0% 50%, rgba(99, 102, 241, 0.55), transparent 55%),
-      radial-gradient(120% 200% at 100% 50%, rgba(34, 211, 238, 0.45), transparent 55%),
-      linear-gradient(95deg, #1e1b4b 0%, #1e293b 50%, #0e7490 100%);
-    box-shadow:
-      0 20px 44px rgba(6, 10, 30, 0.55),
-      0 0 0 1px rgba(125, 211, 252, 0.18),
-      inset 0 1px 0 rgba(255, 255, 255, 0.16),
-      inset 0 -1px 0 rgba(0, 0, 0, 0.35);
-    transition: transform 0.22s ease, box-shadow 0.28s ease, border-color 0.25s ease;
+  @keyframes si-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Sanfter Atem-Puls im Idle-Zustand */
+  .dashboard-page .smart-insights > .focus-timer-card:not(.is-running):not(.is-paused):not(.is-finished) {
+    animation: si-breath 3.6s ease-in-out infinite;
+  }
+
+  @keyframes si-breath {
+    0%, 100% {
+      box-shadow:
+        0 24px 48px rgba(99, 102, 241, 0.22),
+        0 6px 16px rgba(15, 23, 42, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 1),
+        inset 0 -2px 6px rgba(15, 23, 42, 0.06);
+    }
+    50% {
+      box-shadow:
+        0 30px 60px rgba(99, 102, 241, 0.34),
+        0 10px 24px rgba(34, 211, 238, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 1),
+        inset 0 -2px 6px rgba(15, 23, 42, 0.06);
+    }
   }
 
   .dashboard-page .smart-insights > .focus-timer-card:hover {
-    transform: translateY(-2px);
-    border-color: rgba(165, 243, 252, 0.6);
+    transform: scale(1.035);
     box-shadow:
-      0 28px 56px rgba(6, 10, 30, 0.65),
-      0 0 0 1px rgba(165, 243, 252, 0.36),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      0 32px 60px rgba(99, 102, 241, 0.32),
+      0 12px 28px rgba(34, 211, 238, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 1);
   }
 
-  /* Runder Pfeil-CTA rechts am Karten-Rand */
-  .dashboard-page .smart-insights > .focus-timer-card::after {
-    content: '\2192';
-    position: absolute;
-    right: 22px;
-    top: 50%;
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #22d3ee 0%, #6366f1 100%);
-    color: #f8fafc;
-    font-size: 22px;
-    font-weight: 800;
-    line-height: 48px;
-    text-align: center;
-    box-shadow:
-      0 8px 22px rgba(34, 211, 238, 0.45),
-      inset 0 1px 0 rgba(255, 255, 255, 0.35);
-    transform: translateY(-50%);
-    transition: transform 0.2s ease, box-shadow 0.22s ease;
-    z-index: 2;
-    pointer-events: none;
+  .dashboard-page .smart-insights > .focus-timer-card:hover::before {
+    opacity: 0.85;
+    inset: -14px;
   }
 
-  .dashboard-page .smart-insights > .focus-timer-card:hover::after {
-    transform: translateY(-50%) translateX(4px);
-    box-shadow:
-      0 12px 28px rgba(34, 211, 238, 0.6),
-      inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  .dashboard-page .smart-insights > .focus-timer-card:active {
+    transform: scale(0.985);
   }
 
+  /* Ring (Canvas) in der Mitte */
   .dashboard-page .smart-insights > .focus-timer-card .focus-timer-ring-wrap {
-    width: 80px;
-    height: 80px;
-    flex-basis: 80px;
+    position: relative;
+    z-index: 2;
+    width: 150px;
+    height: 150px;
+    flex-basis: auto;
+    margin: 0 0 10px;
   }
 
+  /* Body-Text unter dem Ring */
   .dashboard-page .smart-insights > .focus-timer-card .focus-timer-body {
     position: relative;
+    z-index: 2;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    align-items: center;
+    text-align: center;
+    gap: 4px;
+    padding: 0 18px;
   }
 
   .dashboard-page .smart-insights > .focus-timer-card .focus-timer-body strong {
-    font-size: 24px;
-    line-height: 1.05;
-    letter-spacing: -0.028em;
-    color: #f8fafc;
-  }
-
-  .dashboard-page .smart-insights > .focus-timer-card .focus-timer-body strong::after {
-    content: 'START';
-    margin-left: 12px;
-    padding: 4px 10px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.15);
-    color: #f0f9ff;
-    font-size: 10px;
+    font-size: 16px;
+    line-height: 1.1;
+    letter-spacing: -0.015em;
+    color: #0f172a;
     font-weight: 800;
-    letter-spacing: 0.16em;
-    vertical-align: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    text-shadow: none;
   }
 
   .dashboard-page .smart-insights > .focus-timer-card .focus-timer-body span {
-    font-size: 14px;
-    color: rgba(199, 210, 254, 0.92);
-    font-weight: 500;
+    display: none;
   }
 
-  /* Aktiver / pausierter / abgeschlossener Timer: keinen CTA-Pfeil und kein START-Badge */
-  .dashboard-page .smart-insights > .focus-timer-card.is-running::after,
-  .dashboard-page .smart-insights > .focus-timer-card.is-paused::after,
-  .dashboard-page .smart-insights > .focus-timer-card.is-finished::after {
-    content: none;
+  /* Idle: anstelle des strong-Texts eine "FOKUS STARTEN" Pille */
+  .dashboard-page .smart-insights > .focus-timer-card:not(.is-running):not(.is-paused):not(.is-finished) .focus-timer-body strong {
+    font-size: 0;
+    line-height: 0;
+    color: transparent;
   }
 
-  .dashboard-page .smart-insights > .focus-timer-card.is-running,
-  .dashboard-page .smart-insights > .focus-timer-card.is-paused,
-  .dashboard-page .smart-insights > .focus-timer-card.is-finished {
-    padding-right: 24px;
+  .dashboard-page .smart-insights > .focus-timer-card:not(.is-running):not(.is-paused):not(.is-finished) .focus-timer-body strong::after {
+    content: 'FOKUS STARTEN';
+    display: inline-block;
+    font-size: 11.5px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    color: #4338ca;
+    padding: 7px 14px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(34, 211, 238, 0.14));
+    border: 1px solid rgba(99, 102, 241, 0.28);
+    line-height: 1;
   }
 
-  .dashboard-page .smart-insights > .focus-timer-card.is-running .focus-timer-body strong::after,
-  .dashboard-page .smart-insights > .focus-timer-card.is-paused .focus-timer-body strong::after,
-  .dashboard-page .smart-insights > .focus-timer-card.is-finished .focus-timer-body strong::after {
-    content: none;
-  }
-
+  /* Actions: kompakte Pille direkt unter dem Hero-Button */
   .dashboard-page .smart-insights > .focus-timer-card .focus-timer-actions {
+    position: absolute;
+    z-index: 3;
+    left: 50%;
+    bottom: -22px;
+    transform: translateX(-50%);
     display: inline-flex;
-    gap: 8px;
+    gap: 6px;
     padding: 6px;
     border-radius: 999px;
-    border: 1px solid rgba(165, 243, 252, 0.35);
-    background: rgba(15, 23, 42, 0.5);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: #ffffff;
+    box-shadow:
+      0 12px 24px rgba(15, 23, 42, 0.14),
+      0 2px 4px rgba(15, 23, 42, 0.06);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
   .dashboard-page .smart-insights > .focus-timer-card .focus-timer-mini-btn {
-    width: 36px;
-    height: 36px;
-    border-color: rgba(165, 243, 252, 0.4);
-    background: rgba(255, 255, 255, 0.1);
+    width: 32px;
+    height: 32px;
+    border-color: rgba(15, 23, 42, 0.08);
+    background: #f8fafc;
+    color: #334155;
   }
 
-  /* Insights-Grid: drei Spalten, breitere Tiles */
+  .dashboard-page .smart-insights > .focus-timer-card .focus-timer-mini-btn:hover {
+    background: #eef2ff;
+    color: #4338ca;
+  }
+
+  /* Eigene Glow-/Shimmer-Elemente von FocusTimer ausblenden — der neue Look hat eigenen Glow */
+  .dashboard-page .smart-insights > .focus-timer-card .focus-timer-card-glow,
+  .dashboard-page .smart-insights > .focus-timer-card .focus-timer-card-shimmer {
+    display: none !important;
+  }
+
+  /* ---------- Insights-Liste rechts ---------- */
   .dashboard-page .smart-insights-list {
-    position: relative;
-    z-index: 1;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 14px;
+    grid-area: list;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+    align-self: stretch;
   }
 
-  /* Floating Glass-Tile mit Neon-Akzent links */
   .dashboard-page .smart-insight-item {
     position: relative;
     overflow: hidden;
+    display: flex;
     align-items: center;
     gap: 14px;
-    min-height: 96px;
-    padding: 16px 18px 16px 22px;
-    border-radius: 18px;
-    border: 1px solid rgba(148, 163, 255, 0.16);
-    background:
-      linear-gradient(160deg, rgba(30, 41, 59, 0.78) 0%, rgba(15, 23, 42, 0.78) 100%);
-    color: #e2e8f0;
-    box-shadow:
-      0 16px 32px rgba(6, 10, 30, 0.42),
-      inset 0 1px 0 rgba(255, 255, 255, 0.07);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    transition: transform 0.2s ease, border-color 0.22s ease, box-shadow 0.24s ease;
+    min-height: 0;
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1px solid rgba(15, 23, 42, 0.07);
+    background: #ffffff;
+    color: #0f172a;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    transition: transform 0.18s ease, border-color 0.2s ease, box-shadow 0.22s ease, background 0.2s ease;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
+  /* dezenter Akzent-Strich links */
   .dashboard-page .smart-insight-item::before {
     content: '';
     position: absolute;
+    left: 0;
     top: 14px;
     bottom: 14px;
-    left: 8px;
     width: 3px;
-    border-radius: 999px;
-    background: linear-gradient(180deg, #22d3ee, #6366f1, #a855f7);
-    box-shadow: 0 0 14px rgba(99, 102, 241, 0.6);
-    opacity: 0.92;
+    border-radius: 0 3px 3px 0;
+    background: linear-gradient(180deg, #6366f1, #22d3ee);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    box-shadow: none;
   }
 
-  .dashboard-page .smart-insight-item::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(80% 60% at 100% 0%, rgba(34, 211, 238, 0.18), transparent 60%);
-    opacity: 0;
-    transition: opacity 0.22s ease;
-    pointer-events: none;
-  }
+  .dashboard-page .smart-insight-item::after { content: none; }
 
   .dashboard-page .smart-insight-item:hover {
-    transform: translateY(-3px);
-    border-color: rgba(125, 211, 252, 0.34);
+    transform: translateX(4px);
+    border-color: rgba(99, 102, 241, 0.28);
+    background: linear-gradient(180deg, #ffffff, #fbfbff);
     box-shadow:
-      0 22px 44px rgba(6, 10, 30, 0.55),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      0 10px 22px rgba(15, 23, 42, 0.08),
+      0 1px 2px rgba(15, 23, 42, 0.04);
   }
 
-  .dashboard-page .smart-insight-item:hover::after { opacity: 1; }
+  .dashboard-page .smart-insight-item:hover::before { opacity: 1; }
 
   .dashboard-page .smart-insight-icon {
-    width: 38px;
-    height: 38px;
-    border-radius: 12px;
-    box-shadow:
-      inset 0 0 0 1px rgba(255, 255, 255, 0.08),
-      0 6px 14px rgba(6, 10, 30, 0.35);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
   .dashboard-page .smart-insight-icon svg {
     width: 18px;
     height: 18px;
-    filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.35));
+    filter: none;
+  }
+
+  .dashboard-page .smart-insight-body {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
 
   .dashboard-page .smart-insight-label {
     font-size: 10.5px;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     font-weight: 800;
-    opacity: 0.95;
-    color: #c7d2fe;
+    color: #64748b;
+    opacity: 1;
   }
 
   .dashboard-page .smart-insight-item p {
-    margin-top: 4px;
-    font-size: 14.5px;
-    line-height: 1.42;
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.4;
     font-weight: 600;
-    color: #f1f5f9;
+    color: #0f172a;
   }
 
   .dashboard-page .smart-insight-item--alert {
-    border-color: rgba(248, 113, 113, 0.42);
-    background:
-      linear-gradient(160deg, rgba(76, 18, 30, 0.78) 0%, rgba(40, 12, 20, 0.82) 100%);
+    border-color: rgba(239, 68, 68, 0.28);
+    background: linear-gradient(180deg, #fff8f8, #fff1f1);
   }
 
   .dashboard-page .smart-insight-item--alert::before {
-    background: linear-gradient(180deg, #fca5a5, #ef4444, #b91c1c);
-    box-shadow: 0 0 16px rgba(239, 68, 68, 0.7);
+    background: linear-gradient(180deg, #ef4444, #f97316);
+    opacity: 1;
+    box-shadow: none;
   }
 }
 
