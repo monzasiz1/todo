@@ -35,7 +35,9 @@
   --nem-danger:       var(--danger, #ff3b30);
   --nem-success:      var(--success, #34c759);
   --nem-warn:         #ff9f0a;
-  --nem-pill-fill:    color-mix(in srgb, var(--nem-surface) 86%, color-mix(in srgb, var(--nem-accent, #007aff) 18%, transparent));
+  /* Pill-Hintergrund: neutraler App-Surface-Tint, NICHT die Notizfarbe.
+     Vermeidet, dass z.B. eine gelbe Notiz alle Sekundär-Pillen vergoldet. */
+  --nem-pill-fill:    color-mix(in srgb, var(--nem-surface) 86%, color-mix(in srgb, var(--nem-primary) 14%, transparent));
 }
 
 html[data-theme="dark"] .nem-overlay,
@@ -94,9 +96,13 @@ html[data-theme="dark"] .nem-overlay {
   height: min(var(--nem-sheet-height, calc(100dvh - 56px)), calc(100dvh - 32px));
   max-height: calc(100dvh - 32px);
   min-height: 560px;
+  /* App-Konsistent: Hintergrund-Glow nutzt IMMER die App-Primary (Blau),
+     nicht die Notizfarbe. Die Notizfarbe (--nem-accent) erscheint nur im
+     dünnen Color-Bar ganz oben + den expliziten Color-Dots. Sonst sähe
+     z.B. eine gelbe Notiz wie eine komplette Gold-UI aus. */
   background:
     radial-gradient(1300px 360px at 8% -10%,
-      color-mix(in srgb, var(--nem-accent, #007aff) 14%, transparent),
+      color-mix(in srgb, var(--nem-primary) 12%, transparent),
       transparent 60%),
     linear-gradient(180deg,
       color-mix(in srgb, var(--nem-surface) 96%, #f1f5ff),
@@ -116,7 +122,7 @@ html[data-theme="dark"] .nem-overlay {
 html[data-theme="dark"] .nem-sheet {
   background:
     radial-gradient(1300px 380px at 8% -12%,
-      color-mix(in srgb, var(--nem-accent, #58a6ff) 22%, transparent),
+      color-mix(in srgb, var(--nem-primary) 22%, transparent),
       transparent 65%),
     linear-gradient(180deg, #1e1f23, #17181c);
   box-shadow: var(--nem-shadow-sheet);
@@ -186,9 +192,9 @@ html[data-theme="dark"] .nem-sheet {
   gap: 10px;
   padding: 14px 18px;
   border-bottom: 1px solid var(--nem-border-soft);
-  background: color-mix(in srgb, var(--nem-surface) 84%, transparent);
-  backdrop-filter: blur(16px) saturate(1.3);
-  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  /* Vollflächige, opake Header-Surface — sonst scheint der blaue
+     Accent-Radial-Gradient des Sheets durch und färbt das Titelfeld. */
+  background: var(--nem-surface);
   flex-shrink: 0;
   z-index: 2;
 }
@@ -568,16 +574,16 @@ html[data-theme="dark"] .nem-ai-suggest-head { color: #a99cff; }
   outline: 0;
   border: 1px solid var(--nem-border-soft);
   border-radius: 18px;
-  background:
-    linear-gradient(180deg,
-      color-mix(in srgb, var(--nem-surface) 96%, color-mix(in srgb, var(--nem-accent, #007aff) 8%, transparent)),
-      var(--nem-surface));
+  /* Editor-Canvas neutralisiert — verwendet App-Surface ohne Notizfarbe-Tint,
+     damit gelbe/orange Notizen keine "Gold-UI" erzeugen. Die Notizfarbe
+     bleibt nur im Color-Bar oben + den Color-Dots im Footer sichtbar. */
+  background: var(--nem-surface);
   color: var(--nem-text);
   font-family: inherit;
   font-size: 16px;
   line-height: 1.7;
   letter-spacing: 0.001em;
-  caret-color: var(--nem-accent, var(--nem-primary));
+  caret-color: var(--nem-primary);
   overflow-wrap: break-word;
   word-break: break-word;
   box-shadow:
@@ -587,10 +593,10 @@ html[data-theme="dark"] .nem-ai-suggest-head { color: #a99cff; }
 }
 .nem-editor:focus-within,
 .nem-editor:focus {
-  border-color: color-mix(in srgb, var(--nem-accent, var(--nem-primary)) 50%, transparent);
+  border-color: color-mix(in srgb, var(--nem-primary) 50%, transparent);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.6),
-    0 0 0 4px color-mix(in srgb, var(--nem-accent, var(--nem-primary)) 14%, transparent),
+    0 0 0 4px color-mix(in srgb, var(--nem-primary) 14%, transparent),
     0 10px 24px rgba(15, 23, 42, 0.08);
 }
 .nem-editor:empty::before {
@@ -656,9 +662,9 @@ html[data-theme="dark"] .nem-ai-suggest-head { color: #a99cff; }
 .nem-editor blockquote {
   margin: 12px 0;
   padding: 8px 14px;
-  border-left: 3px solid var(--nem-accent, var(--nem-primary));
+  border-left: 3px solid var(--nem-primary);
   color: var(--nem-text-soft);
-  background: color-mix(in srgb, var(--nem-accent, var(--nem-primary)) 6%, transparent);
+  background: color-mix(in srgb, var(--nem-primary) 6%, transparent);
   border-radius: 0 10px 10px 0;
 }
 .nem-editor hr {
@@ -758,18 +764,17 @@ html[data-theme="dark"] .nem-ai-suggest-head { color: #a99cff; }
 }
 
 html[data-theme="dark"] .nem-editor {
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+  background: rgba(255, 255, 255, 0.03);
   border-color: rgba(255, 255, 255, 0.08);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 10px 22px rgba(0, 0, 0, 0.35);
 }
 html[data-theme="dark"] .nem-editor:focus-within {
-  border-color: color-mix(in srgb, var(--nem-accent, #58a6ff) 60%, transparent);
+  border-color: color-mix(in srgb, var(--nem-primary) 60%, transparent);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 0 0 4px color-mix(in srgb, var(--nem-accent, #58a6ff) 18%, transparent),
+    0 0 0 4px color-mix(in srgb, var(--nem-primary) 18%, transparent),
     0 12px 28px rgba(0, 0, 0, 0.45);
 }
 html[data-theme="dark"] .nem-editor table { background: rgba(255, 255, 255, 0.03); }
@@ -787,7 +792,7 @@ html[data-theme="dark"] .nem-editor table th { background: rgba(255, 255, 255, 0
   row-gap: 8px;
   padding: 12px 18px;
   border-top: 1px solid var(--nem-border-soft);
-  background: color-mix(in srgb, var(--nem-surface) 92%, var(--nem-accent, #007aff) 4%);
+  background: var(--nem-surface-2);
   flex-shrink: 0;
 }
 .nem-link-row.is-picker-open { z-index: 60; }
@@ -1116,8 +1121,8 @@ html[data-theme="dark"] .nem-share-chip-remove {
 }
 .nem-act.is-open,
 .nem-cm.is-open {
-  background: color-mix(in srgb, var(--nem-surface) 90%, var(--nem-accent, #007aff) 5%);
-  border-color: color-mix(in srgb, var(--nem-accent, var(--nem-primary)) 26%, var(--nem-border));
+  background: color-mix(in srgb, var(--nem-surface) 90%, var(--nem-primary) 5%);
+  border-color: color-mix(in srgb, var(--nem-primary) 26%, var(--nem-border));
   box-shadow: var(--nem-shadow-card);
 }
 
@@ -1146,7 +1151,7 @@ html[data-theme="dark"] .nem-share-chip-remove {
 }
 .nem-act.is-open .nem-act-toggle > svg:first-child,
 .nem-cm.is-open .nem-cm-toggle > svg:first-child {
-  color: var(--nem-accent, var(--nem-primary));
+  color: var(--nem-primary);
 }
 .nem-act-toggle:hover,
 .nem-cm-toggle:hover { background: color-mix(in srgb, var(--nem-primary) 6%, transparent); }
@@ -1232,7 +1237,7 @@ html[data-theme="dark"] .nem-share-chip-remove {
   font-size: 11px;
   font-weight: 700;
   color: #ffffff;
-  background: linear-gradient(135deg, var(--nem-accent, var(--nem-primary)), color-mix(in srgb, var(--nem-accent, var(--nem-primary)) 70%, #000000));
+  background: linear-gradient(135deg, var(--nem-primary), color-mix(in srgb, var(--nem-primary) 70%, #000000));
   text-transform: uppercase;
 }
 .nem-act-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -1411,26 +1416,55 @@ html[data-theme="dark"] .nem-share-chip-remove {
 }
 
 /* ────────────────────────────────────────────────────────────
-   Versions panel
+   Versions panel — full-sheet overlay with backdrop
    ──────────────────────────────────────────────────────────── */
+.nem-ver-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 25;
+  background: rgba(15, 23, 42, 0.42);
+  backdrop-filter: blur(10px) saturate(1.1);
+  -webkit-backdrop-filter: blur(10px) saturate(1.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  -webkit-tap-highlight-color: transparent;
+}
+html[data-theme="dark"] .nem-ver-overlay {
+  background: rgba(0, 0, 0, 0.58);
+}
+
 .nem-ver-panel {
-  margin: 12px 14px 0;
+  width: min(520px, 100%);
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
   border: 1px solid var(--nem-border);
-  border-radius: var(--nem-radius-card);
-  background: color-mix(in srgb, var(--nem-surface) 92%, transparent);
-  backdrop-filter: blur(6px);
+  border-radius: 20px;
+  background: var(--nem-surface);
   overflow: hidden;
-  box-shadow: var(--nem-shadow-card);
+  box-shadow:
+    0 28px 60px rgba(15, 23, 42, 0.32),
+    0 8px 20px rgba(15, 23, 42, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+html[data-theme="dark"] .nem-ver-panel {
+  background: #232428;
+  box-shadow: 0 28px 60px rgba(0, 0, 0, 0.6);
 }
 .nem-ver-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
+  padding: 14px 18px;
   border-bottom: 1px solid var(--nem-border-soft);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--nem-text);
+  background: var(--nem-surface);
+  flex-shrink: 0;
 }
 .nem-ver-head-title { display: flex; align-items: center; gap: 6px; }
 .nem-ver-count { color: var(--nem-text-soft); font-weight: 500; }
@@ -1440,7 +1474,13 @@ html[data-theme="dark"] .nem-share-chip-remove {
   transition: background 0.12s ease, color 0.12s ease;
 }
 .nem-ver-close:hover { background: var(--nem-pill-fill); color: var(--nem-text); }
-.nem-ver-body { max-height: 360px; overflow-y: auto; }
+.nem-ver-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px 0 6px;
+}
 .nem-ver-empty {
   padding: 16px 14px; text-align: center; color: var(--nem-text-soft);
   font-size: 12.5px; display: flex; align-items: center; justify-content: center; gap: 6px;
@@ -1673,14 +1713,14 @@ html[data-theme="dark"] .nem-importance-btn.is-active {
     box-shadow: none;
     background:
       radial-gradient(900px 240px at 0% -8%,
-        color-mix(in srgb, var(--nem-accent, #007aff) 16%, transparent),
+        color-mix(in srgb, var(--nem-primary) 14%, transparent),
         transparent 60%),
       var(--nem-surface);
   }
   html[data-theme="dark"] .nem-sheet {
     background:
       radial-gradient(900px 240px at 0% -8%,
-        color-mix(in srgb, var(--nem-accent, #58a6ff) 20%, transparent),
+        color-mix(in srgb, var(--nem-primary) 18%, transparent),
         transparent 60%),
       #15171c;
   }
@@ -1692,7 +1732,7 @@ html[data-theme="dark"] .nem-importance-btn.is-active {
   /* Header */
   .nem-header {
     padding: max(10px, env(safe-area-inset-top, 0px)) 12px 10px;
-    background: color-mix(in srgb, var(--nem-surface) 92%, transparent);
+    background: var(--nem-surface);
     border-bottom: 1px solid var(--nem-border-soft);
   }
   .nem-title {
@@ -1779,6 +1819,22 @@ html[data-theme="dark"] .nem-importance-btn.is-active {
   .nem-share-chip-perm,
   .nem-share-chip-remove { width: 20px; height: 20px; }
 
+  /* Versions overlay on mobile — bottom sheet style */
+  .nem-ver-overlay {
+    padding: 0;
+    align-items: flex-end;
+    justify-content: stretch;
+  }
+  .nem-ver-panel {
+    width: 100%;
+    max-height: 88dvh;
+    border-radius: 22px 22px 0 0;
+    border-bottom: 0;
+  }
+  .nem-ver-head {
+    padding: 14px 16px;
+    padding-top: 18px;
+  }
   /* Insights row — stack on mobile, 1 column */
   .nem-insights-row {
     grid-template-columns: 1fr;
