@@ -685,32 +685,6 @@ export default function Dashboard() {
     { value: 'low',    label: 'Niedrig',  color: '#34C759' },
   ];
 
-  const groupsInTasks = useMemo(() => {
-    const map = new Map();
-    tasks.forEach((t) => {
-      if (!t.group_id) return;
-      const key = String(t.group_id);
-      if (map.has(key)) return;
-      const fromStore = (groupsFromStore || []).find((g) => String(g.id) === key);
-      map.set(key, {
-        id: key,
-        name: fromStore?.name || t.group_name || `Gruppe ${key}`,
-      });
-    });
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, 'de'));
-  }, [tasks, groupsFromStore]);
-
-  const sources = useMemo(() => {
-    const base = [
-      { value: 'all', label: 'Alle Quellen' },
-      { value: 'shared_direct', label: 'Direkt geteilt' },
-      { value: 'shared_groups', label: 'Gruppenshares' },
-      { value: 'groups', label: 'Alle Gruppen' },
-    ];
-    const perGroup = groupsInTasks.map((g) => ({ value: `group:${g.id}`, label: g.name }));
-    return [...base, ...perGroup];
-  }, [groupsInTasks]);
-
   return (
     <div className="dashboard-page">
       {/* Header */}
@@ -874,16 +848,6 @@ export default function Dashboard() {
           >
             {p.color && <span className="filter-dot" />}
             {p.label}
-          </button>
-        ))}
-        <span className="filter-divider" aria-hidden>|</span>
-        {sources.map((s) => (
-          <button
-            key={s.value}
-            className={`filter-btn ${((filter.source || 'all') === s.value) ? 'active' : ''}`}
-            onClick={() => setFilter('source', s.value)}
-          >
-            {s.label}
           </button>
         ))}
         <input

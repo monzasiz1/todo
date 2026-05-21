@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useTaskStore } from '../store/taskStore';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   LayoutDashboard,
   CalendarDays,
@@ -16,6 +16,7 @@ import {
 import FriendsList from './FriendsList';
 import CategoryManager from './CategoryManager';
 import { useFriendsStore } from '../store/friendsStore';
+import { useGroupStore } from '../store/groupStore';
 import AvatarBadge from './AvatarBadge';
 import NotificationBell from './NotificationBell';
 import { usePlan } from '../hooks/usePlan';
@@ -29,6 +30,8 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
   const fetchCategories = useTaskStore((s) => s.fetchCategories);
   const setFilter = useTaskStore((s) => s.setFilter);
   const clearFilters = useTaskStore((s) => s.clearFilters);
+  const groupsFromStore = useGroupStore((s) => s.groups);
+  const fetchGroups = useGroupStore((s) => s.fetchGroups);
   const { pending, fetchFriends } = useFriendsStore();
   const { planId } = usePlan();
   const [showFriends, setShowFriends] = useState(false);
@@ -39,7 +42,52 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
   useEffect(() => {
     fetchCategories();
     fetchFriends();
+    fetchGroups();
   }, []);
+
+  const groupsInTasks = useMemo(() => {
+    const map = new Map();
+    tasks.forEach((t) => {
+      if (!t.group_id) return;
+      const key = String(t.group_id);
+      if (map.has(key)) return;
+      const fromStore = (groupsFromStore || []).find((g) => String(g.id) === key);
+      map.set(key, {
+        id: key,
+        name: fromStore?.name || t.group_name || `Gruppe ${key}`,
+      });
+    });
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  }, [tasks, groupsFromStore]);
+
+  const source = filter.source || 'all';
+  const sourceItems = [
+    {
+      value: 'all',
+      label: 'Alle Quellen',
+      count: tasks.filter((t) => !t.completed).length,
+    },
+    {
+      value: 'shared_direct',
+      label: 'Direkt geteilt',
+      count: tasks.filter((t) => !t.completed && t.is_owner === false && !t.group_id).length,
+    },
+    {
+      value: 'shared_groups',
+      label: 'Gruppenshares',
+      count: tasks.filter((t) => !t.completed && t.is_owner === false && !!t.group_id).length,
+    },
+    {
+      value: 'groups',
+      label: 'Alle Gruppen',
+      count: tasks.filter((t) => !t.completed && !!t.group_id).length,
+    },
+    ...groupsInTasks.map((g) => ({
+      value: `group:${g.id}`,
+      label: g.name,
+      count: tasks.filter((t) => !t.completed && String(t.group_id || '') === String(g.id)).length,
+    })),
+  ];
 
   const navItems = [
     { to: '/app', icon: LayoutDashboard, label: 'Dashboard' },
@@ -120,6 +168,25 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
       </div>
 
       {/* Categories */}
+      <div className="sidebar-section-title">Quellen</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 12 }}>
+        {sourceItems.map((item) => (
+          <div
+            key={item.value}
+            className={`sidebar-category ${source === item.value ? 'active' : ''}`}
+            onClick={() => {
+              setFilter('source', item.value);
+              onClose?.();
+            }}
+            title={isCollapsed ? item.label : undefined}
+          >
+            <div className="sidebar-category-dot" style={{ background: source === item.value ? 'var(--primary)' : 'var(--text-tertiary)' }} />
+            <span className="sidebar-category-label">{item.label}</span>
+            <span className="sidebar-category-count">{item.count}</span>
+          </div>
+        ))}
+      </div>
+
       <div className="sidebar-section-title sidebar-section-head">
         <span>Kategorien</span>
         <div className="sidebar-section-actions">

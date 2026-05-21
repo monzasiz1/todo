@@ -1,0 +1,1 @@
+﻿feat(dashboard): Quellenfilter um Direkt/Gruppenshares und Einzel-Gruppen erweitern
