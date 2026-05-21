@@ -5971,6 +5971,90 @@ body.cal-is-dragging * {
   }
 }
 
+/* Desktop-only dashboard polish for Smart Insights + Focus CTA */
+@media (min-width: 1025px) {
+  .dashboard-page > .smart-insights {
+    margin-bottom: 18px;
+    padding: 18px;
+    border-radius: 22px;
+    border: 1px solid color-mix(in srgb, var(--border, rgba(0,0,0,0.10)) 82%, transparent);
+    background:
+      radial-gradient(1200px 260px at 8% -18%, rgba(77, 123, 217, 0.16), transparent 62%),
+      radial-gradient(900px 220px at 92% -18%, rgba(15, 108, 189, 0.10), transparent 68%),
+      linear-gradient(180deg, color-mix(in srgb, var(--card-solid, #ffffff) 95%, #edf3ff), color-mix(in srgb, var(--card-solid, #ffffff) 98%, #f8fbff));
+    box-shadow: 0 14px 36px rgba(15, 23, 42, 0.10);
+  }
+
+  .dashboard-page .smart-insights-head {
+    margin-bottom: 14px;
+    padding: 0 2px;
+  }
+
+  .dashboard-page .smart-insights-title {
+    font-size: 18px;
+    font-weight: 750;
+    letter-spacing: -0.015em;
+  }
+
+  .dashboard-page .smart-insights-meta-wrap {
+    gap: 8px;
+  }
+
+  .dashboard-page .smart-insights-meta {
+    padding: 6px 11px;
+    font-size: 12px;
+    font-weight: 600;
+    background: color-mix(in srgb, var(--surface-2, #f4f7fc) 88%, #ffffff);
+    border-color: color-mix(in srgb, var(--border, rgba(0,0,0,0.08)) 82%, transparent);
+  }
+
+  .dashboard-page .smart-insights > .focus-timer-card {
+    margin: 0 0 14px;
+    min-height: 92px;
+    border-radius: 20px;
+    border-color: rgba(141, 165, 255, 0.34);
+    box-shadow:
+      0 14px 34px rgba(12, 16, 44, 0.42),
+      0 0 0 1px rgba(99, 102, 241, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+
+  .dashboard-page .smart-insights > .focus-timer-card .focus-timer-body strong {
+    font-size: 22px;
+    line-height: 1.06;
+    letter-spacing: -0.02em;
+  }
+
+  .dashboard-page .smart-insights > .focus-timer-card .focus-timer-body span {
+    font-size: 13px;
+    color: rgba(214, 224, 255, 0.86);
+  }
+
+  .dashboard-page .smart-insights-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .dashboard-page .smart-insight-item {
+    min-height: 78px;
+    border-radius: 14px;
+    padding: 12px 13px;
+    background: color-mix(in srgb, var(--surface-2, #f7faff) 90%, #ffffff);
+    border-color: color-mix(in srgb, var(--border, rgba(0,0,0,0.08)) 78%, transparent);
+  }
+
+  .dashboard-page .smart-insight-item p {
+    font-size: 15px;
+    line-height: 1.35;
+    font-weight: 540;
+  }
+
+  .dashboard-page .smart-insight-label {
+    font-size: 12px;
+    letter-spacing: 0.03em;
+  }
+}
+
 /* Collapsible filters */
 .dash-filters-toggle {
   width: 100%;

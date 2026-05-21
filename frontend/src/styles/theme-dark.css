@@ -1413,6 +1413,28 @@ html[data-theme="dark"] .smart-insight-item {
   border-color: var(--border);
   color: var(--text);
 }
+
+@media (min-width: 1025px) {
+  html[data-theme="dark"] .dashboard-page > .smart-insights {
+    border-color: rgba(255, 255, 255, 0.10);
+    background:
+      radial-gradient(1200px 260px at 8% -18%, rgba(88, 166, 255, 0.18), transparent 62%),
+      radial-gradient(900px 220px at 92% -18%, rgba(129, 140, 248, 0.14), transparent 68%),
+      linear-gradient(180deg, rgba(22, 28, 42, 0.98), rgba(18, 24, 36, 0.98));
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+  }
+
+  html[data-theme="dark"] .dashboard-page .smart-insights-meta {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.10);
+    color: rgba(226, 232, 240, 0.92);
+  }
+
+  html[data-theme="dark"] .dashboard-page .smart-insight-item {
+    background: rgba(255, 255, 255, 0.045);
+    border-color: rgba(255, 255, 255, 0.10);
+  }
+}
 html[data-theme="dark"] .smart-insight-item--alert {
   background: rgba(255, 59, 48, 0.08);
   border-color: rgba(255, 59, 48, 0.32);
