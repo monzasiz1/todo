@@ -11,6 +11,188 @@ body.note-editor-open {
   overflow: hidden;
   overscroll-behavior: contain;
 }
+
+/* ============================================================
+   FINAL NEM UI/X HOTFIX (desktop + mobile)
+   ============================================================ */
+
+/* Desktop/Global: klare moderne Cards fuer Aktivitaet + Kommentare */
+.nem-sheet .nem-act,
+.nem-sheet .nem-cm {
+  margin: 12px 14px 0 !important;
+  border-radius: 18px !important;
+  border: 1px solid color-mix(in srgb, var(--border, rgba(0,0,0,0.09)) 84%, transparent) !important;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface, #fff) 92%, #eef4ff), color-mix(in srgb, var(--surface, #fff) 97%, #f7faff)) !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06) !important;
+  overflow: hidden !important;
+}
+
+.nem-sheet .nem-act-toggle,
+.nem-sheet .nem-cm-toggle {
+  min-height: 46px !important;
+  padding: 11px 16px !important;
+  font-size: 13px !important;
+  font-weight: 650 !important;
+}
+
+.nem-sheet .nem-act-panel,
+.nem-sheet .nem-cm-panel {
+  background: color-mix(in srgb, var(--surface, #fff) 90%, #f5f9ff) !important;
+}
+
+.nem-sheet .nem-cm-compose {
+  border-top: 1px solid color-mix(in srgb, var(--border, rgba(0,0,0,0.08)) 80%, transparent) !important;
+  background: color-mix(in srgb, var(--surface, #fff) 92%, #edf3ff) !important;
+}
+
+.nem-sheet .nem-cm-input {
+  border-radius: 10px !important;
+}
+
+@media (max-width: 720px) {
+  /* Footer: kompakt, sauber, nicht verdeckend */
+  .nem-sheet .nem-footer {
+    position: static !important;
+    gap: 8px !important;
+    padding: 8px 10px max(8px, env(safe-area-inset-bottom, 0px)) !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    border-top: 1px solid color-mix(in srgb, var(--border, rgba(0,0,0,0.08)) 86%, transparent) !important;
+    box-shadow: none !important;
+  }
+
+  .nem-sheet .nem-color-row,
+  .nem-sheet .nem-importance-row,
+  .nem-sheet .nem-footer-actions {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    margin-left: 0 !important;
+  }
+
+  .nem-sheet .nem-action-btn {
+    min-height: 34px !important;
+    padding: 7px 10px !important;
+    border-radius: 10px !important;
+    font-size: 12px !important;
+    white-space: nowrap !important;
+  }
+
+  /* Link-Row: deutlich platzsparender */
+  .nem-sheet .nem-link-row {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+    padding: 7px 10px !important;
+    align-items: center !important;
+  }
+
+  .nem-sheet .nem-link-row > .nem-link-chip,
+  .nem-sheet .nem-link-row > .nem-link-add,
+  .nem-sheet .nem-link-row > .nem-visibility-toggle {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    font-size: 11.5px !important;
+  }
+
+  .nem-sheet .nem-link-chip-main {
+    width: 100% !important;
+    padding: 0 8px !important;
+    gap: 5px !important;
+  }
+
+  .nem-sheet .nem-link-chip-title {
+    max-width: 100% !important;
+    font-size: 11.5px !important;
+  }
+
+  .nem-sheet .nem-link-chip-meta {
+    display: none !important;
+  }
+
+  .nem-sheet .nem-link-chip-remove {
+    width: 24px !important;
+  }
+
+  .nem-sheet .nem-visibility-toggle {
+    justify-content: center !important;
+    gap: 4px !important;
+    padding: 0 8px !important;
+  }
+
+  .nem-sheet .nem-visibility-toggle > span {
+    max-width: 78px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .nem-sheet .nem-link-row .nem-share-friends {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    margin-top: 0 !important;
+  }
+
+  .nem-sheet .nem-link-row .nem-share-friends-row {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    gap: 6px !important;
+    padding-bottom: 2px !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .nem-sheet .nem-link-row .nem-share-chip {
+    height: 26px !important;
+    min-width: 26px !important;
+    padding: 0 1px !important;
+  }
+
+  .nem-sheet .nem-link-row .nem-share-chip-perm,
+  .nem-sheet .nem-link-row .nem-share-chip-remove {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  .nem-sheet .nem-share-add,
+  .nem-sheet .nem-link-add {
+    justify-content: center !important;
+    padding: 0 8px !important;
+  }
+
+  /* Aktivitaet/Kommentare: mobile kompakt + sauber eingebettet */
+  .nem-sheet .nem-act,
+  .nem-sheet .nem-cm {
+    margin: 8px 8px 0 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 6px 16px rgba(15,23,42,0.07) !important;
+  }
+
+  .nem-sheet .nem-act-toggle,
+  .nem-sheet .nem-cm-toggle {
+    min-height: 40px !important;
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+  }
+
+  .nem-sheet .nem-act-head,
+  .nem-sheet .nem-cm-head {
+    padding: 6px 12px 2px !important;
+    font-size: 10px !important;
+  }
+
+  .nem-sheet .nem-act-list,
+  .nem-sheet .nem-cm-list {
+    max-height: 200px !important;
+    padding: 4px 12px 8px !important;
+  }
+
+  .nem-sheet .nem-cm-compose {
+    padding: 7px 12px 9px !important;
+  }
+}
 body.note-editor-open .bottom-nav {
   display: none !important;
 }
