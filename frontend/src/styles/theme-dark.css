@@ -1447,25 +1447,23 @@ html[data-theme="dark"] .smart-insight-item {
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   }
 
-  /* Fokus-Timer-Kreis: dunkler Disc, Glow bleibt bunt */
+  /* Fokus-Timer: vivider CTA-Button bleibt auch im Dark Mode bunt — nur Schatten verstaerkt */
   html[data-theme="dark"] .dashboard-page .smart-insights > .focus-timer-card {
-    background:
-      radial-gradient(circle at 30% 25%, #1e293b 0%, #111827 60%, #0b1220 100%);
     box-shadow:
-      0 24px 48px rgba(99, 102, 241, 0.32),
-      0 6px 16px rgba(0, 0, 0, 0.55),
-      inset 0 1px 0 rgba(255, 255, 255, 0.08),
-      inset 0 -2px 6px rgba(0, 0, 0, 0.45);
+      0 24px 50px rgba(99, 102, 241, 0.55),
+      0 12px 26px rgba(124, 58, 237, 0.38),
+      inset 0 2px 0 rgba(255, 255, 255, 0.55),
+      inset 0 -8px 18px rgba(0, 0, 0, 0.45),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.20);
   }
 
-  html[data-theme="dark"] .dashboard-page .smart-insights > .focus-timer-card .focus-timer-body strong {
-    color: #f1f5f9;
-  }
-
-  html[data-theme="dark"] .dashboard-page .smart-insights > .focus-timer-card:not(.is-running):not(.is-paused):not(.is-finished) .focus-timer-body strong::after {
-    color: #c7d2fe;
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.22), rgba(34, 211, 238, 0.22));
-    border-color: rgba(165, 180, 252, 0.4);
+  html[data-theme="dark"] .dashboard-page .smart-insights > .focus-timer-card:hover {
+    box-shadow:
+      0 36px 70px rgba(99, 102, 241, 0.65),
+      0 16px 34px rgba(124, 58, 237, 0.5),
+      inset 0 2px 0 rgba(255, 255, 255, 0.6),
+      inset 0 -8px 18px rgba(0, 0, 0, 0.45),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.24);
   }
 
   html[data-theme="dark"] .dashboard-page .smart-insights > .focus-timer-card .focus-timer-actions {
