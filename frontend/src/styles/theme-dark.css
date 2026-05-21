@@ -1415,62 +1415,62 @@ html[data-theme="dark"] .smart-insight-item {
 }
 
 @media (min-width: 1025px) {
+  /* Das neue Smart-Insights-Panel ist bereits dunkel/Aurora — im Dark
+     Theme nur sanfte Anpassungen fuer Rahmen, Schatten und Lesbarkeit. */
   html[data-theme="dark"] .dashboard-page > .smart-insights {
-    border-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(165, 180, 252, 0.28);
     background:
-      radial-gradient(1200px 330px at -4% -25%, rgba(56, 189, 248, 0.22), transparent 66%),
-      radial-gradient(900px 300px at 106% -10%, rgba(99, 102, 241, 0.2), transparent 72%),
-      linear-gradient(165deg, rgba(18, 24, 39, 0.98), rgba(13, 19, 34, 0.98));
+      radial-gradient(60% 90% at 0% 0%, rgba(99, 102, 241, 0.48), transparent 60%),
+      radial-gradient(60% 90% at 100% 0%, rgba(34, 211, 238, 0.34), transparent 65%),
+      radial-gradient(60% 90% at 50% 110%, rgba(168, 85, 247, 0.32), transparent 60%),
+      linear-gradient(155deg, #060a1c 0%, #0c1230 48%, #100d3a 100%);
     box-shadow:
-      0 28px 58px rgba(0, 0, 0, 0.48),
-      0 4px 10px rgba(0, 0, 0, 0.28),
-      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      0 32px 64px rgba(0, 0, 0, 0.6),
+      0 4px 12px rgba(0, 0, 0, 0.36),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 
-  html[data-theme="dark"] .dashboard-page .smart-insights-meta {
-    background: rgba(15, 23, 42, 0.5);
-    border-color: rgba(148, 163, 184, 0.25);
-    color: rgba(226, 232, 240, 0.94);
+  html[data-theme="dark"] .dashboard-page > .smart-insights::before {
+    background-image:
+      linear-gradient(rgba(165, 180, 252, 0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(165, 180, 252, 0.07) 1px, transparent 1px);
   }
 
-  html[data-theme="dark"] .dashboard-page .smart-insights-title {
-    color: rgba(241, 245, 249, 0.98);
+  html[data-theme="dark"] .dashboard-page .smart-insights-head {
+    border-bottom-color: rgba(165, 180, 252, 0.18);
   }
 
-  html[data-theme="dark"] .dashboard-page .smart-insights-title svg {
-    color: #7dd3fc;
-    filter: drop-shadow(0 2px 6px rgba(125, 211, 252, 0.35));
+  html[data-theme="dark"] .dashboard-page .smart-insights-meta-wrap {
+    border-color: rgba(165, 180, 252, 0.28);
+    background: rgba(2, 6, 23, 0.6);
   }
 
   html[data-theme="dark"] .dashboard-page .smart-insights > .focus-timer-card {
-    border-color: rgba(129, 140, 248, 0.52);
+    border-color: rgba(165, 243, 252, 0.5);
+    background:
+      radial-gradient(120% 200% at 0% 50%, rgba(99, 102, 241, 0.62), transparent 55%),
+      radial-gradient(120% 200% at 100% 50%, rgba(34, 211, 238, 0.5), transparent 55%),
+      linear-gradient(95deg, #181536 0%, #0f172a 50%, #0c5e75 100%);
     box-shadow:
-      0 20px 44px rgba(2, 6, 23, 0.6),
-      0 0 0 1px rgba(99, 102, 241, 0.24),
-      inset 0 1px 0 rgba(255, 255, 255, 0.14);
-  }
-
-  html[data-theme="dark"] .dashboard-page .smart-insights > .focus-timer-card .focus-timer-body span::before {
-    border-color: rgba(148, 163, 184, 0.45);
-    background: rgba(148, 163, 184, 0.14);
-    color: rgba(226, 232, 240, 0.96);
+      0 22px 48px rgba(0, 0, 0, 0.7),
+      0 0 0 1px rgba(165, 243, 252, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.18),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.5);
   }
 
   html[data-theme="dark"] .dashboard-page .smart-insight-item {
-    background: linear-gradient(180deg, rgba(30, 41, 59, 0.74), rgba(20, 29, 45, 0.86));
-    border-color: rgba(148, 163, 184, 0.18);
+    background:
+      linear-gradient(160deg, rgba(20, 28, 48, 0.86) 0%, rgba(8, 14, 30, 0.88) 100%);
+    border-color: rgba(165, 180, 252, 0.18);
     box-shadow:
-      0 10px 20px rgba(2, 6, 23, 0.34),
+      0 18px 36px rgba(0, 0, 0, 0.55),
       inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
 
-  html[data-theme="dark"] .dashboard-page .smart-insight-item p {
-    color: rgba(241, 245, 249, 0.95);
-  }
-
   html[data-theme="dark"] .dashboard-page .smart-insight-item--alert {
-    background: linear-gradient(180deg, rgba(80, 22, 22, 0.5), rgba(63, 16, 16, 0.56));
-    border-color: rgba(248, 113, 113, 0.42);
+    background:
+      linear-gradient(160deg, rgba(86, 16, 28, 0.78) 0%, rgba(48, 12, 22, 0.82) 100%);
+    border-color: rgba(248, 113, 113, 0.5);
   }
 }
 html[data-theme="dark"] .smart-insight-item--alert {
