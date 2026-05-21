@@ -1708,6 +1708,26 @@ html[data-theme="dark"] .nem-cm-mention-handle {
   display: flex;
   flex-direction: column;
 }
+/* Portal-Variante: rendert oberhalb des Modals via createPortal,
+   damit overflow:auto der Toolbar das Menue nicht abschneidet. */
+.nem-ai-menu--portal {
+  position: fixed;
+  top: auto;
+  right: auto;
+  z-index: 10000;
+  color: var(--text, #1c1c1e);
+  animation: nemAiMenuPop 140ms ease-out;
+}
+@keyframes nemAiMenuPop {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+html[data-theme="dark"] .nem-ai-menu {
+  background: #2c2c2e;
+  border-color: rgba(255,255,255,0.08);
+  color: #f5f5f7;
+}
+html[data-theme="dark"] .nem-ai-menu-item:hover { background: rgba(255,255,255,0.08); }
 .nem-ai-menu-item {
   display: flex;
   flex-direction: column;

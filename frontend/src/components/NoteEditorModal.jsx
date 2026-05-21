@@ -123,15 +123,49 @@ const FORMAT_GROUPS = [
 
 function FormatToolbar({ onAction, onAiAction, aiBusy = false }) {
   const [aiOpen, setAiOpen] = useState(false);
+  const [aiMenuPos, setAiMenuPos] = useState(null); // { top, right }
   const aiRef = useRef(null);
+  const aiMenuRef = useRef(null);
+
+  // Beim Oeffnen: Anker-Rect lesen und Menue per portal an position:fixed
+  // rendern. Andernfalls wuerde overflow:auto der Toolbar das Dropdown
+  // abschneiden (Bug: Menue ist im DOM aber unsichtbar).
+  useEffect(() => {
+    if (!aiOpen) { setAiMenuPos(null); return undefined; }
+    const update = () => {
+      const el = aiRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      setAiMenuPos({
+        top: r.bottom + 6,
+        right: Math.max(8, window.innerWidth - r.right),
+      });
+    };
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [aiOpen]);
 
   useEffect(() => {
     if (!aiOpen) return undefined;
     const onDoc = (e) => {
-      if (aiRef.current && !aiRef.current.contains(e.target)) setAiOpen(false);
+      const inAnchor = aiRef.current && aiRef.current.contains(e.target);
+      const inMenu = aiMenuRef.current && aiMenuRef.current.contains(e.target);
+      if (!inAnchor && !inMenu) setAiOpen(false);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') setAiOpen(false);
     };
     document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onKey);
+    };
   }, [aiOpen]);
 
   const AI_ITEMS = [
@@ -178,8 +212,13 @@ function FormatToolbar({ onAction, onAiAction, aiBusy = false }) {
             <Sparkles size={16} strokeWidth={2} />
             <span className="nem-toolbar-ai-label">AI</span>
           </button>
-          {aiOpen && (
-            <div className="nem-ai-menu" role="menu">
+          {aiOpen && aiMenuPos && createPortal(
+            <div
+              className="nem-ai-menu nem-ai-menu--portal"
+              role="menu"
+              ref={aiMenuRef}
+              style={{ top: aiMenuPos.top, right: aiMenuPos.right }}
+            >
               {AI_ITEMS.map((item) => (
                 <button
                   key={item.key}
@@ -196,7 +235,8 @@ function FormatToolbar({ onAction, onAiAction, aiBusy = false }) {
                   <span className="nem-ai-menu-hint">{item.hint}</span>
                 </button>
               ))}
-            </div>
+            </div>,
+            document.body
           )}
         </div>
       )}
