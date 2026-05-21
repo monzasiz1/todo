@@ -1154,7 +1154,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                 <div className="nem-share-friends-row">
                   {note?.owner_name && (
                     <span
-                      className="nem-share-chip is-owner"
+                      className="nem-share-chip nem-share-chip--pin is-owner"
                       title={`Geteilt von ${note.owner_name}`}
                     >
                       {note.owner_avatar_url ? (
@@ -1164,17 +1164,15 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                           {(note.owner_name[0] || '?').toUpperCase()}
                         </span>
                       )}
-                      <span className="nem-share-chip-name">Von {note.owner_name}</span>
                     </span>
                   )}
                   {recipientList.map((r) => {
                     const isMe = r.user_id === currentUserId;
-                    const isEdit = r.permission === 'edit';
                     return (
                       <span
                         key={r.user_id}
-                        className={`nem-share-chip${isEdit ? ' is-edit' : ''}${isMe ? ' is-me' : ''}`}
-                        title={`${isMe ? 'Du' : r.name} — ${isEdit ? 'darf bearbeiten' : 'kann nur lesen'}`}
+                        className={`nem-share-chip nem-share-chip--pin${isMe ? ' is-me' : ''}`}
+                        title={`${isMe ? 'Du' : r.name} — ${r.permission === 'edit' ? 'darf bearbeiten' : 'kann nur lesen'}`}
                       >
                         {r.avatar_url ? (
                           <img src={r.avatar_url} alt="" className="nem-share-chip-avatar" />
@@ -1183,8 +1181,6 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                             {(r.name[0] || '?').toUpperCase()}
                           </span>
                         )}
-                        <span className="nem-share-chip-name">{isMe ? 'Du' : r.name}</span>
-                        {isEdit ? <Pencil size={12} /> : <Eye size={12} />}
                       </span>
                     );
                   })}
@@ -1201,7 +1197,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                     return (
                       <span
                         key={uid}
-                        className={`nem-share-chip is-active${isEdit ? ' is-edit' : ''}`}
+                        className={`nem-share-chip nem-share-chip--pin is-active${isEdit ? ' is-edit' : ''}`}
                         title={`${getFriendName(f)} — ${isEdit ? 'darf bearbeiten' : 'kann nur lesen'}`}
                       >
                         {getFriendAvatar(f) ? (
@@ -1209,7 +1205,6 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                         ) : (
                           <span className="nem-share-chip-avatar nem-share-chip-avatar--initial">{getFriendInitial(f)}</span>
                         )}
-                        <span className="nem-share-chip-name">{getFriendName(f)}</span>
                         <button
                           type="button"
                           className={`nem-share-chip-perm${isEdit ? ' is-edit' : ''}`}
@@ -1239,7 +1234,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                     title="Mit Freund teilen"
                   >
                     <UserPlus size={13} />
-                    <span>{sharedFriends.length === 0 ? 'Mit Freund teilen' : 'Weiteren teilen'}</span>
+                    <span>{sharedFriends.length === 0 ? 'Teilen' : 'Mehr'}</span>
                   </button>
                 </div>
                 {friendPickerOpen && (

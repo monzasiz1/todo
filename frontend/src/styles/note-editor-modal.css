@@ -285,6 +285,17 @@ html[data-theme="dark"] .nem-share-chip-remove:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Avatar-Pin-Variante fuer geteilte/verlinkte User: kompakt statt langer Badge. */
+.nem-share-chip--pin {
+  gap: 0;
+  padding: 0 2px;
+  min-width: 30px;
+  justify-content: center;
+}
+.nem-share-chip--pin .nem-share-chip-name {
+  display: none;
+}
 .nem-share-add {
   display: inline-flex;
   align-items: center;
@@ -751,6 +762,14 @@ html[data-theme="dark"] .nem-editor blockquote {
   gap: 8px;
   row-gap: 8px;
 }
+.nem-link-row .nem-share-chip {
+  padding: 0 2px;
+}
+.nem-link-row .nem-share-chip-perm,
+.nem-link-row .nem-share-chip-remove {
+  width: 20px;
+  height: 20px;
+}
 .nem-link-add {
   display: inline-flex;
   align-items: center;
@@ -980,9 +999,9 @@ html[data-theme="dark"] .nem-editor blockquote {
   .nem-color-bar { height: 3px; }
   .nem-header {
     padding-top: max(12px, env(safe-area-inset-top, 0px));
-    padding-left: max(16px, env(safe-area-inset-left, 16px));
-    padding-right: max(16px, env(safe-area-inset-right, 16px));
-    padding-bottom: 10px;
+    padding-left: max(12px, env(safe-area-inset-left, 12px));
+    padding-right: max(12px, env(safe-area-inset-right, 12px));
+    padding-bottom: 8px;
     border-bottom: 0;
   }
   .nem-title {
@@ -995,7 +1014,7 @@ html[data-theme="dark"] .nem-editor blockquote {
     font-size: 11px;
   }
   .nem-body {
-    padding: 4px 18px 18px;
+    padding: 2px 12px 10px;
   }
   .nem-textarea {
     font-size: 16px; /* iOS no-zoom auf Focus */
@@ -1003,7 +1022,7 @@ html[data-theme="dark"] .nem-editor blockquote {
     line-height: 1.6;
   }
   .nem-link-row {
-    padding: 8px 14px 10px;
+    padding: 6px 10px 8px;
   }
   .nem-footer {
     padding: 10px 12px;
@@ -1098,7 +1117,7 @@ html[data-theme="dark"] .nem-editor blockquote {
   .nem-editor {
     font-size: 16px;
     line-height: 1.55;
-    min-height: calc(100dvh - 360px);
+    min-height: calc(100dvh - 300px);
     padding-bottom: 12px;
   }
 
@@ -1849,18 +1868,20 @@ html[data-theme="dark"] .nem-ai-menu-item:hover { background: rgba(255,255,255,0
      damit Termin-Anheften, Sichtbarkeits-Toggle und Share-Chips nicht
      in eine ueberlaufende Einzeile gequetscht werden. */
   .nem-link-row {
-    padding: 8px 14px;
-    gap: 8px;
-    flex-direction: column;
-    align-items: stretch;
+    padding: 6px 10px;
+    gap: 6px;
+    flex-direction: row;
+    align-items: center;
     flex-wrap: nowrap;
-    overflow: visible;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
   }
   .nem-link-row > * { flex: 0 0 auto; }
   .nem-link-row .nem-share-friends,
   .nem-link-row .nem-share-friends-row {
-    width: 100%;
-    flex-wrap: wrap;
+    width: auto;
+    flex-wrap: nowrap;
     gap: 6px;
   }
   .nem-link-chip-title,
@@ -1870,12 +1891,7 @@ html[data-theme="dark"] .nem-ai-menu-item:hover { background: rgba(255,255,255,0
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .nem-share-chip-name {
-    max-width: 120px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+  .nem-share-chip-name { display: none; }
 
   /* Sticky Bottom-Bar — feste Hoehe, klare Trennung */
   .nem-mobile-bar {
@@ -2075,6 +2091,30 @@ html[data-theme="dark"] .nem-ai-menu-item:hover { background: rgba(255,255,255,0
   .nem-mobile-importance-dot.is-low    { background: rgb(142,142,147); }
   .nem-mobile-importance-dot.is-medium { background: rgb(255,159,10); }
   .nem-mobile-importance-dot.is-high   { background: rgb(255,59,48); }
+}
+
+/* Tablet: mehr sichtbare Editorflaeche, ohne Fullscreen-Charakter zu verlieren. */
+@media (min-width: 721px) and (max-width: 1024px) {
+  .nem-overlay {
+    padding: 10px;
+  }
+  .nem-sheet {
+    width: min(920px, 100%);
+    max-height: calc(100dvh - 20px);
+  }
+  .nem-header {
+    padding: 10px 12px;
+  }
+  .nem-body {
+    padding: 8px 12px 12px;
+  }
+  .nem-editor {
+    min-height: calc(100dvh - 320px);
+  }
+  .nem-link-row {
+    padding: 6px 12px 8px;
+    gap: 6px;
+  }
 }
 
 @keyframes nemSheetFade {

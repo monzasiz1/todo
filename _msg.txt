@@ -1,1 +1,1 @@
-﻿feat(notes): Gruppenmitglieder duerfen Gruppen-Notes an Gruppen-Tasks bearbeiten
+﻿feat(note-editor): Mobile/Tablet UX mit mehr Editorflaeche und Avatar-Pins
