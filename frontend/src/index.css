@@ -5972,10 +5972,10 @@ body.cal-is-dragging * {
 }
 
 /* ============================================================
- * SMART INSIGHTS — Desktop Command Deck (>=1025px)
- * Komplettes Redesign: dunkles Aurora-Panel, segmentierte
- * Stat-Leiste, Fokus-Timer als prominenter Hero-Button mit
- * Pfeil-CTA, Insights als Glass-Tiles mit Neon-Bar.
+ * SMART INSIGHTS — Desktop v3 (>=1025px)
+ * Frischer Ansatz von Null: helles Glass-Panel, der Fokus-Timer
+ * ist ein grosser, runder, animierter Button (zentrales Element).
+ * Insights stehen als minimalistische Liste rechts daneben.
  * Mobile bleibt unveraendert.
  * ============================================================ */
 @media (min-width: 1025px) {
