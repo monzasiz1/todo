@@ -97,24 +97,22 @@ const DEFAULT_MEMBER_PERMS = {
   create_categories: false,   // Gruppen-Kategorien anlegen
   create_subgroups: false,    // Untergruppen anlegen
 };
-let memberPermsColumnEnsured = false;
-async function ensureMemberPermsColumn(pool) {
-  if (memberPermsColumnEnsured) return;
-  try {
-    await pool.query(`ALTER TABLE groups ADD COLUMN IF NOT EXISTS member_permissions JSONB DEFAULT '{}'::jsonb`);
-    memberPermsColumnEnsured = true;
-  } catch (err) {
-    console.error('ensureMemberPermsColumn failed:', err.message);
-  }
-}
+
+// Schema-Hinweis: Die Spalte `groups.member_permissions` (JSONB) wird per
+// Migration angelegt: backend/models/add_group_member_permissions.sql
+// In Supabase einmal im SQL-Editor ausfuehren.
 async function getGroupMemberPerms(pool, groupId) {
   try {
-    await ensureMemberPermsColumn(pool);
     const r = await pool.query('SELECT member_permissions FROM groups WHERE id = $1', [groupId]);
     let raw = r.rows[0]?.member_permissions;
     if (typeof raw === 'string') { try { raw = JSON.parse(raw); } catch { raw = {}; } }
     return { ...DEFAULT_MEMBER_PERMS, ...(raw || {}) };
-  } catch {
+  } catch (err) {
+    // Fallback wenn Spalte (noch) nicht existiert: Defaults zurueckgeben,
+    // damit die App nicht crasht. Migration sollte gelaufen sein.
+    if (err && err.code === '42703') {
+      console.warn('[groups] member_permissions column missing - run backend/models/add_group_member_permissions.sql');
+    }
     return { ...DEFAULT_MEMBER_PERMS };
   }
 }
@@ -695,7 +693,6 @@ module.exports = async function handler(req, res) {
       for (const key of Object.keys(DEFAULT_MEMBER_PERMS)) {
         if (typeof incoming[key] === 'boolean') sanitized[key] = incoming[key];
       }
-      await ensureMemberPermsColumn(pool);
       // Merge mit bestehenden Werten
       const current = await getGroupMemberPerms(pool, groupId);
       const merged = { ...current, ...sanitized };
@@ -1982,5 +1979,4 @@ module.exports = async function handler(req, res) {
 // wird. So koennen andere Module via require('./groups').getGroupMemberPerms
 // auf die Permission-Logik zugreifen.
 module.exports.getGroupMemberPerms = getGroupMemberPerms;
-module.exports.ensureMemberPermsColumn = ensureMemberPermsColumn;
 module.exports.DEFAULT_MEMBER_PERMS = DEFAULT_MEMBER_PERMS;

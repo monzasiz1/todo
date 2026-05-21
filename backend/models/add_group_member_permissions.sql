@@ -6,14 +6,14 @@
 -- Mitglieder (Rolle 'member') ausfuehren duerfen. Owner und Admins
 -- haben immer alle Rechte und ignorieren diese Flags.
 --
--- Ausfuehrung:
+-- Ausfuehrung (PFLICHT vor Deploy bzw. erstem Nutzen des Permission-Features):
 --   - In Supabase: SQL-Editor oeffnen und dieses Skript einmal ausfuehren.
 --   - Lokal (psql): \i backend/models/add_group_member_permissions.sql
 --
--- Hinweis: Die Server-API ruft beim ersten Zugriff zusaetzlich ein
--- `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` auf, sodass die Migration
--- auch ohne manuellen Lauf greift. Dieses Skript ist die explizite
--- Variante fuer Deploys / Datenbank-Tracking.
+-- Hinweis: Die App fuehrt KEIN Runtime-ALTER mehr aus. Wenn die Spalte
+-- fehlt, fallen die Permission-Checks auf die Server-Defaults zurueck
+-- (siehe unten) und es wird eine Warnung geloggt. UPDATE-Aufrufe auf die
+-- Permissions schlagen dann fehl, bis diese Migration ausgefuehrt wurde.
 -- ============================================================
 
 ALTER TABLE public.groups

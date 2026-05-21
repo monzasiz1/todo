@@ -1,5 +1,6 @@
-﻿Schema: Migration fuer groups.member_permissions (Supabase)
+﻿Groups: Runtime-ALTER TABLE entfernt, Schema nur noch via Migration
 
-- Neue Datei backend/models/add_group_member_permissions.sql
-- ALTER TABLE ... ADD COLUMN IF NOT EXISTS member_permissions JSONB
-- Optional in Supabase-SQL-Editor ausfuehren; App migriert sonst on-demand
+- ensureMemberPermsColumn und memberPermsColumnEnsured aus api/groups.js entfernt
+- getGroupMemberPerms faellt bei fehlender Spalte (42703) auf Defaults zurueck und loggt eine Warnung
+- backend/models/add_group_member_permissions.sql ist jetzt PFLICHT-Migration
+- Sicherer (kein ALTER-Recht im Production-User noetig) und schneller (kein Check pro Cold-Start)
