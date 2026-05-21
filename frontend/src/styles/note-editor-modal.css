@@ -2397,3 +2397,131 @@ html[data-theme="dark"] .nem-cm {
   border-color: rgba(255,255,255,0.09);
   background: rgba(255,255,255,0.03);
 }
+
+/* ============================================================
+   NEM LAYOUT POLISH: activity/comments + compact mobile link row
+   ============================================================ */
+
+/* Desktop/Tablet: Activity und Kommentare klarer als integrierte Cards */
+.nem-act,
+.nem-cm {
+  border-radius: 16px;
+  overflow: clip;
+}
+.nem-act-toggle,
+.nem-cm-toggle {
+  min-height: 44px;
+}
+.nem-act-panel,
+.nem-cm-panel {
+  border-top: 1px solid color-mix(in srgb, var(--border, rgba(0,0,0,0.08)) 76%, transparent);
+}
+
+@media (max-width: 720px) {
+  /* Kommentarbereich darf nicht vom Footer ueberdeckt werden */
+  .nem-footer {
+    position: relative;
+    bottom: auto;
+    box-shadow: none;
+  }
+
+  /* Mobile: kompaktere Link/Share-Zeile fuer bessere Nutzbarkeit */
+  .nem-link-row {
+    gap: 6px;
+    row-gap: 6px;
+    padding: 8px 10px;
+    align-items: flex-start;
+  }
+  .nem-link-row > .nem-link-chip,
+  .nem-link-row > .nem-visibility-toggle,
+  .nem-link-row > .nem-share-add,
+  .nem-link-row .nem-share-chip,
+  .nem-link-row .nem-link-add {
+    height: 28px;
+    min-height: 28px;
+    font-size: 11.5px;
+  }
+  .nem-link-chip-main {
+    gap: 5px;
+    padding: 0 8px 0 10px;
+  }
+  .nem-link-chip-title {
+    max-width: 132px;
+  }
+  .nem-link-chip-meta {
+    display: none;
+  }
+  .nem-link-chip-remove {
+    width: 24px;
+  }
+  .nem-visibility-toggle {
+    padding: 0 9px;
+    gap: 4px;
+  }
+  .nem-visibility-toggle > span {
+    max-width: 78px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .nem-link-row .nem-share-friends {
+    width: 100%;
+    flex: 1 1 100%;
+    order: 3;
+    margin-top: 2px;
+  }
+  .nem-link-row .nem-share-friends-row {
+    width: 100%;
+    gap: 6px;
+    row-gap: 6px;
+    justify-content: flex-start;
+  }
+  .nem-link-row .nem-share-chip {
+    padding: 0 1px;
+    min-width: 28px;
+  }
+  .nem-link-row .nem-share-chip-perm,
+  .nem-link-row .nem-share-chip-remove {
+    width: 18px;
+    height: 18px;
+  }
+  .nem-share-add,
+  .nem-link-add {
+    padding: 0 10px;
+  }
+
+  /* Mobile: Aktivitaet/Kommentare kompakter und besser eingebettet */
+  .nem-act,
+  .nem-cm {
+    margin: 8px 8px 0;
+    border-radius: 12px;
+  }
+  .nem-act-toggle,
+  .nem-cm-toggle {
+    min-height: 40px;
+    padding: 9px 12px;
+    font-size: 12px;
+  }
+  .nem-act-head,
+  .nem-cm-head {
+    padding: 7px 12px 3px;
+    font-size: 10px;
+  }
+  .nem-act-list,
+  .nem-cm-list {
+    padding: 4px 12px 10px;
+    max-height: 220px;
+  }
+  .nem-cm-compose {
+    padding: 8px 12px 10px;
+  }
+  .nem-cm-input {
+    min-height: 34px;
+    font-size: 12.5px;
+  }
+  .nem-cm-send {
+    width: 34px;
+    height: 34px;
+  }
+}
