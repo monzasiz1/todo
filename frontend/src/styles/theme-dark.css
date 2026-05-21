@@ -70,10 +70,13 @@ html[data-theme="dark"] body {
 }
 
 /* ── native UI / Form-Elemente ─────────────────────────────────────── */
+/* background-color absichtlich nicht gesetzt — wenn ein Container (Modal,
+   Sheet, Card) seinen eigenen Hintergrund braucht, soll die Form-Element
+   diesen erben, nicht mit einem global erzwungenen var(--surface) brechen.
+   Wer einen Form-Hintergrund will, setzt ihn lokal beim Komponenten-Style. */
 html[data-theme="dark"] input,
 html[data-theme="dark"] textarea,
 html[data-theme="dark"] select {
-  background-color: var(--surface);
   color: var(--text);
   border-color: var(--border);
   caret-color: var(--primary);

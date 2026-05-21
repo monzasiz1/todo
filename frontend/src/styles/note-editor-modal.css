@@ -1421,7 +1421,10 @@ html[data-theme="dark"] .nem-share-chip-remove {
 .nem-ver-overlay {
   position: absolute;
   inset: 0;
-  z-index: 25;
+  /* MUSS ueber der sticky Toolbar (z-index 30), dem Header (2), Footer (4)
+     und der mobilen Bottom-Bar (5) liegen, damit der Verlauf wirklich
+     "oben drauf" rendert und nicht hinter der Toolbar verschwindet. */
+  z-index: 50;
   background: rgba(15, 23, 42, 0.42);
   backdrop-filter: blur(10px) saturate(1.1);
   -webkit-backdrop-filter: blur(10px) saturate(1.1);
