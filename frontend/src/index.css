@@ -1163,40 +1163,34 @@ input, textarea, select {
   margin-top: 4px;
 }
 
-/* Dashboard top-panel collapse toggle â€” mobile + tablet */
+/* Dashboard top-panel collapse toggle â€” alle Viewports */
 .dash-top-toggle {
-  display: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: var(--glass);
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 6px;
+  transition: background 0.15s, color 0.15s;
 }
 
-@media (max-width: 1024px) {
-  .dash-top-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: 1.5px solid var(--border);
-    background: var(--glass);
-    color: var(--text-secondary);
-    cursor: pointer;
-    flex-shrink: 0;
-    margin-top: 6px;
-    transition: background 0.15s, color 0.15s;
-  }
+.dash-top-toggle:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
 
-  .dash-top-toggle:hover {
-    background: var(--surface-2);
-    color: var(--text);
-  }
+.dash-top-toggle-chevron {
+  transition: transform 0.22s ease;
+}
 
-  .dash-top-toggle-chevron {
-    transition: transform 0.22s ease;
-  }
-
-  .dash-top-toggle-chevron.rotated {
-    transform: rotate(-90deg);
-  }
+.dash-top-toggle-chevron.rotated {
+  transform: rotate(-90deg);
 }
 
 /* ========== AI INPUT ========== */
