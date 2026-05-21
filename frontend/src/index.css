@@ -6071,15 +6071,14 @@ body.cal-is-dragging * {
   }
 
   /* ============================================================
-   * FOKUS TIMER — Echter runder Druck-Button (CTA)
-   * Vivider Gradient + 3D-Tiefe + Hover-Lift + Press-Feedback
+   * FOKUS TIMER — Runder, animierter Hero-Button
    * ============================================================ */
   .dashboard-page .smart-insights > .focus-timer-card {
     grid-area: focus;
     position: relative;
     margin: 0;
-    width: 220px;
-    height: 220px;
+    width: 240px;
+    height: 240px;
     padding: 0;
     border-radius: 50%;
     border: none;
@@ -6089,137 +6088,96 @@ body.cal-is-dragging * {
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    gap: 6px;
+    gap: 0;
 
-    /* Vivide Sphäre */
     background:
-      radial-gradient(circle at 30% 22%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 38%),
-      linear-gradient(140deg, #818cf8 0%, #6366f1 38%, #7c3aed 68%, #22d3ee 100%);
-    color: #ffffff;
+      radial-gradient(circle at 30% 25%, #ffffff 0%, #f1f5f9 60%, #e2e8f0 100%);
+    box-shadow:
+      0 24px 48px rgba(99, 102, 241, 0.22),
+      0 6px 16px rgba(15, 23, 42, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 1),
+      inset 0 -2px 6px rgba(15, 23, 42, 0.06);
     cursor: pointer;
+    transition: transform 0.25s ease, box-shadow 0.3s ease;
     justify-self: center;
     align-self: start;
-    transition: transform 0.22s cubic-bezier(.2,.8,.2,1), box-shadow 0.28s ease;
-
-    /* 3D Lift + Innen-Highlight */
-    box-shadow:
-      0 22px 44px rgba(99, 102, 241, 0.42),
-      0 10px 22px rgba(124, 58, 237, 0.28),
-      inset 0 2px 0 rgba(255, 255, 255, 0.55),
-      inset 0 -8px 18px rgba(15, 23, 42, 0.28),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.18);
   }
 
-  /* Pulsierender Ring außen — signalisiert „klick mich" */
+  /* Rotierender Conic-Gradient als weicher Glow um den Button */
   .dashboard-page .smart-insights > .focus-timer-card::before {
     content: '';
     position: absolute;
-    inset: 0;
+    inset: -10px;
     border-radius: 50%;
-    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.55);
-    animation: si-cta-pulse 2.2s cubic-bezier(.2,.8,.2,1) infinite;
-    pointer-events: none;
+    background: conic-gradient(
+      from 0deg,
+      #6366f1,
+      #22d3ee,
+      #a855f7,
+      #ec4899,
+      #6366f1
+    );
+    filter: blur(14px);
+    opacity: 0.55;
     z-index: -1;
+    animation: si-spin 6s linear infinite;
+    transition: opacity 0.3s ease, inset 0.3s ease;
   }
 
-  /* Glossiges Top-Highlight wie bei einer echten Taste */
-  .dashboard-page .smart-insights > .focus-timer-card::after {
-    content: '';
-    position: absolute;
-    top: 8px;
-    left: 18%;
-    right: 18%;
-    height: 38%;
-    border-radius: 50%;
-    background: radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 70%);
-    filter: blur(2px);
-    pointer-events: none;
-    z-index: 1;
+  @keyframes si-spin {
+    to { transform: rotate(360deg); }
   }
 
-  @keyframes si-cta-pulse {
-    0%   { box-shadow: 0 0 0 0   rgba(99, 102, 241, 0.55); }
-    70%  { box-shadow: 0 0 0 22px rgba(99, 102, 241, 0); }
-    100% { box-shadow: 0 0 0 0   rgba(99, 102, 241, 0); }
+  /* Sanfter Atem-Puls im Idle-Zustand */
+  .dashboard-page .smart-insights > .focus-timer-card:not(.is-running):not(.is-paused):not(.is-finished) {
+    animation: si-breath 3.6s ease-in-out infinite;
   }
 
-  /* Im Idle pulsiert der Ring; bei aktivem Timer ruht er */
-  .dashboard-page .smart-insights > .focus-timer-card.is-running::before,
-  .dashboard-page .smart-insights > .focus-timer-card.is-paused::before,
-  .dashboard-page .smart-insights > .focus-timer-card.is-finished::before {
-    animation: none;
+  @keyframes si-breath {
+    0%, 100% {
+      box-shadow:
+        0 24px 48px rgba(99, 102, 241, 0.22),
+        0 6px 16px rgba(15, 23, 42, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 1),
+        inset 0 -2px 6px rgba(15, 23, 42, 0.06);
+    }
+    50% {
+      box-shadow:
+        0 30px 60px rgba(99, 102, 241, 0.34),
+        0 10px 24px rgba(34, 211, 238, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 1),
+        inset 0 -2px 6px rgba(15, 23, 42, 0.06);
+    }
   }
 
   .dashboard-page .smart-insights > .focus-timer-card:hover {
-    transform: translateY(-4px) scale(1.04);
+    transform: scale(1.035);
     box-shadow:
-      0 32px 60px rgba(99, 102, 241, 0.52),
-      0 14px 30px rgba(124, 58, 237, 0.36),
-      inset 0 2px 0 rgba(255, 255, 255, 0.6),
-      inset 0 -8px 18px rgba(15, 23, 42, 0.30),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+      0 32px 60px rgba(99, 102, 241, 0.32),
+      0 12px 28px rgba(34, 211, 238, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 1);
+  }
+
+  .dashboard-page .smart-insights > .focus-timer-card:hover::before {
+    opacity: 0.85;
+    inset: -14px;
   }
 
   .dashboard-page .smart-insights > .focus-timer-card:active {
-    transform: translateY(2px) scale(0.97);
-    box-shadow:
-      0 10px 18px rgba(99, 102, 241, 0.34),
-      0 4px 8px rgba(124, 58, 237, 0.22),
-      inset 0 2px 0 rgba(255, 255, 255, 0.45),
-      inset 0 -4px 12px rgba(15, 23, 42, 0.35),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+    transform: scale(0.985);
   }
 
-  .dashboard-page .smart-insights > .focus-timer-card:focus-visible {
-    outline: none;
-    box-shadow:
-      0 0 0 4px rgba(255, 255, 255, 0.85),
-      0 0 0 8px rgba(99, 102, 241, 0.65),
-      0 22px 44px rgba(99, 102, 241, 0.42),
-      inset 0 2px 0 rgba(255, 255, 255, 0.55),
-      inset 0 -8px 18px rgba(15, 23, 42, 0.28);
-  }
-
-  /* Ring-Wrap (SVG-Progress) — im Idle versteckt, im Running klein zentriert */
+  /* Ring (Canvas) in der Mitte */
   .dashboard-page .smart-insights > .focus-timer-card .focus-timer-ring-wrap {
     position: relative;
     z-index: 2;
-    width: 130px;
-    height: 130px;
+    width: 150px;
+    height: 150px;
     flex-basis: auto;
-    margin: 0 0 4px;
+    margin: 0 0 10px;
   }
 
-  .dashboard-page .smart-insights > .focus-timer-card:not(.is-running):not(.is-paused):not(.is-finished) .focus-timer-ring-wrap svg {
-    display: none;
-  }
-
-  /* Großes Play-Icon (Timer-Icon) im Idle */
-  .dashboard-page .smart-insights > .focus-timer-card .focus-timer-ring-label {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #ffffff;
-    filter: drop-shadow(0 4px 8px rgba(15, 23, 42, 0.32));
-  }
-
-  .dashboard-page .smart-insights > .focus-timer-card:not(.is-running):not(.is-paused):not(.is-finished) .focus-timer-ring-label svg {
-    width: 56px !important;
-    height: 56px !important;
-    stroke-width: 2.2 !important;
-  }
-
-  .dashboard-page .smart-insights > .focus-timer-card .focus-timer-time {
-    font-size: 30px !important;
-    font-weight: 800 !important;
-    letter-spacing: -0.02em;
-    color: #ffffff !important;
-    text-shadow: 0 2px 6px rgba(15, 23, 42, 0.35);
-  }
-
-  /* Body-Text unter dem Icon */
+  /* Body-Text unter dem Ring */
   .dashboard-page .smart-insights > .focus-timer-card .focus-timer-body {
     position: relative;
     z-index: 2;
@@ -6227,49 +6185,49 @@ body.cal-is-dragging * {
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 2px;
+    gap: 4px;
     padding: 0 18px;
   }
 
   .dashboard-page .smart-insights > .focus-timer-card .focus-timer-body strong {
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1.1;
-    letter-spacing: 0.16em;
-    color: #ffffff;
+    letter-spacing: -0.015em;
+    color: #0f172a;
     font-weight: 800;
-    text-transform: uppercase;
-    text-shadow: 0 1px 2px rgba(15, 23, 42, 0.35);
   }
 
   .dashboard-page .smart-insights > .focus-timer-card .focus-timer-body span {
     display: none;
   }
 
-  /* Idle: strong durch klaren CTA-Text ersetzen */
+  /* Idle: anstelle des strong-Texts eine "FOKUS STARTEN" Pille */
   .dashboard-page .smart-insights > .focus-timer-card:not(.is-running):not(.is-paused):not(.is-finished) .focus-timer-body strong {
     font-size: 0;
     line-height: 0;
     color: transparent;
-    text-shadow: none;
   }
 
   .dashboard-page .smart-insights > .focus-timer-card:not(.is-running):not(.is-paused):not(.is-finished) .focus-timer-body strong::after {
-    content: 'START';
+    content: 'FOKUS STARTEN';
     display: inline-block;
-    font-size: 18px;
-    font-weight: 900;
-    letter-spacing: 0.32em;
-    color: #ffffff;
+    font-size: 11.5px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    color: #4338ca;
+    padding: 7px 14px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(34, 211, 238, 0.14));
+    border: 1px solid rgba(99, 102, 241, 0.28);
     line-height: 1;
-    text-shadow: 0 2px 6px rgba(15, 23, 42, 0.45);
   }
 
-  /* Actions: schwebende weiße Pille unter dem Button */
+  /* Actions: kompakte Pille direkt unter dem Hero-Button */
   .dashboard-page .smart-insights > .focus-timer-card .focus-timer-actions {
     position: absolute;
     z-index: 3;
     left: 50%;
-    bottom: -20px;
+    bottom: -22px;
     transform: translateX(-50%);
     display: inline-flex;
     gap: 6px;
@@ -6297,11 +6255,9 @@ body.cal-is-dragging * {
     color: #4338ca;
   }
 
-  /* Eigene Glow-/Shimmer-Elemente vom FocusTimer ausblenden */
+  /* Eigene Glow-/Shimmer-Elemente von FocusTimer ausblenden — der neue Look hat eigenen Glow */
   .dashboard-page .smart-insights > .focus-timer-card .focus-timer-card-glow,
-  .dashboard-page .smart-insights > .focus-timer-card .focus-timer-card-shimmer,
-  .dashboard-page .smart-insights > .focus-timer-card .focus-timer-halo,
-  .dashboard-page .smart-insights > .focus-timer-card .focus-timer-shockwave {
+  .dashboard-page .smart-insights > .focus-timer-card .focus-timer-card-shimmer {
     display: none !important;
   }
 
