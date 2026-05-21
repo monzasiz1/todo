@@ -1683,9 +1683,16 @@ html[data-theme="dark"] .nem-importance-btn.is-active {
     width: min(920px, 100%);
     max-height: calc(100dvh - 32px);
     border-radius: 22px;
+    /* Tablet: solider Hintergrund ohne Radial-Tint. Der dezente
+       Primary-Glow vom Desktop wirkte auf Tablet wie ein durchscheinendes
+       Glasfenster und ließ das Modal "transparent" wirken. */
+    background: var(--nem-surface);
+  }
+  html[data-theme="dark"] .nem-sheet {
+    background: #1c1c1e;
   }
   .nem-header  { padding: 12px 16px; }
-  .nem-body    { padding: 14px 18px 22px; }
+  .nem-body    { padding: 14px 18px 22px; background: var(--nem-surface); }
   .nem-toolbar { margin: -14px -18px 14px; top: -14px; padding: 9px 12px; }
   .nem-editor  { min-height: calc(100dvh - 360px); padding: 16px 16px 80px; }
   .nem-link-row { padding: 10px 16px; }
@@ -2160,6 +2167,58 @@ html[data-theme="dark"] .nem-importance-btn.is-active {
   .nem-mobile-pill--expand.is-open svg {
     transform: rotate(180deg);
   }
+
+  /* Action-Sheet (Farbe/Wichtigkeit/Mehr) MUSS auch auf Tablet sichtbar
+     sein — sonst wirkt nur "Fertig", weil alle anderen Pills das Sheet
+     statt direkter Aktionen brauchen. */
+  .nem-mobile-sheet-backdrop {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    align-items: flex-end;
+    justify-content: center;
+    animation: nemSheetFade 200ms ease-out;
+  }
+  .nem-mobile-sheet {
+    width: 100%;
+    background: var(--nem-surface);
+    color: var(--nem-text);
+    border-top-left-radius: 22px;
+    border-top-right-radius: 22px;
+    padding: 8px 14px max(14px, env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.22);
+    animation: nemSheetSlideUp 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
+    max-height: 80dvh;
+    overflow-y: auto;
+    transition: transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
+    overscroll-behavior: contain;
+    will-change: transform;
+  }
+  html[data-theme="dark"] .nem-mobile-sheet {
+    background: #232428;
+    box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.6);
+  }
+}
+
+/* Tablet only: zentriertes Sheet (nicht edge-to-edge wie auf Mobile) */
+@media (min-width: 721px) and (max-width: 1024px) {
+  .nem-mobile-sheet-backdrop {
+    align-items: center;
+    padding: 24px;
+  }
+  .nem-mobile-sheet {
+    max-width: 520px;
+    width: 100%;
+    border-radius: 22px;
+    box-shadow: 0 28px 60px rgba(15, 23, 42, 0.32);
+  }
+  html[data-theme="dark"] .nem-mobile-sheet {
+    box-shadow: 0 28px 60px rgba(0, 0, 0, 0.6);
+  }
 }
 
 /* Tablet-spezifisch: Bottom-Bar genauso stylen wie auf Mobile */
@@ -2310,7 +2369,7 @@ html[data-theme="dark"] .nem-importance-btn.is-active {
 
 
 /* Subtiler Signing-Chip im Header: zeigt den letzten externen Bearbeiter
-   (nicht der aktuelle Nutzer). Bewusst dezent � kleine Schrift, geringe
+   (nicht der aktuelle Nutzer). Bewusst dezent � kleine Schrift, geringe
    Praesenz, keine Hintergrundfarbe. Sitzt direkt unter der Titelzeile. */
 .nem-signing {
   display: flex;
