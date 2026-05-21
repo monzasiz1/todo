@@ -9,7 +9,7 @@ import {
   List, ListOrdered, CheckSquare, Quote, Table, History, Sparkles, Loader2,
   Download, MoreHorizontal, Palette, Flag, ChevronDown,
 } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, formatDistanceToNow } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { useTaskStore } from '../store/taskStore';
 import { useAuthStore } from '../store/authStore';
@@ -20,6 +20,7 @@ import { api } from '../utils/api';
 import NoteActivityPanel from './NoteActivityPanel';
 import NoteCommentsPanel from './NoteCommentsPanel';
 import NoteVersionsPanel from './NoteVersionsPanel';
+import AvatarBadge from './AvatarBadge';
 import '../styles/note-editor-modal.css';
 
 const NOTE_EDITOR_SIZE_KEY = 'note_editor_modal_size_v1';
@@ -299,6 +300,10 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   // Unterer Bereich (Link-/Insights-Row + Footer-Sekundaeraktionen) ist auf
   // Handy/Tablet standardmaessig eingeklappt, damit der Editor max. Platz hat.
   const [bottomOpen, setBottomOpen] = useState(false);
+  // Subtiler "Signing"-Hinweis: letzter Bearbeiter aus dem Versionsverlauf,
+  // sofern es NICHT der aktuelle Nutzer war. Bewusst leichtgewichtig — nur
+  // Metadaten (Name, Avatar, Zeitpunkt), kein Diff.
+  const [lastEditor, setLastEditor] = useState(null);
   const closeMobileSheet = useCallback(() => { setMobileSheet(null); setSheetDragY(0); }, []);
 
   // Swipe-to-dismiss fuer das Mobile-Action-Sheet (siehe NotesPage).
@@ -622,6 +627,37 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
     el.innerHTML = html;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [note?.id]);
+
+  // "Signing"-Info: letzten externen Bearbeiter aus dem Versionsverlauf
+  // laden. Bewusst dezent — nur wenn ein ANDERER User zuletzt editiert
+  // hat, erscheint ein kleiner Chip im Header. Failures schlucken wir
+  // still, da das Feature rein informativ ist.
+  useEffect(() => {
+    let cancelled = false;
+    if (!note?.id) { setLastEditor(null); return undefined; }
+    (async () => {
+      try {
+        const data = await api.listNoteVersions(note.id);
+        if (cancelled) return;
+        const versions = Array.isArray(data?.versions) ? data.versions : [];
+        const ext = versions.find((v) => {
+          if (!v?.created_by) return false;
+          return String(v.created_by) !== currentUserId;
+        });
+        if (!ext) { setLastEditor(null); return; }
+        setLastEditor({
+          id: String(ext.created_by),
+          name: ext.author_name || 'Jemand',
+          avatarUrl: ext.author_avatar_url || null,
+          avatarColor: ext.author_avatar_color || null,
+          at: ext.created_at || null,
+        });
+      } catch {
+        if (!cancelled) setLastEditor(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [note?.id, currentUserId, versionsBust]);
 
   // Live-Sync: wenn die Notiz fremd aktualisiert wird (z.B. der Eigentuemer
   // editiert eine geteilte Notiz und das Polling zieht neue Daten), den
@@ -1142,6 +1178,39 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
               </button>
             </div>
           </div>
+
+          {lastEditor && (
+            <div className="nem-signing" role="note" aria-label="Letzte Bearbeitung">
+              <AvatarBadge
+                name={lastEditor.name}
+                color={lastEditor.avatarColor || '#007AFF'}
+                avatarUrl={lastEditor.avatarUrl}
+                size={18}
+                className="nem-signing__avatar"
+              />
+              <span className="nem-signing__text">
+                Zuletzt bearbeitet von <strong>{lastEditor.name}</strong>
+                {lastEditor.at && (
+                  <>
+                    {' '}·{' '}
+                    <time
+                      dateTime={lastEditor.at}
+                      title={(() => {
+                        try { return format(parseISO(lastEditor.at), "dd.MM.yyyy, HH:mm 'Uhr'", { locale: de }); }
+                        catch { return ''; }
+                      })()}
+                    >
+                      {(() => {
+                        try {
+                          return formatDistanceToNow(parseISO(lastEditor.at), { addSuffix: true, locale: de });
+                        } catch { return ''; }
+                      })()}
+                    </time>
+                  </>
+                )}
+              </span>
+            </div>
+          )}
 
           <div className="nem-body">
             {!readOnly && (
