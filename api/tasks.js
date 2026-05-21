@@ -2254,6 +2254,13 @@ module.exports = async function handler(req, res) {
               WHERE gm3.user_id = $1 LIMIT 1) as my_group_role,
              gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url,
              gc.id as group_category_id, gc.name as group_category_name, gc.color as group_category_color,
+             gt.subgroup_id, gs.name as subgroup_name, gs.color as subgroup_color,
+             COALESCE((
+               SELECT json_agg(json_build_object('user_id', u2.id, 'name', u2.name, 'avatar_color', u2.avatar_color, 'avatar_url', u2.avatar_url))
+               FROM group_subgroup_members gsm_x
+               JOIN users u2 ON u2.id = gsm_x.user_id
+               WHERE gsm_x.subgroup_id = gt.subgroup_id
+             ), '[]'::json) as subgroup_members,
              gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color, gtc.avatar_url as group_task_creator_avatar_url,
              CASE
                WHEN t.visibility = 'selected_users' THEN (t.user_id = $1 OR COALESCE(tp.can_view, false))
@@ -2278,6 +2285,7 @@ module.exports = async function handler(req, res) {
            LEFT JOIN group_tasks gt ON gt.task_id = t.id
            LEFT JOIN groups grp ON grp.id = gt.group_id
            LEFT JOIN group_categories gc ON gc.id = gt.group_category_id
+           LEFT JOIN group_subgroups gs ON gs.id = gt.subgroup_id
            LEFT JOIN users gtc ON gtc.id = gt.created_by
            WHERE (t.user_id = $1
              OR (t.visibility = 'shared' AND EXISTS (
@@ -2303,6 +2311,13 @@ module.exports = async function handler(req, res) {
           `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
              gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url,
              gc.id as group_category_id, gc.name as group_category_name, gc.color as group_category_color,
+             gt.subgroup_id, gs.name as subgroup_name, gs.color as subgroup_color,
+             COALESCE((
+               SELECT json_agg(json_build_object('user_id', u2.id, 'name', u2.name, 'avatar_color', u2.avatar_color, 'avatar_url', u2.avatar_url))
+               FROM group_subgroup_members gsm_x
+               JOIN users u2 ON u2.id = gsm_x.user_id
+               WHERE gsm_x.subgroup_id = gt.subgroup_id
+             ), '[]'::json) as subgroup_members,
              gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color, gtc.avatar_url as group_task_creator_avatar_url,
              true as can_see_private_share_info,
              EXISTS (
@@ -2321,6 +2336,7 @@ module.exports = async function handler(req, res) {
            LEFT JOIN group_tasks gt ON gt.task_id = t.id
            LEFT JOIN groups grp ON grp.id = gt.group_id
            LEFT JOIN group_categories gc ON gc.id = gt.group_category_id
+           LEFT JOIN group_subgroups gs ON gs.id = gt.subgroup_id
            LEFT JOIN users gtc ON gtc.id = gt.created_by
            WHERE (t.user_id = $1
              OR EXISTS (

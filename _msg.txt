@@ -1,10 +1,12 @@
-﻿feat(groups): Standard- und Custom-Rollen in einem Panel vereinen
+﻿fix(tasks): Untergruppen-Badge auf Dashboard/Home anzeigen
 
-- GroupPermissionsPanel render entfernt; Standard-Berechtigungen
-  erscheinen jetzt als nicht loeschbare "Standard"-Rolle oben in
-  "Rollen & Berechtigungen".
-- CustomRoleRow akzeptiert isDefault: ohne Namens-/Farb-Editor und
-  ohne Loeschen-Button, mit Standard-Badge und Hinweistext.
-- onUpdate-Callback fuer Standard-Rolle persistiert via
-  updateGroupPermissions; Verhalten am Server unveraendert.
-- Panel-Subtitle zeigt "1 Standard - N eigene Rollen".
+Die volle GET /api/tasks Query (Dashboard/Calendar Quelle) hat
+nur group_id/name/color geladen, aber subgroup_id/name/color/members
+weggelassen. Dadurch hat TaskCard das "Untergruppe Marketing"-Badge
+nur in der Gruppen-Ansicht (lite/dashboard endpoint) angezeigt, nicht
+im Home-Dashboard.
+
+- collab- und non-collab-Branch um subgroup_id, subgroup_name,
+  subgroup_color und subgroup_members (json_agg) erweitert.
+- LEFT JOIN group_subgroups gs ON gs.id = gt.subgroup_id ergaenzt.
+- Cache-Layer und normalizeTaskRow waren bereits vorbereitet.
