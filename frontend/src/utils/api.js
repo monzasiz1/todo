@@ -571,6 +571,12 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  updateGroupSubgroup: (groupId, subgroupId, data) =>
+    request(`/groups/${groupId}/subgroups/${subgroupId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
   deleteGroupSubgroup: (groupId, subgroupId) =>
     request(`/groups/${groupId}/subgroups/${subgroupId}`, { method: 'DELETE' }),
 

@@ -2068,9 +2068,19 @@ function SubgroupManager({ groupId, members, subgroups, onRefresh }) {
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editColor, setEditColor] = useState('#007AFF');
+  const [editMembers, setEditMembers] = useState([]);
+  const [editSaving, setEditSaving] = useState(false);
 
   const toggleMember = (userId) => {
     setSelectedMembers((prev) =>
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+    );
+  };
+  const toggleEditMember = (userId) => {
+    setEditMembers((prev) =>
       prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
     );
   };
@@ -2093,6 +2103,38 @@ function SubgroupManager({ groupId, members, subgroups, onRefresh }) {
     }
   };
 
+  const startEdit = (sg) => {
+    setEditingId(sg.id);
+    setEditName(sg.name || '');
+    setEditColor(sg.color || '#007AFF');
+    setEditMembers((Array.isArray(sg.members) ? sg.members : []).map((m) => m.user_id));
+    setShowForm(false);
+  };
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditName('');
+    setEditColor('#007AFF');
+    setEditMembers([]);
+  };
+  const handleSaveEdit = async () => {
+    const trimmed = String(editName || '').trim();
+    if (!trimmed || editSaving || !editingId) return;
+    setEditSaving(true);
+    try {
+      await api.updateGroupSubgroup(groupId, editingId, {
+        name: trimmed,
+        color: editColor,
+        member_ids: editMembers,
+      });
+      cancelEdit();
+      onRefresh();
+    } catch {
+      /* ignore */
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
   const handleDelete = async (subgroupId) => {
     setDeletingId(subgroupId);
     try {
@@ -2107,91 +2149,302 @@ function SubgroupManager({ groupId, members, subgroups, onRefresh }) {
 
   const groupMembers = Array.isArray(members) ? members : [];
 
+  const renderMemberPicker = (selected, onToggle) => (
+    <div
+      className="group-subgroup-member-picker"
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+        gap: 6,
+        maxHeight: 220,
+        overflowY: 'auto',
+        padding: 4,
+      }}
+    >
+      {groupMembers.map((m) => {
+        const isSel = selected.includes(m.user_id);
+        return (
+          <label
+            key={m.user_id}
+            className={`group-subgroup-member-row ${isSel ? 'selected' : ''}`}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '6px 10px', borderRadius: 10,
+              border: isSel ? '1px solid var(--accent, #007AFF)' : '1px solid var(--border, rgba(120,120,128,0.25))',
+              background: isSel ? 'rgba(0,122,255,0.12)' : 'transparent',
+              cursor: 'pointer', transition: 'all 120ms ease',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={isSel}
+              onChange={() => onToggle(m.user_id)}
+              style={{ display: 'none' }}
+            />
+            <AvatarBadge name={m.name} color={m.avatar_color || '#007AFF'} avatarUrl={m.avatar_url} size={26} />
+            <span className="group-subgroup-member-name" style={{ flex: 1, fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
+            <span
+              className={`group-subgroup-check ${isSel ? 'on' : ''}`}
+              style={{
+                width: 18, height: 18, borderRadius: '50%',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                border: isSel ? 'none' : '1px solid var(--border, rgba(120,120,128,0.35))',
+                background: isSel ? 'var(--accent, #007AFF)' : 'transparent',
+                color: '#fff', flexShrink: 0,
+              }}
+            >
+              {isSel ? <Check size={12} /> : null}
+            </span>
+          </label>
+        );
+      })}
+    </div>
+  );
+
+  const renderColorPresets = (value, onPick) => (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+      {ROLE_COLOR_PRESETS.map((c) => (
+        <button
+          key={c}
+          type="button"
+          onClick={() => onPick(c)}
+          title={c}
+          style={{
+            width: 22, height: 22, borderRadius: '50%',
+            background: c, cursor: 'pointer',
+            border: value?.toLowerCase() === c.toLowerCase() ? '2px solid var(--text-primary, #fff)' : '2px solid transparent',
+            boxShadow: '0 0 0 1px rgba(0,0,0,0.2)',
+            padding: 0,
+          }}
+        />
+      ))}
+      <input
+        type="color"
+        value={value}
+        onChange={(e) => onPick(e.target.value)}
+        style={{ width: 30, height: 22, border: 'none', borderRadius: 6, cursor: 'pointer', padding: 0, background: 'transparent' }}
+        title="Eigene Farbe"
+      />
+    </div>
+  );
+
   return (
     <div className="group-cat-manager">
       <div className="group-cat-manager-header">
         <h4>Untergruppen</h4>
-        <button className="group-cat-add-btn" onClick={() => setShowForm((v) => !v)}>
-          <Plus size={14} /> Neue Untergruppe
+        <button
+          className="group-cat-add-btn"
+          onClick={() => { setShowForm((v) => !v); if (editingId) cancelEdit(); }}
+        >
+          {showForm ? <X size={14} /> : <Plus size={14} />} {showForm ? 'Abbrechen' : 'Neue Untergruppe'}
         </button>
       </div>
 
       {showForm && (
-        <div className="group-subgroup-form">
-          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+        <div
+          className="group-subgroup-form"
+          style={{
+            padding: 12, borderRadius: 12, marginBottom: 12,
+            background: 'var(--bg-secondary, rgba(255,255,255,0.03))',
+            border: '1px solid var(--border, rgba(120,120,128,0.2))',
+          }}
+        >
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <span
+              style={{
+                width: 14, height: 14, borderRadius: '50%',
+                background: color, flexShrink: 0,
+                boxShadow: '0 0 0 1px rgba(0,0,0,0.25)',
+              }}
+            />
             <input
               className="group-cat-input"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Name der Untergruppe"
               style={{ flex: 1 }}
+              autoFocus
             />
-            <input type="color" value={color} onChange={(e) => setColor(e.target.value)} style={{ width: 38, height: 38, border: 'none', borderRadius: 8, cursor: 'pointer', padding: 2 }} />
           </div>
-          <div className="group-subgroup-member-picker">
-            <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>Mitglieder auswählen:</p>
-            {groupMembers.map((m) => (
-              <label key={m.user_id} className={`group-subgroup-member-row ${selectedMembers.includes(m.user_id) ? 'selected' : ''}`}>
-                <input
-                  type="checkbox"
-                  checked={selectedMembers.includes(m.user_id)}
-                  onChange={() => toggleMember(m.user_id)}
-                  style={{ display: 'none' }}
-                />
-                <AvatarBadge name={m.name} color={m.avatar_color || '#007AFF'} avatarUrl={m.avatar_url} size={28} />
-                <span className="group-subgroup-member-name">{m.name}</span>
-                <span className={`group-subgroup-check ${selectedMembers.includes(m.user_id) ? 'on' : ''}`}>
-                  {selectedMembers.includes(m.user_id) ? <Check size={12} /> : null}
-                </span>
-              </label>
-            ))}
+          {renderColorPresets(color, setColor)}
+          <div style={{ marginTop: 12 }}>
+            <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
+              Mitglieder ({selectedMembers.length} ausgewaehlt)
+            </p>
+            {renderMemberPicker(selectedMembers, toggleMember)}
           </div>
-          <button
-            className="group-cat-save-btn"
-            onClick={handleCreate}
-            disabled={!name.trim() || saving}
-          >
-            {saving ? 'Erstellen...' : 'Untergruppe erstellen'}
-          </button>
+          <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              onClick={() => { setShowForm(false); setName(''); setSelectedMembers([]); }}
+              style={{
+                padding: '8px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                background: 'transparent', color: 'var(--text-secondary)',
+                border: '1px solid var(--border, rgba(120,120,128,0.25))', cursor: 'pointer',
+              }}
+            >
+              Abbrechen
+            </button>
+            <button
+              className="group-cat-save-btn"
+              onClick={handleCreate}
+              disabled={!name.trim() || saving}
+            >
+              {saving ? 'Erstellen...' : 'Untergruppe erstellen'}
+            </button>
+          </div>
         </div>
       )}
 
       {subgroups.length === 0 && !showForm && (
-        <p className="group-cat-empty">Noch keine Untergruppen. Erstelle eine, um Sichtbarkeit einzuschränken.</p>
+        <p className="group-cat-empty">Noch keine Untergruppen. Erstelle eine, um Sichtbarkeit einzuschraenken.</p>
       )}
 
-      {subgroups.map((sg) => {
-        const sgMembers = Array.isArray(sg.members) ? sg.members : [];
-        return (
-          <div key={sg.id} className="group-cat-item" style={{ alignItems: 'center' }}>
-            <span className="group-cat-dot" style={{ background: sg.color || '#007AFF', width: 12, height: 12, marginTop: 0, flexShrink: 0 }} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <span className="group-cat-name">{sg.name}</span>
-              <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                {sgMembers.map((m) => (
-                  <AvatarBadge key={m.user_id} name={m.name} color={m.avatar_color || '#007AFF'} avatarUrl={m.avatar_url} size={26} title={m.name} />
-                ))}
-                {sgMembers.length === 0 && (
-                  <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Alle Mitglieder</span>
-                )}
-                {sgMembers.length > 0 && (
-                  <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 4 }}>
-                    {sgMembers.length} {sgMembers.length === 1 ? 'Person' : 'Personen'}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {subgroups.map((sg) => {
+          const sgMembers = Array.isArray(sg.members) ? sg.members : [];
+          const isEditing = editingId === sg.id;
+          if (isEditing) {
+            return (
+              <div
+                key={sg.id}
+                style={{
+                  padding: 12, borderRadius: 12,
+                  background: 'var(--bg-secondary, rgba(255,255,255,0.03))',
+                  border: '1px solid var(--accent, #007AFF)',
+                }}
+              >
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span
+                    style={{
+                      width: 14, height: 14, borderRadius: '50%',
+                      background: editColor, flexShrink: 0,
+                      boxShadow: '0 0 0 1px rgba(0,0,0,0.25)',
+                    }}
+                  />
+                  <input
+                    className="group-cat-input"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    placeholder="Name der Untergruppe"
+                    style={{ flex: 1 }}
+                    autoFocus
+                  />
+                </div>
+                {renderColorPresets(editColor, setEditColor)}
+                <div style={{ marginTop: 12 }}>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
+                    Mitglieder ({editMembers.length} ausgewaehlt)
+                  </p>
+                  {renderMemberPicker(editMembers, toggleEditMember)}
+                </div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    onClick={cancelEdit}
+                    style={{
+                      padding: '8px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                      background: 'transparent', color: 'var(--text-secondary)',
+                      border: '1px solid var(--border, rgba(120,120,128,0.25))', cursor: 'pointer',
+                    }}
+                  >
+                    Abbrechen
+                  </button>
+                  <button
+                    className="group-cat-save-btn"
+                    onClick={handleSaveEdit}
+                    disabled={!editName.trim() || editSaving}
+                  >
+                    {editSaving ? 'Speichern...' : 'Speichern'}
+                  </button>
+                </div>
+              </div>
+            );
+          }
+          return (
+            <div
+              key={sg.id}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '10px 12px', borderRadius: 12,
+                background: 'var(--bg-secondary, rgba(255,255,255,0.03))',
+                border: '1px solid var(--border, rgba(120,120,128,0.18))',
+                transition: 'border-color 120ms ease',
+              }}
+            >
+              <span
+                style={{
+                  width: 12, height: 12, borderRadius: '50%',
+                  background: sg.color || '#007AFF', flexShrink: 0,
+                  boxShadow: '0 0 0 1px rgba(0,0,0,0.25)',
+                }}
+              />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <span className="group-cat-name" style={{ fontWeight: 600 }}>{sg.name}</span>
+                  <span
+                    style={{
+                      fontSize: 11, color: 'var(--text-tertiary)',
+                      padding: '2px 8px', borderRadius: 999,
+                      background: 'var(--bg-tertiary, rgba(120,120,128,0.15))',
+                    }}
+                  >
+                    {sgMembers.length === 0 ? 'Alle Mitglieder' : `${sgMembers.length} ${sgMembers.length === 1 ? 'Person' : 'Personen'}`}
                   </span>
+                </div>
+                {sgMembers.length > 0 && (
+                  <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                    {sgMembers.slice(0, 8).map((m) => (
+                      <AvatarBadge key={m.user_id} name={m.name} color={m.avatar_color || '#007AFF'} avatarUrl={m.avatar_url} size={24} title={m.name} />
+                    ))}
+                    {sgMembers.length > 8 && (
+                      <span
+                        style={{
+                          width: 24, height: 24, borderRadius: '50%',
+                          background: 'var(--bg-tertiary, rgba(120,120,128,0.2))',
+                          color: 'var(--text-secondary)',
+                          fontSize: 11, fontWeight: 600,
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        }}
+                      >
+                        +{sgMembers.length - 8}
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
+              <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                <button
+                  onClick={() => startEdit(sg)}
+                  title="Untergruppe bearbeiten"
+                  style={{
+                    width: 32, height: 32, borderRadius: 8,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'transparent',
+                    border: '1px solid var(--border, rgba(120,120,128,0.2))',
+                    color: 'var(--text-secondary)', cursor: 'pointer',
+                    transition: 'all 120ms ease',
+                  }}
+                >
+                  <Pencil size={14} />
+                </button>
+                <button
+                  className="group-cat-delete-btn"
+                  onClick={() => handleDelete(sg.id)}
+                  disabled={deletingId === sg.id}
+                  title="Untergruppe loeschen"
+                  style={{
+                    width: 32, height: 32, borderRadius: 8,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
             </div>
-            <button
-              className="group-cat-delete-btn"
-              onClick={() => handleDelete(sg.id)}
-              disabled={deletingId === sg.id}
-              title="Untergruppe löschen"
-            >
-              <Trash2 size={14} />
-            </button>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

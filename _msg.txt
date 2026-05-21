@@ -1,15 +1,16 @@
-﻿Groups Phase 5: production polish
+﻿Subgroups: edit + UI polish
 
-- Frontend GroupsPage: myPerms + can() helper berechnet die effektiven
-  Berechtigungen des aktuellen Users (Owner/Admin = alle, sonst Custom-Rolle
-  oder member_permissions, Fallback Defaults) - genau wie der Server.
-- Eintrag-hinzufuegen Button respektiert create_tasks: disabled + Shield-Icon
-  + Tooltip 'Fuer deine Rolle gesperrt', Toast wenn ohne Recht geklickt.
-- Invite-Panel jetzt fuer Member mit invite-Recht sichtbar (vorher isAdmin only),
-  Backend assertMemberCan('invite') war bereits aktiv.
-- api/groups.js: invalidateGroupMembersCache() invalidiert nach
-  PUT /permissions, POST/PUT/DELETE /roles fuer alle Mitglieder ueber
-  invalidateCacheOnEvent(userId, 'group_change'). PATCH custom-role
-  invalidiert nur den betroffenen User.
-- Custom-Rollen Validierung: Rollennamen case-insensitive eindeutig pro
-  Gruppe (POST + PUT), 400 bei Duplikat.
+- api/groups.js: neuer PUT /api/groups/:id/subgroups/:subgroupId Endpoint.
+  Erlaubt Admin/Owner, name + color + member_ids einer Untergruppe zu
+  aktualisieren. Member-Liste wird komplett ersetzt wenn member_ids
+  uebergeben ist; Member werden gegen group_members validiert.
+- frontend/src/utils/api.js: updateGroupSubgroup(groupId, subgroupId, data).
+- SubgroupManager (GroupsPage.jsx): kompletter Redesign.
+  * Karten-Layout mit farbigem Dot, Name, Member-Pill (Anzahl oder
+    'Alle Mitglieder'), Avatar-Stack max 8 + Overflow-Counter.
+  * Bearbeiten-Button (Pencil) pro Untergruppe oeffnet Inline-Editor
+    mit Name, Farbpresets + Color-Picker, Mitglieder-Picker
+    (Grid, ausgewaehlt = blauer Rahmen).
+  * Anlegen-Form ebenfalls aufgehuebscht: Farbpresets, Live-Dot,
+    Abbrechen-Button, Mitglieder-Counter.
+- Build geprueft, push.

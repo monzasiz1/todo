@@ -1206,6 +1206,71 @@ module.exports = async function handler(req, res) {
   }
 
   // ============================================
+  // PUT /api/groups/:id/subgroups/:subgroupId — Update subgroup (admin/owner)
+  // Body: { name?, color?, member_ids? }
+  // ============================================
+  if (segments.length === 3 && segments[1] === 'subgroups' && req.method === 'PUT') {
+    try {
+      const groupId = segments[0];
+      const subgroupId = segments[2];
+      const membership = await getMembership(groupId);
+      if (!membership || membership.role === 'member') return res.status(403).json({ error: 'Kein Zugriff' });
+
+      // Subgruppe gehoert zur Gruppe?
+      const exists = await pool.query(
+        `SELECT id FROM group_subgroups WHERE id = $1 AND group_id = $2`,
+        [subgroupId, groupId]
+      );
+      if (exists.rows.length === 0) return res.status(404).json({ error: 'Untergruppe nicht gefunden' });
+
+      const { name, color, member_ids } = req.body || {};
+      const sets = [];
+      const vals = [];
+      if (typeof name === 'string' && name.trim()) {
+        vals.push(name.trim());
+        sets.push(`name = $${vals.length}`);
+      }
+      if (typeof color === 'string' && /^#?[0-9A-Fa-f]{3,8}$/.test(color)) {
+        vals.push(color.startsWith('#') ? color : `#${color}`);
+        sets.push(`color = $${vals.length}`);
+      }
+      if (sets.length > 0) {
+        vals.push(subgroupId);
+        await pool.query(`UPDATE group_subgroups SET ${sets.join(', ')} WHERE id = $${vals.length}`, vals);
+      }
+
+      // Member-Liste komplett ersetzen, wenn uebergeben
+      if (Array.isArray(member_ids)) {
+        await pool.query(`DELETE FROM group_subgroup_members WHERE subgroup_id = $1`, [subgroupId]);
+        if (member_ids.length > 0) {
+          const validMembers = await pool.query(
+            `SELECT user_id FROM group_members WHERE group_id = $1 AND user_id = ANY($2::int[])`,
+            [groupId, member_ids]
+          );
+          for (const row of validMembers.rows) {
+            await pool.query(
+              `INSERT INTO group_subgroup_members (subgroup_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+              [subgroupId, row.user_id]
+            );
+          }
+        }
+      }
+
+      const updated = await pool.query(`SELECT * FROM group_subgroups WHERE id = $1`, [subgroupId]);
+      const membersResult = await pool.query(
+        `SELECT json_agg(json_build_object('user_id', u.id, 'name', u.name, 'avatar_color', u.avatar_color, 'avatar_url', u.avatar_url)) as members
+         FROM group_subgroup_members gsm JOIN users u ON u.id = gsm.user_id
+         WHERE gsm.subgroup_id = $1`,
+        [subgroupId]
+      );
+      return res.json({ subgroup: { ...updated.rows[0], members: membersResult.rows[0]?.members || [] } });
+    } catch (err) {
+      console.error('Update subgroup error:', err);
+      return res.status(500).json({ error: 'Fehler beim Aktualisieren der Untergruppe' });
+    }
+  }
+
+  // ============================================
   // DELETE /api/groups/:id/subgroups/:subgroupId — Delete subgroup (admin/owner)
   // ============================================
   if (segments.length === 3 && segments[1] === 'subgroups' && req.method === 'DELETE') {
