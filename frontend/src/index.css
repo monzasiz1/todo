@@ -7936,27 +7936,33 @@ body.cal-is-dragging * {
   border-radius: var(--radius-xl);
   width: 100%;
   max-width: 480px;
-  /* Hoehe so begrenzen, dass das Modal NIE ueber den Viewport hinausgeht.
-     Auf kleinen Desktops (MacBook 13", 1280x800) wurde mit 85vh + 40px
-     Overlay-Padding der Inhalt unten abgeschnitten. Das Overlay-Padding
-     verkleinert sich oben bei max-height:900px/760px → hier nutzen wir
-     calc(100dvh - 2 * Padding), sodass das Modal immer den maximal
-     verfuegbaren Platz bekommt. Der innere Scroll-Container (.task-detail-
-     main / .task-detail-aside) uebernimmt das Scrollen. */
-  max-height: calc(100dvh - 32px);
+  /* Hoehe immer = verfuegbarer Viewport abzgl. Overlay-Padding (2x40px).
+     Wird ueber Media-Queries unten passend zu kleineren Overlay-Paddings
+     reduziert, damit das Modal nie ueber das Overlay hinausragt und der
+     innere Scroll-Container nur scrollt, wenn der Inhalt tatsaechlich
+     ueberlaeuft. */
+  max-height: calc(100dvh - 80px);
   overflow-y: auto;
   box-shadow: var(--shadow-xl);
   position: relative;
+}
+
+/* Modal-Hoehe folgt dem Overlay-Padding (siehe .modal-overlay Media-Queries) */
+@media (min-width: 1025px) and (max-height: 900px) {
+  .task-detail-modal {
+    max-height: calc(100dvh - 48px); /* overlay padding 24px * 2 */
+  }
+}
+@media (min-width: 1025px) and (max-height: 760px) {
+  .task-detail-modal {
+    max-height: calc(100dvh - 32px); /* overlay padding 16px * 2 */
+  }
 }
 
 /* Desktop: Zwei-Spalten-Layout */
 @media (min-width: 900px) {
   .task-detail-modal {
     max-width: 880px;
-    /* Nutzt fast den vollen Viewport, abzgl. minimalem Overlay-Padding.
-       Bei MacBook 13" (800px hoch, padding=24px) = 752px, statt vorher
-       656px (82vh) -> deutlich mehr Platz fuer den Inhalt. */
-    max-height: calc(100dvh - 32px);
     display: grid;
     grid-template-columns: 1fr 340px;
     overflow: hidden;
