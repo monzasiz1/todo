@@ -1,12 +1,13 @@
-﻿fix(tasks): Untergruppen-Badge auf Dashboard/Home anzeigen
+﻿fix(votes): Abstimmung nur fuer Untergruppen-Mitglieder zaehlen
 
-Die volle GET /api/tasks Query (Dashboard/Calendar Quelle) hat
-nur group_id/name/color geladen, aber subgroup_id/name/color/members
-weggelassen. Dadurch hat TaskCard das "Untergruppe Marketing"-Badge
-nur in der Gruppen-Ansicht (lite/dashboard endpoint) angezeigt, nicht
-im Home-Dashboard.
+Wenn ein Group-Task einer Untergruppe zugeordnet ist und Group-RSVP
+aktiviert ist, wurden bisher alle Mitglieder der gesamten Gruppe als
+'unbeanswered' aufgelistet bzw. mitgezaehlt - obwohl der Task nur
+fuer die Untergruppe gilt.
 
-- collab- und non-collab-Branch um subgroup_id, subgroup_name,
-  subgroup_color und subgroup_members (json_agg) erweitert.
-- LEFT JOIN group_subgroups gs ON gs.id = gt.subgroup_id ergaenzt.
-- Cache-Layer und normalizeTaskRow waren bereits vorbereitet.
+- api/task-votes.js: memberResult und unansweredResult joinen nun
+  group_subgroup_members und beschraenken auf Subgruppen-Mitglieder,
+  sobald gt.subgroup_id gesetzt ist.
+- api/tasks.js enrichTaskVoteStats: memberCountsRes ebenso geaendert,
+  damit vote_member_count und vote_unanswered_count korrekt sind.
+- Fuer Tasks ohne subgroup_id bleibt das Verhalten identisch.

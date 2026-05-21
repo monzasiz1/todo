@@ -107,11 +107,18 @@ async function loadVotes(pool, voteTaskId, occurrenceDate, userId) {
     if (Number(row.user_id) === Number(userId)) myVote = row.status;
   }
 
+  // Wenn der Group-Task einer Untergruppe zugeordnet ist, zaehlen nur
+  // Mitglieder dieser Untergruppe als stimmberechtigt (Owner/Admin sind
+  // dann nicht automatisch Voter, da der Task nicht fuer sie ist).
   const memberResult = await pool.query(
     `SELECT COUNT(DISTINCT gm.user_id) AS member_count
        FROM group_tasks gt
        JOIN group_members gm ON gm.group_id = gt.group_id
-      WHERE gt.task_id = $1`,
+       LEFT JOIN group_subgroup_members gsm
+         ON gsm.subgroup_id = gt.subgroup_id
+        AND gsm.user_id = gm.user_id
+      WHERE gt.task_id = $1
+        AND (gt.subgroup_id IS NULL OR gsm.user_id IS NOT NULL)`,
     [voteTaskId]
   );
 
@@ -120,12 +127,16 @@ async function loadVotes(pool, voteTaskId, occurrenceDate, userId) {
        FROM group_tasks gt
        JOIN group_members gm ON gm.group_id = gt.group_id
        JOIN users u ON u.id = gm.user_id
+       LEFT JOIN group_subgroup_members gsm
+         ON gsm.subgroup_id = gt.subgroup_id
+        AND gsm.user_id = gm.user_id
        LEFT JOIN task_votes v
          ON v.task_id = gt.task_id
         AND v.user_id = gm.user_id
         AND (($2::date IS NULL AND v.occurrence_date IS NULL) OR v.occurrence_date = $2::date)
       WHERE gt.task_id = $1
         AND v.id IS NULL
+        AND (gt.subgroup_id IS NULL OR gsm.user_id IS NOT NULL)
       ORDER BY LOWER(COALESCE(u.name, '')) ASC, u.id ASC`,
     [voteTaskId, occurrenceDate]
   );

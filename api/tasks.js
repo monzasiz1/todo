@@ -601,11 +601,18 @@ async function enrichTaskVoteStats(pool, tasks) {
   const baseTaskIds = Array.from(baseTaskIdsSet);
   if (baseTaskIds.length === 0) return tasks;
 
+  // Bei Untergruppen-Tasks zaehlen nur Mitglieder der Untergruppe als
+  // stimmberechtigt - sonst wuerden alle Gruppen-Member als "unbeantwortet"
+  // angezeigt, obwohl der Task nur fuer die Untergruppe ist.
   const memberCountsRes = await pool.query(
     `SELECT gt.task_id, COUNT(DISTINCT gm.user_id)::int AS member_count
      FROM group_tasks gt
      JOIN group_members gm ON gm.group_id = gt.group_id
+     LEFT JOIN group_subgroup_members gsm
+       ON gsm.subgroup_id = gt.subgroup_id
+      AND gsm.user_id = gm.user_id
      WHERE gt.task_id = ANY($1::int[])
+       AND (gt.subgroup_id IS NULL OR gsm.user_id IS NOT NULL)
      GROUP BY gt.task_id`,
     [baseTaskIds]
   );
