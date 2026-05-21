@@ -24,8 +24,12 @@ import '../styles/note-editor-modal.css';
 
 const NOTE_EDITOR_SIZE_KEY = 'note_editor_modal_size_v1';
 
+// Bordertöne sind absichtlich weniger gesättigt als zuvor — der Border
+// wird als --nem-accent in die Color-Bar gemappt; zu satte Töne (das alte
+// "Gold" #E6D35C der Gelb-Notiz) erzeugten einen UI-Look, der mit der
+// blauen App-Palette gebrochen hat. Jetzt: pastellige Akzentstreifen.
 const NOTE_COLORS = [
-  { name: 'Gelb', bg: '#FFFE94', border: '#E6D35C' },
+  { name: 'Gelb', bg: '#FFFE94', border: '#F3C969' },
   { name: 'Blau', bg: '#B3D9F7', border: '#5DADE2' },
   { name: 'Grün', bg: '#A9F5A9', border: '#58D68D' },
   { name: 'Rosa', bg: '#FFB3BA', border: '#F1948A' },
