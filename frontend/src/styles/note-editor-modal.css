@@ -1953,175 +1953,200 @@ html[data-theme="dark"] .nem-importance-btn.is-active {
     background: var(--nem-primary);
   }
 
-  /* ──────────────────────────────────────────────────────────
-     Mobile action sheet (swipe-to-close)
-     ────────────────────────────────────────────────────────── */
-  .nem-mobile-sheet-backdrop {
-    display: flex;
-    position: fixed;
-    inset: 0;
-    z-index: 60;
-    background: rgba(15, 23, 42, 0.45);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    align-items: flex-end;
-    justify-content: center;
-    animation: nemSheetFade 200ms ease-out;
-  }
-  .nem-mobile-sheet {
-    width: 100%;
-    background: var(--nem-surface);
-    color: var(--nem-text);
-    border-top-left-radius: 22px;
-    border-top-right-radius: 22px;
-    padding: 8px 14px max(14px, env(safe-area-inset-bottom, 0px));
-    box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.22);
-    animation: nemSheetSlideUp 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
-    max-height: 80dvh;
-    overflow-y: auto;
-    transition: transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
-    overscroll-behavior: contain;
-    will-change: transform;
-  }
-  html[data-theme="dark"] .nem-mobile-sheet {
-    background: #232428;
-    box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.6);
-  }
-  .nem-mobile-sheet-drag {
-    touch-action: none;
-    cursor: grab;
-    user-select: none;
-    -webkit-user-select: none;
-    padding-top: 4px;
-  }
-  .nem-mobile-sheet-grip {
-    width: 40px;
-    height: 5px;
-    border-radius: 999px;
-    background: rgba(120, 120, 128, 0.5);
-    margin: 6px auto 8px;
-  }
-  .nem-mobile-sheet-title {
-    text-align: center;
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--nem-text-soft);
-    margin-bottom: 10px;
-    letter-spacing: 0.01em;
-  }
-
-  .nem-mobile-sheet-list {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-  }
-  .nem-mobile-sheet-item {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    width: 100%;
-    padding: 14px 16px;
-    background: var(--nem-pill-fill);
-    border: 0;
-    border-radius: 14px;
-    text-align: left;
-    color: var(--nem-text);
-    cursor: pointer;
-    min-height: 58px;
-    font-family: inherit;
-    transition: background 0.14s ease, transform 0.08s ease;
-  }
-  .nem-mobile-sheet-item:active {
-    background: color-mix(in srgb, var(--nem-primary) 14%, transparent);
-    transform: scale(0.99);
-  }
-  .nem-mobile-sheet-item.is-danger {
-    color: var(--nem-danger);
-  }
-  .nem-mobile-sheet-item.is-active {
-    background: var(--nem-primary-soft);
-    color: var(--nem-primary);
-  }
-  .nem-mobile-sheet-item-text {
-    display: flex;
-    flex-direction: column;
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-  .nem-mobile-sheet-item-label { font-size: 15px; font-weight: 650; letter-spacing: -0.005em; }
-  .nem-mobile-sheet-item-hint {
-    font-size: 12.5px;
-    opacity: 0.7;
-    margin-top: 2px;
-  }
-
-  .nem-mobile-sheet-cancel {
-    margin-top: 12px;
-    width: 100%;
-    padding: 15px;
-    background: var(--nem-surface);
-    border: 1px solid var(--nem-border);
-    border-radius: 14px;
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
-    color: var(--nem-text);
-    font-family: inherit;
-    transition: background 0.14s ease;
-  }
-  .nem-mobile-sheet-cancel:active { background: var(--nem-pill-fill); }
-
-  /* Color grid in sheet */
-  .nem-mobile-color-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    padding: 4px 0;
-  }
-  .nem-mobile-color-swatch {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 72px;
-    border-radius: 16px;
-    border: 2px solid transparent;
-    cursor: pointer;
-    font-size: 12.5px;
-    font-weight: 650;
-    color: rgba(0, 0, 0, 0.72);
-    font-family: inherit;
-    transition: transform 0.12s ease, box-shadow 0.14s ease;
-    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.55);
-  }
-  .nem-mobile-color-swatch:active { transform: scale(0.97); }
-  .nem-mobile-color-swatch.is-active {
-    box-shadow:
-      0 0 0 3px var(--nem-primary),
-      0 0 0 5px var(--nem-surface),
-      0 2px 8px rgba(15, 23, 42, 0.08);
-  }
-  .nem-mobile-color-name { pointer-events: none; }
-
-  /* Importance list */
-  .nem-mobile-importance-list {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-  }
-  .nem-mobile-importance-dot {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    flex: 0 0 auto;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.18);
-  }
-  .nem-mobile-importance-dot.is-low    { background: rgb(142, 142, 147); }
-  .nem-mobile-importance-dot.is-medium { background: rgb(255, 159, 10); }
-  .nem-mobile-importance-dot.is-high   { background: rgb(255, 59, 48); }
-
   /* Readonly variant of mobile bar */
   .nem-mobile-bar--readonly { justify-content: center; }
 }
+
+/* ════════════════════════════════════════════════════════════
+   MOBILE ACTION SHEET — global rules (swipe-to-close)
+   Not wrapped in @media: the elements only render when the user
+   opens the sheet (mobileSheet state truthy), so the rules are
+   harmless when no sheet is open and they apply at every viewport
+   (phone, tablet, even a desktop that triggered the bar). Tablet-
+   specific tweaks sit in the (721–1024) block further below.
+   ════════════════════════════════════════════════════════════ */
+.nem-mobile-sheet-backdrop {
+  display: flex;
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  align-items: flex-end;
+  justify-content: center;
+  animation: nemSheetFade 200ms ease-out;
+}
+.nem-mobile-sheet {
+  width: 100%;
+  background: var(--nem-surface);
+  color: var(--nem-text);
+  border-top-left-radius: 22px;
+  border-top-right-radius: 22px;
+  padding: 8px 14px max(14px, env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.22);
+  animation: nemSheetSlideUp 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  max-height: 80dvh;
+  overflow-y: auto;
+  transition: transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  overscroll-behavior: contain;
+  will-change: transform;
+}
+html[data-theme="dark"] .nem-mobile-sheet {
+  background: #232428;
+  box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.6);
+}
+
+.nem-mobile-sheet-drag {
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  padding-top: 4px;
+}
+.nem-mobile-sheet-grip {
+  width: 40px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(120, 120, 128, 0.5);
+  margin: 6px auto 8px;
+}
+.nem-mobile-sheet-title {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--nem-text);
+  margin-bottom: 12px;
+  letter-spacing: -0.005em;
+}
+
+.nem-mobile-sheet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 2px 0 6px;
+}
+.nem-mobile-sheet-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--nem-pill-fill);
+  border: 0;
+  border-radius: 14px;
+  text-align: left;
+  color: var(--nem-text);
+  cursor: pointer;
+  min-height: 56px;
+  font-family: inherit;
+  transition: background 0.14s ease, transform 0.08s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.nem-mobile-sheet-item:hover {
+  background: color-mix(in srgb, var(--nem-primary) 10%, transparent);
+}
+.nem-mobile-sheet-item:active {
+  background: color-mix(in srgb, var(--nem-primary) 18%, transparent);
+  transform: scale(0.99);
+}
+.nem-mobile-sheet-item.is-danger {
+  color: var(--nem-danger);
+}
+.nem-mobile-sheet-item.is-danger:hover {
+  background: color-mix(in srgb, var(--nem-danger) 12%, transparent);
+}
+.nem-mobile-sheet-item.is-active {
+  background: var(--nem-primary-soft);
+  color: var(--nem-primary);
+}
+.nem-mobile-sheet-item-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.nem-mobile-sheet-item-label {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.005em;
+}
+.nem-mobile-sheet-item-hint {
+  font-size: 12.5px;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
+.nem-mobile-sheet-cancel {
+  margin-top: 12px;
+  width: 100%;
+  padding: 14px;
+  background: var(--nem-surface);
+  border: 1px solid var(--nem-border);
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--nem-text);
+  font-family: inherit;
+  transition: background 0.14s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.nem-mobile-sheet-cancel:hover { background: var(--nem-pill-fill); }
+.nem-mobile-sheet-cancel:active { background: var(--nem-pill-fill); }
+
+/* Color grid in sheet */
+.nem-mobile-color-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 6px 0 4px;
+}
+.nem-mobile-color-swatch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 78px;
+  border-radius: 16px;
+  border: 2px solid rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.72);
+  font-family: inherit;
+  transition: transform 0.12s ease, box-shadow 0.14s ease, border-color 0.14s ease;
+  box-shadow:
+    0 4px 12px rgba(15, 23, 42, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  -webkit-tap-highlight-color: transparent;
+}
+.nem-mobile-color-swatch:hover { transform: translateY(-1px); }
+.nem-mobile-color-swatch:active { transform: scale(0.97); }
+.nem-mobile-color-swatch.is-active {
+  box-shadow:
+    0 0 0 3px var(--nem-primary),
+    0 0 0 5px var(--nem-surface),
+    0 4px 12px rgba(15, 23, 42, 0.12);
+}
+.nem-mobile-color-name { pointer-events: none; }
+
+/* Importance list */
+.nem-mobile-importance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 2px 0 6px;
+}
+.nem-mobile-importance-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.18);
+}
+.nem-mobile-importance-dot.is-low    { background: rgb(142, 142, 147); }
+.nem-mobile-importance-dot.is-medium { background: rgb(255, 159, 10); }
+.nem-mobile-importance-dot.is-high   { background: rgb(255, 59, 48); }
 
 /* Very small screens (iPhone SE) */
 @media (max-width: 380px) {
@@ -2168,40 +2193,9 @@ html[data-theme="dark"] .nem-importance-btn.is-active {
     transform: rotate(180deg);
   }
 
-  /* Action-Sheet (Farbe/Wichtigkeit/Mehr) MUSS auch auf Tablet sichtbar
-     sein — sonst wirkt nur "Fertig", weil alle anderen Pills das Sheet
-     statt direkter Aktionen brauchen. */
-  .nem-mobile-sheet-backdrop {
-    display: flex;
-    position: fixed;
-    inset: 0;
-    z-index: 60;
-    background: rgba(15, 23, 42, 0.45);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    align-items: flex-end;
-    justify-content: center;
-    animation: nemSheetFade 200ms ease-out;
-  }
-  .nem-mobile-sheet {
-    width: 100%;
-    background: var(--nem-surface);
-    color: var(--nem-text);
-    border-top-left-radius: 22px;
-    border-top-right-radius: 22px;
-    padding: 8px 14px max(14px, env(safe-area-inset-bottom, 0px));
-    box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.22);
-    animation: nemSheetSlideUp 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
-    max-height: 80dvh;
-    overflow-y: auto;
-    transition: transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
-    overscroll-behavior: contain;
-    will-change: transform;
-  }
-  html[data-theme="dark"] .nem-mobile-sheet {
-    background: #232428;
-    box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.6);
-  }
+  /* Action-Sheet-Regeln sind jetzt global (außerhalb jedes @media),
+     damit sie auch auf Tablet greifen. Hier nur noch ggf. spezifische
+     Overrides für <=1024px. */
 }
 
 /* Tablet only: zentriertes Sheet (nicht edge-to-edge wie auf Mobile) */
