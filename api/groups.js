@@ -607,10 +607,12 @@ module.exports = async function handler(req, res) {
   if (segments[0] === 'my-requests' && segments.length === 1 && req.method === 'GET') {
     try {
       const result = await pool.query(
-        `SELECT gjr.id, gjr.group_id, gjr.status, gjr.created_at,
-                g.name as group_name, g.color as group_color, g.image_url as group_image_url
+        `SELECT gjr.id, gjr.group_id, gjr.status, gjr.created_at, gjr.invited_by,
+                g.name as group_name, g.color as group_color, g.image_url as group_image_url,
+                iu.name as invited_by_name
          FROM group_join_requests gjr
          JOIN groups g ON g.id = gjr.group_id
+         LEFT JOIN users iu ON iu.id = gjr.invited_by
          WHERE gjr.user_id = $1
          ORDER BY gjr.created_at DESC`,
         [user.id]
@@ -2140,7 +2142,7 @@ module.exports = async function handler(req, res) {
   }
 
   // ============================================
-  // POST /api/groups/:id/invite-user — Admin: directly add user to group
+  // POST /api/groups/:id/invite-user — Admin: invite user (pending acceptance)
   // ============================================
   if (segments.length === 2 && segments[1] === 'invite-user' && req.method === 'POST') {
     try {
@@ -2149,34 +2151,97 @@ module.exports = async function handler(req, res) {
       if (!membership) return;
       const { user_id: targetUserId } = req.body;
       if (!targetUserId) return res.status(400).json({ error: 'user_id erforderlich' });
+      if (String(targetUserId) === String(user.id)) {
+        return res.status(400).json({ error: 'Du kannst dich nicht selbst einladen' });
+      }
 
       const userCheck = await pool.query('SELECT id, name FROM users WHERE id = $1', [targetUserId]);
       if (!userCheck.rows[0]) return res.status(404).json({ error: 'Nutzer nicht gefunden' });
 
-      await pool.query(
-        `INSERT INTO group_members (group_id, user_id, role) VALUES ($1, $2, 'member')
-         ON CONFLICT (group_id, user_id) DO NOTHING`,
+      // Bereits Mitglied? -> Idempotent OK
+      const alreadyMember = await pool.query(
+        'SELECT 1 FROM group_members WHERE group_id = $1 AND user_id = $2',
         [groupId, targetUserId]
       );
-      // Clean up any pending join request
+      if (alreadyMember.rows[0]) {
+        return res.json({ success: true, status: 'already_member' });
+      }
+
+      // Einladung als pending Request mit status='invited' anlegen.
+      // Bei vorhandenem rejected/accepted Eintrag wird wieder auf invited gesetzt.
       await pool.query(
-        `UPDATE group_join_requests SET status = 'accepted', updated_at = NOW()
-         WHERE group_id = $1 AND user_id = $2 AND status = 'pending'`,
-        [groupId, targetUserId]
+        `INSERT INTO group_join_requests (group_id, user_id, status, invited_by, message)
+         VALUES ($1, $2, 'invited', $3, '')
+         ON CONFLICT (group_id, user_id)
+         DO UPDATE SET status = 'invited', invited_by = EXCLUDED.invited_by, updated_at = NOW()`,
+        [groupId, targetUserId, user.id]
       );
 
       const grpInfo = await pool.query('SELECT name FROM groups WHERE id = $1', [groupId]);
       await sendPushToUser(targetUserId, {
-        title: 'Zur Gruppe hinzugefügt',
-        body: `Du wurdest zur Gruppe "${grpInfo.rows[0]?.name || ''}" hinzugefügt.`,
+        title: 'Gruppen-Einladung',
+        body: `Du wurdest zur Gruppe "${grpInfo.rows[0]?.name || ''}" eingeladen.`,
         tag: `group-invite-${groupId}`,
-        url: `/groups?group=${groupId}`,
+        url: `/groups`,
       }, 'group_invite', null, groupId).catch(() => null);
 
-      return res.json({ success: true });
+      return res.json({ success: true, status: 'invited' });
     } catch (err) {
       console.error('Invite user error:', err);
       return res.status(500).json({ error: 'Fehler beim Einladen' });
+    }
+  }
+
+  // ============================================
+  // POST /api/groups/:id/invitations/accept — invitee accepts
+  // POST /api/groups/:id/invitations/reject — invitee rejects
+  // ============================================
+  if (
+    segments.length === 3 &&
+    segments[1] === 'invitations' &&
+    (segments[2] === 'accept' || segments[2] === 'reject') &&
+    req.method === 'POST'
+  ) {
+    try {
+      const groupId = segments[0];
+      const action = segments[2];
+
+      const invRes = await pool.query(
+        `SELECT id FROM group_join_requests
+          WHERE group_id = $1 AND user_id = $2 AND status = 'invited'`,
+        [groupId, user.id]
+      );
+      if (!invRes.rows[0]) {
+        return res.status(404).json({ error: 'Keine offene Einladung gefunden' });
+      }
+
+      if (action === 'accept') {
+        await pool.query(
+          `UPDATE group_join_requests
+             SET status = 'accepted', updated_at = NOW()
+           WHERE id = $1`,
+          [invRes.rows[0].id]
+        );
+        await pool.query(
+          `INSERT INTO group_members (group_id, user_id, role)
+           VALUES ($1, $2, 'member')
+           ON CONFLICT (group_id, user_id) DO NOTHING`,
+          [groupId, user.id]
+        );
+        return res.json({ success: true, status: 'accepted' });
+      }
+
+      // reject
+      await pool.query(
+        `UPDATE group_join_requests
+           SET status = 'rejected', updated_at = NOW()
+         WHERE id = $1`,
+        [invRes.rows[0].id]
+      );
+      return res.json({ success: true, status: 'rejected' });
+    } catch (err) {
+      console.error('Invitation action error:', err);
+      return res.status(500).json({ error: 'Fehler beim Bearbeiten der Einladung' });
     }
   }
 

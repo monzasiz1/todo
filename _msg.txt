@@ -1,16 +1,29 @@
-﻿feat(tasks): Persoenliche Kategorien bei Gruppen-Tasks ausblenden
+﻿feat(groups): Einladungen statt direktem Beitritt
 
-Wenn ein Task einer Gruppe zugeordnet wird, sollen nur noch
-Gruppen-Kategorien sichtbar sein - persoenliche Kategorien sind
-zwar user-scoped, das Server-Payload liefert aber category_name
-und category_color an alle Viewer aus und wuerde damit private
-Labels (z.B. Studium, Privat) an andere Gruppenmitglieder leaken.
+Wenn ein Admin/Owner einen Nutzer einlaedt, wird dieser nicht
+mehr sofort Mitglied. Stattdessen erhaelt der Eingeladene eine
+Einladung, die er in der App annehmen oder ablehnen kann.
 
-Aenderungen:
-- ManualTaskForm: Persoenlicher Kategorie-Picker wird per
-  display:none ausgeblendet sobald groupId gesetzt ist; useEffect
-  setzt eine bereits gewaehlte categoryId automatisch zurueck;
-  submit-payload sendet category_id=null bei Gruppen-Tasks.
-- TaskEditModal: useEffect auf taskGroupId clearen jetzt auch
-  categoryId; Picker wird nur ohne Gruppe gerendert; submit-
-  payload sendet category_id=null bei Gruppen-Tasks.
+Datenmodell:
+- group_join_requests bekommt invited_by-Spalte und neuen
+  status='invited' (Migration: backend/models/add_group_invitations.sql,
+  PFLICHT vor Deploy in Supabase ausfuehren).
+
+Backend (api/groups.js):
+- invite-user: legt Eintrag mit status='invited' und invited_by an,
+  fuegt NICHT direkt in group_members ein. Idempotent fuer bereits
+  bestehende Mitglieder.
+- POST /:id/invitations/accept: setzt invited->accepted und
+  fuegt Mitglied hinzu.
+- POST /:id/invitations/reject: setzt invited->rejected.
+- my-requests: liefert zusaetzlich invited_by und invited_by_name.
+
+Frontend:
+- api: acceptGroupInvitation, rejectGroupInvitation
+- GroupsPage: Banner mit offenen Einladungen (Annehmen / Ablehnen)
+  oberhalb der Gruppen-Liste; ruft nach Annahme fetchGroups().
+- Toast beim Einladen: "Einladung gesendet" statt "hinzugefuegt".
+
+Hinweis fuer User:
+- SQL-Migration backend/models/add_group_invitations.sql muss im
+  Supabase SQL-Editor ausgefuehrt werden.

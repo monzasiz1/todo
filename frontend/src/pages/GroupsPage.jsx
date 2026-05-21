@@ -331,6 +331,44 @@ function GroupDetailLoadingSkeleton({ onBack }) {
 function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick, onSearchGroupsClick }) {
   const [query, setQuery] = useState('');
   const tasks = useTaskStore((s) => s.tasks);
+  const { fetchGroups } = useGroupStore();
+  const [invitations, setInvitations] = useState([]);
+  const [invBusy, setInvBusy] = useState({});
+
+  const loadInvitations = () => {
+    api.getMyGroupRequests()
+      .then((data) => {
+        const all = Array.isArray(data?.requests) ? data.requests : [];
+        setInvitations(all.filter((r) => r.status === 'invited'));
+      })
+      .catch(() => setInvitations([]));
+  };
+
+  useEffect(() => {
+    loadInvitations();
+  }, []);
+
+  const handleInvitation = async (groupId, action) => {
+    if (invBusy[groupId]) return;
+    setInvBusy((s) => ({ ...s, [groupId]: true }));
+    try {
+      if (action === 'accept') {
+        await api.acceptGroupInvitation(groupId);
+        await fetchGroups();
+      } else {
+        await api.rejectGroupInvitation(groupId);
+      }
+      setInvitations((list) => list.filter((i) => String(i.group_id) !== String(groupId)));
+    } catch (err) {
+      console.error('Invitation action failed', err);
+    } finally {
+      setInvBusy((s) => {
+        const copy = { ...s };
+        delete copy[groupId];
+        return copy;
+      });
+    }
+  };
 
   const normalizedGroups = useMemo(() => {
     return (groups || []).map((g) => ({
@@ -381,6 +419,57 @@ function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick, o
       </div>
 
       <section className="bq-groups">
+        {invitations.length > 0 && (
+          <div className="group-invitations-panel" role="region" aria-label="Offene Einladungen">
+            <div className="group-invitations-header">
+              <Bell size={14} />
+              <span>Offene Einladungen</span>
+              <span className="group-invitations-badge">{invitations.length}</span>
+            </div>
+            <ul className="group-invitations-list">
+              {invitations.map((inv) => {
+                const busy = !!invBusy[inv.group_id];
+                return (
+                  <li key={inv.id} className="group-invitation-row">
+                    <AvatarBadge
+                      name={inv.group_name}
+                      color={inv.group_color || '#007AFF'}
+                      avatarUrl={inv.group_image_url}
+                      size={36}
+                    />
+                    <div className="group-invitation-info">
+                      <strong>{inv.group_name}</strong>
+                      <small>
+                        {inv.invited_by_name
+                          ? `${inv.invited_by_name} hat dich eingeladen`
+                          : 'Du wurdest eingeladen'}
+                      </small>
+                    </div>
+                    <div className="group-invitation-actions">
+                      <button
+                        type="button"
+                        className="group-invitation-btn is-accept"
+                        disabled={busy}
+                        onClick={() => handleInvitation(inv.group_id, 'accept')}
+                      >
+                        <Check size={14} /> Annehmen
+                      </button>
+                      <button
+                        type="button"
+                        className="group-invitation-btn is-reject"
+                        disabled={busy}
+                        onClick={() => handleInvitation(inv.group_id, 'reject')}
+                      >
+                        <X size={14} /> Ablehnen
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
         {/* Bento Quickview */}
         <div className="bq-groups-bento" aria-label="Team-Überblick">
           <article className="bq-groups-bento-card is-primary">
@@ -1070,7 +1159,7 @@ function GroupDetail({ groupId, onBack }) {
     setInviteSending((prev) => ({ ...prev, [userId]: true }));
     try {
       await api.inviteGroupUser(groupId, userId);
-      addToast('Nutzer zur Gruppe hinzugefügt');
+      addToast('Einladung gesendet');
       setInviteResults((prev) => prev.filter((u) => u.id !== userId));
       fetchGroup(groupId);
     } catch (err) {

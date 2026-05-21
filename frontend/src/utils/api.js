@@ -610,6 +610,12 @@ export const api = {
 
   getMyGroupRequests: () => request('/groups/my-requests'),
 
+  acceptGroupInvitation: (groupId) =>
+    request(`/groups/${groupId}/invitations/accept`, { method: 'POST' }),
+
+  rejectGroupInvitation: (groupId) =>
+    request(`/groups/${groupId}/invitations/reject`, { method: 'POST' }),
+
   changeGroupMemberRole: (groupId, userId, role) =>
     request(`/groups/${groupId}/members/${userId}`, {
       method: 'PATCH',
