@@ -7,7 +7,7 @@ import {
   UserPlus, Pencil,
   Bold, Italic, Underline, Strikethrough, Code, Heading1, Heading2,
   List, ListOrdered, CheckSquare, Quote, Table, History, Sparkles, Loader2,
-  Download, MoreHorizontal, Palette, Flag,
+  Download, MoreHorizontal, Palette, Flag, ChevronDown,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -296,6 +296,9 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   const [versionsBust, setVersionsBust] = useState(0);
   // Mobile Action-Sheet: 'more' | 'color' | 'importance' | null
   const [mobileSheet, setMobileSheet] = useState(null);
+  // Unterer Bereich (Link-/Insights-Row + Footer-Sekundaeraktionen) ist auf
+  // Handy/Tablet standardmaessig eingeklappt, damit der Editor max. Platz hat.
+  const [bottomOpen, setBottomOpen] = useState(false);
   const closeMobileSheet = useCallback(() => { setMobileSheet(null); setSheetDragY(0); }, []);
 
   // Swipe-to-dismiss fuer das Mobile-Action-Sheet (siehe NotesPage).
@@ -1059,7 +1062,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
       >
         <motion.div
           ref={sheetRef}
-          className={`nem-sheet${canResizeDesktop ? ' is-desktop-resizable' : ''}${sheetSize.maximized ? ' is-maximized' : ''}`}
+          className={`nem-sheet${canResizeDesktop ? ' is-desktop-resizable' : ''}${sheetSize.maximized ? ' is-maximized' : ''}${bottomOpen ? ' nem-bottom-open' : ''}`}
           style={{
             '--nem-accent': color.border,
             ...(sheetSize.width ? { '--nem-sheet-width': `${sheetSize.width}px` } : {}),
@@ -1539,6 +1542,15 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
               im Aktions-Sheet hinter dem "Mehr"-Button verfuegbar. */}
           {!readOnly && (
             <div className="nem-mobile-bar" role="toolbar" aria-label="Notiz-Aktionen">
+              <button
+                type="button"
+                className={`nem-mobile-pill nem-mobile-pill--expand${bottomOpen ? ' is-open' : ''}`}
+                onClick={() => setBottomOpen((v) => !v)}
+                aria-label={bottomOpen ? 'Details einklappen' : 'Details ausklappen'}
+                aria-expanded={bottomOpen}
+              >
+                <ChevronDown size={18} strokeWidth={2.4} />
+              </button>
               <button
                 type="button"
                 className="nem-mobile-pill nem-mobile-pill--color"

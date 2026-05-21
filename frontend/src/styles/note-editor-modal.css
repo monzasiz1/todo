@@ -2125,6 +2125,110 @@ html[data-theme="dark"] .nem-importance-btn.is-active {
   .nem-link-chip-title { max-width: 110px; }
 }
 
+/* ════════════════════════════════════════════════════════════
+   COLLAPSE BOTTOM SECTION — Phone + Tablet (<=1024px)
+   Editor gets full vertical space by default. User can expand
+   the link-row + insights-row via the chevron pill in the
+   bottom bar. Desktop is unaffected.
+   ════════════════════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  /* Eingeklappt (Default): Link-Row + Insights-Row blenden */
+  .nem-sheet:not(.nem-bottom-open) .nem-link-row,
+  .nem-sheet:not(.nem-bottom-open) .nem-insights-row {
+    display: none !important;
+  }
+
+  /* Tablet (721-1024): Bottom-Pill-Bar statt Desktop-Footer zeigen */
+  .nem-mobile-bar { display: flex; }
+  .nem-footer { display: none !important; }
+
+  /* Bottom-Bar rechtsbuendig (alle Pills nach rechts) */
+  .nem-mobile-bar {
+    justify-content: flex-end;
+  }
+
+  /* Toggle-Pill (Chevron) */
+  .nem-mobile-pill--expand {
+    width: 44px;
+    padding: 0;
+    margin-right: auto; /* schiebt sich nach links, andere Pills bleiben rechts */
+    background: var(--nem-pill-fill);
+  }
+  .nem-mobile-pill--expand svg {
+    transition: transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .nem-mobile-pill--expand.is-open svg {
+    transform: rotate(180deg);
+  }
+}
+
+/* Tablet-spezifisch: Bottom-Bar genauso stylen wie auf Mobile */
+@media (min-width: 721px) and (max-width: 1024px) {
+  .nem-mobile-bar {
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    background: color-mix(in srgb, var(--nem-surface) 88%, transparent);
+    backdrop-filter: blur(16px) saturate(1.4);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4);
+    border-top: 1px solid var(--nem-border-soft);
+    flex-shrink: 0;
+    z-index: 5;
+  }
+  .nem-mobile-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 42px;
+    min-width: 42px;
+    padding: 0 14px;
+    border-radius: var(--nem-radius-pill);
+    border: 1px solid var(--nem-border-soft);
+    background: var(--nem-pill-fill);
+    color: var(--nem-text);
+    font-size: 14px;
+    font-weight: 650;
+    cursor: pointer;
+    transition: transform 120ms ease, background 140ms ease, border-color 140ms ease;
+    font-family: inherit;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset;
+  }
+  .nem-mobile-pill:active { transform: scale(0.96); }
+  .nem-mobile-pill--color {
+    width: 42px;
+    padding: 0;
+    border-width: 2px;
+  }
+  .nem-mobile-pill--importance.is-medium {
+    background: rgba(255, 159, 10, 0.18);
+    border-color: rgba(255, 159, 10, 0.35);
+    color: rgb(180, 100, 0);
+  }
+  .nem-mobile-pill--importance.is-high {
+    background: rgba(255, 69, 58, 0.18);
+    border-color: rgba(255, 69, 58, 0.4);
+    color: rgb(200, 40, 40);
+  }
+  html[data-theme="dark"] .nem-mobile-pill--importance.is-medium { color: #ffb958; }
+  html[data-theme="dark"] .nem-mobile-pill--importance.is-high   { color: #ff7b6e; }
+  .nem-mobile-pill--done {
+    background: linear-gradient(180deg,
+      color-mix(in srgb, var(--nem-primary) 88%, #4da3ff),
+      var(--nem-primary));
+    color: #ffffff;
+    border-color: transparent;
+    box-shadow: 0 6px 18px rgba(0, 122, 255, 0.32);
+    font-weight: 700;
+    padding: 0 18px;
+  }
+  /* Editor bekommt mehr Platz, wenn unten eingeklappt */
+  .nem-sheet:not(.nem-bottom-open) .nem-editor {
+    min-height: calc(100dvh - 280px);
+  }
+}
+
 /* ────────────────────────────────────────────────────────────
    Animations
    ──────────────────────────────────────────────────────────── */
