@@ -1,13 +1,13 @@
-﻿fix(votes): Abstimmung nur fuer Untergruppen-Mitglieder zaehlen
+﻿feat(calendar): "Mit dir geteilt" als eigene Sidebar-Quelle
 
-Wenn ein Group-Task einer Untergruppe zugeordnet ist und Group-RSVP
-aktiviert ist, wurden bisher alle Mitglieder der gesamten Gruppe als
-'unbeanswered' aufgelistet bzw. mitgezaehlt - obwohl der Task nur
-fuer die Untergruppe gilt.
+Tasks die nicht im Besitz des Users sind (visibility=shared via Freund
+oder selected_users) und nicht zu einer Gruppe gehoeren, wurden im
+Kalender entweder unter der jeweiligen Kategorie oder unter
+"Persoenlich" einsortiert und liessen sich nicht gezielt ausblenden.
 
-- api/task-votes.js: memberResult und unansweredResult joinen nun
-  group_subgroup_members und beschraenken auf Subgruppen-Mitglieder,
-  sobald gt.subgroup_id gesetzt ist.
-- api/tasks.js enrichTaskVoteStats: memberCountsRes ebenso geaendert,
-  damit vote_member_count und vote_unanswered_count korrekt sind.
-- Fuer Tasks ohne subgroup_id bleibt das Verhalten identisch.
+- getTaskSource: bei t.is_owner === false (ohne Gruppen-Zuordnung)
+  wird eine eigene Source "shared:with-me" mit Label "Mit dir geteilt"
+  und Farbe #FF9500 zurueckgegeben.
+- Dadurch erscheint die Quelle automatisch in der desktop-calendar-
+  sidebar (Kategorien-Toggle-Liste) und ist per Klick ein-/ausblendbar.
+- Gruppen- und eigene Tasks bleiben unveraendert klassifiziert.

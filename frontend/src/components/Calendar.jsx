@@ -285,6 +285,16 @@ const getTaskSource = (t) => {
       avatarUrl: t.group_image_url || null,
     };
   }
+  // Mit dir geteilte Tasks (von Freunden/Usern direkt geteilt, keine Gruppe).
+  // Eigener Source-Eintrag, damit sie in der Kalender-Sidebar separat
+  // ein-/ausblendbar sind.
+  if (t.is_owner === false) {
+    return {
+      key: 'shared:with-me',
+      name: 'Mit dir geteilt',
+      color: '#FF9500',
+    };
+  }
   if (t.category_id || t.category_name) {
     return {
       key: `cat:${t.category_id || t.category_name}`,
