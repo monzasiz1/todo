@@ -1,1 +1,1 @@
-﻿fix(notes): Gruppen-Notes an Task im Detail stets frisch nachladen
+﻿fix(notes-board): geteilte Gruppen-Notes sichtbar und read-only absichern

@@ -143,6 +143,8 @@ function computeChecklistProgress(rawContent) {
 }
 
 function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange, isSelected, onSelect, tasks = [], onOpenTask, boardScaleRef, gridPos = null, dragDisabled = false, onDragLive, onOpenEditor, isDimmed = false, noteTags = [], onTagClick, unreadCount = 0, hasUnreadMention = false }) {
+  const isReadOnly = note?.read_only === true
+    || (note?.is_foreign === true && note?.shared_permission !== 'edit' && note?.permission !== 'edit');
   const [isEditing, setIsEditing] = useState(false);
   const [content, setContent] = useState(note.content || '');
   const [title, setTitle] = useState(note.title || '');
@@ -278,7 +280,7 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
     ) return;
 
     // Drag im Grid-Modus deaktiviert
-    if (dragDisabled) {
+    if (dragDisabled || isReadOnly) {
       onSelect(note.id);
       return;
     }
@@ -302,7 +304,7 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
     // (React's synthetisches onTouchStart ist passive → preventDefault wirkt nicht
     // und spammt nur die Konsole). Native touchstart unten ist non-passive.
     if (e.cancelable) e.preventDefault();
-  }, [note.id, note.x, note.y, onSelect, dragDisabled]);
+  }, [note.id, note.x, note.y, onSelect, dragDisabled, isReadOnly]);
 
   const handlePointerMove = useCallback((e) => {
     if (!isDragging) return;
@@ -494,10 +496,12 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
             className="note-action-btn complete"
             onClick={(e) => {
               e.stopPropagation();
+              if (isReadOnly) return;
               onComplete?.(note.id);
             }}
-            title="Erledigt - ins Archiv"
+            title={isReadOnly ? 'Nur lesen' : 'Erledigt - ins Archiv'}
             aria-label="Notiz als erledigt markieren"
+            disabled={isReadOnly}
           >
             <Check size={12} />
           </button>
@@ -506,10 +510,12 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
             className="note-action-btn"
             onClick={(e) => {
               e.stopPropagation();
+              if (isReadOnly) return;
               setShowTaskPicker(true);
             }}
-            title="Termin anheften"
+            title={isReadOnly ? 'Nur lesen' : 'Termin anheften'}
             aria-label="Termin an Notiz anheften"
+            disabled={isReadOnly}
           >
             <CalendarDays size={12} />
           </button>
@@ -518,10 +524,12 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
             className="note-action-btn delete"
             onClick={(e) => {
               e.stopPropagation();
+              if (isReadOnly) return;
               onDelete(note.id);
             }}
-            title="Loeschen"
+            title={isReadOnly ? 'Nur lesen' : 'Loeschen'}
             aria-label="Notiz loeschen"
+            disabled={isReadOnly}
           >
             <X size={12} />
           </button>
@@ -548,7 +556,11 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
       ) : (
         <div
           className="note-title-display"
-          onClick={(e) => { e.stopPropagation(); setIsEditingTitle(true); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (isReadOnly) return;
+            setIsEditingTitle(true);
+          }}
           title={hasTitle ? note.title : 'Titel hinzufügen'}
         >
           {hasTitle ? note.title : ''}
@@ -628,6 +640,7 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
               displayClickRef.current.timer = setTimeout(() => {
                 displayClickRef.current.time = 0;
                 displayClickRef.current.timer = null;
+                if (isReadOnly) return;
                 setIsEditing(true);
               }, 320);
             }}
@@ -656,7 +669,7 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
                       const container = e.currentTarget;
                       const all = container.querySelectorAll('input[type="checkbox"]');
                       const idx = Array.prototype.indexOf.call(all, t);
-                      if (idx >= 0) handleToggleHtmlCheckbox(idx);
+                      if (idx >= 0 && !isReadOnly) handleToggleHtmlCheckbox(idx);
                     }
                   }}
                   onPointerDown={(e) => {
@@ -666,7 +679,7 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
                   }}
                 />
               ) : (
-                renderNoteMarkdown(displayContent, handleToggleLine)
+                renderNoteMarkdown(displayContent, isReadOnly ? (() => {}) : handleToggleLine)
               )
             ) : null}
             {isLongText && !isExpanded && (
@@ -749,9 +762,11 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
                 className="task-unlink-btn"
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (isReadOnly) return;
                   handleUnlinkTask();
                 }}
-                title="Termin entfernen"
+                title={isReadOnly ? 'Nur lesen' : 'Termin entfernen'}
+                disabled={isReadOnly}
               >
                 <X size={8} />
               </button>
@@ -764,7 +779,7 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
           ohne den inneren Content-Bereich zu verkleinern (absolute Position). */}
       {(() => {
         const sharesArr = Array.isArray(note?.shares) ? note.shares : [];
-        const isRecipient = !!note?.is_shared_note;
+        const isRecipient = !!note?.is_shared_note || !!note?.is_foreign;
         if (!isRecipient && sharesArr.length === 0) return null;
         if (isRecipient) {
           const ownerName = note?.owner_name || 'Eigentuemer';
@@ -2247,7 +2262,7 @@ export default function NotesPage() {
             </svg>
           )}
 
-          {notes.filter(note => note != null && note.id != null && (!note.is_foreign || note.shared_permission === 'edit' || note.permission === 'edit')).map((note) => (
+          {notes.filter(note => note != null && note.id != null).map((note) => (
             <StickyNote
               key={note.id}
               note={note}

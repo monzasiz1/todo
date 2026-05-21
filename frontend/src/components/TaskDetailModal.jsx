@@ -1789,11 +1789,23 @@ function parseNoteMeta(content) {
   return { accent, snippet };
 }
 
+function resolveTaskLinkId(task) {
+  const rawId = String(task?.id || '');
+  if (!rawId) return '';
+  if (!rawId.startsWith('v_')) return rawId;
+  const parts = rawId.split('_');
+  if (parts.length < 3) return rawId;
+  const parentId = parts.slice(1, -1).join('_');
+  return parentId || rawId;
+}
+
 function LinkedNotesSection({ task, notesAll, updateNoteStore, onOpenNote, pickerOpen, setPickerOpen, pickerQuery, setPickerQuery, currentUserId }) {
+  const taskLinkId = useMemo(() => resolveTaskLinkId(task), [task]);
+
   const linkedNotes = useMemo(() => {
-    if (!Array.isArray(notesAll) || !task?.id) return [];
-    return notesAll.filter((n) => n && String(n.linked_task_id || '') === String(task.id));
-  }, [notesAll, task?.id]);
+    if (!Array.isArray(notesAll) || !taskLinkId) return [];
+    return notesAll.filter((n) => n && String(n.linked_task_id || '') === String(taskLinkId));
+  }, [notesAll, taskLinkId]);
 
   const availableNotes = useMemo(() => {
     if (!Array.isArray(notesAll)) return [];
@@ -1802,16 +1814,16 @@ function LinkedNotesSection({ task, notesAll, updateNoteStore, onOpenNote, picke
       // Nur eigene Notes, die noch nicht an die aktuelle Task gehaengt sind,
       // koennen via Picker angeheftet werden — fremde Team-Notes bleiben aussen vor.
       .filter((n) => n && (!currentUserId || String(n.user_id) === String(currentUserId)))
-      .filter((n) => n && String(n.linked_task_id || '') !== String(task?.id || ''))
+        .filter((n) => n && String(n.linked_task_id || '') !== String(taskLinkId || ''))
       .filter((n) => !q || (n.title || '').toLowerCase().includes(q) || (n.content || '').toLowerCase().includes(q))
       .slice(0, 30);
-  }, [notesAll, pickerQuery, task?.id, currentUserId]);
+      }, [notesAll, pickerQuery, taskLinkId, currentUserId]);
 
   const isTaskCreator = !!currentUserId && !!task?.user_id && String(task.user_id) === String(currentUserId);
 
   const handleAttach = async (noteId) => {
     try {
-      await updateNoteStore(noteId, { linked_task_id: task.id });
+      await updateNoteStore(noteId, { linked_task_id: taskLinkId || task?.id });
       setPickerOpen(false);
       setPickerQuery('');
     } catch (err) {
