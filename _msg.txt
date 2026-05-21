@@ -1,10 +1,18 @@
-﻿style(taskcard): Group/Combo/Subgroup-Badges auf einheitliche Hoehe
+﻿feat(groups): Beim Entfernen Mitglied vollstaendig aus Gruppe bereinigen
 
-.task-group-badge nutzt jetzt dieselbe Geometrie wie combo +
-subgroup (padding 1px 7px 1px 5px, radius 7px, font-size 10,
-min-height 18px, margin-top 2px). Zusaetzlich:
-- Avatar in .task-group-badge: size 12 -> 10 (passt zu combo).
-- Subgroup-Mitglieder-Avatare: size 18 -> 12 (sprengten zuvor
-  die 18px Hoehe der Badge).
-- Inline fontSize 11 in subgroup-name entfernt (erbt nun das
-  Badge-fontSize von 10).
+Wenn ein Mitglied entfernt wird (oder selbst die Gruppe verlaesst),
+wurden bisher nur die group_members-Zeile geloescht. Reste blieben in
+Untergruppen, Beitrittsanfragen und Task-Abstimmungen erhalten.
+
+Cleanup in einer Transaktion:
+1) group_subgroup_members - alle Untergruppen-Mitgliedschaften
+   innerhalb dieser Gruppe.
+2) group_join_requests - jede Zeile (pending/invited/accepted/rejected),
+   damit der Nutzer ggf. neu eingeladen werden kann.
+3) task_votes - alle Abstimmungen des Nutzers auf Tasks dieser Gruppe,
+   damit Vote-Statistiken (z.B. memberCounts, unanswered) ihn nicht mehr
+   beruecksichtigen.
+4) group_members - die Mitgliedschaft selbst (custom_role_id verschwindet
+   mit der Zeile).
+
+Push-Notification fuer den Entfernten (nicht bei Self-Leave).

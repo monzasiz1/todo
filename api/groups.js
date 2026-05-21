@@ -1614,7 +1614,67 @@ module.exports = async function handler(req, res) {
         return res.status(403).json({ error: 'Owner kann nicht entfernt werden' });
       }
 
-      await pool.query('DELETE FROM group_members WHERE group_id = $1 AND user_id = $2', [groupId, targetUserId]);
+      // Vollstaendige Bereinigung in einer Transaktion. Alles, was den
+      // entfernten Nutzer an die Gruppe bindet, wird hart geloescht.
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+
+        // 1) Mitgliedschaften in allen Untergruppen dieser Gruppe entfernen.
+        await client.query(
+          `DELETE FROM group_subgroup_members
+            WHERE user_id = $1
+              AND subgroup_id IN (
+                SELECT id FROM group_subgroups WHERE group_id = $2
+              )`,
+          [targetUserId, groupId]
+        );
+
+        // 2) Offene/historische Einladungen oder Beitrittsanfragen entfernen,
+        //    damit der Nutzer ggf. neu eingeladen werden kann.
+        await client.query(
+          `DELETE FROM group_join_requests
+            WHERE group_id = $1 AND user_id = $2`,
+          [groupId, targetUserId]
+        );
+
+        // 3) Abstimmungen des Nutzers auf Tasks dieser Gruppe entfernen,
+        //    damit Vote-Statistiken nicht mehr auf ihn verweisen.
+        await client.query(
+          `DELETE FROM task_votes
+            WHERE user_id = $1
+              AND task_id IN (
+                SELECT task_id FROM group_tasks WHERE group_id = $2
+              )`,
+          [targetUserId, groupId]
+        );
+
+        // 4) Eigentliche Mitgliedschaft entfernen. group_members traegt die
+        //    Rolle + custom_role_id; beide verschwinden mit dieser Zeile.
+        await client.query(
+          'DELETE FROM group_members WHERE group_id = $1 AND user_id = $2',
+          [groupId, targetUserId]
+        );
+
+        await client.query('COMMIT');
+      } catch (txErr) {
+        await client.query('ROLLBACK').catch(() => {});
+        throw txErr;
+      } finally {
+        client.release();
+      }
+
+      // Push-Notification an Entfernten (nur wenn nicht selbst verlassen)
+      if (!isSelf) {
+        const grpInfo = await pool.query('SELECT name FROM groups WHERE id = $1', [groupId]);
+        await sendPushToUser(targetUserId, {
+          title: 'Aus Gruppe entfernt',
+          body: `Du wurdest aus der Gruppe "${grpInfo.rows[0]?.name || ''}" entfernt.`,
+          tag: `group-removed-${groupId}`,
+          url: '/groups',
+        }, 'group_removed', null, groupId).catch(() => null);
+      }
+
       return res.json({ success: true });
     } catch (err) {
       console.error('Remove member error:', err);
