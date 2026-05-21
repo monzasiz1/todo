@@ -4497,6 +4497,13 @@ body.cal-is-dragging * {
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35);
 }
 
+.filter-divider {
+  color: var(--text-secondary);
+  opacity: 0.5;
+  font-weight: 700;
+  padding: 0 2px;
+}
+
 .filter-search {
   flex: 1 1 200px;
   max-width: 320px;
@@ -4541,6 +4548,9 @@ body.cal-is-dragging * {
   .filter-btn {
     padding: 7px 11px;
     font-size: 12.5px;
+  }
+  .filter-divider {
+    display: none;
   }
   .filter-search {
     flex-basis: 100%;

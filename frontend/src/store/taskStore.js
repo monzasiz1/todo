@@ -186,7 +186,7 @@ export const useTaskStore = create((set, get) => ({
   error: null,
   lastTasksFetchAt: 0,
   lastTasksFetchKey: '',
-  filter: { category: null, priority: null, completed: null, search: '' },
+  filter: { category: null, priority: null, completed: null, search: '', source: 'all' },
   toasts: [],
 
   // Toast management
@@ -888,7 +888,7 @@ export const useTaskStore = create((set, get) => ({
   },
 
   clearFilters: () => {
-    set({ filter: { category: null, priority: null, completed: null, search: '' } });
+    set({ filter: { category: null, priority: null, completed: null, search: '', source: 'all' } });
   },
 
   // Get filtered tasks

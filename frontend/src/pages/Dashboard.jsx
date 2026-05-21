@@ -1,6 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTaskStore } from '../store/taskStore';
+import { useGroupStore } from '../store/groupStore';
 import AIInput from '../components/AIInput';
 import ManualTaskForm from '../components/ManualTaskForm';
 import TaskCard from '../components/TaskCard';
@@ -206,6 +207,30 @@ function isEventEnded(task, nowTs = Date.now()) {
   return !!end && end.getTime() < nowTs;
 }
 
+function matchesSourceFilter(task, source) {
+  if (source === 'groups') {
+    return !!task.group_id;
+  }
+  if (source === 'shared') {
+    return task.is_owner === false;
+  }
+  if (source === 'shared_direct') {
+    return task.is_owner === false && !task.group_id;
+  }
+  if (source === 'shared_groups') {
+    return task.is_owner === false && !!task.group_id;
+  }
+  if (typeof source === 'string' && source.startsWith('group:')) {
+    const groupId = source.slice('group:'.length);
+    if (!groupId) return true;
+    return String(task.group_id || '') === groupId;
+  }
+  if (source === 'not_owned') {
+    return task.is_owner === false;
+  }
+  return true;
+}
+
 function getPlannedHoursRemainingToday(tasks, nowDate = new Date()) {
   const toMins = (time) => {
     if (!time) return null;
@@ -409,6 +434,8 @@ export default function Dashboard() {
   const filter = useTaskStore((s) => s.filter);
   const setFilter = useTaskStore((s) => s.setFilter);
   const loading = useTaskStore((s) => s.loading);
+  const groupsFromStore = useGroupStore((s) => s.groups);
+  const fetchGroups = useGroupStore((s) => s.fetchGroups);
   const { limit, atLimit } = usePlan();
   const [showCompleted, setShowCompleted] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState({ today: false, week: true, later: true, past_events: true });
@@ -429,6 +456,8 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
+    fetchGroups();
+
     // Load all tasks (open AND closed), let frontend filter do the rest
     fetchTasks({
       dashboard: 'true',
@@ -485,6 +514,15 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
+    const source = filter.source || 'all';
+    if (typeof source === 'string' && source.startsWith('group:')) {
+      const groupId = source.slice('group:'.length);
+      const stillExists = (groupsFromStore || []).some((g) => String(g.id) === groupId);
+      if (!stillExists) setFilter('source', 'all');
+    }
+  }, [filter.source, groupsFromStore, setFilter]);
+
+  useEffect(() => {
     let intervalId = null;
     let timeoutId = null;
 
@@ -513,14 +551,16 @@ export default function Dashboard() {
 
   const filtered = useMemo(() => {
     const search = (filter.search || '').toLowerCase();
+    const source = filter.source || 'all';
     return tasks.filter((t) => {
       if (filter.category && t.category_id !== filter.category) return false;
       if (filter.priority && t.priority !== filter.priority) return false;
       if (filter.completed !== null && t.completed !== filter.completed) return false;
+      if (!matchesSourceFilter(t, source)) return false;
       if (search && !(t.title || '').toLowerCase().includes(search)) return false;
       return true;
     });
-  }, [tasks, filter.category, filter.priority, filter.completed, filter.search]);
+  }, [tasks, filter.category, filter.priority, filter.completed, filter.search, filter.source]);
 
   const deduplicated = useMemo(
     () => deduplicateRecurring(filtered.filter((t) => !t.completed)),
@@ -644,6 +684,32 @@ export default function Dashboard() {
     { value: 'medium', label: 'Mittel',   color: '#007AFF' },
     { value: 'low',    label: 'Niedrig',  color: '#34C759' },
   ];
+
+  const groupsInTasks = useMemo(() => {
+    const map = new Map();
+    tasks.forEach((t) => {
+      if (!t.group_id) return;
+      const key = String(t.group_id);
+      if (map.has(key)) return;
+      const fromStore = (groupsFromStore || []).find((g) => String(g.id) === key);
+      map.set(key, {
+        id: key,
+        name: fromStore?.name || t.group_name || `Gruppe ${key}`,
+      });
+    });
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  }, [tasks, groupsFromStore]);
+
+  const sources = useMemo(() => {
+    const base = [
+      { value: 'all', label: 'Alle Quellen' },
+      { value: 'shared_direct', label: 'Direkt geteilt' },
+      { value: 'shared_groups', label: 'Gruppenshares' },
+      { value: 'groups', label: 'Alle Gruppen' },
+    ];
+    const perGroup = groupsInTasks.map((g) => ({ value: `group:${g.id}`, label: g.name }));
+    return [...base, ...perGroup];
+  }, [groupsInTasks]);
 
   return (
     <div className="dashboard-page">
@@ -808,6 +874,16 @@ export default function Dashboard() {
           >
             {p.color && <span className="filter-dot" />}
             {p.label}
+          </button>
+        ))}
+        <span className="filter-divider" aria-hidden>|</span>
+        {sources.map((s) => (
+          <button
+            key={s.value}
+            className={`filter-btn ${((filter.source || 'all') === s.value) ? 'active' : ''}`}
+            onClick={() => setFilter('source', s.value)}
+          >
+            {s.label}
           </button>
         ))}
         <input
