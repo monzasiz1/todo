@@ -189,14 +189,15 @@ export default function GroupsPage() {
             onBack={() => setView('list')}
             onCreate={async (data) => {
               try {
-                await createGroup(data);
+                const newGroup = await createGroup(data);
                 setView('list');
+                return newGroup;
               } catch (err) {
                 const code = err?.data?.error || err?.body?.error || err?.error;
                 if (code === 'plan_limit_groups' || /plan_limit/.test(String(err?.message))) {
                   setView('list');
                   setShowUpgrade(true);
-                  return;
+                  return null;
                 }
                 throw err;
               }
@@ -603,13 +604,61 @@ function CreateGroup({ onBack, onCreate }) {
   const [color, setColor] = useState('#007AFF');
   const [imageUrl, setImageUrl] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [friends, setFriends] = useState([]);
+  const [friendsLoading, setFriendsLoading] = useState(false);
+  const [friendQuery, setFriendQuery] = useState('');
+  const [selectedFriendIds, setSelectedFriendIds] = useState([]);
+  const addToast = useTaskStore((s) => s.addToast);
+
+  useEffect(() => {
+    let cancelled = false;
+    setFriendsLoading(true);
+    api.getFriends()
+      .then((data) => {
+        if (cancelled) return;
+        const accepted = (data?.friends || []).filter((f) => f.status === 'accepted');
+        setFriends(accepted);
+      })
+      .catch(() => { if (!cancelled) setFriends([]); })
+      .finally(() => { if (!cancelled) setFriendsLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const filteredFriends = useMemo(() => {
+    const q = friendQuery.trim().toLowerCase();
+    if (!q) return friends;
+    return friends.filter((f) =>
+      (f.name || '').toLowerCase().includes(q) ||
+      (f.email || '').toLowerCase().includes(q)
+    );
+  }, [friends, friendQuery]);
+
+  const toggleFriend = (userId) => {
+    setSelectedFriendIds((prev) =>
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+    );
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name.trim()) return;
     setSaving(true);
     try {
-      await onCreate({ name: name.trim(), description: description.trim(), color, image_url: imageUrl });
+      const newGroup = await onCreate({ name: name.trim(), description: description.trim(), color, image_url: imageUrl });
+      const newGroupId = newGroup?.id;
+      if (newGroupId && selectedFriendIds.length > 0) {
+        const results = await Promise.allSettled(
+          selectedFriendIds.map((uid) => api.inviteGroupUser(newGroupId, uid))
+        );
+        const okCount = results.filter((r) => r.status === 'fulfilled').length;
+        const failCount = results.length - okCount;
+        if (okCount > 0) {
+          addToast(`${okCount} Freund${okCount === 1 ? '' : 'e'} eingeladen`);
+        }
+        if (failCount > 0) {
+          addToast(`${failCount} Einladung${failCount === 1 ? '' : 'en'} fehlgeschlagen`, 'error');
+        }
+      }
     } finally {
       setSaving(false);
     }
@@ -688,6 +737,107 @@ function CreateGroup({ onBack, onCreate }) {
               />
             ))}
           </div>
+        </div>
+
+        <div className="task-edit-field">
+          <label>
+            Freunde direkt einladen (optional)
+            {selectedFriendIds.length > 0 && (
+              <span style={{ marginLeft: 8, opacity: 0.7, fontWeight: 400 }}>
+                {selectedFriendIds.length} ausgewaehlt
+              </span>
+            )}
+          </label>
+          {friendsLoading ? (
+            <div style={{ padding: '8px 0', opacity: 0.6, fontSize: 13 }}>Lade Freunde...</div>
+          ) : friends.length === 0 ? (
+            <div style={{ padding: '8px 0', opacity: 0.6, fontSize: 13 }}>
+              Noch keine Freunde. Du kannst spaeter Mitglieder einladen.
+            </div>
+          ) : (
+            <>
+              {friends.length > 5 && (
+                <input
+                  type="text"
+                  value={friendQuery}
+                  onChange={(e) => setFriendQuery(e.target.value)}
+                  placeholder="Freunde durchsuchen..."
+                  className="task-edit-input"
+                  style={{ marginBottom: 8 }}
+                />
+              )}
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6,
+                  maxHeight: 220,
+                  overflowY: 'auto',
+                  border: '1px solid var(--border, rgba(0,0,0,0.08))',
+                  borderRadius: 10,
+                  padding: 6,
+                }}
+              >
+                {filteredFriends.length === 0 ? (
+                  <div style={{ padding: 8, opacity: 0.6, fontSize: 13 }}>Keine Treffer</div>
+                ) : (
+                  filteredFriends.map((f) => {
+                    const uid = f.friend_user_id || f.id;
+                    const checked = selectedFriendIds.includes(uid);
+                    return (
+                      <button
+                        type="button"
+                        key={uid}
+                        onClick={() => toggleFriend(uid)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          padding: '8px 10px',
+                          borderRadius: 8,
+                          border: 'none',
+                          background: checked ? 'rgba(0,122,255,0.12)' : 'transparent',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          width: '100%',
+                        }}
+                      >
+                        <AvatarBadge
+                          name={f.name}
+                          color={f.avatar_color || '#007AFF'}
+                          avatarUrl={f.avatar_url}
+                          size={32}
+                        />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 500, fontSize: 14, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</div>
+                          {f.email && (
+                            <div style={{ fontSize: 12, opacity: 0.6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.email}</div>
+                          )}
+                        </div>
+                        <span
+                          style={{
+                            width: 22,
+                            height: 22,
+                            borderRadius: '50%',
+                            border: `2px solid ${checked ? '#007AFF' : 'rgba(0,0,0,0.2)'}`,
+                            background: checked ? '#007AFF' : 'transparent',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#fff',
+                            fontSize: 13,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {checked ? <Check size={14} strokeWidth={3} /> : null}
+                        </span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </>
+          )}
         </div>
 
         <button type="submit" className="group-submit-btn" disabled={!name.trim() || saving}>

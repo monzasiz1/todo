@@ -1,13 +1,15 @@
-﻿feat(calendar): "Mit dir geteilt" als eigene Sidebar-Quelle
+﻿feat(groups): Freunde direkt im Neue-Gruppe-Modal einladen
 
-Tasks die nicht im Besitz des Users sind (visibility=shared via Freund
-oder selected_users) und nicht zu einer Gruppe gehoeren, wurden im
-Kalender entweder unter der jeweiligen Kategorie oder unter
-"Persoenlich" einsortiert und liessen sich nicht gezielt ausblenden.
+Beim Erstellen einer neuen Gruppe konnte man bisher erst nach dem
+Anlegen ueber die Gruppen-Detail-Seite Mitglieder einladen. Jetzt
+gibt es im CreateGroup-Modal eine Mehrfach-Auswahl der eigenen
+Freunde - die ausgewaehlten Personen werden direkt nach dem
+Erstellen automatisch zur neuen Gruppe hinzugefuegt.
 
-- getTaskSource: bei t.is_owner === false (ohne Gruppen-Zuordnung)
-  wird eine eigene Source "shared:with-me" mit Label "Mit dir geteilt"
-  und Farbe #FF9500 zurueckgegeben.
-- Dadurch erscheint die Quelle automatisch in der desktop-calendar-
-  sidebar (Kategorien-Toggle-Liste) und ist per Klick ein-/ausblendbar.
-- Gruppen- und eigene Tasks bleiben unveraendert klassifiziert.
+- CreateGroup laedt api.getFriends() und zeigt eine durchsuchbare
+  Liste (mit Avatar/Name/Email + Check-Toggle) wenn >5 Freunde.
+- Nach erfolgreichem onCreate(): Promise.allSettled mit
+  api.inviteGroupUser(newGroupId, friendUserId) pro Auswahl.
+- Toast-Feedback fuer Erfolge und Fehlschlaege.
+- GroupsPage: onCreate gibt jetzt das neu erstellte Group-Objekt
+  zurueck (createGroup-Store liefert es bereits).
