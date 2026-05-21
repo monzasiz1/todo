@@ -478,42 +478,50 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
         {variantIndex === 3 && <span className="paperclip-icon" aria-hidden="true" />}
         <div className="note-actions">
           <button
+            type="button"
             className="note-action-btn"
             onClick={(e) => {
               e.stopPropagation();
               onOpenEditor?.(note.id);
             }}
             title="Im Vollbild-Editor oeffnen"
+            aria-label="Notiz im Vollbild-Editor oeffnen"
           >
             <Maximize2 size={12} />
           </button>
           <button
+            type="button"
             className="note-action-btn complete"
             onClick={(e) => {
               e.stopPropagation();
               onComplete?.(note.id);
             }}
-            title="Erledigt → ins Archiv"
+            title="Erledigt - ins Archiv"
+            aria-label="Notiz als erledigt markieren"
           >
             <Check size={12} />
           </button>
           <button
+            type="button"
             className="note-action-btn"
             onClick={(e) => {
               e.stopPropagation();
               setShowTaskPicker(true);
             }}
             title="Termin anheften"
+            aria-label="Termin an Notiz anheften"
           >
             <CalendarDays size={12} />
           </button>
           <button
+            type="button"
             className="note-action-btn delete"
             onClick={(e) => {
               e.stopPropagation();
               onDelete(note.id);
             }}
-            title="Löschen"
+            title="Loeschen"
+            aria-label="Notiz loeschen"
           >
             <X size={12} />
           </button>
@@ -1010,6 +1018,24 @@ export default function NotesPage() {
       // Stiller Fail - Badges sind UX-Bonus, kein Pflicht-Feature.
     }
   }, []);
+
+  // Globaler ESC-Handler: schliesst Bottom-Sheet bzw. Archiv-Overlay.
+  // Greift nicht in Inputs/Textareas/contentEditable ein, damit z. B.
+  // das Inline-Title-Edit weiterhin sein eigenes ESC nutzen kann.
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return;
+      const target = e.target;
+      const tag = target?.tagName;
+      const isEditable = target?.isContentEditable
+        || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+      if (isEditable) return;
+      if (mobileMoreOpen) { setMobileMoreOpen(false); return; }
+      if (showArchive) { setShowArchive(false); return; }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [mobileMoreOpen, showArchive]);
 
   // Editor oeffnen + Unread-Eintrag optimistisch entfernen.
   // Das eigentliche Markieren passiert serverseitig beim GET im Modal.
@@ -1878,15 +1904,15 @@ export default function NotesPage() {
             )}
           </div>
           <div className="board-controls-secondary">
-            <button className="board-control-btn" onClick={handleZoomOut} disabled={scale <= MIN_SCALE} title="Verkleinern">
+            <button className="board-control-btn" onClick={handleZoomOut} disabled={scale <= MIN_SCALE} title="Verkleinern" aria-label="Board verkleinern">
               <ZoomOut size={16} />
             </button>
-            <span className="zoom-indicator">{Math.round(scale * 100)}%</span>
-            <button className="board-control-btn" onClick={handleZoomIn} disabled={scale >= MAX_SCALE} title="Vergrößern">
+            <span className="zoom-indicator" aria-live="polite" aria-label={`Zoom ${Math.round(scale * 100)} Prozent`}>{Math.round(scale * 100)}%</span>
+            <button className="board-control-btn" onClick={handleZoomIn} disabled={scale >= MAX_SCALE} title="Vergroessern" aria-label="Board vergroessern">
               <ZoomIn size={16} />
             </button>
             {notes.length > 0 && (
-              <button className="board-control-btn" onClick={handleFitAll} title="Alle Notizen anzeigen">
+              <button className="board-control-btn" onClick={handleFitAll} title="Alle Notizen anzeigen" aria-label="Alle Notizen ins Bild zoomen">
                 <ZoomOut size={14} /><ZoomIn size={14} />
               </button>
             )}
@@ -1894,6 +1920,7 @@ export default function NotesPage() {
               className={`board-control-btn ${isGrid ? 'active' : ''}`}
               onClick={toggleLayoutMode}
               title={isGrid ? 'Freies Layout (Drag & Drop)' : 'Raster-Layout aktivieren'}
+              aria-label={isGrid ? 'Auf freies Layout wechseln' : 'Auf Raster-Layout wechseln'}
               aria-pressed={isGrid}
             >
               <LayoutGrid size={16} />
@@ -1903,6 +1930,7 @@ export default function NotesPage() {
                 className="board-control-btn"
                 onClick={handleAutoArrange}
                 title="Notizen automatisch im Raster anordnen"
+                aria-label="Notizen automatisch anordnen"
               >
                 <Wand2 size={16} />
               </button>
@@ -1911,8 +1939,9 @@ export default function NotesPage() {
               className={`board-control-btn ${connectMode ? 'active' : ''}`}
               onClick={handleToggleConnectMode}
               title={connectMode
-                ? (connectSourceId ? 'Zweite Notiz waehlen … (Klick zum Abbrechen)' : 'Verbindungs-Modus beenden')
+                ? (connectSourceId ? 'Zweite Notiz waehlen ... (Klick zum Abbrechen)' : 'Verbindungs-Modus beenden')
                 : 'Notizen verbinden (Mindmap)'}
+              aria-label={connectMode ? 'Verbindungs-Modus beenden' : 'Notizen verbinden'}
               aria-pressed={connectMode}
             >
               <Link2 size={16} />
@@ -1921,6 +1950,7 @@ export default function NotesPage() {
               className="board-control-btn"
               onClick={() => navigate('/app/whiteboard')}
               title="Whiteboard oeffnen"
+              aria-label="Whiteboard oeffnen"
             >
               <Palette size={16} />
             </button>
@@ -1928,6 +1958,7 @@ export default function NotesPage() {
               className="board-control-btn"
               onClick={() => setShowArchive(true)}
               title="Archiv (erledigte Notizen)"
+              aria-label="Archiv mit erledigten Notizen oeffnen"
             >
               <Archive size={16} />
             </button>
