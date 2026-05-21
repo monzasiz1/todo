@@ -162,3 +162,126 @@ export function htmlToPlain(html) {
   });
   return (tmp.textContent || '').replace(/\u00a0/g, ' ').trim();
 }
+
+// HTML -> Markdown. Minimaler Konverter ohne Fremdbibliothek.
+// Deckt ab: h1-h6, p, br, strong/b, em/i, u, code, pre, blockquote,
+// hr, a, img, ul/ol/li (auch verschachtelt), input[type=checkbox] in li.
+// Unbekannte Elemente werden auf ihren Text-Inhalt reduziert.
+export function htmlToMarkdown(html) {
+  if (!html) return '';
+  const tmp = document.createElement('div');
+  tmp.innerHTML = sanitizeHtml(html);
+
+  const escapeMd = (s) => String(s)
+    .replace(/\\/g, '\\\\')
+    .replace(/([*_`])/g, '\\$1');
+
+  const walk = (node, ctx) => {
+    if (node.nodeType === 3) {
+      // Text: Newlines innerhalb von Plain-Text auf Space reduzieren.
+      return (node.nodeValue || '').replace(/\s+/g, ' ');
+    }
+    if (node.nodeType !== 1) return '';
+    const tag = node.tagName?.toLowerCase();
+    const inner = () => Array.from(node.childNodes).map((c) => walk(c, ctx)).join('');
+
+    switch (tag) {
+      case 'br': return '\n';
+      case 'hr': return '\n\n---\n\n';
+      case 'h1': return `\n# ${inner().trim()}\n\n`;
+      case 'h2': return `\n## ${inner().trim()}\n\n`;
+      case 'h3': return `\n### ${inner().trim()}\n\n`;
+      case 'h4': return `\n#### ${inner().trim()}\n\n`;
+      case 'h5': return `\n##### ${inner().trim()}\n\n`;
+      case 'h6': return `\n###### ${inner().trim()}\n\n`;
+      case 'p':  return `${inner().trim()}\n\n`;
+      case 'strong':
+      case 'b':  return `**${inner().trim()}**`;
+      case 'em':
+      case 'i':  return `*${inner().trim()}*`;
+      case 'u':  return `<u>${inner().trim()}</u>`;
+      case 'code': {
+        // Inline-Code in einem <pre> wird in pre behandelt
+        if (node.parentElement?.tagName?.toLowerCase() === 'pre') return inner();
+        return '`' + (node.textContent || '') + '`';
+      }
+      case 'pre': {
+        const text = node.textContent || '';
+        return `\n\`\`\`\n${text.replace(/\n$/, '')}\n\`\`\`\n\n`;
+      }
+      case 'blockquote': {
+        const t = inner().trim().split('\n').map((l) => `> ${l}`).join('\n');
+        return `\n${t}\n\n`;
+      }
+      case 'a': {
+        const href = node.getAttribute('href') || '';
+        const label = inner().trim() || href;
+        return href ? `[${label}](${href})` : label;
+      }
+      case 'img': {
+        const src = node.getAttribute('src') || '';
+        const alt = node.getAttribute('alt') || '';
+        return src ? `![${alt}](${src})` : '';
+      }
+      case 'ul':
+      case 'ol': {
+        const items = Array.from(node.children).filter((c) => c.tagName?.toLowerCase() === 'li');
+        const lines = items.map((li, i) => {
+          const prefix = tag === 'ol' ? `${i + 1}.` : '-';
+          // Checkbox-Liste (Task-List)
+          const cb = li.querySelector(':scope > input[type="checkbox"]');
+          let checkPrefix = '';
+          if (cb) {
+            checkPrefix = cb.checked ? '[x] ' : '[ ] ';
+            cb.remove();
+          }
+          // Innere Liste separat behandeln (Einrueckung)
+          const nested = Array.from(li.children)
+            .filter((c) => ['ul', 'ol'].includes(c.tagName?.toLowerCase()));
+          nested.forEach((n) => n.remove());
+          const text = Array.from(li.childNodes).map((c) => walk(c, ctx)).join('').trim();
+          const nestedMd = nested.map((n) => walk(n, { ...ctx, indent: (ctx.indent || 0) + 1 })).join('');
+          const indent = '  '.repeat(ctx.indent || 0);
+          const nestedIndented = nestedMd
+            ? '\n' + nestedMd.split('\n').filter(Boolean).map((l) => `  ${l}`).join('\n')
+            : '';
+          return `${indent}${prefix} ${checkPrefix}${text}${nestedIndented}`;
+        });
+        return `\n${lines.join('\n')}\n\n`;
+      }
+      case 'div':
+      case 'span':
+      case 'section':
+      case 'article':
+        return inner();
+      case 'input': {
+        if (node.getAttribute('type') === 'checkbox') {
+          return node.checked ? '[x] ' : '[ ] ';
+        }
+        return '';
+      }
+      default:
+        return inner();
+    }
+  };
+
+  const md = Array.from(tmp.childNodes)
+    .map((n) => walk(n, { indent: 0 }))
+    .join('');
+  // Whitespace normalisieren: max 2 Leerzeilen, Trim
+  return md.replace(/\n{3,}/g, '\n\n').replace(/[ \t]+\n/g, '\n').trim() + '\n';
+}
+
+// Sicherer Dateiname fuer Downloads (latin + Bindestriche, max 80).
+export function safeFileName(name, fallback = 'notiz') {
+  const s = String(name || '').trim()
+    .replace(/[\u00e4]/g, 'ae').replace(/[\u00f6]/g, 'oe').replace(/[\u00fc]/g, 'ue')
+    .replace(/[\u00c4]/g, 'Ae').replace(/[\u00d6]/g, 'Oe').replace(/[\u00dc]/g, 'Ue')
+    .replace(/[\u00df]/g, 'ss')
+    .replace(/[^a-zA-Z0-9._ -]+/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^[-_.]+|[-_.]+$/g, '')
+    .slice(0, 80);
+  return s || fallback;
+}

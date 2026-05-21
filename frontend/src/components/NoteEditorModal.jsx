@@ -7,6 +7,7 @@ import {
   UserPlus, Pencil,
   Bold, Italic, Underline, Strikethrough, Code, Heading1, Heading2,
   List, ListOrdered, CheckSquare, Quote, Table, History, Sparkles, Loader2,
+  Download,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -14,7 +15,7 @@ import { useTaskStore } from '../store/taskStore';
 import { useAuthStore } from '../store/authStore';
 import { useFriendsStore } from '../store/friendsStore';
 import { useNotesStore } from '../store/notesStore';
-import { toDisplayHtml, sanitizeHtml } from '../lib/noteFormat';
+import { toDisplayHtml, sanitizeHtml, htmlToMarkdown, safeFileName } from '../lib/noteFormat';
 import { api } from '../utils/api';
 import NoteActivityPanel from './NoteActivityPanel';
 import NoteCommentsPanel from './NoteCommentsPanel';
@@ -608,6 +609,29 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
     onClose?.();
   };
 
+  // Export der Notiz als Markdown-Datei. Wandelt das aktuelle HTML in
+  // Markdown und triggert einen Browser-Download. Keine Server-Roundtrip.
+  const handleExportMarkdown = useCallback(() => {
+    try {
+      const md = htmlToMarkdown(content || '');
+      const titleStr = (title || '').trim();
+      const header = titleStr ? `# ${titleStr}\n\n` : '';
+      const meta = `<!-- exported from Beequ - ${new Date().toISOString()} -->\n\n`;
+      const body = header + meta + md;
+      const blob = new Blob([body], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${safeFileName(titleStr || 'notiz')}.md`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      console.warn('[NoteEditorModal] export markdown failed:', err);
+    }
+  }, [content, title]);
+
   // Caret an das Ende des Editors stellen (in eine neue leere
   // <p>-Zeile, falls der letzte Block nicht editierbar/leer ist).
   // Wird benutzt, wenn der User unter eine Tabelle / Liste / Quote klickt
@@ -920,8 +944,18 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
               <button
                 type="button"
                 className="nem-icon-btn"
+                onClick={handleExportMarkdown}
+                title="Als Markdown exportieren"
+                aria-label="Notiz als Markdown-Datei exportieren"
+              >
+                <Download size={18} />
+              </button>
+              <button
+                type="button"
+                className="nem-icon-btn"
                 onClick={handleClose}
                 title="Schliessen (Esc)"
+                aria-label="Editor schliessen"
               >
                 <X size={18} />
               </button>
