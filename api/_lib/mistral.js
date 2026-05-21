@@ -653,11 +653,75 @@ Regeln:
   return { rewritten, confidence: rewritten ? 0.8 : 0.0 };
 }
 
+function normalizeTag(tag) {
+  return String(tag || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\-äöüß ]+/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 24);
+}
+
+function buildFallbackNoteTags(input, reason = 'fallback') {
+  const text = stripHtmlForAi(input);
+  if (!text) return { tags: [], confidence: 0.0, source: reason };
+
+  const stop = new Set([
+    'und', 'oder', 'aber', 'dass', 'das', 'der', 'die', 'den', 'dem', 'des', 'ein', 'eine',
+    'einer', 'einem', 'einen', 'ist', 'sind', 'war', 'waren', 'mit', 'fuer', 'auf', 'bei',
+    'von', 'vom', 'zum', 'zur', 'im', 'in', 'am', 'an', 'aus', 'als', 'auch', 'nicht',
+    'noch', 'nur', 'bitte', 'heute', 'morgen', 'gestern', 'dann', 'wenn', 'weil', 'ueber',
+    'unter', 'ohne', 'wie', 'ich', 'du', 'er', 'sie', 'es', 'wir', 'ihr', 'mein', 'dein',
+    'sein', 'ihr', 'unser', 'euer', 'todo', 'notiz', 'notizen', 'task', 'tasks',
+  ]);
+
+  const hashTags = [];
+  const hashRe = /#([a-z0-9äöüß\-]{2,24})/gi;
+  let m = hashRe.exec(text);
+  while (m) {
+    hashTags.push(normalizeTag(m[1]));
+    m = hashRe.exec(text);
+  }
+
+  const freq = new Map();
+  const words = text
+    .toLowerCase()
+    .replace(/[^a-z0-9äöüß\-\s]+/g, ' ')
+    .split(/\s+/)
+    .map((w) => w.trim())
+    .filter(Boolean);
+
+  for (const raw of words) {
+    const token = normalizeTag(raw);
+    if (token.length < 3 || /^\d+$/.test(token) || stop.has(token)) continue;
+    freq.set(token, (freq.get(token) || 0) + 1);
+  }
+
+  const ranked = [...freq.entries()]
+    .sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)
+    .map(([token]) => token);
+
+  const unique = [];
+  for (const t of [...hashTags, ...ranked]) {
+    if (!t || unique.includes(t)) continue;
+    unique.push(t);
+    if (unique.length >= 6) break;
+  }
+
+  return {
+    tags: unique,
+    confidence: unique.length > 0 ? 0.35 : 0.1,
+    source: reason,
+  };
+}
+
 async function suggestNoteTagsWithAI(input) {
   const key = process.env.MISTRAL_API_KEY;
-  if (!key) throw new Error('MISTRAL_API_KEY nicht konfiguriert');
   const text = stripHtmlForAi(input);
   if (!text) return { tags: [], confidence: 0.0 };
+  if (!key) return buildFallbackNoteTags(text, 'missing_api_key');
 
   const systemPrompt = `Du schlaegst Tags fuer Notizen vor.
 
@@ -673,38 +737,40 @@ JSON Format:
   "confidence": 0.0-1.0
 }`;
 
-  const response = await fetch(MISTRAL_API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-    body: JSON.stringify({
-      model: 'mistral-small-latest',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: text },
-      ],
-      temperature: 0.2,
-      max_tokens: 200,
-      response_format: { type: 'json_object' },
-    }),
-  });
-  if (!response.ok) throw new Error(`Mistral API Fehler: ${response.status}`);
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error('Keine Antwort von Mistral');
   try {
+    const response = await fetch(MISTRAL_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        model: 'mistral-small-latest',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: text },
+        ],
+        temperature: 0.2,
+        max_tokens: 200,
+        response_format: { type: 'json_object' },
+      }),
+    });
+    if (!response.ok) throw new Error(`Mistral API Fehler: ${response.status}`);
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) throw new Error('Keine Antwort von Mistral');
     const parsed = JSON.parse(content);
     const tags = Array.isArray(parsed.tags)
       ? parsed.tags
-          .map((t) => String(t || '').trim().toLowerCase().replace(/[^a-z0-9\-äöüß ]+/g, '').replace(/\s+/g, '-'))
+          .map((t) => normalizeTag(t))
           .filter((t) => t.length >= 2 && t.length <= 24)
           .slice(0, 6)
       : [];
+    if (tags.length === 0) return buildFallbackNoteTags(text, 'ai_empty_tags');
     return {
       tags,
       confidence: Number(parsed.confidence) || 0.5,
     };
-  } catch {
-    return { tags: [], confidence: 0.2 };
+  } catch (err) {
+    console.warn('suggestNoteTagsWithAI fallback aktiv:', err?.message || err);
+    return buildFallbackNoteTags(text, 'ai_error');
   }
 }
 
