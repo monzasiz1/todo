@@ -960,6 +960,38 @@ export default function NotesPage() {
   const [showArchive, setShowArchive] = useState(false);
   // Mobile: zeigt Bottom-Sheet mit Zoom/Layout/Connect/Whiteboard/Archiv
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
+  // Swipe-to-dismiss State fuer das Bottom-Sheet.
+  // dragY = aktuelles Drag-Offset in px (>=0). Wenn > 120 oder Velocity
+  // beim Release > 0.5 px/ms, schliessen wir das Sheet.
+  const [sheetDragY, setSheetDragY] = useState(0);
+  const sheetDragRef = useRef({ startY: 0, lastY: 0, lastT: 0, active: false });
+  const handleSheetTouchStart = useCallback((e) => {
+    const t = e.touches?.[0];
+    if (!t) return;
+    sheetDragRef.current = { startY: t.clientY, lastY: t.clientY, lastT: performance.now(), active: true };
+  }, []);
+  const handleSheetTouchMove = useCallback((e) => {
+    if (!sheetDragRef.current.active) return;
+    const t = e.touches?.[0];
+    if (!t) return;
+    const dy = Math.max(0, t.clientY - sheetDragRef.current.startY);
+    sheetDragRef.current.lastY = t.clientY;
+    sheetDragRef.current.lastT = performance.now();
+    setSheetDragY(dy);
+  }, []);
+  const handleSheetTouchEnd = useCallback(() => {
+    if (!sheetDragRef.current.active) return;
+    const dragged = Math.max(0, sheetDragRef.current.lastY - sheetDragRef.current.startY);
+    const dt = Math.max(1, performance.now() - sheetDragRef.current.lastT);
+    const velocity = dragged / dt; // px/ms
+    sheetDragRef.current.active = false;
+    if (dragged > 120 || velocity > 0.5) {
+      setMobileMoreOpen(false);
+      setSheetDragY(0);
+    } else {
+      setSheetDragY(0);
+    }
+  }, []);
   // Suche im Board: dimmt nicht-passende Notes, behaelt aber alle
   // Positionen, damit das Layout nicht springt.
   const [searchQuery, setSearchQuery] = useState('');
@@ -1984,8 +2016,9 @@ export default function NotesPage() {
       {mobileMoreOpen && (
         <div
           className="board-mobile-sheet-backdrop"
-          onClick={() => setMobileMoreOpen(false)}
+          onClick={() => { setMobileMoreOpen(false); setSheetDragY(0); }}
           role="presentation"
+          style={sheetDragY > 0 ? { backgroundColor: `rgba(15,20,30,${Math.max(0.12, 0.45 - sheetDragY / 400)})` } : undefined}
         >
           <div
             className="board-mobile-sheet"
@@ -1993,6 +2026,11 @@ export default function NotesPage() {
             aria-modal="true"
             aria-label="Board-Aktionen"
             onClick={(e) => e.stopPropagation()}
+            style={sheetDragY > 0 ? { transform: `translateY(${sheetDragY}px)`, transition: 'none' } : undefined}
+            onTouchStart={handleSheetTouchStart}
+            onTouchMove={handleSheetTouchMove}
+            onTouchEnd={handleSheetTouchEnd}
+            onTouchCancel={handleSheetTouchEnd}
           >
             <div className="board-mobile-sheet-handle" aria-hidden="true" />
             <div className="board-mobile-sheet-title">Board-Aktionen</div>

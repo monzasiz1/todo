@@ -1352,7 +1352,10 @@ html[data-theme="dark"] .empty-board--no-results .empty-board-content {
     justify-content: center;
     position: fixed;
     inset: 0;
-    z-index: 240;
+    /* MUSS ueber der BottomNav (.bottom-nav z-index 10100) liegen,
+       sonst ueberlappt der Nav-FAB das Sheet und das Sheet wirkt
+       hinter dem Nav versteckt. */
+    z-index: 10200;
     background: rgba(15, 20, 30, 0.45);
     backdrop-filter: blur(2px);
     -webkit-backdrop-filter: blur(2px);
@@ -1368,13 +1371,19 @@ html[data-theme="dark"] .empty-board--no-results .empty-board-content {
     padding: 10px 16px calc(20px + env(safe-area-inset-bottom, 0px));
     box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.22);
     animation: nbSheetSlide 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
+    /* Glatte Rueckfederung wenn Swipe-Drag unter Schwelle losgelassen wird */
+    transition: transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
+    touch-action: pan-y;
+    will-change: transform;
   }
   .board-mobile-sheet-handle {
     width: 44px;
-    height: 4px;
+    height: 5px;
     border-radius: 999px;
-    background: var(--border, rgba(0, 0, 0, 0.18));
+    background: var(--border, rgba(0, 0, 0, 0.22));
     margin: 4px auto 12px;
+    /* Visueller Hinweis: hier kann gezogen werden */
+    cursor: grab;
   }
   .board-mobile-sheet-title {
     font-weight: 700;
