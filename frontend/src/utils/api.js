@@ -619,6 +619,28 @@ export const api = {
       body: JSON.stringify({ permissions }),
     }),
 
+  // Custom-Rollen pro Gruppe
+  createGroupRole: (groupId, data) =>
+    request(`/groups/${groupId}/roles`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateGroupRole: (groupId, roleId, data) =>
+    request(`/groups/${groupId}/roles/${roleId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  deleteGroupRole: (groupId, roleId) =>
+    request(`/groups/${groupId}/roles/${roleId}`, { method: 'DELETE' }),
+
+  assignGroupMemberCustomRole: (groupId, userId, customRoleId) =>
+    request(`/groups/${groupId}/members/${userId}/custom-role`, {
+      method: 'PATCH',
+      body: JSON.stringify({ custom_role_id: customRoleId }),
+    }),
+
   // Group Chat
   getGroupMessages: (groupId) => request(`/groups/${groupId}/messages`),
 

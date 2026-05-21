@@ -282,6 +282,51 @@ export const useGroupStore = create((set, get) => ({
     });
     return data.permissions;
   },
+
+  // Custom-Rollen pro Gruppe
+  createCustomRole: async (groupId, data) => {
+    const res = await api.createGroupRole(groupId, data);
+    set((s) => {
+      if (!s.currentGroup || s.currentGroup.id !== groupId) return s;
+      return { currentGroup: { ...s.currentGroup, custom_roles: res.roles } };
+    });
+    return res.role;
+  },
+
+  updateCustomRole: async (groupId, roleId, data) => {
+    const res = await api.updateGroupRole(groupId, roleId, data);
+    set((s) => {
+      if (!s.currentGroup || s.currentGroup.id !== groupId) return s;
+      return { currentGroup: { ...s.currentGroup, custom_roles: res.roles } };
+    });
+    return res.role;
+  },
+
+  deleteCustomRole: async (groupId, roleId) => {
+    const res = await api.deleteGroupRole(groupId, roleId);
+    set((s) => {
+      if (!s.currentGroup || s.currentGroup.id !== groupId) return s;
+      // Auch in-memory members updaten: alle die diese Rolle hatten -> null
+      const nextMembers = s.members.map((m) => (
+        m.custom_role_id === roleId ? { ...m, custom_role_id: null } : m
+      ));
+      return {
+        currentGroup: { ...s.currentGroup, custom_roles: res.roles },
+        members: nextMembers,
+      };
+    });
+    return res.roles;
+  },
+
+  assignCustomRole: async (groupId, userId, customRoleId) => {
+    const res = await api.assignGroupMemberCustomRole(groupId, userId, customRoleId);
+    set((s) => ({
+      members: s.members.map((m) => (
+        m.user_id === userId ? { ...m, custom_role_id: res.custom_role_id } : m
+      )),
+    }));
+    return res.custom_role_id;
+  },
 }));
 
 useGroupStore.subscribe((state) => {

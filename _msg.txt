@@ -1,6 +1,21 @@
-﻿Groups: Runtime-ALTER TABLE entfernt, Schema nur noch via Migration
+﻿Gruppen: kompakte Berechtigungen + benutzerdefinierte Rollen
 
-- ensureMemberPermsColumn und memberPermsColumnEnsured aus api/groups.js entfernt
-- getGroupMemberPerms faellt bei fehlender Spalte (42703) auf Defaults zurueck und loggt eine Warnung
-- backend/models/add_group_member_permissions.sql ist jetzt PFLICHT-Migration
-- Sicherer (kein ALTER-Recht im Production-User noetig) und schneller (kein Check pro Cold-Start)
+Backend (api/groups.js, api/tasks.js):
+- Neue Helper sanitizeRolePerms, sanitizeRole, getGroupCustomRoles, getEffectivePerms
+- assertMemberCan und Task-POST nutzen getEffectivePerms (Custom-Rollen wirken)
+- POST/PUT/DELETE /api/groups/:id/roles fuer Custom-Rollen-CRUD (Admin/Owner)
+- PATCH /api/groups/:id/members/:userId/custom-role fuer Zuweisung
+- GET /api/groups/:id liefert jetzt custom_roles und custom_role_id pro Member
+- module.exports erweitert um getEffectivePerms, getGroupCustomRoles
+- Migration backend/models/add_group_custom_roles.sql (groups.custom_roles JSONB, group_members.custom_role_id TEXT + Index)
+
+Frontend:
+- api.js: createGroupRole, updateGroupRole, deleteGroupRole, assignGroupMemberCustomRole
+- groupStore: createCustomRole, updateCustomRole, deleteCustomRole, assignCustomRole
+- GroupsPage: GroupPermissionsPanel komplett neu (kompakte Icon-Toggle-Pills, einklappbar, zeigt aktive Permissions)
+- Neuer GroupCustomRolesPanel mit Inline-Editor je Rolle (Name max 40, Farbpicker, Permission-Pills)
+- MemberCustomRoleSelect in Member-Reihen (zeigt zugewiesene Custom-Rolle, Standard-Option)
+- Lucide-Icons erweitert: MessageCircle, FileText, Save, Palette
+
+User-Action erforderlich:
+- backend/models/add_group_custom_roles.sql im Supabase SQL-Editor ausfuehren

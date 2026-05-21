@@ -116,6 +116,73 @@ async function getGroupMemberPerms(pool, groupId) {
     return { ...DEFAULT_MEMBER_PERMS };
   }
 }
+
+// Custom-Rollen pro Gruppe (siehe backend/models/add_group_custom_roles.sql)
+function sanitizeRolePerms(input) {
+  const out = {};
+  for (const key of Object.keys(DEFAULT_MEMBER_PERMS)) {
+    if (typeof input?.[key] === 'boolean') out[key] = input[key];
+    else out[key] = DEFAULT_MEMBER_PERMS[key];
+  }
+  return out;
+}
+function sanitizeRole(input) {
+  const name = String(input?.name || '').trim().slice(0, 40);
+  if (!name) return null;
+  const color = /^#[0-9a-f]{6}$/i.test(input?.color || '') ? input.color : '#8E8E93';
+  return {
+    id: input?.id && typeof input.id === 'string' ? input.id : null,
+    name,
+    color,
+    permissions: sanitizeRolePerms(input?.permissions || {}),
+  };
+}
+async function getGroupCustomRoles(pool, groupId) {
+  try {
+    const r = await pool.query('SELECT custom_roles FROM groups WHERE id = $1', [groupId]);
+    let raw = r.rows[0]?.custom_roles;
+    if (typeof raw === 'string') { try { raw = JSON.parse(raw); } catch { raw = []; } }
+    if (!Array.isArray(raw)) return [];
+    return raw.map((r2) => sanitizeRole(r2)).filter(Boolean);
+  } catch (err) {
+    if (err && err.code === '42703') {
+      console.warn('[groups] custom_roles column missing - run backend/models/add_group_custom_roles.sql');
+    }
+    return [];
+  }
+}
+// Liefert effektive Permissions fuer einen User in einer Gruppe.
+// Owner/Admin = alle true. Member mit custom_role_id = deren Perms.
+// Sonst groups.member_permissions.
+async function getEffectivePerms(pool, groupId, userId) {
+  try {
+    const r = await pool.query(
+      `SELECT gm.role, gm.custom_role_id
+       FROM group_members gm
+       WHERE gm.group_id = $1 AND gm.user_id = $2`,
+      [groupId, userId]
+    );
+    const row = r.rows[0];
+    if (!row) return null;
+    if (row.role === 'owner' || row.role === 'admin') {
+      const all = {};
+      for (const k of Object.keys(DEFAULT_MEMBER_PERMS)) all[k] = true;
+      return { role: row.role, perms: all, source: 'admin' };
+    }
+    if (row.custom_role_id) {
+      const roles = await getGroupCustomRoles(pool, groupId);
+      const found = roles.find((rr) => rr.id === row.custom_role_id);
+      if (found) {
+        return { role: row.role, perms: { ...DEFAULT_MEMBER_PERMS, ...found.permissions }, source: 'custom_role', roleId: found.id, roleName: found.name };
+      }
+    }
+    const perms = await getGroupMemberPerms(pool, groupId);
+    return { role: row.role, perms, source: 'default' };
+  } catch (err) {
+    console.error('getEffectivePerms error:', err.message);
+    return null;
+  }
+}
 // Exportiert fuer andere API-Module (tasks.js, notes.js etc.) - werden NACH
 // der module.exports = handler Zeile am Datei-Ende erneut attached (siehe
 // unten), damit sie nicht durch die Handler-Zuweisung ueberschrieben werden.
@@ -141,21 +208,20 @@ module.exports = async function handler(req, res) {
   }
 
   // Helper: prueft Member-Berechtigung. Owner/Admin haben immer alle Rechte.
-  // Bei "member" wird die Permission-Flag aus groups.member_permissions geprueft.
-  // Sendet 403 und returnt null bei Verweigerung; sonst returnt das membership-Objekt.
+  // Bei "member" wird die effektive Permission (Custom-Rolle oder Default)
+  // geprueft. Sendet 403 und returnt null bei Verweigerung; sonst membership.
   async function assertMemberCan(groupId, permKey, errorMsg) {
-    const membership = await getMembership(groupId);
-    if (!membership) {
+    const eff = await getEffectivePerms(pool, groupId, user.id);
+    if (!eff) {
       res.status(403).json({ error: 'Kein Zugriff' });
       return null;
     }
-    if (membership.role === 'owner' || membership.role === 'admin') return membership;
-    const perms = await getGroupMemberPerms(pool, groupId);
-    if (!perms[permKey]) {
+    if (eff.role === 'owner' || eff.role === 'admin') return { role: eff.role };
+    if (!eff.perms[permKey]) {
       res.status(403).json({ error: errorMsg || 'Diese Aktion ist fuer Mitglieder in dieser Gruppe gesperrt' });
       return null;
     }
-    return membership;
+    return { role: eff.role };
   }
 
   async function isGroupNotificationEnabled(userId, type) {
@@ -550,12 +616,25 @@ module.exports = async function handler(req, res) {
       if (groupResult.rows.length === 0) return res.status(404).json({ error: 'Gruppe nicht gefunden' });
 
       const membersResult = await pool.query(
-        `SELECT gm.role, gm.joined_at, u.id as user_id, u.name, u.email, u.avatar_color, u.avatar_url
+        `SELECT gm.role, gm.joined_at, gm.custom_role_id, u.id as user_id, u.name, u.email, u.avatar_color, u.avatar_url
          FROM group_members gm JOIN users u ON u.id = gm.user_id
          WHERE gm.group_id = $1
          ORDER BY CASE gm.role WHEN 'owner' THEN 1 WHEN 'admin' THEN 2 ELSE 3 END, gm.joined_at`,
         [groupId]
-      );
+      ).catch(async (err) => {
+        // Fallback wenn custom_role_id Spalte fehlt
+        if (err && err.code === '42703') {
+          console.warn('[groups] custom_role_id missing - run backend/models/add_group_custom_roles.sql');
+          return pool.query(
+            `SELECT gm.role, gm.joined_at, NULL::text as custom_role_id, u.id as user_id, u.name, u.email, u.avatar_color, u.avatar_url
+             FROM group_members gm JOIN users u ON u.id = gm.user_id
+             WHERE gm.group_id = $1
+             ORDER BY CASE gm.role WHEN 'owner' THEN 1 WHEN 'admin' THEN 2 ELSE 3 END, gm.joined_at`,
+            [groupId]
+          );
+        }
+        throw err;
+      });
 
       const tasksResult = await pool.query(
         `SELECT t.*, c.name as category_name, c.color as category_color,
@@ -633,18 +712,21 @@ module.exports = async function handler(req, res) {
       } catch { /* table may not exist yet */ }
 
       const memberPerms = await getGroupMemberPerms(pool, groupId);
+      const customRoles = await getGroupCustomRoles(pool, groupId);
 
       return res.json({
         group: {
           ...groupResult.rows[0],
           chat_available: (await getUserPlan(pool, groupResult.rows[0].created_by)) === 'team',
           member_permissions: memberPerms,
+          custom_roles: customRoles,
         },
         members: membersResult.rows,
         tasks: tasksResult.rows,
         myRole: membership.role,
         subgroups: subgroupsResult.rows,
         memberPermissions: memberPerms,
+        customRoles: customRoles,
       });
     } catch (err) {
       console.error('Group detail error:', err);
@@ -705,6 +787,135 @@ module.exports = async function handler(req, res) {
     } catch (err) {
       console.error('Update group permissions error:', err);
       return res.status(500).json({ error: 'Fehler beim Aktualisieren der Berechtigungen' });
+    }
+  }
+
+  // ============================================
+  // POST /api/groups/:id/roles — Custom-Rolle anlegen (admin/owner)
+  // Body: { name, color, permissions }
+  // ============================================
+  if (segments.length === 2 && segments[1] === 'roles' && req.method === 'POST') {
+    try {
+      const groupId = segments[0];
+      const membership = await getMembership(groupId);
+      if (!membership || membership.role === 'member') {
+        return res.status(403).json({ error: 'Nur Admins koennen Rollen verwalten' });
+      }
+      const role = sanitizeRole(req.body || {});
+      if (!role) return res.status(400).json({ error: 'Rollenname erforderlich' });
+      role.id = crypto.randomBytes(8).toString('hex');
+      const current = await getGroupCustomRoles(pool, groupId);
+      if (current.length >= 20) return res.status(400).json({ error: 'Maximal 20 Rollen pro Gruppe' });
+      const next = [...current, role];
+      await pool.query(
+        `UPDATE groups SET custom_roles = $1::jsonb, updated_at = NOW() WHERE id = $2`,
+        [JSON.stringify(next), groupId]
+      );
+      return res.json({ role, roles: next });
+    } catch (err) {
+      console.error('Create role error:', err);
+      return res.status(500).json({ error: 'Fehler beim Anlegen der Rolle' });
+    }
+  }
+
+  // ============================================
+  // PUT /api/groups/:id/roles/:roleId — Custom-Rolle aktualisieren
+  // ============================================
+  if (segments.length === 3 && segments[1] === 'roles' && req.method === 'PUT') {
+    try {
+      const groupId = segments[0];
+      const roleId = segments[2];
+      const membership = await getMembership(groupId);
+      if (!membership || membership.role === 'member') {
+        return res.status(403).json({ error: 'Nur Admins koennen Rollen verwalten' });
+      }
+      const incoming = sanitizeRole({ ...(req.body || {}), id: roleId });
+      if (!incoming) return res.status(400).json({ error: 'Rollenname erforderlich' });
+      const current = await getGroupCustomRoles(pool, groupId);
+      const idx = current.findIndex((r) => r.id === roleId);
+      if (idx === -1) return res.status(404).json({ error: 'Rolle nicht gefunden' });
+      const next = current.slice();
+      next[idx] = { ...incoming, id: roleId };
+      await pool.query(
+        `UPDATE groups SET custom_roles = $1::jsonb, updated_at = NOW() WHERE id = $2`,
+        [JSON.stringify(next), groupId]
+      );
+      return res.json({ role: next[idx], roles: next });
+    } catch (err) {
+      console.error('Update role error:', err);
+      return res.status(500).json({ error: 'Fehler beim Aktualisieren der Rolle' });
+    }
+  }
+
+  // ============================================
+  // DELETE /api/groups/:id/roles/:roleId — Custom-Rolle loeschen
+  // (alle Member mit dieser Rolle werden auf Default zurueckgesetzt)
+  // ============================================
+  if (segments.length === 3 && segments[1] === 'roles' && req.method === 'DELETE') {
+    try {
+      const groupId = segments[0];
+      const roleId = segments[2];
+      const membership = await getMembership(groupId);
+      if (!membership || membership.role === 'member') {
+        return res.status(403).json({ error: 'Nur Admins koennen Rollen verwalten' });
+      }
+      const current = await getGroupCustomRoles(pool, groupId);
+      const next = current.filter((r) => r.id !== roleId);
+      await pool.query(
+        `UPDATE groups SET custom_roles = $1::jsonb, updated_at = NOW() WHERE id = $2`,
+        [JSON.stringify(next), groupId]
+      );
+      try {
+        await pool.query(
+          `UPDATE group_members SET custom_role_id = NULL WHERE group_id = $1 AND custom_role_id = $2`,
+          [groupId, roleId]
+        );
+      } catch (e) {
+        if (e && e.code !== '42703') console.error('Reset custom_role_id error:', e.message);
+      }
+      return res.json({ success: true, roles: next });
+    } catch (err) {
+      console.error('Delete role error:', err);
+      return res.status(500).json({ error: 'Fehler beim Loeschen der Rolle' });
+    }
+  }
+
+  // ============================================
+  // PATCH /api/groups/:id/members/:userId/custom-role — Custom-Rolle zuweisen
+  // Body: { custom_role_id: 'xxx' | null }
+  // ============================================
+  if (segments.length === 4 && segments[1] === 'members' && segments[3] === 'custom-role' && req.method === 'PATCH') {
+    try {
+      const groupId = segments[0];
+      const targetUserId = segments[2];
+      const membership = await getMembership(groupId);
+      if (!membership || membership.role === 'member') {
+        return res.status(403).json({ error: 'Nur Admins koennen Rollen zuweisen' });
+      }
+      const { custom_role_id: incomingRoleId } = req.body || {};
+      let nextRoleId = null;
+      if (incomingRoleId) {
+        const roles = await getGroupCustomRoles(pool, groupId);
+        if (!roles.find((r) => r.id === incomingRoleId)) {
+          return res.status(400).json({ error: 'Unbekannte Rolle' });
+        }
+        nextRoleId = incomingRoleId;
+      }
+      try {
+        await pool.query(
+          `UPDATE group_members SET custom_role_id = $1 WHERE group_id = $2 AND user_id = $3`,
+          [nextRoleId, groupId, targetUserId]
+        );
+      } catch (e) {
+        if (e && e.code === '42703') {
+          return res.status(500).json({ error: 'Schema fehlt: backend/models/add_group_custom_roles.sql ausfuehren' });
+        }
+        throw e;
+      }
+      return res.json({ success: true, custom_role_id: nextRoleId });
+    } catch (err) {
+      console.error('Assign custom role error:', err);
+      return res.status(500).json({ error: 'Fehler beim Zuweisen der Rolle' });
     }
   }
 
@@ -2023,4 +2234,6 @@ module.exports = async function handler(req, res) {
 // wird. So koennen andere Module via require('./groups').getGroupMemberPerms
 // auf die Permission-Logik zugreifen.
 module.exports.getGroupMemberPerms = getGroupMemberPerms;
+module.exports.getGroupCustomRoles = getGroupCustomRoles;
+module.exports.getEffectivePerms = getEffectivePerms;
 module.exports.DEFAULT_MEMBER_PERMS = DEFAULT_MEMBER_PERMS;

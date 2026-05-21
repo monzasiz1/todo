@@ -11,7 +11,8 @@ import {
   Shield, UserMinus, Settings, Trash2, LogOut, X,
   Calendar, CalendarCheck, Clock, Flag, Search, ArrowLeft, ListTodo,
   Camera, Tag, AlertTriangle, Pencil, ChevronsDown, ThumbsUp, Bell, EyeOff, RotateCcw,
-  Activity, CalendarClock, Sparkles
+  Activity, CalendarClock, Sparkles,
+  MessageCircle, FileText, Save, Palette,
 } from 'lucide-react';
 import { formatDistanceToNowStrict, isToday as isTodayDate, parseISO, format as formatDate } from 'date-fns';
 import { de as deLocale } from 'date-fns/locale';
@@ -1479,6 +1480,13 @@ function GroupDetail({ groupId, onBack }) {
                   <span className={`group-role-badge ${m.role}`}>
                     <RoleIcon size={11} /> {ROLE_CONFIG[m.role]?.label}
                   </span>
+                  {isAdmin && m.role === 'member' && Array.isArray(currentGroup?.custom_roles) && currentGroup.custom_roles.length > 0 && (
+                    <MemberCustomRoleSelect
+                      groupId={groupId}
+                      member={m}
+                      roles={currentGroup.custom_roles}
+                    />
+                  )}
                   {memberSubgroups.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
                       {memberSubgroups.map((sg) => (
@@ -1586,6 +1594,12 @@ function GroupDetail({ groupId, onBack }) {
                 groupId={groupId}
                 currentGroup={currentGroup}
                 isOwner={myRole === 'owner'}
+              />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <GroupCustomRolesPanel
+                groupId={groupId}
+                currentGroup={currentGroup}
               />
             </div>
             <GroupCategoryManager groupId={groupId} />
@@ -2154,17 +2168,17 @@ function SubgroupManager({ groupId, members, subgroups, onRefresh }) {
 }
 
 // ============================================
-// Group Member-Permissions Panel
-// Owner/Admin koennen pro Gruppe einstellen was normale Mitglieder duerfen.
+// Group Member-Permissions Panel (kompakt)
+// + Custom-Rollen Manager
 // ============================================
 const PERMISSION_DEFS = [
-  { key: 'create_tasks', label: 'Tasks/Events erstellen', desc: 'Mitglieder duerfen neue Tasks und Events in der Gruppe anlegen' },
-  { key: 'edit_own_tasks', label: 'Eigene Tasks bearbeiten', desc: 'Mitglieder duerfen eigene Gruppen-Tasks bearbeiten und loeschen' },
-  { key: 'manage_notes', label: 'Notizen verwalten', desc: 'Mitglieder duerfen Notizen in der Gruppe erstellen und bearbeiten' },
-  { key: 'chat', label: 'Chat-Nachrichten senden', desc: 'Mitglieder duerfen Nachrichten im Gruppen-Chat schreiben' },
-  { key: 'invite', label: 'Neue Mitglieder einladen', desc: 'Mitglieder duerfen Nutzer in die Gruppe einladen (sonst nur Admins)' },
-  { key: 'create_categories', label: 'Gruppen-Kategorien anlegen', desc: 'Mitglieder duerfen neue Kategorien fuer die Gruppe erstellen' },
-  { key: 'create_subgroups', label: 'Untergruppen anlegen', desc: 'Mitglieder duerfen neue Untergruppen erstellen' },
+  { key: 'create_tasks',      label: 'Tasks erstellen',     short: 'Tasks',     icon: ListTodo },
+  { key: 'edit_own_tasks',    label: 'Eigene Tasks bearbeiten', short: 'Bearb.', icon: Pencil },
+  { key: 'manage_notes',      label: 'Notizen verwalten',   short: 'Notizen',   icon: FileText },
+  { key: 'chat',              label: 'Chat senden',         short: 'Chat',      icon: MessageCircle },
+  { key: 'invite',            label: 'Mitglieder einladen', short: 'Einladen',  icon: UserPlus },
+  { key: 'create_categories', label: 'Kategorien anlegen',  short: 'Kategorien', icon: Tag },
+  { key: 'create_subgroups',  label: 'Untergruppen anlegen', short: 'Subgr.',   icon: Users },
 ];
 
 const DEFAULT_PERMISSIONS_FALLBACK = {
@@ -2177,7 +2191,38 @@ const DEFAULT_PERMISSIONS_FALLBACK = {
   create_subgroups: false,
 };
 
-function GroupPermissionsPanel({ groupId, currentGroup, isOwner }) {
+const ROLE_COLOR_PRESETS = ['#FF3B30', '#FF9500', '#FFCC00', '#34C759', '#007AFF', '#5856D6', '#AF52DE', '#FF2D55', '#8E8E93'];
+
+// Kompakte Permission-Pill (Icon + Kuerzel, toggle bei Klick)
+function PermissionPill({ def, active, onToggle, disabled, size = 'md' }) {
+  const Icon = def.icon;
+  const dim = size === 'sm' ? { pad: '6px 9px', icon: 13, font: 11 } : { pad: '8px 11px', icon: 15, font: 12 };
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      disabled={disabled}
+      title={def.label + (active ? ' (an)' : ' (aus)')}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: dim.pad, borderRadius: 999,
+        border: active ? '1px solid var(--accent, #007AFF)' : '1px solid var(--border, rgba(120,120,128,0.25))',
+        background: active ? 'rgba(0,122,255,0.14)' : 'transparent',
+        color: active ? 'var(--accent, #007AFF)' : 'var(--text-secondary, #8E8E93)',
+        fontSize: dim.font, fontWeight: 600,
+        cursor: disabled ? 'wait' : 'pointer',
+        opacity: disabled ? 0.6 : 1,
+        transition: 'all 140ms ease',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      <Icon size={dim.icon} />
+      <span>{def.short}</span>
+    </button>
+  );
+}
+
+function GroupPermissionsPanel({ groupId, currentGroup }) {
   const updateGroupPermissions = useGroupStore((s) => s.updateGroupPermissions);
   const addToast = useTaskStore((s) => s.addToast);
   const initial = useMemo(() => ({
@@ -2186,10 +2231,11 @@ function GroupPermissionsPanel({ groupId, currentGroup, isOwner }) {
   }), [currentGroup?.member_permissions]);
   const [perms, setPerms] = useState(initial);
   const [saving, setSaving] = useState(null);
+  const [expanded, setExpanded] = useState(false);
 
-  useEffect(() => {
-    setPerms(initial);
-  }, [initial]);
+  useEffect(() => { setPerms(initial); }, [initial]);
+
+  const activeCount = Object.values(perms).filter(Boolean).length;
 
   const togglePerm = async (key) => {
     if (saving) return;
@@ -2198,9 +2244,8 @@ function GroupPermissionsPanel({ groupId, currentGroup, isOwner }) {
     setSaving(key);
     try {
       await updateGroupPermissions(groupId, { [key]: next[key] });
-      addToast(`Berechtigung ${next[key] ? 'aktiviert' : 'deaktiviert'}`);
     } catch (err) {
-      setPerms(perms); // rollback
+      setPerms(perms);
       addToast(err?.message || 'Speichern fehlgeschlagen');
     } finally {
       setSaving(null);
@@ -2208,62 +2253,355 @@ function GroupPermissionsPanel({ groupId, currentGroup, isOwner }) {
   };
 
   return (
-    <div
-      style={{
-        background: 'var(--surface, #fff)',
-        border: '1px solid var(--border, rgba(120,120,128,0.18))',
-        borderRadius: 16,
-        padding: 16,
-        display: 'flex', flexDirection: 'column', gap: 14,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-        <div
-          style={{
-            width: 36, height: 36, borderRadius: 10,
-            background: 'rgba(0,122,255,0.12)', color: 'var(--accent, #007AFF)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-          }}
-        >
-          <Shield size={18} />
+    <div style={panelStyle}>
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+          background: 'transparent', border: 'none', padding: 0,
+          cursor: 'pointer', textAlign: 'left',
+        }}
+      >
+        <div style={iconBadgeStyle('rgba(0,122,255,0.12)', 'var(--accent, #007AFF)')}>
+          <Shield size={16} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h4 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Mitglieder-Berechtigungen</h4>
-          <p style={{ margin: '4px 0 0', fontSize: 13, opacity: 0.7 }}>
-            Lege fest was normale Mitglieder duerfen. Admins und der Owner haben immer alle Rechte.
-          </p>
+          <div style={{ fontSize: 14, fontWeight: 700 }}>Standard-Berechtigungen</div>
+          <div style={{ fontSize: 11, opacity: 0.65, marginTop: 1 }}>
+            {activeCount}/{PERMISSION_DEFS.length} aktiv &middot; gilt fuer Mitglieder ohne eigene Rolle
+          </div>
         </div>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {PERMISSION_DEFS.map((def) => {
-          const checked = !!perms[def.key];
-          return (
-            <label
+        <ChevronDown size={16} style={{
+          transform: expanded ? 'rotate(180deg)' : 'rotate(0)',
+          transition: 'transform 180ms', opacity: 0.6,
+        }} />
+      </button>
+
+      {expanded && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
+          {PERMISSION_DEFS.map((def) => (
+            <PermissionPill
               key={def.key}
+              def={def}
+              active={!!perms[def.key]}
+              disabled={!!saving}
+              onToggle={() => togglePerm(def.key)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GroupCustomRolesPanel({ groupId, currentGroup }) {
+  const createCustomRole = useGroupStore((s) => s.createCustomRole);
+  const updateCustomRole = useGroupStore((s) => s.updateCustomRole);
+  const deleteCustomRole = useGroupStore((s) => s.deleteCustomRole);
+  const addToast = useTaskStore((s) => s.addToast);
+  const roles = currentGroup?.custom_roles || [];
+  const [expanded, setExpanded] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [creating, setCreating] = useState(false);
+
+  const handleCreate = async () => {
+    try {
+      const role = await createCustomRole(groupId, {
+        name: `Rolle ${roles.length + 1}`,
+        color: ROLE_COLOR_PRESETS[roles.length % ROLE_COLOR_PRESETS.length],
+        permissions: { ...DEFAULT_PERMISSIONS_FALLBACK },
+      });
+      setEditingId(role.id);
+      setExpanded(true);
+    } catch (err) {
+      addToast(err?.message || 'Anlegen fehlgeschlagen');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return (
+    <div style={panelStyle}>
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+          background: 'transparent', border: 'none', padding: 0,
+          cursor: 'pointer', textAlign: 'left',
+        }}
+      >
+        <div style={iconBadgeStyle('rgba(175,82,222,0.14)', '#AF52DE')}>
+          <Crown size={16} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 700 }}>Benutzerdefinierte Rollen</div>
+          <div style={{ fontSize: 11, opacity: 0.65, marginTop: 1 }}>
+            {roles.length} {roles.length === 1 ? 'Rolle' : 'Rollen'} &middot; eigene Permission-Sets fuer Mitgliedergruppen
+          </div>
+        </div>
+        <ChevronDown size={16} style={{
+          transform: expanded ? 'rotate(180deg)' : 'rotate(0)',
+          transition: 'transform 180ms', opacity: 0.6,
+        }} />
+      </button>
+
+      {expanded && (
+        <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {roles.length === 0 && (
+            <div style={{
+              fontSize: 12, opacity: 0.65, padding: '12px 10px',
+              background: 'var(--hover, rgba(120,120,128,0.06))',
+              borderRadius: 10, textAlign: 'center',
+            }}>
+              Noch keine Rollen. Lege z.B. "Moderator", "Gast" oder "Editor" an.
+            </div>
+          )}
+          {roles.map((role) => (
+            <CustomRoleRow
+              key={role.id}
+              role={role}
+              expanded={editingId === role.id}
+              onToggle={() => setEditingId(editingId === role.id ? null : role.id)}
+              onUpdate={(data) => updateCustomRole(groupId, role.id, data)}
+              onDelete={async () => {
+                if (!window.confirm(`Rolle "${role.name}" wirklich loeschen? Zugewiesene Mitglieder fallen auf Standard zurueck.`)) return;
+                try {
+                  await deleteCustomRole(groupId, role.id);
+                  setEditingId(null);
+                  addToast('Rolle geloescht');
+                } catch (err) {
+                  addToast(err?.message || 'Loeschen fehlgeschlagen');
+                }
+              }}
+            />
+          ))}
+          <button
+            type="button"
+            onClick={() => { setCreating(true); handleCreate(); }}
+            disabled={creating}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              padding: '10px 12px', borderRadius: 10,
+              border: '1px dashed var(--border, rgba(120,120,128,0.35))',
+              background: 'transparent', color: 'var(--accent, #007AFF)',
+              fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            }}
+          >
+            <Plus size={15} /> Neue Rolle
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CustomRoleRow({ role, expanded, onToggle, onUpdate, onDelete }) {
+  const addToast = useTaskStore((s) => s.addToast);
+  const [name, setName] = useState(role.name);
+  const [color, setColor] = useState(role.color);
+  const [perms, setPerms] = useState({ ...DEFAULT_PERMISSIONS_FALLBACK, ...(role.permissions || {}) });
+  const [saving, setSaving] = useState(null);
+
+  useEffect(() => {
+    setName(role.name);
+    setColor(role.color);
+    setPerms({ ...DEFAULT_PERMISSIONS_FALLBACK, ...(role.permissions || {}) });
+  }, [role.id, role.name, role.color, role.permissions]);
+
+  const activeCount = Object.values(perms).filter(Boolean).length;
+
+  const togglePerm = async (key) => {
+    if (saving) return;
+    const next = { ...perms, [key]: !perms[key] };
+    setPerms(next);
+    setSaving(key);
+    try {
+      await onUpdate({ name, color, permissions: next });
+    } catch (err) {
+      setPerms(perms);
+      addToast(err?.message || 'Speichern fehlgeschlagen');
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  const saveMeta = async () => {
+    if (name === role.name && color === role.color) return;
+    setSaving('meta');
+    try {
+      await onUpdate({ name, color, permissions: perms });
+    } catch (err) {
+      addToast(err?.message || 'Speichern fehlgeschlagen');
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  return (
+    <div style={{
+      borderRadius: 12,
+      background: 'var(--hover, rgba(120,120,128,0.06))',
+      border: '1px solid var(--border, rgba(120,120,128,0.15))',
+      overflow: 'hidden',
+    }}>
+      <button
+        type="button"
+        onClick={onToggle}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+          padding: '8px 10px', background: 'transparent', border: 'none',
+          cursor: 'pointer', textAlign: 'left',
+        }}
+      >
+        <span style={{
+          width: 22, height: 22, borderRadius: '50%', background: role.color,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          color: '#fff', fontSize: 11, fontWeight: 700, flexShrink: 0,
+        }}>
+          {(role.name || '?').slice(0, 1).toUpperCase()}
+        </span>
+        <span style={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {role.name}
+        </span>
+        <span style={{ fontSize: 11, opacity: 0.6 }}>{activeCount}/{PERMISSION_DEFS.length}</span>
+        <ChevronDown size={14} style={{
+          transform: expanded ? 'rotate(180deg)' : 'rotate(0)',
+          transition: 'transform 180ms', opacity: 0.5,
+        }} />
+      </button>
+
+      {expanded && (
+        <div style={{ padding: '4px 10px 10px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input
+              type="text"
+              value={name}
+              maxLength={40}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={saveMeta}
+              placeholder="Rollenname"
               style={{
-                display: 'flex', alignItems: 'flex-start', gap: 12,
-                padding: '10px 12px', borderRadius: 10,
-                background: 'var(--hover, rgba(120,120,128,0.08))',
-                cursor: saving ? 'wait' : 'pointer',
-                opacity: saving === def.key ? 0.65 : 1,
+                flex: 1, minWidth: 0,
+                padding: '7px 10px', borderRadius: 8, fontSize: 13,
+                border: '1px solid var(--border, rgba(120,120,128,0.25))',
+                background: 'var(--surface, #fff)', color: 'var(--text, inherit)',
+              }}
+            />
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', maxWidth: 180 }}>
+              {ROLE_COLOR_PRESETS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => { setColor(c); onUpdate({ name, color: c, permissions: perms }).catch(() => {}); }}
+                  aria-label={`Farbe ${c}`}
+                  style={{
+                    width: 18, height: 18, borderRadius: '50%', background: c,
+                    border: color === c ? '2px solid var(--text, #000)' : '1px solid rgba(255,255,255,0.4)',
+                    cursor: 'pointer', padding: 0,
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+            {PERMISSION_DEFS.map((def) => (
+              <PermissionPill
+                key={def.key}
+                def={def}
+                active={!!perms[def.key]}
+                disabled={!!saving}
+                onToggle={() => togglePerm(def.key)}
+                size="sm"
+              />
+            ))}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              onClick={onDelete}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                padding: '6px 10px', borderRadius: 8,
+                background: 'rgba(255,59,48,0.12)', color: '#FF3B30',
+                border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
               }}
             >
-              <input
-                type="checkbox"
-                checked={checked}
-                disabled={!!saving}
-                onChange={() => togglePerm(def.key)}
-                style={{ marginTop: 2, accentColor: 'var(--accent, #007AFF)', width: 18, height: 18 }}
-              />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>{def.label}</div>
-                <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>{def.desc}</div>
-              </div>
-            </label>
-          );
-        })}
-      </div>
+              <Trash2 size={12} /> Rolle loeschen
+            </button>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+// Inline-Helpers
+const panelStyle = {
+  background: 'var(--surface, #fff)',
+  border: '1px solid var(--border, rgba(120,120,128,0.18))',
+  borderRadius: 14,
+  padding: 12,
+};
+const iconBadgeStyle = (bg, color) => ({
+  width: 30, height: 30, borderRadius: 9,
+  background: bg, color,
+  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+});
+
+// Compact custom-role assignment select in member rows
+function MemberCustomRoleSelect({ groupId, member, roles }) {
+  const assignCustomRole = useGroupStore((s) => s.assignCustomRole);
+  const addToast = useTaskStore((s) => s.addToast);
+  const currentId = member.custom_role_id || '';
+  const currentRole = roles.find((r) => r.id === currentId);
+  const [saving, setSaving] = useState(false);
+
+  const onChange = async (e) => {
+    const val = e.target.value || null;
+    setSaving(true);
+    try {
+      await assignCustomRole(groupId, member.user_id, val);
+    } catch (err) {
+      addToast(err?.message || 'Zuweisung fehlgeschlagen');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <span
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        marginTop: 6, fontSize: 11, fontWeight: 600,
+        padding: '2px 4px 2px 8px', borderRadius: 999,
+        background: currentRole ? `${currentRole.color}1a` : 'var(--hover, rgba(120,120,128,0.1))',
+        color: currentRole ? currentRole.color : 'var(--text-secondary, #8E8E93)',
+        border: currentRole ? `1px solid ${currentRole.color}55` : '1px solid var(--border, rgba(120,120,128,0.2))',
+      }}
+    >
+      {currentRole ? (
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: currentRole.color }} />
+      ) : (
+        <Crown size={10} />
+      )}
+      <select
+        value={currentId}
+        disabled={saving}
+        onChange={onChange}
+        style={{
+          background: 'transparent', border: 'none', outline: 'none',
+          fontSize: 11, fontWeight: 600, color: 'inherit', cursor: 'pointer',
+          padding: '2px 4px',
+        }}
+      >
+        <option value="">Standard</option>
+        {roles.map((r) => (
+          <option key={r.id} value={r.id}>{r.name}</option>
+        ))}
+      </select>
+    </span>
   );
 }
 

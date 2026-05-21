@@ -2317,10 +2317,10 @@ module.exports = async function handler(req, res) {
         // Owner/Admin haben immer das Recht Tasks zu erstellen.
         if (groupInfo.my_role === 'member') {
           try {
-            const { getGroupMemberPerms } = require('./groups');
-            if (typeof getGroupMemberPerms === 'function') {
-              const perms = await getGroupMemberPerms(pool, group_id);
-              if (!perms.create_tasks) {
+            const { getEffectivePerms } = require('./groups');
+            if (typeof getEffectivePerms === 'function') {
+              const eff = await getEffectivePerms(pool, group_id, user.id);
+              if (eff && !eff.perms.create_tasks) {
                 return res.status(403).json({ error: 'Tasks erstellen ist fuer Mitglieder in dieser Gruppe gesperrt' });
               }
             }
