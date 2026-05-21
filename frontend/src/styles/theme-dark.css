@@ -70,10 +70,13 @@ html[data-theme="dark"] body {
 }
 
 /* ── native UI / Form-Elemente ─────────────────────────────────────── */
+/* background-color absichtlich nicht gesetzt — Form-Elemente erben den
+   Hintergrund ihres Containers (Modal, Sheet, Card). Ein globales
+   var(--surface) hat sonst transparente Inputs in Glas-/Dialog-UIs mit
+   einer harten Fläche überschrieben. */
 html[data-theme="dark"] input,
 html[data-theme="dark"] textarea,
 html[data-theme="dark"] select {
-  background-color: var(--surface);
   color: var(--text);
   border-color: var(--border);
   caret-color: var(--primary);
