@@ -30,6 +30,29 @@ async function ensureNoteCommentsTable(pool) {
       )
     `);
     await pool.query('CREATE INDEX IF NOT EXISTS idx_note_comments_note_created ON note_comments (note_id, created_at ASC)');
+
+    // Unread-Tracking: pro (note, user) der Zeitstempel des letzten "Gesehen".
+    // Wird automatisch beim GET ?noteId=... aktualisiert.
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS note_comment_reads (
+        note_id TEXT NOT NULL,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        last_read_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (note_id, user_id)
+      )
+    `);
+
+    // Mentions: persistent gespeichert pro Kommentar+Empfaenger, damit das
+    // Unread-Aggregat ohne Re-Parse von @handles arbeiten kann.
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS note_comment_mentions (
+        comment_id BIGINT NOT NULL REFERENCES note_comments(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        PRIMARY KEY (comment_id, user_id)
+      )
+    `);
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_note_comment_mentions_user ON note_comment_mentions (user_id)');
+
     noteCommentsEnsuredAt = now;
   } catch (err) {
     console.warn('[note-comments] ensure failed:', err?.message || err);
@@ -101,6 +124,48 @@ module.exports = async (req, res) => {
     const pool = getPool();
     await ensureNoteCommentsTable(pool);
 
+    // GET /api/note-comments?action=unread
+    // Liefert pro Note Anzahl ungelesener Fremd-Kommentare + Mention-Flag
+    // fuer den aktuellen User. Selbst-Kommentare zaehlen nicht.
+    if (req.method === 'GET' && String(req.query?.action || '') === 'unread') {
+      try {
+        const userIdText = String(userId);
+        const rows = await pool.query(
+          `WITH accessible AS (
+             SELECT DISTINCT n.id::text AS note_id
+               FROM notes n
+               LEFT JOIN note_shares ns ON ns.note_id = n.id AND ns.friend_id::text = $1
+               LEFT JOIN tasks tk ON tk.id::text = n.linked_task_id::text
+              WHERE n.user_id::text = $1
+                 OR (ns.friend_id::text = $1 AND COALESCE(ns.status, 'accepted') = 'accepted')
+                 OR $2 = ANY(COALESCE(n.participant_ids, '{}'::integer[]))
+                 OR n.responsible_user_id = $2
+                 OR (n.visibility = 'group' AND tk.id IS NOT NULL AND tk.user_id = $2)
+           )
+           SELECT c.note_id,
+                  COUNT(*)::int AS unread_count,
+                  BOOL_OR(mm.user_id IS NOT NULL) AS has_mention
+             FROM note_comments c
+             JOIN accessible a ON a.note_id = c.note_id
+             LEFT JOIN note_comment_reads r
+                    ON r.note_id = c.note_id AND r.user_id = $2
+             LEFT JOIN note_comment_mentions mm
+                    ON mm.comment_id = c.id AND mm.user_id = $2
+            WHERE c.user_id <> $2
+              AND c.created_at > COALESCE(r.last_read_at, TIMESTAMP '1970-01-01')
+            GROUP BY c.note_id
+            HAVING COUNT(*) > 0
+            LIMIT 500`,
+          [userIdText, userId]
+        );
+        return res.status(200).json({ unread: rows.rows });
+      } catch (err) {
+        // Fallback: leere Liste, damit Client niemals broken ist.
+        console.warn('[note-comments] unread query failed:', err?.message || err);
+        return res.status(200).json({ unread: [] });
+      }
+    }
+
     // GET /api/note-comments?noteId=…
     if (req.method === 'GET') {
       const noteId = String(req.query?.noteId || '').trim();
@@ -120,6 +185,15 @@ module.exports = async (req, res) => {
           LIMIT 500`,
         [String(noteId)]
       );
+      // Mark-as-read: User hat die Kommentar-Liste eingesehen.
+      // Fire-and-forget, darf GET nicht blockieren.
+      pool.query(
+        `INSERT INTO note_comment_reads (note_id, user_id, last_read_at)
+         VALUES ($1, $2, NOW())
+         ON CONFLICT (note_id, user_id)
+         DO UPDATE SET last_read_at = EXCLUDED.last_read_at`,
+        [String(noteId), userId]
+      ).catch((err) => console.warn('[note-comments] mark-read failed:', err?.message || err));
       return res.status(200).json({ comments: rows.rows });
     }
 
@@ -178,6 +252,13 @@ module.exports = async (req, res) => {
           const targets = await resolveMentions(pool, handles, userId, noteIdStr);
           for (const t of targets) {
             if (t.id === userId) continue; // Self-Mention ignorieren
+            // Persistieren fuer Unread-Aggregat (Badge mit Mention-Akzent).
+            await pool.query(
+              `INSERT INTO note_comment_mentions (comment_id, user_id)
+               VALUES ($1, $2)
+               ON CONFLICT DO NOTHING`,
+              [created.id, t.id]
+            ).catch(() => null);
             await sendPushToUser(
               t.id,
               {

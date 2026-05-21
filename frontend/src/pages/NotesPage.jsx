@@ -142,7 +142,7 @@ function computeChecklistProgress(rawContent) {
   return { total, done, percent: Math.round((done / total) * 100) };
 }
 
-function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange, isSelected, onSelect, tasks = [], onOpenTask, boardScaleRef, gridPos = null, dragDisabled = false, onDragLive, onOpenEditor, isDimmed = false, noteTags = [], onTagClick }) {
+function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange, isSelected, onSelect, tasks = [], onOpenTask, boardScaleRef, gridPos = null, dragDisabled = false, onDragLive, onOpenEditor, isDimmed = false, noteTags = [], onTagClick, unreadCount = 0, hasUnreadMention = false }) {
   const [isEditing, setIsEditing] = useState(false);
   const [content, setContent] = useState(note.content || '');
   const [title, setTitle] = useState(note.title || '');
@@ -447,6 +447,20 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
         onOpenEditor?.(note.id);
       }}>
       
+      {unreadCount > 0 && (
+        <div
+          className={`note-unread-badge${hasUnreadMention ? ' has-mention' : ''}`}
+          title={hasUnreadMention
+            ? `${unreadCount} ungelesene Kommentare - du wurdest erwaehnt`
+            : `${unreadCount} ungelesene Kommentare`}
+          aria-label={hasUnreadMention
+            ? `${unreadCount} ungelesene Kommentare mit Erwaehnung`
+            : `${unreadCount} ungelesene Kommentare`}
+        >
+          {hasUnreadMention ? '@' : ''}{unreadCount > 99 ? '99+' : unreadCount}
+        </div>
+      )}
+
       {/* Visual indicator for linked tasks */}
       {linkedTasks.length > 0 && (
         <div className="note-linked-task-visual" title={`Verknüpft mit: ${linkedTasks.map(t => t.title).join(', ')}`}>
@@ -887,7 +901,9 @@ const StickyNote = memo(StickyNoteImpl, (prev, next) => (
   prev.isDimmed === next.isDimmed &&
   prev.onTagClick === next.onTagClick &&
   prev.noteTags?.length === next.noteTags?.length &&
-  (prev.noteTags || []).every((t, i) => t === (next.noteTags || [])[i])
+  (prev.noteTags || []).every((t, i) => t === (next.noteTags || [])[i]) &&
+  prev.unreadCount === next.unreadCount &&
+  prev.hasUnreadMention === next.hasUnreadMention
 ));
 
 const BOARD_W = 3200;
@@ -963,6 +979,50 @@ export default function NotesPage() {
   const [showMobileHint, setShowMobileHint] = useState(false);
   // Vollbild-Editor-Modal ("Notizblatt"): id der Notiz oder null.
   const [editorNoteId, setEditorNoteId] = useState(null);
+
+  // Unread-Comments-Map: noteId -> { count, hasMention }. Wird vom
+  // /api/note-comments?action=unread Endpoint befuellt und nach jedem
+  // Notes-Realtime-Tick oder Editor-Close refresht. Beim Oeffnen des
+  // Editors wird der Eintrag lokal entfernt (optimistic), Server-Seite
+  // markiert das GET im Modal als read.
+  const [unreadByNoteId, setUnreadByNoteId] = useState(() => new Map());
+  const refreshUnreadComments = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      const res = await fetch('/api/note-comments?action=unread', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const data = await res.json().catch(() => ({}));
+      const list = Array.isArray(data?.unread) ? data.unread : [];
+      const map = new Map();
+      for (const row of list) {
+        const noteId = String(row?.note_id ?? '');
+        if (!noteId) continue;
+        map.set(noteId, {
+          count: Number(row?.unread_count) || 0,
+          hasMention: Boolean(row?.has_mention),
+        });
+      }
+      setUnreadByNoteId(map);
+    } catch {
+      // Stiller Fail - Badges sind UX-Bonus, kein Pflicht-Feature.
+    }
+  }, []);
+
+  // Editor oeffnen + Unread-Eintrag optimistisch entfernen.
+  // Das eigentliche Markieren passiert serverseitig beim GET im Modal.
+  const openEditorClearUnread = useCallback((id) => {
+    setEditorNoteId(id);
+    setUnreadByNoteId((prev) => {
+      const key = String(id);
+      if (!prev.has(key)) return prev;
+      const next = new Map(prev);
+      next.delete(key);
+      return next;
+    });
+  }, []);
 
   // Bridge: ?openNote=ID -> Editor oeffnen (zB Aufruf aus TaskDetailModal).
   useEffect(() => {
@@ -1067,12 +1127,13 @@ export default function NotesPage() {
     fetchNotes();
     fetchTasks();
     fetchConnections?.();
+    refreshUnreadComments();
     if ('ontouchstart' in window && !localStorage.getItem('notes-mobile-hint-shown')) {
       setShowMobileHint(true);
       localStorage.setItem('notes-mobile-hint-shown', 'true');
       setTimeout(() => setShowMobileHint(false), 4000);
     }
-  }, [fetchNotes, fetchTasks, fetchConnections]);
+  }, [fetchNotes, fetchTasks, fetchConnections, refreshUnreadComments]);
 
   // Auto-Refresh: wenn der Tab/Fenster wieder Fokus bekommt oder sichtbar
   // wird, Notes & Tasks neu laden. Loest "andere User schreibt Note, ich
@@ -1087,12 +1148,14 @@ export default function NotesPage() {
       if (document.visibilityState === 'hidden') return;
       try { fetchNotes?.({ force: true }); } catch {}
       try { fetchConnections?.(); } catch {}
+      try { refreshUnreadComments(); } catch {}
     };
     const onNotesChanged = () => {
       // Auch wenn Tab gerade nicht sichtbar ist: Store aktualisieren, damit
       // beim Re-Open sofort der frische Stand da ist.
       try { fetchNotes?.({ force: true }); } catch {}
       try { fetchConnections?.(); } catch {}
+      try { refreshUnreadComments(); } catch {}
     };
     const onReconnect = () => refresh();
 
@@ -1114,7 +1177,7 @@ export default function NotesPage() {
       window.removeEventListener('beequ:realtime-reconnected', onReconnect);
       window.clearInterval(pollId);
     };
-  }, [fetchNotes, fetchConnections]);
+  }, [fetchNotes, fetchConnections, refreshUnreadComments]);
 
   // ── helpers ──────────────────────────────────────────────────────────────
   const clampPan = useCallback((x, y, s) => {
@@ -2126,10 +2189,12 @@ export default function NotesPage() {
               gridPos={gridPositions ? gridPositions.get(String(note.id)) : null}
               dragDisabled={isGrid}
               onDragLive={handleDragLive}
-              onOpenEditor={setEditorNoteId}
+              onOpenEditor={openEditorClearUnread}
               isDimmed={matchedNoteIds != null && !matchedNoteIds.has(note.id)}
               noteTags={tagsByNoteId.get(note.id) || []}
               onTagClick={toggleTag}
+              unreadCount={unreadByNoteId.get(String(note.id))?.count || 0}
+              hasUnreadMention={!!unreadByNoteId.get(String(note.id))?.hasMention}
             />
           ))}
 
