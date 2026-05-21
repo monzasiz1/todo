@@ -1127,6 +1127,14 @@ html[data-theme="dark"] .nem-editor blockquote {
 @media (max-width: 380px) {
   .nem-importance-btn { padding: 6px 6px; font-size: 10px; }
   .nem-color-dot { width: 20px; height: 20px; }
+  .nem-link-chip-title,
+  .nem-link-chip-meta { max-width: 130px; }
+  .nem-share-chip-name { max-width: 80px; font-size: 11px; }
+  .nem-share-chip { padding: 4px 8px; }
+  .nem-link-add,
+  .nem-visibility-toggle { font-size: 12px; padding: 6px 10px; }
+  .nem-mobile-pill { height: 42px; min-width: 42px; padding: 0 10px; font-size: 13px; }
+  .nem-mobile-pill--done span { font-size: 14px; }
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -1827,20 +1835,33 @@ html[data-theme="dark"] .nem-ai-menu-item:hover { background: rgba(255,255,255,0
     display: none;
   }
 
-  /* Link-Row kompakter + horizontal scrollbar bei vielen Chips */
+  /* Link-Row kompakter — auf Mobile stapelt sich der Inhalt vertikal,
+     damit Termin-Anheften, Sichtbarkeits-Toggle und Share-Chips nicht
+     in eine ueberlaufende Einzeile gequetscht werden. */
   .nem-link-row {
     padding: 8px 14px;
-    gap: 6px;
+    gap: 8px;
+    flex-direction: column;
+    align-items: stretch;
     flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    overflow: visible;
   }
-  .nem-link-row::-webkit-scrollbar { display: none; }
   .nem-link-row > * { flex: 0 0 auto; }
+  .nem-link-row .nem-share-friends,
+  .nem-link-row .nem-share-friends-row {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
   .nem-link-chip-title,
   .nem-link-chip-meta {
-    max-width: 140px;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .nem-share-chip-name {
+    max-width: 120px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1887,8 +1908,11 @@ html[data-theme="dark"] .nem-ai-menu-item:hover { background: rgba(255,255,255,0
     border-width: 2px;
     padding: 0;
     width: 44px;
-    color: rgba(0,0,0,0.55);
+    /* Icon immer schwarz, damit es auf jeder Farb-Pille klar sichtbar
+       bleibt (gelb, weiss, rosa, …). */
+    color: #000;
   }
+  .nem-mobile-pill--color svg { stroke: #000; }
   .nem-mobile-pill--importance.is-low    { background: rgba(120,120,128,0.12); color: var(--text); }
   .nem-mobile-pill--importance.is-medium { background: rgba(255,159,10,0.18);  color: rgb(180,100,0); }
   .nem-mobile-pill--importance.is-high   { background: rgba(255,69,58,0.18);   color: rgb(200,40,40); }
