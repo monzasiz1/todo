@@ -83,6 +83,45 @@ function shiftDate(dateValue, days) {
 }
 const crypto = require('crypto');
 
+// ============================================================
+// Member-Permissions: pro Gruppe definiert der Owner/Admin, was
+// normale Mitglieder duerfen. Owner/Admin haben immer alle Rechte.
+// Persistiert als JSONB-Spalte `groups.member_permissions`.
+// ============================================================
+const DEFAULT_MEMBER_PERMS = {
+  create_tasks: true,         // Tasks/Events in Gruppe erstellen
+  edit_own_tasks: true,       // Eigene Gruppen-Tasks bearbeiten/loeschen
+  manage_notes: true,         // Notizen erstellen/bearbeiten (Gruppen-Kontext)
+  chat: true,                 // Gruppen-Chat Nachrichten senden
+  invite: false,              // Neue Mitglieder einladen
+  create_categories: false,   // Gruppen-Kategorien anlegen
+  create_subgroups: false,    // Untergruppen anlegen
+};
+let memberPermsColumnEnsured = false;
+async function ensureMemberPermsColumn(pool) {
+  if (memberPermsColumnEnsured) return;
+  try {
+    await pool.query(`ALTER TABLE groups ADD COLUMN IF NOT EXISTS member_permissions JSONB DEFAULT '{}'::jsonb`);
+    memberPermsColumnEnsured = true;
+  } catch (err) {
+    console.error('ensureMemberPermsColumn failed:', err.message);
+  }
+}
+async function getGroupMemberPerms(pool, groupId) {
+  try {
+    await ensureMemberPermsColumn(pool);
+    const r = await pool.query('SELECT member_permissions FROM groups WHERE id = $1', [groupId]);
+    let raw = r.rows[0]?.member_permissions;
+    if (typeof raw === 'string') { try { raw = JSON.parse(raw); } catch { raw = {}; } }
+    return { ...DEFAULT_MEMBER_PERMS, ...(raw || {}) };
+  } catch {
+    return { ...DEFAULT_MEMBER_PERMS };
+  }
+}
+// Exportiert fuer andere API-Module (tasks.js, notes.js etc.) - werden NACH
+// der module.exports = handler Zeile am Datei-Ende erneut attached (siehe
+// unten), damit sie nicht durch die Handler-Zuweisung ueberschrieben werden.
+
 module.exports = async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -101,6 +140,24 @@ module.exports = async function handler(req, res) {
       [groupId, user.id]
     );
     return r.rows[0] || null;
+  }
+
+  // Helper: prueft Member-Berechtigung. Owner/Admin haben immer alle Rechte.
+  // Bei "member" wird die Permission-Flag aus groups.member_permissions geprueft.
+  // Sendet 403 und returnt null bei Verweigerung; sonst returnt das membership-Objekt.
+  async function assertMemberCan(groupId, permKey, errorMsg) {
+    const membership = await getMembership(groupId);
+    if (!membership) {
+      res.status(403).json({ error: 'Kein Zugriff' });
+      return null;
+    }
+    if (membership.role === 'owner' || membership.role === 'admin') return membership;
+    const perms = await getGroupMemberPerms(pool, groupId);
+    if (!perms[permKey]) {
+      res.status(403).json({ error: errorMsg || 'Diese Aktion ist fuer Mitglieder in dieser Gruppe gesperrt' });
+      return null;
+    }
+    return membership;
   }
 
   async function isGroupNotificationEnabled(userId, type) {
@@ -577,15 +634,19 @@ module.exports = async function handler(req, res) {
         );
       } catch { /* table may not exist yet */ }
 
+      const memberPerms = await getGroupMemberPerms(pool, groupId);
+
       return res.json({
         group: {
           ...groupResult.rows[0],
           chat_available: (await getUserPlan(pool, groupResult.rows[0].created_by)) === 'team',
+          member_permissions: memberPerms,
         },
         members: membersResult.rows,
         tasks: tasksResult.rows,
         myRole: membership.role,
         subgroups: subgroupsResult.rows,
+        memberPermissions: memberPerms,
       });
     } catch (err) {
       console.error('Group detail error:', err);
@@ -615,6 +676,38 @@ module.exports = async function handler(req, res) {
     } catch (err) {
       console.error('Update group error:', err);
       return res.status(500).json({ error: 'Fehler beim Aktualisieren' });
+    }
+  }
+
+  // ============================================
+  // PUT /api/groups/:id/permissions — Member-Permissions setzen (admin/owner)
+  // Body: { permissions: { create_tasks: true, ... } }
+  // ============================================
+  if (segments.length === 2 && segments[1] === 'permissions' && req.method === 'PUT') {
+    try {
+      const groupId = segments[0];
+      const membership = await getMembership(groupId);
+      if (!membership || membership.role === 'member') {
+        return res.status(403).json({ error: 'Nur Admins koennen Berechtigungen aendern' });
+      }
+      const incoming = req.body?.permissions || req.body || {};
+      const sanitized = {};
+      for (const key of Object.keys(DEFAULT_MEMBER_PERMS)) {
+        if (typeof incoming[key] === 'boolean') sanitized[key] = incoming[key];
+      }
+      await ensureMemberPermsColumn(pool);
+      // Merge mit bestehenden Werten
+      const current = await getGroupMemberPerms(pool, groupId);
+      const merged = { ...current, ...sanitized };
+      // Nur die nicht-default Keys speichern haelt JSON klein; aber wir speichern alles fuer Klarheit.
+      await pool.query(
+        `UPDATE groups SET member_permissions = $1::jsonb, updated_at = NOW() WHERE id = $2`,
+        [JSON.stringify(merged), groupId]
+      );
+      return res.json({ permissions: merged });
+    } catch (err) {
+      console.error('Update group permissions error:', err);
+      return res.status(500).json({ error: 'Fehler beim Aktualisieren der Berechtigungen' });
     }
   }
 
@@ -722,10 +815,8 @@ module.exports = async function handler(req, res) {
   if (segments.length === 2 && segments[1] === 'categories' && req.method === 'POST') {
     try {
       const groupId = segments[0];
-      const membership = await getMembership(groupId);
-      if (!membership || membership.role === 'member') {
-        return res.status(403).json({ error: 'Nur Admins können Gruppenkategorien erstellen' });
-      }
+      const membership = await assertMemberCan(groupId, 'create_categories', 'Nur Admins koennen Gruppenkategorien erstellen');
+      if (!membership) return;
 
       const name = String(req.body?.name || '').trim();
       const color = String(req.body?.color || '#8E8E93').trim() || '#8E8E93';
@@ -836,8 +927,8 @@ module.exports = async function handler(req, res) {
   if (segments.length === 2 && segments[1] === 'subgroups' && req.method === 'POST') {
     try {
       const groupId = segments[0];
-      const membership = await getMembership(groupId);
-      if (!membership || membership.role === 'member') return res.status(403).json({ error: 'Kein Zugriff' });
+      const membership = await assertMemberCan(groupId, 'create_subgroups', 'Nur Admins koennen Untergruppen erstellen');
+      if (!membership) return;
       const { name, color, member_ids } = req.body;
       if (!name || !String(name).trim()) return res.status(400).json({ error: 'Name erforderlich' });
       const result = await pool.query(
@@ -1515,8 +1606,8 @@ module.exports = async function handler(req, res) {
   if (segments.length === 2 && segments[1] === 'messages' && req.method === 'POST') {
     try {
       const groupId = segments[0];
-      const membership = await getMembership(groupId);
-      if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
+      const membership = await assertMemberCan(groupId, 'chat', 'Chat ist fuer Mitglieder in dieser Gruppe gesperrt');
+      if (!membership) return;
 
       // Plan-Gate: Chat nur in Team-Gruppen verfuegbar
       if (!(await assertChatAvailable(pool, res, groupId))) return;
@@ -1703,10 +1794,8 @@ module.exports = async function handler(req, res) {
   if (segments.length === 2 && segments[1] === 'invite-user' && req.method === 'POST') {
     try {
       const groupId = segments[0];
-      const membership = await getMembership(groupId);
-      if (!membership || membership.role === 'member') {
-        return res.status(403).json({ error: 'Nur Admins können Nutzer einladen' });
-      }
+      const membership = await assertMemberCan(groupId, 'invite', 'Nur Admins koennen Nutzer einladen');
+      if (!membership) return;
       const { user_id: targetUserId } = req.body;
       if (!targetUserId) return res.status(400).json({ error: 'user_id erforderlich' });
 
@@ -1887,3 +1976,11 @@ module.exports = async function handler(req, res) {
 
   return res.status(404).json({ error: 'Route nicht gefunden' });
 };
+
+// Named exports fuer andere API-Module (tasks.js, notes.js etc.). Werden NACH
+// der module.exports = handler Zuweisung angehaengt, damit nichts ueberschrieben
+// wird. So koennen andere Module via require('./groups').getGroupMemberPerms
+// auf die Permission-Logik zugreifen.
+module.exports.getGroupMemberPerms = getGroupMemberPerms;
+module.exports.ensureMemberPermsColumn = ensureMemberPermsColumn;
+module.exports.DEFAULT_MEMBER_PERMS = DEFAULT_MEMBER_PERMS;

@@ -259,6 +259,29 @@ export const useGroupStore = create((set, get) => ({
     }
     return data;
   },
+
+  updateGroupPermissions: async (groupId, permissions) => {
+    const data = await api.updateGroupPermissions(groupId, permissions);
+    set((s) => {
+      const nextGroup = s.currentGroup && s.currentGroup.id === groupId
+        ? { ...s.currentGroup, member_permissions: data.permissions }
+        : s.currentGroup;
+      const detail = s.groupDetailsById?.[String(groupId)];
+      const nextDetailsById = detail
+        ? {
+            ...s.groupDetailsById,
+            [String(groupId)]: {
+              ...detail,
+              group: detail.group
+                ? { ...detail.group, member_permissions: data.permissions }
+                : detail.group,
+            },
+          }
+        : s.groupDetailsById;
+      return { currentGroup: nextGroup, groupDetailsById: nextDetailsById };
+    });
+    return data.permissions;
+  },
 }));
 
 useGroupStore.subscribe((state) => {

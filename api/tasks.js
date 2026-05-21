@@ -2301,7 +2301,7 @@ module.exports = async function handler(req, res) {
       let subgroupInfo = null;
       if (group_id) {
         const groupAccess = await pool.query(
-          `SELECT g.id, g.name, g.color, g.image_url
+          `SELECT g.id, g.name, g.color, g.image_url, gm.role AS my_role
            FROM groups g
            JOIN group_members gm ON gm.group_id = g.id
            WHERE g.id = $1 AND gm.user_id = $2
@@ -2312,6 +2312,22 @@ module.exports = async function handler(req, res) {
           return res.status(403).json({ error: 'Keine Berechtigung für diese Gruppe' });
         }
         groupInfo = groupAccess.rows[0];
+
+        // Member-Permission pruefen: nur normale Member sind einschraenkbar,
+        // Owner/Admin haben immer das Recht Tasks zu erstellen.
+        if (groupInfo.my_role === 'member') {
+          try {
+            const { getGroupMemberPerms } = require('./groups');
+            if (typeof getGroupMemberPerms === 'function') {
+              const perms = await getGroupMemberPerms(pool, group_id);
+              if (!perms.create_tasks) {
+                return res.status(403).json({ error: 'Tasks erstellen ist fuer Mitglieder in dieser Gruppe gesperrt' });
+              }
+            }
+          } catch (permErr) {
+            console.error('group perms lookup failed:', permErr.message);
+          }
+        }
 
         if (group_category_id !== undefined && group_category_id !== null && String(group_category_id) !== '') {
           const groupCategoryResult = await pool.query(

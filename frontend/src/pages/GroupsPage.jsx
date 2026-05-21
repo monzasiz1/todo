@@ -772,6 +772,7 @@ function GroupDetail({ groupId, onBack }) {
   const {
     currentGroup, members, groupTasks, myRole, subgroups, loading,
     fetchGroup, addGroupTask, changeMemberRole, removeMember, deleteGroup, updateGroup,
+    updateGroupPermissions,
   } = useGroupStore();
   const { user } = useAuthStore();
   const addToast = useTaskStore((s) => s.addToast);
@@ -1580,6 +1581,13 @@ function GroupDetail({ groupId, onBack }) {
             <div style={{ gridColumn: '1 / -1' }}>
               <SubgroupManager groupId={groupId} members={members} subgroups={subgroups} onRefresh={() => fetchGroup(groupId)} />
             </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <GroupPermissionsPanel
+                groupId={groupId}
+                currentGroup={currentGroup}
+                isOwner={myRole === 'owner'}
+              />
+            </div>
             <GroupCategoryManager groupId={groupId} />
             <GroupSettings
               group={currentGroup}
@@ -2141,6 +2149,120 @@ function SubgroupManager({ groupId, members, subgroups, onRefresh }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// ============================================
+// Group Member-Permissions Panel
+// Owner/Admin koennen pro Gruppe einstellen was normale Mitglieder duerfen.
+// ============================================
+const PERMISSION_DEFS = [
+  { key: 'create_tasks', label: 'Tasks/Events erstellen', desc: 'Mitglieder duerfen neue Tasks und Events in der Gruppe anlegen' },
+  { key: 'edit_own_tasks', label: 'Eigene Tasks bearbeiten', desc: 'Mitglieder duerfen eigene Gruppen-Tasks bearbeiten und loeschen' },
+  { key: 'manage_notes', label: 'Notizen verwalten', desc: 'Mitglieder duerfen Notizen in der Gruppe erstellen und bearbeiten' },
+  { key: 'chat', label: 'Chat-Nachrichten senden', desc: 'Mitglieder duerfen Nachrichten im Gruppen-Chat schreiben' },
+  { key: 'invite', label: 'Neue Mitglieder einladen', desc: 'Mitglieder duerfen Nutzer in die Gruppe einladen (sonst nur Admins)' },
+  { key: 'create_categories', label: 'Gruppen-Kategorien anlegen', desc: 'Mitglieder duerfen neue Kategorien fuer die Gruppe erstellen' },
+  { key: 'create_subgroups', label: 'Untergruppen anlegen', desc: 'Mitglieder duerfen neue Untergruppen erstellen' },
+];
+
+const DEFAULT_PERMISSIONS_FALLBACK = {
+  create_tasks: true,
+  edit_own_tasks: true,
+  manage_notes: true,
+  chat: true,
+  invite: false,
+  create_categories: false,
+  create_subgroups: false,
+};
+
+function GroupPermissionsPanel({ groupId, currentGroup, isOwner }) {
+  const updateGroupPermissions = useGroupStore((s) => s.updateGroupPermissions);
+  const addToast = useTaskStore((s) => s.addToast);
+  const initial = useMemo(() => ({
+    ...DEFAULT_PERMISSIONS_FALLBACK,
+    ...(currentGroup?.member_permissions || {}),
+  }), [currentGroup?.member_permissions]);
+  const [perms, setPerms] = useState(initial);
+  const [saving, setSaving] = useState(null);
+
+  useEffect(() => {
+    setPerms(initial);
+  }, [initial]);
+
+  const togglePerm = async (key) => {
+    if (saving) return;
+    const next = { ...perms, [key]: !perms[key] };
+    setPerms(next);
+    setSaving(key);
+    try {
+      await updateGroupPermissions(groupId, { [key]: next[key] });
+      addToast(`Berechtigung ${next[key] ? 'aktiviert' : 'deaktiviert'}`);
+    } catch (err) {
+      setPerms(perms); // rollback
+      addToast(err?.message || 'Speichern fehlgeschlagen');
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        background: 'var(--surface, #fff)',
+        border: '1px solid var(--border, rgba(120,120,128,0.18))',
+        borderRadius: 16,
+        padding: 16,
+        display: 'flex', flexDirection: 'column', gap: 14,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+        <div
+          style={{
+            width: 36, height: 36, borderRadius: 10,
+            background: 'rgba(0,122,255,0.12)', color: 'var(--accent, #007AFF)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}
+        >
+          <Shield size={18} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h4 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Mitglieder-Berechtigungen</h4>
+          <p style={{ margin: '4px 0 0', fontSize: 13, opacity: 0.7 }}>
+            Lege fest was normale Mitglieder duerfen. Admins und der Owner haben immer alle Rechte.
+          </p>
+        </div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {PERMISSION_DEFS.map((def) => {
+          const checked = !!perms[def.key];
+          return (
+            <label
+              key={def.key}
+              style={{
+                display: 'flex', alignItems: 'flex-start', gap: 12,
+                padding: '10px 12px', borderRadius: 10,
+                background: 'var(--hover, rgba(120,120,128,0.08))',
+                cursor: saving ? 'wait' : 'pointer',
+                opacity: saving === def.key ? 0.65 : 1,
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={checked}
+                disabled={!!saving}
+                onChange={() => togglePerm(def.key)}
+                style={{ marginTop: 2, accentColor: 'var(--accent, #007AFF)', width: 18, height: 18 }}
+              />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>{def.label}</div>
+                <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>{def.desc}</div>
+              </div>
+            </label>
+          );
+        })}
+      </div>
     </div>
   );
 }

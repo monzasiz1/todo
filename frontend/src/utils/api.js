@@ -613,6 +613,12 @@ export const api = {
   removeGroupMember: (groupId, userId) =>
     request(`/groups/${groupId}/members/${userId}`, { method: 'DELETE' }),
 
+  updateGroupPermissions: (groupId, permissions) =>
+    request(`/groups/${groupId}/permissions`, {
+      method: 'PUT',
+      body: JSON.stringify({ permissions }),
+    }),
+
   // Group Chat
   getGroupMessages: (groupId) => request(`/groups/${groupId}/messages`),
 
