@@ -34,8 +34,10 @@ body.note-editor-open .bottom-nav {
 
 /* Sheet */
 .nem-sheet {
-  width: min(720px, 100%);
-  max-height: calc(100dvh - 48px);
+  width: min(var(--nem-sheet-width, 760px), 100%);
+  height: min(var(--nem-sheet-height, calc(100dvh - 48px)), calc(100dvh - 32px));
+  max-height: calc(100dvh - 32px);
+  min-height: 560px;
   background: var(--surface, #ffffff);
   color: var(--text, #1c1c1e);
   border-radius: 16px;
@@ -48,6 +50,38 @@ body.note-editor-open .bottom-nav {
   overflow: hidden;
   position: relative; /* Anker fuer Mobile-Action-Sheet (.nem-mobile-sheet-backdrop) */
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "Inter", sans-serif;
+}
+
+@media (min-width: 1400px) {
+  .nem-sheet {
+    width: min(var(--nem-sheet-width, 980px), calc(100vw - 64px));
+  }
+}
+
+.nem-sheet.is-maximized {
+  width: min(calc(100vw - 24px), 1480px);
+  height: calc(100dvh - 24px);
+  max-height: calc(100dvh - 24px);
+}
+
+.nem-resize-handle {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 7px;
+  background:
+    linear-gradient(135deg, transparent 36%, rgba(120,120,128,0.45) 36%, rgba(120,120,128,0.45) 44%, transparent 44%),
+    linear-gradient(135deg, transparent 54%, rgba(120,120,128,0.6) 54%, rgba(120,120,128,0.6) 62%, transparent 62%),
+    linear-gradient(135deg, transparent 72%, rgba(120,120,128,0.8) 72%, rgba(120,120,128,0.8) 80%, transparent 80%);
+  opacity: 0.85;
+  cursor: nwse-resize;
+  z-index: 12;
+}
+.nem-resize-handle:hover {
+  opacity: 1;
 }
 
 /* Farb-Indikator-Streifen oben */
@@ -996,11 +1030,13 @@ html[data-theme="dark"] .nem-editor blockquote {
     width: 100%;
     max-width: 100%;
     max-height: 100dvh;
+    min-height: 100dvh;
     height: 100dvh;
     border-radius: 0;
     border: 0;
     box-shadow: none;
   }
+  .nem-resize-handle { display: none; }
   .nem-color-bar { height: 3px; }
   .nem-header {
     padding-top: max(12px, env(safe-area-inset-top, 0px));
@@ -2146,4 +2182,218 @@ html[data-theme="dark"] .nem-mobile-sheet-cancel {
   background: #2c2c2e;
   color: #f5f5f7;
   border-color: rgba(255,255,255,0.10);
+}
+
+/* ============================================================
+   NEM APPLE VISUAL REFRESH
+   Full redesign from color-bar to footer while keeping behavior
+   ============================================================ */
+.nem-sheet {
+  border-radius: 22px;
+  border: 1px solid color-mix(in srgb, var(--border-strong, rgba(0,0,0,0.14)) 82%, #ffffff);
+  background:
+    radial-gradient(1200px 380px at 10% -12%, color-mix(in srgb, var(--nem-accent, #007aff) 10%, transparent), transparent 65%),
+    linear-gradient(180deg, color-mix(in srgb, var(--surface, #ffffff) 96%, #f4f7ff), var(--surface, #ffffff));
+  box-shadow:
+    0 34px 80px rgba(15, 23, 42, 0.28),
+    0 8px 24px rgba(15, 23, 42, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+.nem-color-bar {
+  height: 6px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--nem-accent, #007aff) 75%, #ffffff), var(--nem-accent, #007aff) 55%, color-mix(in srgb, var(--nem-accent, #007aff) 80%, #1d4ed8));
+  box-shadow: 0 1px 0 rgba(255,255,255,0.55) inset;
+}
+
+.nem-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border, rgba(0,0,0,0.08)) 80%, transparent);
+  background: color-mix(in srgb, var(--surface, #ffffff) 86%, transparent);
+  backdrop-filter: blur(12px) saturate(1.25);
+  -webkit-backdrop-filter: blur(12px) saturate(1.25);
+}
+
+.nem-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.018em;
+}
+
+.nem-icon-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid color-mix(in srgb, var(--border, rgba(0,0,0,0.10)) 85%, transparent);
+  background: color-mix(in srgb, var(--surface, #fff) 90%, #edf2ff);
+  color: color-mix(in srgb, var(--text-secondary, #6b7280) 88%, #334155);
+  border-radius: 11px;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset;
+}
+.nem-icon-btn:hover {
+  background: color-mix(in srgb, var(--surface, #fff) 86%, #e5edff);
+  color: var(--text, #111827);
+}
+
+.nem-body {
+  padding: 18px 22px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-2, #f8f9fc) 60%, transparent), transparent 110px),
+    var(--surface, #ffffff);
+}
+
+.nem-toolbar {
+  top: -18px;
+  margin: -18px -22px 14px;
+  padding: 8px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border, rgba(0,0,0,0.08)) 82%, transparent);
+  background: color-mix(in srgb, var(--surface, #fff) 84%, #edf2ff);
+  backdrop-filter: blur(10px) saturate(1.22);
+  -webkit-backdrop-filter: blur(10px) saturate(1.22);
+}
+
+.nem-toolbar-btn {
+  width: 35px;
+  height: 35px;
+  border-radius: 10px;
+}
+
+.nem-editor {
+  font-size: 15.5px;
+  line-height: 1.7;
+  letter-spacing: 0.001em;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--border, rgba(0,0,0,0.08)) 72%, transparent);
+  background: color-mix(in srgb, var(--surface, #fff) 90%, #f8fbff);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.86) inset,
+    0 8px 18px rgba(15,23,42,0.04);
+  padding: 14px 14px 18px;
+}
+
+.nem-link-row {
+  padding: 12px 16px;
+  border-top: 1px solid color-mix(in srgb, var(--border, rgba(0,0,0,0.08)) 80%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-2, #f7f9fd) 78%, #ffffff), color-mix(in srgb, var(--surface, #fff) 92%, #f8fbff));
+  gap: 10px;
+}
+
+.nem-link-add,
+.nem-share-add,
+.nem-visibility-toggle,
+.nem-link-chip,
+.nem-share-chip {
+  min-height: 32px;
+  border-radius: 999px;
+}
+
+.nem-link-add,
+.nem-share-add,
+.nem-visibility-toggle {
+  font-weight: 650;
+  border-width: 1px;
+}
+
+.nem-link-chip {
+  border-color: color-mix(in srgb, var(--primary, #007aff) 65%, #7aaef5);
+  background: color-mix(in srgb, var(--primary-bg, rgba(0,122,255,0.12)) 86%, #ffffff);
+}
+
+.nem-link-chip-main,
+.nem-visibility-toggle,
+.nem-share-chip {
+  font-size: 12.5px;
+}
+
+.nem-act,
+.nem-cm {
+  margin: 10px 12px 0;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--border, rgba(0,0,0,0.08)) 80%, transparent);
+  background: color-mix(in srgb, var(--surface, #fff) 84%, #f6f9ff);
+  box-shadow: 0 6px 16px rgba(15,23,42,0.04);
+}
+
+.nem-act-toggle,
+.nem-cm-toggle {
+  padding: 11px 16px;
+  font-weight: 600;
+}
+
+.nem-footer {
+  gap: 10px;
+  padding: 12px 14px;
+  border-top: 1px solid color-mix(in srgb, var(--border, rgba(0,0,0,0.08)) 84%, transparent);
+  background: color-mix(in srgb, var(--surface, #fff) 84%, #edf3ff);
+  backdrop-filter: blur(12px) saturate(1.2);
+  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+}
+
+.nem-action-btn {
+  border-radius: 11px;
+  min-height: 36px;
+  font-weight: 650;
+  border: 1px solid color-mix(in srgb, var(--border-strong, rgba(0,0,0,0.10)) 84%, transparent);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.62) inset;
+}
+
+.nem-action-btn.primary {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--primary, #007aff) 82%, #4da3ff), var(--primary, #007aff));
+}
+
+@media (max-width: 720px) {
+  .nem-sheet {
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .nem-header {
+    padding: max(12px, env(safe-area-inset-top, 0px)) 12px 8px;
+    background: color-mix(in srgb, var(--surface, #fff) 92%, #eff4ff);
+  }
+  .nem-body {
+    padding: 8px 10px 10px;
+  }
+  .nem-toolbar {
+    margin: -8px -10px 10px;
+    top: -8px;
+    border-radius: 0;
+  }
+  .nem-editor {
+    padding: 12px;
+    min-height: calc(100dvh - 360px);
+  }
+  .nem-link-row {
+    padding: 10px;
+    gap: 8px;
+  }
+  .nem-act,
+  .nem-cm {
+    margin: 8px 8px 0;
+  }
+}
+
+html[data-theme="dark"] .nem-sheet {
+  border-color: rgba(255,255,255,0.12);
+  background:
+    radial-gradient(1200px 420px at 8% -14%, color-mix(in srgb, var(--nem-accent, #58a6ff) 18%, transparent), transparent 68%),
+    linear-gradient(180deg, rgba(22,27,39,0.98), rgba(19,24,35,0.98));
+  box-shadow:
+    0 34px 88px rgba(0,0,0,0.58),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+}
+html[data-theme="dark"] .nem-header,
+html[data-theme="dark"] .nem-footer,
+html[data-theme="dark"] .nem-toolbar,
+html[data-theme="dark"] .nem-link-row {
+  border-color: rgba(255,255,255,0.08);
+}
+html[data-theme="dark"] .nem-editor {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.10);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 10px 22px rgba(0,0,0,0.35);
+}
+html[data-theme="dark"] .nem-act,
+html[data-theme="dark"] .nem-cm {
+  border-color: rgba(255,255,255,0.09);
+  background: rgba(255,255,255,0.03);
 }

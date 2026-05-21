@@ -22,6 +22,8 @@ import NoteCommentsPanel from './NoteCommentsPanel';
 import NoteVersionsPanel from './NoteVersionsPanel';
 import '../styles/note-editor-modal.css';
 
+const NOTE_EDITOR_SIZE_KEY = 'note_editor_modal_size_v1';
+
 const NOTE_COLORS = [
   { name: 'Gelb', bg: '#FFFE94', border: '#E6D35C' },
   { name: 'Blau', bg: '#B3D9F7', border: '#5DADE2' },
@@ -245,6 +247,7 @@ function FormatToolbar({ onAction, onAiAction, aiBusy = false }) {
 }
 
 export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onComplete, readOnly: readOnlyProp = false }) {
+  const sheetRef = useRef(null);
   // Color-DB-Spalte: wenn note.color gesetzt ist, hat sie Vorrang vor
   // Legacy '[COLOR:Name]'-Prefix im content. Backend strippt den Prefix
   // beim Save und backfilled die Spalte beim ersten GET; parseColor
@@ -282,6 +285,8 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   const [saveState, setSaveState] = useState('idle'); // 'idle' | 'saving' | 'saved'
   const [taskPickerOpen, setTaskPickerOpen] = useState(false);
   const [taskQuery, setTaskQuery] = useState('');
+  const [viewportWidth, setViewportWidth] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1024));
+  const [sheetSize, setSheetSize] = useState({ width: null, height: null, maximized: false });
   // Versions-Panel (Verlauf) als Slide-in im Header.
   const [showVersions, setShowVersions] = useState(false);
   const [versionsBust, setVersionsBust] = useState(0);
@@ -292,6 +297,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   // Swipe-to-dismiss fuer das Mobile-Action-Sheet (siehe NotesPage).
   // dragY = Drag-Offset >= 0. Release-Schwellen: > 120 px ODER > 0.5 px/ms.
   const [sheetDragY, setSheetDragY] = useState(0);
+  const resizeDragRef = useRef(null);
   const sheetDragRef = useRef({ startY: 0, lastY: 0, lastT: 0, active: false });
   const handleSheetTouchStart = useCallback((e) => {
     const t = e.touches?.[0];
@@ -299,6 +305,78 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
     e.stopPropagation();
     sheetDragRef.current = { startY: t.clientY, lastY: t.clientY, lastT: performance.now(), active: true };
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = window.localStorage.getItem(NOTE_EDITOR_SIZE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return;
+      setSheetSize((prev) => ({
+        ...prev,
+        width: Number.isFinite(parsed.width) ? parsed.width : null,
+        height: Number.isFinite(parsed.height) ? parsed.height : null,
+        maximized: parsed.maximized === true,
+      }));
+    } catch {
+      // ignore invalid localStorage payload
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(NOTE_EDITOR_SIZE_KEY, JSON.stringify(sheetSize));
+    } catch {
+      // localStorage may be unavailable
+    }
+  }, [sheetSize]);
+
+  const canResizeDesktop = viewportWidth >= 1200;
+
+  const startSheetResize = useCallback((e) => {
+    if (!canResizeDesktop || !sheetRef.current) return;
+    e.preventDefault();
+    const rect = sheetRef.current.getBoundingClientRect();
+    resizeDragRef.current = {
+      left: rect.left,
+      top: rect.top,
+    };
+
+    const onMove = (ev) => {
+      const drag = resizeDragRef.current;
+      if (!drag) return;
+      const minWidth = 820;
+      const minHeight = 560;
+      const maxWidth = Math.max(minWidth, window.innerWidth - 32);
+      const maxHeight = Math.max(minHeight, window.innerHeight - 32);
+      const nextWidth = Math.max(minWidth, Math.min(maxWidth, ev.clientX - drag.left));
+      const nextHeight = Math.max(minHeight, Math.min(maxHeight, ev.clientY - drag.top));
+      setSheetSize({ width: nextWidth, height: nextHeight, maximized: false });
+    };
+
+    const onUp = () => {
+      resizeDragRef.current = null;
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }, [canResizeDesktop]);
+
+  const toggleMaximized = useCallback(() => {
+    if (!canResizeDesktop) return;
+    setSheetSize((prev) => ({ ...prev, maximized: !prev.maximized }));
+  }, [canResizeDesktop]);
   const handleSheetTouchMove = useCallback((e) => {
     if (!sheetDragRef.current.active) return;
     const t = e.touches?.[0];
@@ -974,8 +1052,13 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
         onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
       >
         <motion.div
-          className="nem-sheet"
-          style={{ '--nem-accent': color.border }}
+          ref={sheetRef}
+          className={`nem-sheet${canResizeDesktop ? ' is-desktop-resizable' : ''}${sheetSize.maximized ? ' is-maximized' : ''}`}
+          style={{
+            '--nem-accent': color.border,
+            ...(sheetSize.width ? { '--nem-sheet-width': `${sheetSize.width}px` } : {}),
+            ...(sheetSize.height ? { '--nem-sheet-height': `${sheetSize.height}px` } : {}),
+          }}
           initial={{ y: 24, opacity: 0, scale: 0.98 }}
           animate={{ y: 0, opacity: 1, scale: 1 }}
           exit={{ y: 24, opacity: 0, scale: 0.98 }}
@@ -1028,6 +1111,17 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
               >
                 <Download size={18} />
               </button>
+              {canResizeDesktop && (
+                <button
+                  type="button"
+                  className="nem-icon-btn"
+                  onClick={toggleMaximized}
+                  title={sheetSize.maximized ? 'Normale Groesse' : 'Editor vergroessern'}
+                  aria-label={sheetSize.maximized ? 'Normale Groesse' : 'Editor vergroessern'}
+                >
+                  {sheetSize.maximized ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                </button>
+              )}
               <button
                 type="button"
                 className="nem-icon-btn"
@@ -1662,6 +1756,15 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                 )}
               </div>
             </div>
+          )}
+          {canResizeDesktop && !sheetSize.maximized && (
+            <button
+              type="button"
+              className="nem-resize-handle"
+              onPointerDown={startSheetResize}
+              title="Groesse ziehen"
+              aria-label="Editorgroesse anpassen"
+            />
           )}
         </motion.div>
       </motion.div>
