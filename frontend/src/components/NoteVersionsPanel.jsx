@@ -91,25 +91,12 @@ export default function NoteVersionsPanel({ noteId, onClose, onRestored, canEdit
 
   return (
     <motion.div
-      className="nem-ver-overlay"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.16 }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
-      role="presentation"
+      className="nem-ver-panel"
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 20 }}
+      transition={{ duration: 0.18, ease: 'easeOut' }}
     >
-      <motion.div
-        className="nem-ver-panel"
-        initial={{ opacity: 0, y: 16, scale: 0.985 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 12, scale: 0.985 }}
-        transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Versionsverlauf"
-        onClick={(e) => e.stopPropagation()}
-      >
       <div className="nem-ver-head">
         <div className="nem-ver-head-title">
           <History size={16} />
@@ -217,7 +204,6 @@ export default function NoteVersionsPanel({ noteId, onClose, onRestored, canEdit
           </ul>
         )}
       </div>
-      </motion.div>
     </motion.div>
   );
 }
