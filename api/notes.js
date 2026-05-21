@@ -617,6 +617,14 @@ module.exports = async function handler(req, res) {
                     COALESCE(sh.shares, '[]'::jsonb) AS shares,
                     CASE
                       WHEN n.responsible_user_id::text = $1 THEN 'edit'
+                      WHEN EXISTS (
+                        SELECT 1
+                          FROM group_tasks gtm
+                          JOIN group_members gmm
+                            ON gmm.group_id = gtm.group_id
+                         WHERE gtm.task_id::text = t.id::text
+                           AND gmm.user_id::text = $1
+                      ) THEN 'edit'
                       ELSE COALESCE(ns.permission, 'view')
                     END AS shared_permission
                FROM notes n
@@ -1027,7 +1035,15 @@ module.exports = async function handler(req, res) {
                   WHEN n.responsible_user_id = $3 THEN 'edit'
                   ELSE ns.permission
                 END AS shared_permission,
-                tk.user_id AS linked_task_owner_id
+                tk.user_id AS linked_task_owner_id,
+                EXISTS (
+                  SELECT 1
+                    FROM group_tasks gtm
+                    JOIN group_members gmm
+                      ON gmm.group_id = gtm.group_id
+                   WHERE gtm.task_id::text = tk.id::text
+                     AND gmm.user_id = $3
+                ) AS linked_task_group_member
          FROM notes n
          LEFT JOIN note_shares ns ON ns.note_id = n.id AND ns.friend_id::text = $2
          LEFT JOIN tasks tk ON tk.id::text = n.linked_task_id::text
@@ -1038,7 +1054,17 @@ module.exports = async function handler(req, res) {
             OR (
               n.visibility = 'group'
               AND tk.id IS NOT NULL
-              AND tk.user_id = $3
+              AND (
+                tk.user_id = $3
+                OR EXISTS (
+                  SELECT 1
+                    FROM group_tasks gtm
+                    JOIN group_members gmm
+                      ON gmm.group_id = gtm.group_id
+                   WHERE gtm.task_id::text = tk.id::text
+                     AND gmm.user_id = $3
+                )
+              )
             )
           )
         LIMIT 1`,
@@ -1052,7 +1078,10 @@ module.exports = async function handler(req, res) {
     const note = noteAccess.rows[0];
     const isOwner = String(note.user_id) === userIdText;
     const isResponsible = String(note.responsible_user_id || '') === userIdText;
-    const canEditNote = isOwner || isResponsible || note.shared_permission === 'edit';
+    const canEditNote = isOwner
+      || isResponsible
+      || note.shared_permission === 'edit'
+      || (note.visibility === 'group' && note.linked_task_group_member === true);
     // Task-Owner darf eine Team-Notiz von seiner Task entfernen (Moderation),
     // aber sonst keine Inhalte editieren.
     const isLinkedTaskOwner = !!note.linked_task_owner_id && String(note.linked_task_owner_id) === String(userId);

@@ -1,1 +1,1 @@
-﻿fix(notes-board): geteilte Gruppen-Notes sichtbar und read-only absichern
+﻿feat(notes): Gruppenmitglieder duerfen Gruppen-Notes an Gruppen-Tasks bearbeiten
