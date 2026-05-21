@@ -1714,7 +1714,8 @@ html[data-theme="dark"] .nem-cm-mention-handle {
   position: fixed;
   top: auto;
   right: auto;
-  z-index: 10000;
+  /* MUSS ueber dem Editor-Modal (z-index 10300) liegen. */
+  z-index: 10400;
   color: var(--text, #1c1c1e);
   animation: nemAiMenuPop 140ms ease-out;
 }
