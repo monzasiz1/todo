@@ -70,13 +70,10 @@ html[data-theme="dark"] body {
 }
 
 /* ── native UI / Form-Elemente ─────────────────────────────────────── */
-/* background-color absichtlich nicht gesetzt — wenn ein Container (Modal,
-   Sheet, Card) seinen eigenen Hintergrund braucht, soll die Form-Element
-   diesen erben, nicht mit einem global erzwungenen var(--surface) brechen.
-   Wer einen Form-Hintergrund will, setzt ihn lokal beim Komponenten-Style. */
 html[data-theme="dark"] input,
 html[data-theme="dark"] textarea,
 html[data-theme="dark"] select {
+  background-color: var(--surface);
   color: var(--text);
   border-color: var(--border);
   caret-color: var(--primary);
@@ -1415,109 +1412,6 @@ html[data-theme="dark"] .smart-insight-item {
   background: var(--surface-2);
   border-color: var(--border);
   color: var(--text);
-}
-
-@media (min-width: 1025px) {
-  /* Dark-Theme Overrides fuer das neue helle Smart-Insights-Panel
-     (Desktop v3). Mobile bleibt unveraendert. */
-  html[data-theme="dark"] .dashboard-page > .smart-insights {
-    border-color: rgba(255, 255, 255, 0.08);
-    background:
-      radial-gradient(800px 320px at -10% -30%, rgba(99, 102, 241, 0.18), transparent 60%),
-      radial-gradient(700px 280px at 110% 120%, rgba(34, 211, 238, 0.16), transparent 60%),
-      #0f172a;
-    box-shadow:
-      0 1px 0 rgba(0, 0, 0, 0.4),
-      0 24px 48px rgba(0, 0, 0, 0.45);
-  }
-
-  html[data-theme="dark"] .dashboard-page .smart-insights-head {
-    border-bottom-color: rgba(255, 255, 255, 0.08);
-  }
-
-  html[data-theme="dark"] .dashboard-page .smart-insights-title {
-    color: #f1f5f9;
-  }
-
-  html[data-theme="dark"] .dashboard-page .smart-insights-title svg {
-    color: #a5b4fc;
-  }
-
-  html[data-theme="dark"] .dashboard-page .smart-insights-meta {
-    background: rgba(15, 23, 42, 0.6);
-    border-color: rgba(255, 255, 255, 0.1);
-    color: rgba(226, 232, 240, 0.92);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  }
-
-  /* Fokus-Timer-Kreis: dunkler Disc, Glow bleibt bunt */
-  html[data-theme="dark"] .dashboard-page .smart-insights > .focus-timer-card {
-    background:
-      radial-gradient(circle at 30% 25%, #1e293b 0%, #111827 60%, #0b1220 100%);
-    box-shadow:
-      0 24px 48px rgba(99, 102, 241, 0.32),
-      0 6px 16px rgba(0, 0, 0, 0.55),
-      inset 0 1px 0 rgba(255, 255, 255, 0.08),
-      inset 0 -2px 6px rgba(0, 0, 0, 0.45);
-  }
-
-  html[data-theme="dark"] .dashboard-page .smart-insights > .focus-timer-card .focus-timer-body strong {
-    color: #f1f5f9;
-  }
-
-  html[data-theme="dark"] .dashboard-page .smart-insights > .focus-timer-card:not(.is-running):not(.is-paused):not(.is-finished) .focus-timer-body strong::after {
-    color: #c7d2fe;
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.22), rgba(34, 211, 238, 0.22));
-    border-color: rgba(165, 180, 252, 0.4);
-  }
-
-  html[data-theme="dark"] .dashboard-page .smart-insights > .focus-timer-card .focus-timer-actions {
-    background: #111827;
-    border-color: rgba(255, 255, 255, 0.1);
-    box-shadow:
-      0 12px 24px rgba(0, 0, 0, 0.55),
-      0 2px 4px rgba(0, 0, 0, 0.3);
-  }
-
-  html[data-theme="dark"] .dashboard-page .smart-insights > .focus-timer-card .focus-timer-mini-btn {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.12);
-    color: #cbd5e1;
-  }
-
-  html[data-theme="dark"] .dashboard-page .smart-insights > .focus-timer-card .focus-timer-mini-btn:hover {
-    background: rgba(99, 102, 241, 0.2);
-    color: #e0e7ff;
-  }
-
-  /* Insight-Tiles: dunkles Glass */
-  html[data-theme="dark"] .dashboard-page .smart-insight-item {
-    background: rgba(15, 23, 42, 0.65);
-    border-color: rgba(255, 255, 255, 0.08);
-    color: #e2e8f0;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-  }
-
-  html[data-theme="dark"] .dashboard-page .smart-insight-item:hover {
-    background: linear-gradient(180deg, rgba(15, 23, 42, 0.75), rgba(30, 41, 59, 0.7));
-    border-color: rgba(99, 102, 241, 0.4);
-    box-shadow:
-      0 10px 22px rgba(0, 0, 0, 0.5),
-      0 1px 2px rgba(0, 0, 0, 0.4);
-  }
-
-  html[data-theme="dark"] .dashboard-page .smart-insight-label {
-    color: #94a3b8;
-  }
-
-  html[data-theme="dark"] .dashboard-page .smart-insight-item p {
-    color: #f1f5f9;
-  }
-
-  html[data-theme="dark"] .dashboard-page .smart-insight-item--alert {
-    background: rgba(76, 18, 24, 0.5);
-    border-color: rgba(248, 113, 113, 0.4);
-  }
 }
 html[data-theme="dark"] .smart-insight-item--alert {
   background: rgba(255, 59, 48, 0.08);
