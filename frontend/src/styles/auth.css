@@ -414,3 +414,99 @@
 .bq-auth-verify p { font-size: 0.96rem; color: #8E8E93; line-height: 1.65; margin: 0; }
 .bq-auth-verify strong { color: #1C1C1E; font-weight: 700; }
 .bq-auth-verify-hint { font-size: 0.8rem; color: #AEAEB2; margin-top: -8px; }
+
+/* ════════════════════════════════════════════════════════════
+   DARK-THEME-OVERRIDE
+   theme-dark.css setzt .bq-auth-page, .bq-input-wrap input und
+   diverse Card-Elemente auf dunkle Farben. Die Login/Register-
+   Maske soll aber IMMER im Light-Look erscheinen (weisse Card
+   auf dunklem Hintergrund). Die folgenden Regeln ueberschreiben
+   die Dark-Theme-Werte mit hoher Spezifitaet.
+═══════════════════════════════════════════════════════════════ */
+html[data-theme="dark"] .bq-auth-page,
+html[data-theme="dark"][class*="auth-page"] .bq-auth-page {
+  background: #06060A !important;
+  color: #1C1C1E;
+}
+
+html[data-theme="dark"] .bq-auth-form-panel {
+  background: #ffffff !important;
+  color: #1C1C1E !important;
+  border-color: rgba(0,0,0,0.06) !important;
+}
+
+html[data-theme="dark"] .bq-auth-form-head h1,
+html[data-theme="dark"] .bq-auth-card-logo,
+html[data-theme="dark"] .bq-auth-mobile-logo,
+html[data-theme="dark"] .bq-auth-back-btn:hover {
+  color: #1C1C1E !important;
+}
+
+html[data-theme="dark"] .bq-auth-form-head p,
+html[data-theme="dark"] .bq-auth-switch,
+html[data-theme="dark"] .bq-auth-back-btn,
+html[data-theme="dark"] .bq-auth-consent {
+  color: #8E8E93 !important;
+}
+
+html[data-theme="dark"] .bq-field label {
+  color: #3C3C43 !important;
+}
+
+html[data-theme="dark"] .bq-input-wrap input,
+html[data-theme="dark"] .bq-input-wrap input:focus {
+  background: #F9F9F9 !important;
+  color: #1C1C1E !important;
+  border-color: rgba(0,0,0,0.1) !important;
+  box-shadow: none !important;
+}
+html[data-theme="dark"] .bq-input-wrap input:focus {
+  background: #ffffff !important;
+  border-color: #007AFF !important;
+  box-shadow: 0 0 0 4px rgba(0,122,255,0.1) !important;
+}
+html[data-theme="dark"] .bq-input-wrap input::placeholder {
+  color: #AEAEB2 !important;
+}
+html[data-theme="dark"] .bq-input-icon {
+  color: #AEAEB2 !important;
+}
+html[data-theme="dark"] .bq-input-wrap:focus-within .bq-input-icon {
+  color: #007AFF !important;
+}
+
+/* Autofill auch im Dark-Theme hell erzwingen */
+html[data-theme="dark"] .bq-input-wrap input:-webkit-autofill,
+html[data-theme="dark"] .bq-input-wrap input:-webkit-autofill:hover,
+html[data-theme="dark"] .bq-input-wrap input:-webkit-autofill:focus,
+html[data-theme="dark"] .bq-input-wrap input:-webkit-autofill:active {
+  -webkit-text-fill-color: #1C1C1E !important;
+  -webkit-box-shadow: 0 0 0 1000px #F9F9F9 inset !important;
+  box-shadow: 0 0 0 1000px #F9F9F9 inset !important;
+  caret-color: #1C1C1E !important;
+}
+html[data-theme="dark"] .bq-input-wrap input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset, 0 0 0 4px rgba(0,122,255,0.1) !important;
+  box-shadow: 0 0 0 1000px #ffffff inset, 0 0 0 4px rgba(0,122,255,0.1) !important;
+}
+
+/* Error/Success bleiben farblich identisch (sind schon kontraststark) */
+html[data-theme="dark"] .bq-auth-success {
+  background: #f6fff7 !important;
+  color: #1a7f37 !important;
+  border-color: #b7f5c6 !important;
+}
+
+/* Verify-Screen ebenfalls hell erzwingen */
+html[data-theme="dark"] .bq-verify-card,
+html[data-theme="dark"] .bq-verify-card h1,
+html[data-theme="dark"] .bq-verify-card strong,
+html[data-theme="dark"] .bq-auth-verify h1,
+html[data-theme="dark"] .bq-auth-verify strong {
+  background: #ffffff;
+  color: #1C1C1E !important;
+}
+html[data-theme="dark"] .bq-verify-card,
+html[data-theme="dark"] .bq-auth-verify {
+  background: #ffffff !important;
+}

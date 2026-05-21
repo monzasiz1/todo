@@ -7889,6 +7889,21 @@ body.cal-is-dragging * {
   padding: 40px; /* Desktop */
 }
 
+/* Auf kleineren Desktop-Viewports (MacBook 13" 1280x800) ist 40px Overlay-
+   Padding zu viel — Modal wird unten abgeschnitten. Wir reduzieren das
+   Padding sobald die Hoehe < 900px ist, damit das Modal bis ~24px an die
+   Viewport-Kante reicht. */
+@media (min-width: 1025px) and (max-height: 900px) {
+  .modal-overlay {
+    padding: 24px;
+  }
+}
+@media (min-width: 1025px) and (max-height: 760px) {
+  .modal-overlay {
+    padding: 16px;
+  }
+}
+
 /* â”€â”€ Mobile: Modals = volle Seite zwischen Safe-Area und Bottom-Nav â”€â”€ */
 @media (max-width: 1024px) {
   .modal-overlay {
@@ -7923,10 +7938,12 @@ body.cal-is-dragging * {
   max-width: 480px;
   /* Hoehe so begrenzen, dass das Modal NIE ueber den Viewport hinausgeht.
      Auf kleinen Desktops (MacBook 13", 1280x800) wurde mit 85vh + 40px
-     Overlay-Padding der Inhalt unten abgeschnitten. dvh = dynamic viewport
-     beruecksichtigt mobile Browser-Bars, calc() zieht das Overlay-Padding
-     ab (40px oben + 40px unten = 80px). */
-  max-height: min(85vh, calc(100dvh - 80px));
+     Overlay-Padding der Inhalt unten abgeschnitten. Das Overlay-Padding
+     verkleinert sich oben bei max-height:900px/760px → hier nutzen wir
+     calc(100dvh - 2 * Padding), sodass das Modal immer den maximal
+     verfuegbaren Platz bekommt. Der innere Scroll-Container (.task-detail-
+     main / .task-detail-aside) uebernimmt das Scrollen. */
+  max-height: calc(100dvh - 32px);
   overflow-y: auto;
   box-shadow: var(--shadow-xl);
   position: relative;
@@ -7936,7 +7953,10 @@ body.cal-is-dragging * {
 @media (min-width: 900px) {
   .task-detail-modal {
     max-width: 880px;
-    max-height: min(82vh, calc(100dvh - 80px));
+    /* Nutzt fast den vollen Viewport, abzgl. minimalem Overlay-Padding.
+       Bei MacBook 13" (800px hoch, padding=24px) = 752px, statt vorher
+       656px (82vh) -> deutlich mehr Platz fuer den Inhalt. */
+    max-height: calc(100dvh - 32px);
     display: grid;
     grid-template-columns: 1fr 340px;
     overflow: hidden;
@@ -32634,8 +32654,13 @@ html[data-theme="dark"] .gs-discover-skeleton {
   .calendar-page-wrap .calendar-wrapper:not(.calendar-is-fullscreen) {
     display: flex;
     flex-direction: column;
-    height: calc(100dvh - 160px);
-    min-height: 520px;
+    /* Kalender soll moeglichst viel vertikalen Platz nutzen.
+       .app-main hat oben 32px Padding, unten 0 (kein Bottom-Nav auf Desktop)
+       + ein bisschen Headroom (page-title ~56px). Vorher 160px war zu viel
+       Verlust auf MacBook 13" (800px - 160 = 640px). Jetzt nur 96px Abzug
+       → bei 800px Viewport bleiben 704px fuer den Kalender. */
+    height: calc(100dvh - 96px);
+    min-height: 420px;
     max-height: none;
     width: 100%;
     min-width: 640px;
