@@ -1,242 +1,135 @@
 /* ════════════════════════════════════════════════════════════════
-   NOTE-EDITOR-MODAL: an das App-Design angepasst
-   - Light / Dark via Variablen (--bg, --surface, --primary, --text, ...)
-   - Mobile: Full-Screen, Footer an Bildschirmkante mit safe-area
-   - BottomNav wird ausgeblendet solange Modal offen ist
-   - Kein Layout-Shift des darunterliegenden Boards
+   NOTE-EDITOR-MODAL — iOS-Style Refresh
+   ----------------------------------------------------------------
+   Editor-first redesign in the spirit of iOS Notes:
+   - Pill-based, frosted floating toolbar
+   - Glass header & footer with adaptive accent tint
+   - Generous editor canvas with focus-aware shadow
+   - Mobile: full-screen with iOS bottom-bar and swipe sheet
+   - Tablet: comfortable centred card
+   - Desktop: resizable sheet with maximize
+   - Full dark mode support via [data-theme="dark"]
    ════════════════════════════════════════════════════════════════ */
 
-/* Body-Hilfsklassen: gesetzt durch NoteEditorModal beim Mount */
+/* ────────────────────────────────────────────────────────────
+   Local design tokens — derive from app tokens with fallbacks
+   so the editor stays consistent if app variables drift.
+   ──────────────────────────────────────────────────────────── */
+.nem-overlay,
+.nem-sheet {
+  --nem-radius-sheet: 22px;
+  --nem-radius-pill: 999px;
+  --nem-radius-card: 16px;
+  --nem-radius-control: 12px;
+  --nem-shadow-sheet: 0 36px 90px rgba(15, 23, 42, 0.28), 0 8px 24px rgba(15, 23, 42, 0.10);
+  --nem-shadow-card:  0 8px 20px rgba(15, 23, 42, 0.06);
+  --nem-border:       color-mix(in srgb, var(--border, rgba(15, 23, 42, 0.10)) 88%, transparent);
+  --nem-border-soft:  color-mix(in srgb, var(--border, rgba(15, 23, 42, 0.10)) 60%, transparent);
+  --nem-surface:      var(--surface, #ffffff);
+  --nem-surface-2:    var(--surface-2, #f6f8fc);
+  --nem-text:         var(--text, #1c1c1e);
+  --nem-text-soft:    var(--text-secondary, #6b6f76);
+  --nem-text-tertiary:var(--text-tertiary, #aeaeb2);
+  --nem-primary:      var(--primary, #007aff);
+  --nem-primary-soft: color-mix(in srgb, var(--nem-primary) 14%, transparent);
+  --nem-danger:       var(--danger, #ff3b30);
+  --nem-success:      var(--success, #34c759);
+  --nem-warn:         #ff9f0a;
+  --nem-pill-fill:    color-mix(in srgb, var(--nem-surface) 86%, color-mix(in srgb, var(--nem-accent, #007aff) 18%, transparent));
+}
+
+html[data-theme="dark"] .nem-overlay,
+html[data-theme="dark"] .nem-sheet {
+  --nem-border:       rgba(255, 255, 255, 0.10);
+  --nem-border-soft:  rgba(255, 255, 255, 0.06);
+  --nem-surface:      #1c1c1e;
+  --nem-surface-2:    #2a2a2d;
+  --nem-text:         #f5f5f7;
+  --nem-text-soft:    rgba(245, 245, 247, 0.66);
+  --nem-text-tertiary:rgba(245, 245, 247, 0.40);
+  --nem-pill-fill:    rgba(255, 255, 255, 0.08);
+  --nem-shadow-sheet: 0 36px 90px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --nem-shadow-card:  0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+/* ────────────────────────────────────────────────────────────
+   Body lock while editor is open
+   ──────────────────────────────────────────────────────────── */
 body.note-editor-open {
   overflow: hidden;
   overscroll-behavior: contain;
-}
-
-/* ============================================================
-   FINAL NEM UI/X HOTFIX (desktop + mobile)
-   ============================================================ */
-
-/* Desktop/Global: klare moderne Cards fuer Aktivitaet + Kommentare */
-.nem-sheet .nem-act,
-.nem-sheet .nem-cm {
-  margin: 12px 14px 0 !important;
-  border-radius: 18px !important;
-  border: 1px solid color-mix(in srgb, var(--border, rgba(0,0,0,0.09)) 84%, transparent) !important;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--surface, #fff) 92%, #eef4ff), color-mix(in srgb, var(--surface, #fff) 97%, #f7faff)) !important;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06) !important;
-  overflow: hidden !important;
-}
-
-.nem-sheet .nem-act-toggle,
-.nem-sheet .nem-cm-toggle {
-  min-height: 46px !important;
-  padding: 11px 16px !important;
-  font-size: 13px !important;
-  font-weight: 650 !important;
-}
-
-.nem-sheet .nem-act-panel,
-.nem-sheet .nem-cm-panel {
-  background: color-mix(in srgb, var(--surface, #fff) 90%, #f5f9ff) !important;
-}
-
-.nem-sheet .nem-cm-compose {
-  border-top: 1px solid color-mix(in srgb, var(--border, rgba(0,0,0,0.08)) 80%, transparent) !important;
-  background: color-mix(in srgb, var(--surface, #fff) 92%, #edf3ff) !important;
-}
-
-.nem-sheet .nem-cm-input {
-  border-radius: 10px !important;
-}
-
-@media (max-width: 720px) {
-  /* Footer: kompakt, sauber, nicht verdeckend */
-  .nem-sheet .nem-footer {
-    position: static !important;
-    gap: 8px !important;
-    padding: 8px 10px max(8px, env(safe-area-inset-bottom, 0px)) !important;
-    flex-wrap: nowrap !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    border-top: 1px solid color-mix(in srgb, var(--border, rgba(0,0,0,0.08)) 86%, transparent) !important;
-    box-shadow: none !important;
-  }
-
-  .nem-sheet .nem-color-row,
-  .nem-sheet .nem-importance-row,
-  .nem-sheet .nem-footer-actions {
-    flex: 0 0 auto !important;
-    width: auto !important;
-    margin-left: 0 !important;
-  }
-
-  .nem-sheet .nem-action-btn {
-    min-height: 34px !important;
-    padding: 7px 10px !important;
-    border-radius: 10px !important;
-    font-size: 12px !important;
-    white-space: nowrap !important;
-  }
-
-  /* Link-Row: deutlich platzsparender */
-  .nem-sheet .nem-link-row {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 6px !important;
-    padding: 7px 10px !important;
-    align-items: center !important;
-  }
-
-  .nem-sheet .nem-link-row > .nem-link-chip,
-  .nem-sheet .nem-link-row > .nem-link-add,
-  .nem-sheet .nem-link-row > .nem-visibility-toggle {
-    width: 100% !important;
-    min-width: 0 !important;
-    height: 28px !important;
-    min-height: 28px !important;
-    font-size: 11.5px !important;
-  }
-
-  .nem-sheet .nem-link-chip-main {
-    width: 100% !important;
-    padding: 0 8px !important;
-    gap: 5px !important;
-  }
-
-  .nem-sheet .nem-link-chip-title {
-    max-width: 100% !important;
-    font-size: 11.5px !important;
-  }
-
-  .nem-sheet .nem-link-chip-meta {
-    display: none !important;
-  }
-
-  .nem-sheet .nem-link-chip-remove {
-    width: 24px !important;
-  }
-
-  .nem-sheet .nem-visibility-toggle {
-    justify-content: center !important;
-    gap: 4px !important;
-    padding: 0 8px !important;
-  }
-
-  .nem-sheet .nem-visibility-toggle > span {
-    max-width: 78px !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
-  }
-
-  .nem-sheet .nem-link-row .nem-share-friends {
-    grid-column: 1 / -1 !important;
-    width: 100% !important;
-    margin-top: 0 !important;
-  }
-
-  .nem-sheet .nem-link-row .nem-share-friends-row {
-    flex-wrap: nowrap !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    gap: 6px !important;
-    padding-bottom: 2px !important;
-    -webkit-overflow-scrolling: touch !important;
-  }
-
-  .nem-sheet .nem-link-row .nem-share-chip {
-    height: 26px !important;
-    min-width: 26px !important;
-    padding: 0 1px !important;
-  }
-
-  .nem-sheet .nem-link-row .nem-share-chip-perm,
-  .nem-sheet .nem-link-row .nem-share-chip-remove {
-    width: 16px !important;
-    height: 16px !important;
-  }
-
-  .nem-sheet .nem-share-add,
-  .nem-sheet .nem-link-add {
-    justify-content: center !important;
-    padding: 0 8px !important;
-  }
-
-  /* Aktivitaet/Kommentare: mobile kompakt + sauber eingebettet */
-  .nem-sheet .nem-act,
-  .nem-sheet .nem-cm {
-    margin: 8px 8px 0 !important;
-    border-radius: 12px !important;
-    box-shadow: 0 6px 16px rgba(15,23,42,0.07) !important;
-  }
-
-  .nem-sheet .nem-act-toggle,
-  .nem-sheet .nem-cm-toggle {
-    min-height: 40px !important;
-    padding: 8px 12px !important;
-    font-size: 12px !important;
-  }
-
-  .nem-sheet .nem-act-head,
-  .nem-sheet .nem-cm-head {
-    padding: 6px 12px 2px !important;
-    font-size: 10px !important;
-  }
-
-  .nem-sheet .nem-act-list,
-  .nem-sheet .nem-cm-list {
-    max-height: 200px !important;
-    padding: 4px 12px 8px !important;
-  }
-
-  .nem-sheet .nem-cm-compose {
-    padding: 7px 12px 9px !important;
-  }
 }
 body.note-editor-open .bottom-nav {
   display: none !important;
 }
 
-/* Overlay */
+/* ────────────────────────────────────────────────────────────
+   Overlay
+   ──────────────────────────────────────────────────────────── */
 .nem-overlay {
   position: fixed;
   inset: 0;
-  /* MUSS ueber .is-mobile-fullscreen (z-index 10200) liegen, sonst oeffnet
-     sich der Editor auf Mobile hinter dem TaskDetailModal und ist unsichtbar. */
   z-index: 10300;
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(14px) saturate(1.15);
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 28px;
   contain: layout style;
 }
 
-/* Sheet */
+html[data-theme="dark"] .nem-overlay {
+  background: rgba(0, 0, 0, 0.62);
+}
+
+/* ────────────────────────────────────────────────────────────
+   Sheet — the modal container.
+   On desktop: centred, resizable card.
+   On mobile: edge-to-edge fullscreen.
+   ──────────────────────────────────────────────────────────── */
 .nem-sheet {
-  width: min(var(--nem-sheet-width, 760px), 100%);
-  height: min(var(--nem-sheet-height, calc(100dvh - 48px)), calc(100dvh - 32px));
+  width: min(var(--nem-sheet-width, 820px), 100%);
+  height: min(var(--nem-sheet-height, calc(100dvh - 56px)), calc(100dvh - 32px));
   max-height: calc(100dvh - 32px);
   min-height: 560px;
-  background: var(--surface, #ffffff);
-  color: var(--text, #1c1c1e);
-  border-radius: 16px;
-  border: 1px solid var(--border-strong, rgba(0, 0, 0, 0.12));
-  box-shadow:
-    0 20px 50px rgba(15, 23, 42, 0.25),
-    0 4px 12px rgba(15, 23, 42, 0.10);
+  background:
+    radial-gradient(1300px 360px at 8% -10%,
+      color-mix(in srgb, var(--nem-accent, #007aff) 14%, transparent),
+      transparent 60%),
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--nem-surface) 96%, #f1f5ff),
+      var(--nem-surface));
+  color: var(--nem-text);
+  border-radius: var(--nem-radius-sheet);
+  border: 1px solid var(--nem-border);
+  box-shadow: var(--nem-shadow-sheet), inset 0 1px 0 rgba(255, 255, 255, 0.6);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  position: relative; /* Anker fuer Mobile-Action-Sheet (.nem-mobile-sheet-backdrop) */
+  position: relative;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "Inter", sans-serif;
+  isolation: isolate;
 }
 
-@media (min-width: 1400px) {
+html[data-theme="dark"] .nem-sheet {
+  background:
+    radial-gradient(1300px 380px at 8% -12%,
+      color-mix(in srgb, var(--nem-accent, #58a6ff) 22%, transparent),
+      transparent 65%),
+    linear-gradient(180deg, #1e1f23, #17181c);
+  box-shadow: var(--nem-shadow-sheet);
+}
+
+@media (min-width: 1280px) {
   .nem-sheet {
-    width: min(var(--nem-sheet-width, 980px), calc(100vw - 64px));
+    width: min(var(--nem-sheet-width, 920px), calc(100vw - 64px));
+  }
+}
+@media (min-width: 1600px) {
+  .nem-sheet {
+    width: min(var(--nem-sheet-width, 1040px), calc(100vw - 96px));
   }
 }
 
@@ -246,6 +139,7 @@ body.note-editor-open .bottom-nav {
   max-height: calc(100dvh - 24px);
 }
 
+/* Resize handle (desktop only) */
 .nem-resize-handle {
   position: absolute;
   right: 8px;
@@ -261,28 +155,42 @@ body.note-editor-open .bottom-nav {
   opacity: 0.85;
   cursor: nwse-resize;
   z-index: 12;
+  -webkit-tap-highlight-color: transparent;
 }
-.nem-resize-handle:hover {
-  opacity: 1;
-}
+.nem-resize-handle:hover { opacity: 1; }
 
-/* Farb-Indikator-Streifen oben */
+/* ────────────────────────────────────────────────────────────
+   Color accent strip — adapts to the note color
+   ──────────────────────────────────────────────────────────── */
 .nem-color-bar {
-  height: 4px;
+  height: 5px;
   width: 100%;
-  background: var(--nem-accent, var(--primary, #007aff));
-  transition: background-color 0.2s ease;
   flex-shrink: 0;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--nem-accent, #007aff) 60%, #ffffff),
+    var(--nem-accent, #007aff) 55%,
+    color-mix(in srgb, var(--nem-accent, #007aff) 75%, #1d4ed8)
+  );
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.55) inset;
+  transition: background-color 0.2s ease;
 }
 
-/* ── Header ─────────────────────────────────────────────────── */
+/* ────────────────────────────────────────────────────────────
+   Header — frosted, contains title + meta actions
+   ──────────────────────────────────────────────────────────── */
 .nem-header {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border, rgba(0, 0, 0, 0.06));
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--nem-border-soft);
+  background: color-mix(in srgb, var(--nem-surface) 84%, transparent);
+  backdrop-filter: blur(16px) saturate(1.3);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
   flex-shrink: 0;
+  z-index: 2;
 }
 
 .nem-title {
@@ -291,16 +199,16 @@ body.note-editor-open .bottom-nav {
   border: 0;
   outline: 0;
   background: transparent;
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--text, #1c1c1e);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--nem-text);
   font-family: inherit;
-  letter-spacing: -0.01em;
-  padding: 4px 0;
+  letter-spacing: -0.022em;
+  padding: 4px 2px;
 }
 .nem-title::placeholder {
-  color: var(--text-tertiary, #aeaeb2);
-  font-weight: 500;
+  color: var(--nem-text-tertiary);
+  font-weight: 600;
 }
 
 .nem-header-actions {
@@ -311,314 +219,144 @@ body.note-editor-open .bottom-nav {
 }
 
 .nem-save-state {
-  font-size: 12px;
-  color: var(--text-secondary, #8e8e93);
-  margin-right: 4px;
-  min-width: 76px;
+  font-size: 11.5px;
+  color: var(--nem-text-soft);
+  margin-right: 6px;
+  min-width: 74px;
   text-align: right;
+  font-weight: 600;
+  letter-spacing: 0.005em;
   transition: opacity 0.2s ease;
-  font-weight: 500;
 }
-.nem-save-idle { opacity: 0; }
-.nem-save-saved { color: var(--success, #34c759); opacity: 1; }
+.nem-save-idle   { opacity: 0; }
+.nem-save-saved  { color: var(--nem-success); opacity: 1; }
 .nem-save-saving { opacity: 1; }
 
-/* Read-only / Visibility-Badges (Privacy-First fuer Team-Notes) */
+/* iOS-style readonly / visibility badge pill */
 .nem-readonly-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  height: 24px;
-  padding: 0 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 600;
-  background: var(--surface-2, #F2F2F7);
-  color: var(--text-secondary, #8E8E93);
-  margin-right: 6px;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--nem-radius-pill);
+  font-size: 11.5px;
+  font-weight: 700;
+  background: var(--nem-pill-fill);
+  color: var(--nem-text-soft);
+  margin-right: 4px;
+  letter-spacing: 0.01em;
 }
 .nem-readonly-badge--shared {
-  background: var(--primary-bg, rgba(0,122,255,.12));
-  color: var(--primary, #007AFF);
-}
-.nem-visibility-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 30px;
-  padding: 0 12px;
-  margin-left: 8px;
-  border-radius: 999px;
-  border: 1px solid var(--border-strong, rgba(0,0,0,.12));
-  background: var(--surface, #fff);
-  color: var(--text-secondary, #8E8E93);
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  flex: 0 0 auto;
-  transition: background .12s ease, color .12s ease, border-color .12s ease;
-}
-.nem-visibility-toggle > span {
-  white-space: nowrap;
-}
-.nem-visibility-toggle:hover {
-  border-color: var(--primary, #007AFF);
-  color: var(--primary, #007AFF);
-}
-.nem-visibility-toggle.is-shared {
-  background: var(--primary-bg, rgba(0,122,255,.12));
-  border-color: var(--primary, #007AFF);
-  color: var(--primary, #007AFF);
+  background: var(--nem-primary-soft);
+  color: var(--nem-primary);
 }
 
-/* --------------------------------------------------------------------- */
-/* Mit Freunden teilen                                                    */
-/* --------------------------------------------------------------------- */
-.nem-share-friends {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: 100%;
-  margin-top: 8px;
-}
-.nem-share-friends-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-}
-.nem-share-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 30px;
-  padding: 0 6px 0 4px;
-  border-radius: 999px;
-  border: 1px solid var(--border-strong, rgba(0,0,0,.12));
-  background: var(--surface, #fff);
-  color: var(--text, #1d1d1f);
-  font-size: 12.5px;
-  font-weight: 600;
-  flex: 0 0 auto;
-}
-.nem-share-chip.is-active {
-  background: var(--primary-bg, rgba(0,122,255,.10));
-  border-color: var(--primary, #007AFF);
-  color: var(--primary, #007AFF);
-}
-.nem-share-chip.is-edit {
-  background: rgba(52, 199, 89, 0.12);
-  border-color: #34C759;
-  color: #1f8a3a;
-}
-/* Owner-Chip (zeigt bei Empfaenger an: "Von <Name>") */
-.nem-share-chip.is-owner {
-  background: rgba(0, 122, 255, 0.10);
-  border-color: rgba(0, 122, 255, 0.35);
-  color: #0a4fb8;
-  font-weight: 700;
-}
-html[data-theme="dark"] .nem-share-chip.is-owner {
-  background: rgba(88, 166, 255, 0.18);
-  border-color: rgba(88, 166, 255, 0.45);
-  color: #cfe3ff;
-}
-/* Eigener Empfaenger-Chip (Du) */
-.nem-share-chip.is-me {
-  background: rgba(0, 0, 0, 0.05);
-  border-style: dashed;
-}
-html[data-theme="dark"] .nem-share-chip.is-me {
-  background: rgba(255, 255, 255, 0.06);
-}
-.nem-share-chip-perm,
-.nem-share-chip-remove {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 0;
-  /* Hintergrund sorgt dafuer, dass die Buttons auch im Dark-Mode
-     deutlich vom Chip unterscheidbar sind. */
-  background: rgba(0, 0, 0, 0.08);
-  color: inherit;
-  cursor: pointer;
-  padding: 0;
-  flex: 0 0 auto;
-  transition: background .12s ease, color .12s ease;
-}
-.nem-share-chip-perm:hover {
-  background: rgba(0, 122, 255, 0.18);
-  color: #007AFF;
-}
-.nem-share-chip-perm.is-edit {
-  background: rgba(52, 199, 89, 0.28);
-  color: #1f8a3a;
-}
-.nem-share-chip-perm.is-edit:hover {
-  background: rgba(52, 199, 89, 0.42);
-}
-.nem-share-chip-remove:hover {
-  background: rgba(255, 59, 48, 0.22);
-  color: #FF3B30;
-}
-html[data-theme="dark"] .nem-share-chip-perm,
-html[data-theme="dark"] .nem-share-chip-remove {
-  background: rgba(255, 255, 255, 0.10);
-}
-html[data-theme="dark"] .nem-share-chip-perm:hover {
-  background: rgba(88, 166, 255, 0.28);
-  color: #58A6FF;
-}
-html[data-theme="dark"] .nem-share-chip-remove:hover {
-  background: rgba(255, 99, 99, 0.28);
-  color: #ff6b6b;
-}
-.nem-share-chip-avatar {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  object-fit: cover;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--surface-muted, #eef);
-  color: var(--text, #1d1d1f);
-  font-size: 0.72rem;
-  font-weight: 700;
-  flex: 0 0 auto;
-}
-.nem-share-chip-avatar--initial {
-  background: linear-gradient(135deg, #6c8cff, #8e6cff);
-  color: #fff;
-}
-.nem-share-chip-name {
-  max-width: 110px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Avatar-Pin-Variante fuer geteilte/verlinkte User: kompakt statt langer Badge. */
-.nem-share-chip--pin {
-  gap: 0;
-  padding: 0 2px;
-  min-width: 30px;
-  justify-content: center;
-}
-.nem-share-chip--pin .nem-share-chip-name {
-  display: none;
-}
-.nem-share-add {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 30px;
-  padding: 0 12px;
-  border-radius: 999px;
-  border: 1px dashed var(--border-strong, rgba(0,0,0,.18));
-  background: transparent;
-  color: var(--text-secondary, #8E8E93);
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  flex: 0 0 auto;
-  transition: border-color .12s ease, color .12s ease, background .12s ease;
-}
-.nem-share-add:hover {
-  border-color: var(--primary, #007AFF);
-  color: var(--primary, #007AFF);
-  background: var(--primary-bg, rgba(0,122,255,.06));
-}
-
+/* Header icon button — pill-shaped, soft glass */
 .nem-icon-btn {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 0;
-  background: transparent;
-  border-radius: 8px;
+  border: 1px solid var(--nem-border-soft);
+  background: color-mix(in srgb, var(--nem-surface) 92%, transparent);
+  border-radius: var(--nem-radius-control);
   cursor: pointer;
-  color: var(--text-secondary, #8e8e93);
-  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+  color: var(--nem-text-soft);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.55) inset, 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease, border-color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 .nem-icon-btn:hover {
-  background: var(--hover, rgba(28, 28, 30, 0.06));
-  color: var(--text, #1c1c1e);
+  background: color-mix(in srgb, var(--nem-surface) 82%, var(--nem-primary) 12%);
+  color: var(--nem-text);
+  border-color: color-mix(in srgb, var(--nem-primary) 22%, transparent);
 }
-.nem-icon-btn:active { transform: scale(0.95); }
-.nem-icon-btn[aria-pressed="true"] {
-  background: var(--primary-bg, rgba(0, 122, 255, 0.10));
-  color: var(--primary, #007aff);
+.nem-icon-btn:active { transform: scale(0.94); }
+.nem-icon-btn[aria-pressed="true"],
+.nem-icon-btn.is-active {
+  background: var(--nem-primary-soft);
+  border-color: color-mix(in srgb, var(--nem-primary) 30%, transparent);
+  color: var(--nem-primary);
 }
 
-/* ── Body ─────────────────────────────────────────────────── */
-.nem-body {
-  flex: 1 1 auto;
-  overflow: auto;
-  padding: 16px 20px;
-  min-height: 0;
-  -webkit-overflow-scrolling: touch;
+html[data-theme="dark"] .nem-icon-btn {
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+}
+html[data-theme="dark"] .nem-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--nem-text);
 }
 
 /* ────────────────────────────────────────────────────────────
-   Rich-Text Formatting Toolbar
-   - sticky am Body-Top, damit Buttons beim Scroll sichtbar bleiben
-   - horizontal scrollbar bei schmalem Viewport (Mobile)
-   - kompakte Icon-Buttons mit Hover/Active States
+   Body — scrollable canvas; editor lives in here.
+   ──────────────────────────────────────────────────────────── */
+.nem-body {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 16px 22px 24px;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
+  background: transparent;
+  scrollbar-width: thin;
+  scrollbar-color: var(--nem-border) transparent;
+}
+.nem-body::-webkit-scrollbar { width: 8px; }
+.nem-body::-webkit-scrollbar-thumb {
+  background: var(--nem-border);
+  border-radius: 999px;
+}
+
+/* ────────────────────────────────────────────────────────────
+   Toolbar — floating pill cluster, iOS Notes vibe
    ──────────────────────────────────────────────────────────── */
 .nem-toolbar {
   position: sticky;
-  top: -16px; /* visuell am Body-Top kleben (padding-top 16px ausgleichen) */
-  /* z-index hoch genug, damit Editor-Inhalt (Bilder, Tabellen, eigene
-     Stacking-Contexts via transform/opacity) beim Scrollen sauber
-     UNTER der Toolbar verschwindet und nicht darueber gerendert wird. */
+  top: -16px;
   z-index: 30;
-  margin: -16px -20px 12px;
-  padding: 6px 10px;
+  margin: -16px -22px 16px;
+  padding: 10px 14px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  /* Voll deckender Hintergrund: surface-2 fallback ist opak.
-     isolation: isolate erzeugt einen eigenen Stacking-Context, damit
-     z-index 30 wirklich gegen den Editor-Inhalt durchsetzt. */
-  background: var(--surface-2, #F7F8FC);
-  isolation: isolate;
-  border-bottom: 1px solid var(--border, rgba(0,0,0,0.06));
+  gap: 8px;
+  background: color-mix(in srgb, var(--nem-surface) 78%, transparent);
+  backdrop-filter: blur(14px) saturate(1.3);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  border-bottom: 1px solid var(--nem-border-soft);
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
-  scrollbar-color: var(--border-strong, rgba(0,0,0,.18)) transparent;
+  scrollbar-color: var(--nem-border) transparent;
   -webkit-overflow-scrolling: touch;
+  isolation: isolate;
 }
 .nem-toolbar::-webkit-scrollbar { height: 4px; }
 .nem-toolbar::-webkit-scrollbar-thumb {
-  background: var(--border-strong, rgba(0,0,0,.18));
+  background: var(--nem-border);
   border-radius: 999px;
 }
+
+/* Toolbar group — visually grouped pill cluster */
 .nem-toolbar-group {
   display: inline-flex;
   align-items: center;
   gap: 2px;
   flex: 0 0 auto;
-  padding: 0 4px;
+  padding: 4px;
+  background: color-mix(in srgb, var(--nem-surface-2) 86%, transparent);
+  border: 1px solid var(--nem-border-soft);
+  border-radius: var(--nem-radius-pill);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.5);
   position: relative;
 }
-.nem-toolbar-group + .nem-toolbar-group::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 6px;
-  bottom: 6px;
-  width: 1px;
-  background: var(--border, rgba(0,0,0,0.10));
+
+html[data-theme="dark"] .nem-toolbar-group {
+  background: rgba(255, 255, 255, 0.05);
 }
+
+/* Individual button — pill-shaped with depth */
 .nem-toolbar-btn {
   display: inline-flex;
   align-items: center;
@@ -628,202 +366,345 @@ html[data-theme="dark"] .nem-share-chip-remove:hover {
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--text-secondary, #6e6e73);
-  border-radius: 8px;
+  color: var(--nem-text-soft);
+  border-radius: var(--nem-radius-pill);
   cursor: pointer;
   flex: 0 0 auto;
-  transition: background .12s ease, color .12s ease, transform .08s ease;
+  transition: background 0.14s ease, color 0.14s ease, transform 0.08s ease;
   -webkit-tap-highlight-color: transparent;
 }
 .nem-toolbar-btn:hover,
 .nem-toolbar-btn:focus-visible {
-  background: var(--primary-bg, rgba(0,122,255,.10));
-  color: var(--primary, #007AFF);
+  background: color-mix(in srgb, var(--nem-primary) 14%, transparent);
+  color: var(--nem-primary);
   outline: none;
 }
 .nem-toolbar-btn:active {
-  transform: scale(0.94);
-  background: var(--primary-bg, rgba(0,122,255,.18));
+  transform: scale(0.92);
+  background: color-mix(in srgb, var(--nem-primary) 22%, transparent);
 }
-html[data-theme="dark"] .nem-toolbar {
-  /* Dark-Mode: vorher rgba(255,255,255,0.04) — fast durchsichtig, dadurch
-     schien der Editor-Inhalt durch die sticky Toolbar. Jetzt opak. */
-  background: var(--surface-2, #1a1a1d);
-  border-bottom-color: rgba(255,255,255,0.08);
+.nem-toolbar-btn.is-active {
+  background: var(--nem-primary);
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(0, 122, 255, 0.32);
 }
-html[data-theme="dark"] .nem-toolbar-btn {
-  color: var(--text-secondary, #b0b0b8);
-}
+
 html[data-theme="dark"] .nem-toolbar-btn:hover,
 html[data-theme="dark"] .nem-toolbar-btn:focus-visible {
-  background: rgba(88, 166, 255, 0.16);
-  color: #58A6FF;
+  background: rgba(88, 166, 255, 0.18);
+  color: #58a6ff;
 }
 
-@media (max-width: 768px) {
-  /* Auf Mobile hat .nem-body padding: 4px 18px 18px  — sticky-Offset und
-     negative Margins muessen exakt dazu passen, sonst ragt die Toolbar
-     in den Header oder es entsteht ein Spalt zur Body-Kante. */
-  .nem-toolbar {
-    top: -4px;
-    margin: -4px -18px 10px;
-    padding: 5px 8px;
-    gap: 4px;
-  }
-  .nem-toolbar-group { padding: 0 2px; gap: 1px; }
-  .nem-toolbar-group + .nem-toolbar-group::before { top: 4px; bottom: 4px; }
-  .nem-toolbar-btn { width: 32px; height: 32px; }
-}
-@media (max-width: 420px) {
-  /* Sehr schmal: Buttons kompakter + horizontal-scroll erhalten,
-     damit alle Format-Aktionen (inkl. Table) erreichbar bleiben. */
-  .nem-toolbar { gap: 2px; padding: 4px 6px; }
-  .nem-toolbar-group { padding: 0 1px; }
-  .nem-toolbar-btn { width: 30px; height: 30px; border-radius: 6px; }
-}
-@media (max-width: 360px) {
-  .nem-toolbar-btn { width: 28px; height: 28px; }
-}
-
-.nem-textarea {
-  width: 100%;
-  min-height: 280px;
-  border: 0;
-  outline: 0;
+/* AI button — accent gradient, distinctive.
+   The AI group sits inside the same toolbar but should not inherit the
+   pill-cluster chrome of the format-group (the AI button is the chrome). */
+.nem-toolbar-group.nem-toolbar-ai {
+  padding: 0;
   background: transparent;
-  resize: none;
-  color: var(--text, #1c1c1e);
+  border: 0;
+  box-shadow: none;
+}
+.nem-toolbar-ai { position: relative; flex: 0 0 auto; }
+.nem-toolbar-ai-btn {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 5px;
+  width: auto !important;
+  height: 34px;
+  padding: 0 12px;
+  background: linear-gradient(135deg, #7c5cff, #4338ca);
+  color: #ffffff;
+  border-radius: var(--nem-radius-pill);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  box-shadow: 0 4px 12px rgba(67, 56, 202, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  border: 0;
+}
+.nem-toolbar-ai-btn:hover {
+  background: linear-gradient(135deg, #8b6cff, #5b4ed9);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+.nem-toolbar-ai-btn:active { transform: scale(0.96); }
+.nem-toolbar-ai-btn.is-active {
+  background: linear-gradient(135deg, #6648ff, #3329b8);
+  color: #ffffff;
+}
+.nem-toolbar-ai-label { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; }
+
+/* AI dropdown menu */
+.nem-ai-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 240px;
+  background: var(--nem-surface);
+  border: 1px solid var(--nem-border);
+  border-radius: 14px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22), 0 4px 12px rgba(15, 23, 42, 0.08);
+  padding: 6px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+}
+.nem-ai-menu--portal {
+  position: fixed;
+  top: auto;
+  right: auto;
+  z-index: 10400;
+  color: var(--nem-text);
+  animation: nemAiMenuPop 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes nemAiMenuPop {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+html[data-theme="dark"] .nem-ai-menu {
+  background: #2a2a2d;
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--nem-text);
+}
+
+.nem-ai-menu-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px 12px;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  transition: background 0.12s ease;
+}
+.nem-ai-menu-item:hover { background: color-mix(in srgb, var(--nem-primary) 12%, transparent); }
+.nem-ai-menu-label { font-size: 13.5px; font-weight: 600; }
+.nem-ai-menu-hint  { font-size: 11.5px; opacity: 0.65; }
+html[data-theme="dark"] .nem-ai-menu-item:hover { background: rgba(88, 166, 255, 0.16); }
+
+/* AI status + suggestion */
+.nem-ai-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin: 0 0 12px;
+  font-size: 12.5px;
+  color: var(--nem-text-soft);
+  background: var(--nem-pill-fill);
+  border-radius: var(--nem-radius-pill);
+  width: max-content;
+}
+.nem-ai-spin { animation: nem-spin 1s linear infinite; }
+@keyframes nem-spin { to { transform: rotate(360deg); } }
+
+.nem-ai-suggest {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, #7c5cff 35%, transparent);
+  background: linear-gradient(180deg, rgba(124, 92, 255, 0.10), rgba(124, 92, 255, 0.04));
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.nem-ai-suggest-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: #5b4ed9;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+html[data-theme="dark"] .nem-ai-suggest-head { color: #a99cff; }
+.nem-ai-suggest-preview {
+  margin: 0;
   font-family: inherit;
-  font-size: 15px;
-  line-height: 1.55;
-  letter-spacing: -0.005em;
-  field-sizing: content;
-}
-.nem-textarea::placeholder {
-  color: var(--text-tertiary, #aeaeb2);
+  font-size: 13.5px;
+  line-height: 1.5;
   white-space: pre-wrap;
+  max-height: 200px;
+  overflow: auto;
+  background: color-mix(in srgb, var(--nem-surface) 92%, transparent);
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--nem-border-soft);
+  color: var(--nem-text);
 }
+.nem-ai-suggest-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.nem-ai-suggest-btn {
+  padding: 8px 14px;
+  font-size: 12.5px;
+  font-weight: 650;
+  border-radius: var(--nem-radius-pill);
+  border: 1px solid var(--nem-border);
+  background: var(--nem-surface);
+  color: var(--nem-text);
+  cursor: pointer;
+  transition: background 0.12s ease, transform 0.08s ease;
+}
+.nem-ai-suggest-btn:hover { background: var(--nem-pill-fill); }
+.nem-ai-suggest-btn:active { transform: scale(0.96); }
+.nem-ai-suggest-btn.is-primary {
+  background: linear-gradient(135deg, #7c5cff, #4338ca);
+  color: #ffffff;
+  border-color: transparent;
+}
+.nem-ai-suggest-btn.is-primary:hover { background: linear-gradient(135deg, #8b6cff, #5b4ed9); }
 
 /* ────────────────────────────────────────────────────────────
-   WYSIWYG contentEditable Editor
-   - sieht aus wie ein Textfeld, rendert aber HTML direkt
-   - Placeholder via :empty::before (data-placeholder Attribut)
-   - Tabellen, Listen, Checkboxen, Headings inline gerendert
+   Editor — the centerpiece. Generous canvas, focus glow.
    ──────────────────────────────────────────────────────────── */
 .nem-editor {
   width: 100%;
-  min-height: 280px;
-  /* Extra Klickflaeche unter dem letzten Block, damit man unter
-     Tabellen/Listen direkt weiterschreiben kann (Klick auf Leerraum
-     setzt Caret ans Ende). */
-  padding-bottom: 96px;
+  min-height: 320px;
+  padding: 18px 18px 96px;
   cursor: text;
   outline: 0;
-  border: 0;
-  background: transparent;
-  color: var(--text, #1c1c1e);
+  border: 1px solid var(--nem-border-soft);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--nem-surface) 96%, color-mix(in srgb, var(--nem-accent, #007aff) 8%, transparent)),
+      var(--nem-surface));
+  color: var(--nem-text);
   font-family: inherit;
-  font-size: 15px;
-  line-height: 1.55;
-  letter-spacing: -0.005em;
-  -webkit-user-modify: read-write-plaintext-only;
-  -webkit-user-modify: read-write;
-  caret-color: var(--primary, #007AFF);
+  font-size: 16px;
+  line-height: 1.7;
+  letter-spacing: 0.001em;
+  caret-color: var(--nem-accent, var(--nem-primary));
   overflow-wrap: break-word;
   word-break: break-word;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 6px 16px rgba(15, 23, 42, 0.05);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.nem-editor:focus-within,
+.nem-editor:focus {
+  border-color: color-mix(in srgb, var(--nem-accent, var(--nem-primary)) 50%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 0 0 4px color-mix(in srgb, var(--nem-accent, var(--nem-primary)) 14%, transparent),
+    0 10px 24px rgba(15, 23, 42, 0.08);
 }
 .nem-editor:empty::before {
   content: attr(data-placeholder);
-  color: var(--text-tertiary, #aeaeb2);
+  color: var(--nem-text-tertiary);
   pointer-events: none;
   white-space: pre-wrap;
+  font-style: italic;
+  letter-spacing: 0.005em;
 }
 .nem-editor[contenteditable="false"] { cursor: default; }
-.nem-editor:focus { outline: none; }
 .nem-editor :first-child { margin-top: 0; }
 .nem-editor :last-child  { margin-bottom: 0; }
 
+/* Editor typography */
 .nem-editor h1 {
-  font-size: 22px; font-weight: 700;
-  margin: 14px 0 6px;
-  letter-spacing: -0.02em;
+  font-size: 26px; font-weight: 800;
+  margin: 18px 0 8px;
+  letter-spacing: -0.025em;
+  color: var(--nem-text);
 }
 .nem-editor h2 {
-  font-size: 18px; font-weight: 700;
-  margin: 12px 0 4px;
-  letter-spacing: -0.01em;
+  font-size: 20px; font-weight: 750;
+  margin: 14px 0 6px;
+  letter-spacing: -0.015em;
+  color: var(--nem-text);
 }
-.nem-editor h3 { font-size: 16px; font-weight: 700; margin: 10px 0 4px; }
-.nem-editor p  { margin: 4px 0; }
-.nem-editor a  { color: var(--primary, #007AFF); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+.nem-editor h3 { font-size: 17px; font-weight: 700; margin: 12px 0 4px; }
+.nem-editor p  { margin: 6px 0; }
+.nem-editor a  {
+  color: var(--nem-primary);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
 .nem-editor strong { font-weight: 700; }
 .nem-editor em { font-style: italic; }
 .nem-editor u  { text-decoration: underline; }
-.nem-editor del, .nem-editor s, .nem-editor strike { text-decoration: line-through; opacity: 0.85; }
+.nem-editor del, .nem-editor s, .nem-editor strike {
+  text-decoration: line-through;
+  opacity: 0.78;
+}
 .nem-editor code {
-  background: var(--surface-2, rgba(0, 0, 0, 0.05));
-  padding: 2px 6px;
-  border-radius: 5px;
+  background: var(--nem-pill-fill);
+  padding: 2px 7px;
+  border-radius: 6px;
   font-family: ui-monospace, "SF Mono", "JetBrains Mono", monospace;
   font-size: 0.92em;
+  color: var(--nem-text);
 }
 .nem-editor pre {
-  background: var(--surface-2, rgba(0, 0, 0, 0.05));
-  padding: 10px 12px;
-  border-radius: 8px;
+  background: var(--nem-surface-2);
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--nem-border-soft);
   font-family: ui-monospace, "SF Mono", "JetBrains Mono", monospace;
   font-size: 13px;
   overflow-x: auto;
+  margin: 10px 0;
 }
-.nem-editor ul, .nem-editor ol { margin: 6px 0; padding-left: 22px; }
-.nem-editor li { margin: 2px 0; }
+.nem-editor ul, .nem-editor ol { margin: 8px 0; padding-left: 24px; }
+.nem-editor li { margin: 3px 0; }
 .nem-editor blockquote {
-  margin: 8px 0;
-  padding: 4px 12px;
-  border-left: 3px solid var(--primary, #007AFF);
-  color: var(--text-secondary, #6e6e73);
-  background: var(--surface-2, rgba(0,0,0,0.03));
-  border-radius: 0 6px 6px 0;
+  margin: 12px 0;
+  padding: 8px 14px;
+  border-left: 3px solid var(--nem-accent, var(--nem-primary));
+  color: var(--nem-text-soft);
+  background: color-mix(in srgb, var(--nem-accent, var(--nem-primary)) 6%, transparent);
+  border-radius: 0 10px 10px 0;
 }
 .nem-editor hr {
-  border: 0; border-top: 1px solid var(--border, rgba(0,0,0,0.10));
-  margin: 12px 0;
+  border: 0;
+  border-top: 1px solid var(--nem-border);
+  margin: 16px 0;
 }
 
-/* Checkliste (eigene Komponente, klickbare Checkbox) */
+/* Checklist inside editor */
 .nem-editor .ne-check,
 .note-html .ne-check {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  margin: 4px 0;
+  gap: 10px;
+  margin: 6px 0;
 }
 .nem-editor .ne-check input[type="checkbox"],
 .note-html .ne-check input[type="checkbox"] {
   appearance: none;
   -webkit-appearance: none;
-  width: 18px; height: 18px;
+  width: 20px; height: 20px;
   margin: 2px 0 0;
-  border: 1.5px solid var(--border-strong, #c7c7cc);
-  border-radius: 5px;
-  background: var(--surface, #fff);
+  border: 1.5px solid var(--nem-border);
+  border-radius: 7px;
+  background: var(--nem-surface);
   cursor: pointer;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: background .12s ease, border-color .12s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+.nem-editor .ne-check input[type="checkbox"]:hover,
+.note-html .ne-check input[type="checkbox"]:hover {
+  border-color: var(--nem-primary);
 }
 .nem-editor .ne-check input[type="checkbox"]:checked,
 .note-html .ne-check input[type="checkbox"]:checked {
-  background: var(--primary, #007AFF);
-  border-color: var(--primary, #007AFF);
+  background: var(--nem-primary);
+  border-color: var(--nem-primary);
 }
 .nem-editor .ne-check input[type="checkbox"]:checked::after,
 .note-html .ne-check input[type="checkbox"]:checked::after {
   content: '';
-  width: 5px; height: 9px;
-  border: solid #fff;
+  width: 6px; height: 10px;
+  border: solid #ffffff;
   border-width: 0 2px 2px 0;
   transform: rotate(45deg) translate(-1px, -1px);
 }
@@ -835,117 +716,68 @@ html[data-theme="dark"] .nem-toolbar-btn:focus-visible {
 .nem-editor .ne-check span,
 .note-html .ne-check span { flex: 1 1 auto; }
 
-/* Tabellen (echtes <table>) */
+/* Tables */
 .nem-editor .ne-table,
 .note-html table,
 .nem-editor table {
   width: 100%;
-  border-collapse: collapse;
-  margin: 10px 0;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 12px 0;
   font-size: 14px;
-  background: var(--surface, #fff);
-  border-radius: 8px;
+  background: var(--nem-surface);
+  border-radius: 12px;
   overflow: hidden;
-  border: 1px solid var(--border, rgba(0,0,0,0.10));
+  border: 1px solid var(--nem-border);
 }
 .nem-editor table th,
 .note-html table th,
 .nem-editor table td,
 .note-html table td {
-  border: 1px solid var(--border, rgba(0,0,0,0.08));
-  padding: 6px 10px;
+  border-bottom: 1px solid var(--nem-border-soft);
+  border-right: 1px solid var(--nem-border-soft);
+  padding: 8px 12px;
   text-align: left;
   vertical-align: top;
 }
+.nem-editor table th:last-child,
+.nem-editor table td:last-child { border-right: 0; }
+.nem-editor table tr:last-child th,
+.nem-editor table tr:last-child td { border-bottom: 0; }
 .nem-editor table th,
 .note-html table th {
-  background: var(--surface-2, #f7f8fc);
-  font-weight: 600;
-  color: var(--text, #1c1c1e);
+  background: var(--nem-surface-2);
+  font-weight: 700;
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+  color: var(--nem-text-soft);
 }
 .nem-editor table tr:nth-child(even) td,
 .note-html table tr:nth-child(even) td {
-  background: rgba(0,0,0,0.015);
+  background: color-mix(in srgb, var(--nem-surface-2) 50%, transparent);
 }
 
-html[data-theme="dark"] .nem-editor .ne-check input[type="checkbox"],
-html[data-theme="dark"] .note-html .ne-check input[type="checkbox"] {
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(255,255,255,0.22);
+html[data-theme="dark"] .nem-editor {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 10px 22px rgba(0, 0, 0, 0.35);
 }
-html[data-theme="dark"] .nem-editor table,
-html[data-theme="dark"] .note-html table {
-  background: rgba(255,255,255,0.03);
-  border-color: rgba(255,255,255,0.10);
+html[data-theme="dark"] .nem-editor:focus-within {
+  border-color: color-mix(in srgb, var(--nem-accent, #58a6ff) 60%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 0 4px color-mix(in srgb, var(--nem-accent, #58a6ff) 18%, transparent),
+    0 12px 28px rgba(0, 0, 0, 0.45);
 }
-html[data-theme="dark"] .nem-editor table th,
-html[data-theme="dark"] .note-html table th {
-  background: rgba(255,255,255,0.06);
-}
-html[data-theme="dark"] .nem-editor table th,
-html[data-theme="dark"] .note-html table th,
-html[data-theme="dark"] .nem-editor table td,
-html[data-theme="dark"] .note-html table td {
-  border-color: rgba(255,255,255,0.08);
-}
-html[data-theme="dark"] .nem-editor blockquote {
-  background: rgba(255,255,255,0.04);
-  color: var(--text-secondary, #b0b0b8);
-}
+html[data-theme="dark"] .nem-editor table { background: rgba(255, 255, 255, 0.03); }
+html[data-theme="dark"] .nem-editor table th { background: rgba(255, 255, 255, 0.06); }
 
-/* Preview */
-.nem-preview {
-  font-family: inherit;
-  font-size: 15px;
-  line-height: 1.6;
-  color: var(--text, #1c1c1e);
-}
-.nem-preview h1 {
-  font-size: 22px; font-weight: 700;
-  margin: 14px 0 6px;
-  letter-spacing: -0.02em;
-}
-.nem-preview h2 {
-  font-size: 18px; font-weight: 700;
-  margin: 12px 0 4px;
-  letter-spacing: -0.01em;
-}
-.nem-preview p { margin: 4px 0; }
-.nem-preview a { color: var(--primary, #007aff); text-decoration: none; }
-.nem-preview a:hover { text-decoration: underline; }
-.nem-preview code {
-  background: var(--surface-2, rgba(0, 0, 0, 0.05));
-  padding: 2px 6px;
-  border-radius: 5px;
-  font-family: ui-monospace, "SF Mono", "JetBrains Mono", monospace;
-  font-size: 0.92em;
-}
-.nem-preview strong { font-weight: 700; }
-.nem-preview em { font-style: italic; }
-.nem-empty { opacity: 0.5; font-style: italic; color: var(--text-tertiary, #aeaeb2); }
-
-.nem-md-li { display: flex; gap: 8px; margin: 3px 0; }
-.nem-md-bullet { color: var(--text-tertiary, #aeaeb2); flex-shrink: 0; }
-.nem-md-check { display: flex; align-items: flex-start; gap: 8px; margin: 3px 0; }
-.nem-md-checkbox {
-  width: 18px; height: 18px;
-  border: 1.5px solid var(--border-strong, rgba(0, 0, 0, 0.18));
-  border-radius: 5px;
-  display: inline-flex; align-items: center; justify-content: center;
-  flex-shrink: 0; margin-top: 2px;
-  background: var(--bg-elevated, #ffffff);
-}
-.nem-md-check.checked .nem-md-checkbox {
-  background: var(--success, #34c759);
-  border-color: var(--success, #34c759);
-  color: #fff;
-}
-.nem-md-check.checked > span:last-child {
-  text-decoration: line-through;
-  opacity: 0.6;
-}
-
-/* ── Verknuepfter Termin (Link-Row) ───────────────────────────── */
+/* ────────────────────────────────────────────────────────────
+   Link / Share row — pill belt below the editor
+   ──────────────────────────────────────────────────────────── */
 .nem-link-row {
   position: relative;
   display: flex;
@@ -953,71 +785,75 @@ html[data-theme="dark"] .nem-editor blockquote {
   flex-wrap: wrap;
   gap: 8px;
   row-gap: 8px;
-  padding: 10px 14px 12px;
-  border-top: 1px solid var(--border, rgba(0, 0, 0, 0.06));
-  background: linear-gradient(180deg, var(--surface-2, #f7f8fc), color-mix(in srgb, var(--surface-2, #f7f8fc) 78%, var(--surface, #fff)));
+  padding: 12px 18px;
+  border-top: 1px solid var(--nem-border-soft);
+  background: color-mix(in srgb, var(--nem-surface) 92%, var(--nem-accent, #007aff) 4%);
   flex-shrink: 0;
 }
-/* Einheitliche Chip-Hoehe / Padding fuer alle Pills in der Link-Row.
-   Friend-Chip darf bei Bedarf etwas breiter werden (max-width per Name). */
-.nem-link-row > .nem-link-chip,
-.nem-link-row > .nem-visibility-toggle,
-.nem-link-row > .nem-share-add,
-.nem-link-row .nem-share-chip {
-  height: 30px;
-  font-size: 12.5px;
-}
-.nem-link-row > .nem-visibility-toggle {
-  margin-left: 0;
-}
-.nem-link-row .nem-share-friends {
-  flex: 0 1 auto;
-  min-width: 0;
-  width: auto;
-  margin-top: 0;
-  flex-direction: row;
-  align-items: center;
-}
-.nem-link-row .nem-share-friends-row {
-  gap: 8px;
-  row-gap: 8px;
-  align-items: center;
-}
-.nem-link-row .nem-share-chip {
-  padding: 0 2px;
-}
-.nem-link-row .nem-share-chip-perm,
-.nem-link-row .nem-share-chip-remove {
-  width: 20px;
-  height: 20px;
-}
-.nem-link-add {
+.nem-link-row.is-picker-open { z-index: 60; }
+
+/* Generic pill base shared by all controls in the link row */
+.nem-link-add,
+.nem-share-add,
+.nem-visibility-toggle,
+.nem-link-chip,
+.nem-share-chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 30px;
+  height: 32px;
   padding: 0 12px;
-  border-radius: 999px;
-  border: 1px dashed var(--border-strong, rgba(0, 0, 0, 0.12));
-  background: transparent;
-  color: var(--text-secondary, #8e8e93);
+  border-radius: var(--nem-radius-pill);
   font-size: 12.5px;
-  font-weight: 500;
+  font-weight: 650;
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  font-family: inherit;
+  transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease, transform 0.08s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* "Add" pills — dashed, ghosted */
+.nem-link-add,
+.nem-share-add {
+  border: 1.5px dashed var(--nem-border);
+  background: transparent;
+  color: var(--nem-text-soft);
   cursor: pointer;
-  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
 }
-.nem-link-add:hover {
-  color: var(--primary, #007aff);
-  border-color: var(--primary, #007aff);
-  background: var(--primary-bg, rgba(0, 122, 255, 0.08));
+.nem-link-add:hover,
+.nem-share-add:hover {
+  border-color: var(--nem-primary);
+  color: var(--nem-primary);
+  background: var(--nem-primary-soft);
+  border-style: solid;
 }
+.nem-link-add:active,
+.nem-share-add:active { transform: scale(0.97); }
+
+/* Visibility toggle */
+.nem-visibility-toggle {
+  border: 1px solid var(--nem-border);
+  background: var(--nem-surface);
+  color: var(--nem-text-soft);
+  cursor: pointer;
+}
+.nem-visibility-toggle:hover {
+  border-color: var(--nem-primary);
+  color: var(--nem-primary);
+}
+.nem-visibility-toggle.is-shared {
+  background: var(--nem-primary-soft);
+  border-color: color-mix(in srgb, var(--nem-primary) 38%, transparent);
+  color: var(--nem-primary);
+}
+
+/* Linked-task chip — bold accent */
 .nem-link-chip {
-  display: inline-flex;
-  align-items: stretch;
-  height: 30px;
-  border-radius: 999px;
-  background: var(--primary-bg, rgba(0, 122, 255, 0.10));
-  border: 1px solid var(--primary, #007aff);
+  padding: 0;
+  background: var(--nem-primary-soft);
+  border: 1px solid color-mix(in srgb, var(--nem-primary) 35%, transparent);
   overflow: hidden;
   max-width: 100%;
 }
@@ -1025,16 +861,18 @@ html[data-theme="dark"] .nem-editor blockquote {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 0 10px 0 12px;
+  padding: 0 12px;
   border: none;
   background: transparent;
-  color: var(--primary, #007aff);
+  color: var(--nem-primary);
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
+  height: 100%;
   min-width: 0;
+  font-family: inherit;
 }
-.nem-link-chip-main:hover { background: rgba(0, 122, 255, 0.08); }
+.nem-link-chip-main:hover { background: color-mix(in srgb, var(--nem-primary) 12%, transparent); }
 .nem-link-chip-title {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1042,172 +880,757 @@ html[data-theme="dark"] .nem-editor blockquote {
   max-width: 220px;
 }
 .nem-link-chip-meta {
-  color: var(--text-secondary, #8e8e93);
+  color: color-mix(in srgb, var(--nem-primary) 70%, var(--nem-text-soft));
   font-size: 11.5px;
-  font-weight: 500;
+  font-weight: 600;
   flex-shrink: 0;
 }
 .nem-link-chip-remove {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
+  width: 30px;
   border: none;
-  border-left: 1px solid var(--primary, #007aff);
+  border-left: 1px solid color-mix(in srgb, var(--nem-primary) 35%, transparent);
   background: transparent;
-  color: var(--primary, #007aff);
+  color: var(--nem-primary);
   cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
 }
 .nem-link-chip-remove:hover {
-  background: var(--danger, #ff3b30);
-  color: #fff;
-  border-left-color: var(--danger, #ff3b30);
+  background: var(--nem-danger);
+  color: #ffffff;
+  border-left-color: var(--nem-danger);
 }
 
+/* Share-friends row */
+.nem-share-friends {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.nem-share-friends-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.nem-share-chip {
+  padding: 0 4px 0 4px;
+  border: 1px solid var(--nem-border);
+  background: var(--nem-surface);
+  color: var(--nem-text);
+}
+.nem-share-chip.is-active {
+  background: var(--nem-primary-soft);
+  border-color: color-mix(in srgb, var(--nem-primary) 35%, transparent);
+  color: var(--nem-primary);
+}
+.nem-share-chip.is-edit {
+  background: rgba(52, 199, 89, 0.12);
+  border-color: rgba(52, 199, 89, 0.42);
+  color: #1f8a3a;
+}
+.nem-share-chip.is-owner {
+  background: rgba(0, 122, 255, 0.10);
+  border-color: rgba(0, 122, 255, 0.35);
+  color: #0a4fb8;
+  font-weight: 700;
+}
+.nem-share-chip.is-me {
+  background: var(--nem-pill-fill);
+  border-style: dashed;
+}
+html[data-theme="dark"] .nem-share-chip.is-owner {
+  background: rgba(88, 166, 255, 0.18);
+  border-color: rgba(88, 166, 255, 0.45);
+  color: #cfe3ff;
+}
+html[data-theme="dark"] .nem-share-chip.is-me { background: rgba(255, 255, 255, 0.06); }
+
+.nem-share-chip-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--nem-surface-2);
+  color: var(--nem-text);
+  font-size: 0.7rem;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+.nem-share-chip-avatar--initial {
+  background: linear-gradient(135deg, #6c8cff, #8e6cff);
+  color: #ffffff;
+}
+.nem-share-chip-name {
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nem-share-chip--pin {
+  gap: 0;
+  padding: 0 2px;
+  min-width: 32px;
+  justify-content: center;
+}
+.nem-share-chip--pin .nem-share-chip-name { display: none; }
+
+.nem-share-chip-perm,
+.nem-share-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(15, 23, 42, 0.08);
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  flex: 0 0 auto;
+  transition: background .12s ease, color .12s ease;
+}
+.nem-share-chip-perm:hover {
+  background: var(--nem-primary-soft);
+  color: var(--nem-primary);
+}
+.nem-share-chip-perm.is-edit {
+  background: rgba(52, 199, 89, 0.28);
+  color: #1f8a3a;
+}
+.nem-share-chip-perm.is-edit:hover { background: rgba(52, 199, 89, 0.42); }
+.nem-share-chip-remove:hover {
+  background: rgba(255, 59, 48, 0.22);
+  color: var(--nem-danger);
+}
+html[data-theme="dark"] .nem-share-chip-perm,
+html[data-theme="dark"] .nem-share-chip-remove {
+  background: rgba(255, 255, 255, 0.10);
+}
+
+/* Picker (task or friend lookup) */
 .nem-link-picker {
   position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: calc(100% + 4px);
+  left: 14px;
+  right: 14px;
+  bottom: calc(100% + 6px);
   z-index: 90;
-  background: var(--surface, #fff);
-  border: 1px solid var(--border-strong, rgba(0, 0, 0, 0.12));
-  border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16);
+  background: var(--nem-surface);
+  border: 1px solid var(--nem-border);
+  border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.20), 0 6px 16px rgba(15, 23, 42, 0.08);
   overflow: hidden;
-  max-height: 320px;
+  max-height: 340px;
   display: flex;
   flex-direction: column;
+  animation: nemAiMenuPop 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .nem-link-picker-search {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--border, rgba(0, 0, 0, 0.06));
-  color: var(--text-secondary, #8e8e93);
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--nem-border-soft);
+  color: var(--nem-text-soft);
+  background: var(--nem-surface-2);
 }
 .nem-link-picker-search input {
   border: none;
   outline: none;
   background: transparent;
   flex: 1;
-  font-size: 13px;
-  color: var(--text, #1c1c1e);
+  font-size: 13.5px;
+  color: var(--nem-text);
+  font-family: inherit;
 }
+.nem-link-picker-search input::placeholder { color: var(--nem-text-tertiary); }
 .nem-link-picker-list {
   overflow-y: auto;
-  padding: 4px;
+  padding: 6px;
 }
 .nem-link-picker-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
-  padding: 8px 10px;
+  padding: 10px 12px;
   border: none;
   background: transparent;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   text-align: left;
-  font-size: 13px;
-  color: var(--text, #1c1c1e);
+  font-size: 13.5px;
+  color: var(--nem-text);
+  font-family: inherit;
 }
-.nem-link-picker-item:hover { background: var(--hover, rgba(28, 28, 30, 0.06)); }
-.nem-link-picker-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.nem-link-picker-meta { color: var(--text-secondary, #8e8e93); font-size: 11.5px; }
-.nem-link-picker-empty { padding: 14px; text-align: center; color: var(--text-secondary, #8e8e93); font-size: 12.5px; }
+.nem-link-picker-item:hover {
+  background: color-mix(in srgb, var(--nem-primary) 12%, transparent);
+  color: var(--nem-primary);
+}
+.nem-link-picker-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.nem-link-picker-meta { color: var(--nem-text-soft); font-size: 11.5px; }
+.nem-link-picker-empty {
+  padding: 18px;
+  text-align: center;
+  color: var(--nem-text-soft);
+  font-size: 12.5px;
+}
 
-/* ── Footer ─────────────────────────────────────────────────── */
+/* ────────────────────────────────────────────────────────────
+   Activity & Comments cards
+   ──────────────────────────────────────────────────────────── */
+.nem-act,
+.nem-cm {
+  margin: 12px 14px 0;
+  border-radius: var(--nem-radius-card);
+  border: 1px solid var(--nem-border-soft);
+  background: color-mix(in srgb, var(--nem-surface) 92%, var(--nem-accent, #007aff) 3%);
+  box-shadow: var(--nem-shadow-card);
+  overflow: hidden;
+}
+
+.nem-act-toggle,
+.nem-cm-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  min-height: 46px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--nem-text);
+  letter-spacing: 0.005em;
+  transition: background 0.15s ease;
+}
+.nem-act-toggle:hover,
+.nem-cm-toggle:hover { background: color-mix(in srgb, var(--nem-primary) 6%, transparent); }
+.nem-act-toggle:focus-visible,
+.nem-cm-toggle:focus-visible { outline: 2px solid var(--nem-primary); outline-offset: -2px; }
+.nem-act-chev,
+.nem-cm-chev {
+  margin-left: auto;
+  transition: transform 0.2s ease;
+  opacity: 0.55;
+}
+.nem-act-chev.is-open,
+.nem-cm-chev.is-open { transform: rotate(180deg); }
+
+.nem-act-panel,
+.nem-cm-panel {
+  overflow: hidden;
+  background: color-mix(in srgb, var(--nem-surface-2) 60%, transparent);
+  border-top: 1px solid var(--nem-border-soft);
+}
+
+.nem-act-head,
+.nem-cm-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--nem-text-soft);
+  font-weight: 700;
+}
+.nem-act-refresh,
+.nem-cm-refresh {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  color: inherit;
+  padding: 5px;
+  border-radius: 6px;
+  display: inline-flex;
+  transition: background 0.12s ease;
+}
+.nem-act-refresh:hover,
+.nem-cm-refresh:hover { background: var(--nem-pill-fill); }
+.nem-act-refresh:disabled,
+.nem-cm-refresh:disabled { opacity: 0.4; cursor: default; }
+.nem-act-refresh .is-spin,
+.nem-cm-refresh .is-spin { animation: nem-spin 0.9s linear infinite; }
+
+.nem-act-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.nem-act-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--nem-text);
+}
+.nem-act-avatar,
+.nem-cm-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  object-fit: cover;
+  background: var(--nem-surface-2);
+}
+.nem-act-avatar--initial,
+.nem-cm-avatar--initial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--nem-accent, var(--nem-primary)), color-mix(in srgb, var(--nem-accent, var(--nem-primary)) 70%, #000000));
+  text-transform: uppercase;
+}
+.nem-act-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.nem-act-line { line-height: 1.4; }
+.nem-act-actor { font-weight: 650; }
+.nem-act-verb { color: var(--nem-text-soft); }
+.nem-act-time { font-size: 11.5px; color: var(--nem-text-soft); }
+.nem-act-empty {
+  padding: 10px 16px 14px;
+  font-size: 12.5px;
+  color: var(--nem-text-soft);
+  font-style: italic;
+}
+.nem-act-empty--error { color: var(--nem-danger); font-style: normal; }
+
+.nem-cm-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.nem-cm-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--nem-text);
+}
+.nem-cm-item.is-pending { opacity: 0.6; }
+.nem-cm-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
+.nem-cm-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--nem-text-soft);
+  line-height: 1.2;
+}
+.nem-cm-author { font-weight: 650; color: var(--nem-text); font-size: 12.5px; }
+.nem-cm-time { opacity: 0.8; }
+.nem-cm-del {
+  margin-left: auto;
+  background: transparent;
+  border: 0;
+  padding: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--nem-text-soft);
+  display: inline-flex;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.nem-cm-item:hover .nem-cm-del { opacity: 1; }
+.nem-cm-del:hover {
+  color: var(--nem-danger);
+  background: rgba(255, 59, 48, 0.10);
+}
+.nem-cm-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.45;
+}
+.nem-cm-empty {
+  padding: 10px 16px 14px;
+  font-size: 12.5px;
+  color: var(--nem-text-soft);
+  font-style: italic;
+}
+.nem-cm-empty--error { color: var(--nem-danger); font-style: normal; }
+
+.nem-cm-compose {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 10px 14px 14px;
+  border-top: 1px solid var(--nem-border-soft);
+  background: var(--nem-surface);
+}
+.nem-cm-input-wrap {
+  position: relative;
+  flex: 1;
+  display: flex;
+}
+.nem-cm-input-wrap .nem-cm-input { flex: 1; }
+.nem-cm-input {
+  flex: 1;
+  resize: vertical;
+  min-height: 38px;
+  max-height: 140px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--nem-border);
+  background: var(--nem-surface-2);
+  font: inherit;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: var(--nem-text);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  font-family: inherit;
+}
+.nem-cm-input::placeholder { color: var(--nem-text-tertiary); }
+.nem-cm-input:focus {
+  outline: 0;
+  border-color: var(--nem-primary);
+  background: var(--nem-surface);
+  box-shadow: 0 0 0 3px var(--nem-primary-soft);
+}
+.nem-cm-input:disabled { opacity: 0.6; }
+.nem-cm-send {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: var(--nem-radius-pill);
+  background: var(--nem-primary);
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.30);
+  transition: transform 0.12s ease, opacity 0.15s ease, background 0.15s ease;
+}
+.nem-cm-send:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--nem-primary) 90%, #000000);
+}
+.nem-cm-send:active:not(:disabled) { transform: scale(0.96); }
+.nem-cm-send:disabled {
+  opacity: 0.4;
+  cursor: default;
+  box-shadow: none;
+}
+
+/* Mention popover */
+.nem-cm-mention-pop {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  background: var(--nem-surface);
+  border: 1px solid var(--nem-border);
+  border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+  z-index: 50;
+}
+.nem-cm-mention-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--nem-text);
+  transition: background 0.12s ease;
+}
+.nem-cm-mention-item.is-active,
+.nem-cm-mention-item:hover { background: var(--nem-primary-soft); color: var(--nem-primary); }
+.nem-cm-mention-item .nem-cm-avatar { width: 22px; height: 22px; font-size: 10px; }
+.nem-cm-mention-name { font-weight: 650; }
+.nem-cm-mention-handle {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--nem-text-soft);
+  opacity: 0.8;
+}
+
+/* ────────────────────────────────────────────────────────────
+   Versions panel
+   ──────────────────────────────────────────────────────────── */
+.nem-ver-panel {
+  margin: 12px 14px 0;
+  border: 1px solid var(--nem-border);
+  border-radius: var(--nem-radius-card);
+  background: color-mix(in srgb, var(--nem-surface) 92%, transparent);
+  backdrop-filter: blur(6px);
+  overflow: hidden;
+  box-shadow: var(--nem-shadow-card);
+}
+.nem-ver-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--nem-border-soft);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--nem-text);
+}
+.nem-ver-head-title { display: flex; align-items: center; gap: 6px; }
+.nem-ver-count { color: var(--nem-text-soft); font-weight: 500; }
+.nem-ver-close {
+  background: none; border: none; cursor: pointer; padding: 6px;
+  border-radius: 8px; color: var(--nem-text-soft);
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.nem-ver-close:hover { background: var(--nem-pill-fill); color: var(--nem-text); }
+.nem-ver-body { max-height: 360px; overflow-y: auto; }
+.nem-ver-empty {
+  padding: 16px 14px; text-align: center; color: var(--nem-text-soft);
+  font-size: 12.5px; display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.nem-ver-error { color: var(--nem-danger); }
+.nem-ver-list { list-style: none; margin: 0; padding: 6px 0; }
+.nem-ver-item {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--nem-border-soft);
+}
+.nem-ver-item:last-child { border-bottom: none; }
+.nem-ver-row { display: flex; align-items: center; gap: 10px; }
+.nem-ver-meta { flex: 1; min-width: 0; }
+.nem-ver-line { display: flex; align-items: baseline; gap: 6px; }
+.nem-ver-no {
+  font-weight: 700; font-size: 11.5px; color: var(--nem-text-soft);
+  background: var(--nem-pill-fill); padding: 2px 8px; border-radius: var(--nem-radius-pill);
+}
+.nem-ver-author { font-size: 13px; font-weight: 650; color: var(--nem-text); }
+.nem-ver-time { font-size: 11.5px; color: var(--nem-text-soft); }
+.nem-ver-actions { display: flex; gap: 6px; }
+.nem-ver-btn {
+  background: var(--nem-surface);
+  border: 1px solid var(--nem-border);
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 10px;
+  color: var(--nem-text-soft);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.nem-ver-btn:hover { background: var(--nem-pill-fill); color: var(--nem-text); }
+.nem-ver-btn.is-primary {
+  background: var(--nem-primary-soft);
+  border-color: color-mix(in srgb, var(--nem-primary) 35%, transparent);
+  color: var(--nem-primary);
+}
+.nem-ver-btn.is-primary:hover {
+  background: color-mix(in srgb, var(--nem-primary) 22%, transparent);
+}
+.nem-ver-btn:disabled { opacity: 0.5; cursor: wait; }
+.nem-ver-spin { animation: nem-spin 0.9s linear infinite; }
+.nem-ver-preview {
+  margin-top: 8px; padding: 10px 12px;
+  border-radius: 10px; background: var(--nem-surface-2);
+  border: 1px solid var(--nem-border-soft);
+  font-size: 12.5px; color: var(--nem-text-soft);
+  overflow: hidden;
+}
+.nem-ver-preview-title { font-weight: 650; margin-bottom: 4px; color: var(--nem-text); }
+.nem-ver-preview-content { max-height: 180px; overflow: auto; }
+.nem-ver-preview-pre { white-space: pre-wrap; font-family: inherit; margin: 0; }
+
+/* ────────────────────────────────────────────────────────────
+   Footer — colors, importance, action buttons (desktop/tablet)
+   ──────────────────────────────────────────────────────────── */
 .nem-footer {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 14px;
-  padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
-  border-top: 1px solid var(--border, rgba(0, 0, 0, 0.06));
-  background: var(--surface, #ffffff);
+  padding: 14px 18px;
+  padding-bottom: max(14px, env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--nem-border-soft);
+  background: color-mix(in srgb, var(--nem-surface) 82%, transparent);
+  backdrop-filter: blur(14px) saturate(1.25);
+  -webkit-backdrop-filter: blur(14px) saturate(1.25);
   flex-wrap: wrap;
   flex-shrink: 0;
+  z-index: 4;
 }
 
-.nem-color-row { display: flex; gap: 6px; flex-shrink: 0; }
-.nem-color-dot {
-  width: 22px; height: 22px;
-  border-radius: 50%;
-  border: 2px solid var(--border-strong, rgba(0, 0, 0, 0.10));
-  cursor: pointer; padding: 0;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+.nem-color-row {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 4px 10px;
+  background: var(--nem-pill-fill);
+  border-radius: var(--nem-radius-pill);
+  border: 1px solid var(--nem-border-soft);
 }
-.nem-color-dot:hover { transform: scale(1.1); }
+.nem-color-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.nem-color-dot:hover { transform: scale(1.12); }
 .nem-color-dot.is-active {
   box-shadow:
-    0 0 0 2px var(--surface, #fff) inset,
-    0 0 0 3px var(--primary, #007aff);
-  transform: scale(1.08);
+    0 0 0 2px var(--nem-surface) inset,
+    0 0 0 3px var(--nem-primary);
+  transform: scale(1.10);
 }
 
-.nem-importance-row { display: flex; gap: 4px; }
+.nem-importance-row {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--nem-pill-fill);
+  border-radius: var(--nem-radius-pill);
+  border: 1px solid var(--nem-border-soft);
+}
 .nem-importance-btn {
-  padding: 6px 10px;
-  font-size: 12px; font-weight: 600;
-  border: 1px solid var(--border-strong, rgba(0, 0, 0, 0.10));
-  background: var(--surface, #ffffff);
-  color: var(--text-secondary, #8e8e93);
-  border-radius: 8px; cursor: pointer;
-  transition: all 0.12s ease;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 650;
+  border: 0;
+  background: transparent;
+  color: var(--nem-text-soft);
+  border-radius: var(--nem-radius-pill);
+  cursor: pointer;
+  transition: all 0.14s ease;
   font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+  letter-spacing: 0.005em;
 }
-.nem-importance-btn:hover {
-  background: var(--hover, rgba(28, 28, 30, 0.06));
-  color: var(--text, #1c1c1e);
-}
+.nem-importance-btn:hover { color: var(--nem-text); }
 .nem-importance-btn.is-active {
-  background: var(--primary, #007aff);
-  color: #fff;
-  border-color: var(--primary, #007aff);
+  background: var(--nem-surface);
+  color: var(--nem-text);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08), 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+}
+html[data-theme="dark"] .nem-importance-btn.is-active {
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--nem-text);
 }
 
-.nem-footer-actions { margin-left: auto; display: flex; gap: 6px; }
+.nem-footer-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
 .nem-action-btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 12px;
-  font-size: 13px; font-weight: 600;
-  border: 1px solid var(--border-strong, rgba(0, 0, 0, 0.10));
-  background: var(--surface, #ffffff);
-  color: var(--text, #1c1c1e);
-  border-radius: 8px; cursor: pointer;
-  transition: all 0.12s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  min-height: 38px;
+  font-size: 13px;
+  font-weight: 650;
+  border: 1px solid var(--nem-border);
+  background: var(--nem-surface);
+  color: var(--nem-text);
+  border-radius: var(--nem-radius-pill);
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease, transform 0.08s ease;
   font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+  letter-spacing: 0.005em;
 }
-.nem-action-btn:hover { background: var(--hover, rgba(28, 28, 30, 0.06)); }
+.nem-action-btn:hover { background: var(--nem-pill-fill); }
+.nem-action-btn:active { transform: scale(0.97); }
 .nem-action-btn.primary {
-  background: var(--primary, #007aff);
-  border-color: var(--primary, #007aff);
-  color: #fff;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--nem-primary) 90%, #4da3ff),
+    var(--nem-primary));
+  border-color: var(--nem-primary);
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(0, 122, 255, 0.32);
 }
-.nem-action-btn.primary:hover { background: var(--primary-light, #4da3ff); }
+.nem-action-btn.primary:hover {
+  background: linear-gradient(180deg, #4da3ff, color-mix(in srgb, var(--nem-primary) 90%, #4da3ff));
+}
 .nem-action-btn.danger {
-  color: var(--danger, #ff3b30);
-  border-color: color-mix(in srgb, var(--danger, #ff3b30) 30%, transparent);
+  color: var(--nem-danger);
+  border-color: color-mix(in srgb, var(--nem-danger) 30%, transparent);
 }
 .nem-action-btn.danger:hover {
-  background: var(--danger, #ff3b30);
-  color: #fff;
-  border-color: var(--danger, #ff3b30);
+  background: var(--nem-danger);
+  color: #ffffff;
+  border-color: var(--nem-danger);
 }
 
-/* ─────────────────────────────────────────────────────────────
-   MOBILE: Full-Screen mit Footer am Bildschirmrand
-   ─────────────────────────────────────────────────────────── */
+/* ────────────────────────────────────────────────────────────
+   Mobile bar — sticky bottom pills (≤720px)
+   Hidden by default; revealed in mobile breakpoint.
+   ──────────────────────────────────────────────────────────── */
+.nem-mobile-bar { display: none; }
+.nem-mobile-sheet-backdrop { display: none; }
+
+/* ════════════════════════════════════════════════════════════
+   TABLET — 721–1024px: comfortable card with extra editor room
+   ════════════════════════════════════════════════════════════ */
+@media (min-width: 721px) and (max-width: 1024px) {
+  .nem-overlay { padding: 16px; }
+  .nem-sheet {
+    width: min(920px, 100%);
+    max-height: calc(100dvh - 32px);
+    border-radius: 22px;
+  }
+  .nem-header  { padding: 12px 16px; }
+  .nem-body    { padding: 14px 18px 22px; }
+  .nem-toolbar { margin: -14px -18px 14px; top: -14px; padding: 9px 12px; }
+  .nem-editor  { min-height: calc(100dvh - 360px); padding: 16px 16px 80px; }
+  .nem-link-row { padding: 10px 16px; }
+  .nem-footer  { padding: 12px 16px; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   MOBILE — ≤720px: full-screen, big touch targets, bottom bar
+   ════════════════════════════════════════════════════════════ */
 @media (max-width: 720px) {
   .nem-overlay {
     padding: 0;
     align-items: stretch;
+    background: var(--bg, #f2f2f7);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    background: var(--bg, #f2f2f7);
   }
+  html[data-theme="dark"] .nem-overlay { background: #000000; }
+
   .nem-sheet {
     width: 100%;
     max-width: 100%;
@@ -1217,920 +1640,152 @@ html[data-theme="dark"] .nem-editor blockquote {
     border-radius: 0;
     border: 0;
     box-shadow: none;
+    background:
+      radial-gradient(900px 240px at 0% -8%,
+        color-mix(in srgb, var(--nem-accent, #007aff) 16%, transparent),
+        transparent 60%),
+      var(--nem-surface);
+  }
+  html[data-theme="dark"] .nem-sheet {
+    background:
+      radial-gradient(900px 240px at 0% -8%,
+        color-mix(in srgb, var(--nem-accent, #58a6ff) 20%, transparent),
+        transparent 60%),
+      #15171c;
   }
   .nem-resize-handle { display: none; }
+
+  /* Color bar slimmer on mobile */
   .nem-color-bar { height: 3px; }
+
+  /* Header */
   .nem-header {
-    padding-top: max(12px, env(safe-area-inset-top, 0px));
-    padding-left: max(12px, env(safe-area-inset-left, 12px));
-    padding-right: max(12px, env(safe-area-inset-right, 12px));
-    padding-bottom: 8px;
-    border-bottom: 0;
+    padding: max(10px, env(safe-area-inset-top, 0px)) 12px 10px;
+    background: color-mix(in srgb, var(--nem-surface) 92%, transparent);
+    border-bottom: 1px solid var(--nem-border-soft);
   }
   .nem-title {
     font-size: 22px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
+    font-weight: 800;
+    letter-spacing: -0.025em;
   }
-  .nem-save-state {
-    min-width: 0;
-    font-size: 11px;
-  }
-  .nem-body {
-    padding: 2px 12px 10px;
-  }
-  .nem-textarea {
-    font-size: 16px; /* iOS no-zoom auf Focus */
-    min-height: calc(100dvh - 320px);
-    line-height: 1.6;
-  }
-  .nem-link-row {
-    padding: 6px 10px 8px;
-  }
-  .nem-footer {
-    padding: 10px 12px;
-    padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
-    padding-left: max(12px, env(safe-area-inset-left, 12px));
-    padding-right: max(12px, env(safe-area-inset-right, 12px));
-    gap: 10px;
-  }
-  .nem-color-row { order: 1; flex: 1 1 auto; }
-  .nem-importance-row { order: 2; flex: 0 0 auto; }
-  .nem-importance-btn { padding: 6px 8px; font-size: 11px; }
-  .nem-footer-actions {
-    order: 3;
-    margin-left: 0;
-    width: 100%;
-    justify-content: space-between;
-  }
-  .nem-action-btn span { display: none; }
-  .nem-action-btn {
-    padding: 10px 12px;
-    flex: 1 1 0;
-    justify-content: center;
-  }
-}
-
-/* ─────────────────────────────────────────────────────────────
-   MOBILE Phase 2: groessere Touch-Targets, bessere Tastatur-
-   Vermeidung, scrollbare Toolbar mit deutlichen Affordances.
-   Apple/Google empfehlen >=44px Touch-Targets.
-   ─────────────────────────────────────────────────────────── */
-@media (max-width: 720px) {
-  /* Header-Icon-Buttons: 44x44 statt 34x34 */
-  .nem-icon-btn {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-  }
-
-  /* Toolbar etwas hoeher + groessere Tap-Flaeche */
-  .nem-toolbar {
-    padding: 8px 12px;
-    gap: 4px;
-    /* Untere Schattenkante hervorheben, dass sie scrollbar wirkt */
-    box-shadow: inset -16px 0 16px -14px rgba(0,0,0,0.08);
-  }
-  .nem-toolbar-btn {
-    width: 42px;
-    height: 42px;
-    border-radius: 10px;
-  }
-  /* Trennlinie zwischen Gruppen sichtbarer auf Mobile */
-  .nem-toolbar-group + .nem-toolbar-group::before {
-    top: 8px;
-    bottom: 8px;
-  }
-
-  /* Color-Dots groesser */
-  .nem-color-dot {
-    width: 30px;
-    height: 30px;
-  }
-
-  /* Footer-Actions deutliche 44er Targets */
-  .nem-action-btn {
-    min-height: 44px;
-    padding: 12px 14px;
-    border-radius: 12px;
-    font-weight: 600;
-  }
-  .nem-importance-btn {
-    min-height: 36px;
-    padding: 8px 10px;
-    border-radius: 10px;
-    font-size: 12px;
-  }
-
-  /* Save-State darf den knappen Header nicht sprengen */
-  .nem-header-actions {
-    gap: 4px;
-  }
-  .nem-save-state {
-    display: none;       /* spart Platz; Status sieht man am Editor-State */
-  }
+  .nem-save-state { display: none; }
+  .nem-readonly-badge { padding: 5px 10px; }
   .nem-readonly-badge span { display: none; }
-  .nem-readonly-badge {
-    padding: 6px 8px;
-    border-radius: 10px;
+  .nem-icon-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
   }
+  .nem-header-actions { gap: 6px; }
 
-  /* Editor selbst: groessere Schrift fuer komfortables Tippen,
-     iOS verhindert Auto-Zoom bei 16px+. */
-  .nem-editor {
-    font-size: 16px;
-    line-height: 1.55;
-    min-height: calc(100dvh - 300px);
+  /* Body & editor — give the writing surface as much room as we can */
+  .nem-body {
+    padding: 12px 14px;
     padding-bottom: 12px;
   }
-
-  /* Body bekommt Bottom-Padding fuer iOS-Safe-Area, damit der Editor
-     nicht hinter dem Home-Indicator endet, wenn der Footer ausgeblendet
-     ist (Tastatur offen). */
-  .nem-body {
-    padding-bottom: max(18px, env(safe-area-inset-bottom, 0px));
+  .nem-editor {
+    min-height: calc(100dvh - 360px);
+    padding: 14px 14px 40px;
+    font-size: 16px; /* iOS no-zoom on focus */
+    line-height: 1.6;
+    border-radius: 16px;
   }
 
-  /* Wenn Tastatur offen: Footer kann verdeckt sein - das ist OK
-     da Autosave laeuft. Wir machen den Footer sticky am Boden,
-     damit er sichtbar bleibt bis die Tastatur kommt. */
-  .nem-footer {
-    position: sticky;
-    bottom: 0;
-    background: var(--surface, #fff);
-    border-top: 1px solid var(--border, rgba(0,0,0,0.08));
-    box-shadow: 0 -2px 12px rgba(0,0,0,0.04);
-  }
-  html[data-theme="dark"] .nem-footer {
-    background: var(--surface, #1c1c1e);
-    border-top-color: rgba(255,255,255,0.08);
-    box-shadow: 0 -2px 12px rgba(0,0,0,0.4);
-  }
-
-  /* KI-Suggest-Box: groessere Buttons */
-  .nem-ai-suggest-btn {
-    min-height: 42px;
-    padding: 10px 14px;
-    border-radius: 10px;
-  }
-}
-
-/* Sehr schmale Phones (iPhone SE etc.) */
-@media (max-width: 380px) {
-  .nem-importance-btn { padding: 6px 6px; font-size: 10px; }
-  .nem-color-dot { width: 20px; height: 20px; }
-  .nem-link-chip-title,
-  .nem-link-chip-meta { max-width: 130px; }
-  .nem-share-chip-name { max-width: 80px; font-size: 11px; }
-  .nem-share-chip { padding: 4px 8px; }
-  .nem-link-add,
-  .nem-visibility-toggle { font-size: 12px; padding: 6px 10px; }
-  .nem-mobile-pill { height: 42px; min-width: 42px; padding: 0 10px; font-size: 13px; }
-  .nem-mobile-pill--done span { font-size: 14px; }
-}
-
-/* ─────────────────────────────────────────────────────────────
-   DARK MODE
-   ─────────────────────────────────────────────────────────── */
-html[data-theme="dark"] .nem-overlay {
-  background: rgba(0, 0, 0, 0.65);
-}
-html[data-theme="dark"] .nem-sheet {
-  background: var(--surface, #1c1c1e);
-  border-color: var(--border-strong, rgba(255, 255, 255, 0.12));
-}
-html[data-theme="dark"] .nem-md-checkbox {
-  background: transparent;
-}
-
-/* ─────────────────────────────────────────────────────────────────────
-   Aktivitaetsverlauf (NoteActivityPanel)
-   Sitzt zwischen Link-Row und Footer, default eingeklappt. Subtiler
-   Look, passt sich an die Note-Akzentfarbe an (--nem-accent).
-   ───────────────────────────────────────────────────────────────────── */
-.nem-act {
-  border-top: 1px solid var(--nem-border, rgba(0, 0, 0, 0.08));
-  background: rgba(0, 0, 0, 0.02);
-}
-.nem-act-toggle {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  font: inherit;
-  font-size: 12.5px;
-  color: var(--nem-text-soft, #475569);
-  letter-spacing: 0.01em;
-  transition: background 0.15s ease;
-}
-.nem-act-toggle:hover { background: rgba(0, 0, 0, 0.035); }
-.nem-act-toggle:focus-visible { outline: 2px solid var(--nem-accent, #64748b); outline-offset: -2px; }
-.nem-act-chev {
-  margin-left: auto;
-  transition: transform 0.18s ease;
-  opacity: 0.6;
-}
-.nem-act-chev.is-open { transform: rotate(180deg); }
-
-.nem-act-panel {
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.55);
-}
-.nem-act-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 18px 4px;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--nem-text-soft, #64748b);
-  font-weight: 600;
-}
-.nem-act-refresh {
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  color: inherit;
-  padding: 4px;
-  border-radius: 4px;
-  display: inline-flex;
-}
-.nem-act-refresh:hover { background: rgba(0, 0, 0, 0.06); }
-.nem-act-refresh:disabled { opacity: 0.4; cursor: default; }
-.nem-act-refresh .is-spin { animation: nem-act-spin 0.9s linear infinite; }
-@keyframes nem-act-spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
-
-.nem-act-list {
-  list-style: none;
-  margin: 0;
-  padding: 4px 18px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 260px;
-  overflow-y: auto;
-}
-.nem-act-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  font-size: 13px;
-  color: var(--nem-text, #1f2937);
-}
-.nem-act-avatar {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  object-fit: cover;
-  background: #cbd5e1;
-}
-.nem-act-avatar--initial {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-  color: #fff;
-  background: var(--nem-accent, #64748b);
-  text-transform: uppercase;
-}
-.nem-act-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.nem-act-line { line-height: 1.35; }
-.nem-act-actor { font-weight: 600; }
-.nem-act-verb { color: var(--nem-text-soft, #475569); }
-.nem-act-time { font-size: 11.5px; color: var(--nem-text-soft, #64748b); }
-.nem-act-empty {
-  padding: 8px 18px 14px;
-  font-size: 12.5px;
-  color: var(--nem-text-soft, #64748b);
-  font-style: italic;
-}
-.nem-act-empty--error { color: #b91c1c; font-style: normal; }
-
-/* ─────────────────────────────────────────────────────────────────────
-   Kommentare (NoteCommentsPanel)
-   Gleicher Stil wie .nem-act (sitzt darunter). Eigene .nem-cm-* Klassen
-   damit Aenderungen an einer der beiden nicht die andere brechen.
-   ───────────────────────────────────────────────────────────────────── */
-.nem-cm {
-  border-top: 1px solid var(--nem-border, rgba(0, 0, 0, 0.08));
-  background: rgba(0, 0, 0, 0.02);
-}
-.nem-cm-toggle {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  font: inherit;
-  font-size: 12.5px;
-  color: var(--nem-text-soft, #475569);
-  letter-spacing: 0.01em;
-  transition: background 0.15s ease;
-}
-.nem-cm-toggle:hover { background: rgba(0, 0, 0, 0.035); }
-.nem-cm-toggle:focus-visible { outline: 2px solid var(--nem-accent, #64748b); outline-offset: -2px; }
-.nem-cm-chev {
-  margin-left: auto;
-  transition: transform 0.18s ease;
-  opacity: 0.6;
-}
-.nem-cm-chev.is-open { transform: rotate(180deg); }
-
-.nem-cm-panel {
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.55);
-}
-.nem-cm-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 18px 4px;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--nem-text-soft, #64748b);
-  font-weight: 600;
-}
-.nem-cm-refresh {
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  color: inherit;
-  padding: 4px;
-  border-radius: 4px;
-  display: inline-flex;
-}
-.nem-cm-refresh:hover { background: rgba(0, 0, 0, 0.06); }
-.nem-cm-refresh:disabled { opacity: 0.4; cursor: default; }
-.nem-cm-refresh .is-spin { animation: nem-cm-spin 0.9s linear infinite; }
-@keyframes nem-cm-spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
-
-.nem-cm-list {
-  list-style: none;
-  margin: 0;
-  padding: 4px 18px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-height: 280px;
-  overflow-y: auto;
-}
-.nem-cm-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  font-size: 13px;
-  color: var(--nem-text, #1f2937);
-}
-.nem-cm-item.is-pending { opacity: 0.6; }
-.nem-cm-avatar {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  object-fit: cover;
-  background: #cbd5e1;
-}
-.nem-cm-avatar--initial {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-  color: #fff;
-  background: var(--nem-accent, #64748b);
-  text-transform: uppercase;
-}
-.nem-cm-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
-.nem-cm-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11.5px;
-  color: var(--nem-text-soft, #64748b);
-  line-height: 1.2;
-}
-.nem-cm-author { font-weight: 600; color: var(--nem-text, #1f2937); font-size: 12.5px; }
-.nem-cm-time { opacity: 0.8; }
-.nem-cm-del {
-  margin-left: auto;
-  background: transparent;
-  border: 0;
-  padding: 3px;
-  border-radius: 4px;
-  cursor: pointer;
-  color: #64748b;
-  display: inline-flex;
-  opacity: 0;
-  transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
-}
-.nem-cm-item:hover .nem-cm-del { opacity: 1; }
-.nem-cm-del:hover { color: #b91c1c; background: rgba(185, 28, 28, 0.08); }
-.nem-cm-text {
-  white-space: pre-wrap;
-  word-break: break-word;
-  line-height: 1.4;
-}
-
-.nem-cm-empty {
-  padding: 8px 18px 14px;
-  font-size: 12.5px;
-  color: var(--nem-text-soft, #64748b);
-  font-style: italic;
-}
-.nem-cm-empty--error { color: #b91c1c; font-style: normal; }
-
-.nem-cm-compose {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  padding: 8px 18px 14px;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
-  background: rgba(255, 255, 255, 0.75);
-}
-.nem-cm-input {
-  flex: 1;
-  resize: vertical;
-  min-height: 36px;
-  max-height: 140px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  background: #fff;
-  font: inherit;
-  font-size: 13px;
-  line-height: 1.4;
-  color: var(--nem-text, #1f2937);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-.nem-cm-input:focus {
-  outline: 0;
-  border-color: var(--nem-accent, #64748b);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--nem-accent, #64748b) 20%, transparent);
-}
-.nem-cm-input:disabled { opacity: 0.6; }
-.nem-cm-send {
-  flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  border: 0;
-  border-radius: 8px;
-  background: var(--nem-accent, #64748b);
-  color: #fff;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.12s ease, opacity 0.15s ease;
-}
-.nem-cm-send:hover:not(:disabled) { transform: translateY(-1px); }
-.nem-cm-send:disabled { opacity: 0.4; cursor: default; }
-
-/* ─── Mention-Autocomplete im Kommentar-Eingabefeld ─────────────────── */
-.nem-cm-input-wrap {
-  position: relative;
-  flex: 1;
-  display: flex;
-}
-.nem-cm-input-wrap .nem-cm-input { flex: 1; }
-.nem-cm-mention-pop {
-  position: absolute;
-  bottom: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  max-height: 200px;
-  overflow-y: auto;
-  list-style: none;
-  margin: 0;
-  padding: 4px;
-  background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: 8px;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
-  z-index: 50;
-}
-.nem-cm-mention-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  color: var(--nem-text, #1f2937);
-  transition: background 0.12s ease;
-}
-.nem-cm-mention-item.is-active,
-.nem-cm-mention-item:hover { background: rgba(0, 0, 0, 0.06); }
-.nem-cm-mention-item .nem-cm-avatar { width: 22px; height: 22px; font-size: 10px; }
-.nem-cm-mention-name { font-weight: 600; }
-.nem-cm-mention-handle {
-  margin-left: auto;
-  font-size: 11.5px;
-  color: var(--nem-text-soft, #64748b);
-  opacity: 0.8;
-}
-
-/* ═════════════════════════════════════════════════════════════════════
-   ACTIVITY + COMMENTS — DARK MODE
-   Die Panels hatten nur Light-Theme-Defaults — auf data-theme="dark"
-   waren Hintergründe weiss/grau und die Eingabe ein heller Block.
-   Hier setzen wir die Tokens für beide Panels konsistent.
-   ═════════════════════════════════════════════════════════════════════ */
-
-html[data-theme="dark"] .nem-act,
-html[data-theme="dark"] .nem-cm {
-  border-top-color: rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.02);
-}
-html[data-theme="dark"] .nem-act-toggle,
-html[data-theme="dark"] .nem-cm-toggle {
-  color: rgba(245, 247, 251, 0.72);
-}
-html[data-theme="dark"] .nem-act-toggle:hover,
-html[data-theme="dark"] .nem-cm-toggle:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #F5F7FB;
-}
-
-html[data-theme="dark"] .nem-act-panel,
-html[data-theme="dark"] .nem-cm-panel {
-  background: rgba(255, 255, 255, 0.025);
-}
-
-html[data-theme="dark"] .nem-act-head,
-html[data-theme="dark"] .nem-cm-head {
-  color: rgba(245, 247, 251, 0.55);
-}
-
-html[data-theme="dark"] .nem-act-refresh,
-html[data-theme="dark"] .nem-cm-refresh {
-  color: rgba(245, 247, 251, 0.6);
-}
-html[data-theme="dark"] .nem-act-refresh:hover,
-html[data-theme="dark"] .nem-cm-refresh:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #F5F7FB;
-}
-
-html[data-theme="dark"] .nem-act-item,
-html[data-theme="dark"] .nem-cm-item {
-  color: #F5F7FB;
-}
-html[data-theme="dark"] .nem-act-actor,
-html[data-theme="dark"] .nem-cm-author {
-  color: #F5F7FB;
-}
-html[data-theme="dark"] .nem-act-verb,
-html[data-theme="dark"] .nem-act-time,
-html[data-theme="dark"] .nem-cm-meta,
-html[data-theme="dark"] .nem-cm-time {
-  color: rgba(245, 247, 251, 0.55);
-}
-html[data-theme="dark"] .nem-act-empty,
-html[data-theme="dark"] .nem-cm-empty {
-  color: rgba(245, 247, 251, 0.5);
-}
-html[data-theme="dark"] .nem-act-empty--error,
-html[data-theme="dark"] .nem-cm-empty--error {
-  color: #FF6482;
-}
-
-html[data-theme="dark"] .nem-act-avatar,
-html[data-theme="dark"] .nem-cm-avatar {
-  background: rgba(255, 255, 255, 0.12);
-}
-
-/* Compose-Bereich: dunkles Glass-Panel, helle Eingabe-Box */
-html[data-theme="dark"] .nem-cm-compose {
-  background: rgba(255, 255, 255, 0.03);
-  border-top-color: rgba(255, 255, 255, 0.07);
-}
-html[data-theme="dark"] .nem-cm-input {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.1);
-  color: #F5F7FB;
-  caret-color: var(--primary, #4DA3FF);
-}
-html[data-theme="dark"] .nem-cm-input::placeholder {
-  color: rgba(245, 247, 251, 0.4);
-}
-html[data-theme="dark"] .nem-cm-input:focus {
-  border-color: var(--nem-accent, #4DA3FF);
-  background: rgba(255, 255, 255, 0.07);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--nem-accent, #4DA3FF) 28%, transparent);
-}
-html[data-theme="dark"] .nem-cm-send {
-  /* nem-accent + weißer Text bleiben, aber Schatten passt sich an */
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
-}
-html[data-theme="dark"] .nem-cm-del {
-  color: rgba(245, 247, 251, 0.45);
-}
-html[data-theme="dark"] .nem-cm-del:hover {
-  color: #FF6482;
-  background: rgba(255, 100, 130, 0.14);
-}
-
-/* Mention-Popover */
-html[data-theme="dark"] .nem-cm-mention-pop {
-  background: #1B2236;
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow:
-    0 12px 32px rgba(0, 0, 0, 0.55),
-    0 1px 0 rgba(255, 255, 255, 0.04) inset;
-}
-html[data-theme="dark"] .nem-cm-mention-item {
-  color: #F5F7FB;
-}
-html[data-theme="dark"] .nem-cm-mention-item.is-active,
-html[data-theme="dark"] .nem-cm-mention-item:hover {
-  background: rgba(255, 255, 255, 0.07);
-}
-html[data-theme="dark"] .nem-cm-mention-handle {
-  color: rgba(245, 247, 251, 0.5);
-}
-
-/* ── Light-Theme Polish: subtileres Surface-Tinting für Lesbarkeit ── */
-.nem-act,
-.nem-cm {
-  background: rgba(15, 23, 42, 0.025); /* leichter blau-grau Hauch statt rgba(0,0,0,0.02) */
-  margin: 8px 10px 0;
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-}
-.nem-act-panel,
-.nem-cm-panel {
-  background: rgba(248, 250, 252, 0.7);
-}
-.nem-cm-compose {
-  background: #ffffff;
-}
-.nem-cm-input {
-  background: #f8fafc;
-  border-color: rgba(15, 23, 42, 0.1);
-}
-.nem-cm-input:focus {
-  background: #ffffff;
-}
-
-/* ── Versions-/Verlauf-Panel ───────────────────────────────────────── */
-.nem-ver-panel {
-  margin: 12px 14px 6px 14px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(6px);
-  overflow: hidden;
-}
-.nem-ver-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 10px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  font-size: 13px;
-  font-weight: 600;
-}
-.nem-ver-head-title { display: flex; align-items: center; gap: 6px; }
-.nem-ver-count { color: rgba(0, 0, 0, 0.5); font-weight: 500; }
-.nem-ver-close {
-  background: none; border: none; cursor: pointer; padding: 4px;
-  border-radius: 6px; color: rgba(0, 0, 0, 0.55);
-}
-.nem-ver-close:hover { background: rgba(0, 0, 0, 0.06); color: rgba(0, 0, 0, 0.85); }
-.nem-ver-body { max-height: 360px; overflow-y: auto; }
-.nem-ver-empty {
-  padding: 14px 12px; text-align: center; color: rgba(0, 0, 0, 0.55);
-  font-size: 12.5px; display: flex; align-items: center; justify-content: center; gap: 6px;
-}
-.nem-ver-error { color: #c0392b; }
-.nem-ver-list { list-style: none; margin: 0; padding: 4px 0; }
-.nem-ver-item {
-  padding: 6px 10px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
-}
-.nem-ver-item:last-child { border-bottom: none; }
-.nem-ver-row { display: flex; align-items: center; gap: 10px; }
-.nem-ver-meta { flex: 1; min-width: 0; }
-.nem-ver-line { display: flex; align-items: baseline; gap: 6px; }
-.nem-ver-no {
-  font-weight: 700; font-size: 11.5px; color: rgba(0, 0, 0, 0.55);
-  background: rgba(0, 0, 0, 0.06); padding: 1px 6px; border-radius: 999px;
-}
-.nem-ver-author { font-size: 13px; font-weight: 600; color: rgba(0, 0, 0, 0.85); }
-.nem-ver-time { font-size: 11.5px; color: rgba(0, 0, 0, 0.5); }
-.nem-ver-actions { display: flex; gap: 4px; }
-.nem-ver-btn {
-  background: none; border: 1px solid rgba(0, 0, 0, 0.1); cursor: pointer;
-  padding: 4px 6px; border-radius: 6px; color: rgba(0, 0, 0, 0.65);
-  display: inline-flex; align-items: center; justify-content: center;
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
-}
-.nem-ver-btn:hover { background: rgba(0, 0, 0, 0.06); color: rgba(0, 0, 0, 0.9); }
-.nem-ver-btn.is-primary { background: rgba(46, 134, 171, 0.1); border-color: rgba(46, 134, 171, 0.3); color: #2E86AB; }
-.nem-ver-btn.is-primary:hover { background: rgba(46, 134, 171, 0.18); }
-.nem-ver-btn:disabled { opacity: 0.5; cursor: wait; }
-.nem-ver-spin { animation: nem-ver-spin 0.9s linear infinite; }
-@keyframes nem-ver-spin { to { transform: rotate(360deg); } }
-.nem-ver-preview {
-  margin-top: 6px; padding: 8px 10px;
-  border-radius: 8px; background: rgba(0, 0, 0, 0.04);
-  font-size: 12.5px; color: rgba(0, 0, 0, 0.8);
-  overflow: hidden;
-}
-.nem-ver-preview-title { font-weight: 600; margin-bottom: 4px; }
-.nem-ver-preview-content { max-height: 180px; overflow: auto; }
-.nem-ver-preview-pre { white-space: pre-wrap; font-family: inherit; margin: 0; }
-.nem-icon-btn.is-active { background: rgba(0, 0, 0, 0.08); color: rgba(0, 0, 0, 0.9); }
-/* ─── AI Toolbar Dropdown + Suggestion ───────────────────────────── */
-.nem-toolbar-ai { position: relative; }
-.nem-toolbar-ai-btn { display: inline-flex; align-items: center; gap: 4px; padding: 0 8px; }
-.nem-toolbar-ai-label { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; }
-.nem-toolbar-btn.is-active { background: rgba(0,0,0,0.08); }
-.nem-ai-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  min-width: 220px;
-  background: var(--bg-card, #ffffff);
-  border: 1px solid rgba(0,0,0,0.08);
-  border-radius: 10px;
-  box-shadow: 0 12px 32px rgba(0,0,0,0.18);
-  padding: 4px;
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-}
-/* Portal-Variante: rendert oberhalb des Modals via createPortal,
-   damit overflow:auto der Toolbar das Menue nicht abschneidet. */
-.nem-ai-menu--portal {
-  position: fixed;
-  top: auto;
-  right: auto;
-  /* MUSS ueber dem Editor-Modal (z-index 10300) liegen. */
-  z-index: 10400;
-  color: var(--text, #1c1c1e);
-  animation: nemAiMenuPop 140ms ease-out;
-}
-@keyframes nemAiMenuPop {
-  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-html[data-theme="dark"] .nem-ai-menu {
-  background: #2c2c2e;
-  border-color: rgba(255,255,255,0.08);
-  color: #f5f5f7;
-}
-html[data-theme="dark"] .nem-ai-menu-item:hover { background: rgba(255,255,255,0.08); }
-.nem-ai-menu-item {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  padding: 8px 10px;
-  background: transparent;
-  border: 0;
-  border-radius: 6px;
-  cursor: pointer;
-  text-align: left;
-  color: inherit;
-  font: inherit;
-}
-.nem-ai-menu-item:hover { background: rgba(0,0,0,0.06); }
-.nem-ai-menu-label { font-size: 13px; font-weight: 600; }
-.nem-ai-menu-hint { font-size: 11px; opacity: 0.6; }
-.nem-ai-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  margin: 8px 0 0;
-  font-size: 12px;
-  color: var(--text-muted, #6b7280);
-}
-.nem-ai-spin { animation: nem-spin 1s linear infinite; }
-@keyframes nem-spin { to { transform: rotate(360deg); } }
-.nem-ai-suggest {
-  margin: 10px 0 6px;
-  padding: 10px 12px;
-  border: 1px solid rgba(99,102,241,0.35);
-  background: rgba(99,102,241,0.06);
-  border-radius: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.nem-ai-suggest-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: rgb(79,70,229);
-}
-.nem-ai-suggest-preview {
-  margin: 0;
-  font-family: inherit;
-  font-size: 13px;
-  line-height: 1.45;
-  white-space: pre-wrap;
-  max-height: 180px;
-  overflow: auto;
-  background: rgba(255,255,255,0.6);
-  padding: 8px 10px;
-  border-radius: 6px;
-  border: 1px solid rgba(0,0,0,0.05);
-}
-.nem-ai-suggest-actions { display: flex; gap: 8px; }
-.nem-ai-suggest-btn {
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 6px;
-  border: 1px solid rgba(0,0,0,0.12);
-  background: var(--bg-card, #ffffff);
-  cursor: pointer;
-}
-.nem-ai-suggest-btn.is-primary {
-  background: rgb(79,70,229);
-  color: #fff;
-  border-color: transparent;
-}
-.nem-ai-suggest-btn.is-primary:hover { background: rgb(67,56,202); }
-.nem-ai-suggest-btn:hover { background: rgba(0,0,0,0.04); }
-
-/* ═════════════════════════════════════════════════════════════
-   MOBILE BOTTOM BAR (iOS-Pill-Stil)
-   - Desktop: komplett ausgeblendet (display:none)
-   - Mobile (<=720px): ersetzt visuell den klassischen Footer.
-   - 4 Pillen: Farbe, Wichtigkeit, Mehr, Fertig (primaer)
-   - Sekundaere Aktionen liegen im Aktions-Sheet hinter "Mehr".
-   ═══════════════════════════════════════════════════════════ */
-.nem-mobile-bar { display: none; }
-.nem-mobile-sheet-backdrop { display: none; }
-
-@media (max-width: 720px) {
-  /* Footer bleibt sichtbar; mobile Slidebar wird deaktiviert. */
-  .nem-footer {
-    display: flex !important;
-    position: sticky;
-    bottom: 0;
-    z-index: 6;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    background: color-mix(in srgb, var(--surface, #fff) 88%, transparent);
-  }
-
-  /* Link-Row kompakter — auf Mobile stapelt sich der Inhalt vertikal,
-     damit Termin-Anheften, Sichtbarkeits-Toggle und Share-Chips nicht
-     in eine ueberlaufende Einzeile gequetscht werden. */
-  .nem-link-row {
-    padding: 8px 10px;
+  /* Toolbar — full-bleed sticky pill cluster */
+  .nem-toolbar {
+    margin: -12px -14px 14px;
+    top: -12px;
+    padding: 9px 12px;
     gap: 6px;
-    flex-direction: row;
+    background: color-mix(in srgb, var(--nem-surface) 92%, transparent);
+    box-shadow: inset -16px 0 16px -14px rgba(0, 0, 0, 0.10);
+  }
+  .nem-toolbar-group {
+    padding: 3px;
+    gap: 0;
+  }
+  .nem-toolbar-btn {
+    width: 38px;
+    height: 38px;
+  }
+  .nem-toolbar-ai-btn { height: 38px; padding: 0 14px; }
+
+  /* Link row — keep pills compact, allow wrap */
+  .nem-link-row {
+    padding: 10px 12px;
+    gap: 6px;
+    row-gap: 6px;
     align-items: center;
     flex-wrap: wrap;
-    overflow: visible;
   }
-  .nem-link-row > * { flex: 0 1 auto; }
-  .nem-link-row .nem-share-friends,
-  .nem-link-row .nem-share-friends-row {
-    width: auto;
-    flex-wrap: wrap;
-    gap: 6px;
+  .nem-link-add,
+  .nem-share-add,
+  .nem-visibility-toggle,
+  .nem-link-chip,
+  .nem-share-chip {
+    height: 30px;
+    font-size: 12px;
   }
-  .nem-link-row .nem-share-friends {
-    flex: 0 1 auto;
-    max-width: 100%;
-  }
-  .nem-link-row .nem-share-add,
-  .nem-link-row .nem-link-add,
-  .nem-link-row .nem-visibility-toggle {
-    min-height: 32px;
-  }
-  .nem-link-chip-title,
-  .nem-link-chip-meta {
-    max-width: 180px;
+  .nem-link-chip-title { max-width: 140px; }
+  .nem-link-chip-meta  { display: none; }
+  .nem-visibility-toggle > span {
+    max-width: 90px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .nem-share-chip-name { display: none; }
+  .nem-link-row .nem-share-friends {
+    width: 100%;
+    flex: 1 1 100%;
+    margin-top: 2px;
+  }
+  .nem-link-row .nem-share-friends-row {
+    width: 100%;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .nem-share-chip-perm,
+  .nem-share-chip-remove { width: 20px; height: 20px; }
 
-  /* Sticky Bottom-Bar — feste Hoehe, klare Trennung */
-  .nem-mobile-bar { display: none !important; }
+  /* Activity/comments compact */
+  .nem-act,
+  .nem-cm {
+    margin: 10px 10px 0;
+    border-radius: 14px;
+  }
+  .nem-act-toggle,
+  .nem-cm-toggle {
+    min-height: 42px;
+    padding: 10px 14px;
+    font-size: 12.5px;
+  }
+  .nem-cm-list { max-height: 240px; padding: 4px 14px 6px; }
+  .nem-act-list { max-height: 200px; padding: 4px 14px 10px; }
 
+  /* Desktop footer hidden on mobile — bottom pill bar takes over */
+  .nem-footer {
+    display: none !important;
+  }
+  /* Replacement readonly-only footer kept simple */
+  .nem-mobile-bar--readonly + * .nem-footer { display: none !important; }
+
+  /* ──────────────────────────────────────────────────────────
+     Mobile bottom bar — iOS pill row
+     ────────────────────────────────────────────────────────── */
+  .nem-mobile-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    background: color-mix(in srgb, var(--nem-surface) 88%, transparent);
+    backdrop-filter: blur(16px) saturate(1.4);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4);
+    border-top: 1px solid var(--nem-border-soft);
+    flex-shrink: 0;
+    z-index: 5;
+  }
   .nem-mobile-pill {
     display: inline-flex;
     align-items: center;
@@ -2138,197 +1793,247 @@ html[data-theme="dark"] .nem-ai-menu-item:hover { background: rgba(255,255,255,0
     gap: 6px;
     height: 44px;
     min-width: 44px;
-    padding: 0 12px;
-    border-radius: 999px;
-    border: 1px solid rgba(0,0,0,0.10);
-    background: rgba(120,120,128,0.10);
-    color: var(--text, #1c1c1e);
+    padding: 0 14px;
+    border-radius: var(--nem-radius-pill);
+    border: 1px solid var(--nem-border-soft);
+    background: var(--nem-pill-fill);
+    color: var(--nem-text);
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 650;
     cursor: pointer;
-    transition: transform 120ms ease, background 120ms ease;
+    transition: transform 120ms ease, background 140ms ease, border-color 140ms ease;
     -webkit-tap-highlight-color: transparent;
+    font-family: inherit;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset;
   }
-  .nem-mobile-pill:active { transform: scale(0.96); }
+  .nem-mobile-pill:active { transform: scale(0.95); }
 
   .nem-mobile-pill--color {
-    border-width: 2px;
-    padding: 0;
     width: 44px;
-    /* Icon immer schwarz, damit es auf jeder Farb-Pille klar sichtbar
-       bleibt (gelb, weiss, rosa, …). */
-    color: #000;
+    padding: 0;
+    border-width: 2px;
+    color: rgba(0, 0, 0, 0.78);
   }
-  .nem-mobile-pill--color svg { stroke: #000; }
-  .nem-mobile-pill--importance.is-low    { background: rgba(120,120,128,0.12); color: var(--text); }
-  .nem-mobile-pill--importance.is-medium { background: rgba(255,159,10,0.18);  color: rgb(180,100,0); }
-  .nem-mobile-pill--importance.is-high   { background: rgba(255,69,58,0.18);   color: rgb(200,40,40); }
+  .nem-mobile-pill--color svg { stroke: rgba(0, 0, 0, 0.78); }
 
-  .nem-mobile-pill--more { background: rgba(120,120,128,0.12); }
+  .nem-mobile-pill--importance.is-low    { background: var(--nem-pill-fill); color: var(--nem-text-soft); }
+  .nem-mobile-pill--importance.is-medium {
+    background: rgba(255, 159, 10, 0.18);
+    border-color: rgba(255, 159, 10, 0.35);
+    color: rgb(180, 100, 0);
+  }
+  .nem-mobile-pill--importance.is-high {
+    background: rgba(255, 69, 58, 0.18);
+    border-color: rgba(255, 69, 58, 0.4);
+    color: rgb(200, 40, 40);
+  }
+  html[data-theme="dark"] .nem-mobile-pill--importance.is-medium {
+    color: #ffb958;
+  }
+  html[data-theme="dark"] .nem-mobile-pill--importance.is-high {
+    color: #ff7b6e;
+  }
+
+  .nem-mobile-pill--more { background: var(--nem-pill-fill); }
 
   .nem-mobile-pill--done {
     flex: 1 1 auto;
-    background: rgb(0,122,255);
-    color: #fff;
+    background: linear-gradient(180deg,
+      color-mix(in srgb, var(--nem-primary) 88%, #4da3ff),
+      var(--nem-primary));
+    color: #ffffff;
     border-color: transparent;
-    box-shadow: 0 1px 0 rgba(0,0,0,0.05);
+    box-shadow: 0 6px 18px rgba(0, 122, 255, 0.32);
+    font-weight: 700;
+    letter-spacing: 0.005em;
   }
-  .nem-mobile-pill--done:hover { background: rgb(0,110,235); }
+  .nem-mobile-pill--done:active {
+    transform: scale(0.98);
+    background: var(--nem-primary);
+  }
 
-  /* Action-Sheet (iOS-Look) */
-  .nem-mobile-sheet-backdrop { display: none !important; }
+  /* ──────────────────────────────────────────────────────────
+     Mobile action sheet (swipe-to-close)
+     ────────────────────────────────────────────────────────── */
+  .nem-mobile-sheet-backdrop {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    align-items: flex-end;
+    justify-content: center;
+    animation: nemSheetFade 200ms ease-out;
+  }
   .nem-mobile-sheet {
     width: 100%;
-    background: var(--surface, #ffffff);
-    border-top-left-radius: 16px;
-    border-top-right-radius: 16px;
-    padding: 8px 12px max(12px, env(safe-area-inset-bottom, 0px));
-    box-shadow: 0 -10px 30px rgba(0,0,0,0.18);
-    animation: nemSheetSlideUp 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    background: var(--nem-surface);
+    color: var(--nem-text);
+    border-top-left-radius: 22px;
+    border-top-right-radius: 22px;
+    padding: 8px 14px max(14px, env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.22);
+    animation: nemSheetSlideUp 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
     max-height: 80dvh;
     overflow-y: auto;
-    /* Glatte Rueckfederung wenn Swipe-Drag unter Schwelle losgelassen wird */
     transition: transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
     overscroll-behavior: contain;
     will-change: transform;
   }
-  /* Drag-Zone (Grip + Titel): hier wird nach unten gewischt zum Schliessen.
-     touch-action: none verhindert, dass die Geste parallel die Hintergrundseite
-     scrollt oder das Modal mitziehet. */
+  html[data-theme="dark"] .nem-mobile-sheet {
+    background: #232428;
+    box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.6);
+  }
   .nem-mobile-sheet-drag {
     touch-action: none;
     cursor: grab;
     user-select: none;
     -webkit-user-select: none;
+    padding-top: 4px;
   }
   .nem-mobile-sheet-grip {
-    width: 44px;
+    width: 40px;
     height: 5px;
     border-radius: 999px;
-    background: rgba(120,120,128,0.55);
-    margin: 4px auto 8px;
+    background: rgba(120, 120, 128, 0.5);
+    margin: 6px auto 8px;
   }
   .nem-mobile-sheet-title {
     text-align: center;
     font-size: 13px;
-    font-weight: 600;
-    color: rgba(60,60,67,0.7);
-    margin-bottom: 8px;
+    font-weight: 700;
+    color: var(--nem-text-soft);
+    margin-bottom: 10px;
+    letter-spacing: 0.01em;
   }
 
   .nem-mobile-sheet-list {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 5px;
   }
   .nem-mobile-sheet-item {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
     width: 100%;
-    padding: 12px 14px;
-    background: rgba(120,120,128,0.08);
+    padding: 14px 16px;
+    background: var(--nem-pill-fill);
     border: 0;
-    border-radius: 12px;
+    border-radius: 14px;
     text-align: left;
-    color: var(--text, #1c1c1e);
+    color: var(--nem-text);
     cursor: pointer;
-    min-height: 56px;
+    min-height: 58px;
+    font-family: inherit;
+    transition: background 0.14s ease, transform 0.08s ease;
   }
-  .nem-mobile-sheet-item:active { background: rgba(120,120,128,0.18); }
-  .nem-mobile-sheet-item.is-danger { color: rgb(255,59,48); }
-  .nem-mobile-sheet-item.is-active { background: rgba(0,122,255,0.12); }
+  .nem-mobile-sheet-item:active {
+    background: color-mix(in srgb, var(--nem-primary) 14%, transparent);
+    transform: scale(0.99);
+  }
+  .nem-mobile-sheet-item.is-danger {
+    color: var(--nem-danger);
+  }
+  .nem-mobile-sheet-item.is-active {
+    background: var(--nem-primary-soft);
+    color: var(--nem-primary);
+  }
   .nem-mobile-sheet-item-text {
     display: flex;
     flex-direction: column;
     flex: 1 1 auto;
     min-width: 0;
   }
-  .nem-mobile-sheet-item-label { font-size: 15px; font-weight: 600; }
+  .nem-mobile-sheet-item-label { font-size: 15px; font-weight: 650; letter-spacing: -0.005em; }
   .nem-mobile-sheet-item-hint {
-    font-size: 12px;
-    opacity: 0.65;
+    font-size: 12.5px;
+    opacity: 0.7;
     margin-top: 2px;
   }
 
   .nem-mobile-sheet-cancel {
-    margin-top: 10px;
+    margin-top: 12px;
     width: 100%;
-    padding: 14px;
-    background: var(--surface, #ffffff);
-    border: 1px solid rgba(0,0,0,0.10);
-    border-radius: 12px;
+    padding: 15px;
+    background: var(--nem-surface);
+    border: 1px solid var(--nem-border);
+    border-radius: 14px;
     font-size: 15px;
     font-weight: 700;
     cursor: pointer;
-    color: var(--text, #1c1c1e);
+    color: var(--nem-text);
+    font-family: inherit;
+    transition: background 0.14s ease;
   }
+  .nem-mobile-sheet-cancel:active { background: var(--nem-pill-fill); }
 
-  /* Color-Grid im Sheet */
+  /* Color grid in sheet */
   .nem-mobile-color-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
-    padding: 6px 2px;
+    padding: 4px 0;
   }
   .nem-mobile-color-swatch {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 64px;
-    border-radius: 14px;
+    height: 72px;
+    border-radius: 16px;
     border: 2px solid transparent;
     cursor: pointer;
-    font-size: 12px;
-    font-weight: 600;
-    color: rgba(0,0,0,0.65);
+    font-size: 12.5px;
+    font-weight: 650;
+    color: rgba(0, 0, 0, 0.72);
+    font-family: inherit;
+    transition: transform 0.12s ease, box-shadow 0.14s ease;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.55);
   }
+  .nem-mobile-color-swatch:active { transform: scale(0.97); }
   .nem-mobile-color-swatch.is-active {
-    box-shadow: 0 0 0 3px rgb(0,122,255), 0 0 0 5px #fff;
+    box-shadow:
+      0 0 0 3px var(--nem-primary),
+      0 0 0 5px var(--nem-surface),
+      0 2px 8px rgba(15, 23, 42, 0.08);
   }
   .nem-mobile-color-name { pointer-events: none; }
 
-  /* Importance-Liste */
+  /* Importance list */
   .nem-mobile-importance-list {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 5px;
   }
   .nem-mobile-importance-dot {
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
     flex: 0 0 auto;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.18);
   }
-  .nem-mobile-importance-dot.is-low    { background: rgb(142,142,147); }
-  .nem-mobile-importance-dot.is-medium { background: rgb(255,159,10); }
-  .nem-mobile-importance-dot.is-high   { background: rgb(255,59,48); }
+  .nem-mobile-importance-dot.is-low    { background: rgb(142, 142, 147); }
+  .nem-mobile-importance-dot.is-medium { background: rgb(255, 159, 10); }
+  .nem-mobile-importance-dot.is-high   { background: rgb(255, 59, 48); }
+
+  /* Readonly variant of mobile bar */
+  .nem-mobile-bar--readonly { justify-content: center; }
 }
 
-/* Tablet: mehr sichtbare Editorflaeche, ohne Fullscreen-Charakter zu verlieren. */
-@media (min-width: 721px) and (max-width: 1024px) {
-  .nem-overlay {
-    padding: 10px;
-  }
-  .nem-sheet {
-    width: min(920px, 100%);
-    max-height: calc(100dvh - 20px);
-  }
-  .nem-header {
-    padding: 10px 12px;
-  }
-  .nem-body {
-    padding: 8px 12px 12px;
-  }
-  .nem-editor {
-    min-height: calc(100dvh - 320px);
-  }
-  .nem-link-row {
-    padding: 6px 12px 8px;
-    gap: 6px;
-  }
+/* Very small screens (iPhone SE) */
+@media (max-width: 380px) {
+  .nem-title { font-size: 20px; }
+  .nem-toolbar-btn { width: 36px; height: 36px; }
+  .nem-mobile-pill { height: 42px; min-width: 42px; padding: 0 10px; font-size: 13px; }
+  .nem-mobile-pill--color { width: 42px; }
+  .nem-link-chip-title { max-width: 110px; }
 }
 
+/* ────────────────────────────────────────────────────────────
+   Animations
+   ──────────────────────────────────────────────────────────── */
 @keyframes nemSheetFade {
   from { opacity: 0; }
   to   { opacity: 1; }
@@ -2338,372 +2043,69 @@ html[data-theme="dark"] .nem-ai-menu-item:hover { background: rgba(255,255,255,0
   to   { transform: translateY(0); }
 }
 
-/* Dark-Mode Anpassungen fuer Mobile-Bar + Sheet */
-html[data-theme="dark"] .nem-mobile-bar {
-  background: var(--surface, #1c1c1e);
-  border-top-color: rgba(255,255,255,0.10);
-  box-shadow: 0 -2px 14px rgba(0,0,0,0.5);
+/* ────────────────────────────────────────────────────────────
+   Markdown preview helpers (note card display path)
+   ──────────────────────────────────────────────────────────── */
+.nem-md-li { display: flex; gap: 8px; margin: 3px 0; }
+.nem-md-bullet { color: var(--nem-text-tertiary); flex-shrink: 0; }
+.nem-md-check { display: flex; align-items: flex-start; gap: 8px; margin: 3px 0; }
+.nem-md-checkbox {
+  width: 18px; height: 18px;
+  border: 1.5px solid var(--nem-border);
+  border-radius: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 2px;
+  background: var(--nem-surface);
 }
-html[data-theme="dark"] .nem-mobile-pill {
-  background: rgba(255,255,255,0.08);
-  color: #f5f5f7;
-  border-color: rgba(255,255,255,0.10);
+.nem-md-check.checked .nem-md-checkbox {
+  background: var(--nem-success);
+  border-color: var(--nem-success);
+  color: #ffffff;
 }
-html[data-theme="dark"] .nem-mobile-pill--more { background: rgba(255,255,255,0.10); }
-html[data-theme="dark"] .nem-mobile-sheet {
-  background: #1c1c1e;
-  color: #f5f5f7;
-}
-html[data-theme="dark"] .nem-mobile-sheet-title { color: rgba(235,235,245,0.6); }
-html[data-theme="dark"] .nem-mobile-sheet-item {
-  background: rgba(255,255,255,0.06);
-  color: #f5f5f7;
-}
-html[data-theme="dark"] .nem-mobile-sheet-item:active { background: rgba(255,255,255,0.12); }
-html[data-theme="dark"] .nem-mobile-sheet-cancel {
-  background: #2c2c2e;
-  color: #f5f5f7;
-  border-color: rgba(255,255,255,0.10);
+.nem-md-check.checked > span:last-child {
+  text-decoration: line-through;
+  opacity: 0.6;
 }
 
-/* ============================================================
-   NEM APPLE VISUAL REFRESH
-   Full redesign from color-bar to footer while keeping behavior
-   ============================================================ */
-.nem-sheet {
-  border-radius: 22px;
-  border: 1px solid color-mix(in srgb, var(--border-strong, rgba(0,0,0,0.14)) 82%, #ffffff);
-  background:
-    radial-gradient(1200px 380px at 10% -12%, color-mix(in srgb, var(--nem-accent, #007aff) 10%, transparent), transparent 65%),
-    linear-gradient(180deg, color-mix(in srgb, var(--surface, #ffffff) 96%, #f4f7ff), var(--surface, #ffffff));
-  box-shadow:
-    0 34px 80px rgba(15, 23, 42, 0.28),
-    0 8px 24px rgba(15, 23, 42, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+/* Empty/preview helpers */
+.nem-preview {
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--nem-text);
 }
+.nem-preview h1 { font-size: 22px; font-weight: 700; margin: 14px 0 6px; letter-spacing: -0.02em; }
+.nem-preview h2 { font-size: 18px; font-weight: 700; margin: 12px 0 4px; letter-spacing: -0.01em; }
+.nem-preview p { margin: 4px 0; }
+.nem-preview a { color: var(--nem-primary); text-decoration: none; }
+.nem-preview a:hover { text-decoration: underline; }
+.nem-preview code {
+  background: var(--nem-pill-fill);
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", monospace;
+  font-size: 0.92em;
+}
+.nem-preview strong { font-weight: 700; }
+.nem-preview em { font-style: italic; }
+.nem-empty { opacity: 0.5; font-style: italic; color: var(--nem-text-tertiary); }
 
-.nem-color-bar {
-  height: 6px;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--nem-accent, #007aff) 75%, #ffffff), var(--nem-accent, #007aff) 55%, color-mix(in srgb, var(--nem-accent, #007aff) 80%, #1d4ed8));
-  box-shadow: 0 1px 0 rgba(255,255,255,0.55) inset;
-}
-
-.nem-header {
-  padding: 14px 18px;
-  border-bottom: 1px solid color-mix(in srgb, var(--border, rgba(0,0,0,0.08)) 80%, transparent);
-  background: color-mix(in srgb, var(--surface, #ffffff) 86%, transparent);
-  backdrop-filter: blur(12px) saturate(1.25);
-  -webkit-backdrop-filter: blur(12px) saturate(1.25);
-}
-
-.nem-title {
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: -0.018em;
-}
-
-.nem-icon-btn {
-  width: 36px;
-  height: 36px;
-  border: 1px solid color-mix(in srgb, var(--border, rgba(0,0,0,0.10)) 85%, transparent);
-  background: color-mix(in srgb, var(--surface, #fff) 90%, #edf2ff);
-  color: color-mix(in srgb, var(--text-secondary, #6b7280) 88%, #334155);
-  border-radius: 11px;
-  box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset;
-}
-.nem-icon-btn:hover {
-  background: color-mix(in srgb, var(--surface, #fff) 86%, #e5edff);
-  color: var(--text, #111827);
-}
-
-.nem-body {
-  padding: 18px 22px;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface-2, #f8f9fc) 60%, transparent), transparent 110px),
-    var(--surface, #ffffff);
-}
-
-.nem-toolbar {
-  top: -18px;
-  margin: -18px -22px 14px;
-  padding: 8px 12px;
-  border-bottom: 1px solid color-mix(in srgb, var(--border, rgba(0,0,0,0.08)) 82%, transparent);
-  background: color-mix(in srgb, var(--surface, #fff) 84%, #edf2ff);
-  backdrop-filter: blur(10px) saturate(1.22);
-  -webkit-backdrop-filter: blur(10px) saturate(1.22);
-}
-
-.nem-toolbar-btn {
-  width: 35px;
-  height: 35px;
-  border-radius: 10px;
-}
-
-.nem-editor {
-  font-size: 15.5px;
-  line-height: 1.7;
+/* Legacy textarea (kept for compatibility — editor uses contentEditable) */
+.nem-textarea {
+  width: 100%;
+  min-height: 280px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  resize: none;
+  color: var(--nem-text);
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.6;
   letter-spacing: 0.001em;
-  border-radius: 14px;
-  border: 1px solid color-mix(in srgb, var(--border, rgba(0,0,0,0.08)) 72%, transparent);
-  background: color-mix(in srgb, var(--surface, #fff) 90%, #f8fbff);
-  box-shadow:
-    0 1px 0 rgba(255,255,255,0.86) inset,
-    0 8px 18px rgba(15,23,42,0.04);
-  padding: 14px 14px 18px;
+  field-sizing: content;
 }
-
-.nem-link-row {
-  padding: 12px 16px;
-  border-top: 1px solid color-mix(in srgb, var(--border, rgba(0,0,0,0.08)) 80%, transparent);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface-2, #f7f9fd) 78%, #ffffff), color-mix(in srgb, var(--surface, #fff) 92%, #f8fbff));
-  gap: 10px;
-}
-
-.nem-link-add,
-.nem-share-add,
-.nem-visibility-toggle,
-.nem-link-chip,
-.nem-share-chip {
-  min-height: 32px;
-  border-radius: 999px;
-}
-
-.nem-link-add,
-.nem-share-add,
-.nem-visibility-toggle {
-  font-weight: 650;
-  border-width: 1px;
-}
-
-.nem-link-chip {
-  border-color: color-mix(in srgb, var(--primary, #007aff) 65%, #7aaef5);
-  background: color-mix(in srgb, var(--primary-bg, rgba(0,122,255,0.12)) 86%, #ffffff);
-}
-
-.nem-link-chip-main,
-.nem-visibility-toggle,
-.nem-share-chip {
-  font-size: 12.5px;
-}
-
-.nem-act,
-.nem-cm {
-  margin: 10px 12px 0;
-  border-radius: 14px;
-  border: 1px solid color-mix(in srgb, var(--border, rgba(0,0,0,0.08)) 80%, transparent);
-  background: color-mix(in srgb, var(--surface, #fff) 84%, #f6f9ff);
-  box-shadow: 0 6px 16px rgba(15,23,42,0.04);
-}
-
-.nem-act-toggle,
-.nem-cm-toggle {
-  padding: 11px 16px;
-  font-weight: 600;
-}
-
-.nem-footer {
-  gap: 10px;
-  padding: 12px 14px;
-  border-top: 1px solid color-mix(in srgb, var(--border, rgba(0,0,0,0.08)) 84%, transparent);
-  background: color-mix(in srgb, var(--surface, #fff) 84%, #edf3ff);
-  backdrop-filter: blur(12px) saturate(1.2);
-  -webkit-backdrop-filter: blur(12px) saturate(1.2);
-}
-
-.nem-action-btn {
-  border-radius: 11px;
-  min-height: 36px;
-  font-weight: 650;
-  border: 1px solid color-mix(in srgb, var(--border-strong, rgba(0,0,0,0.10)) 84%, transparent);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.62) inset;
-}
-
-.nem-action-btn.primary {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--primary, #007aff) 82%, #4da3ff), var(--primary, #007aff));
-}
-
-@media (max-width: 720px) {
-  .nem-sheet {
-    border-radius: 0;
-    box-shadow: none;
-  }
-  .nem-header {
-    padding: max(12px, env(safe-area-inset-top, 0px)) 12px 8px;
-    background: color-mix(in srgb, var(--surface, #fff) 92%, #eff4ff);
-  }
-  .nem-body {
-    padding: 8px 10px 10px;
-  }
-  .nem-toolbar {
-    margin: -8px -10px 10px;
-    top: -8px;
-    border-radius: 0;
-  }
-  .nem-editor {
-    padding: 12px;
-    min-height: calc(100dvh - 360px);
-  }
-  .nem-link-row {
-    padding: 10px;
-    gap: 8px;
-  }
-  .nem-act,
-  .nem-cm {
-    margin: 8px 8px 0;
-  }
-}
-
-html[data-theme="dark"] .nem-sheet {
-  border-color: rgba(255,255,255,0.12);
-  background:
-    radial-gradient(1200px 420px at 8% -14%, color-mix(in srgb, var(--nem-accent, #58a6ff) 18%, transparent), transparent 68%),
-    linear-gradient(180deg, rgba(22,27,39,0.98), rgba(19,24,35,0.98));
-  box-shadow:
-    0 34px 88px rgba(0,0,0,0.58),
-    inset 0 1px 0 rgba(255,255,255,0.06);
-}
-html[data-theme="dark"] .nem-header,
-html[data-theme="dark"] .nem-footer,
-html[data-theme="dark"] .nem-toolbar,
-html[data-theme="dark"] .nem-link-row {
-  border-color: rgba(255,255,255,0.08);
-}
-html[data-theme="dark"] .nem-editor {
-  background: rgba(255,255,255,0.04);
-  border-color: rgba(255,255,255,0.10);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 10px 22px rgba(0,0,0,0.35);
-}
-html[data-theme="dark"] .nem-act,
-html[data-theme="dark"] .nem-cm {
-  border-color: rgba(255,255,255,0.09);
-  background: rgba(255,255,255,0.03);
-}
-
-/* ============================================================
-   NEM LAYOUT POLISH: activity/comments + compact mobile link row
-   ============================================================ */
-
-/* Desktop/Tablet: Activity und Kommentare klarer als integrierte Cards */
-.nem-act,
-.nem-cm {
-  border-radius: 16px;
-  overflow: clip;
-}
-.nem-act-toggle,
-.nem-cm-toggle {
-  min-height: 44px;
-}
-.nem-act-panel,
-.nem-cm-panel {
-  border-top: 1px solid color-mix(in srgb, var(--border, rgba(0,0,0,0.08)) 76%, transparent);
-}
-
-@media (max-width: 720px) {
-  /* Kommentarbereich darf nicht vom Footer ueberdeckt werden */
-  .nem-footer {
-    position: relative;
-    bottom: auto;
-    box-shadow: none;
-  }
-
-  /* Mobile: kompaktere Link/Share-Zeile fuer bessere Nutzbarkeit */
-  .nem-link-row {
-    gap: 6px;
-    row-gap: 6px;
-    padding: 8px 10px;
-    align-items: flex-start;
-  }
-  .nem-link-row > .nem-link-chip,
-  .nem-link-row > .nem-visibility-toggle,
-  .nem-link-row > .nem-share-add,
-  .nem-link-row .nem-share-chip,
-  .nem-link-row .nem-link-add {
-    height: 28px;
-    min-height: 28px;
-    font-size: 11.5px;
-  }
-  .nem-link-chip-main {
-    gap: 5px;
-    padding: 0 8px 0 10px;
-  }
-  .nem-link-chip-title {
-    max-width: 132px;
-  }
-  .nem-link-chip-meta {
-    display: none;
-  }
-  .nem-link-chip-remove {
-    width: 24px;
-  }
-  .nem-visibility-toggle {
-    padding: 0 9px;
-    gap: 4px;
-  }
-  .nem-visibility-toggle > span {
-    max-width: 78px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .nem-link-row .nem-share-friends {
-    width: 100%;
-    flex: 1 1 100%;
-    order: 3;
-    margin-top: 2px;
-  }
-  .nem-link-row .nem-share-friends-row {
-    width: 100%;
-    gap: 6px;
-    row-gap: 6px;
-    justify-content: flex-start;
-  }
-  .nem-link-row .nem-share-chip {
-    padding: 0 1px;
-    min-width: 28px;
-  }
-  .nem-link-row .nem-share-chip-perm,
-  .nem-link-row .nem-share-chip-remove {
-    width: 18px;
-    height: 18px;
-  }
-  .nem-share-add,
-  .nem-link-add {
-    padding: 0 10px;
-  }
-
-  /* Mobile: Aktivitaet/Kommentare kompakter und besser eingebettet */
-  .nem-act,
-  .nem-cm {
-    margin: 8px 8px 0;
-    border-radius: 12px;
-  }
-  .nem-act-toggle,
-  .nem-cm-toggle {
-    min-height: 40px;
-    padding: 9px 12px;
-    font-size: 12px;
-  }
-  .nem-act-head,
-  .nem-cm-head {
-    padding: 7px 12px 3px;
-    font-size: 10px;
-  }
-  .nem-act-list,
-  .nem-cm-list {
-    padding: 4px 12px 10px;
-    max-height: 220px;
-  }
-  .nem-cm-compose {
-    padding: 8px 12px 10px;
-  }
-  .nem-cm-input {
-    min-height: 34px;
-    font-size: 12.5px;
-  }
-  .nem-cm-send {
-    width: 34px;
-    height: 34px;
-  }
+.nem-textarea::placeholder {
+  color: var(--nem-text-tertiary);
+  white-space: pre-wrap;
 }
