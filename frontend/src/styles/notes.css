@@ -1373,7 +1373,10 @@ html[data-theme="dark"] .empty-board--no-results .empty-board-content {
     animation: nbSheetSlide 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
     /* Glatte Rueckfederung wenn Swipe-Drag unter Schwelle losgelassen wird */
     transition: transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
-    touch-action: pan-y;
+    /* touch-action: none verhindert, dass der Browser parallel zur Drag-Geste
+       die darunter liegende Seite scrollt (Canvas-Pan / Body-Scroll). */
+    touch-action: none;
+    overscroll-behavior: contain;
     will-change: transform;
   }
   .board-mobile-sheet-handle {

@@ -287,7 +287,42 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   const [versionsBust, setVersionsBust] = useState(0);
   // Mobile Action-Sheet: 'more' | 'color' | 'importance' | null
   const [mobileSheet, setMobileSheet] = useState(null);
-  const closeMobileSheet = useCallback(() => setMobileSheet(null), []);
+  const closeMobileSheet = useCallback(() => { setMobileSheet(null); setSheetDragY(0); }, []);
+
+  // Swipe-to-dismiss fuer das Mobile-Action-Sheet (siehe NotesPage).
+  // dragY = Drag-Offset >= 0. Release-Schwellen: > 120 px ODER > 0.5 px/ms.
+  const [sheetDragY, setSheetDragY] = useState(0);
+  const sheetDragRef = useRef({ startY: 0, lastY: 0, lastT: 0, active: false });
+  const handleSheetTouchStart = useCallback((e) => {
+    const t = e.touches?.[0];
+    if (!t) return;
+    e.stopPropagation();
+    sheetDragRef.current = { startY: t.clientY, lastY: t.clientY, lastT: performance.now(), active: true };
+  }, []);
+  const handleSheetTouchMove = useCallback((e) => {
+    if (!sheetDragRef.current.active) return;
+    const t = e.touches?.[0];
+    if (!t) return;
+    e.stopPropagation();
+    const dy = Math.max(0, t.clientY - sheetDragRef.current.startY);
+    sheetDragRef.current.lastY = t.clientY;
+    sheetDragRef.current.lastT = performance.now();
+    setSheetDragY(dy);
+  }, []);
+  const handleSheetTouchEnd = useCallback((e) => {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    if (!sheetDragRef.current.active) return;
+    const dragged = Math.max(0, sheetDragRef.current.lastY - sheetDragRef.current.startY);
+    const dt = Math.max(1, performance.now() - sheetDragRef.current.lastT);
+    const velocity = dragged / dt; // px/ms
+    sheetDragRef.current.active = false;
+    if (dragged > 120 || velocity > 0.5) {
+      setMobileSheet(null);
+      setSheetDragY(0);
+    } else {
+      setSheetDragY(0);
+    }
+  }, []);
 
   // Verknuepfter Termin / Aufgabe (bidirektional via notes.linked_task_id)
   const tasks = useTaskStore((s) => s.tasks);
@@ -1473,6 +1508,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
               className="nem-mobile-sheet-backdrop"
               role="presentation"
               onClick={closeMobileSheet}
+              style={sheetDragY > 0 ? { backgroundColor: `rgba(0,0,0,${Math.max(0.10, 0.35 - sheetDragY / 400)})` } : undefined}
             >
               <div
                 className={`nem-mobile-sheet nem-mobile-sheet--${mobileSheet}`}
@@ -1484,12 +1520,21 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                   : 'Weitere Aktionen'
                 }
                 onClick={(e) => e.stopPropagation()}
+                style={sheetDragY > 0 ? { transform: `translateY(${sheetDragY}px)`, transition: 'none' } : undefined}
               >
-                <div className="nem-mobile-sheet-grip" aria-hidden="true" />
-                <div className="nem-mobile-sheet-title">
-                  {mobileSheet === 'color' && 'Farbe'}
-                  {mobileSheet === 'importance' && 'Wichtigkeit'}
-                  {mobileSheet === 'more' && 'Aktionen'}
+                <div
+                  className="nem-mobile-sheet-drag"
+                  onTouchStart={handleSheetTouchStart}
+                  onTouchMove={handleSheetTouchMove}
+                  onTouchEnd={handleSheetTouchEnd}
+                  onTouchCancel={handleSheetTouchEnd}
+                >
+                  <div className="nem-mobile-sheet-grip" aria-hidden="true" />
+                  <div className="nem-mobile-sheet-title">
+                    {mobileSheet === 'color' && 'Farbe'}
+                    {mobileSheet === 'importance' && 'Wichtigkeit'}
+                    {mobileSheet === 'more' && 'Aktionen'}
+                  </div>
                 </div>
 
                 {mobileSheet === 'color' && (

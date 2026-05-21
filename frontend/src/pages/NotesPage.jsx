@@ -968,18 +968,23 @@ export default function NotesPage() {
   const handleSheetTouchStart = useCallback((e) => {
     const t = e.touches?.[0];
     if (!t) return;
+    // Verhindert, dass der Canvas-Pan-Handler darunter das Touch verarbeitet
+    // (sonst wandert die Notes-Buehne mit, waehrend man das Sheet zieht).
+    e.stopPropagation();
     sheetDragRef.current = { startY: t.clientY, lastY: t.clientY, lastT: performance.now(), active: true };
   }, []);
   const handleSheetTouchMove = useCallback((e) => {
     if (!sheetDragRef.current.active) return;
     const t = e.touches?.[0];
     if (!t) return;
+    e.stopPropagation();
     const dy = Math.max(0, t.clientY - sheetDragRef.current.startY);
     sheetDragRef.current.lastY = t.clientY;
     sheetDragRef.current.lastT = performance.now();
     setSheetDragY(dy);
   }, []);
-  const handleSheetTouchEnd = useCallback(() => {
+  const handleSheetTouchEnd = useCallback((e) => {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
     if (!sheetDragRef.current.active) return;
     const dragged = Math.max(0, sheetDragRef.current.lastY - sheetDragRef.current.startY);
     const dt = Math.max(1, performance.now() - sheetDragRef.current.lastT);
