@@ -1,29 +1,7 @@
-﻿feat(groups): Einladungen statt direktem Beitritt
+﻿style(taskcard): Subgroup-Badge auf Combo-Badge-Groesse angleichen
 
-Wenn ein Admin/Owner einen Nutzer einlaedt, wird dieser nicht
-mehr sofort Mitglied. Stattdessen erhaelt der Eingeladene eine
-Einladung, die er in der App annehmen oder ablehnen kann.
-
-Datenmodell:
-- group_join_requests bekommt invited_by-Spalte und neuen
-  status='invited' (Migration: backend/models/add_group_invitations.sql,
-  PFLICHT vor Deploy in Supabase ausfuehren).
-
-Backend (api/groups.js):
-- invite-user: legt Eintrag mit status='invited' und invited_by an,
-  fuegt NICHT direkt in group_members ein. Idempotent fuer bereits
-  bestehende Mitglieder.
-- POST /:id/invitations/accept: setzt invited->accepted und
-  fuegt Mitglied hinzu.
-- POST /:id/invitations/reject: setzt invited->rejected.
-- my-requests: liefert zusaetzlich invited_by und invited_by_name.
-
-Frontend:
-- api: acceptGroupInvitation, rejectGroupInvitation
-- GroupsPage: Banner mit offenen Einladungen (Annehmen / Ablehnen)
-  oberhalb der Gruppen-Liste; ruft nach Annahme fetchGroups().
-- Toast beim Einladen: "Einladung gesendet" statt "hinzugefuegt".
-
-Hinweis fuer User:
-- SQL-Migration backend/models/add_group_invitations.sql muss im
-  Supabase SQL-Editor ausgefuehrt werden.
+.task-subgroup-badge nutzt jetzt dieselbe Geometrie wie
+.task-group-combo-badge (padding 1px 7px 1px 5px, radius 7px,
+min-height 18px, margin-top 2px). Damit erscheinen Gruppen-
+und Untergruppen-Badge auf TaskCards in einer konsistenten
+Hoehe nebeneinander.
