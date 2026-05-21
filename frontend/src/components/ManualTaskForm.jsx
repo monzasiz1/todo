@@ -136,6 +136,15 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
     setDate(toDateValue(defaultDate));
   }, [defaultDate]);
 
+  // Persoenliche Kategorie automatisch entfernen, sobald eine Gruppe
+  // ausgewaehlt wurde. Group-Tasks nutzen ausschliesslich Gruppen-
+  // Kategorien, damit andere Mitglieder keine privaten Kategorien sehen.
+  useEffect(() => {
+    if (groupId && categoryId) {
+      setCategoryId('');
+    }
+  }, [groupId, categoryId]);
+
   const resetForm = () => {
     setTaskType('task');
     setTitle('');
@@ -208,7 +217,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
         time: allDay ? null : (time || null),
         time_end: allDay ? null : (timeEnd || null),
         priority,
-        category_id: categoryId || null,
+        category_id: groupId ? null : (categoryId || null),
         reminder_at: localToISO(reminderAt),
         recurrence_rule: recurrenceRule || null,
         recurrence_interval: recurrenceRule ? 1 : null,
@@ -464,7 +473,7 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
               </div>
             </div>
 
-            <div className="task-edit-field" style={{ marginBottom: 0 }}>
+            <div className="task-edit-field" style={{ marginBottom: 0, display: groupId ? 'none' : undefined }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Tag size={14} /> Persönliche Kategorie
                 <button type="button" onClick={() => setShowNewCat(v => !v)}

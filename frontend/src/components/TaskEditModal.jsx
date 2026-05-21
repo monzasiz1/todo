@@ -299,6 +299,10 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
       };
     }
 
+    // Persoenliche Kategorie bei Gruppen-Task entfernen — andere
+    // Mitglieder sollen keine privaten Kategorien sehen.
+    setCategoryId('');
+
     api.getGroupCategories(taskGroupId)
       .then((data) => {
         if (!mounted) return;
@@ -411,7 +415,7 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
         time: allDay ? null : (time || null),
         time_end: allDay ? null : (timeEnd || null),
         priority,
-        category_id: categoryId || null,
+        category_id: taskGroupId ? null : (categoryId || null),
         enable_group_rsvp: enableGroupRsvp === true,
         reminder_at: localToISO(reminderAt),
         recurrence_rule: recurrenceRule || null,
@@ -726,7 +730,8 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
             </div>
           </div>
 
-          {/* Category */}
+          {/* Category — bei Gruppen-Tasks ausgeblendet (nur Gruppen-Kategorien) */}
+          {!taskGroupId && (
           <div className="task-edit-field">
             <label><Tag size={14} /> Persönliche Kategorie</label>
             <div className="cat-pill-picker">
@@ -752,6 +757,7 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
               ))}
             </div>
           </div>
+          )}
 
           {/* Reminder */}
           <div className="task-edit-field">

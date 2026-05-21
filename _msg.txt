@@ -1,15 +1,16 @@
-﻿feat(groups): Freunde direkt im Neue-Gruppe-Modal einladen
+﻿feat(tasks): Persoenliche Kategorien bei Gruppen-Tasks ausblenden
 
-Beim Erstellen einer neuen Gruppe konnte man bisher erst nach dem
-Anlegen ueber die Gruppen-Detail-Seite Mitglieder einladen. Jetzt
-gibt es im CreateGroup-Modal eine Mehrfach-Auswahl der eigenen
-Freunde - die ausgewaehlten Personen werden direkt nach dem
-Erstellen automatisch zur neuen Gruppe hinzugefuegt.
+Wenn ein Task einer Gruppe zugeordnet wird, sollen nur noch
+Gruppen-Kategorien sichtbar sein - persoenliche Kategorien sind
+zwar user-scoped, das Server-Payload liefert aber category_name
+und category_color an alle Viewer aus und wuerde damit private
+Labels (z.B. Studium, Privat) an andere Gruppenmitglieder leaken.
 
-- CreateGroup laedt api.getFriends() und zeigt eine durchsuchbare
-  Liste (mit Avatar/Name/Email + Check-Toggle) wenn >5 Freunde.
-- Nach erfolgreichem onCreate(): Promise.allSettled mit
-  api.inviteGroupUser(newGroupId, friendUserId) pro Auswahl.
-- Toast-Feedback fuer Erfolge und Fehlschlaege.
-- GroupsPage: onCreate gibt jetzt das neu erstellte Group-Objekt
-  zurueck (createGroup-Store liefert es bereits).
+Aenderungen:
+- ManualTaskForm: Persoenlicher Kategorie-Picker wird per
+  display:none ausgeblendet sobald groupId gesetzt ist; useEffect
+  setzt eine bereits gewaehlte categoryId automatisch zurueck;
+  submit-payload sendet category_id=null bei Gruppen-Tasks.
+- TaskEditModal: useEffect auf taskGroupId clearen jetzt auch
+  categoryId; Picker wird nur ohne Gruppe gerendert; submit-
+  payload sendet category_id=null bei Gruppen-Tasks.
