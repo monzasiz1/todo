@@ -1378,11 +1378,89 @@ function GroupDetail({ groupId, onBack }) {
             </div>
           )}
 
+          {/* Untergruppen-Übersicht — für ALLE Mitglieder sichtbar (read-only) */}
+          {Array.isArray(subgroups) && subgroups.length > 0 && (
+            <div className="group-subgroups-overview" style={{
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border)',
+              borderRadius: 12,
+              padding: 12,
+              marginBottom: 12,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 10,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Users size={14} style={{ color: 'var(--text-secondary)' }} />
+                <strong style={{ fontSize: 13 }}>Untergruppen</strong>
+                <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 'auto' }}>
+                  {isAdmin ? 'Bearbeiten unter Einstellungen' : 'Nur Admins können bearbeiten'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {subgroups.map((sg) => {
+                  const sgMembers = Array.isArray(sg.members) ? sg.members : [];
+                  const youAreIn = sgMembers.some((sgm) => String(sgm.user_id) === String(user?.id));
+                  return (
+                    <div key={sg.id} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '8px 10px',
+                      borderRadius: 10,
+                      background: youAreIn ? `${sg.color || '#007AFF'}12` : 'var(--bg-tertiary)',
+                      border: youAreIn ? `1px solid ${sg.color || '#007AFF'}55` : '1px solid transparent',
+                    }}>
+                      <span style={{
+                        width: 10, height: 10, borderRadius: '50%',
+                        background: sg.color || '#007AFF', flexShrink: 0,
+                      }} />
+                      <span style={{ fontWeight: 600, fontSize: 13 }}>{sg.name}</span>
+                      {youAreIn && (
+                        <span style={{
+                          fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+                          color: sg.color || '#007AFF',
+                          background: `${sg.color || '#007AFF'}22`,
+                          padding: '2px 6px', borderRadius: 6, letterSpacing: 0.3,
+                        }}>Du</span>
+                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto', flexWrap: 'wrap' }}>
+                        {sgMembers.slice(0, 6).map((sgm) => (
+                          <AvatarBadge
+                            key={sgm.user_id}
+                            name={sgm.name}
+                            color={sgm.avatar_color || '#007AFF'}
+                            avatarUrl={sgm.avatar_url}
+                            size={22}
+                            title={sgm.name}
+                          />
+                        ))}
+                        {sgMembers.length > 6 && (
+                          <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 4 }}>
+                            +{sgMembers.length - 6}
+                          </span>
+                        )}
+                        {sgMembers.length === 0 && (
+                          <span style={{ fontSize: 11, fontStyle: 'italic', color: 'var(--text-tertiary)' }}>
+                            Alle Mitglieder
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {sortedMembers.map((m) => {
             const RoleIcon = ROLE_CONFIG[m.role]?.icon || Users;
             const canOwnerManageRole = isAdmin && m.user_id !== user?.id && m.role !== 'owner';
             const canRemoveMember = (
               (isAdmin && m.user_id !== user?.id && m.role !== 'owner')
+            );
+            const memberSubgroups = (subgroups || []).filter((sg) =>
+              Array.isArray(sg.members) && sg.members.some((sgm) => String(sgm.user_id) === String(m.user_id))
             );
             return (
               <div key={m.user_id} className="group-member-card">
@@ -1400,6 +1478,31 @@ function GroupDetail({ groupId, onBack }) {
                   <span className={`group-role-badge ${m.role}`}>
                     <RoleIcon size={11} /> {ROLE_CONFIG[m.role]?.label}
                   </span>
+                  {memberSubgroups.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+                      {memberSubgroups.map((sg) => (
+                        <span
+                          key={sg.id}
+                          title={`Untergruppe: ${sg.name}`}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            fontSize: 11,
+                            fontWeight: 600,
+                            padding: '2px 8px',
+                            borderRadius: 999,
+                            color: sg.color || '#007AFF',
+                            background: `${sg.color || '#007AFF'}1a`,
+                            border: `1px solid ${sg.color || '#007AFF'}55`,
+                          }}
+                        >
+                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: sg.color || '#007AFF' }} />
+                          {sg.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 {(canOwnerManageRole || canRemoveMember) && (
                   <div className="group-member-actions">
