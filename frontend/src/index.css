@@ -7921,7 +7921,12 @@ body.cal-is-dragging * {
   border-radius: var(--radius-xl);
   width: 100%;
   max-width: 480px;
-  max-height: 85vh;
+  /* Hoehe so begrenzen, dass das Modal NIE ueber den Viewport hinausgeht.
+     Auf kleinen Desktops (MacBook 13", 1280x800) wurde mit 85vh + 40px
+     Overlay-Padding der Inhalt unten abgeschnitten. dvh = dynamic viewport
+     beruecksichtigt mobile Browser-Bars, calc() zieht das Overlay-Padding
+     ab (40px oben + 40px unten = 80px). */
+  max-height: min(85vh, calc(100dvh - 80px));
   overflow-y: auto;
   box-shadow: var(--shadow-xl);
   position: relative;
@@ -7931,7 +7936,7 @@ body.cal-is-dragging * {
 @media (min-width: 900px) {
   .task-detail-modal {
     max-width: 880px;
-    max-height: 82vh;
+    max-height: min(82vh, calc(100dvh - 80px));
     display: grid;
     grid-template-columns: 1fr 340px;
     overflow: hidden;

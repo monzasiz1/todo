@@ -781,6 +781,17 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     const hKey = getUserSpecificKey('beequ_calendar_desktop_h');
     const wKey = getUserSpecificKey('beequ_calendar_desktop_w');
 
+    // Maximal verfuegbare Breite ermitteln (Parent-Container = .app-main bzw.
+    // .app-content-shell). Faellt der User von einem grossen Monitor zurueck
+    // auf z.B. ein MacBook 13", war eine zuvor gespeicherte Breite (z.B.
+    // 2000px) groesser als der Viewport und der Kalender ragte rechts raus.
+    const getMaxWidth = () => {
+      const parent = wrapper.parentElement;
+      const parentW = parent ? parent.clientWidth : window.innerWidth;
+      // Ein wenig Sicherheitsabstand, damit nichts am Rand klemmt.
+      return Math.max(640, parentW - 4);
+    };
+
     // Restore
     try {
       const savedH = localStorage.getItem(hKey);
@@ -791,11 +802,26 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       const savedW = localStorage.getItem(wKey);
       const pw = savedW ? parseInt(savedW, 10) : NaN;
       if (Number.isFinite(pw) && pw >= 640 && pw <= 12000) {
-        wrapper.style.width = `${pw}px`;
+        const maxW = getMaxWidth();
+        wrapper.style.width = `${Math.min(pw, maxW)}px`;
       }
     } catch {
       // ignore
     }
+
+    // Wenn das Fenster verkleinert wird, gespeicherte Breite hart clampen,
+    // damit der Kalender nie ueber den sichtbaren Bereich hinausragt.
+    const onWindowResize = () => {
+      const maxW = getMaxWidth();
+      const currentW = wrapper.getBoundingClientRect().width;
+      if (currentW > maxW) {
+        wrapper.style.width = `${maxW}px`;
+      }
+    };
+    window.addEventListener('resize', onWindowResize);
+    // Einmal initial nach Restore ausfuehren (falls Parent inzwischen
+    // schmaler ist als zur Zeit des Speicherns).
+    onWindowResize();
 
     // Persist on resize (debounced via rAF, ignore initial mount)
     let raf = 0;
@@ -824,6 +850,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
 
     return () => {
       ro.disconnect();
+      window.removeEventListener('resize', onWindowResize);
       if (raf) cancelAnimationFrame(raf);
     };
   }, []);
