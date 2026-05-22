@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, BellRing, X, Clock, Users, CheckCircle2, Sparkles, Settings, ArrowLeft, RefreshCw, AlertCircle, Wifi, WifiOff } from 'lucide-react';
@@ -46,7 +47,9 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState('list');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pos, setPos] = useState(null);
   const ref = useRef(null);
+  const dropdownRef = useRef(null);
   const pollRef = useRef(null);
   // Track previous `open` so we only mark-as-seen on a true close transition
   // (verhindert, dass beim initialen Mount alles direkt als gesehen markiert wird).
@@ -82,13 +85,40 @@ export default function NotificationBell() {
   useEffect(() => {
     if (!open) return;
     const handler = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      const inBell = ref.current && ref.current.contains(e.target);
+      const inDropdown = dropdownRef.current && dropdownRef.current.contains(e.target);
+      if (!inBell && !inDropdown) setOpen(false);
     };
     document.addEventListener('mousedown', handler);
     document.addEventListener('touchstart', handler);
     return () => {
       document.removeEventListener('mousedown', handler);
       document.removeEventListener('touchstart', handler);
+    };
+  }, [open]);
+
+  // Portal-Position: relativ zur Bell-Position berechnen (Mobile/Tablet/Desktop)
+  useLayoutEffect(() => {
+    if (!open || !ref.current) { setPos(null); return; }
+    const compute = () => {
+      const bellEl = ref.current?.querySelector('.notif-bell') || ref.current;
+      if (!bellEl) return;
+      const rect = bellEl.getBoundingClientRect();
+      const isMobile = window.matchMedia('(max-width: 1024px)').matches;
+      if (isMobile) {
+        setPos({ top: rect.bottom + 8 });
+      } else if (ref.current.closest('.sidebar-notif-row')) {
+        setPos({ top: rect.top, left: rect.right + 8 });
+      } else {
+        setPos({ top: rect.bottom + 8, right: Math.max(8, window.innerWidth - rect.right) });
+      }
+    };
+    compute();
+    window.addEventListener('resize', compute);
+    window.addEventListener('scroll', compute, true);
+    return () => {
+      window.removeEventListener('resize', compute);
+      window.removeEventListener('scroll', compute, true);
     };
   }, [open]);
 
@@ -142,10 +172,13 @@ export default function NotificationBell() {
         {unseenCount > 0 && <span className="notif-badge">{unseenCount > 9 ? '9+' : unseenCount}</span>}
       </button>
 
+      {createPortal(
       <AnimatePresence>
         {open && (
           <motion.div
             className="notif-dropdown"
+            ref={dropdownRef}
+            style={pos ? { top: pos.top, left: pos.left, right: pos.right } : undefined}
             initial={{ opacity: 0, y: -8, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.95 }}
@@ -266,7 +299,9 @@ export default function NotificationBell() {
             )}
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
     </div>
   );
 }

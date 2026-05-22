@@ -19357,10 +19357,8 @@ html[data-theme="dark"] .group-role-chip.role-member {
 }
 
 .notif-dropdown {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  z-index: 300;
+  position: fixed;
+  z-index: 10300;
   width: 340px;
   max-height: 480px;
   background: var(--card-solid);
