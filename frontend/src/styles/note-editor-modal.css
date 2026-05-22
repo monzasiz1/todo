@@ -2370,48 +2370,81 @@ html[data-theme="dark"] .nem-mobile-sheet {
 .nem-editor-shell {
   position: relative;
 }
+/* Innerer Editor bekommt Platz fuer die Author-Rail (Avatar + Spine).
+   Avatar=14px + 8px Gap zur Editor-Kante + 4px Atemluft = ~26px insgesamt. */
 .nem-editor-shell .nem-editor {
-  padding-left: 22px;
+  padding-left: 30px;
 }
+
+/* Author-Rail: schmaler Streifen INNERHALB der linken Editor-Kante */
 .nem-author-rail {
   position: absolute;
   top: 0;
-  left: 0;
-  width: 18px;
+  left: 8px;
+  width: 14px;
   height: 100%;
   pointer-events: none;
   z-index: 1;
 }
-.nem-author-avatar {
+
+/* Ein "Run" = aufeinanderfolgende Bloecke desselben Autors.
+   Container besitzt die volle Hoehe der Zugehoerigkeit -> Spine kann
+   visuell vom Avatar bis zum letzten Block laufen. */
+.nem-author-run {
   position: absolute;
   left: 0;
+  width: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+.nem-author-run.is-self {
+  opacity: 0.6;
+}
+
+/* Avatar oben — clean, runde Form, leichter Ring im Autor-Farbton */
+.nem-author-avatar {
   width: 14px;
   height: 14px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  border-radius: 50%;
   pointer-events: auto;
   cursor: help;
-  opacity: 0.85;
-  transform: translateY(2px);
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  /* Sanfter Glow im Autor-Farbton, damit Avatar zur Spine "gehoert" */
+  box-shadow:
+    0 0 0 1.5px var(--nem-surface, #fff),
+    0 0 0 2.5px color-mix(in srgb, var(--nem-author-color, #007AFF) 55%, transparent);
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+  /* Leicht vom oberen Zeilen-Beginn versetzt, damit der Avatar
+     auf der Schrift-Baseline der ersten Zeile sitzt. */
+  margin-top: 4px;
 }
 .nem-author-avatar:hover {
-  opacity: 1;
-  transform: translateY(2px) scale(1.15);
+  transform: scale(1.18);
 }
-.nem-author-avatar.is-self {
-  opacity: 0.55;
+
+/* Spine: zarte Vertikale im Autor-Farbton, verbindet alle Bloecke des Runs.
+   Sehr dezent (kein "Slack-Thread-Look"), aber klar zuordbar. */
+.nem-author-spine {
+  flex: 1 1 auto;
+  width: 2px;
+  margin-top: 3px;
+  margin-bottom: 6px;
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--nem-author-color, #007AFF) 28%, transparent);
 }
-.nem-author-avatar.is-self:hover {
-  opacity: 0.85;
-}
+
+/* Mobile: kompakter, gleiches Prinzip */
 @media (max-width: 720px) {
   .nem-editor-shell .nem-editor {
-    padding-left: 20px;
+    padding-left: 28px;
   }
   .nem-author-rail {
-    width: 16px;
+    left: 7px;
   }
 }
 

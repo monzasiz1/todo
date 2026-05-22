@@ -1847,29 +1847,45 @@ function NoteAuthorRail({ editorRef, authorMap, authors, currentUserId, tick }) 
     const blocks = walkEditorBlocks(editor);
     if (blocks.length === 0) { setMarks([]); return; }
     const editorRect = editor.getBoundingClientRect();
-    let lastUserId = null;
-    const out = [];
-    blocks.forEach((b, idx) => {
+    // Erst: jeden Block → (userId, top, bottom) sammeln (nur Bloecke mit Autor).
+    const enriched = [];
+    blocks.forEach((b) => {
       const userId = authorMap[b.key];
-      if (!userId) { lastUserId = null; return; }
+      if (!userId) return;
       const author = authors[String(userId)];
-      if (!author) { lastUserId = null; return; }
+      if (!author) return;
       const r = b.el.getBoundingClientRect();
-      if (r.height < 4) { lastUserId = null; return; }
-      // Nur beim Autorwechsel anzeigen — vermeidet visuelles Rauschen
-      // bei mehreren aufeinander folgenden Bloecken desselben Autors.
-      const isFirstOfRun = String(userId) !== String(lastUserId || '');
-      lastUserId = userId;
-      if (!isFirstOfRun) return;
-      out.push({
-        key: `${b.key}_${idx}`,
+      if (r.height < 4) return;
+      enriched.push({
+        key: b.key,
+        userId: String(userId),
+        author,
         top: r.top - editorRect.top,
-        name: author.name || 'Mitglied',
-        color: author.avatar_color || '#007AFF',
-        avatarUrl: author.avatar_url || null,
-        isSelf: String(userId) === String(currentUserId || ''),
+        bottom: r.bottom - editorRect.top,
       });
     });
+    // Dann: in Runs gruppieren (aufeinanderfolgende Bloecke desselben Autors).
+    const out = [];
+    let i = 0;
+    while (i < enriched.length) {
+      const start = enriched[i];
+      let end = start;
+      let j = i + 1;
+      while (j < enriched.length && enriched[j].userId === start.userId) {
+        end = enriched[j];
+        j += 1;
+      }
+      out.push({
+        key: `${start.key}_run`,
+        top: start.top,
+        height: Math.max(14, end.bottom - start.top),
+        name: start.author.name || 'Mitglied',
+        color: start.author.avatar_color || '#007AFF',
+        avatarUrl: start.author.avatar_url || null,
+        isSelf: start.userId === String(currentUserId || ''),
+      });
+      i = j;
+    }
     setMarks(out);
   }, [editorRef, authorMap, authors, currentUserId]);
 
@@ -1905,16 +1921,19 @@ function NoteAuthorRail({ editorRef, authorMap, authors, currentUserId, tick }) 
       {marks.map((m) => (
         <span
           key={m.key}
-          className={`nem-author-avatar${m.isSelf ? ' is-self' : ''}`}
-          style={{ top: m.top + 'px' }}
+          className={`nem-author-run${m.isSelf ? ' is-self' : ''}`}
+          style={{ top: m.top + 'px', height: m.height + 'px', '--nem-author-color': m.color }}
           title={`Geschrieben von ${m.name}`}
         >
-          <AvatarBadge
-            name={m.name}
-            color={m.color}
-            avatarUrl={m.avatarUrl}
-            size={14}
-          />
+          <span className="nem-author-avatar">
+            <AvatarBadge
+              name={m.name}
+              color={m.color}
+              avatarUrl={m.avatarUrl}
+              size={14}
+            />
+          </span>
+          <span className="nem-author-spine" aria-hidden="true" />
         </span>
       ))}
     </div>
