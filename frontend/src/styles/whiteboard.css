@@ -6,41 +6,20 @@
   inset: 0;
   display: flex;
   flex-direction: column;
-  /* Sanfter Verlauf statt Flat-Grau */
+  /* Mobile-Bg ist im OBEREN Bereich dieselbe Farbe wie der Header-Glas
+     auf dem Page-Bg ergibt — falls iOS doch eine Naht zeigt, ist sie unsichtbar.
+     Light-Mode: warmes Weiß; Header rgba(255,255,255,0.78) auf Page #f5f6f8 ≈ #f9f9fb. */
   background:
+    linear-gradient(to bottom, #f9f9fb 0, #f9f9fb 120px, transparent 200px),
     radial-gradient(circle at 20% -10%, rgba(0, 122, 255, 0.06), transparent 50%),
     radial-gradient(circle at 90% 110%, rgba(168, 85, 247, 0.05), transparent 55%),
     #f5f6f8;
   z-index: 50;
-  /* Nur Landscape-Edges via Page-Padding — Notch/Home-Indicator werden
-     direkt im Header bzw. Canvas-Wrap absorbiert, damit deren Glas-Look
-     bis an die Bildschirmkante zieht (kein dunkler Streifen unter Dynamic Island). */
+  /* Keine Top/Bottom-Page-Paddings — Header und Canvas-Wrap absorbieren die Safe-Area selbst */
+  padding-top: 0;
+  padding-bottom: 0;
   padding-left: env(safe-area-inset-left, 0px);
   padding-right: env(safe-area-inset-right, 0px);
-}
-
-/* Desktop: nicht mehr full-screen-fixed (würde Sidebar verdecken),
-   sondern innerhalb der .app-main rechts neben der Sidebar.
-   Layout.jsx setzt .full-bleed-route auf .app-layout damit wir das scopen. */
-@media (min-width: 1025px) {
-  .app-layout.full-bleed-route .app-main {
-    position: relative;
-    padding: 0;
-    overflow: hidden;
-  }
-  .app-layout.full-bleed-route .app-content-shell {
-    height: 100vh;
-    max-width: none;
-    margin: 0;
-  }
-  .wb-page {
-    position: absolute;
-    inset: 0;
-    padding: 0;
-  }
-  /* Auf Desktop in .app-main → keine Notch/Home-Indicator-Reservierung nötig */
-  .wb-header { padding-top: 12px; }
-  .wb-canvas-wrap { padding-bottom: 0; }
 }
 
 .wb-header {
@@ -50,6 +29,7 @@
   /* Top-Padding absorbiert iPhone-Notch / Dynamic Island,
      damit der Glas-Background nahtlos bis zur Bildschirmkante zieht. */
   padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px;
+  margin: 0;
   /* Glas-Look mit dezenter Tönung, leichter Bottom-Border + Schatten */
   background: rgba(255, 255, 255, 0.78);
   backdrop-filter: blur(28px) saturate(1.6);
@@ -59,9 +39,10 @@
     0 1px 0 rgba(255, 255, 255, 0.6) inset,
     0 6px 20px -8px rgba(15, 23, 42, 0.08);
   flex-wrap: wrap;
-  position: sticky;
-  top: 0;
+  /* RELATIVE statt sticky — vermeidet iOS-Safari-Quirks mit Sticky+viewport-fit=cover */
+  position: relative;
   z-index: 2;
+  flex-shrink: 0;
 }
 
 /* Zurück-Button: deutliche blaue Pille, einladend */
@@ -296,7 +277,10 @@
 
 /* Dark Mode */
 html[data-theme="dark"] .wb-page {
+  /* Top-Strip in Header-Glas-Farbton, damit jede potentielle Naht unsichtbar bleibt.
+     Header rgba(15,23,42,0.66) auf Page #0b1220 ≈ #11192a. */
   background:
+    linear-gradient(to bottom, #11192a 0, #11192a 140px, transparent 220px),
     radial-gradient(circle at 20% -10%, rgba(77, 163, 255, 0.10), transparent 55%),
     radial-gradient(circle at 90% 110%, rgba(168, 85, 247, 0.08), transparent 55%),
     #0b1220;
@@ -473,4 +457,36 @@ html[data-theme="dark"] .wb-size.is-active {
   .wb-zoom-label { min-width: 38px; font-size: 11px; }
   .wb-color { width: 20px; height: 20px; }
   .wb-size { width: 28px; height: 28px; }
+}
+
+/* ════ Desktop (≥1025px) — Whiteboard sitzt in .app-main, nicht über Sidebar ════ */
+@media (min-width: 1025px) {
+  .app-layout.full-bleed-route .app-main {
+    position: relative;
+    padding: 0;
+    overflow: hidden;
+  }
+  .app-layout.full-bleed-route .app-content-shell {
+    height: 100vh;
+    max-width: none;
+    margin: 0;
+  }
+  .wb-page {
+    position: absolute;
+    inset: 0;
+    padding: 0;
+    /* Desktop: kein Top-Strip nötig (kein Notch in .app-main) */
+    background:
+      radial-gradient(circle at 20% -10%, rgba(0, 122, 255, 0.06), transparent 50%),
+      radial-gradient(circle at 90% 110%, rgba(168, 85, 247, 0.05), transparent 55%),
+      #f5f6f8;
+  }
+  html[data-theme="dark"] .wb-page {
+    background:
+      radial-gradient(circle at 20% -10%, rgba(77, 163, 255, 0.10), transparent 55%),
+      radial-gradient(circle at 90% 110%, rgba(168, 85, 247, 0.08), transparent 55%),
+      #0b1220;
+  }
+  .wb-header { padding-top: 12px; }
+  .wb-canvas-wrap { padding-bottom: 0; }
 }
