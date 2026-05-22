@@ -19,6 +19,27 @@
   padding-right: env(safe-area-inset-right, 0px);
 }
 
+/* Desktop: nicht mehr full-screen-fixed (würde Sidebar verdecken),
+   sondern innerhalb der .app-main rechts neben der Sidebar.
+   Layout.jsx setzt .full-bleed-route auf .app-layout damit wir das scopen. */
+@media (min-width: 1025px) {
+  .app-layout.full-bleed-route .app-main {
+    position: relative;
+    padding: 0;
+    overflow: hidden;
+  }
+  .app-layout.full-bleed-route .app-content-shell {
+    height: 100vh;
+    max-width: none;
+    margin: 0;
+  }
+  .wb-page {
+    position: absolute;
+    inset: 0;
+    padding: 0;
+  }
+}
+
 .wb-header {
   display: flex;
   align-items: center;
