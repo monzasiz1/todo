@@ -301,36 +301,28 @@ html[data-theme="dark"] .desktop-titlebar {
   color: var(--text);
   border-color: var(--border);
 }
-html[data-theme="dark"] .bottom-nav {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(28px) saturate(1.8) brightness(1.15);
-  -webkit-backdrop-filter: blur(28px) saturate(1.8) brightness(1.15);
-  box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.38),
-    0 2px 6px rgba(0, 0, 0, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.10);
-}
-
-/* Mobile-Header Glas-Pillen (Logo links + Actions rechts) im Dark Mode */
-html[data-theme="dark"] .mobile-header-logo,
-html[data-theme="dark"] .mobile-header-actions {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(28px) saturate(1.8) brightness(1.15);
-  -webkit-backdrop-filter: blur(28px) saturate(1.8) brightness(1.15);
-  box-shadow:
-    0 4px 14px rgba(0, 0, 0, 0.32),
-    inset 0 1px 0 rgba(255, 255, 255, 0.10);
+/* Liquid-Glass-Tokens — Dark Mode (brightness statt Tint, Specular weicher) */
+html[data-theme="dark"] {
+  --lg-bg: rgba(255, 255, 255, 0.05);
+  --lg-blur: blur(22px) saturate(2.2) brightness(1.15);
+  --lg-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.45),
+    0 2px 8px rgba(0, 0, 0, 0.22),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.40),
+    inset 0 4px 8px -4px rgba(255, 255, 255, 0.20),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.10),
+    inset 0 -3px 6px -3px rgba(255, 255, 255, 0.06),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.10);
 }
 
 /* Sehr dezente Scrims im Dark Mode — Inhalt scheint durch */
 html[data-theme="dark"] .mobile-header-scrim {
-  background: linear-gradient(to bottom, rgba(11, 18, 32, 0.20) 0%, transparent 100%);
+  background: linear-gradient(to bottom, rgba(11, 18, 32, 0.12) 0%, transparent 100%);
 }
 html[data-theme="dark"] .bottom-nav-scrim {
-  background: linear-gradient(to top, rgba(11, 18, 32, 0.20) 0%, transparent 100%);
+  background: linear-gradient(to top, rgba(11, 18, 32, 0.12) 0%, transparent 100%);
 }
+
 
 html[data-theme="dark"] .mobile-header-actions .notif-bell,
 html[data-theme="dark"] .mobile-header-actions .gchat-mobile-trigger,
@@ -1288,8 +1280,11 @@ html[data-theme="dark"] .bottom-nav-item {
 }
 html[data-theme="dark"] .bottom-nav-item.active {
   color: var(--primary);
-  background: rgba(77, 163, 255, 0.18);
-  box-shadow: inset 0 0 0 1px rgba(77, 163, 255, 0.32);
+  background: rgba(77, 163, 255, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 0 0 0.5px rgba(77, 163, 255, 0.28);
 }
 html[data-theme="dark"] .bottom-nav-item:hover:not(.active) {
   background: rgba(255, 255, 255, 0.06);
