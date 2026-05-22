@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useGroupStore } from '../store/groupStore';
 import { useAuthStore } from '../store/authStore';
 import { useTaskStore } from '../store/taskStore';
@@ -3119,12 +3120,16 @@ function MemberCustomRoleSelect({ groupId, member, roles }) {
   const currentRole = roles.find((r) => r.id === currentId);
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState(null);
   const wrapRef = useRef(null);
+  const menuRef = useRef(null);
 
   useEffect(() => {
     if (!open) return undefined;
     const onDocClick = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+      const inTrigger = wrapRef.current && wrapRef.current.contains(e.target);
+      const inMenu = menuRef.current && menuRef.current.contains(e.target);
+      if (!inTrigger && !inMenu) setOpen(false);
     };
     const onEsc = (e) => { if (e.key === 'Escape') setOpen(false); };
     document.addEventListener('mousedown', onDocClick);
@@ -3134,6 +3139,33 @@ function MemberCustomRoleSelect({ groupId, member, roles }) {
       document.removeEventListener('keydown', onEsc);
     };
   }, [open]);
+
+  // Position des Portal-Menüs berechnen: oeffnet nach oben, wenn unten zu wenig Platz
+  // (z.B. wenn das Chip direkt ueber der Bottom-Nav-Pille sitzt).
+  useLayoutEffect(() => {
+    if (!open || !wrapRef.current) { setMenuPos(null); return; }
+    const compute = () => {
+      const rect = wrapRef.current.getBoundingClientRect();
+      const menuH = (1 + roles.length) * 56 + 16; // grob: 56px pro Eintrag + Padding
+      const reservedBottom = 96; // Bottom-Nav-Pille + Sicherheit
+      const spaceBelow = window.innerHeight - rect.bottom - reservedBottom;
+      const dropUp = spaceBelow < menuH && rect.top > menuH + 12;
+      const minW = 200;
+      const left = Math.max(8, Math.min(rect.left, window.innerWidth - minW - 8));
+      if (dropUp) {
+        setMenuPos({ left, bottom: window.innerHeight - rect.top + 6 });
+      } else {
+        setMenuPos({ left, top: rect.bottom + 6 });
+      }
+    };
+    compute();
+    window.addEventListener('resize', compute);
+    window.addEventListener('scroll', compute, true);
+    return () => {
+      window.removeEventListener('resize', compute);
+      window.removeEventListener('scroll', compute, true);
+    };
+  }, [open, roles.length]);
 
   const choose = async (roleId) => {
     setOpen(false);
@@ -3184,16 +3216,21 @@ function MemberCustomRoleSelect({ groupId, member, roles }) {
         <ChevronDown size={11} style={{ opacity: 0.7, flexShrink: 0 }} />
       </button>
 
-      {open && (
+      {open && menuPos && createPortal(
         <div
+          ref={menuRef}
           role="menu"
           style={{
-            position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 50,
-            minWidth: 180, maxWidth: 240,
+            position: 'fixed',
+            top: menuPos.top,
+            bottom: menuPos.bottom,
+            left: menuPos.left,
+            zIndex: 10300,
+            minWidth: 200, maxWidth: 260,
             background: 'var(--surface, #fff)',
             border: '1px solid var(--border, rgba(120,120,128,0.25))',
             borderRadius: 12,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+            boxShadow: '0 12px 32px rgba(0,0,0,0.22)',
             padding: 4, overflow: 'hidden',
           }}
         >
@@ -3225,7 +3262,8 @@ function MemberCustomRoleSelect({ groupId, member, roles }) {
               />
             );
           })}
-        </div>
+        </div>,
+        document.body,
       )}
     </span>
   );
