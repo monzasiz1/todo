@@ -302,29 +302,27 @@ html[data-theme="dark"] .desktop-titlebar {
   border-color: var(--border);
 }
 html[data-theme="dark"] .bottom-nav {
-  background: linear-gradient(160deg, rgba(34, 42, 60, 0.78), rgba(22, 28, 42, 0.72));
-  border: 1.5px solid rgba(120, 145, 190, 0.32);
-  backdrop-filter: blur(34px) saturate(1.4) brightness(1.05);
-  -webkit-backdrop-filter: blur(34px) saturate(1.4) brightness(1.05);
+  background: linear-gradient(160deg, rgba(40, 50, 72, 0.32), rgba(22, 28, 42, 0.22));
+  border: 1px solid rgba(180, 200, 230, 0.18);
+  backdrop-filter: blur(42px) saturate(1.6) brightness(1.08);
+  -webkit-backdrop-filter: blur(42px) saturate(1.6) brightness(1.08);
   box-shadow:
-    0 14px 36px rgba(0, 0, 0, 0.45),
-    0 2px 8px rgba(0, 0, 0, 0.30),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.04);
+    0 14px 36px rgba(0, 0, 0, 0.40),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.05);
 }
 
 /* Mobile-Header Glas-Pillen (Logo links + Actions rechts) im Dark Mode */
 html[data-theme="dark"] .mobile-header-logo,
 html[data-theme="dark"] .mobile-header-actions {
-  background: linear-gradient(160deg, rgba(34, 42, 60, 0.78), rgba(22, 28, 42, 0.72));
-  border: 1.5px solid rgba(120, 145, 190, 0.32);
-  backdrop-filter: blur(34px) saturate(1.4) brightness(1.05);
-  -webkit-backdrop-filter: blur(34px) saturate(1.4) brightness(1.05);
+  background: linear-gradient(160deg, rgba(40, 50, 72, 0.32), rgba(22, 28, 42, 0.22));
+  border: 1px solid rgba(180, 200, 230, 0.18);
+  backdrop-filter: blur(42px) saturate(1.6) brightness(1.08);
+  -webkit-backdrop-filter: blur(42px) saturate(1.6) brightness(1.08);
   box-shadow:
-    0 8px 22px rgba(0, 0, 0, 0.42),
-    0 2px 6px rgba(0, 0, 0, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.04);
+    0 8px 22px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.05);
 }
 
 html[data-theme="dark"] .mobile-header-actions .notif-bell,
