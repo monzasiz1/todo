@@ -397,9 +397,14 @@ export default function WhiteboardPage() {
   return (
     <div className="wb-page">
       <header className="wb-header">
-        <button className="wb-btn wb-btn-ghost" onClick={() => navigate('/app/notes')} title="Zurueck zu den Notizen">
-          <ArrowLeft size={16} />
-          <span>Notizen</span>
+        <button
+          className="wb-btn wb-btn-back"
+          onClick={() => navigate('/app/notes')}
+          title="Zurueck zu den Notizen"
+          aria-label="Zurueck zu den Notizen"
+        >
+          <ArrowLeft size={18} />
+          <span className="wb-back-label">Notizen</span>
         </button>
         <div className="wb-title">
           <Type size={16} aria-hidden="true" />

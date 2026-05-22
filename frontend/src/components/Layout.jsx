@@ -21,6 +21,8 @@ export default function Layout() {
   const navigate = useNavigate();
   const isNotesRoute = location.pathname === '/app/notes';
   const isCalendarRoute = location.pathname === '/app/calendar';
+  const isWhiteboardRoute = location.pathname === '/app/whiteboard';
+  const isFullBleedRoute = location.pathname === '/app/chat' || isWhiteboardRoute;
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
@@ -108,11 +110,13 @@ export default function Layout() {
   }, []);
 
   return (
-    <div className={`app-layout ${sidebarOpen ? 'sidebar-active' : ''}`}>
+    <div className={`app-layout ${sidebarOpen ? 'sidebar-active' : ''} ${isFullBleedRoute ? 'full-bleed-route' : ''}`}>
       {/* Scroll-Fade oben: verdunkelt Inhalte die unter den Header laufen */}
-      <div className="mobile-header-scrim" />
+      {!isFullBleedRoute && <div className="mobile-header-scrim" />}
 
-      {/* Mobile Header */}
+      {/* Mobile Header — auf Full-Bleed-Routen (Chat, Whiteboard) ausgeblendet,
+          weil diese Seiten ihren eigenen Header mitbringen. */}
+      {!isFullBleedRoute && (
       <div className="mobile-header">
         <div className="mobile-header-logo">
             <img src="/icons/icon.png" alt="BeeQu" className="mobile-brand-mark" />
@@ -138,6 +142,7 @@ export default function Layout() {
           </button>
         </div>
       </div>
+      )}
 
       {/* Overlay */}
       <div
@@ -161,10 +166,10 @@ export default function Layout() {
       </main>
 
       {/* Scroll-Fade: verdunkelt Inhalte die unter die Nav laufen */}
-      <div className="bottom-nav-scrim" />
+      {!isFullBleedRoute && <div className="bottom-nav-scrim" />}
 
-      {/* Bottom Navigation (mobile) — hidden on chat page */}
-      {location.pathname !== '/app/chat' && <BottomNav onAddClick={handleFabClick} />}
+      {/* Bottom Navigation (mobile) — auf Full-Bleed-Routen (Chat, Whiteboard) ausgeblendet */}
+      {!isFullBleedRoute && <BottomNav onAddClick={handleFabClick} />}
 
       {/* Universal Quick-Add — DayCreateModal für heute */}
       <AnimatePresence>
@@ -202,7 +207,7 @@ export default function Layout() {
       )}
 
       {/* Group Chat FAB — desktop: toggles panel; mobile/tablet: navigates to /app/chat */}
-      {!chatOpen && location.pathname !== '/app/chat' && (
+      {!chatOpen && !isFullBleedRoute && (
         <button
           className="gchat-fab"
           onClick={() => window.matchMedia('(min-width: 1025px)').matches ? (setChatOpen(true), setChatEverOpened(true)) : navigate('/app/chat')}
