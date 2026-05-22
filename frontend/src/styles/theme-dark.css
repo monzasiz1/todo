@@ -294,8 +294,7 @@ html[data-theme="dark"] .theme-toggle-btn.active {
    ════════════════════════════════════════════════════════════════════ */
 
 /* ── App-Shell ──────────────────────────────────────────────────────── */
-/* .bottom-nav ist nur Container fuer zwei Glas-Pillen + FAB → muss transparent bleiben.
-   Background liegt auf .bottom-nav-group (siehe unten). */
+/* .bottom-nav ist jetzt selbst die ovale Glas-Pille (iOS-Stil). */
 html[data-theme="dark"] .app-sidebar,
 html[data-theme="dark"] .desktop-titlebar {
   background: var(--bg-elevated);
@@ -303,9 +302,46 @@ html[data-theme="dark"] .desktop-titlebar {
   border-color: var(--border);
 }
 html[data-theme="dark"] .bottom-nav {
-  background: transparent;
-  border: none;
-  box-shadow: none;
+  background: linear-gradient(160deg, rgba(34, 42, 60, 0.78), rgba(22, 28, 42, 0.72));
+  border: 1.5px solid rgba(120, 145, 190, 0.32);
+  backdrop-filter: blur(34px) saturate(1.4) brightness(1.05);
+  -webkit-backdrop-filter: blur(34px) saturate(1.4) brightness(1.05);
+  box-shadow:
+    0 14px 36px rgba(0, 0, 0, 0.45),
+    0 2px 8px rgba(0, 0, 0, 0.30),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.04);
+}
+
+/* Mobile-Header Glas-Pillen (Logo links + Actions rechts) im Dark Mode */
+html[data-theme="dark"] .mobile-header-logo,
+html[data-theme="dark"] .mobile-header-actions {
+  background: linear-gradient(160deg, rgba(34, 42, 60, 0.78), rgba(22, 28, 42, 0.72));
+  border: 1.5px solid rgba(120, 145, 190, 0.32);
+  backdrop-filter: blur(34px) saturate(1.4) brightness(1.05);
+  -webkit-backdrop-filter: blur(34px) saturate(1.4) brightness(1.05);
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.42),
+    0 2px 6px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.04);
+}
+
+html[data-theme="dark"] .mobile-header-actions .notif-bell,
+html[data-theme="dark"] .mobile-header-actions .gchat-mobile-trigger,
+html[data-theme="dark"] .mobile-header-actions .hamburger {
+  color: var(--text-secondary);
+}
+html[data-theme="dark"] .mobile-header-actions .notif-bell:hover,
+html[data-theme="dark"] .mobile-header-actions .gchat-mobile-trigger:hover,
+html[data-theme="dark"] .mobile-header-actions .hamburger:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
+/* Scrim oben: Inhalt fadet gegen Dark-Bg */
+html[data-theme="dark"] .mobile-header-scrim {
+  background: linear-gradient(to bottom, var(--bg) 0%, transparent 100%);
 }
 
 /* Sidebar-Links: deutlich sichtbarer Hover im Dark Theme */
@@ -1241,18 +1277,7 @@ html[data-theme="dark"] .mobile-week-grid-hour-label {
   color: var(--text-tertiary);
 }
 
-/* Bottom-Nav: dunkle Glas-Pillen (Light-Mode-Look gespiegelt, Blur erhalten) */
-html[data-theme="dark"] .bottom-nav-group {
-  background: linear-gradient(160deg, rgba(34, 42, 60, 0.78), rgba(22, 28, 42, 0.72));
-  border: 1.5px solid rgba(120, 145, 190, 0.28);
-  backdrop-filter: blur(34px) saturate(1.4) brightness(1.05);
-  -webkit-backdrop-filter: blur(34px) saturate(1.4) brightness(1.05);
-  box-shadow:
-    0 10px 32px rgba(0, 0, 0, 0.45),
-    0 2px 8px rgba(0, 0, 0, 0.30),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.04);
-}
+/* Bottom-Nav: Dark-Variante wird oben (oberhalb) auf .bottom-nav gesetzt */
 html[data-theme="dark"] .bottom-nav-item {
   color: var(--text-secondary);
 }

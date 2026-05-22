@@ -109,6 +109,9 @@ export default function Layout() {
 
   return (
     <div className={`app-layout ${sidebarOpen ? 'sidebar-active' : ''}`}>
+      {/* Scroll-Fade oben: verdunkelt Inhalte die unter den Header laufen */}
+      <div className="mobile-header-scrim" />
+
       {/* Mobile Header */}
       <div className="mobile-header">
         <div className="mobile-header-logo">
@@ -121,7 +124,7 @@ export default function Layout() {
         <div className="mobile-header-center">
           <FocusTimerPin variant="header" />
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div className="mobile-header-actions">
           <NotificationBell />
           <button
             className="gchat-mobile-trigger"
