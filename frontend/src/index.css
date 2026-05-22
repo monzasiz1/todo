@@ -6128,15 +6128,17 @@ body.cal-is-dragging * {
   align-items: center;
   gap: 8px;
   padding: 5px 14px 5px 5px;
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.22), rgba(220, 232, 248, 0.14));
-  backdrop-filter: blur(42px) saturate(1.8) brightness(1.02);
-  -webkit-backdrop-filter: blur(42px) saturate(1.8) brightness(1.02);
-  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.08));
+  backdrop-filter: blur(64px) saturate(2.2) brightness(1.08);
+  -webkit-backdrop-filter: blur(64px) saturate(2.2) brightness(1.08);
+  border: 1px solid rgba(255, 255, 255, 0.55);
   border-radius: 999px;
   box-shadow:
-    0 8px 22px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55),
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.16);
+    0 10px 30px rgba(0, 0, 0, 0.10),
+    0 2px 6px rgba(0, 0, 0, 0.04),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.22);
 }
 
 /* Glas-Pille rechts: Notification + Chat + Menu */
@@ -6145,15 +6147,17 @@ body.cal-is-dragging * {
   align-items: center;
   gap: 2px;
   padding: 4px 6px;
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.22), rgba(220, 232, 248, 0.14));
-  backdrop-filter: blur(42px) saturate(1.8) brightness(1.02);
-  -webkit-backdrop-filter: blur(42px) saturate(1.8) brightness(1.02);
-  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.08));
+  backdrop-filter: blur(64px) saturate(2.2) brightness(1.08);
+  -webkit-backdrop-filter: blur(64px) saturate(2.2) brightness(1.08);
+  border: 1px solid rgba(255, 255, 255, 0.55);
   border-radius: 999px;
   box-shadow:
-    0 8px 22px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55),
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.16);
+    0 10px 30px rgba(0, 0, 0, 0.10),
+    0 2px 6px rgba(0, 0, 0, 0.04),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.22);
 }
 
 .mobile-header-actions .notif-bell,
@@ -6254,15 +6258,17 @@ body.cal-is-dragging * {
   width: min(460px, calc(100% - 24px));
   height: 64px;
   padding: 6px 14px;
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.22), rgba(220, 232, 248, 0.14));
-  backdrop-filter: blur(42px) saturate(1.8) brightness(1.02);
-  -webkit-backdrop-filter: blur(42px) saturate(1.8) brightness(1.02);
-  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.08));
+  backdrop-filter: blur(64px) saturate(2.2) brightness(1.08);
+  -webkit-backdrop-filter: blur(64px) saturate(2.2) brightness(1.08);
+  border: 1px solid rgba(255, 255, 255, 0.55);
   border-radius: 999px;
   box-shadow:
-    0 14px 36px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55),
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.16);
+    0 18px 44px rgba(0, 0, 0, 0.14),
+    0 4px 12px rgba(0, 0, 0, 0.06),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.22);
   z-index: 10100;
   align-items: center;
   justify-content: space-around;
