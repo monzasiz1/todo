@@ -26,6 +26,8 @@ import { api } from '../utils/api';
 
 const PEN_COLORS = ['#1f2937', '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#a855f7'];
 const PEN_SIZES = [2, 4, 8, 14];
+// Eraser hat eigene Größen (Diameter in World-Pixeln) — radius = size/2
+const ERASER_SIZES = [4, 8, 16, 32];
 const MIN_SCALE = 0.2;
 const MAX_SCALE = 4;
 
@@ -70,11 +72,11 @@ function strokeBounds(stroke) {
 }
 
 // Pixel-genauer Radierer: zerteilt einen Stroke an Stellen, an denen
-// der Eraser-Pfad ihn berührt — gibt 0..n Sub-Strokes zurück.
+// der Eraser-Kreis ihn berührt — gibt 0..n Sub-Strokes zurück.
 // Originaler Stroke wird *nicht* mutiert.
+// tol = eraseRadius (KEIN halfPenWidth-Padding) — Cursor-Kreis = Erase-Zone.
 function splitStrokeByEraser(stroke, ex, ey, eraseRadius) {
-  const halfPenWidth = (Number(stroke.size) || 3) / 2;
-  const tol = eraseRadius + halfPenWidth;
+  const tol = eraseRadius;
   const tol2 = tol * tol;
   const pts = stroke.points || [];
 
@@ -135,7 +137,12 @@ export default function WhiteboardPage() {
   // Tool-State
   const [tool, setTool] = useState('pen'); // 'pen' | 'eraser' | 'pan'
   const [color, setColor] = useState(PEN_COLORS[0]);
-  const [size, setSize] = useState(4);
+  const [penSize, setPenSize] = useState(4);
+  const [eraserSize, setEraserSize] = useState(4); // klein als Default → haargenau
+  // Active size + setter abhaengig vom Tool
+  const size = tool === 'eraser' ? eraserSize : penSize;
+  const setSize = tool === 'eraser' ? setEraserSize : setPenSize;
+  const currentSizes = tool === 'eraser' ? ERASER_SIZES : PEN_SIZES;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   // Hintergrund-Template: 'grid' | 'dots' | 'blank' — persistent via localStorage
@@ -336,14 +343,11 @@ export default function WhiteboardPage() {
   }, [zoomAt]);
 
   // Eraser-Radius im Welt-Koordinatensystem.
-  // Haargenau: radius = size * 0.8 (minimal, kein 3×-Padding mehr).
-  // Mindestens 5 Screen-Pixel (also abhaengig vom Zoom), damit Touch
-  // beim Reinzoomen nicht unbenutzbar fein wird.
+  // Direkt: radius = eraserSize / 2 — was der User im Cursor-Kreis sieht,
+  // ist EXAKT der Bereich, der gelöscht wird (kein zusätzliches Padding).
   const eraserWorldRadius = useCallback(() => {
-    const minScreenPx = 5;
-    const minFromScreen = minScreenPx / (scaleRef.current || 1);
-    return Math.max(minFromScreen, Number(size) * 0.8);
-  }, [size]);
+    return Number(eraserSize) / 2;
+  }, [eraserSize]);
 
   // Cursor-Overlay auf Pointer-Position aktualisieren (Ref-basiert, kein Re-Render).
   const updateEraserCursor = useCallback((clientX, clientY) => {
@@ -740,17 +744,26 @@ export default function WhiteboardPage() {
               />
             ))}
           </div>
-          <div className="wb-tool-group wb-sizes" role="radiogroup" aria-label="Strichstärke">
-            {PEN_SIZES.map((s) => (
+          <div className="wb-tool-group wb-sizes" role="radiogroup" aria-label={tool === 'eraser' ? 'Eraser-Größe' : 'Strichstärke'}>
+            {currentSizes.map((s) => (
               <button
                 key={s}
                 type="button"
                 className={`wb-size ${size === s ? 'is-active' : ''}`}
                 onClick={() => setSize(s)}
                 aria-pressed={size === s}
-                title={`Stärke ${s}px`}
+                title={tool === 'eraser' ? `Eraser ${s}px` : `Stärke ${s}px`}
               >
-                <span className="wb-size-dot" style={{ width: s + 4, height: s + 4, background: color }} />
+                <span
+                  className="wb-size-dot"
+                  style={{
+                    width: Math.min(20, s + 4),
+                    height: Math.min(20, s + 4),
+                    background: tool === 'eraser' ? 'transparent' : color,
+                    border: tool === 'eraser' ? '1.5px solid currentColor' : 'none',
+                    borderRadius: '50%',
+                  }}
+                />
               </button>
             ))}
           </div>

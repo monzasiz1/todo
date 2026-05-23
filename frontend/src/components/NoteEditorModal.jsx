@@ -106,12 +106,12 @@ function renderInline(text) {
 // ────────────────────────────────────────────────────────────────────
 // Formatierungs-Toolbar (Rich-Text-Style)
 // Buttons fuegen Markdown-Tokens ein. Horizontal scrollbar auf
-// schmalen Screens, kompakte Icon-Buttons fuer Desktop + Mobile.
+// schmalen Screens, kompakte Icon-Buttons für Desktop + Mobile.
 // ────────────────────────────────────────────────────────────────────
 const FORMAT_GROUPS = [
   [
-    { type: 'h1',         icon: Heading1,      label: 'Ueberschrift 1' },
-    { type: 'h2',         icon: Heading2,      label: 'Ueberschrift 2' },
+    { type: 'h1',         icon: Heading1,      label: 'Überschrift 1' },
+    { type: 'h2',         icon: Heading2,      label: 'Überschrift 2' },
   ],
   [
     { type: 'bold',       icon: Bold,          label: 'Fett (Strg+B)' },
@@ -135,8 +135,8 @@ function FormatToolbar({ onAction, onAiAction, aiBusy = false }) {
   const aiRef = useRef(null);
   const aiMenuRef = useRef(null);
 
-  // Beim Oeffnen: Anker-Rect lesen und Menue per portal an position:fixed
-  // rendern. Andernfalls wuerde overflow:auto der Toolbar das Dropdown
+  // Beim Öffnen: Anker-Rect lesen und Menue per portal an position:fixed
+  // rendern. Andernfalls würde overflow:auto der Toolbar das Dropdown
   // abschneiden (Bug: Menue ist im DOM aber unsichtbar).
   useEffect(() => {
     if (!aiOpen) { setAiMenuPos(null); return undefined; }
@@ -179,7 +179,7 @@ function FormatToolbar({ onAction, onAiAction, aiBusy = false }) {
   const AI_ITEMS = [
     { key: 'summarize', label: 'Zusammenfassen', hint: '2-4 Bulletpoints' },
     { key: 'rewrite:cleanup', label: 'Verbessern', hint: 'Rechtschreibung + Klarheit' },
-    { key: 'rewrite:short', label: 'Kuerzen', hint: 'Auf das Wesentliche' },
+    { key: 'rewrite:short', label: 'Kürzen', hint: 'Auf das Wesentliche' },
     { key: 'rewrite:formal', label: 'Formaler', hint: 'Sachlich, Sie-Form' },
     { key: 'rewrite:casual', label: 'Lockerer', hint: 'Freundlich, Du-Form' },
     { key: 'tags', label: 'Tags vorschlagen', hint: '3-6 Tags' },
@@ -257,7 +257,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   // Color-DB-Spalte: wenn note.color gesetzt ist, hat sie Vorrang vor
   // Legacy '[COLOR:Name]'-Prefix im content. Backend strippt den Prefix
   // beim Save und backfilled die Spalte beim ersten GET; parseColor
-  // bleibt nur als Fallback fuer Race-Conditions / alte Cache-Stände.
+  // bleibt nur als Fallback für Race-Conditions / alte Cache-Stände.
   const initialParsed = useMemo(() => parseColor(note?.content || ''), [note?.id]);
   const initialColor = useMemo(() => {
     if (note?.color) {
@@ -277,7 +277,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   const currentUser = useAuthStore((s) => s.user);
   const currentUserId = currentUser?.id ? String(currentUser.id) : '';
   const isOwnerOfNote = !note?.user_id || (currentUserId && String(note.user_id) === currentUserId);
-  // Notes, die mit edit-Permission geteilt wurden, duerfen auch von Nicht-
+  // Notes, die mit edit-Permission geteilt wurden, dürfen auch von Nicht-
   // Eigentuemern bearbeitet werden. Backend liefert note.permission='edit'
   // im /api/notes/shared-Pfad bzw. note.shared_permission='edit' wenn der
   // Detail-Endpoint genutzt wird.
@@ -311,7 +311,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   const [authorRailTick, setAuthorRailTick] = useState(0);
   const closeMobileSheet = useCallback(() => { setMobileSheet(null); setSheetDragY(0); }, []);
 
-  // Swipe-to-dismiss fuer das Mobile-Action-Sheet (siehe NotesPage).
+  // Swipe-to-dismiss für das Mobile-Action-Sheet (siehe NotesPage).
   // dragY = Drag-Offset >= 0. Release-Schwellen: > 120 px ODER > 0.5 px/ms.
   const [sheetDragY, setSheetDragY] = useState(0);
   const resizeDragRef = useRef(null);
@@ -449,7 +449,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   const [friendPickerOpen, setFriendPickerOpen] = useState(false);
   const [friendQuery, setFriendQuery] = useState('');
 
-  // Friends-Liste laden, falls Store leer (z. B. Note direkt geoeffnet).
+  // Friends-Liste laden, falls Store leer (z. B. Note direkt geöffnet).
   useEffect(() => {
     if (!Array.isArray(friends) || friends.length === 0) {
       try { fetchFriends?.(); } catch {}
@@ -458,7 +458,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   }, []);
 
   // Permissions-Map aus note.shares (Backend, sauberste Quelle).
-  // Fallback: participant_ids (alle 'view') fuer Notes von alten Versionen
+  // Fallback: participant_ids (alle 'view') für Notes von alten Versionen
   // oder bevor das shares-Aggregat im Backend gelandet ist.
   const sharesByUserId = useMemo(() => {
     const map = new Map();
@@ -523,7 +523,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
 
   // Direkter Aufruf von shareNote/unshareNote (statt participant_ids zu
   // patchen). So bleibt die Permission ('view' oder 'edit') erhalten und
-  // wird nicht vom Backend-Resync ueberschrieben.
+  // wird nicht vom Backend-Resync überschrieben.
   const refreshNotes = () => { try { fetchNotesStore?.({ force: true }); } catch {} };
   const handleAddFriend = async (friend) => {
     if (!canShareWithFriends) return;
@@ -581,7 +581,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   const handleOpenLinkedTask = () => {
     if (!linkedTask) return;
     flushSave();
-    // Globaler Trigger: NotesPage (oder andere Mounter) oeffnen TaskDetailModal.
+    // Globaler Trigger: NotesPage (oder andere Mounter) öffnen TaskDetailModal.
     window.dispatchEvent(new CustomEvent('beequ:open-task', { detail: { task: linkedTask } }));
     onClose?.();
   };
@@ -591,17 +591,17 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   // Letzter Stand, der serverseitig als "in sync" gilt - verhindert
   // den Loop "externe Aktualisierung -> setContent -> scheduleSave ->
   // PATCH -> Broadcast -> externe Aktualisierung ...". Wir vergleichen
-  // die Signatur bevor wir ueberhaupt einen Save planen.
+  // die Signatur bevor wir überhaupt einen Save planen.
   const lastSavedKeyRef = useRef(initialKeyRef.current);
   // Mobile/IME-Schutz: document.activeElement === editorRef ist auf
   // Mobile-Browsern unzuverlaessig (virtuelle Tastatur, Autocomplete-
   // Bar, IME-Composition). Wir tracken die letzte User-Eingabe per
-  // Timestamp und sperren Live-Sync fuer 1.5s nach jedem Keystroke.
+  // Timestamp und sperren Live-Sync für 1.5s nach jedem Keystroke.
   const userTypingRef = useRef(0);
   const composingRef = useRef(false);
-  // Verhindert Live-Sync-Schreibungen waehrend ein eigener PATCH noch
-  // unterwegs ist (Server koennte mit aelterem Stand antworten / Broadcast
-  // koennte zwischendurch eintreffen).
+  // Verhindert Live-Sync-Schreibungen während ein eigener PATCH noch
+  // unterwegs ist (Server könnte mit älterem Stand antworten / Broadcast
+  // könnte zwischendurch eintreffen).
   const savingInFlightRef = useRef(false);
 
   // ESC schliesst
@@ -624,7 +624,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
 
   // Init / Re-Init des contentEditable Editors, wenn sich die Notiz
   // wechselt. innerHTML wird nur EINMAL pro Notiz gesetzt, damit React
-  // nicht bei jedem Keystroke das DOM ueberschreibt (Caret-Reset).
+  // nicht bei jedem Keystroke das DOM überschreibt (Caret-Reset).
   useEffect(() => {
     const el = editorRef.current;
     if (!el) return;
@@ -634,7 +634,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   }, [note?.id]);
 
   // Per-Block-Authorship aus dem Versionsverlauf laden. Liefert eine
-  // Map {blockKey: userId} fuer die aktuellen Bloecke der Notiz +
+  // Map {blockKey: userId} für die aktuellen Bloecke der Notiz +
   // User-Details. Wird bei Note-Wechsel und nach jedem Save (via
   // versionsBust) neu gezogen — Snapshots werden serverseitig
   // gedrosselt (~30s), daher kein Spam.
@@ -660,17 +660,17 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   // Editor-Inhalt aktualisieren \u2014 aber NUR wenn der User gerade nicht
   // selbst in dem Editor tippt (sonst Caret-Reset / Datenverlust).
   // Wichtig: nach dem Sync MUSS lastSavedKeyRef aktualisiert werden,
-  // sonst feuert die scheduleSave-useEffect (Z. unten) den naechsten
+  // sonst feuert die scheduleSave-useEffect (Z. unten) den nächsten
   // PATCH und es entsteht ein Endlos-Loop "save -> broadcast -> sync
   // -> save -> ..." (siehe Versions-Spam).
   useEffect(() => {
     const el = editorRef.current;
     if (!el) return;
-    // Nicht ueberschreiben, solange:
+    // Nicht überschreiben, solange:
     //  - der User gerade tippt (activeElement-Check IST unzuverlaessig
-    //    auf Mobile, daher zusaetzlich userTypingRef-Timestamp + IME)
-    //  - eine eigene PATCH-Anfrage noch unterwegs ist (Broadcast koennte
-    //    aelteren Stand zurueckspielen, der unsere lokale Eingabe killt)
+    //    auf Mobile, daher zusätzlich userTypingRef-Timestamp + IME)
+    //  - eine eigene PATCH-Anfrage noch unterwegs ist (Broadcast könnte
+    //    älteren Stand zurückspielen, der unsere lokale Eingabe killt)
     if (document.activeElement === el) return;
     if (composingRef.current) return;
     if (savingInFlightRef.current) return;
@@ -680,9 +680,9 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
     const nextTitle = note?.title || '';
     const nextColorName = note?.color || parsed.color?.name || '';
     const nextImportance = note?.importance || 'medium';
-    // Signatur immer auf den vom Server bestaetigten Stand setzen,
-    // auch wenn sich der innerHTML-Vergleich nicht aendert (z.B. nach
-    // dem ersten echten Save kommt der Inhalt identisch zurueck).
+    // Signatur immer auf den vom Server bestätigten Stand setzen,
+    // auch wenn sich der innerHTML-Vergleich nicht ändert (z.B. nach
+    // dem ersten echten Save kommt der Inhalt identisch zurück).
     lastSavedKeyRef.current = `${note?.id}|${nextTitle}|${buildContent(nextHtml, parsed.color || color)}|${nextColorName}|${nextImportance}`;
     if (nextHtml === el.innerHTML) return; // nichts zu rendern
     el.innerHTML = nextHtml;
@@ -692,7 +692,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   }, [note?.content, note?.title, note?.color, note?.importance]);
 
   // Debounced Auto-Save. Skipt, wenn der aktuelle Stand bereits dem
-  // letzten serverbestaetigten Stand entspricht (lastSavedKeyRef).
+  // letzten serverbestätigten Stand entspricht (lastSavedKeyRef).
   // Dadurch werden "Echo-Saves" nach Live-Sync verhindert, die sonst
   // jede Sekunde neue Versions-Snapshots ausgeloest haben.
   const scheduleSave = useCallback((nextTitle, nextContent, nextColor, nextImportance) => {
@@ -729,7 +729,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
         setSaveState('idle');
       } finally {
         // Kurz noch sperren, damit der nachfolgende Broadcast/Refetch
-        // nicht in die Live-Sync laeuft (Race-Schutz).
+        // nicht in die Live-Sync läuft (Race-Schutz).
         setTimeout(() => { savingInFlightRef.current = false; }, 250);
       }
     }, 700);
@@ -761,12 +761,12 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [title, content, color, importance]);
 
-  // Beim Unmount sicher speichern. WICHTIG: useEffect-Deps duerfen NICHT
+  // Beim Unmount sicher speichern. WICHTIG: useEffect-Deps dürfen NICHT
   // [flushSave] sein, weil flushSave per useCallback bei jedem Keystroke
-  // (title/content/color/importance Aenderung) eine neue Referenz bekommt.
+  // (title/content/color/importance Änderung) eine neue Referenz bekommt.
   // Sonst feuert die Cleanup-Funktion auf JEDEM Re-Render einen
-  // sofortigen PATCH und der Editor laeuft in eine endlose Save-Loop
-  // ("Text wird neu geschrieben, halb weg, neu, hoert nicht auf").
+  // sofortigen PATCH und der Editor läuft in eine endlose Save-Loop
+  // ("Text wird neu geschrieben, halb weg, neu, hört nicht auf").
   // Wir spiegeln den aktuellen flushSave in eine Ref und rufen ihn nur
   // beim echten Unmount.
   const flushSaveRef = useRef(flushSave);
@@ -775,7 +775,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
 
   // Body-Klasse setzen: BottomNav ausblenden + Body-Scroll sperren ohne
   // Layout-Shift (Vermeidet, dass sich der notes-board-header verschiebt).
-  // Zusaetzlich iOS-Scroll-Lock via position:fixed + scrollY-Restore, damit
+  // Zusätzlich iOS-Scroll-Lock via position:fixed + scrollY-Restore, damit
   // beim Schliessen die NotesPage nicht durch eine offene Tastatur verrutscht.
   useEffect(() => {
     const scrollY = window.scrollY || window.pageYOffset || 0;
@@ -854,7 +854,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
     if (sel) { sel.removeAllRanges(); sel.addRange(range); }
   }, []);
 
-  // Tab im Editor: 2-Space-Einrueckung statt Fokuswechsel.
+  // Tab im Editor: 2-Space-Einrückung statt Fokuswechsel.
   const onEditorKeyDown = (e) => {
     if (e.key === 'Tab') {
       e.preventDefault();
@@ -868,14 +868,14 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
     if (!el) return;
     // Mobile-Schutz: Timestamp setzen, Live-Sync sperrt 1.5s.
     userTypingRef.current = Date.now();
-    // Keine Sanitization waehrend des Tippens (sonst Caret-Reset).
+    // Keine Sanitization während des Tippens (sonst Caret-Reset).
     // Wird vor jedem Speichern in scheduleSave/flushSave gesaeubert.
     setContent(el.innerHTML);
   }, []);
 
   // IME / virtuelle Tastatur Composition (Android/iOS-Autocorrect).
   // Solange composing true ist, darf Live-Sync nicht in den Editor
-  // schreiben - sonst stuerzt die Auto-Vervollstaendigung ab.
+  // schreiben - sonst stuerzt die Auto-Vervollständigung ab.
   const onCompositionStart = useCallback(() => {
     composingRef.current = true;
     userTypingRef.current = Date.now();
@@ -919,12 +919,12 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   // User bereits Text markiert hat (wrappt nur die Auswahl).
   // ──────────────────────────────────────────────────────────────────
   // ──────────────────────────────────────────────────────────────────
-  // KI-Aktionen ueber die FormatToolbar (Sparkles-Dropdown).
+  // KI-Aktionen über die FormatToolbar (Sparkles-Dropdown).
   // Ein einziger zentraler Handler nimmt den aktuellen Editor-Content,
   // schickt ihn ans Backend und legt das Ergebnis in aiSuggest ab.
   // Der User kann das Ergebnis annehmen (Editor aktualisieren) oder
   // verwerfen. Wir mutieren den Editor NIE direkt - schuetzt vor
-  // ungewollten Aenderungen.
+  // ungewollten Änderungen.
   // ──────────────────────────────────────────────────────────────────
   const [aiBusy, setAiBusy] = useState(false);
   const [aiSuggest, setAiSuggest] = useState(null);
@@ -956,7 +956,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
         }</ul>`;
         setAiSuggest({
           kind: 'summary',
-          label: 'Zusammenfassung anhaengen',
+          label: 'Zusammenfassung anhängen',
           preview: lines.map((l) => l.replace(/^[-*]\s*/, '\u2022 ')).join('\n'),
           mode: 'append',
           applyHtml: listHtml,
@@ -971,14 +971,14 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
           `<p>${escapeHtml(p).replace(/\n/g, '<br>')}</p>`
         ).join('');
         const labelMap = {
-          cleanup: 'Verbesserten Text uebernehmen',
-          short: 'Gekuerzten Text uebernehmen',
-          formal: 'Formalen Text uebernehmen',
-          casual: 'Lockeren Text uebernehmen',
+          cleanup: 'Verbesserten Text übernehmen',
+          short: 'Gekürzten Text übernehmen',
+          formal: 'Formalen Text übernehmen',
+          casual: 'Lockeren Text übernehmen',
         };
         setAiSuggest({
           kind: 'rewrite',
-          label: labelMap[style] || 'Text uebernehmen',
+          label: labelMap[style] || 'Text übernehmen',
           preview: rewritten,
           mode: 'replace',
           applyHtml: html,
@@ -1072,7 +1072,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
         );
         exec('insertHTML', tableHtml);
         // Sicherstellen, dass darunter eine bearbeitbare Zeile bleibt
-        // und der Cursor dort landet (insertHTML laesst den Cursor sonst
+        // und der Cursor dort landet (insertHTML lässt den Cursor sonst
         // gerne im letzten <td> stehen).
         requestAnimationFrame(() => moveCaretToEnd());
         break;
@@ -1157,8 +1157,8 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                   type="button"
                   className="nem-icon-btn"
                   onClick={toggleMaximized}
-                  title={sheetSize.maximized ? 'Normale Groesse' : 'Editor vergroessern'}
-                  aria-label={sheetSize.maximized ? 'Normale Groesse' : 'Editor vergroessern'}
+                  title={sheetSize.maximized ? 'Normale Größe' : 'Editor vergrößern'}
+                  aria-label={sheetSize.maximized ? 'Normale Größe' : 'Editor vergrößern'}
                 >
                   {sheetSize.maximized ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
                 </button>
@@ -1286,7 +1286,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                 type="button"
                 className={`nem-visibility-toggle${visibility === 'group' ? ' is-shared' : ''}`}
                 onClick={handleToggleVisibility}
-                title={visibility === 'group' ? 'Sichtbar fuer alle Gruppenmitglieder — klicken zum Privatisieren' : 'Nur fuer dich sichtbar — klicken zum Teilen mit Gruppe'}
+                title={visibility === 'group' ? 'Sichtbar für alle Gruppenmitglieder — klicken zum Privatisieren' : 'Nur für dich sichtbar — klicken zum Teilen mit Gruppe'}
                 aria-pressed={visibility === 'group'}
               >
                 {visibility === 'group' ? <Users size={13} /> : <Lock size={13} />}
@@ -1460,7 +1460,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
           {/* Insights-Row: Aktivitaetsverlauf + Kommentare als kompakte
               Side-by-Side-Cards (Desktop/Tablet). Auf Mobile stapeln sie
               sich. Ausgeklappt spannt die jeweilige Karte beide Spalten
-              ueber die :has(.is-open)-Regel im CSS, damit das Panel volle
+              über die :has(.is-open)-Regel im CSS, damit das Panel volle
               Breite bekommt. */}
           {note?.id && (
             <div className="nem-insights-row">
@@ -1545,13 +1545,13 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                 type="button"
                 className="nem-action-btn danger"
                 onClick={() => {
-                  if (!window.confirm('Notiz wirklich loeschen?')) return;
+                  if (!window.confirm('Notiz wirklich löschen?')) return;
                   onDelete?.(note.id);
                   onClose?.();
                 }}
-                title="Loeschen"
+                title="Löschen"
               >
-                <Trash2 size={14} /> <span>Loeschen</span>
+                <Trash2 size={14} /> <span>Löschen</span>
               </button>
               <button
                 type="button"
@@ -1597,7 +1597,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                 className="nem-mobile-pill nem-mobile-pill--color"
                 style={{ backgroundColor: color.bg, borderColor: color.border }}
                 onClick={() => setMobileSheet(mobileSheet === 'color' ? null : 'color')}
-                aria-label={`Farbe: ${color.name} (aendern)`}
+                aria-label={`Farbe: ${color.name} (ändern)`}
                 aria-haspopup="dialog"
                 aria-expanded={mobileSheet === 'color'}
               >
@@ -1607,7 +1607,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                 type="button"
                 className={`nem-mobile-pill nem-mobile-pill--importance is-${importance}`}
                 onClick={() => setMobileSheet(mobileSheet === 'importance' ? null : 'importance')}
-                aria-label={`Wichtigkeit: ${importance === 'low' ? 'Niedrig' : importance === 'medium' ? 'Mittel' : 'Hoch'} (aendern)`}
+                aria-label={`Wichtigkeit: ${importance === 'low' ? 'Niedrig' : importance === 'medium' ? 'Mittel' : 'Hoch'} (ändern)`}
                 aria-haspopup="dialog"
                 aria-expanded={mobileSheet === 'importance'}
               >
@@ -1660,8 +1660,8 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                 role="dialog"
                 aria-modal="true"
                 aria-label={
-                  mobileSheet === 'color' ? 'Farbe waehlen'
-                  : mobileSheet === 'importance' ? 'Wichtigkeit waehlen'
+                  mobileSheet === 'color' ? 'Farbe wählen'
+                  : mobileSheet === 'importance' ? 'Wichtigkeit wählen'
                   : 'Weitere Aktionen'
                 }
                 onClick={(e) => e.stopPropagation()}
@@ -1734,7 +1734,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                       <History size={18} />
                       <span className="nem-mobile-sheet-item-text">
                         <span className="nem-mobile-sheet-item-label">Verlauf</span>
-                        <span className="nem-mobile-sheet-item-hint">Aeltere Fassungen ansehen</span>
+                        <span className="nem-mobile-sheet-item-hint">Ältere Fassungen ansehen</span>
                       </span>
                     </button>
                     <button
@@ -1760,7 +1760,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                             {visibility === 'group' ? 'Privatisieren' : 'Mit Gruppe teilen'}
                           </span>
                           <span className="nem-mobile-sheet-item-hint">
-                            {visibility === 'group' ? 'Nur fuer dich sichtbar' : 'Fuer alle Gruppenmitglieder'}
+                            {visibility === 'group' ? 'Nur für dich sichtbar' : 'Für alle Gruppenmitglieder'}
                           </span>
                         </span>
                       </button>
@@ -1789,14 +1789,14 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                         className="nem-mobile-sheet-item is-danger"
                         onClick={() => {
                           closeMobileSheet();
-                          if (!window.confirm('Notiz wirklich loeschen?')) return;
+                          if (!window.confirm('Notiz wirklich löschen?')) return;
                           onDelete?.(note.id);
                           onClose?.();
                         }}
                       >
                         <Trash2 size={18} />
                         <span className="nem-mobile-sheet-item-text">
-                          <span className="nem-mobile-sheet-item-label">Loeschen</span>
+                          <span className="nem-mobile-sheet-item-label">Löschen</span>
                           <span className="nem-mobile-sheet-item-hint">Endgueltig entfernen</span>
                         </span>
                       </button>
@@ -1818,8 +1818,8 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
               type="button"
               className="nem-resize-handle"
               onPointerDown={startSheetResize}
-              title="Groesse ziehen"
-              aria-label="Editorgroesse anpassen"
+              title="Größe ziehen"
+              aria-label="Editorgröße anpassen"
             />
           )}
         </motion.div>
@@ -1833,7 +1833,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
 // ------------------------------------------------------------
 // NoteAuthorRail — winziger Avatar links neben jedem Block,
 // der einem bekannten Autor zugeordnet werden konnte. Wird auf
-// allen Geraeten angezeigt (auch fuer eigene Bloecke), damit die
+// allen Geraeten angezeigt (auch für eigene Bloecke), damit die
 // Markierung konsistent sichtbar bleibt. Position wird live aus
 // dem contentEditable-DOM berechnet.
 // ------------------------------------------------------------
