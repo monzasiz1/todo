@@ -20,6 +20,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Pencil, Eraser, Hand, Trash2, ZoomIn, ZoomOut, Type, Save,
+  Grid3x3, Grip, Square, Download,
 } from 'lucide-react';
 import { api } from '../utils/api';
 
@@ -137,6 +138,20 @@ export default function WhiteboardPage() {
   const [size, setSize] = useState(4);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  // Hintergrund-Template: 'grid' | 'dots' | 'blank' — persistent via localStorage
+  const [bg, setBg] = useState(() => {
+    try {
+      const v = localStorage.getItem('beequ.whiteboard.bg');
+      if (v === 'grid' || v === 'dots' || v === 'blank') return v;
+    } catch { /* ignore */ }
+    return 'grid';
+  });
+  useEffect(() => {
+    try { localStorage.setItem('beequ.whiteboard.bg', bg); } catch { /* ignore */ }
+  }, [bg]);
+  const cycleBg = useCallback(() => {
+    setBg((b) => (b === 'grid' ? 'dots' : b === 'dots' ? 'blank' : 'grid'));
+  }, []);
 
   // Strokes-Store (gerendert auf canvas)
   const strokesRef = useRef([]); // {id, color, size, points: [{x,y}, ...]}
@@ -186,13 +201,16 @@ export default function WhiteboardPage() {
     const h = canvas.height / dpr;
     ctx.clearRect(0, 0, w, h);
 
-    // Hintergrund-Grid (subtil)
+    // Hintergrund-Template (subtil) — dark-mode-aware
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const bgFill = isDark ? '#0b1220' : '#fafafa';
+    const patternColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)';
     ctx.save();
-    ctx.fillStyle = '#fafafa';
+    ctx.fillStyle = bgFill;
     ctx.fillRect(0, 0, w, h);
     const step = 40 * scaleRef.current;
-    if (step > 8) {
-      ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+    if (bg === 'grid' && step > 8) {
+      ctx.strokeStyle = patternColor;
       ctx.lineWidth = 1;
       const offsetX = ((panRef.current.x % step) + step) % step;
       const offsetY = ((panRef.current.y % step) + step) % step;
@@ -204,6 +222,18 @@ export default function WhiteboardPage() {
         ctx.moveTo(0, y); ctx.lineTo(w, y);
       }
       ctx.stroke();
+    } else if (bg === 'dots' && step > 8) {
+      ctx.fillStyle = patternColor;
+      const dotRadius = Math.max(0.8, Math.min(1.8, scaleRef.current));
+      const offsetX = ((panRef.current.x % step) + step) % step;
+      const offsetY = ((panRef.current.y % step) + step) % step;
+      for (let x = offsetX; x < w; x += step) {
+        for (let y = offsetY; y < h; y += step) {
+          ctx.beginPath();
+          ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
     }
     ctx.restore();
 
@@ -231,7 +261,7 @@ export default function WhiteboardPage() {
     if (drawingRef.current) drawStroke(drawingRef.current);
 
     ctx.restore();
-  }, []);
+  }, [bg]);
 
   // ── Init: Resize-Observer + Load Strokes ─────────────────────────
   useEffect(() => {
@@ -642,6 +672,16 @@ export default function WhiteboardPage() {
             </button>
             <button className="wb-btn" onClick={() => zoomAt(1.2, null)} title="Vergrößern">
               <ZoomIn size={16} />
+            </button>
+          </div>
+          <div className="wb-tool-group">
+            <button
+              className="wb-btn"
+              onClick={cycleBg}
+              title={`Hintergrund: ${bg === 'grid' ? 'Raster' : bg === 'dots' ? 'Punkte' : 'Blank'} — Klick wechselt`}
+              aria-label="Hintergrund-Template wechseln"
+            >
+              {bg === 'grid' ? <Grid3x3 size={16} /> : bg === 'dots' ? <Grip size={16} /> : <Square size={16} />}
             </button>
           </div>
           <button className="wb-btn wb-btn-danger" onClick={handleClear} title="Alles löschen">
