@@ -384,14 +384,19 @@ html[data-theme="dark"] .wb-size.is-active {
 
 /* ════ Tablet & schmale Desktops ════ */
 @media (max-width: 900px) {
-  .wb-header { gap: 8px; padding: 8px 10px; }
+  .wb-header {
+    gap: 8px;
+    /* Safe-Area-Top muss erhalten bleiben — Notch-Schutz! */
+    padding: max(8px, env(safe-area-inset-top, 0px)) 10px 8px;
+  }
   .wb-toolbar { gap: 8px; }
 }
 
 /* ════ Mobile (iPhone alle Größen bis Plus/Pro Max) ════ */
 @media (max-width: 720px) {
   .wb-header {
-    padding: 8px 10px;
+    /* Top-Padding nimmt die Dynamic-Island/Notch-Höhe auf */
+    padding: max(8px, env(safe-area-inset-top, 0px)) 10px 8px;
     gap: 8px;
     row-gap: 6px;
   }
@@ -441,7 +446,10 @@ html[data-theme="dark"] .wb-size.is-active {
 
 /* ════ Kleine iPhones (SE 1. Gen, iPhone 12 mini etc., ≤ 380px) ════ */
 @media (max-width: 380px) {
-  .wb-header { padding: 7px 8px; gap: 6px; }
+  .wb-header {
+    padding: max(7px, env(safe-area-inset-top, 0px)) 8px 7px;
+    gap: 6px;
+  }
   .wb-btn-back {
     padding: 0;
     min-width: 38px;
