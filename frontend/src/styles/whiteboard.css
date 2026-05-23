@@ -45,32 +45,27 @@
   flex-shrink: 0;
 }
 
-/* Zurück-Button: deutliche blaue Pille, einladend */
+/* Zurück-Button: identisch zum App-Standard .group-back-btn (rund, Icon-only) */
 .wb-btn-back {
-  background: linear-gradient(135deg, #0a84ff, #4d6bff);
-  color: #ffffff;
-  font-weight: 650;
-  letter-spacing: -0.01em;
-  padding: 0 16px 0 12px;
-  height: 38px;
-  border-radius: 999px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 122, 255, 0.10);
+  color: var(--primary, #007AFF);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
   flex-shrink: 0;
-  box-shadow:
-    0 6px 16px -6px rgba(10, 132, 255, 0.55),
-    0 1px 0 rgba(255, 255, 255, 0.3) inset;
-  transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+  transition: background 0.15s ease, transform 0.12s ease;
 }
 .wb-btn-back:hover {
-  background: linear-gradient(135deg, #0a84ff, #4d6bff);
-  filter: brightness(1.06);
-  transform: translateY(-1px);
-  box-shadow:
-    0 10px 22px -6px rgba(10, 132, 255, 0.6),
-    0 1px 0 rgba(255, 255, 255, 0.3) inset;
+  background: rgba(0, 122, 255, 0.18);
 }
 .wb-btn-back:active {
-  transform: translateY(0);
-  filter: brightness(0.96);
+  transform: scale(0.94);
 }
 
 /* Title-Block mit Brand-Mark */
@@ -401,11 +396,8 @@ html[data-theme="dark"] .wb-size.is-active {
     row-gap: 6px;
   }
   .wb-btn-back {
-    min-width: 44px;
+    width: 40px;
     height: 40px;
-    padding: 0 12px 0 9px;
-    border-radius: 999px;
-    font-size: 14px;
   }
   .wb-title {
     font-size: 13px;
@@ -451,12 +443,9 @@ html[data-theme="dark"] .wb-size.is-active {
     gap: 6px;
   }
   .wb-btn-back {
-    padding: 0;
-    min-width: 38px;
-    width: 38px;
-    justify-content: center;
+    width: 36px;
+    height: 36px;
   }
-  .wb-back-label { display: none; }       /* nur Pfeil sichtbar */
   .wb-title span:not(.wb-saving) { display: none; }
   .wb-title { gap: 0; }
   .wb-toolbar { gap: 4px; }

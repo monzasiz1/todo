@@ -398,13 +398,12 @@ export default function WhiteboardPage() {
     <div className="wb-page">
       <header className="wb-header">
         <button
-          className="wb-btn wb-btn-back"
+          className="wb-btn-back"
           onClick={() => navigate('/app/notes')}
           title="Zurueck zu den Notizen"
           aria-label="Zurueck zu den Notizen"
         >
-          <ArrowLeft size={18} />
-          <span className="wb-back-label">Notizen</span>
+          <ArrowLeft size={20} />
         </button>
         <div className="wb-title">
           <Type size={16} aria-hidden="true" />
