@@ -20,7 +20,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Pencil, Eraser, Hand, Trash2, ZoomIn, ZoomOut, Type, Save,
-  Grid3x3, Grip, Square, Download,
+  Grid3x3, Grip, Square, Download, FileText, BookOpen,
 } from 'lucide-react';
 import { api } from '../utils/api';
 
@@ -153,11 +153,25 @@ export default function WhiteboardPage() {
     } catch { /* ignore */ }
     return 'grid';
   });
+  // Paper-Color: 'white' | 'blue' — manueller Toggle, unabhaengig vom App-Theme
+  const [paper, setPaper] = useState(() => {
+    try {
+      const v = localStorage.getItem('beequ.whiteboard.paper');
+      if (v === 'white' || v === 'blue') return v;
+    } catch { /* ignore */ }
+    return 'white';
+  });
   useEffect(() => {
     try { localStorage.setItem('beequ.whiteboard.bg', bg); } catch { /* ignore */ }
   }, [bg]);
+  useEffect(() => {
+    try { localStorage.setItem('beequ.whiteboard.paper', paper); } catch { /* ignore */ }
+  }, [paper]);
   const cycleBg = useCallback(() => {
     setBg((b) => (b === 'grid' ? 'dots' : b === 'dots' ? 'blank' : 'grid'));
+  }, []);
+  const togglePaper = useCallback(() => {
+    setPaper((p) => (p === 'white' ? 'blue' : 'white'));
   }, []);
 
   // Strokes-Store (gerendert auf canvas)
@@ -208,10 +222,19 @@ export default function WhiteboardPage() {
     const h = canvas.height / dpr;
     ctx.clearRect(0, 0, w, h);
 
-    // Hintergrund-Template (subtil) — dark-mode-aware
+    // Hintergrund-Template (subtil) — dark-mode-aware + Paper-Color
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    const bgFill = isDark ? '#0b1220' : '#fafafa';
-    const patternColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)';
+    let bgFill;
+    let patternColor;
+    if (paper === 'blue') {
+      // Blueprint-Look: helles Blau (light) bzw. tiefes Marineblau (dark)
+      bgFill = isDark ? '#0c1f3a' : '#e9f2ff';
+      patternColor = isDark ? 'rgba(160, 200, 255, 0.14)' : 'rgba(20, 70, 160, 0.16)';
+    } else {
+      // Pure White / Neutral Dark
+      bgFill = isDark ? '#1a1a1a' : '#ffffff';
+      patternColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+    }
     ctx.save();
     ctx.fillStyle = bgFill;
     ctx.fillRect(0, 0, w, h);
@@ -268,7 +291,7 @@ export default function WhiteboardPage() {
     if (drawingRef.current) drawStroke(drawingRef.current);
 
     ctx.restore();
-  }, [bg]);
+  }, [bg, paper]);
 
   // ── Init: Resize-Observer + Load Strokes ─────────────────────────
   useEffect(() => {
@@ -623,14 +646,23 @@ export default function WhiteboardPage() {
     const ctx = ex.getContext('2d');
     ctx.scale(dpr, dpr);
 
-    // Background-Farbe + Pattern (matched aktuellen bg-Modus)
+    // Background-Farbe + Pattern (matched aktuellen bg-Modus + Paper-Color)
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    ctx.fillStyle = isDark ? '#0b1220' : '#ffffff';
+    let exFill;
+    let exPatternColor;
+    if (paper === 'blue') {
+      exFill = isDark ? '#0c1f3a' : '#e9f2ff';
+      exPatternColor = isDark ? 'rgba(160, 200, 255, 0.14)' : 'rgba(20, 70, 160, 0.16)';
+    } else {
+      exFill = isDark ? '#1a1a1a' : '#ffffff';
+      exPatternColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+    }
+    ctx.fillStyle = exFill;
     ctx.fillRect(0, 0, width, height);
 
     ctx.translate(-minX, -minY);
 
-    const patternColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)';
+    const patternColor = exPatternColor;
     const step = 40;
     if (bg === 'grid') {
       ctx.strokeStyle = patternColor;
@@ -681,7 +713,7 @@ export default function WhiteboardPage() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }, 'image/png');
-  }, [bg]);
+  }, [bg, paper]);
 
   const cursor = tool === 'pan' ? 'grab' : tool === 'eraser' ? 'none' : 'crosshair';
 
@@ -786,6 +818,14 @@ export default function WhiteboardPage() {
               aria-label="Hintergrund-Template wechseln"
             >
               {bg === 'grid' ? <Grid3x3 size={16} /> : bg === 'dots' ? <Grip size={16} /> : <Square size={16} />}
+            </button>
+            <button
+              className="wb-btn"
+              onClick={togglePaper}
+              title={`Papier: ${paper === 'white' ? 'Weiß' : 'Blau'} — Klick wechselt`}
+              aria-label="Papierfarbe wechseln"
+            >
+              {paper === 'white' ? <FileText size={16} /> : <BookOpen size={16} />}
             </button>
             <button
               className="wb-btn"
