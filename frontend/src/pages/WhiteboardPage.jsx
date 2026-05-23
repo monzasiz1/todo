@@ -51,15 +51,79 @@ function distPointSegment(px, py, ax, ay, bx, by) {
   return Math.sqrt(ex * ex + ey * ey);
 }
 
-function hitStroke(stroke, x, y) {
-  const tol = Math.max(6, (Number(stroke.size) || 3) + 4);
+// Bounding-Box berechnen + cachen — Vor-Filter im Eraser.
+function strokeBounds(stroke) {
+  if (stroke._bounds) return stroke._bounds;
   const pts = stroke.points || [];
-  for (let i = 1; i < pts.length; i += 1) {
-    const a = pts[i - 1];
-    const b = pts[i];
-    if (distPointSegment(x, y, a.x, a.y, b.x, b.y) < tol) return true;
+  if (pts.length === 0) {
+    return (stroke._bounds = { minX: 0, minY: 0, maxX: 0, maxY: 0 });
   }
-  return false;
+  let minX = pts[0].x, maxX = pts[0].x, minY = pts[0].y, maxY = pts[0].y;
+  for (let i = 1; i < pts.length; i += 1) {
+    if (pts[i].x < minX) minX = pts[i].x;
+    else if (pts[i].x > maxX) maxX = pts[i].x;
+    if (pts[i].y < minY) minY = pts[i].y;
+    else if (pts[i].y > maxY) maxY = pts[i].y;
+  }
+  return (stroke._bounds = { minX, minY, maxX, maxY });
+}
+
+// Pixel-genauer Radierer: zerteilt einen Stroke an Stellen, an denen
+// der Eraser-Pfad ihn beruehrt — gibt 0..n Sub-Strokes zurueck.
+// Originaler Stroke wird *nicht* mutiert.
+function splitStrokeByEraser(stroke, ex, ey, eraseRadius) {
+  const halfPenWidth = (Number(stroke.size) || 3) / 2;
+  const tol = eraseRadius + halfPenWidth;
+  const tol2 = tol * tol;
+  const pts = stroke.points || [];
+
+  // Schneller Bounds-Reject
+  const b = strokeBounds(stroke);
+  if (ex + tol < b.minX || ex - tol > b.maxX || ey + tol < b.minY || ey - tol > b.maxY) {
+    return { changed: false, parts: [stroke] };
+  }
+
+  if (pts.length <= 1) {
+    if (pts.length === 1) {
+      const dx = pts[0].x - ex, dy = pts[0].y - ey;
+      if (dx * dx + dy * dy < tol2) return { changed: true, parts: [] };
+    }
+    return { changed: false, parts: [stroke] };
+  }
+
+  // Markiere Punkte/Segmente, die im Eraser-Radius liegen
+  const ranges = [];
+  let current = [];
+  for (let i = 0; i < pts.length; i += 1) {
+    const p = pts[i];
+    const dpx = p.x - ex, dpy = p.y - ey;
+    let hit = (dpx * dpx + dpy * dpy) < tol2;
+    if (!hit && i > 0) {
+      const a = pts[i - 1];
+      if (distPointSegment(ex, ey, a.x, a.y, p.x, p.y) < tol) hit = true;
+    }
+    if (hit) {
+      if (current.length >= 2) ranges.push(current);
+      current = [];
+    } else {
+      current.push(p);
+    }
+  }
+  if (current.length >= 2) ranges.push(current);
+
+  // Keine Aenderung wenn der einzige Range alle Punkte enthaelt
+  if (ranges.length === 1 && ranges[0].length === pts.length) {
+    return { changed: false, parts: [stroke] };
+  }
+
+  // Neue Sub-Strokes aus den ueberlebenden Ranges erzeugen
+  const parts = ranges.map((range) => ({
+    id: `s_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+    color: stroke.color,
+    size: stroke.size,
+    points: range,
+  }));
+  return { changed: true, parts };
 }
 
 export default function WhiteboardPage() {
@@ -90,6 +154,9 @@ export default function WhiteboardPage() {
   // Multi-Touch Pinch
   const pinchRef = useRef(null); // {startDist, startScale, centerWorld}
   const activePointersRef = useRef(new Map());
+  // Eraser-Session: serverseitig bekannte IDs zu Beginn der Geste, plus
+  // letzte World-Position fuer Zwischenpunkt-Interpolation (smoother Eraser).
+  const eraserSessionRef = useRef(null); // {startIds: Set<string>, lastWorld: {x,y}|null}
 
   // ── Canvas-Resize + DPR-aware ─────────────────────────────────────
   const setupCanvasSize = useCallback(() => {
@@ -235,6 +302,30 @@ export default function WhiteboardPage() {
     return () => canvas.removeEventListener('wheel', onWheel);
   }, [zoomAt]);
 
+  // Eraser-Radius im Welt-Koordinatensystem. Skaliert mit dem aktuellen
+  // `size`, aber nie unter ~10 (sonst zu fummelig auf Touch).
+  const eraserWorldRadius = useCallback(() => {
+    return Math.max(10, Number(size) * 3);
+  }, [size]);
+
+  // Pixel-Erase an einer Welt-Position: alle Strokes durchgehen, Treffer splitten.
+  const eraseAt = useCallback((wx, wy) => {
+    const radius = eraserWorldRadius();
+    const list = strokesRef.current;
+    let changed = false;
+    const next = [];
+    for (let i = 0; i < list.length; i += 1) {
+      const res = splitStrokeByEraser(list[i], wx, wy, radius);
+      if (res.changed) changed = true;
+      for (let j = 0; j < res.parts.length; j += 1) next.push(res.parts[j]);
+    }
+    if (changed) {
+      strokesRef.current = next;
+      redraw();
+      forceRender((n) => n + 1);
+    }
+  }, [eraserWorldRadius, redraw]);
+
   // ── Pointer-Handling: Pen/Eraser/Pan + Pinch ─────────────────────
   const onPointerDown = useCallback((e) => {
     const canvas = canvasRef.current;
@@ -267,19 +358,12 @@ export default function WhiteboardPage() {
     const world = screenToWorld(e.clientX, e.clientY);
 
     if (tool === 'eraser') {
-      // Erstes Treffer-Stroke loeschen.
-      const list = strokesRef.current;
-      for (let i = list.length - 1; i >= 0; i -= 1) {
-        if (hitStroke(list[i], world.x, world.y)) {
-          const removed = list[i];
-          strokesRef.current = list.filter((_, idx) => idx !== i);
-          api.deleteWhiteboardStroke(removed.id).catch((err) => {
-            console.warn('[Whiteboard] delete failed:', err?.message || err);
-          });
-          redraw();
-          break;
-        }
-      }
+      // Pixel-genauer Radierer: Session starten — alle IDs jetzt sind
+      // serverseitig bekannt; was am Ende fehlt -> API-Delete, was neu da ist -> API-Create.
+      const startIds = new Set();
+      for (const s of strokesRef.current) startIds.add(s.id);
+      eraserSessionRef.current = { startIds, lastWorld: world };
+      eraseAt(world.x, world.y);
       return;
     }
 
@@ -330,6 +414,27 @@ export default function WhiteboardPage() {
       return;
     }
 
+    // Eraser-Drag: an jedem Punkt + Zwischenpunkte (damit schnelle Bewegungen
+    // keine Lücken hinterlassen) erasen.
+    if (tool === 'eraser' && eraserSessionRef.current) {
+      const world = screenToWorld(e.clientX, e.clientY);
+      const last = eraserSessionRef.current.lastWorld;
+      if (last) {
+        const dx = world.x - last.x, dy = world.y - last.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const step = eraserWorldRadius() * 0.6; // ueberlappende Schritte
+        const steps = Math.max(1, Math.floor(dist / step));
+        for (let i = 1; i <= steps; i += 1) {
+          const t = i / steps;
+          eraseAt(last.x + dx * t, last.y + dy * t);
+        }
+      } else {
+        eraseAt(world.x, world.y);
+      }
+      eraserSessionRef.current.lastWorld = world;
+      return;
+    }
+
     if (drawingRef.current) {
       const world = screenToWorld(e.clientX, e.clientY);
       const pts = drawingRef.current.points;
@@ -341,7 +446,7 @@ export default function WhiteboardPage() {
       pts.push(world);
       redraw();
     }
-  }, [redraw, screenToWorld]);
+  }, [redraw, screenToWorld, tool, eraseAt, eraserWorldRadius]);
 
   const onPointerUp = useCallback((e) => {
     const canvas = canvasRef.current;
@@ -349,6 +454,42 @@ export default function WhiteboardPage() {
     activePointersRef.current.delete(e.pointerId);
     if (activePointersRef.current.size < 2) pinchRef.current = null;
     panGestureRef.current = null;
+
+    // Eraser-Session beenden: Diff vs. Start-IDs → Delete entfallener,
+    // Create neuer Sub-Strokes. Batched, damit nicht pro Pointermove
+    // ein API-Call rausgeht.
+    if (eraserSessionRef.current) {
+      const { startIds } = eraserSessionRef.current;
+      eraserSessionRef.current = null;
+      const currentIds = new Set();
+      for (const s of strokesRef.current) currentIds.add(s.id);
+      const toDelete = [];
+      for (const id of startIds) {
+        if (!currentIds.has(id)) toDelete.push(id);
+      }
+      const toCreate = strokesRef.current.filter((s) => !startIds.has(s.id));
+      if (toDelete.length > 0 || toCreate.length > 0) {
+        setSaving(true);
+        const ops = [];
+        for (const id of toDelete) {
+          ops.push(api.deleteWhiteboardStroke(id).catch((err) => {
+            console.warn('[Whiteboard] eraser delete failed:', err?.message || err);
+          }));
+        }
+        for (const stroke of toCreate) {
+          ops.push(api.createWhiteboardStroke({
+            id: stroke.id,
+            color: stroke.color,
+            size: stroke.size,
+            points: stroke.points,
+          }).catch((err) => {
+            console.warn('[Whiteboard] eraser create failed:', err?.message || err);
+          }));
+        }
+        Promise.all(ops).finally(() => setSaving(false));
+      }
+      return;
+    }
 
     if (drawingRef.current && drawingRef.current.points.length >= 2) {
       const stroke = drawingRef.current;
