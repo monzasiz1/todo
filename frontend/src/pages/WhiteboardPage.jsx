@@ -1,17 +1,17 @@
 // Whiteboard - Pan/Zoom Canvas mit Pen/Eraser/Text + persistenten Strokes.
 //
 // Architektur:
-// - Ein einziges <canvas>-Element fuer die gerenderten Strokes. Wir
+// - Ein einziges <canvas>-Element für die gerenderten Strokes. Wir
 //   speichern die Strokes als JS-Array (id, color, size, points[])
 //   und rendern bei jedem Pan/Zoom neu (canvas.clearRect + redraw).
-// - Aktuell waehrend des Zeichnens entsteht der Stroke imperativ
-//   (kein State-Update pro Punkt, sonst rendert React staendig). Erst
+// - Aktuell während des Zeichnens entsteht der Stroke imperativ
+//   (kein State-Update pro Punkt, sonst rendert React ständig). Erst
 //   bei Pointer-Up wird der Stroke in den State gepusht und an die
 //   API gesendet.
-// - Pan: ALT-Drag oder Touch mit 2 Fingern (Pinch dazu fuer Zoom).
-//   Linkes Maustaste in pen/eraser-Mode zeichnet/loescht.
+// - Pan: ALT-Drag oder Touch mit 2 Fingern (Pinch dazu für Zoom).
+//   Linkes Maustaste in pen/eraser-Mode zeichnet/löscht.
 // - Eraser: erkennt den ersten Stroke unter dem Cursor (Hit-Test in
-//   World-Coords) und loescht ihn.
+//   World-Coords) und löscht ihn.
 // - Coords: wir trennen sauber zwischen Screen-Pixel (Pointer-Event)
 //   und World-Pixel (gespeicherter Punkt). screenToWorld nutzt
 //   panRef + scaleRef.
@@ -32,7 +32,7 @@ function makeId() {
   return `s_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-// Punkt-zu-Segment-Distanz fuer Eraser-Hit-Test.
+// Punkt-zu-Segment-Distanz für Eraser-Hit-Test.
 function distPointSegment(px, py, ax, ay, bx, by) {
   const dx = bx - ax;
   const dy = by - ay;
@@ -69,7 +69,7 @@ function strokeBounds(stroke) {
 }
 
 // Pixel-genauer Radierer: zerteilt einen Stroke an Stellen, an denen
-// der Eraser-Pfad ihn beruehrt — gibt 0..n Sub-Strokes zurueck.
+// der Eraser-Pfad ihn berührt — gibt 0..n Sub-Strokes zurück.
 // Originaler Stroke wird *nicht* mutiert.
 function splitStrokeByEraser(stroke, ex, ey, eraseRadius) {
   const halfPenWidth = (Number(stroke.size) || 3) / 2;
@@ -111,12 +111,12 @@ function splitStrokeByEraser(stroke, ex, ey, eraseRadius) {
   }
   if (current.length >= 2) ranges.push(current);
 
-  // Keine Aenderung wenn der einzige Range alle Punkte enthaelt
+  // Keine Änderung wenn der einzige Range alle Punkte enthaelt
   if (ranges.length === 1 && ranges[0].length === pts.length) {
     return { changed: false, parts: [stroke] };
   }
 
-  // Neue Sub-Strokes aus den ueberlebenden Ranges erzeugen
+  // Neue Sub-Strokes aus den überlebenden Ranges erzeugen
   const parts = ranges.map((range) => ({
     id: `s_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
     color: stroke.color,
@@ -145,9 +145,9 @@ export default function WhiteboardPage() {
   // Pan/Zoom
   const panRef = useRef({ x: 0, y: 0 });
   const scaleRef = useRef(1);
-  const [scaleUi, setScaleUi] = useState(1); // nur fuer Anzeige
+  const [scaleUi, setScaleUi] = useState(1); // nur für Anzeige
 
-  // Aktuell gezeichneter Stroke (waehrend Pointer-Down)
+  // Aktuell gezeichneter Stroke (während Pointer-Down)
   const drawingRef = useRef(null); // {id, color, size, points}
   // Aktive Pan-Geste
   const panGestureRef = useRef(null); // {startX, startY, startPanX, startPanY}
@@ -155,7 +155,7 @@ export default function WhiteboardPage() {
   const pinchRef = useRef(null); // {startDist, startScale, centerWorld}
   const activePointersRef = useRef(new Map());
   // Eraser-Session: serverseitig bekannte IDs zu Beginn der Geste, plus
-  // letzte World-Position fuer Zwischenpunkt-Interpolation (smoother Eraser).
+  // letzte World-Position für Zwischenpunkt-Interpolation (smoother Eraser).
   const eraserSessionRef = useRef(null); // {startIds: Set<string>, lastWorld: {x,y}|null}
 
   // ── Canvas-Resize + DPR-aware ─────────────────────────────────────
@@ -422,7 +422,7 @@ export default function WhiteboardPage() {
       if (last) {
         const dx = world.x - last.x, dy = world.y - last.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        const step = eraserWorldRadius() * 0.6; // ueberlappende Schritte
+        const step = eraserWorldRadius() * 0.6; // überlappende Schritte
         const steps = Math.max(1, Math.floor(dist / step));
         for (let i = 1; i <= steps; i += 1) {
           const t = i / steps;
@@ -514,7 +514,7 @@ export default function WhiteboardPage() {
   // ── Clear All ────────────────────────────────────────────────────
   const handleClear = useCallback(async () => {
     if (strokesRef.current.length === 0) return;
-    const ok = window.confirm('Whiteboard komplett leeren? Diese Aktion kann nicht rueckgaengig gemacht werden.');
+    const ok = window.confirm('Whiteboard komplett leeren? Diese Aktion kann nicht rückgängig gemacht werden.');
     if (!ok) return;
     strokesRef.current = [];
     redraw();
@@ -541,8 +541,8 @@ export default function WhiteboardPage() {
         <button
           className="wb-btn-back"
           onClick={() => navigate('/app/notes')}
-          title="Zurueck zu den Notizen"
-          aria-label="Zurueck zu den Notizen"
+          title="Zurück zu den Notizen"
+          aria-label="Zurück zu den Notizen"
         >
           <ArrowLeft size={20} />
         </button>
@@ -594,7 +594,7 @@ export default function WhiteboardPage() {
               />
             ))}
           </div>
-          <div className="wb-tool-group wb-sizes" role="radiogroup" aria-label="Strichstaerke">
+          <div className="wb-tool-group wb-sizes" role="radiogroup" aria-label="Strichstärke">
             {PEN_SIZES.map((s) => (
               <button
                 key={s}
@@ -602,7 +602,7 @@ export default function WhiteboardPage() {
                 className={`wb-size ${size === s ? 'is-active' : ''}`}
                 onClick={() => setSize(s)}
                 aria-pressed={size === s}
-                title={`Staerke ${s}px`}
+                title={`Stärke ${s}px`}
               >
                 <span className="wb-size-dot" style={{ width: s + 4, height: s + 4, background: color }} />
               </button>
@@ -612,14 +612,14 @@ export default function WhiteboardPage() {
             <button className="wb-btn" onClick={() => zoomAt(1 / 1.2, null)} title="Verkleinern">
               <ZoomOut size={16} />
             </button>
-            <button className="wb-btn wb-zoom-label" onClick={handleResetView} title="Zoom zuruecksetzen">
+            <button className="wb-btn wb-zoom-label" onClick={handleResetView} title="Zoom zurücksetzen">
               {Math.round(scaleUi * 100)}%
             </button>
-            <button className="wb-btn" onClick={() => zoomAt(1.2, null)} title="Vergroessern">
+            <button className="wb-btn" onClick={() => zoomAt(1.2, null)} title="Vergrößern">
               <ZoomIn size={16} />
             </button>
           </div>
-          <button className="wb-btn wb-btn-danger" onClick={handleClear} title="Alles loeschen">
+          <button className="wb-btn wb-btn-danger" onClick={handleClear} title="Alles löschen">
             <Trash2 size={16} />
           </button>
         </div>
@@ -640,7 +640,7 @@ export default function WhiteboardPage() {
         )}
         {!loading && strokesRef.current.length === 0 && (
           <div className="wb-hint">
-            Tipp: Stift waehlen und einfach losmalen. Pinch oder Mausrad zum Zoomen. Alt-Drag oder Hand-Modus zum Verschieben.
+            Tipp: Stift wählen und einfach losmalen. Pinch oder Mausrad zum Zoomen. Alt-Drag oder Hand-Modus zum Verschieben.
           </div>
         )}
       </div>

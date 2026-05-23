@@ -169,7 +169,7 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
   const dragStartPos = useRef({ x: 0, y: 0 });
   // Doppelklick-Erkennung auf .note-display: erster Klick startet
   // setIsEditing erst nach kurzer Verzoegerung — kommt ein zweiter Klick
-  // davor, wird stattdessen der Vollbild-Editor geoeffnet.
+  // davor, wird stattdessen der Vollbild-Editor geöffnet.
   const displayClickRef = useRef({ time: 0, timer: null });
   // Drag-Controls für swipe-to-close des Termin-Pickers — Drag startet
   // nur vom Handle/Header, damit Scrollen in der Liste nicht blockiert wird.
@@ -177,7 +177,7 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
 
   const noteColor = useMemo(() => {
     // Bevorzugt die neue notes.color-Spalte. Legacy '[COLOR:Name]' Prefix
-    // im content bleibt als Fallback fuer alte / noch nicht backfillete
+    // im content bleibt als Fallback für alte / noch nicht backfillete
     // Notes erhalten.
     if (note.color) {
       const match = NOTE_COLORS.find((c) => c.name.toLowerCase() === String(note.color).toLowerCase());
@@ -199,10 +199,10 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
   }, [note.content]);
 
   const isLongText = useMemo(() => {
-    // HTML-Inhalte (WYSIWYG-Editor) NIE kuerzen — wuerde Tags zerschneiden.
+    // HTML-Inhalte (WYSIWYG-Editor) NIE kürzen — würde Tags zerschneiden.
     if (looksLikeHtml(actualContent)) return false;
-    // Mehr Platz fuer Listen / Checklisten: erst ab 220 Zeichen kuerzen.
-    // Wenn der Inhalt Checklisten oder Mehrzeiler enthaelt, NIE kuerzen.
+    // Mehr Platz für Listen / Checklisten: erst ab 220 Zeichen kürzen.
+    // Wenn der Inhalt Checklisten oder Mehrzeiler enthaelt, NIE kürzen.
     if (/\n/.test(actualContent)) return false;
     return actualContent.length > 220;
   }, [actualContent]);
@@ -212,15 +212,15 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
     return actualContent.slice(0, 220) + '...';
   }, [actualContent, isLongText, isExpanded]);
 
-  // HTML-Content (vom WYSIWYG-Editor) erkennen und fuer sicheres
+  // HTML-Content (vom WYSIWYG-Editor) erkennen und für sicheres
   // Rendering vorbereiten. Bestands-Notizen in Markdown laufen weiter
-  // ueber renderNoteMarkdown.
+  // über renderNoteMarkdown.
   const isHtmlContent = useMemo(() => looksLikeHtml(displayContent), [displayContent]);
   const htmlForDisplay = useMemo(() => (isHtmlContent ? toDisplayHtml(displayContent) : ''), [isHtmlContent, displayContent]);
 
-  // Checklist-Fortschritt fuer die Card-Anzeige. Basiert auf dem ECHTEN
-  // content, nicht auf displayContent (damit auch gekuerzte/expanded
-  // Zustaende konsistent sind).
+  // Checklist-Fortschritt für die Card-Anzeige. Basiert auf dem ECHTEN
+  // content, nicht auf displayContent (damit auch gekürzte/expanded
+  // Zustände konsistent sind).
   const checklistProgress = useMemo(() => computeChecklistProgress(actualContent), [actualContent]);
 
   // 0 = pin+curl-BR, 1 = sheen, 2 = tape, 3 = clip+curl-BL
@@ -248,7 +248,7 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
     setIsEditing(false);
   }, [content, note.content, note.id, onUpdate, noteColor.name]);
 
-  // Checkbox-Toggle in einer bestimmten Zeile (color geht ueber Spalte).
+  // Checkbox-Toggle in einer bestimmten Zeile (color geht über Spalte).
   const handleToggleLine = useCallback(async (lineIndex) => {
     const text = actualContent || '';
     const lines = text.split('\n');
@@ -313,7 +313,7 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
       lastY: note.y ?? 100,
     };
 
-    // preventDefault nur wenn das Event ueberhaupt cancelable ist
+    // preventDefault nur wenn das Event überhaupt cancelable ist
     // (React's synthetisches onTouchStart ist passive → preventDefault wirkt nicht
     // und spammt nur die Konsole). Native touchstart unten ist non-passive.
     if (e.cancelable) e.preventDefault();
@@ -355,7 +355,7 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
     }
     const x = Math.max(0, dragStartPos.current.lastX ?? (note.x ?? 100));
     const y = Math.max(0, dragStartPos.current.lastY ?? (note.y ?? 100));
-    // Nur persistieren, wenn die Position sich wirklich veraendert hat
+    // Nur persistieren, wenn die Position sich wirklich verändert hat
     // (Toleranz 2 px). Verhindert API-Calls bei reinem Klick ohne Drag.
     const prevX = note.x ?? 100;
     const prevY = note.y ?? 100;
@@ -363,7 +363,7 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
       onPositionChange(note.id, x, y);
     }
     setIsDragging(false);
-    // Drag-Ende → Live-Position aufraeumen (Linien snappen zur Server-Position).
+    // Drag-Ende → Live-Position aufräumen (Linien snappen zur Server-Position).
     onDragLive?.(null);
   }, [isDragging, note.id, note.x, note.y, onPositionChange, onDragLive]);
 
@@ -382,7 +382,7 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
     }
   }, [isDragging, handlePointerMove, handlePointerUp]);
 
-  // Touchstart als native non-passive Listener anhaengen, damit preventDefault
+  // Touchstart als native non-passive Listener anhängen, damit preventDefault
   // tatsaechlich wirkt (React's onTouchStart ist seit React 18 passive).
   useEffect(() => {
     const el = noteRef.current;
@@ -456,7 +456,7 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
       onMouseDown={handlePointerDown}
       onDoubleClick={(e) => {
         // Doppelklick auf der Note (nicht auf Buttons/Links/Eingabefeldern)
-        // oeffnet den Vollbild-Editor.
+        // öffnet den Vollbild-Editor.
         if (e.target.closest('button') || e.target.closest('input') || e.target.closest('textarea') || e.target.closest('a')) return;
         e.stopPropagation();
         onOpenEditor?.(note.id);
@@ -466,7 +466,7 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
         <div
           className={`note-unread-badge${hasUnreadMention ? ' has-mention' : ''}`}
           title={hasUnreadMention
-            ? `${unreadCount} ungelesene Kommentare - du wurdest erwaehnt`
+            ? `${unreadCount} ungelesene Kommentare - du wurdest erwähnt`
             : `${unreadCount} ungelesene Kommentare`}
           aria-label={hasUnreadMention
             ? `${unreadCount} ungelesene Kommentare mit Erwaehnung`
@@ -499,8 +499,8 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
               e.stopPropagation();
               onOpenEditor?.(note.id);
             }}
-            title="Im Vollbild-Editor oeffnen"
-            aria-label="Notiz im Vollbild-Editor oeffnen"
+            title="Im Vollbild-Editor öffnen"
+            aria-label="Notiz im Vollbild-Editor öffnen"
           >
             <Maximize2 size={12} />
           </button>
@@ -540,8 +540,8 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
               if (isReadOnly) return;
               onDelete(note.id);
             }}
-            title={isReadOnly ? 'Nur lesen' : 'Loeschen'}
-            aria-label="Notiz loeschen"
+            title={isReadOnly ? 'Nur lesen' : 'Löschen'}
+            aria-label="Notiz löschen"
             disabled={isReadOnly}
           >
             <X size={12} />
@@ -605,7 +605,7 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
             onChange={(e) => setContent(e.target.value)}
             onInput={(e) => {
               // Auto-Grow: Textarea waechst mit dem Inhalt, .note-content
-              // capped per CSS und scrollt darueber hinaus.
+              // capped per CSS und scrollt darüber hinaus.
               const ta = e.currentTarget;
               ta.style.height = 'auto';
               ta.style.height = `${ta.scrollHeight}px`;
@@ -658,7 +658,7 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
               }, 320);
             }}
             onDoubleClick={(e) => {
-              // Fallback (Browser dispatcht dblclick nativ): direkt oeffnen.
+              // Fallback (Browser dispatcht dblclick nativ): direkt öffnen.
               e.stopPropagation();
               if (displayClickRef.current.timer) {
                 clearTimeout(displayClickRef.current.timer);
@@ -915,9 +915,9 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
   );
 }
 
-// Memoisierter Export: nur re-rendern, wenn sich relevante Props aendern.
-// Pan/Zoom des Boards aendern KEINE dieser Props mehr -> keine Note re-rendert
-// waehrend man das Canvas verschiebt/zoomt.
+// Memoisierter Export: nur re-rendern, wenn sich relevante Props ändern.
+// Pan/Zoom des Boards ändern KEINE dieser Props mehr -> keine Note re-rendert
+// während man das Canvas verschiebt/zoomt.
 const StickyNote = memo(StickyNoteImpl, (prev, next) => (
   prev.note === next.note &&
   prev.isSelected === next.isSelected &&
@@ -988,7 +988,7 @@ export default function NotesPage() {
   const [showArchive, setShowArchive] = useState(false);
   // Mobile: zeigt Bottom-Sheet mit Zoom/Layout/Connect/Whiteboard/Archiv
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
-  // Swipe-to-dismiss State fuer das Bottom-Sheet.
+  // Swipe-to-dismiss State für das Bottom-Sheet.
   // dragY = aktuelles Drag-Offset in px (>=0). Wenn > 120 oder Velocity
   // beim Release > 0.5 px/ms, schliessen wir das Sheet.
   const [sheetDragY, setSheetDragY] = useState(0);
@@ -997,7 +997,7 @@ export default function NotesPage() {
     const t = e.touches?.[0];
     if (!t) return;
     // Verhindert, dass der Canvas-Pan-Handler darunter das Touch verarbeitet
-    // (sonst wandert die Notes-Buehne mit, waehrend man das Sheet zieht).
+    // (sonst wandert die Notes-Buehne mit, während man das Sheet zieht).
     e.stopPropagation();
     sheetDragRef.current = { startY: t.clientY, lastY: t.clientY, lastT: performance.now(), active: true };
   }, []);
@@ -1028,7 +1028,7 @@ export default function NotesPage() {
   // Suche im Board: dimmt nicht-passende Notes, behaelt aber alle
   // Positionen, damit das Layout nicht springt.
   const [searchQuery, setSearchQuery] = useState('');
-  // Aktiv ausgewaehlte Hashtag-Filter (Set lowercase). AND-Logik: eine
+  // Aktiv ausgewählte Hashtag-Filter (Set lowercase). AND-Logik: eine
   // Notiz muss ALLE aktiven Tags besitzen, um sichtbar zu bleiben.
   const [activeTags, setActiveTags] = useState(() => new Set());
 
@@ -1055,7 +1055,7 @@ export default function NotesPage() {
 
   // Unread-Comments-Map: noteId -> { count, hasMention }. Wird vom
   // /api/note-comments?action=unread Endpoint befuellt und nach jedem
-  // Notes-Realtime-Tick oder Editor-Close refresht. Beim Oeffnen des
+  // Notes-Realtime-Tick oder Editor-Close refresht. Beim Öffnen des
   // Editors wird der Eintrag lokal entfernt (optimistic), Server-Seite
   // markiert das GET im Modal als read.
   const [unreadByNoteId, setUnreadByNoteId] = useState(() => new Map());
@@ -1102,7 +1102,7 @@ export default function NotesPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, [mobileMoreOpen, showArchive]);
 
-  // Editor oeffnen + Unread-Eintrag optimistisch entfernen.
+  // Editor öffnen + Unread-Eintrag optimistisch entfernen.
   // Das eigentliche Markieren passiert serverseitig beim GET im Modal.
   const openEditorClearUnread = useCallback((id) => {
     setEditorNoteId(id);
@@ -1115,7 +1115,7 @@ export default function NotesPage() {
     });
   }, []);
 
-  // Bridge: ?openNote=ID -> Editor oeffnen (zB Aufruf aus TaskDetailModal).
+  // Bridge: ?openNote=ID -> Editor öffnen (zB Aufruf aus TaskDetailModal).
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const id = params.get('openNote');
@@ -1126,8 +1126,8 @@ export default function NotesPage() {
     navigate({ pathname: location.pathname, search: params.toString() ? `?${params.toString()}` : '' }, { replace: true });
   }, [location.search, location.pathname, navigate]);
 
-  // Bridge: NoteEditorModal dispatcht beequ:open-task -> hier oeffnen wir
-  // den Task ueber useOpenTask (bidirektionaler Click-Through).
+  // Bridge: NoteEditorModal dispatcht beequ:open-task -> hier öffnen wir
+  // den Task über useOpenTask (bidirektionaler Click-Through).
   useEffect(() => {
     const handler = (ev) => {
       const t = ev?.detail?.task;
@@ -1163,8 +1163,8 @@ export default function NotesPage() {
   }, []);
 
   // Mindmap-Verbindungs-Workflow:
-  //   connectMode true → naechster Klick wird zur Quelle, der danach zum Ziel.
-  //   connectSourceId  → bereits ausgewaehlte Quelle (wartet auf zweiten Klick).
+  //   connectMode true → nächster Klick wird zur Quelle, der danach zum Ziel.
+  //   connectSourceId  → bereits ausgewählte Quelle (wartet auf zweiten Klick).
   const [connectMode, setConnectMode] = useState(false);
   const [connectSourceId, setConnectSourceId] = useState(null);
 
@@ -1195,7 +1195,7 @@ export default function NotesPage() {
   useEffect(() => { scaleRef.current = scale; }, [scale]);
   useEffect(() => { panRef.current = pan; }, [pan]);
 
-  // rAF-throttle fuer pan/pinch — verhindert Layout-Thrash bei 60fps Pointer-Events
+  // rAF-throttle für pan/pinch — verhindert Layout-Thrash bei 60fps Pointer-Events
   const rafPanRef = useRef(0);
   const pendingTransformRef = useRef(null);
   const wheelSyncRef = useRef(0);
@@ -1230,7 +1230,7 @@ export default function NotesPage() {
   // wird, Notes & Tasks neu laden. Loest "andere User schreibt Note, ich
   // sehe es nicht" ohne dedizierten Realtime-Channel.
   //
-  // Zusaetzlich hoeren wir auf 'beequ:notes-changed' (vom useRealtime-Hook
+  // Zusätzlich hören wir auf 'beequ:notes-changed' (vom useRealtime-Hook
   // via Supabase Broadcast + postgres_changes) — damit kommen Updates in
   // <1 Sekunde rein und das Polling-Intervall ist nur noch Safety-Net.
   // Wenn Realtime aktiv ist, koennen wir den Poll auf 60s entspannen.
@@ -1255,7 +1255,7 @@ export default function NotesPage() {
     window.addEventListener('beequ:notes-changed', onNotesChanged);
     window.addEventListener('beequ:realtime-reconnected', onReconnect);
 
-    // Sanftes Background-Polling waehrend Tab sichtbar. Bei aktivem
+    // Sanftes Background-Polling während Tab sichtbar. Bei aktivem
     // Realtime nur alle 60s (Safety-Net), sonst alle 30s.
     const pollMs = (typeof window !== 'undefined' && window.__beequRealtimeActive) ? 60000 : 30000;
     const pollId = window.setInterval(() => {
@@ -1355,7 +1355,7 @@ export default function NotesPage() {
         x: Math.round(x),
         y: Math.round(y),
       });
-      // Direkt im Vollbild-Editor oeffnen (Erstellungs-Flow wie iOS Notes).
+      // Direkt im Vollbild-Editor öffnen (Erstellungs-Flow wie iOS Notes).
       if (created && created.id != null) {
         setEditorNoteId(created.id);
       }
@@ -1424,13 +1424,13 @@ export default function NotesPage() {
   // Tidy / Auto-Arrange: ordnet alle nicht-archivierten Notizen in einem
   // sauberen Raster an (ausgehend von 60/60 oben-links). Persistiert die
   // neuen x/y-Werte einzeln — langsam aber sicher, bei Fehlern werden
-  // die uebrigen Notizen trotzdem positioniert. Bestaetigung per confirm,
+  // die uebrigen Notizen trotzdem positioniert. Bestätigung per confirm,
   // damit das Layout nicht versehentlich zerstoert wird.
   const handleAutoArrange = useCallback(async () => {
     const active = (notes || []).filter((n) => !(n.completed || n.status === 'archived'));
     if (active.length === 0) return;
     const ok = window.confirm(
-      `${active.length} Notizen im Raster anordnen? Die aktuellen Positionen werden ueberschrieben.`
+      `${active.length} Notizen im Raster anordnen? Die aktuellen Positionen werden überschrieben.`
     );
     if (!ok) return;
     const COL_W = 260;
@@ -1449,7 +1449,7 @@ export default function NotesPage() {
       const x = PAD_X + col * COL_W;
       const y = PAD_Y + row * ROW_H;
       // Sequenziell, damit der Server nicht von parallelen PATCHes
-      // ueberrannt wird. Fehler einzeln loggen, Schleife laeuft weiter.
+      // überrannt wird. Fehler einzeln loggen, Schleife läuft weiter.
       try {
         await updateNote(sorted[i].id, { x, y });
       } catch (err) {
@@ -1493,7 +1493,7 @@ export default function NotesPage() {
     });
   }, [removeConnection]);
 
-  // Index Note-ID -> Note fuer schnelle Position-Lookups beim Linien-Render.
+  // Index Note-ID -> Note für schnelle Position-Lookups beim Linien-Render.
   const notesById = useMemo(() => {
     const map = new Map();
     notes.forEach((n) => {
@@ -1571,7 +1571,7 @@ export default function NotesPage() {
     for (const n of (notes || [])) {
       if (!n || n.id == null) continue;
       const tags = tagsByNoteId.get(n.id) || [];
-      // Aktive Tag-Filter: ALLE muessen vorhanden sein (AND).
+      // Aktive Tag-Filter: ALLE müssen vorhanden sein (AND).
       if (tagActive) {
         let allHit = true;
         for (const at of activeTags) { if (!tags.includes(at)) { allHit = false; break; } }
@@ -1589,12 +1589,12 @@ export default function NotesPage() {
     return out;
   }, [notes, searchQuery, activeTags, tagsByNoteId]);
 
-  // Connections fuer Render aufbereiten (nur Linien, deren beide Notes
-  // aktuell sichtbar sind — geteilte Verbindungen mit fehlender Note ueberspringen).
+  // Connections für Render aufbereiten (nur Linien, deren beide Notes
+  // aktuell sichtbar sind — geteilte Verbindungen mit fehlender Note überspringen).
   const renderableConnections = useMemo(() => {
     const NOTE_HALF = 95; // Note ist ~190px breit -> Mittelpunkt-Offset
     const posOf = (n) => {
-      // Live-Position waehrend Drag hat Vorrang → Linie folgt smooth.
+      // Live-Position während Drag hat Vorrang → Linie folgt smooth.
       if (draggingPos && String(draggingPos.id) === String(n.id)) {
         return { x: draggingPos.x, y: draggingPos.y };
       }
@@ -1615,7 +1615,7 @@ export default function NotesPage() {
         const y1 = pa.y + NOTE_HALF;
         const x2 = pb.x + NOTE_HALF;
         const y2 = pb.y + NOTE_HALF;
-        // Quadratische Bezier-Kurve fuer eleganten Schwung. Kontrollpunkt
+        // Quadratische Bezier-Kurve für eleganten Schwung. Kontrollpunkt
         // senkrecht zur Verbindungsachse, Offset proportional zur Distanz.
         const dx = x2 - x1;
         const dy = y2 - y1;
@@ -1889,7 +1889,7 @@ export default function NotesPage() {
   // ── Desktop-Mausrad: nur Pan, kein Zoom ────────────────────────────────────
   //   plain wheel      → vertikal pannen
   //   shift + wheel    → horizontal pannen
-  //   Zoom passiert ausschliesslich ueber die +/- Buttons in der Toolbar.
+  //   Zoom passiert ausschliesslich über die +/- Buttons in der Toolbar.
   const onWheel = useCallback((e) => {
     const target = e.target;
     if (
@@ -1960,8 +1960,8 @@ export default function NotesPage() {
                   type="button"
                   className="notes-search-clear"
                   onClick={() => setSearchQuery('')}
-                  title="Suche zuruecksetzen"
-                  aria-label="Suche zuruecksetzen"
+                  title="Suche zurücksetzen"
+                  aria-label="Suche zurücksetzen"
                 >
                   <X size={12} />
                 </button>
@@ -1973,7 +1973,7 @@ export default function NotesPage() {
               <ZoomOut size={16} />
             </button>
             <span className="zoom-indicator" aria-live="polite" aria-label={`Zoom ${Math.round(scale * 100)} Prozent`}>{Math.round(scale * 100)}%</span>
-            <button className="board-control-btn" onClick={handleZoomIn} disabled={scale >= MAX_SCALE} title="Vergroessern" aria-label="Board vergroessern">
+            <button className="board-control-btn" onClick={handleZoomIn} disabled={scale >= MAX_SCALE} title="Vergrößern" aria-label="Board vergrößern">
               <ZoomIn size={16} />
             </button>
             {notes.length > 0 && (
@@ -2004,7 +2004,7 @@ export default function NotesPage() {
               className={`board-control-btn ${connectMode ? 'active' : ''}`}
               onClick={handleToggleConnectMode}
               title={connectMode
-                ? (connectSourceId ? 'Zweite Notiz waehlen ... (Klick zum Abbrechen)' : 'Verbindungs-Modus beenden')
+                ? (connectSourceId ? 'Zweite Notiz wählen ... (Klick zum Abbrechen)' : 'Verbindungs-Modus beenden')
                 : 'Notizen verbinden (Mindmap)'}
               aria-label={connectMode ? 'Verbindungs-Modus beenden' : 'Notizen verbinden'}
               aria-pressed={connectMode}
@@ -2014,8 +2014,8 @@ export default function NotesPage() {
             <button
               className="board-control-btn"
               onClick={() => navigate('/app/whiteboard')}
-              title="Whiteboard oeffnen"
-              aria-label="Whiteboard oeffnen"
+              title="Whiteboard öffnen"
+              aria-label="Whiteboard öffnen"
             >
               <Palette size={16} />
             </button>
@@ -2023,12 +2023,12 @@ export default function NotesPage() {
               className="board-control-btn"
               onClick={() => setShowArchive(true)}
               title="Archiv (erledigte Notizen)"
-              aria-label="Archiv mit erledigten Notizen oeffnen"
+              aria-label="Archiv mit erledigten Notizen öffnen"
             >
               <Archive size={16} />
             </button>
           </div>
-          {/* Mobile-only: Mehr-Menue oeffnet Bottom-Sheet mit den Secondary-Aktionen */}
+          {/* Mobile-only: Mehr-Menue öffnet Bottom-Sheet mit den Secondary-Aktionen */}
           <button
             type="button"
             className="board-control-btn board-more-btn"
@@ -2084,7 +2084,7 @@ export default function NotesPage() {
                 className="board-control-btn"
                 onClick={() => { handleZoomIn(); }}
                 disabled={scale >= MAX_SCALE}
-                aria-label="Vergroessern"
+                aria-label="Vergrößern"
               >
                 <ZoomIn size={18} />
               </button>
@@ -2158,7 +2158,7 @@ export default function NotesPage() {
 
       {/* Hashtag-Filter-Leiste: zeigt die haeufigsten Tags als Chips,
           aktive Tags sind hervorgehoben. AND-Filter (alle aktiven Tags
-          muessen vorhanden sein). Auf Mobile horizontal scrollbar. */}
+          müssen vorhanden sein). Auf Mobile horizontal scrollbar. */}
       {allTagsRanked.length > 0 && (
         <div className="notes-tagbar" role="toolbar" aria-label="Tag-Filter">
           <div className="notes-tagbar-scroll">
@@ -2167,7 +2167,7 @@ export default function NotesPage() {
                 type="button"
                 className="notes-tag-chip is-clear"
                 onClick={clearTagFilters}
-                title="Alle Tag-Filter zuruecksetzen"
+                title="Alle Tag-Filter zurücksetzen"
               >
                 <X size={11} /> Alle
               </button>
@@ -2234,7 +2234,7 @@ export default function NotesPage() {
                 };
                 return (
                   <g key={c.id} className={`connection-group${isSel ? ' is-selected' : ''}`}>
-                    {/* Unsichtbare breite Hitbox fuer Touch/Klick */}
+                    {/* Unsichtbare breite Hitbox für Touch/Klick */}
                     <path
                       className="connection-hitbox"
                       d={c.d}
@@ -2253,7 +2253,7 @@ export default function NotesPage() {
                       onClick={onLineClick}
                       onPointerDown={(e) => e.stopPropagation()}
                     />
-                    {/* Loesch-Button erscheint nur bei Selektion */}
+                    {/* Lösch-Button erscheint nur bei Selektion */}
                     {isSel && (
                       <g
                         className="connection-delete-btn"
@@ -2345,12 +2345,12 @@ export default function NotesPage() {
                 <div className="empty-board-actions">
                   {searchQuery && (
                     <button className="board-control-btn" onClick={() => setSearchQuery('')}>
-                      Suche loeschen
+                      Suche löschen
                     </button>
                   )}
                   {activeTags.size > 0 && (
                     <button className="board-control-btn" onClick={clearTagFilters}>
-                      Tag-Filter loeschen
+                      Tag-Filter löschen
                     </button>
                   )}
                 </div>
@@ -2371,8 +2371,8 @@ export default function NotesPage() {
           <Link2 size={14} />
           <span>
             {connectSourceId
-              ? 'Zweite Notiz waehlen, um Verbindung zu erstellen.'
-              : 'Erste Notiz waehlen.'}
+              ? 'Zweite Notiz wählen, um Verbindung zu erstellen.'
+              : 'Erste Notiz wählen.'}
           </span>
           <button
             type="button"
@@ -2473,7 +2473,7 @@ export default function NotesPage() {
         document.body
       )}
 
-      {/* Vollbild-Editor („Notizblatt") — wird per Doppelklick oder Maximize-Button geoeffnet */}
+      {/* Vollbild-Editor („Notizblatt") — wird per Doppelklick oder Maximize-Button geöffnet */}
       {editorNoteId != null && (() => {
         const editorNote = notes.find((n) => n && n.id === editorNoteId);
         if (!editorNote) return null;
@@ -2489,4 +2489,4 @@ export default function NotesPage() {
       })()}
     </div>
   );
-}
+}
