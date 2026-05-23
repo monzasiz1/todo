@@ -343,6 +343,29 @@ html[data-theme="dark"] .wb-size.is-active {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* Eraser-Cursor: zeigt exakt den Pixel-Radius des Radierers am Pointer */
+.wb-eraser-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  border: 1px solid rgba(15, 23, 42, 0.6);
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 0.5px rgba(255, 255, 255, 0.9),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.9);
+  z-index: 5;
+  will-change: transform, width, height;
+}
+html[data-theme="dark"] .wb-eraser-cursor {
+  border-color: rgba(255, 255, 255, 0.75);
+  background: rgba(0, 0, 0, 0.30);
+  box-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.6),
+    inset 0 0 0 0.5px rgba(0, 0, 0, 0.5);
+}
+
 .wb-canvas {
   display: block;
   width: 100%;

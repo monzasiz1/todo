@@ -157,6 +157,9 @@ export default function WhiteboardPage() {
   // Eraser-Session: serverseitig bekannte IDs zu Beginn der Geste, plus
   // letzte World-Position für Zwischenpunkt-Interpolation (smoother Eraser).
   const eraserSessionRef = useRef(null); // {startIds: Set<string>, lastWorld: {x,y}|null}
+  // Eraser-Cursor-Overlay: zeigt exakt den Eraser-Radius als Kreis am Pointer.
+  // Ref-basiert, um Re-Renders pro Move zu vermeiden.
+  const eraserCursorRef = useRef(null);
 
   // ── Canvas-Resize + DPR-aware ─────────────────────────────────────
   const setupCanvasSize = useCallback(() => {
@@ -302,11 +305,31 @@ export default function WhiteboardPage() {
     return () => canvas.removeEventListener('wheel', onWheel);
   }, [zoomAt]);
 
-  // Eraser-Radius im Welt-Koordinatensystem. Skaliert mit dem aktuellen
-  // `size`, aber nie unter ~10 (sonst zu fummelig auf Touch).
+  // Eraser-Radius im Welt-Koordinatensystem.
+  // Haargenau: radius = size * 0.8 (minimal, kein 3×-Padding mehr).
+  // Mindestens 5 Screen-Pixel (also abhaengig vom Zoom), damit Touch
+  // beim Reinzoomen nicht unbenutzbar fein wird.
   const eraserWorldRadius = useCallback(() => {
-    return Math.max(10, Number(size) * 3);
+    const minScreenPx = 5;
+    const minFromScreen = minScreenPx / (scaleRef.current || 1);
+    return Math.max(minFromScreen, Number(size) * 0.8);
   }, [size]);
+
+  // Cursor-Overlay auf Pointer-Position aktualisieren (Ref-basiert, kein Re-Render).
+  const updateEraserCursor = useCallback((clientX, clientY) => {
+    const el = eraserCursorRef.current;
+    if (!el) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const localX = clientX - rect.left;
+    const localY = clientY - rect.top;
+    const radiusScreen = eraserWorldRadius() * scaleRef.current;
+    const d = radiusScreen * 2;
+    el.style.width = `${d}px`;
+    el.style.height = `${d}px`;
+    el.style.transform = `translate3d(${localX - radiusScreen}px, ${localY - radiusScreen}px, 0)`;
+  }, [eraserWorldRadius]);
 
   // Pixel-Erase an einer Welt-Position: alle Strokes durchgehen, Treffer splitten.
   const eraseAt = useCallback((wx, wy) => {
@@ -380,6 +403,8 @@ export default function WhiteboardPage() {
     if (activePointersRef.current.has(e.pointerId)) {
       activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     }
+    // Cursor-Overlay aktualisieren — immer, wenn Eraser aktiv ist (auch ohne Druck)
+    if (tool === 'eraser') updateEraserCursor(e.clientX, e.clientY);
 
     // Pinch
     if (pinchRef.current && activePointersRef.current.size === 2) {
@@ -446,7 +471,7 @@ export default function WhiteboardPage() {
       pts.push(world);
       redraw();
     }
-  }, [redraw, screenToWorld, tool, eraseAt, eraserWorldRadius]);
+  }, [redraw, screenToWorld, tool, eraseAt, eraserWorldRadius, updateEraserCursor]);
 
   const onPointerUp = useCallback((e) => {
     const canvas = canvasRef.current;
@@ -533,7 +558,7 @@ export default function WhiteboardPage() {
     redraw();
   }, [redraw]);
 
-  const cursor = tool === 'pan' ? 'grab' : tool === 'eraser' ? 'cell' : 'crosshair';
+  const cursor = tool === 'pan' ? 'grab' : tool === 'eraser' ? 'none' : 'crosshair';
 
   return (
     <div className="wb-page">
@@ -634,6 +659,22 @@ export default function WhiteboardPage() {
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
+          onPointerEnter={(e) => {
+            if (tool === 'eraser' && eraserCursorRef.current) {
+              eraserCursorRef.current.style.display = 'block';
+              updateEraserCursor(e.clientX, e.clientY);
+            }
+          }}
+          onPointerLeave={() => {
+            if (eraserCursorRef.current) eraserCursorRef.current.style.display = 'none';
+          }}
+        />
+        {/* Eraser-Cursor-Overlay: zeigt exakt den Eraser-Radius am Pointer */}
+        <div
+          ref={eraserCursorRef}
+          className="wb-eraser-cursor"
+          aria-hidden="true"
+          style={{ display: tool === 'eraser' ? 'block' : 'none' }}
         />
         {loading && (
           <div className="wb-loading">Lade Whiteboard...</div>
