@@ -588,6 +588,97 @@ export default function WhiteboardPage() {
     redraw();
   }, [redraw]);
 
+  // ── Export als PNG ───────────────────────────────────────────────
+  // Rendert ein Off-Screen-Canvas in der Größe der Stroke-Bounding-Box
+  // (mit Padding) und triggert einen Download. 2× DPR für crispe Schrift.
+  const handleExportPng = useCallback(() => {
+    const strokes = strokesRef.current;
+    let minX, minY, maxX, maxY;
+    if (strokes.length === 0) {
+      minX = 0; minY = 0; maxX = 800; maxY = 600;
+    } else {
+      minX = Infinity; minY = Infinity; maxX = -Infinity; maxY = -Infinity;
+      for (const s of strokes) {
+        const b = strokeBounds(s);
+        const half = (Number(s.size) || 3) / 2;
+        if (b.minX - half < minX) minX = b.minX - half;
+        if (b.minY - half < minY) minY = b.minY - half;
+        if (b.maxX + half > maxX) maxX = b.maxX + half;
+        if (b.maxY + half > maxY) maxY = b.maxY + half;
+      }
+    }
+    const pad = 32;
+    minX -= pad; minY -= pad; maxX += pad; maxY += pad;
+    const width = Math.max(1, Math.ceil(maxX - minX));
+    const height = Math.max(1, Math.ceil(maxY - minY));
+
+    const dpr = 2;
+    const ex = document.createElement('canvas');
+    ex.width = width * dpr;
+    ex.height = height * dpr;
+    const ctx = ex.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    // Background-Farbe + Pattern (matched aktuellen bg-Modus)
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    ctx.fillStyle = isDark ? '#0b1220' : '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.translate(-minX, -minY);
+
+    const patternColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)';
+    const step = 40;
+    if (bg === 'grid') {
+      ctx.strokeStyle = patternColor;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      const sx = Math.floor(minX / step) * step;
+      const sy = Math.floor(minY / step) * step;
+      for (let x = sx; x <= maxX; x += step) { ctx.moveTo(x, minY); ctx.lineTo(x, maxY); }
+      for (let y = sy; y <= maxY; y += step) { ctx.moveTo(minX, y); ctx.lineTo(maxX, y); }
+      ctx.stroke();
+    } else if (bg === 'dots') {
+      ctx.fillStyle = patternColor;
+      const sx = Math.floor(minX / step) * step;
+      const sy = Math.floor(minY / step) * step;
+      for (let x = sx; x <= maxX; x += step) {
+        for (let y = sy; y <= maxY; y += step) {
+          ctx.beginPath();
+          ctx.arc(x, y, 1.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+
+    // Strokes
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for (const s of strokes) {
+      if (!s.points || s.points.length < 2) continue;
+      ctx.strokeStyle = s.color || '#1f2937';
+      ctx.lineWidth = Number(s.size) || 3;
+      ctx.beginPath();
+      ctx.moveTo(s.points[0].x, s.points[0].y);
+      for (let i = 1; i < s.points.length; i += 1) {
+        ctx.lineTo(s.points[i].x, s.points[i].y);
+      }
+      ctx.stroke();
+    }
+
+    ex.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+      a.download = `whiteboard_${ts}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  }, [bg]);
+
   const cursor = tool === 'pan' ? 'grab' : tool === 'eraser' ? 'none' : 'crosshair';
 
   return (
@@ -682,6 +773,14 @@ export default function WhiteboardPage() {
               aria-label="Hintergrund-Template wechseln"
             >
               {bg === 'grid' ? <Grid3x3 size={16} /> : bg === 'dots' ? <Grip size={16} /> : <Square size={16} />}
+            </button>
+            <button
+              className="wb-btn"
+              onClick={handleExportPng}
+              title="Als PNG exportieren"
+              aria-label="Whiteboard als PNG exportieren"
+            >
+              <Download size={16} />
             </button>
           </div>
           <button className="wb-btn wb-btn-danger" onClick={handleClear} title="Alles löschen">
