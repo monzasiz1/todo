@@ -99,6 +99,130 @@
   overflow: hidden;
 }
 
+/* ── Echter Sankey (Desktop) ─────────────────────────────────────────── */
+.sankey-diagram-wrap {
+  width: 100%;
+  border-radius: 22px;
+  background: radial-gradient(120% 80% at 50% -10%, rgba(96,165,250,0.08), transparent 65%),
+              linear-gradient(180deg, rgba(0,0,0,0.18), rgba(0,0,0,0.04));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  padding: 16px;
+}
+
+.sankey-diagram {
+  width: 100%;
+  height: auto;
+  display: block;
+  font-family: inherit;
+}
+
+.sankey-bands path {
+  transition: opacity 0.18s ease;
+}
+
+.sankey-bands path:hover {
+  opacity: 0.85 !important;
+}
+
+.sankey-label {
+  font-size: 13px;
+  font-weight: 500;
+  fill: var(--text);
+  pointer-events: none;
+  paint-order: stroke;
+  stroke: rgba(0,0,0,0.45);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.sankey-label-source { text-anchor: start; }
+.sankey-label-target { text-anchor: end; }
+
+/* ── Mobile-Alternative: horizontale Balken ─────────────────────────── */
+.spending-mobile-flow {
+  display: none;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.spending-mobile-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.spending-mobile-title {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+}
+
+.spending-bar-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.spending-bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.spending-bar-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.92rem;
+}
+
+.spending-bar-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spending-bar-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.spending-bar-value {
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.spending-bar-track {
+  position: relative;
+  height: 10px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.spending-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--text);
+  transition: width 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
+  box-shadow: 0 0 14px rgba(96,165,250,0.18);
+}
+
 .sankey-visual {
   display: grid;
   grid-template-columns: 210px minmax(300px, 1fr) 210px;
@@ -827,11 +951,62 @@
   }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 760px) {
+  /* Sankey verstecken — Mobile bekommt die uebersichtliche Balken-Ansicht */
+  .sankey-diagram-wrap { display: none; }
+  .spending-mobile-flow { display: flex; }
+
+  .spending-detail-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .spending-detail-head h2 { font-size: 1.35rem; }
+
+  .spending-detail-head-actions {
+    gap: 6px;
+  }
+
   .spending-detail-head-actions .sankey-btn {
     flex: 1;
     justify-content: center;
+    padding: 11px 12px;
+    font-size: 0.88rem;
   }
+
+  /* Summary-Karten kompakter auf Mobile */
+  .sankey-summary-card {
+    min-height: 0;
+    padding: 16px;
+    border-radius: 18px;
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+  }
+  .sankey-summary-icon { margin-bottom: 0; flex-shrink: 0; }
+  .sankey-summary-card > div + * { flex: 1; min-width: 0; }
+  .sankey-summary-card strong { font-size: 1.1rem; margin-bottom: 2px; }
+  .sankey-summary-card p { font-size: 0.82rem; }
+  .sankey-summary-label { margin-bottom: 2px; font-size: 0.78rem; }
+
+  .sankey-card {
+    padding: 16px;
+    border-radius: 22px;
+  }
+
+  /* Member- und Expense-Karten kompakter */
+  .spending-panel { padding: 14px; border-radius: 18px; }
+  .spending-panel-head { margin-bottom: 10px; }
+
+  .spending-expense-item,
+  .spending-member-item {
+    padding: 10px;
+    border-radius: 12px;
+  }
+
+  .spending-expense-top strong { font-size: 0.9rem; }
+  .spending-expense-meta { font-size: 0.78rem; }
 
   .shared-spending-toast {
     bottom: 16px;
@@ -842,6 +1017,17 @@
 
   .spending-category-grid {
     grid-template-columns: 1fr;
+  }
+
+  .spending-modal {
+    border-radius: 20px 20px 0 0;
+    padding: 18px;
+    align-self: flex-end;
+    width: 100%;
+  }
+  .spending-modal-backdrop {
+    align-items: flex-end;
+    padding: 0;
   }
 }
 

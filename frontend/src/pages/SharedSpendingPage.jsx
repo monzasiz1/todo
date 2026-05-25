@@ -338,43 +338,10 @@ function GroupDetail({
     return CATEGORY_NODES.filter((c) => ids.has(c.id));
   }, [group.expenses]);
 
-  const sourcePositions = useMemo(() => {
-    const nodeHeight = 64;
-    const gap = 18;
-    const positions = {};
-    activeMembers.forEach((m, i) => {
-      positions[`m-${m.id}`] = 24 + i * (nodeHeight + gap);
-    });
-    return positions;
-  }, [activeMembers]);
-
-  const targetPositions = useMemo(() => {
-    const nodeHeight = 64;
-    const gap = 18;
-    const positions = {};
-    usedCategories.forEach((c, i) => {
-      positions[`c-${c.id}`] = 22 + i * (nodeHeight + gap);
-    });
-    return positions;
-  }, [usedCategories]);
-
-  const chartPaths = useMemo(() => {
-    if (flows.length === 0) return [];
-    const sourceX = 200;
-    const targetX = 740;
-    const curveOffset = 140;
-    const maxFlow = Math.max(...flows.map((f) => f.value), 1);
-    return flows.map((flow, index) => {
-      const sy = (sourcePositions[flow.source] ?? 24) + 32;
-      const ty = (targetPositions[flow.target] ?? 22) + 32;
-      const width = Math.max(8, (flow.value / maxFlow) * 26);
-      const d = `M ${sourceX} ${sy} C ${sourceX + curveOffset} ${sy} ${targetX - curveOffset} ${ty} ${targetX} ${ty}`;
-      return {
-        id: `${flow.source}-${flow.target}-${index}`,
-        d, width, color: flow.color,
-      };
-    });
-  }, [flows, sourcePositions, targetPositions]);
+  const sankeyLayout = useMemo(
+    () => buildSankeyLayout({ members: activeMembers, categories: usedCategories, flows, memberMap }),
+    [activeMembers, usedCategories, flows, memberMap]
+  );
 
   const topCategory = useMemo(() => {
     const entries = Object.entries(summary.byCategory);
@@ -440,57 +407,17 @@ function GroupDetail({
             </button>
           </div>
         ) : (
-          <div className="sankey-visual">
-            <div className="sankey-column sankey-source-column">
-              <div className="sankey-column-title">Mitglieder</div>
-              {activeMembers.map((m) => (
-                <div
-                  key={m.id}
-                  className="sankey-node-card"
-                  style={{ top: sourcePositions[`m-${m.id}`], borderColor: m.color }}
-                >
-                  <div className="sankey-node-meta">
-                    <span className="sankey-node-badge" style={{ background: m.color }} />
-                    <strong>{compactName(m.name)}</strong>
-                  </div>
-                  <span className="sankey-node-sub">{fmtAmount(summary.byMember[m.id] || 0)} €</span>
-                </div>
-              ))}
-            </div>
+          <>
+            {/* Desktop: echter Sankey mit proportionalen Baendern */}
+            <SankeyDiagram layout={sankeyLayout} />
 
-            <div className="sankey-chart-wrapper">
-              <svg className="sankey-chart" viewBox="0 0 960 360" preserveAspectRatio="xMidYMid meet">
-                {chartPaths.map((path) => (
-                  <path
-                    key={path.id}
-                    d={path.d}
-                    stroke={path.color}
-                    strokeWidth={path.width}
-                    fill="none"
-                    strokeLinecap="round"
-                    opacity={0.78}
-                  />
-                ))}
-              </svg>
-            </div>
-
-            <div className="sankey-column sankey-target-column">
-              <div className="sankey-column-title">Kategorien</div>
-              {usedCategories.map((c) => (
-                <div
-                  key={c.id}
-                  className="sankey-node-card"
-                  style={{ top: targetPositions[`c-${c.id}`], borderColor: c.color }}
-                >
-                  <div className="sankey-node-meta">
-                    <span className="sankey-node-badge" style={{ background: c.color }} />
-                    <strong>{c.label}</strong>
-                  </div>
-                  <span className="sankey-node-sub">{fmtAmount(summary.byCategory[c.id] || 0)} €</span>
-                </div>
-              ))}
-            </div>
-          </div>
+            {/* Mobile: horizontale Balken (uebersichtlicher als Mini-Sankey) */}
+            <MobileFlowView
+              members={activeMembers}
+              categories={usedCategories}
+              summary={summary}
+            />
+          </>
         )}
       </section>
 
@@ -801,6 +728,274 @@ function AddExpenseModal({ onClose, onSubmit }) {
           </button>
         </footer>
       </form>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Sankey-Layout: berechnet stacked, proportionale Baender zwischen
+ * Mitgliedern (source) und Kategorien (target). Jeder Knoten ist so hoch
+ * wie die Summe seiner Fluesse. Innerhalb eines Knotens stapeln sich die
+ * Baender luekenlos uebereinander — wie in echten Sankey-Charts.
+ * ─────────────────────────────────────────────────────────────────────── */
+function buildSankeyLayout({ members, categories, flows, memberMap }) {
+  if (!flows || flows.length === 0) {
+    return { width: 960, height: 360, sourceNodes: [], targetNodes: [], bands: [], total: 0 };
+  }
+
+  const WIDTH = 960;
+  const HEIGHT = 360;
+  const PADDING_TOP = 14;
+  const PADDING_BOTTOM = 14;
+  const NODE_WIDTH = 10;
+  const NODE_GAP = 8;
+  const innerHeight = HEIGHT - PADDING_TOP - PADDING_BOTTOM;
+
+  // Aggregiere pro Source / Target
+  const sourceTotals = {};
+  const targetTotals = {};
+  flows.forEach((f) => {
+    sourceTotals[f.source] = (sourceTotals[f.source] || 0) + f.value;
+    targetTotals[f.target] = (targetTotals[f.target] || 0) + f.value;
+  });
+
+  const sourceList = members
+    .map((m) => ({ id: `m-${m.id}`, label: m.name, color: m.color, total: sourceTotals[`m-${m.id}`] || 0 }))
+    .filter((n) => n.total > 0);
+  const targetList = categories
+    .map((c) => ({ id: `c-${c.id}`, label: c.label, color: c.color, total: targetTotals[`c-${c.id}`] || 0 }))
+    .filter((n) => n.total > 0);
+
+  const sourceSum = sourceList.reduce((s, n) => s + n.total, 0);
+  const targetSum = targetList.reduce((s, n) => s + n.total, 0);
+  const totalGapsSrc = Math.max(0, sourceList.length - 1) * NODE_GAP;
+  const totalGapsTgt = Math.max(0, targetList.length - 1) * NODE_GAP;
+  const scaleSrc = sourceSum > 0 ? (innerHeight - totalGapsSrc) / sourceSum : 0;
+  const scaleTgt = targetSum > 0 ? (innerHeight - totalGapsTgt) / targetSum : 0;
+
+  // Position Source-Knoten
+  let cursorSrc = PADDING_TOP;
+  const sourceNodes = sourceList.map((n) => {
+    const h = n.total * scaleSrc;
+    const node = { ...n, x: 0, y0: cursorSrc, y1: cursorSrc + h, height: h };
+    cursorSrc += h + NODE_GAP;
+    return node;
+  });
+
+  let cursorTgt = PADDING_TOP;
+  const targetNodes = targetList.map((n) => {
+    const h = n.total * scaleTgt;
+    const node = { ...n, x: WIDTH - NODE_WIDTH, y0: cursorTgt, y1: cursorTgt + h, height: h };
+    cursorTgt += h + NODE_GAP;
+    return node;
+  });
+
+  const sourceMap = Object.fromEntries(sourceNodes.map((n) => [n.id, n]));
+  const targetMap = Object.fromEntries(targetNodes.map((n) => [n.id, n]));
+
+  // Innerhalb jedes Knotens nach Wert sortieren (groesste zuerst) — gibt
+  // ein optisch ruhigeres Bild ohne Ueberkreuzungen.
+  const flowsSorted = [...flows].sort((a, b) => b.value - a.value);
+  const cursorSrcByNode = Object.fromEntries(sourceNodes.map((n) => [n.id, n.y0]));
+  const cursorTgtByNode = Object.fromEntries(targetNodes.map((n) => [n.id, n.y0]));
+
+  const bands = flowsSorted.map((f, i) => {
+    const sNode = sourceMap[f.source];
+    const tNode = targetMap[f.target];
+    if (!sNode || !tNode) return null;
+    const sH = f.value * scaleSrc;
+    const tH = f.value * scaleTgt;
+    const sY0 = cursorSrcByNode[f.source];
+    const sY1 = sY0 + sH;
+    const tY0 = cursorTgtByNode[f.target];
+    const tY1 = tY0 + tH;
+    cursorSrcByNode[f.source] = sY1;
+    cursorTgtByNode[f.target] = tY1;
+
+    return {
+      id: `band-${i}-${f.source}-${f.target}`,
+      sX: sNode.x + NODE_WIDTH,
+      tX: tNode.x,
+      sY0, sY1, tY0, tY1,
+      value: f.value,
+      sourceColor: sNode.color,
+      targetColor: tNode.color,
+    };
+  }).filter(Boolean);
+
+  return {
+    width: WIDTH,
+    height: HEIGHT,
+    sourceNodes,
+    targetNodes,
+    bands,
+    nodeWidth: NODE_WIDTH,
+    total: sourceSum,
+  };
+}
+
+function bandPath(b) {
+  // Filled cubic bezier zwischen 4 Punkten — wie in d3-sankey.
+  const midX = (b.sX + b.tX) / 2;
+  return [
+    `M ${b.sX} ${b.sY0}`,
+    `C ${midX} ${b.sY0}, ${midX} ${b.tY0}, ${b.tX} ${b.tY0}`,
+    `L ${b.tX} ${b.tY1}`,
+    `C ${midX} ${b.tY1}, ${midX} ${b.sY1}, ${b.sX} ${b.sY1}`,
+    'Z',
+  ].join(' ');
+}
+
+function SankeyDiagram({ layout }) {
+  const { width, height, sourceNodes, targetNodes, bands, nodeWidth } = layout;
+  if (bands.length === 0) return null;
+
+  return (
+    <div className="sankey-diagram-wrap">
+      <svg
+        className="sankey-diagram"
+        viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label="Sankey-Diagramm der gemeinsamen Ausgaben"
+      >
+        <defs>
+          {bands.map((b) => (
+            <linearGradient key={`grad-${b.id}`} id={`grad-${b.id}`} x1="0%" x2="100%" y1="0%" y2="0%">
+              <stop offset="0%" stopColor={b.sourceColor} stopOpacity="0.85" />
+              <stop offset="100%" stopColor={b.targetColor} stopOpacity="0.85" />
+            </linearGradient>
+          ))}
+        </defs>
+
+        {/* Bands — proportionale, gefuellte Pfade mit Verlauf */}
+        <g className="sankey-bands">
+          {bands.map((b) => (
+            <path
+              key={b.id}
+              d={bandPath(b)}
+              fill={`url(#grad-${b.id})`}
+              opacity={0.55}
+            >
+              <title>{fmtAmount(b.value)} €</title>
+            </path>
+          ))}
+        </g>
+
+        {/* Source-Knoten (Balken) */}
+        <g className="sankey-source-nodes">
+          {sourceNodes.map((n) => (
+            <g key={n.id}>
+              <rect
+                x={n.x}
+                y={n.y0}
+                width={nodeWidth}
+                height={Math.max(2, n.height)}
+                fill={n.color}
+                rx={3}
+              />
+              <text
+                x={n.x + nodeWidth + 8}
+                y={n.y0 + n.height / 2}
+                dominantBaseline="middle"
+                className="sankey-label sankey-label-source"
+              >
+                {compactName(n.label)} · {fmtAmount(n.total)} €
+              </text>
+            </g>
+          ))}
+        </g>
+
+        {/* Target-Knoten (Balken) */}
+        <g className="sankey-target-nodes">
+          {targetNodes.map((n) => (
+            <g key={n.id}>
+              <rect
+                x={n.x}
+                y={n.y0}
+                width={nodeWidth}
+                height={Math.max(2, n.height)}
+                fill={n.color}
+                rx={3}
+              />
+              <text
+                x={n.x - 8}
+                y={n.y0 + n.height / 2}
+                dominantBaseline="middle"
+                textAnchor="end"
+                className="sankey-label sankey-label-target"
+              >
+                {n.label} · {fmtAmount(n.total)} €
+              </text>
+            </g>
+          ))}
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+/* Mobile: statt unleserlichem Mini-Sankey horizontale Balken
+ * fuer Mitglieder + Kategorien. Klarer Datentransport, gleiche Farben. */
+function MobileFlowView({ members, categories, summary }) {
+  const memberMax = Math.max(...members.map((m) => summary.byMember[m.id] || 0), 1);
+  const catMax = Math.max(...categories.map((c) => summary.byCategory[c.id] || 0), 1);
+
+  return (
+    <div className="spending-mobile-flow">
+      <div className="spending-mobile-block">
+        <h4 className="spending-mobile-title">Wer hat ausgegeben</h4>
+        <ul className="spending-bar-list">
+          {members.map((m) => {
+            const value = summary.byMember[m.id] || 0;
+            const pct = (value / memberMax) * 100;
+            return (
+              <li key={m.id} className="spending-bar-row">
+                <div className="spending-bar-meta">
+                  <span className="spending-bar-name">
+                    <span className="spending-bar-dot" style={{ background: m.color }} />
+                    {compactName(m.name)}
+                  </span>
+                  <span className="spending-bar-value">{fmtAmount(value)} €</span>
+                </div>
+                <div className="spending-bar-track">
+                  <span
+                    className="spending-bar-fill"
+                    style={{ width: `${pct}%`, background: m.color }}
+                  />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      <div className="spending-mobile-block">
+        <h4 className="spending-mobile-title">Wofür ausgegeben</h4>
+        <ul className="spending-bar-list">
+          {categories.map((c) => {
+            const value = summary.byCategory[c.id] || 0;
+            const pct = (value / catMax) * 100;
+            return (
+              <li key={c.id} className="spending-bar-row">
+                <div className="spending-bar-meta">
+                  <span className="spending-bar-name">
+                    <span className="spending-bar-dot" style={{ background: c.color }} />
+                    {c.label}
+                  </span>
+                  <span className="spending-bar-value">{fmtAmount(value)} €</span>
+                </div>
+                <div className="spending-bar-track">
+                  <span
+                    className="spending-bar-fill"
+                    style={{ width: `${pct}%`, background: c.color }}
+                  />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
     </div>
   );
 }
