@@ -99,14 +99,19 @@
   overflow: hidden;
 }
 
-/* ── Echter Sankey (Desktop) ─────────────────────────────────────────── */
+/* ── Echter Sankey (Desktop & Mobile) ──────────────────────────────── */
 .sankey-diagram-wrap {
   width: 100%;
   border-radius: 22px;
-  background: radial-gradient(120% 80% at 50% -10%, rgba(96,165,250,0.08), transparent 65%),
-              linear-gradient(180deg, rgba(0,0,0,0.18), rgba(0,0,0,0.04));
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
-  padding: 16px;
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgba(96,165,250,0.10), transparent 60%),
+    radial-gradient(80% 60% at 50% 110%, rgba(52,211,153,0.06), transparent 70%),
+    linear-gradient(180deg, rgba(0,0,0,0.22), rgba(0,0,0,0.06));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    0 12px 40px rgba(0,0,0,0.18);
+  padding: 20px 24px;
+  overflow: hidden;
 }
 
 .sankey-diagram {
@@ -114,29 +119,57 @@
   height: auto;
   display: block;
   font-family: inherit;
+  overflow: visible;
 }
 
 .sankey-bands path {
-  transition: opacity 0.18s ease;
+  transition: opacity 0.18s ease, filter 0.18s ease;
+  cursor: pointer;
 }
 
 .sankey-bands path:hover {
   opacity: 0.85 !important;
+  filter: brightness(1.15);
 }
 
 .sankey-label {
   font-size: 13px;
   font-weight: 500;
-  fill: var(--text);
+  fill: #f1f5f9;
   pointer-events: none;
   paint-order: stroke;
-  stroke: rgba(0,0,0,0.45);
-  stroke-width: 3px;
+  stroke: rgba(0,0,0,0.55);
+  stroke-width: 3.5px;
   stroke-linejoin: round;
+  letter-spacing: 0.01em;
+}
+
+.sankey-label-sub {
+  font-size: 12px;
+  font-weight: 600;
+  fill: #cbd5e1;
+  opacity: 0.9;
 }
 
 .sankey-label-source { text-anchor: start; }
 .sankey-label-target { text-anchor: end; }
+
+.sankey-label-middle {
+  font-size: 13px;
+  font-weight: 600;
+  fill: #cbd5e1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sankey-label-middle.sankey-label-value {
+  font-size: 22px;
+  font-weight: 700;
+  fill: #ffffff;
+  letter-spacing: 0;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+}
 
 /* ── Mobile-Alternative: horizontale Balken ─────────────────────────── */
 .spending-mobile-flow {
@@ -1141,9 +1174,52 @@
     grid-template-columns: 1fr;
   }
 
-  /* Sankey verstecken — Mobile bekommt die uebersichtliche Balken-Ansicht */
-  .sankey-diagram-wrap { display: none; }
-  .spending-mobile-flow { display: flex; }
+  /* Sankey bleibt sichtbar — kompakter app-like ueber den Balken */
+  .sankey-diagram-wrap {
+    padding: 14px 12px;
+    border-radius: 18px;
+    margin-bottom: 14px;
+  }
+
+  .sankey-label {
+    font-size: 18px;
+    stroke-width: 4px;
+  }
+  .sankey-label-sub {
+    font-size: 17px;
+  }
+  .sankey-label-middle {
+    font-size: 16px;
+    letter-spacing: 0.04em;
+  }
+  .sankey-label-middle.sankey-label-value {
+    font-size: 26px;
+  }
+
+  /* App-like: 2-spaltige Summary, kompaktere Karten */
+  .sankey-summary-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .sankey-summary-card {
+    padding: 12px;
+    border-radius: 16px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .sankey-summary-icon {
+    margin-bottom: 4px;
+    width: 36px;
+    height: 36px;
+  }
+  .sankey-summary-card strong { font-size: 1rem; }
+  .sankey-summary-card p { display: none; }
+  .sankey-summary-label { font-size: 0.72rem; }
+
+  .spending-mobile-flow {
+    display: flex;
+  }
 
   .spending-ai-input {
     flex-wrap: wrap;

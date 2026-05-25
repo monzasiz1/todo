@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Plus, ArrowRight, Calendar } from 'lucide-react';
 import { useNotesStore } from '../store/notesStore';
+import { htmlToPlain } from '../lib/noteFormat';
 import { useEffect } from 'react';
 import './NotesWidget.css';
 
@@ -98,7 +99,12 @@ export default function NotesWidget() {
             {recentNotes.map(note => (
               <div key={note.id} className="note-item">
                 <div className="note-item-title">{note.title}</div>
-                <div className="note-item-preview">{note.content?.substring(0, 40)}...</div>
+                <div className="note-item-preview">
+                  {(() => {
+                    const previewText = htmlToPlain(note.content || '');
+                    return previewText.length > 40 ? `${previewText.slice(0, 40).trim()}...` : previewText;
+                  })()}
+                </div>
               </div>
             ))}
           </div>

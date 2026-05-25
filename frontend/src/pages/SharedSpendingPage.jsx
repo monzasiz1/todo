@@ -925,15 +925,17 @@ function buildSankeyLayout({
 }) {
   const empty = (incomes?.length || 0) === 0 && (expenses?.length || 0) === 0;
   const WIDTH = 1000;
-  const HEIGHT = 380;
+  const HEIGHT = 460;
   if (empty) {
-    return { width: WIDTH, height: HEIGHT, columns: [], bands: [], nodeWidth: 12 };
+    return { width: WIDTH, height: HEIGHT, columns: [], bands: [], nodeWidth: 14 };
   }
 
-  const PADDING_TOP = 16;
-  const PADDING_BOTTOM = 16;
-  const NODE_WIDTH = 12;
-  const NODE_GAP = 6;
+  // Genug Platz oben und unten fuer Middle-Knoten Labels
+  // ("Gesamteinnahmen" obendrueber, Wert untendrunter).
+  const PADDING_TOP = 48;
+  const PADDING_BOTTOM = 48;
+  const NODE_WIDTH = 14;
+  const NODE_GAP = 8;
   const innerHeight = HEIGHT - PADDING_TOP - PADDING_BOTTOM;
 
   // Mitglieder-Einnahmen aggregieren
@@ -1119,10 +1121,18 @@ function SankeyDiagram({ layout }) {
         <defs>
           {bands.map((b) => (
             <linearGradient key={`grad-${b.id}`} id={`grad-${b.id}`} x1="0%" x2="100%" y1="0%" y2="0%">
-              <stop offset="0%" stopColor={b.sourceColor} stopOpacity="0.9" />
-              <stop offset="100%" stopColor={b.targetColor} stopOpacity="0.9" />
+              <stop offset="0%" stopColor={b.sourceColor} stopOpacity="0.95" />
+              <stop offset="100%" stopColor={b.targetColor} stopOpacity="0.95" />
             </linearGradient>
           ))}
+          {/* Subtiler Glow um Knoten-Balken */}
+          <filter id="sankey-node-glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="2.5" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
         </defs>
 
         {/* Proportionale Baender mit Farbverlauf */}
@@ -1132,7 +1142,7 @@ function SankeyDiagram({ layout }) {
               key={b.id}
               d={bandPath(b)}
               fill={`url(#grad-${b.id})`}
-              opacity={0.5}
+              opacity={0.55}
             >
               <title>{fmtAmount(b.value)} €</title>
             </path>
@@ -1155,11 +1165,12 @@ function SankeyDiagram({ layout }) {
                       width={nodeWidth}
                       height={Math.max(2, n.height)}
                       fill={n.color}
-                      rx={3}
+                      rx={5}
+                      filter="url(#sankey-node-glow)"
                     />
                     <text
                       x={n.x + nodeWidth / 2}
-                      y={n.y0 - 8}
+                      y={n.y0 - 18}
                       textAnchor="middle"
                       className="sankey-label sankey-label-middle"
                     >
@@ -1167,7 +1178,7 @@ function SankeyDiagram({ layout }) {
                     </text>
                     <text
                       x={n.x + nodeWidth / 2}
-                      y={n.y1 + 18}
+                      y={n.y1 + 32}
                       textAnchor="middle"
                       className="sankey-label sankey-label-middle sankey-label-value"
                     >
@@ -1177,8 +1188,12 @@ function SankeyDiagram({ layout }) {
                 );
               }
 
-              const labelX = isLeft ? n.x + nodeWidth + 8 : n.x - 8;
+              const labelX = isLeft ? n.x + nodeWidth + 10 : n.x - 10;
               const anchor = isLeft ? 'start' : 'end';
+              const cy = n.y0 + n.height / 2;
+              const showSub = n.height >= 32;
+              const nameText = isLeft ? compactName(n.label) : n.label;
+
               return (
                 <g key={n.id}>
                   <rect
@@ -1187,17 +1202,40 @@ function SankeyDiagram({ layout }) {
                     width={nodeWidth}
                     height={Math.max(2, n.height)}
                     fill={n.color}
-                    rx={3}
+                    rx={5}
                   />
-                  <text
-                    x={labelX}
-                    y={n.y0 + n.height / 2}
-                    dominantBaseline="middle"
-                    textAnchor={anchor}
-                    className={`sankey-label sankey-label-${col.side}`}
-                  >
-                    {isLeft ? compactName(n.label) : n.label} · {fmtAmount(n.total)} €
-                  </text>
+                  {showSub ? (
+                    <>
+                      <text
+                        x={labelX}
+                        y={cy - 8}
+                        dominantBaseline="middle"
+                        textAnchor={anchor}
+                        className={`sankey-label sankey-label-${col.side}`}
+                      >
+                        {nameText}
+                      </text>
+                      <text
+                        x={labelX}
+                        y={cy + 9}
+                        dominantBaseline="middle"
+                        textAnchor={anchor}
+                        className={`sankey-label sankey-label-${col.side} sankey-label-sub`}
+                      >
+                        {fmtAmount(n.total)} €
+                      </text>
+                    </>
+                  ) : (
+                    <text
+                      x={labelX}
+                      y={cy}
+                      dominantBaseline="middle"
+                      textAnchor={anchor}
+                      className={`sankey-label sankey-label-${col.side}`}
+                    >
+                      {nameText} · {fmtAmount(n.total)} €
+                    </text>
+                  )}
                 </g>
               );
             })}
