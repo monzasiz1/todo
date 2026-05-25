@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Users, TrendingUp, TrendingDown, Plus, Trash2, X, Check,
   UserPlus, Receipt, Sparkles, ChevronRight, ChevronLeft, LogOut, AlertCircle,
@@ -114,6 +114,216 @@ function isEntryInMonth(entry, year, month) {
   if (entry.recurrence === 'quarterly') return startDelta % 3 === 0;
   if (entry.recurrence === 'yearly') return startDelta % 12 === 0;
   return false;
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+ * Premium UI Layer — Background, Cursor, Counter, Sparkline, AI-Card
+ * ─────────────────────────────────────────────────────────────────── */
+
+/* Fixed-position animated mesh + floating orbs + noise grain. */
+function PremiumBackground() {
+  return (
+    <div className="spending-bg" aria-hidden="true">
+      <div className="spending-bg-mesh" />
+      <div className="spending-bg-orb spending-bg-orb-1" />
+      <div className="spending-bg-orb spending-bg-orb-2" />
+      <div className="spending-bg-orb spending-bg-orb-3" />
+      <div className="spending-bg-noise" />
+    </div>
+  );
+}
+
+/* Subtle spotlight that follows the cursor — pointermove via CSS vars,
+ * keine React-State-Updates (Performance). */
+function CursorSpotlight() {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const handler = (e) => {
+      el.style.setProperty('--mx', `${e.clientX}px`);
+      el.style.setProperty('--my', `${e.clientY}px`);
+    };
+    window.addEventListener('pointermove', handler, { passive: true });
+    return () => window.removeEventListener('pointermove', handler);
+  }, []);
+  return <div ref={ref} className="spending-cursor-spotlight" aria-hidden="true" />;
+}
+
+/* Animiert eine Zahl smooth von vorigen Wert hoch (ease-out-cubic). */
+function AnimatedNumber({ value, decimals = 2 }) {
+  const [display, setDisplay] = useState(value);
+  const fromRef = useRef(value);
+  useEffect(() => {
+    const from = fromRef.current;
+    const to = Number(value) || 0;
+    if (from === to) {
+      setDisplay(to);
+      return undefined;
+    }
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) {
+      setDisplay(to);
+      fromRef.current = to;
+      return undefined;
+    }
+    const dur = 700;
+    const start = performance.now();
+    let raf = requestAnimationFrame(function tick(now) {
+      const t = Math.min(1, (now - start) / dur);
+      const eased = 1 - Math.pow(1 - t, 3);
+      const v = from + (to - from) * eased;
+      setDisplay(v);
+      if (t < 1) raf = requestAnimationFrame(tick);
+      else fromRef.current = to;
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+  return (
+    <>
+      {display.toLocaleString('de-DE', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
+      })}
+    </>
+  );
+}
+
+/* Mini-Sparkline (area + line) — letzte N Monate als Datenreihe. */
+function Sparkline({ data, color }) {
+  const safeData = data && data.length > 0 ? data : [0, 0];
+  const max = Math.max(...safeData, 1);
+  const min = Math.min(...safeData, 0);
+  const range = Math.max(max - min, 1);
+  const points = safeData.map((v, i) => {
+    const x = (i / Math.max(safeData.length - 1, 1)) * 100;
+    const y = 28 - ((v - min) / range) * 26;
+    return { x, y };
+  });
+  const polyline = points.map((p) => `${p.x},${p.y}`).join(' ');
+  const area = `0,30 ${polyline} 100,30`;
+  const gid = `spark-${color.replace('#', '')}`;
+  return (
+    <svg className="spending-sparkline" viewBox="0 0 100 30" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id={gid} x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.5" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <polygon points={area} fill={`url(#${gid})`} />
+      <polyline
+        points={polyline}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {points.length > 0 && (
+        <circle
+          cx={points[points.length - 1].x}
+          cy={points[points.length - 1].y}
+          r="1.8"
+          fill={color}
+        />
+      )}
+    </svg>
+  );
+}
+
+/* Liefert die Summen pro Monat fuer die letzten N Monate (rueckwaerts). */
+function buildMonthlyHistory(entries, months = 6) {
+  const today = currentMonthKey();
+  const result = [];
+  let cur = today;
+  for (let i = 0; i < months; i += 1) {
+    const total = entries
+      .filter((e) => isEntryInMonth(e, cur.year, cur.month))
+      .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    result.unshift(total);
+    cur = shiftMonth(cur, -1);
+  }
+  return result;
+}
+
+/* Computes a few human-friendly insights from current vs previous month. */
+function buildInsights({
+  summary, prevSummary, topCategory, recurringCount,
+}) {
+  const insights = [];
+
+  if (prevSummary && prevSummary.totalExpense > 0) {
+    const diff = ((summary.totalExpense - prevSummary.totalExpense) / prevSummary.totalExpense) * 100;
+    const abs = Math.abs(diff);
+    if (abs >= 1) {
+      insights.push({
+        icon: diff < 0 ? 'down' : 'up',
+        color: diff < 0 ? '#34D399' : '#F87171',
+        text: `Du gibst diesen Monat ${abs.toFixed(0)}% ${diff < 0 ? 'weniger' : 'mehr'} aus als im Vormonat.`,
+      });
+    }
+  }
+
+  if (topCategory && summary.totalExpense > 0) {
+    const share = (topCategory[1] / summary.totalExpense) * 100;
+    insights.push({
+      icon: 'star',
+      color: '#A78BFA',
+      text: `${categoryLabel(topCategory[0])} macht ${share.toFixed(0)}% deiner Ausgaben aus.`,
+    });
+  }
+
+  if (summary.totalIncome > 0) {
+    const recommended = Math.round(summary.totalIncome * 0.2);
+    insights.push({
+      icon: 'sparkle',
+      color: '#34D399',
+      text: `KI-Empfehlung: Spare ${recommended.toLocaleString('de-DE')}€ (20% deiner Einnahmen) für Notgroschen & Rücklagen.`,
+    });
+  }
+
+  if (recurringCount > 0) {
+    insights.push({
+      icon: 'repeat',
+      color: '#60A5FA',
+      text: `${recurringCount} wiederkehrende Buchung${recurringCount === 1 ? '' : 'en'} läuft im Hintergrund — diese erscheinen automatisch in jedem Monat.`,
+    });
+  }
+
+  if (summary.balance < 0) {
+    insights.push({
+      icon: 'alert',
+      color: '#F87171',
+      text: `Achtung: Deine Ausgaben übersteigen die Einnahmen um ${fmtAmount(Math.abs(summary.balance))}€.`,
+    });
+  }
+
+  return insights.slice(0, 4);
+}
+
+function AIInsightCard({ insights }) {
+  if (!insights || insights.length === 0) return null;
+  return (
+    <article className="spending-ai-card">
+      <div className="spending-ai-card-glow" aria-hidden="true" />
+      <header className="spending-ai-card-head">
+        <div className="spending-ai-card-badge">
+          <span className="spending-ai-card-pulse" />
+          <Sparkles size={12} /> KI-INSIGHTS
+        </div>
+        <span className="spending-ai-card-sub">Automatisch erkannt</span>
+      </header>
+      <ul className="spending-ai-card-list">
+        {insights.map((ins, i) => (
+          <li key={i} className="spending-ai-card-item">
+            <span className="spending-ai-card-dot" style={{ background: ins.color, boxShadow: `0 0 12px ${ins.color}66` }} />
+            <span>{ins.text}</span>
+          </li>
+        ))}
+      </ul>
+    </article>
+  );
 }
 
 export default function SharedSpendingPage() {
@@ -247,7 +457,9 @@ export default function SharedSpendingPage() {
   };
 
   return (
-    <div className="shared-spending-page">
+    <div className="shared-spending-page is-premium">
+      <PremiumBackground />
+      <CursorSpotlight />
       <section className="page-header shared-spending-header">
         <div>
           <span className="eyebrow">Gemeinsame Ausgaben</span>
@@ -491,6 +703,35 @@ function GroupDetail({
     return entries.reduce((best, cur) => (cur[1] > best[1] ? cur : best), entries[0]);
   }, [summary.byCategory]);
 
+  // Previous month summary fuer Vergleichs-Insights
+  const prevSummary = useMemo(() => {
+    const prev = shiftMonth(viewMonth, -1);
+    const prevExp = allExpenses.filter((e) => isEntryInMonth(e, prev.year, prev.month));
+    const prevInc = allIncomes.filter((e) => isEntryInMonth(e, prev.year, prev.month));
+    const totalExpense = prevExp.reduce((s, e) => s + e.amount, 0);
+    const totalIncome = prevInc.reduce((s, e) => s + e.amount, 0);
+    return { totalExpense, totalIncome, balance: totalIncome - totalExpense };
+  }, [allExpenses, allIncomes, viewMonth]);
+
+  // 6-Monats-Historie fuer Sparklines
+  const expenseHistory = useMemo(() => buildMonthlyHistory(allExpenses, 6), [allExpenses]);
+  const incomeHistory  = useMemo(() => buildMonthlyHistory(allIncomes, 6), [allIncomes]);
+  const balanceHistory = useMemo(
+    () => incomeHistory.map((inc, i) => inc - (expenseHistory[i] || 0)),
+    [incomeHistory, expenseHistory]
+  );
+
+  // Anzahl recurring Eintraege (im aktuellen Monat)
+  const recurringCount = useMemo(
+    () => [...incomes, ...filteredExpenses].filter((e) => e.recurrence && e.recurrence !== 'none').length,
+    [incomes, filteredExpenses]
+  );
+
+  const insights = useMemo(
+    () => buildInsights({ summary, prevSummary, topCategory, recurringCount }),
+    [summary, prevSummary, topCategory, recurringCount]
+  );
+
   return (
     <>
       <header className="spending-detail-head">
@@ -525,31 +766,46 @@ function GroupDetail({
       <AIQuickInput onParse={onAIParse} />
 
       <div className="sankey-summary-grid sankey-summary-grid-4">
-        <article className="sankey-summary-card spending-card-income">
+        <article className="sankey-summary-card spending-card-income spending-card-premium">
+          <div className="spending-card-glow" aria-hidden="true" />
           <div className="sankey-summary-icon"><TrendingUp size={20} /></div>
           <span className="sankey-summary-label">Gesamteinnahmen</span>
-          <strong>{fmtAmount(summary.totalIncome)} €</strong>
+          <strong>
+            <AnimatedNumber value={summary.totalIncome} /> €
+          </strong>
           <p>{incomes.length} Einnahme(n)</p>
+          <Sparkline data={incomeHistory} color="#34D399" />
         </article>
-        <article className="sankey-summary-card spending-card-expense">
+        <article className="sankey-summary-card spending-card-expense spending-card-premium">
+          <div className="spending-card-glow" aria-hidden="true" />
           <div className="sankey-summary-icon"><TrendingDown size={20} /></div>
           <span className="sankey-summary-label">Gesamtausgaben</span>
-          <strong>{fmtAmount(summary.totalExpense)} €</strong>
+          <strong>
+            <AnimatedNumber value={summary.totalExpense} /> €
+          </strong>
           <p>{group.expenses.length} Buchung(en)</p>
+          <Sparkline data={expenseHistory} color="#F87171" />
         </article>
-        <article className={`sankey-summary-card ${summary.balance >= 0 ? 'spending-card-balance-pos' : 'spending-card-balance-neg'}`}>
+        <article className={`sankey-summary-card spending-card-premium ${summary.balance >= 0 ? 'spending-card-balance-pos' : 'spending-card-balance-neg'}`}>
+          <div className="spending-card-glow" aria-hidden="true" />
           <div className="sankey-summary-icon"><Wallet size={20} /></div>
           <span className="sankey-summary-label">Bilanz</span>
-          <strong>{summary.balance >= 0 ? '+' : ''}{fmtAmount(summary.balance)} €</strong>
+          <strong>
+            {summary.balance >= 0 ? '+' : '−'}<AnimatedNumber value={Math.abs(summary.balance)} /> €
+          </strong>
           <p>{summary.balance >= 0 ? 'Überschuss' : 'Defizit'}</p>
+          <Sparkline data={balanceHistory} color={summary.balance >= 0 ? '#34D399' : '#F87171'} />
         </article>
-        <article className="sankey-summary-card">
+        <article className="sankey-summary-card spending-card-premium spending-card-top">
+          <div className="spending-card-glow" aria-hidden="true" />
           <div className="sankey-summary-icon"><Sparkles size={20} /></div>
           <span className="sankey-summary-label">Top Kategorie</span>
           <strong>{topCategory ? categoryLabel(topCategory[0]) : '—'}</strong>
           <p>{topCategory ? `${fmtAmount(topCategory[1])} € im größten Fluss.` : 'Noch keine Ausgaben.'}</p>
         </article>
       </div>
+
+      <AIInsightCard insights={insights} />
 
       <section className="sankey-card">
         {(group.expenses.length === 0 && incomes.length === 0) ? (
