@@ -386,10 +386,24 @@ export default function SharedSpendingPage() {
 }
 
 function GroupDetail({
-  group, detailLoading, onInvite, onAddExpense, onAddIncome, onAIParse,
+  group, detailLoading, viewMonth, onChangeMonth,
+  onInvite, onAddExpense, onAddIncome, onAIParse,
   onDelete, onLeave, onRemoveMember, onDeleteEntry,
 }) {
-  const incomes = group.incomes || [];
+  const allIncomes = group.incomes || [];
+  const allExpenses = group.expenses || [];
+
+  // Eintraege fuer den aktuellen Monat filtern (inkl. recurring)
+  const incomes = useMemo(
+    () => allIncomes.filter((e) => isEntryInMonth(e, viewMonth.year, viewMonth.month)),
+    [allIncomes, viewMonth]
+  );
+  const filteredExpenses = useMemo(
+    () => allExpenses.filter((e) => isEntryInMonth(e, viewMonth.year, viewMonth.month)),
+    [allExpenses, viewMonth]
+  );
+  // Re-bind group.expenses fuer den restlichen Render
+  group = { ...group, expenses: filteredExpenses };
   const memberMap = useMemo(() => {
     const map = {};
     map[group.owner_id] = {
@@ -505,6 +519,8 @@ function GroupDetail({
           )}
         </div>
       </header>
+
+      <MonthNavigator viewMonth={viewMonth} onChange={onChangeMonth} />
 
       <AIQuickInput onParse={onAIParse} />
 
@@ -626,18 +642,31 @@ function GroupDetail({
             <p className="spending-empty">Noch keine Buchungen.</p>
           ) : (
             <ul className="spending-expense-list">
-              {allEntries.slice(0, 25).map((e) => (
-                <li key={`${e.kind}-${e.id}`} className={`spending-expense-item ${e.kind === 'income' ? 'is-income' : ''}`}>
+              {allEntries.slice(0, 25).map((e) => {
+                const rec = e.recurrence || 'none';
+                const isRecurring = rec !== 'none';
+                const dateStr = e.entry_date
+                  ? new Date(e.entry_date).toLocaleDateString('de-DE')
+                  : new Date(e.created_at).toLocaleDateString('de-DE');
+                return (
+                <li key={`${e.kind}-${e.id}`} className={`spending-expense-item ${e.kind === 'income' ? 'is-income' : ''} ${isRecurring ? 'is-recurring' : ''}`}>
                   <span className="spending-expense-dot" style={{ background: categoryColor(e.category) }} />
                   <div className="spending-expense-body">
                     <div className="spending-expense-top">
-                      <strong>{e.description || categoryLabel(e.category)}</strong>
+                      <strong>
+                        {e.description || categoryLabel(e.category)}
+                        {isRecurring && (
+                          <span className="spending-recurrence-badge" title={RECURRENCE_LABELS[rec]}>
+                            <Repeat size={10} /> {RECURRENCE_LABELS[rec]}
+                          </span>
+                        )}
+                      </strong>
                       <span className={`spending-expense-amt ${e.kind === 'income' ? 'is-income' : 'is-expense'}`}>
                         {e.kind === 'income' ? '+' : '−'} {fmtAmount(e.amount)} €
                       </span>
                     </div>
                     <span className="spending-expense-meta">
-                      {memberMap[e.user_id]?.name || 'Unbekannt'} · {categoryLabel(e.category)} · {new Date(e.created_at).toLocaleDateString('de-DE')}
+                      {memberMap[e.user_id]?.name || 'Unbekannt'} · {categoryLabel(e.category)} · {dateStr}
                     </span>
                   </div>
                   <button
@@ -649,7 +678,8 @@ function GroupDetail({
                     <Trash2 size={14} />
                   </button>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
         </section>
@@ -662,6 +692,72 @@ function GroupDetail({
  * Freitext-Feld: User tippt "Pizza 25€ heute", Mistral parst → Modal
  * oeffnet sich mit Vorbelegung. Auch sichtbar wenn Sankey noch leer ist.
  * ──────────────────────────────────────────────────────────────────── */
+/* Monats-Navigator: < Februar 2026 >  +  "Heute" wenn nicht aktueller Monat */
+function MonthNavigator({ viewMonth, onChange }) {
+  const today = currentMonthKey();
+  const isCurrent = today.year === viewMonth.year && today.month === viewMonth.month;
+  const labelStr = monthLabel(viewMonth.year, viewMonth.month);
+
+  // Letzte 6 Monate als Quick-Picker (Archiv-Strip)
+  const recent = useMemo(() => {
+    const arr = [];
+    let cur = today;
+    for (let i = 0; i < 6; i += 1) {
+      arr.push(cur);
+      cur = shiftMonth(cur, -1);
+    }
+    return arr.reverse();
+  }, []);
+
+  return (
+    <div className="spending-month-nav">
+      <div className="spending-month-main">
+        <button
+          type="button"
+          className="spending-month-arrow"
+          onClick={() => onChange(shiftMonth(viewMonth, -1))}
+          aria-label="Vorheriger Monat"
+        >
+          <ChevronLeft size={18} />
+        </button>
+        <div className="spending-month-label">
+          <Calendar size={16} />
+          <strong>{labelStr}</strong>
+        </div>
+        <button
+          type="button"
+          className="spending-month-arrow"
+          onClick={() => onChange(shiftMonth(viewMonth, 1))}
+          aria-label="Nächster Monat"
+        >
+          <ChevronRight size={18} />
+        </button>
+        {!isCurrent && (
+          <button type="button" className="spending-month-today" onClick={() => onChange(today)}>
+            Heute
+          </button>
+        )}
+      </div>
+      <div className="spending-month-strip">
+        {recent.map((m) => {
+          const active = m.year === viewMonth.year && m.month === viewMonth.month;
+          return (
+            <button
+              key={`${m.year}-${m.month}`}
+              type="button"
+              className={`spending-month-chip ${active ? 'is-active' : ''}`}
+              onClick={() => onChange(m)}
+            >
+              {MONTH_NAMES_DE[m.month - 1].slice(0, 3)}
+              <span>{String(m.year).slice(2)}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function AIQuickInput({ onParse }) {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -860,10 +956,22 @@ function InviteFriendModal({ friends, existingMemberIds, onClose, onSubmit }) {
 
 /* Unified Entry-Modal: Toggle zwischen Einnahme und Ausgabe oben.
  * Akzeptiert prefill aus KI-Parser (Kategorie, Betrag, Beschreibung). */
-function EntryModal({ mode, prefill, onClose, onSubmit, onSwitch }) {
+function EntryModal({ mode, prefill, viewMonth, onClose, onSubmit, onSwitch }) {
   const isIncome = mode === 'income';
   const categories = isIncome ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
   const defaultCategory = isIncome ? 'salary' : 'food';
+
+  // Default-Datum: heute, ausser wenn der gewaehlte Monat nicht der aktuelle
+  // ist — dann erster Tag des gewaehlten Monats.
+  const defaultEntryDate = useMemo(() => {
+    const today = new Date();
+    const cur = currentMonthKey();
+    if (viewMonth && (viewMonth.year !== cur.year || viewMonth.month !== cur.month)) {
+      const m = String(viewMonth.month).padStart(2, '0');
+      return `${viewMonth.year}-${m}-01`;
+    }
+    return today.toISOString().slice(0, 10);
+  }, [viewMonth]);
 
   const [category, setCategory] = useState(
     prefill?.category && categories.find((c) => c.id === prefill.category)
@@ -872,6 +980,8 @@ function EntryModal({ mode, prefill, onClose, onSubmit, onSwitch }) {
   );
   const [amount, setAmount] = useState(prefill?.amount ? String(prefill.amount).replace('.', ',') : '');
   const [description, setDescription] = useState(prefill?.description || '');
+  const [recurrence, setRecurrence] = useState(prefill?.recurrence || 'none');
+  const [entryDate, setEntryDate] = useState(defaultEntryDate);
   const [submitting, setSubmitting] = useState(false);
 
   // Wenn prefill nach KI-Parse aktualisiert wird, Felder uebernehmen.
@@ -885,6 +995,9 @@ function EntryModal({ mode, prefill, onClose, onSubmit, onSwitch }) {
       }
       if (typeof prefill.description === 'string') {
         setDescription(prefill.description);
+      }
+      if (prefill.recurrence) {
+        setRecurrence(prefill.recurrence);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -903,7 +1016,14 @@ function EntryModal({ mode, prefill, onClose, onSubmit, onSwitch }) {
     const amt = Number((amount || '').replace(',', '.'));
     if (!Number.isFinite(amt) || amt <= 0) return;
     setSubmitting(true);
-    await onSubmit({ kind: mode, category, amount: amt, description: description.trim() });
+    await onSubmit({
+      kind: mode,
+      category,
+      amount: amt,
+      description: description.trim(),
+      recurrence,
+      entry_date: entryDate || null,
+    });
     setSubmitting(false);
   };
 
@@ -973,6 +1093,36 @@ function EntryModal({ mode, prefill, onClose, onSubmit, onSwitch }) {
             maxLength={500}
             onChange={(e) => setDescription(e.target.value)}
             placeholder={isIncome ? 'z.B. Gehalt Mai' : 'z.B. Einkauf REWE'}
+          />
+        </label>
+
+        <div className="spending-field">
+          <span><Repeat size={12} style={{ marginRight: 4, verticalAlign: 'middle' }} /> Wiederholung</span>
+          <div className="spending-recurrence-grid">
+            {[
+              { id: 'none',      label: 'Einmalig' },
+              { id: 'monthly',   label: 'Monatlich' },
+              { id: 'quarterly', label: 'Alle 3 Monate' },
+              { id: 'yearly',    label: 'Jährlich' },
+            ].map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                className={`spending-recurrence-btn ${recurrence === r.id ? 'is-active' : ''}`}
+                onClick={() => setRecurrence(r.id)}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <label className="spending-field">
+          <span>{recurrence === 'none' ? 'Datum' : 'Startet ab'}</span>
+          <input
+            type="date"
+            value={entryDate}
+            onChange={(e) => setEntryDate(e.target.value)}
           />
         </label>
 

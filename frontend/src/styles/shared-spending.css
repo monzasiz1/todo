@@ -450,6 +450,179 @@
   padding: 8px 8px 8px 14px;
 }
 
+/* ── Monats-Navigator ──────────────────────────────────────────────── */
+.spending-month-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  padding: 10px 12px;
+  flex-wrap: wrap;
+}
+
+.spending-month-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.spending-month-arrow {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.12s ease;
+}
+
+.spending-month-arrow:hover {
+  background: rgba(255,255,255,0.08);
+  transform: translateY(-1px);
+}
+
+.spending-month-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 12px;
+  background: rgba(96, 165, 250, 0.12);
+  color: var(--text);
+  font-size: 1rem;
+  min-width: 180px;
+  justify-content: center;
+}
+
+.spending-month-label strong {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.spending-month-today {
+  background: rgba(52, 211, 153, 0.16);
+  border: 1px solid rgba(52, 211, 153, 0.32);
+  color: #34D399;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.spending-month-today:hover {
+  background: rgba(52, 211, 153, 0.24);
+}
+
+.spending-month-strip {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.spending-month-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  min-width: 44px;
+}
+
+.spending-month-chip span {
+  font-size: 0.66rem;
+  font-weight: 400;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+  opacity: 0.7;
+}
+
+.spending-month-chip:hover {
+  background: rgba(255,255,255,0.06);
+  color: var(--text);
+}
+
+.spending-month-chip.is-active {
+  background: rgba(96, 165, 250, 0.18);
+  border-color: rgba(96, 165, 250, 0.40);
+  color: var(--text);
+}
+
+.spending-month-chip.is-active span {
+  color: var(--text-secondary);
+  opacity: 1;
+}
+
+/* ── Recurrence Picker im Modal ────────────────────────────────────── */
+.spending-recurrence-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.spending-recurrence-btn {
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.spending-recurrence-btn:hover {
+  background: rgba(255,255,255,0.07);
+  color: var(--text);
+}
+
+.spending-recurrence-btn.is-active {
+  background: rgba(167, 139, 250, 0.18);
+  border-color: rgba(167, 139, 250, 0.40);
+  color: var(--text);
+}
+
+/* ── Recurrence-Badge in der Buchungsliste ─────────────────────────── */
+.spending-recurrence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  padding: 2px 8px;
+  background: rgba(167, 139, 250, 0.18);
+  color: #c4b5fd;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+}
+
+.spending-expense-item.is-recurring {
+  border-left: 2px solid rgba(167, 139, 250, 0.5);
+}
+
+/* Date Input Stilanpassung */
+.spending-field input[type="date"] {
+  color-scheme: dark;
+}
+
 .spending-ai-icon {
   display: inline-flex;
   align-items: center;
