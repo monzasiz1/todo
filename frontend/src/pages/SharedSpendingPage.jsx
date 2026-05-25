@@ -306,7 +306,6 @@ function AIInsightCard({ insights }) {
   if (!insights || insights.length === 0) return null;
   return (
     <article className="spending-ai-card">
-      <div className="spending-ai-card-glow" aria-hidden="true" />
       <header className="spending-ai-card-head">
         <div className="spending-ai-card-badge">
           <span className="spending-ai-card-pulse" />
@@ -459,7 +458,6 @@ export default function SharedSpendingPage() {
   return (
     <div className="shared-spending-page is-premium">
       <PremiumBackground />
-      <CursorSpotlight />
       <section className="page-header shared-spending-header">
         <div>
           <span className="eyebrow">Gemeinsame Ausgaben</span>
@@ -1403,169 +1401,233 @@ function EntryModal({ mode, prefill, viewMonth, onClose, onSubmit, onSwitch }) {
  * wie die Summe seiner Fluesse. Innerhalb eines Knotens stapeln sich die
  * Baender luekenlos uebereinander — wie in echten Sankey-Charts.
  * ─────────────────────────────────────────────────────────────────────── */
-/* 3-Spalten-Sankey:
- *   Spalte 1 (links): Mitglieder mit ihren Einnahmen (Source)
- *   Spalte 2 (Mitte): "Gesamteinnahmen" Pool-Knoten
- *   Spalte 3 (rechts): Ausgaben-Kategorien + optional "Verbleibend" (Spar-Knoten)
+/* 4-Tier-Sankey:
+ *   T1 (links):       Personen / Einnahmenquellen
+ *   T2 (mid-links):   Gemeinsamer Geldpool
+ *   T3 (mid-rechts):  Hauptkategorien + Verbleibend
+ *   T4 (rechts):      Einzelne Transaktionen (top 12)
  *
- * Hoehe jedes Knotens proportional zu seiner Summe — wie auf dem
- * Referenzbild (Salary -> Income -> Spending categories -> Savings).
+ * Hoehe jedes Knotens proportional zu seiner Summe. Skalierung global,
+ * damit alle Tiers proportional bleiben (echtes Sankey-Verhalten).
  */
 function buildSankeyLayout({
   members, expenseCategories, expenses, incomes,
   memberMap, totalIncome, totalExpense,
 }) {
   const empty = (incomes?.length || 0) === 0 && (expenses?.length || 0) === 0;
-  const WIDTH = 1000;
-  const HEIGHT = 460;
+  const WIDTH = 1320;
+  const HEIGHT = 560;
+  const NODE_WIDTH = 14;
+
   if (empty) {
-    return { width: WIDTH, height: HEIGHT, columns: [], bands: [], nodeWidth: 14 };
+    return { width: WIDTH, height: HEIGHT, columns: [], bands: [], nodeWidth: NODE_WIDTH };
   }
 
-  // Genug Platz oben und unten fuer Middle-Knoten Labels
-  // ("Gesamteinnahmen" obendrueber, Wert untendrunter).
-  const PADDING_TOP = 48;
-  const PADDING_BOTTOM = 48;
-  const NODE_WIDTH = 14;
-  const NODE_GAP = 8;
+  const PADDING_TOP = 56;
+  const PADDING_BOTTOM = 56;
+  const NODE_GAP = 6;
   const innerHeight = HEIGHT - PADDING_TOP - PADDING_BOTTOM;
 
-  // Mitglieder-Einnahmen aggregieren
+  // ── Tier 1: Personen (Einnahmen oder Ausgaben-Fallback) ─────────────
   const memberIncomeTotals = {};
   incomes.forEach((e) => {
     memberIncomeTotals[e.user_id] = (memberIncomeTotals[e.user_id] || 0) + e.amount;
   });
-
-  // Mitglieder-Ausgaben aggregieren (fuer Source-Tier wenn keine Einnahmen)
   const memberExpenseTotals = {};
   expenses.forEach((e) => {
     memberExpenseTotals[e.user_id] = (memberExpenseTotals[e.user_id] || 0) + e.amount;
   });
-
-  // Wenn Einnahmen erfasst: Source = Mitglieder mit Einnahmen
-  // Wenn KEINE Einnahmen: Fallback = Mitglieder mit Ausgaben (so funktioniert
-  // die Seite auch ohne Einnahmen-Buchungen weiter).
   const useIncomeMode = totalIncome > 0;
   const sourceTotals = useIncomeMode ? memberIncomeTotals : memberExpenseTotals;
 
-  const sourceMembers = members
+  const persons = members
     .map((m) => ({
-      id: `m-${m.id}`,
+      id: `p-${m.id}`,
       label: m.name,
       color: m.color,
       total: sourceTotals[m.id] || 0,
     }))
     .filter((n) => n.total > 0);
 
-  if (sourceMembers.length === 0) {
+  if (persons.length === 0) {
     return { width: WIDTH, height: HEIGHT, columns: [], bands: [], nodeWidth: NODE_WIDTH };
   }
+  const personsSum = persons.reduce((s, n) => s + n.total, 0);
 
-  const sourceSum = sourceMembers.reduce((s, n) => s + n.total, 0);
+  // ── Tier 2: Pool ─────────────────────────────────────────────────────
+  const poolTotal = useIncomeMode ? totalIncome : totalExpense;
+  const poolLabel = useIncomeMode ? 'Gemeinsames Budget' : 'Gesamtausgaben';
+  const poolColor = useIncomeMode ? '#34D399' : '#60A5FA';
 
-  // Ausgaben-Kategorien als Targets
+  // ── Tier 3: Kategorien + Verbleibend ────────────────────────────────
   const catExpenseTotals = {};
   expenses.forEach((e) => {
     catExpenseTotals[e.category] = (catExpenseTotals[e.category] || 0) + e.amount;
   });
-  const targetCategories = expenseCategories.map((c) => ({
-    id: `c-${c.id}`,
-    label: c.label,
-    color: c.color,
-    total: catExpenseTotals[c.id] || 0,
-  })).filter((n) => n.total > 0);
+  const cats = expenseCategories
+    .map((c) => ({
+      id: `c-${c.id}`,
+      rawId: c.id,
+      label: c.label,
+      color: c.color,
+      total: catExpenseTotals[c.id] || 0,
+    }))
+    .filter((n) => n.total > 0);
 
-  // Optional: Verbleibend-Knoten wenn Einnahmen > Ausgaben
   const remaining = useIncomeMode ? Math.max(0, totalIncome - totalExpense) : 0;
   if (remaining > 0) {
-    targetCategories.push({ id: 'remaining', label: 'Verbleibend', color: '#10B981', total: remaining });
+    cats.push({ id: 'c-remaining', rawId: 'remaining', label: 'Verbleibend', color: '#10B981', total: remaining });
   }
+  const catsSum = cats.reduce((s, n) => s + n.total, 0);
 
-  const targetSum = targetCategories.reduce((s, n) => s + n.total, 0);
+  // ── Tier 4: Einzelne Transaktionen (max 12, gruppiert nach Kategorie) ─
+  const topExpenses = [...expenses].sort((a, b) => b.amount - a.amount).slice(0, 12);
+  const txByCat = {};
+  topExpenses.forEach((e) => {
+    if (!txByCat[e.category]) txByCat[e.category] = [];
+    txByCat[e.category].push(e);
+  });
 
-  // Skalierung: groessere der beiden Summen bestimmt die Pixel-pro-Euro
-  const refSum = Math.max(sourceSum, targetSum);
-  const totalGapsSrc = Math.max(0, sourceMembers.length - 1) * NODE_GAP;
-  const totalGapsTgt = Math.max(0, targetCategories.length - 1) * NODE_GAP;
-  const scaleSrc = refSum > 0 ? (innerHeight - totalGapsSrc) / refSum : 0;
-  const scaleTgt = refSum > 0 ? (innerHeight - totalGapsTgt) / refSum : 0;
+  // ── Skalierung ──────────────────────────────────────────────────────
+  const refSum = Math.max(personsSum, poolTotal, catsSum);
+  // Berechne pro Tier den verfuegbaren Platz (innerHeight minus gaps)
+  const personsGaps = Math.max(0, persons.length - 1) * NODE_GAP;
+  const catsGaps = Math.max(0, cats.length - 1) * NODE_GAP;
+  // Wir nehmen den restriktivsten Tier (mit den meisten Gaps) als Skalierungs-
+  // Basis, damit nichts overflowt
+  const maxGaps = Math.max(personsGaps, catsGaps);
+  const scale = refSum > 0 ? (innerHeight - maxGaps) / refSum : 0;
 
-  // Drei Spalten: Mitglieder, Total-Knoten, Kategorien
-  const colX = [0, WIDTH / 2 - NODE_WIDTH / 2, WIDTH - NODE_WIDTH];
+  // ── X-Koordinaten der 4 Spalten ─────────────────────────────────────
+  const colX = [
+    160,                    // Tier 1 — Personen (links, Labels gehen nach links)
+    Math.round(WIDTH * 0.34), // Tier 2 — Pool
+    Math.round(WIDTH * 0.60), // Tier 3 — Kategorien
+    Math.round(WIDTH * 0.85), // Tier 4 — Transaktionen (Labels gehen nach rechts)
+  ];
 
-  // Source-Knoten (Mitglieder) — zentriert auf Spalte 1
-  const sourceHeightTotal = sourceSum * scaleSrc + totalGapsSrc;
-  let cursorSrc = PADDING_TOP + (innerHeight - sourceHeightTotal) / 2;
-  const sourceNodes = sourceMembers.map((n) => {
-    const h = n.total * scaleSrc;
-    const node = { ...n, x: colX[0], y0: cursorSrc, y1: cursorSrc + h, height: h };
-    cursorSrc += h + NODE_GAP;
+  // ── Tier 1 Knoten positionieren (vertikal zentriert) ────────────────
+  const personsHTotal = personsSum * scale + personsGaps;
+  let cursorP = PADDING_TOP + (innerHeight - personsHTotal) / 2;
+  const personNodes = persons.map((n) => {
+    const h = n.total * scale;
+    const node = { ...n, x: colX[0], y0: cursorP, y1: cursorP + h, height: h };
+    cursorP += h + NODE_GAP;
     return node;
   });
 
-  // Mittel-Knoten (Pool): "Gesamteinnahmen" wenn Income-Mode, sonst "Gesamtausgaben"
-  const middleTotal = useIncomeMode ? totalIncome : totalExpense;
-  const middleHeight = middleTotal * scaleSrc;
-  const middleNode = {
+  // ── Tier 2 Pool-Knoten (zentriert) ──────────────────────────────────
+  const poolH = poolTotal * scale;
+  const poolNode = {
     id: 'pool',
-    label: useIncomeMode ? 'Gesamteinnahmen' : 'Gesamtausgaben',
-    color: useIncomeMode ? '#34D399' : '#60A5FA',
-    total: middleTotal,
+    label: poolLabel,
+    color: poolColor,
+    total: poolTotal,
     x: colX[1],
-    y0: PADDING_TOP + (innerHeight - middleHeight) / 2,
-    y1: PADDING_TOP + (innerHeight - middleHeight) / 2 + middleHeight,
-    height: middleHeight,
+    y0: PADDING_TOP + (innerHeight - poolH) / 2,
+    y1: PADDING_TOP + (innerHeight - poolH) / 2 + poolH,
+    height: poolH,
   };
 
-  // Target-Knoten (Kategorien) — zentriert auf Spalte 3
-  const targetHeightTotal = targetSum * scaleTgt + totalGapsTgt;
-  let cursorTgt = PADDING_TOP + (innerHeight - targetHeightTotal) / 2;
-  const targetNodes = targetCategories.map((n) => {
-    const h = n.total * scaleTgt;
-    const node = { ...n, x: colX[2], y0: cursorTgt, y1: cursorTgt + h, height: h };
-    cursorTgt += h + NODE_GAP;
+  // ── Tier 3 Kategorien (zentriert) ───────────────────────────────────
+  const catsHTotal = catsSum * scale + catsGaps;
+  let cursorC = PADDING_TOP + (innerHeight - catsHTotal) / 2;
+  const catNodes = cats.map((n) => {
+    const h = n.total * scale;
+    const node = { ...n, x: colX[2], y0: cursorC, y1: cursorC + h, height: h };
+    cursorC += h + NODE_GAP;
     return node;
   });
 
-  // Baender Spalte 1 -> Spalte 2 (Mitglied -> Pool)
-  // Innerhalb des Pool-Knotens stacken die Mitglieder von oben nach unten,
-  // genauso in der Reihenfolge wie in Spalte 1.
-  let cursorMidIn = middleNode.y0;
-  const bandsLeft = sourceNodes.map((sNode, i) => {
-    const sH = sNode.height;
-    const sY0 = sNode.y0;
-    const sY1 = sNode.y1;
-    const tY0 = cursorMidIn;
-    const tY1 = cursorMidIn + sH;
-    cursorMidIn += sH;
+  // ── Tier 4 Transaktionen — stacken innerhalb ihrer Kategorie ────────
+  const txNodes = [];
+  catNodes.forEach((catNode) => {
+    if (catNode.rawId === 'remaining') return;
+    const txs = (txByCat[catNode.rawId] || []).sort((a, b) => b.amount - a.amount);
+    const txSum = txs.reduce((s, t) => s + t.amount, 0);
+    const remainder = catNode.total - txSum;
+
+    let cursorT = catNode.y0;
+    txs.forEach((tx) => {
+      const h = tx.amount * scale;
+      txNodes.push({
+        id: `t-${tx.id}`,
+        catId: catNode.id,
+        label: tx.description || categoryLabel(tx.category),
+        color: catNode.color,
+        total: tx.amount,
+        x: colX[3],
+        y0: cursorT,
+        y1: cursorT + h,
+        height: h,
+      });
+      cursorT += h;
+    });
+    if (remainder > 0.005) {
+      const h = remainder * scale;
+      txNodes.push({
+        id: `t-other-${catNode.id}`,
+        catId: catNode.id,
+        label: `Weitere ${catNode.label}`,
+        color: catNode.color,
+        total: remainder,
+        x: colX[3],
+        y0: cursorT,
+        y1: cursorT + h,
+        height: h,
+        isOther: true,
+      });
+    }
+  });
+
+  // ── Baender T1 → T2 (Person → Pool) ─────────────────────────────────
+  let cursorIn = poolNode.y0;
+  const bands12 = personNodes.map((p, i) => {
+    const tY0 = cursorIn;
+    const tY1 = cursorIn + p.height;
+    cursorIn += p.height;
     return {
-      id: `band-l-${i}`,
-      sX: sNode.x + NODE_WIDTH,
-      tX: middleNode.x,
-      sY0, sY1, tY0, tY1,
-      value: sNode.total,
-      sourceColor: sNode.color,
-      targetColor: middleNode.color,
+      id: `b12-${i}`,
+      sX: p.x + NODE_WIDTH,
+      tX: poolNode.x,
+      sY0: p.y0, sY1: p.y1,
+      tY0, tY1,
+      value: p.total,
+      sourceColor: p.color,
+      targetColor: poolNode.color,
     };
   });
 
-  // Baender Spalte 2 -> Spalte 3 (Pool -> Kategorie)
-  let cursorMidOut = middleNode.y0;
-  const bandsRight = targetNodes.map((tNode, i) => {
-    const tH = tNode.height;
-    const sY0 = cursorMidOut;
-    const sY1 = cursorMidOut + tH;
-    cursorMidOut += tH;
+  // ── Baender T2 → T3 (Pool → Kategorie) ──────────────────────────────
+  let cursorOut = poolNode.y0;
+  const bands23 = catNodes.map((c, i) => {
+    const sY0 = cursorOut;
+    const sY1 = cursorOut + c.height;
+    cursorOut += c.height;
     return {
-      id: `band-r-${i}`,
-      sX: middleNode.x + NODE_WIDTH,
-      tX: tNode.x,
+      id: `b23-${i}`,
+      sX: poolNode.x + NODE_WIDTH,
+      tX: c.x,
       sY0, sY1,
-      tY0: tNode.y0,
-      tY1: tNode.y1,
-      value: tNode.total,
-      sourceColor: middleNode.color,
-      targetColor: tNode.color,
+      tY0: c.y0, tY1: c.y1,
+      value: c.total,
+      sourceColor: poolNode.color,
+      targetColor: c.color,
+    };
+  });
+
+  // ── Baender T3 → T4 (Kategorie → Transaktion) ──────────────────────
+  const bands34 = txNodes.map((tx, i) => {
+    // Quelle: Kategorie-Knoten rechte Kante an gleichen y-Positionen wie tx
+    return {
+      id: `b34-${i}`,
+      sX: colX[2] + NODE_WIDTH,
+      tX: tx.x,
+      sY0: tx.y0, sY1: tx.y1,
+      tY0: tx.y0, tY1: tx.y1,
+      value: tx.total,
+      sourceColor: tx.color,
+      targetColor: tx.color,
     };
   });
 
@@ -1573,15 +1635,13 @@ function buildSankeyLayout({
     width: WIDTH,
     height: HEIGHT,
     columns: [
-      { nodes: sourceNodes, side: 'left' },
-      { nodes: [middleNode], side: 'middle' },
-      { nodes: targetNodes, side: 'right' },
+      { nodes: personNodes, side: 'persons' },
+      { nodes: [poolNode],  side: 'pool' },
+      { nodes: catNodes,    side: 'cats' },
+      { nodes: txNodes,     side: 'tx' },
     ],
-    bands: [...bandsLeft, ...bandsRight],
+    bands: [...bands12, ...bands23, ...bands34],
     nodeWidth: NODE_WIDTH,
-    sourceNodes, // alias fuer Rueckwaerts-Kompatibilitaet
-    targetNodes,
-    middleNode,
   };
 }
 
@@ -1641,101 +1701,192 @@ function SankeyDiagram({ layout }) {
           ))}
         </g>
 
-        {/* Spalten */}
+        {/* Spalten — pro Tier eigener Label-Stil */}
         {(columns || []).map((col, ci) => (
           <g key={`col-${ci}`} className={`sankey-col sankey-col-${col.side}`}>
-            {col.nodes.map((n) => {
-              const isLeft = col.side === 'left';
-              const isMiddle = col.side === 'middle';
-
-              if (isMiddle) {
-                return (
-                  <g key={n.id}>
-                    <rect
-                      x={n.x}
-                      y={n.y0}
-                      width={nodeWidth}
-                      height={Math.max(2, n.height)}
-                      fill={n.color}
-                      rx={5}
-                      filter="url(#sankey-node-glow)"
-                    />
-                    <text
-                      x={n.x + nodeWidth / 2}
-                      y={n.y0 - 18}
-                      textAnchor="middle"
-                      className="sankey-label sankey-label-middle"
-                    >
-                      {n.label}
-                    </text>
-                    <text
-                      x={n.x + nodeWidth / 2}
-                      y={n.y1 + 32}
-                      textAnchor="middle"
-                      className="sankey-label sankey-label-middle sankey-label-value"
-                    >
-                      {fmtAmount(n.total)} €
-                    </text>
-                  </g>
-                );
-              }
-
-              const labelX = isLeft ? n.x + nodeWidth + 10 : n.x - 10;
-              const anchor = isLeft ? 'start' : 'end';
-              const cy = n.y0 + n.height / 2;
-              const showSub = n.height >= 32;
-              const nameText = isLeft ? compactName(n.label) : n.label;
-
-              return (
-                <g key={n.id}>
-                  <rect
-                    x={n.x}
-                    y={n.y0}
-                    width={nodeWidth}
-                    height={Math.max(2, n.height)}
-                    fill={n.color}
-                    rx={5}
-                  />
-                  {showSub ? (
-                    <>
-                      <text
-                        x={labelX}
-                        y={cy - 8}
-                        dominantBaseline="middle"
-                        textAnchor={anchor}
-                        className={`sankey-label sankey-label-${col.side}`}
-                      >
-                        {nameText}
-                      </text>
-                      <text
-                        x={labelX}
-                        y={cy + 9}
-                        dominantBaseline="middle"
-                        textAnchor={anchor}
-                        className={`sankey-label sankey-label-${col.side} sankey-label-sub`}
-                      >
-                        {fmtAmount(n.total)} €
-                      </text>
-                    </>
-                  ) : (
-                    <text
-                      x={labelX}
-                      y={cy}
-                      dominantBaseline="middle"
-                      textAnchor={anchor}
-                      className={`sankey-label sankey-label-${col.side}`}
-                    >
-                      {nameText} · {fmtAmount(n.total)} €
-                    </text>
-                  )}
-                </g>
-              );
-            })}
+            {col.nodes.map((n) => (
+              <SankeyNodeLabel key={n.id} node={n} side={col.side} nodeWidth={nodeWidth} />
+            ))}
           </g>
         ))}
       </svg>
     </div>
   );
+}
+
+function SankeyNodeLabel({ node, side, nodeWidth }) {
+  const cy = node.y0 + node.height / 2;
+  // Mindesthoehe fuer 2-Zeilen-Label (Name + Wert)
+  const showSub = node.height >= 28;
+
+  const rect = (
+    <rect
+      x={node.x}
+      y={node.y0}
+      width={nodeWidth}
+      height={Math.max(2, node.height)}
+      fill={node.color}
+      rx={5}
+      filter={side === 'pool' ? 'url(#sankey-node-glow)' : undefined}
+    />
+  );
+
+  // Tier 2: Pool — Label oben + Wert unten zentriert
+  if (side === 'pool') {
+    return (
+      <g>
+        {rect}
+        <text
+          x={node.x + nodeWidth / 2}
+          y={node.y0 - 22}
+          textAnchor="middle"
+          className="sankey-label sankey-label-pool"
+        >
+          {node.label}
+        </text>
+        <text
+          x={node.x + nodeWidth / 2}
+          y={node.y1 + 36}
+          textAnchor="middle"
+          className="sankey-label sankey-label-pool sankey-label-value"
+        >
+          {fmtAmount(node.total)} €
+        </text>
+      </g>
+    );
+  }
+
+  // Tier 1: Personen — Labels nach LINKS vom Knoten
+  if (side === 'persons') {
+    const labelX = node.x - 12;
+    const nameText = compactName(node.label);
+    if (!showSub) {
+      return (
+        <g>
+          {rect}
+          <text
+            x={labelX} y={cy}
+            dominantBaseline="middle"
+            textAnchor="end"
+            className="sankey-label sankey-label-persons"
+          >
+            {nameText} · {fmtAmount(node.total)} €
+          </text>
+        </g>
+      );
+    }
+    return (
+      <g>
+        {rect}
+        <text
+          x={labelX} y={cy - 8}
+          dominantBaseline="middle"
+          textAnchor="end"
+          className="sankey-label sankey-label-persons"
+        >
+          {nameText}
+        </text>
+        <text
+          x={labelX} y={cy + 9}
+          dominantBaseline="middle"
+          textAnchor="end"
+          className="sankey-label sankey-label-persons sankey-label-sub"
+        >
+          {fmtAmount(node.total)} €
+        </text>
+      </g>
+    );
+  }
+
+  // Tier 3: Kategorien — Labels INNERHALB der Band-Area, rechts vom Knoten
+  if (side === 'cats') {
+    const labelX = node.x + nodeWidth + 8;
+    if (!showSub) {
+      // Nur Name + Wert in einer Zeile, wenn Knoten zu klein
+      return (
+        <g>
+          {rect}
+          <text
+            x={labelX} y={cy}
+            dominantBaseline="middle"
+            textAnchor="start"
+            className="sankey-label sankey-label-cats"
+          >
+            {node.label} · {fmtAmount(node.total)} €
+          </text>
+        </g>
+      );
+    }
+    return (
+      <g>
+        {rect}
+        <text
+          x={labelX} y={cy - 8}
+          dominantBaseline="middle"
+          textAnchor="start"
+          className="sankey-label sankey-label-cats"
+        >
+          {node.label}
+        </text>
+        <text
+          x={labelX} y={cy + 9}
+          dominantBaseline="middle"
+          textAnchor="start"
+          className="sankey-label sankey-label-cats sankey-label-sub"
+        >
+          {fmtAmount(node.total)} €
+        </text>
+      </g>
+    );
+  }
+
+  // Tier 4: Transaktionen — Labels nach RECHTS vom Knoten
+  if (side === 'tx') {
+    // Skip label entirely fuer sehr kleine Baender
+    if (node.height < 8) {
+      return rect;
+    }
+    const labelX = node.x + nodeWidth + 10;
+    if (node.height < 24) {
+      // Eine Zeile: Name + Betrag kompakt
+      return (
+        <g>
+          {rect}
+          <text
+            x={labelX} y={cy}
+            dominantBaseline="middle"
+            textAnchor="start"
+            className="sankey-label sankey-label-tx"
+          >
+            {node.label} · {fmtAmount(node.total)} €
+          </text>
+        </g>
+      );
+    }
+    return (
+      <g>
+        {rect}
+        <text
+          x={labelX} y={cy - 8}
+          dominantBaseline="middle"
+          textAnchor="start"
+          className="sankey-label sankey-label-tx"
+        >
+          {node.label}
+        </text>
+        <text
+          x={labelX} y={cy + 9}
+          dominantBaseline="middle"
+          textAnchor="start"
+          className="sankey-label sankey-label-tx sankey-label-sub"
+        >
+          {fmtAmount(node.total)} €
+        </text>
+      </g>
+    );
+  }
+
+  return rect;
 }
 
 /* Mobile: statt unleserlichem Mini-Sankey horizontale Balken

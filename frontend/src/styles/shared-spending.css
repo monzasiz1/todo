@@ -154,6 +154,46 @@
 .sankey-label-source { text-anchor: start; }
 .sankey-label-target { text-anchor: end; }
 
+/* Tier 1: Personen — links der Knoten */
+.sankey-label-persons {
+  font-size: 13px;
+  font-weight: 600;
+  fill: #f1f5f9;
+}
+
+/* Tier 2: Pool — oben + unten zentriert (gross & klar) */
+.sankey-label-pool {
+  font-size: 13px;
+  font-weight: 600;
+  fill: #cbd5e1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.sankey-label-pool.sankey-label-value {
+  font-size: 26px;
+  font-weight: 700;
+  fill: #ffffff;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tier 3: Kategorien — innerhalb der Band-Area, rechts vom Knoten */
+.sankey-label-cats {
+  font-size: 13px;
+  font-weight: 600;
+  fill: #e2e8f0;
+}
+
+/* Tier 4: Transaktionen — rechts vom Knoten */
+.sankey-label-tx {
+  font-size: 12px;
+  font-weight: 500;
+  fill: #cbd5e1;
+}
+
+/* Backward-compat alias (alte 3-Spalten Klasse) */
 .sankey-label-middle {
   font-size: 13px;
   font-weight: 600;
@@ -1348,11 +1388,27 @@
     grid-template-columns: 1fr;
   }
 
-  /* Sankey bleibt sichtbar — kompakter app-like ueber den Balken */
+  /* Sankey auf Mobile: horizontal scrollbar, behaelt voll Detail bei. */
   .sankey-diagram-wrap {
     padding: 14px 12px;
     border-radius: 18px;
     margin-bottom: 14px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.18) transparent;
+  }
+
+  .sankey-diagram-wrap::-webkit-scrollbar { height: 6px; }
+  .sankey-diagram-wrap::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.18);
+    border-radius: 999px;
+  }
+
+  /* Diagramm bekommt feste min-width damit die Tiers nicht zusammenklappen */
+  .sankey-diagram-wrap .sankey-diagram {
+    min-width: 900px;
   }
 
   .sankey-label {
@@ -1362,13 +1418,18 @@
   .sankey-label-sub {
     font-size: 17px;
   }
+  .sankey-label-pool,
   .sankey-label-middle {
     font-size: 16px;
     letter-spacing: 0.04em;
   }
+  .sankey-label-pool.sankey-label-value,
   .sankey-label-middle.sankey-label-value {
     font-size: 26px;
   }
+  .sankey-label-tx { font-size: 16px; }
+  .sankey-label-persons { font-size: 17px; }
+  .sankey-label-cats { font-size: 17px; }
 
   /* App-like: 2-spaltige Summary, kompaktere Karten */
   .sankey-summary-grid-4 {
@@ -1627,18 +1688,7 @@
   mix-blend-mode: overlay;
 }
 
-.spending-cursor-spotlight {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: -1;
-  background:
-    radial-gradient(420px circle at var(--mx, 50%) var(--my, 50%),
-      rgba(96, 165, 250, 0.07),
-      rgba(167, 139, 250, 0.04) 25%,
-      transparent 50%);
-  transition: background 0.18s ease-out;
-}
+/* (Cursor-Spotlight entfernt — Hintergrund am Zeiger nicht erwuenscht) */
 
 /* ── Hero Header Upgrade ─────────────────────────────────────────────── */
 .is-premium .shared-spending-header h2 {
@@ -1851,23 +1901,7 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-.spending-ai-card-glow {
-  position: absolute;
-  inset: -2px;
-  border-radius: inherit;
-  background: conic-gradient(
-    from 0deg,
-    #A78BFA 0deg,
-    #60A5FA 90deg,
-    #34D399 180deg,
-    #F472B6 270deg,
-    #A78BFA 360deg
-  );
-  filter: blur(24px);
-  opacity: 0.45;
-  z-index: -1;
-  animation: ai-rotate 12s linear infinite;
-}
+/* (Conic-Gradient-Glow um die AI-Card entfernt — Wunsch des Users) */
 
 @keyframes ai-rotate {
   to { transform: rotate(360deg); }
