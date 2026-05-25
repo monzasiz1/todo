@@ -189,8 +189,10 @@ async function runSchemaInit(rawQuery) {
       description TEXT DEFAULT '',
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`,
+    `ALTER TABLE spending_expenses ADD COLUMN IF NOT EXISTS kind VARCHAR(10) NOT NULL DEFAULT 'expense'`,
     `CREATE INDEX IF NOT EXISTS idx_spending_expenses_group ON spending_expenses(spending_group_id, created_at DESC)`,
     `CREATE INDEX IF NOT EXISTS idx_spending_expenses_user ON spending_expenses(user_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_spending_expenses_kind ON spending_expenses(spending_group_id, kind)`,
 
     // Ensure required preference keys exist on older rows
     `UPDATE users

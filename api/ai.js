@@ -9,6 +9,7 @@ const {
   summarizeNoteWithAI,
   rewriteNoteWithAI,
   suggestNoteTagsWithAI,
+  parseSpendingWithAI,
 } = require('./_lib/mistral');
 
 function toDateOnly(value) {
@@ -320,6 +321,21 @@ module.exports = async function handler(req, res) {
     } catch (err) {
       console.error('AI permissions error:', err);
       return res.status(500).json({ error: 'KI-Berechtigungsanalyse fehlgeschlagen' });
+    }
+  }
+
+  // POST /api/ai/spending-parse — Freitext zu Einnahme/Ausgabe
+  if (action === 'spending-parse') {
+    try {
+      const { input } = req.body || {};
+      if (!String(input || '').trim()) {
+        return res.status(400).json({ error: 'Eingabe ist erforderlich' });
+      }
+      const parsed = await parseSpendingWithAI(input);
+      return res.json({ parsed });
+    } catch (err) {
+      console.error('AI spending-parse error:', err);
+      return res.status(500).json({ error: 'KI-Analyse fehlgeschlagen' });
     }
   }
 

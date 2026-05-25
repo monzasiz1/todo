@@ -396,6 +396,185 @@
   color: var(--text);
 }
 
+.sankey-btn-income {
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.32), rgba(16, 185, 129, 0.22));
+  color: var(--text);
+  border-color: rgba(52, 211, 153, 0.36);
+}
+
+.sankey-btn-income:hover {
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.42), rgba(16, 185, 129, 0.32));
+}
+
+/* ── AI Quick-Input ─────────────────────────────────────────────────── */
+.spending-ai-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, rgba(120, 119, 198, 0.10), rgba(96, 165, 250, 0.06));
+  border: 1px solid rgba(167, 139, 250, 0.22);
+  border-radius: 18px;
+  padding: 8px 8px 8px 14px;
+}
+
+.spending-ai-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  background: rgba(167, 139, 250, 0.18);
+  color: #c4b5fd;
+  flex-shrink: 0;
+}
+
+.spending-ai-input input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 0.95rem;
+  padding: 8px 0;
+}
+
+.spending-ai-input input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.spending-ai-submit {
+  padding: 10px 14px !important;
+  font-size: 0.88rem !important;
+  flex-shrink: 0;
+}
+
+.spending-spin {
+  animation: spending-spin 1s linear infinite;
+}
+
+@keyframes spending-spin {
+  to { transform: rotate(360deg); }
+}
+
+.spending-ai-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: #c4b5fd;
+  background: rgba(167, 139, 250, 0.12);
+  padding: 6px 10px;
+  border-radius: 10px;
+  align-self: flex-start;
+}
+
+/* ── 4-Spalten-Summary fuer Bilanz-Karten ───────────────────────────── */
+.sankey-summary-grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.spending-card-income {
+  border-color: rgba(52, 211, 153, 0.28);
+  background: linear-gradient(180deg, rgba(52, 211, 153, 0.08), rgba(255,255,255,0.01));
+}
+
+.spending-card-income .sankey-summary-icon {
+  background: rgba(52, 211, 153, 0.18);
+  color: #34D399;
+}
+
+.spending-card-expense {
+  border-color: rgba(96, 165, 250, 0.24);
+  background: linear-gradient(180deg, rgba(96, 165, 250, 0.06), rgba(255,255,255,0.01));
+}
+
+.spending-card-expense .sankey-summary-icon {
+  background: rgba(96, 165, 250, 0.18);
+  color: #60A5FA;
+}
+
+.spending-card-balance-pos strong { color: #34D399; }
+.spending-card-balance-neg strong { color: #F87171; }
+
+.spending-card-balance-pos {
+  border-color: rgba(52, 211, 153, 0.32);
+  background: linear-gradient(180deg, rgba(52, 211, 153, 0.12), rgba(255,255,255,0.01));
+}
+
+.spending-card-balance-pos .sankey-summary-icon {
+  background: rgba(52, 211, 153, 0.22);
+  color: #34D399;
+}
+
+.spending-card-balance-neg {
+  border-color: rgba(248, 113, 113, 0.32);
+  background: linear-gradient(180deg, rgba(248, 113, 113, 0.10), rgba(255,255,255,0.01));
+}
+
+.spending-card-balance-neg .sankey-summary-icon {
+  background: rgba(248, 113, 113, 0.22);
+  color: #F87171;
+}
+
+/* ── Kind-Tab (Einnahme/Ausgabe Toggle im Modal) ────────────────────── */
+.spending-tabs-kind .spending-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* ── Mini-Button in Panel-Headers ──────────────────────────────────── */
+.spending-panel-head-actions {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.spending-mini-btn {
+  padding: 8px !important;
+  border-radius: 10px !important;
+}
+
+/* ── Buchungs-Liste mit +/- Farben ─────────────────────────────────── */
+.spending-expense-item.is-income {
+  background: rgba(52, 211, 153, 0.06);
+}
+
+.spending-expense-amt.is-income {
+  color: #34D399;
+  font-variant-numeric: tabular-nums;
+}
+
+.spending-expense-amt.is-expense {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.spending-bar-value.is-income {
+  color: #34D399;
+}
+
+/* ── Chart Empty State Actions ─────────────────────────────────────── */
+.spending-chart-empty-actions {
+  display: inline-flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* ── Sankey-Label fuer Middle-Column ───────────────────────────────── */
+.sankey-label-middle {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sankey-label-middle.sankey-label-value {
+  font-size: 16px;
+  fill: #fff;
+}
+
 /* Section title */
 .spending-section-title {
   display: inline-flex;
@@ -951,10 +1130,31 @@
   }
 }
 
+@media (max-width: 1080px) {
+  .sankey-summary-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 760px) {
+  .sankey-summary-grid-4 {
+    grid-template-columns: 1fr;
+  }
+
   /* Sankey verstecken — Mobile bekommt die uebersichtliche Balken-Ansicht */
   .sankey-diagram-wrap { display: none; }
   .spending-mobile-flow { display: flex; }
+
+  .spending-ai-input {
+    flex-wrap: wrap;
+  }
+  .spending-ai-input input {
+    flex: 1 1 100%;
+    padding: 6px 4px;
+  }
+  .spending-ai-submit {
+    flex: 1;
+  }
 
   .spending-detail-head {
     flex-direction: column;

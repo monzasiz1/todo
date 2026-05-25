@@ -519,14 +519,20 @@ export const api = {
   removeSpendingMember: (groupId, userId) =>
     request(`/spending/${groupId}/members/${userId}`, { method: 'DELETE' }),
 
-  addSpendingExpense: (groupId, { category, amount, description }) =>
-    request(`/spending/${groupId}/expenses`, {
+  addSpendingEntry: (groupId, { kind, category, amount, description }) =>
+    request(`/spending/${groupId}/entries`, {
       method: 'POST',
-      body: JSON.stringify({ category, amount, description }),
+      body: JSON.stringify({ kind, category, amount, description }),
     }),
 
-  deleteSpendingExpense: (groupId, expenseId) =>
-    request(`/spending/${groupId}/expenses/${expenseId}`, { method: 'DELETE' }),
+  deleteSpendingEntry: (groupId, entryId) =>
+    request(`/spending/${groupId}/entries/${entryId}`, { method: 'DELETE' }),
+
+  parseSpendingText: (input) =>
+    request('/ai/spending-parse', {
+      method: 'POST',
+      body: JSON.stringify({ input }),
+    }),
 
   // Permissions
   getPermissions: (taskId) =>

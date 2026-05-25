@@ -151,9 +151,9 @@ export const useSharedSpendingStore = create((set, get) => ({
     }
   },
 
-  addExpense: async (groupId, payload) => {
+  addEntry: async (groupId, payload) => {
     try {
-      await api.addSpendingExpense(groupId, payload);
+      await api.addSpendingEntry(groupId, payload);
       if (get().activeGroup?.id === groupId) {
         await get().fetchGroupDetail(groupId);
       }
@@ -164,14 +164,23 @@ export const useSharedSpendingStore = create((set, get) => ({
     }
   },
 
-  deleteExpense: async (groupId, expenseId) => {
+  deleteEntry: async (groupId, entryId) => {
     try {
-      await api.deleteSpendingExpense(groupId, expenseId);
+      await api.deleteSpendingEntry(groupId, entryId);
       if (get().activeGroup?.id === groupId) {
         await get().fetchGroupDetail(groupId);
       }
       await get().fetchGroups();
       return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  },
+
+  parseWithAI: async (input) => {
+    try {
+      const data = await api.parseSpendingText(input);
+      return { success: true, parsed: data.parsed };
     } catch (err) {
       return { success: false, error: err.message };
     }

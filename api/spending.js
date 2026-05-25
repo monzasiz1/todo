@@ -1,7 +1,14 @@
 const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
 
-const ALLOWED_CATEGORIES = new Set(['food', 'home', 'travel', 'free']);
+const EXPENSE_CATEGORIES = new Set(['food', 'home', 'travel', 'free']);
+const INCOME_CATEGORIES = new Set(['salary', 'gift', 'side', 'other']);
+const ALLOWED_KINDS = new Set(['income', 'expense']);
+
+function validateCategoryForKind(kind, category) {
+  if (kind === 'income') return INCOME_CATEGORIES.has(category);
+  return EXPENSE_CATEGORIES.has(category);
+}
 
 async function ensureTables(pool) {
   // Idempotent guard fuer produktive Cold-Starts mit deaktiviertem
@@ -31,6 +38,7 @@ async function ensureTables(pool) {
     description TEXT DEFAULT '',
     created_at TIMESTAMPTZ DEFAULT NOW()
   )`);
+  await pool.query(`ALTER TABLE spending_expenses ADD COLUMN IF NOT EXISTS kind VARCHAR(10) NOT NULL DEFAULT 'expense'`);
 }
 
 async function isOwner(pool, groupId, userId) {
@@ -83,8 +91,8 @@ async function loadGroupDetail(pool, groupId, userId) {
     [groupId]
   );
 
-  const expensesRes = await pool.query(
-    `SELECT e.id, e.user_id, e.category, e.amount, e.description, e.created_at,
+  const entriesRes = await pool.query(
+    `SELECT e.id, e.user_id, e.kind, e.category, e.amount, e.description, e.created_at,
             u.name AS user_name, u.avatar_color AS user_avatar_color
      FROM spending_expenses e
      JOIN users u ON u.id = e.user_id
@@ -93,14 +101,17 @@ async function loadGroupDetail(pool, groupId, userId) {
     [groupId]
   );
 
+  const all = entriesRes.rows.map((row) => ({
+    ...row,
+    amount: Number(row.amount),
+  }));
+
   return {
     ...group,
     is_owner: group.owner_id === userId,
     members: membersRes.rows,
-    expenses: expensesRes.rows.map((row) => ({
-      ...row,
-      amount: Number(row.amount),
-    })),
+    expenses: all.filter((e) => (e.kind || 'expense') === 'expense'),
+    incomes: all.filter((e) => e.kind === 'income'),
   };
 }
 
@@ -131,7 +142,8 @@ module.exports = async function handler(req, res) {
                   ELSE m.status
                 END AS my_status,
                 COALESCE(member_counts.member_count, 0) AS member_count,
-                COALESCE(expense_sums.total_amount, 0)::float AS total_amount,
+                COALESCE(sums.total_expense, 0)::float AS total_amount,
+                COALESCE(sums.total_income, 0)::float AS total_income,
                 u.name AS owner_name, u.avatar_color AS owner_avatar_color
          FROM spending_groups g
          LEFT JOIN spending_members m ON m.spending_group_id = g.id AND m.user_id = $1
@@ -140,9 +152,11 @@ module.exports = async function handler(req, res) {
            FROM spending_members WHERE status = 'accepted' GROUP BY spending_group_id
          ) member_counts ON member_counts.spending_group_id = g.id
          LEFT JOIN (
-           SELECT spending_group_id, SUM(amount) AS total_amount
+           SELECT spending_group_id,
+                  SUM(CASE WHEN COALESCE(kind, 'expense') = 'expense' THEN amount ELSE 0 END) AS total_expense,
+                  SUM(CASE WHEN kind = 'income' THEN amount ELSE 0 END) AS total_income
            FROM spending_expenses GROUP BY spending_group_id
-         ) expense_sums ON expense_sums.spending_group_id = g.id
+         ) sums ON sums.spending_group_id = g.id
          JOIN users u ON u.id = g.owner_id
          WHERE g.owner_id = $1
             OR EXISTS (SELECT 1 FROM spending_members WHERE spending_group_id = g.id AND user_id = $1)
@@ -314,16 +328,18 @@ module.exports = async function handler(req, res) {
       return res.json({ success: true });
     }
 
-    // POST /api/spending/:id/expenses — Ausgabe hinzufuegen
-    if (segments.length === 2 && segments[1] === 'expenses' && req.method === 'POST') {
+    // POST /api/spending/:id/entries — Eintrag hinzufuegen (income | expense)
+    // (Alias /expenses bleibt fuer Rueckwaertskompatibilitaet erhalten.)
+    if (segments.length === 2 && (segments[1] === 'entries' || segments[1] === 'expenses') && req.method === 'POST') {
       const groupId = Number(segments[0]);
-      const { category, amount, description } = req.body || {};
+      const { kind = 'expense', category, amount, description } = req.body || {};
       if (!Number.isFinite(groupId)) return res.status(400).json({ error: 'Ungueltige ID' });
-      if (!ALLOWED_CATEGORIES.has(String(category))) {
+      if (!ALLOWED_KINDS.has(String(kind))) return res.status(400).json({ error: 'Art ungueltig' });
+      if (!validateCategoryForKind(kind, String(category))) {
         return res.status(400).json({ error: 'Kategorie ungueltig' });
       }
       const amt = Number(amount);
-      if (!Number.isFinite(amt) || amt < 0 || amt > 1_000_000) {
+      if (!Number.isFinite(amt) || amt < 0 || amt > 10_000_000) {
         return res.status(400).json({ error: 'Betrag ungueltig' });
       }
 
@@ -331,19 +347,19 @@ module.exports = async function handler(req, res) {
       if (!allowed) return res.status(403).json({ error: 'Kein Zugriff' });
 
       const result = await pool.query(
-        `INSERT INTO spending_expenses (spending_group_id, user_id, category, amount, description)
-         VALUES ($1, $2, $3, $4, $5)
-         RETURNING id, user_id, category, amount, description, created_at`,
-        [groupId, user.id, category, amt, String(description || '').slice(0, 500)]
+        `INSERT INTO spending_expenses (spending_group_id, user_id, kind, category, amount, description)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id, user_id, kind, category, amount, description, created_at`,
+        [groupId, user.id, kind, category, amt, String(description || '').slice(0, 500)]
       );
       const row = result.rows[0];
       return res.status(201).json({
-        expense: { ...row, amount: Number(row.amount) },
+        entry: { ...row, amount: Number(row.amount) },
       });
     }
 
-    // DELETE /api/spending/:id/expenses/:expenseId — Ausgabe loeschen (eigene oder als Owner)
-    if (segments.length === 3 && segments[1] === 'expenses' && req.method === 'DELETE') {
+    // DELETE /api/spending/:id/entries/:id (Alias: /expenses/:id)
+    if (segments.length === 3 && (segments[1] === 'entries' || segments[1] === 'expenses') && req.method === 'DELETE') {
       const groupId = Number(segments[0]);
       const expenseId = Number(segments[2]);
       const owner = await isOwner(pool, groupId, user.id);

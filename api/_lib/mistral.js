@@ -774,6 +774,95 @@ JSON Format:
   }
 }
 
+async function parseSpendingWithAI(input) {
+  const key = process.env.MISTRAL_API_KEY;
+  if (!key) throw new Error('MISTRAL_API_KEY nicht konfiguriert');
+
+  const systemPrompt = `Du bist ein Finanz-Assistent. Analysiere Freitext und extrahiere eine Einnahme oder Ausgabe.
+
+WICHTIG: Antworte NUR mit validem JSON-Objekt.
+
+JSON Format:
+{
+  "kind": "income" | "expense",
+  "category": "food" | "home" | "travel" | "free" | "salary" | "gift" | "side" | "other",
+  "amount": number,
+  "description": "string",
+  "confidence": 0.0-1.0
+}
+
+Regeln:
+- kind = "income" bei: Gehalt, Lohn, Geschenk, Auszahlung, Erstattung, Verkauf, Nebenjob, Trinkgeld, Rente, Bonus, Zinsen, Dividende, BAföG, Stipendium.
+- kind = "expense" bei: Kauf, Rechnung, Miete, Einkauf, Restaurant, Tanken, Ticket, Hotel, sonst alles was Geld kostet.
+- Ausgaben-Kategorien:
+  - "food" = Essen, Trinken, Restaurant, Cafe, Supermarkt, Lieferdienst, Pizza, Bäcker
+  - "home" = Miete, Nebenkosten, Strom, Wasser, Internet, Möbel, Renovierung, Versicherung, Putzmittel
+  - "travel" = Tickets, Bahn, Flug, Hotel, Tanken, Taxi, Urlaub, Ausflug, Maut
+  - "free" = Freizeit, Kino, Konzert, Sport, Hobby, Streaming, Bücher, Spiele, Shopping, Kleidung
+- Einnahmen-Kategorien:
+  - "salary" = Gehalt, Lohn, monatliches Einkommen, Rente, BAföG
+  - "gift" = Geschenk, Trinkgeld, Spende
+  - "side" = Nebenjob, Verkauf, Freelance, Bonus, Provision
+  - "other" = alles andere Eingehende
+- amount: Zahl in Euro. Akzeptiere "10€", "10,50", "10.50", "ca 20". Falls unklar → 0.
+- description: kurze beschreibende Zeile, z.B. "Pizza Mario", "Wocheneinkauf REWE", "Gehalt Mai", "Tankfüllung". Lass den Betrag und das Wort "Euro" aus der Beschreibung weg.
+- confidence: dein Sicherheitswert.
+
+Beispiele:
+- "25€ Pizza heute" → {"kind":"expense","category":"food","amount":25,"description":"Pizza","confidence":0.95}
+- "Wocheneinkauf REWE 87,50" → {"kind":"expense","category":"food","amount":87.50,"description":"Wocheneinkauf REWE","confidence":0.95}
+- "Tankfüllung 65" → {"kind":"expense","category":"travel","amount":65,"description":"Tankfüllung","confidence":0.9}
+- "Gehalt 2400" → {"kind":"income","category":"salary","amount":2400,"description":"Gehalt","confidence":0.95}
+- "Oma 50 geschenkt" → {"kind":"income","category":"gift","amount":50,"description":"Geschenk Oma","confidence":0.9}
+- "Konzertkarte Rammstein 89" → {"kind":"expense","category":"free","amount":89,"description":"Konzertkarte Rammstein","confidence":0.95}
+- "Stromrechnung Januar 142,30" → {"kind":"expense","category":"home","amount":142.30,"description":"Stromrechnung Januar","confidence":0.95}`;
+
+  const response = await fetch(MISTRAL_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify({
+      model: 'mistral-small-latest',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: String(input || '') },
+      ],
+      temperature: 0.1,
+      max_tokens: 200,
+      response_format: { type: 'json_object' },
+    }),
+  });
+
+  if (!response.ok) throw new Error(`Mistral API Fehler: ${response.status}`);
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error('Keine Antwort von Mistral');
+
+  try {
+    const parsed = JSON.parse(content);
+    const kind = parsed.kind === 'income' ? 'income' : 'expense';
+    const expenseCats = new Set(['food', 'home', 'travel', 'free']);
+    const incomeCats = new Set(['salary', 'gift', 'side', 'other']);
+    const validCats = kind === 'income' ? incomeCats : expenseCats;
+    const category = validCats.has(parsed.category) ? parsed.category : (kind === 'income' ? 'other' : 'free');
+    let amount = Number(parsed.amount);
+    if (!Number.isFinite(amount) || amount < 0) amount = 0;
+    amount = Math.round(amount * 100) / 100;
+    return {
+      kind,
+      category,
+      amount,
+      description: String(parsed.description || '').slice(0, 200).trim(),
+      confidence: Number(parsed.confidence) || 0.5,
+    };
+  } catch {
+    return { kind: 'expense', category: 'free', amount: 0, description: '', confidence: 0.1 };
+  }
+}
+
 module.exports = {
   parseTaskWithAI,
   parsePermissionsWithAI,
@@ -783,5 +872,6 @@ module.exports = {
   summarizeNoteWithAI,
   rewriteNoteWithAI,
   suggestNoteTagsWithAI,
+  parseSpendingWithAI,
 };
 
