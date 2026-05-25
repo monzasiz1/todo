@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Users, TrendingUp, TrendingDown, Plus, Trash2, X, Check,
-  UserPlus, Receipt, Sparkles, ChevronRight, LogOut, AlertCircle,
-  Wand2, ArrowDownCircle, ArrowUpCircle, Wallet, Loader2,
+  UserPlus, Receipt, Sparkles, ChevronRight, ChevronLeft, LogOut, AlertCircle,
+  Wand2, ArrowDownCircle, ArrowUpCircle, Wallet, Loader2, Repeat, Calendar,
 } from 'lucide-react';
 import { useSharedSpendingStore } from '../store/sharedSpendingStore';
 import { useFriendsStore } from '../store/friendsStore';
@@ -47,6 +47,75 @@ function fmtAmount(value) {
   return n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+const MONTH_NAMES_DE = [
+  'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+  'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
+];
+
+function monthLabel(year, month1) {
+  return `${MONTH_NAMES_DE[month1 - 1]} ${year}`;
+}
+
+function currentMonthKey() {
+  const d = new Date();
+  return { year: d.getFullYear(), month: d.getMonth() + 1 };
+}
+
+function shiftMonth({ year, month }, delta) {
+  let y = year;
+  let m = month + delta;
+  while (m < 1) { m += 12; y -= 1; }
+  while (m > 12) { m -= 12; y += 1; }
+  return { year: y, month: m };
+}
+
+const RECURRENCE_LABELS = {
+  none: 'Einmalig',
+  monthly: 'Monatlich',
+  quarterly: 'Vierteljährlich',
+  yearly: 'Jährlich',
+};
+
+/* Liefert true, wenn ein Eintrag im angegebenen Monat zaehlt:
+ * - einmalig: entry_date faellt in den Monat
+ * - monatlich: entry_date <= MonatsEnde && (kein Ende oder Ende >= MonatsAnfang)
+ * - vierteljaehrlich: zusaetzlich (Monatsabstand % 3 === 0)
+ * - jaehrlich: zusaetzlich (Monatsabstand % 12 === 0) */
+function isEntryInMonth(entry, year, month) {
+  const rawDate = entry.entry_date || entry.created_at;
+  if (!rawDate) return false;
+  const entryDate = new Date(rawDate);
+  if (Number.isNaN(entryDate.getTime())) return false;
+
+  const eY = entryDate.getUTCFullYear();
+  const eM = entryDate.getUTCMonth() + 1;
+
+  // Einmalig: muss exakt im Monat liegen
+  if (!entry.recurrence || entry.recurrence === 'none') {
+    return eY === year && eM === month;
+  }
+
+  // Recurring: Start nicht in der Zukunft (relativ zum aktuellen Monat)
+  const startDelta = (year - eY) * 12 + (month - eM);
+  if (startDelta < 0) return false;
+
+  // End-Datum darf nicht vor dem Monatsanfang liegen
+  if (entry.recurrence_end) {
+    const end = new Date(entry.recurrence_end);
+    if (!Number.isNaN(end.getTime())) {
+      const endY = end.getUTCFullYear();
+      const endM = end.getUTCMonth() + 1;
+      const endDelta = (year - endY) * 12 + (month - endM);
+      if (endDelta > 0) return false;
+    }
+  }
+
+  if (entry.recurrence === 'monthly') return true;
+  if (entry.recurrence === 'quarterly') return startDelta % 3 === 0;
+  if (entry.recurrence === 'yearly') return startDelta % 12 === 0;
+  return false;
+}
+
 export default function SharedSpendingPage() {
   const {
     groups, activeGroup, loading, detailLoading,
@@ -61,6 +130,8 @@ export default function SharedSpendingPage() {
   const [showInvite, setShowInvite] = useState(false);
   // Entry-Modal: { kind: 'income'|'expense', prefill?: parsed }
   const [entryModal, setEntryModal] = useState(null);
+  // Aktuell gewaehlter Monat — default: heute
+  const [viewMonth, setViewMonth] = useState(currentMonthKey);
 
   useEffect(() => {
     fetchGroups();
@@ -265,6 +336,8 @@ export default function SharedSpendingPage() {
             <GroupDetail
               group={activeGroup}
               detailLoading={detailLoading}
+              viewMonth={viewMonth}
+              onChangeMonth={setViewMonth}
               onInvite={() => setShowInvite(true)}
               onAddExpense={() => setEntryModal({ kind: 'expense' })}
               onAddIncome={() => setEntryModal({ kind: 'income' })}
@@ -295,6 +368,7 @@ export default function SharedSpendingPage() {
         <EntryModal
           mode={entryModal.kind}
           prefill={entryModal.prefill}
+          viewMonth={viewMonth}
           onClose={() => setEntryModal(null)}
           onSubmit={handleAddEntry}
           onSwitch={(k) => setEntryModal((m) => ({ ...(m || {}), kind: k, prefill: undefined }))}
@@ -323,6 +397,7 @@ function GroupDetail({
       name: group.owner_name,
       isOwner: true,
       color: MEMBER_PALETTE[0],
+      avatar_url: group.owner_avatar_url || null,
     };
     group.members
       .filter((m) => m.status === 'accepted')
@@ -332,6 +407,7 @@ function GroupDetail({
           name: m.name,
           isOwner: false,
           color: MEMBER_PALETTE[(i + 1) % MEMBER_PALETTE.length],
+          avatar_url: m.avatar_url || null,
         };
       });
     return map;
@@ -498,7 +574,11 @@ function GroupDetail({
             {activeMembers.map((m) => (
               <li key={m.id} className="spending-member-item">
                 <span className="spending-avatar" style={{ background: m.color }}>
-                  {(m.name || '?').slice(0, 1).toUpperCase()}
+                  {m.avatar_url ? (
+                    <img src={m.avatar_url} alt={m.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    (m.name || '?').slice(0, 1).toUpperCase()
+                  )}
                 </span>
                 <div>
                   <strong>{m.name}</strong>
@@ -671,6 +751,8 @@ function InviteFriendModal({ friends, existingMemberIds, onClose, onSubmit }) {
         id: f.friend_user_id,
         name: f.name || f.email,
         email: f.email,
+        avatar_url: f.avatar_url || null,
+        avatar_color: f.avatar_color || '#5AC8FA',
       }));
   }, [friends, existingMemberIds]);
 
@@ -729,8 +811,12 @@ function InviteFriendModal({ friends, existingMemberIds, onClose, onSubmit }) {
                     disabled={submitting}
                     onClick={() => submitFriend(f.id)}
                   >
-                    <span className="spending-avatar" style={{ background: '#5AC8FA' }}>
-                      {(f.name || '?').slice(0, 1).toUpperCase()}
+                    <span className="spending-avatar" style={{ background: f.avatar_color }}>
+                      {f.avatar_url ? (
+                        <img src={f.avatar_url} alt={f.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        (f.name || '?').slice(0, 1).toUpperCase()
+                      )}
                     </span>
                     <div>
                       <strong>{f.name}</strong>

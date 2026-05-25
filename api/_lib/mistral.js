@@ -788,6 +788,7 @@ JSON Format:
   "category": "food" | "home" | "travel" | "free" | "salary" | "gift" | "side" | "other",
   "amount": number,
   "description": "string",
+  "recurrence": "none" | "monthly" | "quarterly" | "yearly",
   "confidence": 0.0-1.0
 }
 
@@ -806,16 +807,25 @@ Regeln:
   - "other" = alles andere Eingehende
 - amount: Zahl in Euro. Akzeptiere "10€", "10,50", "10.50", "ca 20". Falls unklar → 0.
 - description: kurze beschreibende Zeile, z.B. "Pizza Mario", "Wocheneinkauf REWE", "Gehalt Mai", "Tankfüllung". Lass den Betrag und das Wort "Euro" aus der Beschreibung weg.
+- recurrence: erkenne ob es sich um eine WIEDERKEHRENDE Zahlung handelt:
+  - "monatlich", "jeden Monat", "pro Monat", "p.M.", "monatl.", "Abo", "Miete", "Gehalt", "Strom", "Netflix", "Spotify", "Versicherung", "Handyvertrag", "Internet", "GEZ", "Rundfunk", "Fitnessstudio" → "monthly"
+  - "vierteljährlich", "quartalsweise", "alle 3 Monate", "alle drei Monate", "Q1/Q2/Q3/Q4" → "quarterly"
+  - "jährlich", "jedes Jahr", "p.a.", "pro Jahr", "Jahresbeitrag", "Versicherung jährlich" → "yearly"
+  - sonst → "none"
 - confidence: dein Sicherheitswert.
 
 Beispiele:
-- "25€ Pizza heute" → {"kind":"expense","category":"food","amount":25,"description":"Pizza","confidence":0.95}
-- "Wocheneinkauf REWE 87,50" → {"kind":"expense","category":"food","amount":87.50,"description":"Wocheneinkauf REWE","confidence":0.95}
-- "Tankfüllung 65" → {"kind":"expense","category":"travel","amount":65,"description":"Tankfüllung","confidence":0.9}
-- "Gehalt 2400" → {"kind":"income","category":"salary","amount":2400,"description":"Gehalt","confidence":0.95}
-- "Oma 50 geschenkt" → {"kind":"income","category":"gift","amount":50,"description":"Geschenk Oma","confidence":0.9}
-- "Konzertkarte Rammstein 89" → {"kind":"expense","category":"free","amount":89,"description":"Konzertkarte Rammstein","confidence":0.95}
-- "Stromrechnung Januar 142,30" → {"kind":"expense","category":"home","amount":142.30,"description":"Stromrechnung Januar","confidence":0.95}`;
+- "25€ Pizza heute" → {"kind":"expense","category":"food","amount":25,"description":"Pizza","recurrence":"none","confidence":0.95}
+- "Wocheneinkauf REWE 87,50" → {"kind":"expense","category":"food","amount":87.50,"description":"Wocheneinkauf REWE","recurrence":"none","confidence":0.95}
+- "Tankfüllung 65" → {"kind":"expense","category":"travel","amount":65,"description":"Tankfüllung","recurrence":"none","confidence":0.9}
+- "Gehalt 2400" → {"kind":"income","category":"salary","amount":2400,"description":"Gehalt","recurrence":"monthly","confidence":0.95}
+- "Miete 850 monatlich" → {"kind":"expense","category":"home","amount":850,"description":"Miete","recurrence":"monthly","confidence":0.98}
+- "Netflix Abo 17,99" → {"kind":"expense","category":"free","amount":17.99,"description":"Netflix Abo","recurrence":"monthly","confidence":0.95}
+- "Versicherung 320 vierteljährlich" → {"kind":"expense","category":"home","amount":320,"description":"Versicherung","recurrence":"quarterly","confidence":0.95}
+- "GEZ alle 3 Monate 55,08" → {"kind":"expense","category":"home","amount":55.08,"description":"GEZ Rundfunkbeitrag","recurrence":"quarterly","confidence":0.95}
+- "KfZ-Versicherung 480 jährlich" → {"kind":"expense","category":"travel","amount":480,"description":"KfZ-Versicherung","recurrence":"yearly","confidence":0.95}
+- "Oma 50 geschenkt" → {"kind":"income","category":"gift","amount":50,"description":"Geschenk Oma","recurrence":"none","confidence":0.9}
+- "Konzertkarte Rammstein 89" → {"kind":"expense","category":"free","amount":89,"description":"Konzertkarte Rammstein","recurrence":"none","confidence":0.95}`;
 
   const response = await fetch(MISTRAL_API_URL, {
     method: 'POST',
@@ -848,6 +858,8 @@ Beispiele:
     const incomeCats = new Set(['salary', 'gift', 'side', 'other']);
     const validCats = kind === 'income' ? incomeCats : expenseCats;
     const category = validCats.has(parsed.category) ? parsed.category : (kind === 'income' ? 'other' : 'free');
+    const validRecurrences = new Set(['none', 'monthly', 'quarterly', 'yearly']);
+    const recurrence = validRecurrences.has(parsed.recurrence) ? parsed.recurrence : 'none';
     let amount = Number(parsed.amount);
     if (!Number.isFinite(amount) || amount < 0) amount = 0;
     amount = Math.round(amount * 100) / 100;
@@ -856,10 +868,11 @@ Beispiele:
       category,
       amount,
       description: String(parsed.description || '').slice(0, 200).trim(),
+      recurrence,
       confidence: Number(parsed.confidence) || 0.5,
     };
   } catch {
-    return { kind: 'expense', category: 'free', amount: 0, description: '', confidence: 0.1 };
+    return { kind: 'expense', category: 'free', amount: 0, description: '', recurrence: 'none', confidence: 0.1 };
   }
 }
 

@@ -190,9 +190,15 @@ async function runSchemaInit(rawQuery) {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`,
     `ALTER TABLE spending_expenses ADD COLUMN IF NOT EXISTS kind VARCHAR(10) NOT NULL DEFAULT 'expense'`,
+    `ALTER TABLE spending_expenses ADD COLUMN IF NOT EXISTS recurrence VARCHAR(20) NOT NULL DEFAULT 'none'`,
+    `ALTER TABLE spending_expenses ADD COLUMN IF NOT EXISTS entry_date DATE`,
+    `ALTER TABLE spending_expenses ADD COLUMN IF NOT EXISTS recurrence_end DATE`,
+    // Backfill: entry_date aus created_at fuer alte Eintraege
+    `UPDATE spending_expenses SET entry_date = created_at::DATE WHERE entry_date IS NULL`,
     `CREATE INDEX IF NOT EXISTS idx_spending_expenses_group ON spending_expenses(spending_group_id, created_at DESC)`,
     `CREATE INDEX IF NOT EXISTS idx_spending_expenses_user ON spending_expenses(user_id)`,
     `CREATE INDEX IF NOT EXISTS idx_spending_expenses_kind ON spending_expenses(spending_group_id, kind)`,
+    `CREATE INDEX IF NOT EXISTS idx_spending_expenses_recurrence ON spending_expenses(spending_group_id, recurrence)`,
 
     // Ensure required preference keys exist on older rows
     `UPDATE users

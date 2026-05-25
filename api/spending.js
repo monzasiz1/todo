@@ -4,10 +4,17 @@ const { verifyToken, cors } = require('./_lib/auth');
 const EXPENSE_CATEGORIES = new Set(['food', 'home', 'travel', 'free']);
 const INCOME_CATEGORIES = new Set(['salary', 'gift', 'side', 'other']);
 const ALLOWED_KINDS = new Set(['income', 'expense']);
+const ALLOWED_RECURRENCES = new Set(['none', 'monthly', 'quarterly', 'yearly']);
 
 function validateCategoryForKind(kind, category) {
   if (kind === 'income') return INCOME_CATEGORIES.has(category);
   return EXPENSE_CATEGORIES.has(category);
+}
+
+function sanitizeDate(value) {
+  if (!value) return null;
+  const s = String(value).slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
 }
 
 async function ensureTables(pool) {
@@ -39,6 +46,10 @@ async function ensureTables(pool) {
     created_at TIMESTAMPTZ DEFAULT NOW()
   )`);
   await pool.query(`ALTER TABLE spending_expenses ADD COLUMN IF NOT EXISTS kind VARCHAR(10) NOT NULL DEFAULT 'expense'`);
+  await pool.query(`ALTER TABLE spending_expenses ADD COLUMN IF NOT EXISTS recurrence VARCHAR(20) NOT NULL DEFAULT 'none'`);
+  await pool.query(`ALTER TABLE spending_expenses ADD COLUMN IF NOT EXISTS entry_date DATE`);
+  await pool.query(`ALTER TABLE spending_expenses ADD COLUMN IF NOT EXISTS recurrence_end DATE`);
+  await pool.query(`UPDATE spending_expenses SET entry_date = created_at::DATE WHERE entry_date IS NULL`);
 }
 
 async function isOwner(pool, groupId, userId) {
@@ -93,11 +104,12 @@ async function loadGroupDetail(pool, groupId, userId) {
 
   const entriesRes = await pool.query(
     `SELECT e.id, e.user_id, e.kind, e.category, e.amount, e.description, e.created_at,
+            e.recurrence, e.entry_date, e.recurrence_end,
             u.name AS user_name, u.avatar_color AS user_avatar_color
      FROM spending_expenses e
      JOIN users u ON u.id = e.user_id
      WHERE e.spending_group_id = $1
-     ORDER BY e.created_at DESC`,
+     ORDER BY COALESCE(e.entry_date, e.created_at::DATE) DESC, e.created_at DESC`,
     [groupId]
   );
 
@@ -332,11 +344,17 @@ module.exports = async function handler(req, res) {
     // (Alias /expenses bleibt fuer Rueckwaertskompatibilitaet erhalten.)
     if (segments.length === 2 && (segments[1] === 'entries' || segments[1] === 'expenses') && req.method === 'POST') {
       const groupId = Number(segments[0]);
-      const { kind = 'expense', category, amount, description } = req.body || {};
+      const {
+        kind = 'expense', category, amount, description,
+        recurrence = 'none', entry_date, recurrence_end,
+      } = req.body || {};
       if (!Number.isFinite(groupId)) return res.status(400).json({ error: 'Ungueltige ID' });
       if (!ALLOWED_KINDS.has(String(kind))) return res.status(400).json({ error: 'Art ungueltig' });
       if (!validateCategoryForKind(kind, String(category))) {
         return res.status(400).json({ error: 'Kategorie ungueltig' });
+      }
+      if (!ALLOWED_RECURRENCES.has(String(recurrence))) {
+        return res.status(400).json({ error: 'Wiederholung ungueltig' });
       }
       const amt = Number(amount);
       if (!Number.isFinite(amt) || amt < 0 || amt > 10_000_000) {
@@ -346,11 +364,21 @@ module.exports = async function handler(req, res) {
       const allowed = await isAcceptedMemberOrOwner(pool, groupId, user.id);
       if (!allowed) return res.status(403).json({ error: 'Kein Zugriff' });
 
+      const entryDate = sanitizeDate(entry_date) || new Date().toISOString().slice(0, 10);
+      const recEnd = sanitizeDate(recurrence_end);
+
       const result = await pool.query(
-        `INSERT INTO spending_expenses (spending_group_id, user_id, kind, category, amount, description)
-         VALUES ($1, $2, $3, $4, $5, $6)
-         RETURNING id, user_id, kind, category, amount, description, created_at`,
-        [groupId, user.id, kind, category, amt, String(description || '').slice(0, 500)]
+        `INSERT INTO spending_expenses
+           (spending_group_id, user_id, kind, category, amount, description,
+            recurrence, entry_date, recurrence_end)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         RETURNING id, user_id, kind, category, amount, description,
+                   recurrence, entry_date, recurrence_end, created_at`,
+        [
+          groupId, user.id, kind, category, amt,
+          String(description || '').slice(0, 500),
+          recurrence, entryDate, recEnd,
+        ]
       );
       const row = result.rows[0];
       return res.status(201).json({

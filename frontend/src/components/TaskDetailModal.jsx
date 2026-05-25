@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTaskStore } from '../store/taskStore';
 import { useGroupStore } from '../store/groupStore';
 import { useNotesStore } from '../store/notesStore';
+import { htmlToPlain } from '../lib/noteFormat';
 import NoteEditorModal from './NoteEditorModal';
 import { lockScroll, unlockScroll } from '../utils/scrollLock';
 import { api } from '../utils/api';
@@ -1785,7 +1786,8 @@ function parseNoteMeta(content) {
   const m = raw.match(/^\[COLOR:([^\]]+)\]\s*/);
   const accent = m ? (NOTE_COLOR_MAP[m[1]] || '#E6D35C') : '#E6D35C';
   const rest = m ? raw.slice(m[0].length) : raw;
-  const snippet = rest.replace(/^[#>\-*`\s]+/g, '').slice(0, 60);
+  const plain = htmlToPlain(rest);
+  const snippet = plain.replace(/^[#>\-*`\s]+/g, '').slice(0, 60);
   return { accent, snippet };
 }
 
