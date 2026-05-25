@@ -83,7 +83,7 @@ async function areFriends(pool, userA, userB) {
 async function loadGroupDetail(pool, groupId, userId) {
   const groupRes = await pool.query(
     `SELECT g.id, g.name, g.owner_id, g.created_at,
-            u.name AS owner_name, u.email AS owner_email, u.avatar_color AS owner_avatar_color
+            u.name AS owner_name, u.email AS owner_email, u.avatar_color AS owner_avatar_color, u.avatar_url AS owner_avatar_url
      FROM spending_groups g
      JOIN users u ON u.id = g.owner_id
      WHERE g.id = $1`,
@@ -156,7 +156,7 @@ module.exports = async function handler(req, res) {
                 COALESCE(member_counts.member_count, 0) AS member_count,
                 COALESCE(sums.total_expense, 0)::float AS total_amount,
                 COALESCE(sums.total_income, 0)::float AS total_income,
-                u.name AS owner_name, u.avatar_color AS owner_avatar_color
+                u.name AS owner_name, u.avatar_color AS owner_avatar_color, u.avatar_url AS owner_avatar_url
          FROM spending_groups g
          LEFT JOIN spending_members m ON m.spending_group_id = g.id AND m.user_id = $1
          LEFT JOIN (
