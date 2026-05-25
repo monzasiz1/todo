@@ -97,6 +97,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
     { to: '/app/notes', icon: Sparkles, label: 'Notes' },
     { to: '/app/groups', icon: UsersRound, label: 'Gruppen' },
     { to: '/app/shared-spending', icon: TrendingUp, label: 'Ausgaben' },
+    { to: '/app/finance-dashboard', icon: TrendingUp, label: '💰 Finanzen' },
   ];
 
   const getTaskCount = (categoryId) => {
