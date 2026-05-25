@@ -11,7 +11,7 @@ export default function NetWorthDashboard() {
 
   useEffect(() => {
     fetchNetWorth();
-  }, []);
+  }, [fetchNetWorth]);
 
   const handleAddAccount = async (e) => {
     e.preventDefault();

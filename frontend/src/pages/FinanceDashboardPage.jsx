@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { useState } from 'react';
 import NetWorthDashboard from '../components/NetWorthDashboard';
 import FinancialGoals from '../components/FinancialGoals';
 import CashflowTimeline from '../components/CashflowTimeline';

@@ -14,7 +14,7 @@ export default function CashflowTimeline() {
     } else {
       fetchProjections(monthsAhead);
     }
-  }, [view, monthsAhead]);
+  }, [view, monthsAhead, fetchTimeline, fetchProjections]);
 
   const formatAmount = (amount) => {
     return (amount || 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });

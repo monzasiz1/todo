@@ -17,7 +17,7 @@ export default function FinancialGoals() {
 
   useEffect(() => {
     fetchGoals();
-  }, []);
+  }, [fetchGoals]);
 
   const handleAddGoal = async (e) => {
     e.preventDefault();

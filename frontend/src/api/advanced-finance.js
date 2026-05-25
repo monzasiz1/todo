@@ -2,149 +2,129 @@
  * Frontend API Clients für Advanced Finance Features
  */
 
+// Utility for API calls with error handling
+async function apiCall(url, options = {}) {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      ...options,
+    });
+    
+    if (!res.ok) {
+      const error = await res.text();
+      throw new Error(`API Error: ${res.status} - ${error}`);
+    }
+    
+    return await res.json();
+  } catch (err) {
+    console.error(`API call to ${url} failed:`, err);
+    throw err;
+  }
+}
+
 // Net Worth API
 export const netWorthAPI = {
   async getNetWorth() {
-    const res = await fetch('/api/net-worth');
-    if (!res.ok) throw new Error('Net Worth fetch failed');
-    return res.json();
+    return apiCall('/api/net-worth');
   },
 
   async createAccount(data) {
-    const res = await fetch('/api/net-worth/accounts', {
+    return apiCall('/api/net-worth/accounts', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Create account failed');
-    return res.json();
   },
 
   async updateAccount(id, data) {
-    const res = await fetch(`/api/net-worth/accounts/${id}`, {
+    return apiCall(`/api/net-worth/accounts/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Update account failed');
-    return res.json();
   },
 
   async deleteAccount(id) {
-    const res = await fetch(`/api/net-worth/accounts/${id}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error('Delete account failed');
-    return res.json();
+    return apiCall(`/api/net-worth/accounts/${id}`, { method: 'DELETE' });
   },
 
   async createLiability(data) {
-    const res = await fetch('/api/net-worth/liabilities', {
+    return apiCall('/api/net-worth/liabilities', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Create liability failed');
-    return res.json();
   },
 
   async updateLiability(id, data) {
-    const res = await fetch(`/api/net-worth/liabilities/${id}`, {
+    return apiCall(`/api/net-worth/liabilities/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Update liability failed');
-    return res.json();
   },
 
   async deleteLiability(id) {
-    const res = await fetch(`/api/net-worth/liabilities/${id}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error('Delete liability failed');
-    return res.json();
+    return apiCall(`/api/net-worth/liabilities/${id}`, { method: 'DELETE' });
   },
 };
 
 // Financial Goals API
 export const goalsAPI = {
   async getGoals() {
-    const res = await fetch('/api/goals');
-    if (!res.ok) throw new Error('Goals fetch failed');
-    return res.json();
+    return apiCall('/api/financial-goals');
   },
 
   async createGoal(data) {
-    const res = await fetch('/api/goals', {
+    return apiCall('/api/financial-goals', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Create goal failed');
-    return res.json();
   },
 
   async updateGoal(id, data) {
-    const res = await fetch(`/api/goals/${id}`, {
+    return apiCall(`/api/financial-goals/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Update goal failed');
-    return res.json();
   },
 
   async contributeToGoal(id, amount) {
-    const res = await fetch(`/api/goals/${id}/contribute`, {
+    return apiCall(`/api/financial-goals/${id}/contribute`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ amount }),
     });
-    if (!res.ok) throw new Error('Contribute failed');
-    return res.json();
   },
 
   async deleteGoal(id) {
-    const res = await fetch(`/api/goals/${id}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error('Delete goal failed');
-    return res.json();
+    return apiCall(`/api/financial-goals/${id}`, { method: 'DELETE' });
   },
 };
 
 // Cashflow API
 export const cashflowAPI = {
   async getTimeline(months = 3) {
-    const res = await fetch(`/api/cashflow/timeline?months=${months}`);
-    if (!res.ok) throw new Error('Timeline fetch failed');
-    return res.json();
+    return apiCall(`/api/cashflow/timeline?months=${months}`);
   },
 
   async getProjections(months = 3) {
-    const res = await fetch(`/api/cashflow/projections?months=${months}`);
-    if (!res.ok) throw new Error('Projections fetch failed');
-    return res.json();
+    return apiCall(`/api/cashflow/projections?months=${months}`);
   },
 
   async createEvent(data) {
-    const res = await fetch('/api/cashflow/events', {
+    return apiCall('/api/cashflow/events', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Create event failed');
-    return res.json();
   },
 
   async updateEvent(id, data) {
-    const res = await fetch(`/api/cashflow/events/${id}`, {
+    return apiCall(`/api/cashflow/events/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Update event failed');
-    return res.json();
   },
 
   async deleteEvent(id) {
-    const res = await fetch(`/api/cashflow/events/${id}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error('Delete event failed');
-    return res.json();
+    return apiCall(`/api/cashflow/events/${id}`, { method: 'DELETE' });
   },
 };
