@@ -1,0 +1,423 @@
+/**
+ * Premium Sankey Visualization CSS
+ * Stripe/Apple/Linear Style
+ * Glassmorphism • Smooth Animations • Gradient Flows • Glow Effects
+ */
+
+.sankey-container {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.6) 0%, rgba(7, 10, 18, 0.6) 100%);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  margin: 24px 0;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  min-height: 720px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ──────────────────────────────────────── */
+/* Background Effects */
+/* ──────────────────────────────────────── */
+
+.sankey-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 24px;
+  pointer-events: none;
+}
+
+.sankey-gradient-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(6, 182, 212, 0.05) 0%,
+    rgba(16, 185, 129, 0.02) 50%,
+    rgba(139, 92, 246, 0.02) 100%
+  );
+}
+
+.sankey-grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+  opacity: 0.4;
+}
+
+.sankey-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.15;
+  animation: float 20s ease-in-out infinite;
+}
+
+.sankey-orb-1 {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.4), transparent);
+  top: -50%;
+  right: -10%;
+  animation-delay: 0s;
+}
+
+.sankey-orb-2 {
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.4), transparent);
+  bottom: -10%;
+  left: -5%;
+  animation-delay: 10s;
+}
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0); }
+  33% { transform: translate(30px, -20px); }
+  66% { transform: translate(-20px, 30px); }
+}
+
+/* ──────────────────────────────────────── */
+/* SVG Styling */
+/* ──────────────────────────────────────── */
+
+.sankey-svg {
+  position: relative;
+  z-index: 2;
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.1));
+}
+
+/* ──────────────────────────────────────── */
+/* Flows (Bänder) */
+/* ──────────────────────────────────────── */
+
+.sankey-flow-glow {
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sankey-flow {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.65;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sankey-flow:hover {
+  opacity: 1;
+  filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.3));
+  stroke-width: 2px !important;
+}
+
+.sankey-flow.active {
+  opacity: 1;
+  filter: drop-shadow(0 0 16px currentColor);
+}
+
+/* Animation: Flow entrance */
+@keyframes flowEnter {
+  from {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    opacity: 0;
+  }
+  to {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+.sankey-flow {
+  animation: flowEnter 2.4s ease-out forwards;
+  animation-fill-mode: both;
+}
+
+.sankey-flow:nth-child(1) { animation-delay: 0.1s; }
+.sankey-flow:nth-child(2) { animation-delay: 0.2s; }
+.sankey-flow:nth-child(3) { animation-delay: 0.3s; }
+.sankey-flow:nth-child(4) { animation-delay: 0.4s; }
+.sankey-flow:nth-child(5) { animation-delay: 0.5s; }
+.sankey-flow:nth-child(6) { animation-delay: 0.6s; }
+.sankey-flow:nth-child(7) { animation-delay: 0.7s; }
+.sankey-flow:nth-child(8) { animation-delay: 0.8s; }
+
+/* ──────────────────────────────────────── */
+/* Nodes */
+/* ──────────────────────────────────────── */
+
+.sankey-node {
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.sankey-node:hover {
+  transform: scale(1.08);
+  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.4));
+}
+
+.sankey-node:hover .node-main {
+  opacity: 1 !important;
+  filter: brightness(1.2);
+}
+
+.sankey-node:hover .node-border {
+  stroke-width: 2;
+}
+
+/* Node Animation */
+@keyframes nodeEnter {
+  from {
+    opacity: 0;
+    transform: scaleY(0.1) translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1) translateX(0);
+  }
+}
+
+.sankey-node {
+  animation: nodeEnter 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation-fill-mode: both;
+  transform-origin: center;
+}
+
+.sankey-node:nth-child(1) { animation-delay: 0.2s; }
+.sankey-node:nth-child(2) { animation-delay: 0.35s; }
+.sankey-node:nth-child(3) { animation-delay: 0.5s; }
+.sankey-node:nth-child(4) { animation-delay: 0.65s; }
+.sankey-node:nth-child(5) { animation-delay: 0.8s; }
+
+.node-bg {
+  transition: all 0.4s ease;
+}
+
+.node-main {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
+}
+
+.node-border {
+  transition: all 0.4s ease;
+}
+
+/* ──────────────────────────────────────── */
+/* Labels */
+/* ──────────────────────────────────────── */
+
+.label-bg {
+  transition: all 0.3s ease;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sankey-node:hover .label-bg {
+  background: rgba(15, 23, 42, 0.95);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.node-label {
+  fill: rgba(255, 255, 255, 0.95);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: 0.4px;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.node-value {
+  fill: rgba(255, 255, 255, 0.7);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  letter-spacing: 0.2px;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.sankey-node:hover .node-label,
+.sankey-node:hover .node-value {
+  opacity: 1;
+}
+
+/* ──────────────────────────────────────── */
+/* Legend */
+/* ──────────────────────────────────────── */
+
+.sankey-legend {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  display: flex;
+  gap: 24px;
+  z-index: 10;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(12px);
+  padding: 12px 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  animation: fadeInUp 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 2s forwards;
+  opacity: 0;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.legend-item:hover {
+  color: rgba(255, 255, 255, 1);
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 0 12px currentColor;
+  transition: all 0.3s ease;
+}
+
+.legend-item:hover .legend-dot {
+  transform: scale(1.3);
+  box-shadow: 0 0 20px currentColor;
+}
+
+/* ──────────────────────────────────────── */
+/* Empty State */
+/* ──────────────────────────────────────── */
+
+.sankey-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 14px;
+  text-align: center;
+}
+
+/* ──────────────────────────────────────── */
+/* Responsive */
+/* ──────────────────────────────────────── */
+
+@media (max-width: 1200px) {
+  .sankey-container {
+    min-height: 600px;
+  }
+
+  .node-label {
+    font-size: 10px;
+  }
+
+  .node-value {
+    font-size: 9px;
+  }
+
+  .legend-item {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 768px) {
+  .sankey-container {
+    min-height: 500px;
+    border-radius: 16px;
+    margin: 16px 0;
+  }
+
+  .sankey-legend {
+    bottom: 16px;
+    left: 16px;
+    gap: 16px;
+    padding: 10px 16px;
+    font-size: 10px;
+  }
+
+  .sankey-orb {
+    display: none;
+  }
+
+  .node-label {
+    font-size: 8px;
+  }
+
+  .node-value {
+    font-size: 7px;
+  }
+}
+
+/* ──────────────────────────────────────── */
+/* Performance: GPU Acceleration */
+/* ──────────────────────────────────────── */
+
+.sankey-node,
+.sankey-flow,
+.label-bg {
+  will-change: transform, opacity, filter;
+}
+
+.sankey-node:hover {
+  will-change: transform, opacity, filter;
+}
+
+/* High refresh rate smoothness */
+@supports (scroll-behavior: smooth) {
+  .sankey-node,
+  .sankey-flow {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* Dark mode optimizations */
+@media (prefers-color-scheme: dark) {
+  .sankey-container {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.7) 0%, rgba(7, 10, 18, 0.7) 100%);
+  }
+
+  .label-bg {
+    background: rgba(15, 23, 42, 0.85);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sankey-node,
+  .sankey-flow,
+  .sankey-orb,
+  .label-bg,
+  .legend-item,
+  .legend-dot {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .sankey-node:hover {
+    transform: none;
+  }
+}

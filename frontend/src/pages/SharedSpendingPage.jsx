@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useSharedSpendingStore } from '../store/sharedSpendingStore';
 import { useFriendsStore } from '../store/friendsStore';
+import SankeyVisualization from '../components/SankeyVisualization';
 import '../styles/shared-spending.css';
 
 const EXPENSE_CATEGORIES = [
@@ -822,7 +823,14 @@ function GroupDetail({
           </div>
         ) : (
           <>
-            <SankeyDiagram layout={sankeyLayout} />
+            <SankeyVisualization
+              data={{
+                members: activeMembers,
+                expenses: group.expenses || [],
+                incomes: incomes || [],
+                expenseCategories: usedExpenseCategories,
+              }}
+            />
             <MobileFlowView
               members={activeMembers}
               expenseCategories={usedExpenseCategories}
