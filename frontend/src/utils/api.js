@@ -487,6 +487,47 @@ export const api = {
       body: JSON.stringify({ code }),
     }),
 
+  // Shared spending — gemeinsame Ausgaben-Gruppen mit Freunden.
+  getSpendingGroups: () => request('/spending'),
+
+  getSpendingGroup: (groupId) => request(`/spending/${groupId}`),
+
+  createSpendingGroup: (name) =>
+    request('/spending', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    }),
+
+  deleteSpendingGroup: (groupId) =>
+    request(`/spending/${groupId}`, { method: 'DELETE' }),
+
+  inviteToSpendingGroup: (groupId, { email, user_id }) =>
+    request(`/spending/${groupId}/invite`, {
+      method: 'POST',
+      body: JSON.stringify(user_id ? { user_id } : { email }),
+    }),
+
+  acceptSpendingInvite: (groupId) =>
+    request(`/spending/${groupId}/accept`, { method: 'PATCH' }),
+
+  declineSpendingInvite: (groupId) =>
+    request(`/spending/${groupId}/decline`, { method: 'PATCH' }),
+
+  leaveSpendingGroup: (groupId) =>
+    request(`/spending/${groupId}/leave`, { method: 'DELETE' }),
+
+  removeSpendingMember: (groupId, userId) =>
+    request(`/spending/${groupId}/members/${userId}`, { method: 'DELETE' }),
+
+  addSpendingExpense: (groupId, { category, amount, description }) =>
+    request(`/spending/${groupId}/expenses`, {
+      method: 'POST',
+      body: JSON.stringify({ category, amount, description }),
+    }),
+
+  deleteSpendingExpense: (groupId, expenseId) =>
+    request(`/spending/${groupId}/expenses/${expenseId}`, { method: 'DELETE' }),
+
   // Permissions
   getPermissions: (taskId) =>
     request(`/permissions/${taskId}`),

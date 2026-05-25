@@ -161,6 +161,37 @@ async function runSchemaInit(rawQuery) {
     )`,
     `CREATE INDEX IF NOT EXISTS idx_group_event_rsvps_message ON group_event_rsvps(message_id)`,
 
+    // Shared spending: gemeinsame Ausgaben-Gruppen mit Mitgliedern und Ausgaben.
+    `CREATE TABLE IF NOT EXISTS spending_groups (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(120) NOT NULL,
+      owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_spending_groups_owner ON spending_groups(owner_id)`,
+    `CREATE TABLE IF NOT EXISTS spending_members (
+      id SERIAL PRIMARY KEY,
+      spending_group_id INTEGER NOT NULL REFERENCES spending_groups(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','accepted','declined')),
+      invited_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      joined_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(spending_group_id, user_id)
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_spending_members_group ON spending_members(spending_group_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_spending_members_user ON spending_members(user_id, status)`,
+    `CREATE TABLE IF NOT EXISTS spending_expenses (
+      id SERIAL PRIMARY KEY,
+      spending_group_id INTEGER NOT NULL REFERENCES spending_groups(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      category VARCHAR(40) NOT NULL,
+      amount NUMERIC(10,2) NOT NULL CHECK (amount >= 0),
+      description TEXT DEFAULT '',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_spending_expenses_group ON spending_expenses(spending_group_id, created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS idx_spending_expenses_user ON spending_expenses(user_id)`,
+
     // Ensure required preference keys exist on older rows
     `UPDATE users
      SET notification_prefs = COALESCE(notification_prefs, '{}'::jsonb)

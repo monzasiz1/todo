@@ -240,17 +240,609 @@
 }
 
 .shared-spending-toast {
-  margin-top: -8px;
-  align-self: flex-start;
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 1200;
   display: inline-flex;
   align-items: center;
   gap: 10px;
   padding: 12px 16px;
   border-radius: 16px;
-  background: rgba(46, 170, 126, 0.12);
+  background: rgba(46, 170, 126, 0.18);
   color: var(--text);
-  border: 1px solid rgba(46, 170, 126, 0.18);
+  border: 1px solid rgba(46, 170, 126, 0.32);
   font-size: 0.95rem;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.32);
+}
+
+.shared-spending-toast.is-error {
+  background: rgba(255, 80, 80, 0.18);
+  border-color: rgba(255, 80, 80, 0.4);
+}
+
+.sankey-btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.sankey-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+}
+
+/* Section title */
+.spending-section-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: 1rem;
+  color: var(--text-secondary);
+}
+
+/* Open invitations */
+.spending-invites {
+  display: flex;
+  flex-direction: column;
+}
+
+.spending-invites-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.spending-invite-card {
+  background: rgba(255, 159, 10, 0.08);
+  border: 1px solid rgba(255, 159, 10, 0.24);
+  border-radius: 18px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.spending-invite-card strong { font-size: 1.05rem; }
+.spending-invite-card p { margin: 4px 0 0; color: var(--text-secondary); font-size: 0.9rem; }
+
+.spending-invite-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Layout: sidebar + main */
+.spending-layout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.spending-sidebar {
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 22px;
+  padding: 18px;
+  position: sticky;
+  top: 12px;
+}
+
+.spending-sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.spending-sidebar-head h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.spending-count {
+  background: rgba(255,255,255,0.06);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.spending-empty {
+  color: var(--text-tertiary);
+  font-size: 0.92rem;
+  margin: 0;
+}
+
+.spending-empty-state {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 0;
+  align-items: flex-start;
+}
+
+.spending-empty-state p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+}
+
+.spending-group-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.spending-group-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.spending-group-item:hover {
+  background: rgba(255,255,255,0.04);
+}
+
+.spending-group-item.is-active {
+  background: rgba(96, 165, 250, 0.12);
+  border-color: rgba(96, 165, 250, 0.32);
+}
+
+.spending-group-item strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.spending-group-item span {
+  display: block;
+  color: var(--text-tertiary);
+  font-size: 0.82rem;
+  margin-top: 2px;
+}
+
+/* Main area */
+.spending-main {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+}
+
+.spending-empty-main {
+  background: var(--surface);
+  border: 1px dashed rgba(255,255,255,0.12);
+  border-radius: 22px;
+  padding: 60px 24px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.spending-empty-main h3 {
+  margin: 12px 0 6px;
+  color: var(--text);
+}
+
+.spending-detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.spending-detail-head h2 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.spending-detail-head p {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+}
+
+.spending-detail-head-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.spending-chart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.spending-chart-empty h4 {
+  margin: 6px 0 0;
+  color: var(--text);
+}
+
+.spending-chart-empty p {
+  margin: 0 0 12px;
+}
+
+/* Two-column panels (members + expenses) */
+.spending-twocol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.spending-panel {
+  background: var(--surface);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 22px;
+  padding: 18px;
+}
+
+.spending-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.spending-panel-head h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.spending-member-list,
+.spending-expense-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.spending-member-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 14px;
+}
+
+.spending-member-item.is-pending {
+  opacity: 0.6;
+}
+
+.spending-member-item strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.spending-member-item span {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--text-tertiary);
+}
+
+.spending-member-item > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.spending-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #fff;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.spending-icon-btn {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  padding: 6px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.spending-icon-btn:hover {
+  background: rgba(255,80,80,0.12);
+  color: #ff7070;
+}
+
+.spending-expense-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 14px;
+}
+
+.spending-expense-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.spending-expense-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.spending-expense-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.spending-expense-top strong {
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spending-expense-amt {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.spending-expense-meta {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.82rem;
+  color: var(--text-tertiary);
+}
+
+/* Modals */
+.spending-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(6px);
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.spending-modal {
+  width: min(480px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  background: var(--surface, #1e1f23);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 24px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.5);
+}
+
+.spending-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.spending-modal-head h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.spending-modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.spending-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.spending-field span {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.spending-field input {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 12px 14px;
+  color: var(--text);
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.spending-field input:focus {
+  border-color: rgba(96, 165, 250, 0.5);
+}
+
+.spending-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+}
+
+.spending-tabs {
+  display: flex;
+  gap: 6px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.spending-tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.spending-tab.is-active {
+  background: rgba(96,165,250,0.18);
+  color: var(--text);
+}
+
+.spending-friends-pick ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.spending-friend-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid transparent;
+  border-radius: 14px;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.spending-friend-row:hover:not(:disabled) {
+  background: rgba(96,165,250,0.10);
+  border-color: rgba(96,165,250,0.24);
+}
+
+.spending-friend-row:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.spending-friend-row > div {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.spending-friend-row strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.spending-friend-row span {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--text-tertiary);
+}
+
+.spending-category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.spending-category-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  color: var(--text);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.spending-category-btn:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+.spending-category-btn.is-active {
+  background: color-mix(in srgb, var(--cat-color) 18%, transparent);
+  border-color: var(--cat-color);
+}
+
+.spending-category-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+@media (max-width: 1080px) {
+  .spending-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .spending-sidebar {
+    position: static;
+  }
+
+  .spending-twocol {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .spending-detail-head-actions .sankey-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .shared-spending-toast {
+    bottom: 16px;
+    right: 16px;
+    left: 16px;
+    justify-content: center;
+  }
+
+  .spending-category-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 1080px) {
