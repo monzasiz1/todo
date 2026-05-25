@@ -17,12 +17,18 @@ export const useNetWorthStore = create((set, get) => ({
       set({
         accounts: data.accounts || [],
         liabilities: data.liabilities || [],
-        summary: data.summary,
+        summary: data.summary || { totalAssets: 0, totalLiabilities: 0, netWorth: 0 },
         loading: false,
       });
     } catch (err) {
       console.error('Net worth fetch error:', err);
-      set({ loading: false });
+      // Graceful degradation - zeige leere Daten statt Fehler
+      set({
+        accounts: [],
+        liabilities: [],
+        summary: { totalAssets: 0, totalLiabilities: 0, netWorth: 0 },
+        loading: false,
+      });
     }
   },
 
@@ -117,12 +123,16 @@ export const useGoalsStore = create((set, get) => ({
       const data = await goalsAPI.getGoals();
       set({
         goals: data.goals || [],
-        summary: data.summary,
+        summary: data.summary || { totalGoals: 0, activeGoals: 0, completedGoals: 0, totalTargetAmount: 0, totalSavedAmount: 0 },
         loading: false,
       });
     } catch (err) {
       console.error('Goals fetch error:', err);
-      set({ loading: false });
+      set({
+        goals: [],
+        summary: { totalGoals: 0, activeGoals: 0, completedGoals: 0, totalTargetAmount: 0, totalSavedAmount: 0 },
+        loading: false,
+      });
     }
   },
 
@@ -197,7 +207,7 @@ export const useCashflowStore = create((set, get) => ({
       });
     } catch (err) {
       console.error('Timeline fetch error:', err);
-      set({ timelineLoading: false });
+      set({ timeline: [], timelineLoading: false });
     }
   },
 
@@ -211,7 +221,7 @@ export const useCashflowStore = create((set, get) => ({
       });
     } catch (err) {
       console.error('Projections fetch error:', err);
-      set({ projectionsLoading: false });
+      set({ projections: [], projectionsLoading: false });
     }
   },
 
