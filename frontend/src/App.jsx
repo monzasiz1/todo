@@ -22,6 +22,7 @@ const PricingPage = lazy(() => import('./pages/PricingPage'));
 const UpgradeResultPage = lazy(() => import('./pages/UpgradeResultPage'));
 const TaskDetailPage = lazy(() => import('./pages/TaskDetailPage'));
 const ChatPage = lazy(() => import('./pages/ChatPage'));
+const SharedSpendingPage = lazy(() => import('./pages/SharedSpendingPage'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const Register = lazy(() => import('./pages/Register'));
 const PasswordChangeConfirmed = lazy(() => import('./pages/PasswordChangeConfirmed'));
@@ -233,6 +234,7 @@ export default function App() {
             <Route path="notes" element={<Suspense fallback={null}><NotesPage /></Suspense>} />
             <Route path="whiteboard" element={<Suspense fallback={null}><WhiteboardPage /></Suspense>} />
             <Route path="groups" element={<Suspense fallback={null}><GroupsPage /></Suspense>} />
+            <Route path="shared-spending" element={<Suspense fallback={null}><SharedSpendingPage /></Suspense>} />
             <Route path="profile" element={<Suspense fallback={null}><ProfilePage /></Suspense>} />
             <Route path="pricing" element={<Suspense fallback={null}><PricingPage /></Suspense>} />
             <Route path="upgrade/success" element={<Suspense fallback={null}><UpgradeResultPage mode="success" /></Suspense>} />
