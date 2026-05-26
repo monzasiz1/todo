@@ -1211,12 +1211,14 @@
   align-items: center;
   justify-content: center;
   padding: 16px;
+  overflow: hidden;
 }
 
 .spending-modal {
   width: min(480px, 100%);
-  max-height: calc(100vh - 32px);
+  max-height: 85vh;
   overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--surface, #1e1f23);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 24px;
@@ -1265,6 +1267,7 @@
   font-size: 0.95rem;
   outline: none;
   transition: border-color 0.15s ease;
+  min-height: 44px;
 }
 
 .spending-field input:focus {
@@ -1552,20 +1555,48 @@
     justify-content: center;
   }
 
-  .spending-category-grid {
-    grid-template-columns: 1fr;
-  }
-
   .spending-modal {
     border-radius: 20px 20px 0 0;
-    padding: 18px;
+    padding: 14px;
     align-self: flex-end;
     width: 100%;
+    max-height: calc(100vh - 120px);
+    margin-bottom: 4px;
   }
   .spending-modal-backdrop {
     align-items: flex-end;
     padding: 0;
   }
+
+  .spending-modal-head h3 {
+    font-size: 1.05rem;
+  }
+
+  .spending-field input {
+    font-size: 16px;
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  .spending-field span {
+    font-size: 0.8rem;
+  }
+
+  .spending-category-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .spending-recurrence-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .sankey-btn {
+    min-height: 44px;
+    font-size: 0.85rem;
+    padding: 10px 12px;
+  }
+
 }
 
 @media (max-width: 1080px) {

@@ -6,9 +6,75 @@ const INCOME_CATEGORIES = new Set(['salary', 'gift', 'side', 'other']);
 const ALLOWED_KINDS = new Set(['income', 'expense']);
 const ALLOWED_RECURRENCES = new Set(['none', 'monthly', 'quarterly', 'yearly']);
 
-function validateCategoryForKind(kind, category) {
-  if (kind === 'income') return INCOME_CATEGORIES.has(category);
-  return EXPENSE_CATEGORIES.has(category);
+// Category-ID-Format:
+//   Preset: 'food' | 'home' | 'travel' | 'free' (Expense) bzw. 'salary' | 'gift' | 'side' | 'other' (Income)
+//   Custom: 'custom:NUMBER' wobei NUMBER = spending_custom_categories.id
+async function validateCategoryForKind(pool, groupId, kind, category) {
+  const cat = String(category || '');
+  if (cat.startsWith('custom:')) {
+    const id = Number(cat.slice(7));
+    if (!Number.isFinite(id)) return false;
+    const r = await pool.query(
+      `SELECT 1 FROM spending_custom_categories
+       WHERE id = $1 AND spending_group_id = $2 AND kind = $3`,
+      [id, groupId, kind]
+    );
+    return r.rows.length > 0;
+  }
+  if (kind === 'income') return INCOME_CATEGORIES.has(cat);
+  return EXPENSE_CATEGORIES.has(cat);
+}
+
+// Splits: Array von { user_id, amount } — Summe muss zu amount passen (+/- 0.02€ Toleranz).
+// Alle user_ids muessen Mitglieder der Gruppe sein. NULL/leeres Array = nur der Payer ist beteiligt.
+async function validateSplit(pool, groupId, amount, splitAmounts, payerUserId) {
+  if (splitAmounts == null) return { ok: true, value: null };
+  if (!Array.isArray(splitAmounts)) return { ok: false, error: 'split_amounts muss Array sein' };
+  if (splitAmounts.length === 0) return { ok: true, value: null };
+
+  const clean = [];
+  let sum = 0;
+  const seenIds = new Set();
+  for (const s of splitAmounts) {
+    const uid = Number(s?.user_id);
+    const amt = Number(s?.amount);
+    if (!Number.isFinite(uid)) return { ok: false, error: 'split: user_id ungueltig' };
+    if (!Number.isFinite(amt) || amt < 0) return { ok: false, error: 'split: amount ungueltig' };
+    if (seenIds.has(uid)) return { ok: false, error: 'split: doppelte user_id' };
+    seenIds.add(uid);
+    clean.push({ user_id: uid, amount: Math.round(amt * 100) / 100 });
+    sum += amt;
+  }
+
+  // Alle Mitglieder muessen valide Group-Member sein
+  const ids = clean.map((s) => s.user_id);
+  const memCheck = await pool.query(
+    `SELECT user_id FROM spending_members
+     WHERE spending_group_id = $1 AND user_id = ANY($2) AND status = 'accepted'
+     UNION
+     SELECT owner_id AS user_id FROM spending_groups WHERE id = $1 AND owner_id = ANY($2)`,
+    [groupId, ids]
+  );
+  if (memCheck.rows.length !== ids.length) {
+    return { ok: false, error: 'split: nicht alle Mitglieder sind Teil der Gruppe' };
+  }
+
+  // Summe muss zur Gesamtsumme passen (kleine Rundungs-Toleranz)
+  if (Math.abs(sum - amount) > 0.05) {
+    return { ok: false, error: `split: Summe (${sum.toFixed(2)}) passt nicht zu Betrag (${amount.toFixed(2)})` };
+  }
+
+  return { ok: true, value: clean };
+}
+
+async function isGroupMember(pool, groupId, userId) {
+  const r = await pool.query(
+    `SELECT 1 FROM spending_groups WHERE id = $1 AND owner_id = $2
+     UNION
+     SELECT 1 FROM spending_members WHERE spending_group_id = $1 AND user_id = $2 AND status = 'accepted'`,
+    [groupId, userId]
+  );
+  return r.rows.length > 0;
 }
 
 function sanitizeDate(value) {
@@ -60,6 +126,17 @@ async function ensureTables(pool) {
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(entry_id, override_month)
   )`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS spending_custom_categories (
+    id SERIAL PRIMARY KEY,
+    spending_group_id INTEGER NOT NULL REFERENCES spending_groups(id) ON DELETE CASCADE,
+    kind VARCHAR(10) NOT NULL CHECK (kind IN ('income', 'expense')),
+    label VARCHAR(80) NOT NULL,
+    color VARCHAR(20) NOT NULL DEFAULT '#94A3B8',
+    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  )`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_spending_custom_categories_group ON spending_custom_categories(spending_group_id, kind)`);
+  await pool.query(`ALTER TABLE spending_expenses ADD COLUMN IF NOT EXISTS split_amounts JSONB`);
 }
 
 function sanitizeMonth(value) {
@@ -120,7 +197,7 @@ async function loadGroupDetail(pool, groupId, userId) {
 
   const entriesRes = await pool.query(
     `SELECT e.id, e.user_id, e.kind, e.category, e.amount, e.description, e.created_at,
-            e.recurrence, e.entry_date, e.recurrence_end,
+            e.recurrence, e.entry_date, e.recurrence_end, e.split_amounts,
             u.name AS user_name, u.avatar_color AS user_avatar_color
      FROM spending_expenses e
      JOIN users u ON u.id = e.user_id
@@ -132,7 +209,17 @@ async function loadGroupDetail(pool, groupId, userId) {
   const all = entriesRes.rows.map((row) => ({
     ...row,
     amount: Number(row.amount),
+    split_amounts: row.split_amounts || null,
   }));
+
+  // Custom Categories der Gruppe laden
+  const catRes = await pool.query(
+    `SELECT id, kind, label, color, created_by, created_at
+     FROM spending_custom_categories
+     WHERE spending_group_id = $1
+     ORDER BY created_at ASC`,
+    [groupId]
+  );
 
   // Overrides fuer alle Eintraege dieser Gruppe laden
   const entryIds = all.map((e) => e.id);
@@ -157,6 +244,7 @@ async function loadGroupDetail(pool, groupId, userId) {
     expenses: all.filter((e) => (e.kind || 'expense') === 'expense'),
     incomes: all.filter((e) => e.kind === 'income'),
     overrides,
+    custom_categories: catRes.rows,
   };
 }
 
@@ -380,12 +468,12 @@ module.exports = async function handler(req, res) {
       const {
         kind = 'expense', category, amount, description,
         recurrence = 'none', entry_date, recurrence_end,
+        payer_user_id, split_amounts,
       } = req.body || {};
       if (!Number.isFinite(groupId)) return res.status(400).json({ error: 'Ungueltige ID' });
       if (!ALLOWED_KINDS.has(String(kind))) return res.status(400).json({ error: 'Art ungueltig' });
-      if (!validateCategoryForKind(kind, String(category))) {
-        return res.status(400).json({ error: 'Kategorie ungueltig' });
-      }
+      const catOk = await validateCategoryForKind(pool, groupId, kind, category);
+      if (!catOk) return res.status(400).json({ error: 'Kategorie ungueltig' });
       if (!ALLOWED_RECURRENCES.has(String(recurrence))) {
         return res.status(400).json({ error: 'Wiederholung ungueltig' });
       }
@@ -397,25 +485,44 @@ module.exports = async function handler(req, res) {
       const allowed = await isAcceptedMemberOrOwner(pool, groupId, user.id);
       if (!allowed) return res.status(403).json({ error: 'Kein Zugriff' });
 
+      // Payer: optional, default = caller. Muss Group-Member sein.
+      let payerId = user.id;
+      if (payer_user_id != null) {
+        const pid = Number(payer_user_id);
+        if (!Number.isFinite(pid)) return res.status(400).json({ error: 'payer_user_id ungueltig' });
+        const memOk = await isGroupMember(pool, groupId, pid);
+        if (!memOk) return res.status(400).json({ error: 'Payer ist kein Group-Member' });
+        payerId = pid;
+      }
+
+      // Split validieren (nur bei Ausgaben sinnvoll, bei Einnahmen ignoriert)
+      let splitVal = null;
+      if (kind === 'expense' && split_amounts) {
+        const sv = await validateSplit(pool, groupId, amt, split_amounts, payerId);
+        if (!sv.ok) return res.status(400).json({ error: sv.error });
+        splitVal = sv.value;
+      }
+
       const entryDate = sanitizeDate(entry_date) || new Date().toISOString().slice(0, 10);
       const recEnd = sanitizeDate(recurrence_end);
 
       const result = await pool.query(
         `INSERT INTO spending_expenses
            (spending_group_id, user_id, kind, category, amount, description,
-            recurrence, entry_date, recurrence_end)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            recurrence, entry_date, recurrence_end, split_amounts)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
          RETURNING id, user_id, kind, category, amount, description,
-                   recurrence, entry_date, recurrence_end, created_at`,
+                   recurrence, entry_date, recurrence_end, split_amounts, created_at`,
         [
-          groupId, user.id, kind, category, amt,
+          groupId, payerId, kind, category, amt,
           String(description || '').slice(0, 500),
           recurrence, entryDate, recEnd,
+          splitVal ? JSON.stringify(splitVal) : null,
         ]
       );
       const row = result.rows[0];
       return res.status(201).json({
-        entry: { ...row, amount: Number(row.amount) },
+        entry: { ...row, amount: Number(row.amount), split_amounts: row.split_amounts || null },
       });
     }
 
@@ -426,6 +533,7 @@ module.exports = async function handler(req, res) {
       const {
         kind, category, amount, description,
         recurrence, entry_date, recurrence_end,
+        payer_user_id, split_amounts,
       } = req.body || {};
 
       // Berechtigung: eigener Eintrag oder Owner
@@ -441,10 +549,29 @@ module.exports = async function handler(req, res) {
 
       // Validierung
       if (!ALLOWED_KINDS.has(String(kind))) return res.status(400).json({ error: 'Art ungueltig' });
-      if (!validateCategoryForKind(kind, String(category))) return res.status(400).json({ error: 'Kategorie ungueltig' });
+      const catOk = await validateCategoryForKind(pool, groupId, kind, category);
+      if (!catOk) return res.status(400).json({ error: 'Kategorie ungueltig' });
       if (!ALLOWED_RECURRENCES.has(String(recurrence))) return res.status(400).json({ error: 'Wiederholung ungueltig' });
       const amt = Number(amount);
       if (!Number.isFinite(amt) || amt < 0 || amt > 10_000_000) return res.status(400).json({ error: 'Betrag ungueltig' });
+
+      // Payer (optional ueberschreiben)
+      let payerId = ownCheck.rows[0].user_id;
+      if (payer_user_id != null) {
+        const pid = Number(payer_user_id);
+        if (!Number.isFinite(pid)) return res.status(400).json({ error: 'payer_user_id ungueltig' });
+        const memOk = await isGroupMember(pool, groupId, pid);
+        if (!memOk) return res.status(400).json({ error: 'Payer ist kein Group-Member' });
+        payerId = pid;
+      }
+
+      // Split validieren
+      let splitVal = null;
+      if (kind === 'expense' && split_amounts) {
+        const sv = await validateSplit(pool, groupId, amt, split_amounts, payerId);
+        if (!sv.ok) return res.status(400).json({ error: sv.error });
+        splitVal = sv.value;
+      }
 
       const entryDate = sanitizeDate(entry_date) || new Date().toISOString().slice(0, 10);
       const recEnd = sanitizeDate(recurrence_end);
@@ -452,18 +579,22 @@ module.exports = async function handler(req, res) {
       const result = await pool.query(
         `UPDATE spending_expenses
             SET kind = $1, category = $2, amount = $3, description = $4,
-                recurrence = $5, entry_date = $6, recurrence_end = $7
-          WHERE id = $8 AND spending_group_id = $9
+                recurrence = $5, entry_date = $6, recurrence_end = $7,
+                user_id = $8, split_amounts = $9
+          WHERE id = $10 AND spending_group_id = $11
        RETURNING id, user_id, kind, category, amount, description,
-                 recurrence, entry_date, recurrence_end, created_at`,
+                 recurrence, entry_date, recurrence_end, split_amounts, created_at`,
         [
           kind, category, amt, String(description || '').slice(0, 500),
           recurrence, entryDate, recEnd,
+          payerId, splitVal ? JSON.stringify(splitVal) : null,
           entryId, groupId,
         ]
       );
       const row = result.rows[0];
-      return res.json({ entry: { ...row, amount: Number(row.amount) } });
+      return res.json({
+        entry: { ...row, amount: Number(row.amount), split_amounts: row.split_amounts || null },
+      });
     }
 
     // DELETE /api/spending/:id/entries/:id (Alias: /expenses/:id)

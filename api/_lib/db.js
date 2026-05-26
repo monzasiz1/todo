@@ -212,6 +212,23 @@ async function runSchemaInit(rawQuery) {
     )`,
     `CREATE INDEX IF NOT EXISTS idx_spending_overrides_entry ON spending_overrides(entry_id, override_month)`,
 
+    // Custom Categories pro Gruppe (zusaetzlich zu den Preset-Kategorien)
+    `CREATE TABLE IF NOT EXISTS spending_custom_categories (
+      id SERIAL PRIMARY KEY,
+      spending_group_id INTEGER NOT NULL REFERENCES spending_groups(id) ON DELETE CASCADE,
+      kind VARCHAR(10) NOT NULL CHECK (kind IN ('income', 'expense')),
+      label VARCHAR(80) NOT NULL,
+      color VARCHAR(20) NOT NULL DEFAULT '#94A3B8',
+      created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_spending_custom_categories_group ON spending_custom_categories(spending_group_id, kind)`,
+
+    // Splits: optionale Aufteilung einer Buchung auf mehrere Mitglieder.
+    // NULL/leer = nur payer (user_id) traegt den gesamten Betrag.
+    // JSONB-Array: [{ user_id: 1, amount: 12.50 }, ...]  — summiert sich zu amount.
+    `ALTER TABLE spending_expenses ADD COLUMN IF NOT EXISTS split_amounts JSONB`,
+
     // Ensure required preference keys exist on older rows
     `UPDATE users
      SET notification_prefs = COALESCE(notification_prefs, '{}'::jsonb)
