@@ -778,20 +778,22 @@ export default function SharedSpendingPage() {
   return (
     <div className="shared-spending-page is-premium">
       <PremiumBackground />
-      <section className="page-header shared-spending-header">
-        <div>
-          <span className="eyebrow">Gemeinsame Ausgaben</span>
-          <h2>Geteilte Kosten im Blick</h2>
-          <p>
-            Erstelle Ausgaben-Gruppen, lade Freunde ein und verfolge wer wofür wieviel ausgibt — alles live geteilt.
-          </p>
+      <header className="spending-app-bar">
+        <div className="spending-app-bar-title">
+          <h1>Ausgaben</h1>
+          {acceptedGroups.length > 0 && (
+            <span className="spending-app-bar-count">{acceptedGroups.length}</span>
+          )}
         </div>
-        <div className="shared-spending-header-actions">
-          <button type="button" className="sankey-btn sankey-btn-primary" onClick={() => setShowCreate(true)}>
-            <Plus size={18} /> Neue Gruppe
-          </button>
-        </div>
-      </section>
+        <button
+          type="button"
+          className="spending-app-bar-action"
+          onClick={() => setShowCreate(true)}
+          aria-label="Neue Gruppe"
+        >
+          <Plus size={18} />
+        </button>
+      </header>
 
       {pendingInvites.length > 0 && (
         <section className="spending-invites">
@@ -817,73 +819,83 @@ export default function SharedSpendingPage() {
         </section>
       )}
 
-      <div className="spending-layout">
-        <aside className="spending-sidebar">
-          <div className="spending-sidebar-head">
-            <h3>Deine Gruppen</h3>
-            <span className="spending-count">{acceptedGroups.length}</span>
-          </div>
-          {loading && acceptedGroups.length === 0 && (
-            <p className="spending-empty">Lädt…</p>
-          )}
-          {!loading && acceptedGroups.length === 0 && (
-            <div className="spending-empty-state">
-              <p>Noch keine Gruppe.</p>
-              <button type="button" className="sankey-btn sankey-btn-primary" onClick={() => setShowCreate(true)}>
-                <Plus size={16} /> Erste Gruppe anlegen
-              </button>
-            </div>
-          )}
-          <ul className="spending-group-list">
+      {acceptedGroups.length > 0 && (
+        <nav className="spending-group-switcher" aria-label="Gruppen">
+          <div className="spending-group-switcher-track">
             {acceptedGroups.map((g) => (
-              <li key={g.id}>
-                <button
-                  type="button"
-                  className={`spending-group-item ${activeGroup?.id === g.id ? 'is-active' : ''}`}
-                  onClick={() => handleSelectGroup(g.id)}
-                >
-                  <div>
-                    <strong>{g.name}</strong>
-                    <span>{g.member_count} {g.member_count === 1 ? 'Person' : 'Personen'} · {fmtAmount(g.total_amount)} €</span>
-                  </div>
-                  <ChevronRight size={16} />
-                </button>
-              </li>
+              <button
+                key={g.id}
+                type="button"
+                className={`spending-group-chip ${activeGroup?.id === g.id ? 'is-active' : ''}`}
+                onClick={() => handleSelectGroup(g.id)}
+              >
+                <span className="spending-group-chip-dot" />
+                <span className="spending-group-chip-body">
+                  <strong>{g.name}</strong>
+                  <em>{g.member_count} · {fmtAmount(g.total_amount)} €</em>
+                </span>
+              </button>
             ))}
-          </ul>
-        </aside>
+            <button
+              type="button"
+              className="spending-group-chip is-add"
+              onClick={() => setShowCreate(true)}
+              aria-label="Neue Gruppe"
+            >
+              <Plus size={16} />
+            </button>
+          </div>
+        </nav>
+      )}
 
-        <main className="spending-main">
-          {!activeGroup && !detailLoading && (
-            <div className="spending-empty-main">
-              <Sparkles size={28} />
-              <h3>Wähle oder erstelle eine Gruppe</h3>
-              <p>Verfolge gemeinsame Ausgaben mit deinen Freunden und behalt den Überblick.</p>
-            </div>
-          )}
+      <main className="spending-main spending-main-full">
+        {loading && acceptedGroups.length === 0 && (
+          <div className="spending-empty-main">
+            <Loader2 size={28} className="spending-spin" />
+            <p>Lädt…</p>
+          </div>
+        )}
 
-          {activeGroup && (
-            <GroupDetail
-              group={activeGroup}
-              detailLoading={detailLoading}
-              viewMonth={viewMonth}
-              onChangeMonth={setViewMonth}
-              onInvite={() => setShowInvite(true)}
-              onAddExpense={() => setEntryModal({ kind: 'expense' })}
-              onAddIncome={() => setEntryModal({ kind: 'income' })}
-              onAIParse={handleAIParse}
-              onDelete={handleDelete}
-              onLeave={handleLeave}
-              onRemoveMember={handleRemoveMember}
-              onDeleteEntry={handleDeleteEntry}
-              onEditEntry={handleEditEntry}
-              onSkipMonth={handleSkipMonth}
-              onCustomAmount={handleCustomAmount}
-              onClearOverride={handleClearOverride}
-            />
-          )}
-        </main>
-      </div>
+        {!loading && acceptedGroups.length === 0 && (
+          <div className="spending-empty-main">
+            <Sparkles size={28} />
+            <h3>Noch keine Gruppe</h3>
+            <p>Lege deine erste Ausgaben-Gruppe an, lade Freunde ein und teile Kosten live.</p>
+            <button type="button" className="sankey-btn sankey-btn-primary" onClick={() => setShowCreate(true)}>
+              <Plus size={16} /> Erste Gruppe anlegen
+            </button>
+          </div>
+        )}
+
+        {!activeGroup && !detailLoading && acceptedGroups.length > 0 && (
+          <div className="spending-empty-main">
+            <Sparkles size={28} />
+            <h3>Wähle eine Gruppe</h3>
+            <p>Tippe oben auf eine Gruppe, um Ausgaben & Einnahmen zu sehen.</p>
+          </div>
+        )}
+
+        {activeGroup && (
+          <GroupDetail
+            group={activeGroup}
+            detailLoading={detailLoading}
+            viewMonth={viewMonth}
+            onChangeMonth={setViewMonth}
+            onInvite={() => setShowInvite(true)}
+            onAddExpense={() => setEntryModal({ kind: 'expense' })}
+            onAddIncome={() => setEntryModal({ kind: 'income' })}
+            onAIParse={handleAIParse}
+            onDelete={handleDelete}
+            onLeave={handleLeave}
+            onRemoveMember={handleRemoveMember}
+            onDeleteEntry={handleDeleteEntry}
+            onEditEntry={handleEditEntry}
+            onSkipMonth={handleSkipMonth}
+            onCustomAmount={handleCustomAmount}
+            onClearOverride={handleClearOverride}
+          />
+        )}
+      </main>
 
       {showCreate && (
         <CreateGroupModal onClose={() => setShowCreate(false)} onSubmit={handleCreate} />
@@ -1074,125 +1086,214 @@ function GroupDetail({
   const annualExpense = useMemo(() => annualizeRecurring(allExpenses), [allExpenses]);
   const annualIncome  = useMemo(() => annualizeRecurring(allIncomes),  [allIncomes]);
 
+  const [tab, setTab] = useState('overview');
+  const monthLabelStr = monthLabel(viewMonth.year, viewMonth.month);
+
   return (
     <>
-      <header className="spending-detail-head">
-        <div>
-          <h2>{group.name}</h2>
-          <p>{activeMembers.length} {activeMembers.length === 1 ? 'Mitglied' : 'Mitglieder'} · gegründet {new Date(group.created_at).toLocaleDateString('de-DE')}</p>
+      <section className="spending-hero">
+        <div className="spending-hero-top">
+          <div className="spending-hero-meta">
+            <span className="spending-hero-eyebrow">
+              <Users size={11} /> {activeMembers.length} {activeMembers.length === 1 ? 'Person' : 'Personen'} · {monthLabelStr}
+            </span>
+            <h2 className="spending-hero-name">{group.name}</h2>
+          </div>
+          <div className="spending-hero-avatars">
+            {activeMembers.slice(0, 4).map((m) => (
+              <span key={m.id} className="spending-hero-avatar" style={{ background: m.color }} title={m.name}>
+                {m.avatar_url ? (
+                  <img src={m.avatar_url} alt={m.name} />
+                ) : (
+                  (m.name || '?').slice(0, 1).toUpperCase()
+                )}
+              </span>
+            ))}
+            {activeMembers.length > 4 && (
+              <span className="spending-hero-avatar is-more">+{activeMembers.length - 4}</span>
+            )}
+          </div>
         </div>
-        <div className="spending-detail-head-actions">
-          <button type="button" className="sankey-btn sankey-btn-income" onClick={onAddIncome}>
-            <ArrowDownCircle size={16} /> Einnahme
+
+        <div className="spending-hero-balance">
+          <span className="spending-hero-balance-label">
+            {summary.balance >= 0 ? 'Überschuss' : 'Defizit'} diesen Monat
+          </span>
+          <strong className={`spending-hero-balance-amount ${summary.balance >= 0 ? 'is-pos' : 'is-neg'}`}>
+            {summary.balance >= 0 ? '+' : '−'}
+            <AnimatedNumber value={Math.abs(summary.balance)} />
+            <em>€</em>
+          </strong>
+          <div className="spending-hero-pills">
+            <span className="spending-hero-pill is-income">
+              <TrendingUp size={11} /> {fmtAmount(summary.totalIncome)} €
+            </span>
+            <span className="spending-hero-pill is-expense">
+              <TrendingDown size={11} /> {fmtAmount(summary.totalExpense)} €
+            </span>
+            {recurringCount > 0 && (
+              <span className="spending-hero-pill is-recurring">
+                <Repeat size={11} /> {recurringCount} fix
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="spending-hero-actions">
+          <button type="button" className="spending-hero-action is-expense" onClick={onAddExpense}>
+            <ArrowUpCircle size={18} />
+            <span>Ausgabe</span>
           </button>
-          <button type="button" className="sankey-btn sankey-btn-primary" onClick={onAddExpense}>
-            <ArrowUpCircle size={16} /> Ausgabe
+          <button type="button" className="spending-hero-action is-income" onClick={onAddIncome}>
+            <ArrowDownCircle size={18} />
+            <span>Einnahme</span>
           </button>
-          <button type="button" className="sankey-btn sankey-btn-secondary" onClick={onInvite}>
-            <UserPlus size={16} /> Einladen
+          <button type="button" className="spending-hero-action" onClick={onInvite}>
+            <UserPlus size={18} />
+            <span>Einladen</span>
           </button>
           {group.is_owner ? (
-            <button type="button" className="sankey-btn sankey-btn-ghost" onClick={onDelete}>
-              <Trash2 size={16} /> Löschen
+            <button type="button" className="spending-hero-action is-danger" onClick={onDelete}>
+              <Trash2 size={18} />
+              <span>Löschen</span>
             </button>
           ) : (
-            <button type="button" className="sankey-btn sankey-btn-ghost" onClick={onLeave}>
-              <LogOut size={16} /> Verlassen
+            <button type="button" className="spending-hero-action is-danger" onClick={onLeave}>
+              <LogOut size={18} />
+              <span>Verlassen</span>
             </button>
           )}
         </div>
-      </header>
+      </section>
 
       <MonthNavigator viewMonth={viewMonth} onChange={onChangeMonth} />
 
-      <AIQuickInput onParse={onAIParse} />
+      <nav className="spending-tabs" aria-label="Bereich">
+        <button
+          type="button"
+          className={`spending-tab ${tab === 'overview' ? 'is-active' : ''}`}
+          onClick={() => setTab('overview')}
+        >
+          <Sparkles size={14} />
+          <span>Übersicht</span>
+        </button>
+        <button
+          type="button"
+          className={`spending-tab ${tab === 'entries' ? 'is-active' : ''}`}
+          onClick={() => setTab('entries')}
+        >
+          <Receipt size={14} />
+          <span>Buchungen</span>
+          {allEntries.length > 0 && <em>{allEntries.length}</em>}
+        </button>
+        <button
+          type="button"
+          className={`spending-tab ${tab === 'flow' ? 'is-active' : ''}`}
+          onClick={() => setTab('flow')}
+        >
+          <TrendingUp size={14} />
+          <span>Fluss</span>
+        </button>
+        <button
+          type="button"
+          className={`spending-tab ${tab === 'people' ? 'is-active' : ''}`}
+          onClick={() => setTab('people')}
+        >
+          <Users size={14} />
+          <span>Personen</span>
+          <em>{activeMembers.length}</em>
+        </button>
+        <button
+          type="button"
+          className={`spending-tab ${tab === 'forecast' ? 'is-active' : ''}`}
+          onClick={() => setTab('forecast')}
+        >
+          <Calendar size={14} />
+          <span>Prognose</span>
+        </button>
+      </nav>
 
-      <div className="sankey-summary-grid sankey-summary-grid-4">
-        <article className="sankey-summary-card spending-card-income spending-card-premium">
-          <div className="spending-card-glow" aria-hidden="true" />
-          <div className="sankey-summary-icon"><TrendingUp size={20} /></div>
-          <span className="sankey-summary-label">Gesamteinnahmen</span>
-          <strong>
-            <AnimatedNumber value={summary.totalIncome} /> €
-          </strong>
-          <p>{incomes.length} Einnahme(n)</p>
-          <Sparkline data={incomeHistory} color="#34D399" />
-        </article>
-        <article className="sankey-summary-card spending-card-expense spending-card-premium">
-          <div className="spending-card-glow" aria-hidden="true" />
-          <div className="sankey-summary-icon"><TrendingDown size={20} /></div>
-          <span className="sankey-summary-label">Gesamtausgaben</span>
-          <strong>
-            <AnimatedNumber value={summary.totalExpense} /> €
-          </strong>
-          <p>{group.expenses.length} Buchung(en)</p>
-          <Sparkline data={expenseHistory} color="#F87171" />
-        </article>
-        <article className={`sankey-summary-card spending-card-premium ${summary.balance >= 0 ? 'spending-card-balance-pos' : 'spending-card-balance-neg'}`}>
-          <div className="spending-card-glow" aria-hidden="true" />
-          <div className="sankey-summary-icon"><Wallet size={20} /></div>
-          <span className="sankey-summary-label">Bilanz</span>
-          <strong>
-            {summary.balance >= 0 ? '+' : '−'}<AnimatedNumber value={Math.abs(summary.balance)} /> €
-          </strong>
-          <p>{summary.balance >= 0 ? 'Überschuss' : 'Defizit'}</p>
-          <Sparkline data={balanceHistory} color={summary.balance >= 0 ? '#34D399' : '#F87171'} />
-        </article>
-        <article className="sankey-summary-card spending-card-premium spending-card-top">
-          <div className="spending-card-glow" aria-hidden="true" />
-          <div className="sankey-summary-icon"><Sparkles size={20} /></div>
-          <span className="sankey-summary-label">Top Kategorie</span>
-          <strong>{topCategory ? categoryLabel(topCategory[0]) : '—'}</strong>
-          <p>{topCategory ? `${fmtAmount(topCategory[1])} € im größten Fluss.` : 'Noch keine Ausgaben.'}</p>
-        </article>
-      </div>
-
-      <AIInsightCard insights={insights} />
-
-      <div className="spending-twocol spending-twocol-premium">
-        <ForecastCard
-          forecast={expenseForecast}
-          annualExpense={annualExpense}
-          annualIncome={annualIncome}
-        />
-        <BalanceCard
-          members={activeMembers}
-          expensesByUser={summary.byMember}
-          totalExpense={summary.totalExpense}
-        />
-      </div>
-
-      <section className="sankey-card">
-        {(group.expenses.length === 0 && incomes.length === 0) ? (
-          <div className="spending-chart-empty">
-            <Receipt size={32} />
-            <h4>Noch keine Buchungen</h4>
-            <p>Erfasse deine erste Einnahme oder Ausgabe — der Geldfluss erscheint sofort.</p>
-            <div className="spending-chart-empty-actions">
-              <button type="button" className="sankey-btn sankey-btn-income" onClick={onAddIncome}>
-                <ArrowDownCircle size={16} /> Einnahme
-              </button>
-              <button type="button" className="sankey-btn sankey-btn-primary" onClick={onAddExpense}>
-                <ArrowUpCircle size={16} /> Ausgabe
-              </button>
-            </div>
+      {tab === 'overview' && (
+        <>
+          <AIQuickInput onParse={onAIParse} />
+          <AIInsightCard insights={insights} />
+          <div className="spending-mini-row">
+            <article className="spending-mini-stat">
+              <span className="spending-mini-stat-icon is-income"><TrendingUp size={14} /></span>
+              <div>
+                <span>Einnahmen</span>
+                <strong>{fmtAmount(summary.totalIncome)} €</strong>
+              </div>
+              <Sparkline data={incomeHistory} color="#34D399" />
+            </article>
+            <article className="spending-mini-stat">
+              <span className="spending-mini-stat-icon is-expense"><TrendingDown size={14} /></span>
+              <div>
+                <span>Ausgaben</span>
+                <strong>{fmtAmount(summary.totalExpense)} €</strong>
+              </div>
+              <Sparkline data={expenseHistory} color="#F87171" />
+            </article>
+            <article className="spending-mini-stat">
+              <span className="spending-mini-stat-icon"><Sparkles size={14} /></span>
+              <div>
+                <span>Top Kategorie</span>
+                <strong>{topCategory ? categoryLabel(topCategory[0]) : '—'}</strong>
+              </div>
+              {topCategory && <em className="spending-mini-stat-tag">{fmtAmount(topCategory[1])} €</em>}
+            </article>
           </div>
-        ) : (
-          <>
-            <SankeyDiagram layout={sankeyLayout} />
-            <MobileFlowView
-              members={activeMembers}
-              expenseCategories={usedExpenseCategories}
-              summary={summary}
-            />
-          </>
-        )}
-      </section>
+        </>
+      )}
 
-      <div className="spending-twocol">
+      {tab === 'flow' && (
+        <section className="sankey-card">
+          {(group.expenses.length === 0 && incomes.length === 0) ? (
+            <div className="spending-chart-empty">
+              <Receipt size={32} />
+              <h4>Noch keine Buchungen</h4>
+              <p>Erfasse deine erste Einnahme oder Ausgabe — der Geldfluss erscheint sofort.</p>
+              <div className="spending-chart-empty-actions">
+                <button type="button" className="sankey-btn sankey-btn-income" onClick={onAddIncome}>
+                  <ArrowDownCircle size={16} /> Einnahme
+                </button>
+                <button type="button" className="sankey-btn sankey-btn-primary" onClick={onAddExpense}>
+                  <ArrowUpCircle size={16} /> Ausgabe
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <SankeyDiagram layout={sankeyLayout} />
+              <MobileFlowView
+                members={activeMembers}
+                expenseCategories={usedExpenseCategories}
+                summary={summary}
+              />
+            </>
+          )}
+        </section>
+      )}
+
+      {tab === 'forecast' && (
+        <div className="spending-twocol spending-twocol-premium">
+          <ForecastCard
+            forecast={expenseForecast}
+            annualExpense={annualExpense}
+            annualIncome={annualIncome}
+          />
+          <BalanceCard
+            members={activeMembers}
+            expensesByUser={summary.byMember}
+            totalExpense={summary.totalExpense}
+          />
+        </div>
+      )}
+
+      {tab === 'people' && (
         <section className="spending-panel">
           <header className="spending-panel-head">
-            <h3>Mitglieder</h3>
+            <h3>Mitglieder · {activeMembers.length}</h3>
             <button type="button" className="sankey-btn sankey-btn-secondary" onClick={onInvite}>
               <UserPlus size={14} /> Einladen
             </button>
@@ -1236,10 +1337,20 @@ function GroupDetail({
             ))}
           </ul>
         </section>
+      )}
 
+      {tab === 'people' && (
+        <BalanceCard
+          members={activeMembers}
+          expensesByUser={summary.byMember}
+          totalExpense={summary.totalExpense}
+        />
+      )}
+
+      {tab === 'entries' && (
         <section className="spending-panel">
           <header className="spending-panel-head">
-            <h3>Letzte Buchungen</h3>
+            <h3>Buchungen · {monthLabelStr}</h3>
             <div className="spending-panel-head-actions">
               <button type="button" className="sankey-btn sankey-btn-income spending-mini-btn" onClick={onAddIncome}>
                 <ArrowDownCircle size={14} />
@@ -1253,7 +1364,7 @@ function GroupDetail({
             <p className="spending-empty">Noch keine Buchungen.</p>
           ) : (
             <ul className="spending-expense-list">
-              {allEntries.slice(0, 25).map((e) => {
+              {allEntries.slice(0, 50).map((e) => {
                 const rec = e.recurrence || 'none';
                 const isRecurring = rec !== 'none';
                 const dateStr = e.entry_date
@@ -1344,9 +1455,11 @@ function GroupDetail({
             </ul>
           )}
         </section>
-      </div>
+      )}
 
-      <ActivityFeed entries={allEntries} memberMap={memberMap} overrides={overrides} />
+      {tab === 'overview' && (
+        <ActivityFeed entries={allEntries} memberMap={memberMap} overrides={overrides} />
+      )}
     </>
   );
 }

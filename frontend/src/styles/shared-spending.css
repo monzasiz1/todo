@@ -1,44 +1,70 @@
 .shared-spending-page {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 18px;
   padding: 0 12px 28px;
 }
 
-.shared-spending-header {
+.spending-app-bar {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 22px;
+  gap: 12px;
+  padding: 14px 4px 6px;
 }
 
-.shared-spending-header .eyebrow {
-  display: inline-flex;
-  font-size: 0.82rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  margin-bottom: 12px;
-}
-
-.shared-spending-header h2 {
-  font-size: clamp(2rem, 2.6vw, 2.8rem);
-  margin: 0;
-  line-height: 1.05;
-}
-
-.shared-spending-header p {
-  margin: 12px 0 0;
-  max-width: 620px;
-  color: var(--text-secondary);
-  font-size: 1rem;
-  line-height: 1.65;
-}
-
-.shared-spending-header-actions {
+.spending-app-bar-title {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 10px;
+}
+
+.spending-app-bar-title h1 {
+  font-size: clamp(1.45rem, 1.8vw, 1.75rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+  line-height: 1;
+}
+
+.spending-app-bar-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.spending-app-bar-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.spending-app-bar-action:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+.spending-app-bar-action:active {
+  transform: translateY(0);
 }
 
 .sankey-summary-grid {
@@ -1543,11 +1569,6 @@
 }
 
 @media (max-width: 1080px) {
-  .shared-spending-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
   .sankey-summary-grid {
     grid-template-columns: 1fr;
   }
@@ -1689,36 +1710,6 @@
 }
 
 /* (Cursor-Spotlight entfernt — Hintergrund am Zeiger nicht erwuenscht) */
-
-/* ── Hero Header Upgrade ─────────────────────────────────────────────── */
-.is-premium .shared-spending-header h2 {
-  font-size: clamp(2.4rem, 4.2vw, 3.6rem);
-  font-weight: 700;
-  letter-spacing: -0.035em;
-  line-height: 1.0;
-  background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 40%, #94a3b8 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  filter: drop-shadow(0 0 40px rgba(96, 165, 250, 0.25));
-}
-
-.is-premium .shared-spending-header .eyebrow {
-  background: linear-gradient(90deg, #60A5FA, #A78BFA, #34D399);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-}
-
-.is-premium .shared-spending-header p {
-  font-size: 1.05rem;
-  line-height: 1.7;
-  color: #cbd5e1;
-}
 
 /* ── Premium Stat Cards ─────────────────────────────────────────────── */
 .spending-card-premium {
@@ -2579,5 +2570,577 @@
 
   .spending-balance-row {
     padding: 8px 10px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   APP-LIKE LAYOUT — Hero · Tabs · Group Chip Switcher
+   Ersetzt die alte Sidebar+Cards-Stack-UI durch native App-Pattern
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Group Switcher — horizontal chips statt linke Sidebar */
+.spending-group-switcher {
+  margin: 0 -4px;
+  position: relative;
+}
+
+.spending-group-switcher-track {
+  display: flex;
+  gap: 8px;
+  padding: 4px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.spending-group-switcher-track::-webkit-scrollbar { display: none; }
+
+.spending-group-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  cursor: pointer;
+  scroll-snap-align: start;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.spending-group-chip:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.spending-group-chip.is-active {
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.18), rgba(167, 139, 250, 0.14));
+  border-color: rgba(96, 165, 250, 0.45);
+  color: var(--text);
+  box-shadow: 0 4px 16px rgba(96, 165, 250, 0.12);
+}
+
+.spending-group-chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #60A5FA, #A78BFA);
+  flex-shrink: 0;
+}
+
+.spending-group-chip-body {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  text-align: left;
+}
+
+.spending-group-chip-body strong {
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.spending-group-chip-body em {
+  font-style: normal;
+  font-size: 0.74rem;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.spending-group-chip.is-add {
+  padding: 10px 12px;
+  background: transparent;
+  border-style: dashed;
+}
+
+.spending-group-chip.is-add:hover {
+  background: rgba(96, 165, 250, 0.08);
+  border-color: rgba(96, 165, 250, 0.4);
+  color: #60A5FA;
+}
+
+/* Main area — full-width override */
+.spending-main-full {
+  width: 100%;
+}
+
+/* HERO — Revolut-Style Banner mit Balance + Actions */
+.spending-hero {
+  position: relative;
+  padding: 22px 22px 18px;
+  border-radius: 24px;
+  background:
+    radial-gradient(120% 100% at 0% 0%, rgba(96, 165, 250, 0.16), transparent 55%),
+    radial-gradient(140% 120% at 100% 100%, rgba(167, 139, 250, 0.14), transparent 60%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.86), rgba(15, 23, 42, 0.78));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.spending-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.35 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 220px 220px;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.spending-hero > * { position: relative; z-index: 1; }
+
+.spending-hero-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.spending-hero-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.spending-hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.spending-hero-name {
+  margin: 0;
+  font-size: clamp(1.4rem, 2.4vw, 1.85rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  background: linear-gradient(135deg, #ffffff, #cbd5e1);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.spending-hero-avatars {
+  display: flex;
+  align-items: center;
+}
+
+.spending-hero-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #0b1220;
+  border: 2px solid rgba(15, 23, 42, 0.95);
+  margin-left: -8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.spending-hero-avatar:first-child {
+  margin-left: 0;
+}
+
+.spending-hero-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.spending-hero-avatar.is-more {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text);
+  font-size: 0.7rem;
+}
+
+.spending-hero-balance {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.spending-hero-balance-label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.spending-hero-balance-amount {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: clamp(2.4rem, 4.5vw, 3.2rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.spending-hero-balance-amount em {
+  font-style: normal;
+  font-size: 0.5em;
+  font-weight: 600;
+  opacity: 0.55;
+  margin-left: 4px;
+}
+
+.spending-hero-balance-amount.is-pos {
+  color: #34D399;
+  text-shadow: 0 0 32px rgba(52, 211, 153, 0.32);
+}
+
+.spending-hero-balance-amount.is-neg {
+  color: #F87171;
+  text-shadow: 0 0 32px rgba(248, 113, 113, 0.32);
+}
+
+.spending-hero-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.spending-hero-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.spending-hero-pill.is-income {
+  color: #34D399;
+  border-color: rgba(52, 211, 153, 0.28);
+  background: rgba(52, 211, 153, 0.08);
+}
+
+.spending-hero-pill.is-expense {
+  color: #F87171;
+  border-color: rgba(248, 113, 113, 0.28);
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.spending-hero-pill.is-recurring {
+  color: #A78BFA;
+  border-color: rgba(167, 139, 250, 0.28);
+  background: rgba(167, 139, 250, 0.08);
+}
+
+/* Hero Actions — Cash App / Revolut style icon-buttons */
+.spending-hero-actions {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.spending-hero-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 6px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.spending-hero-action svg {
+  color: var(--text-secondary);
+  transition: color 0.15s ease;
+}
+
+.spending-hero-action span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: -0.005em;
+}
+
+.spending-hero-action:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+.spending-hero-action:hover svg,
+.spending-hero-action:hover span {
+  color: var(--text);
+}
+
+.spending-hero-action.is-expense:hover {
+  background: rgba(248, 113, 113, 0.10);
+  border-color: rgba(248, 113, 113, 0.35);
+}
+
+.spending-hero-action.is-expense:hover svg,
+.spending-hero-action.is-expense:hover span {
+  color: #F87171;
+}
+
+.spending-hero-action.is-income:hover {
+  background: rgba(52, 211, 153, 0.10);
+  border-color: rgba(52, 211, 153, 0.35);
+}
+
+.spending-hero-action.is-income:hover svg,
+.spending-hero-action.is-income:hover span {
+  color: #34D399;
+}
+
+.spending-hero-action.is-danger:hover {
+  background: rgba(248, 113, 113, 0.08);
+  border-color: rgba(248, 113, 113, 0.25);
+}
+
+/* TAB BAR — segmented control */
+.spending-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  overflow-x: auto;
+  scrollbar-width: none;
+  position: sticky;
+  top: 8px;
+  z-index: 5;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.spending-tabs::-webkit-scrollbar { display: none; }
+
+.spending-tab {
+  flex: 1 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, transform 0.15s ease;
+  white-space: nowrap;
+}
+
+.spending-tab:hover {
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.spending-tab.is-active {
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.20), rgba(167, 139, 250, 0.16));
+  color: var(--text);
+  box-shadow: 0 4px 14px rgba(96, 165, 250, 0.18);
+}
+
+.spending-tab em {
+  font-style: normal;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+
+.spending-tab.is-active em {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+/* MINI STAT ROW — kompakte Inline-Statistik unter Hero */
+.spending-mini-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.spending-mini-stat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  min-width: 0;
+}
+
+.spending-mini-stat > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.spending-mini-stat > div > span {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.spending-mini-stat > div > strong {
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spending-mini-stat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.spending-mini-stat-icon.is-income {
+  background: rgba(52, 211, 153, 0.12);
+  color: #34D399;
+}
+
+.spending-mini-stat-icon.is-expense {
+  background: rgba(248, 113, 113, 0.12);
+  color: #F87171;
+}
+
+.spending-mini-stat-tag {
+  font-style: normal;
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(167, 139, 250, 0.12);
+  color: #A78BFA;
+  border: 1px solid rgba(167, 139, 250, 0.25);
+  flex-shrink: 0;
+}
+
+/* Sparkline shrinking inside mini-stat */
+.spending-mini-stat .spending-sparkline {
+  flex-shrink: 0;
+  width: 60px;
+}
+
+/* Mobile adjustments — Hero & Tabs */
+@media (max-width: 760px) {
+  .spending-hero {
+    padding: 18px 16px 14px;
+    border-radius: 20px;
+  }
+
+  .spending-hero-top {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .spending-hero-avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 0.72rem;
+  }
+
+  .spending-hero-balance-amount {
+    font-size: 2.4rem;
+  }
+
+  .spending-hero-actions {
+    gap: 6px;
+  }
+
+  .spending-hero-action {
+    padding: 10px 4px;
+  }
+
+  .spending-hero-action span {
+    font-size: 0.7rem;
+  }
+
+  .spending-tab {
+    padding: 8px 12px;
+    font-size: 0.82rem;
+  }
+
+  .spending-tab span {
+    display: none;
+  }
+
+  .spending-tab.is-active span {
+    display: inline;
+  }
+
+  .spending-mini-row {
+    grid-template-columns: 1fr;
+  }
+
+  .spending-mini-stat .spending-sparkline {
+    display: none;
+  }
+
+  .spending-group-chip {
+    padding: 8px 12px;
+  }
+
+  .spending-group-chip-body strong { font-size: 0.86rem; }
+  .spending-group-chip-body em { font-size: 0.68rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spending-group-chip,
+  .spending-hero-action,
+  .spending-tab,
+  .spending-app-bar-action {
+    transition: none;
   }
 }
