@@ -519,14 +519,31 @@ export const api = {
   removeSpendingMember: (groupId, userId) =>
     request(`/spending/${groupId}/members/${userId}`, { method: 'DELETE' }),
 
-  addSpendingEntry: (groupId, { kind, category, amount, description }) =>
+  addSpendingEntry: (groupId, payload) =>
     request(`/spending/${groupId}/entries`, {
       method: 'POST',
-      body: JSON.stringify({ kind, category, amount, description }),
+      body: JSON.stringify(payload),
+    }),
+
+  updateSpendingEntry: (groupId, entryId, payload) =>
+    request(`/spending/${groupId}/entries/${entryId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
     }),
 
   deleteSpendingEntry: (groupId, entryId) =>
     request(`/spending/${groupId}/entries/${entryId}`, { method: 'DELETE' }),
+
+  setSpendingOverride: (groupId, entryId, { month, kind, amount }) =>
+    request(`/spending/${groupId}/entries/${entryId}/override`, {
+      method: 'POST',
+      body: JSON.stringify({ month, kind, amount }),
+    }),
+
+  removeSpendingOverride: (groupId, entryId, month) =>
+    request(`/spending/${groupId}/entries/${entryId}/override?month=${encodeURIComponent(month)}`, {
+      method: 'DELETE',
+    }),
 
   parseSpendingText: (input) =>
     request('/ai/spending-parse', {

@@ -50,6 +50,22 @@ async function ensureTables(pool) {
   await pool.query(`ALTER TABLE spending_expenses ADD COLUMN IF NOT EXISTS entry_date DATE`);
   await pool.query(`ALTER TABLE spending_expenses ADD COLUMN IF NOT EXISTS recurrence_end DATE`);
   await pool.query(`UPDATE spending_expenses SET entry_date = created_at::DATE WHERE entry_date IS NULL`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS spending_overrides (
+    id SERIAL PRIMARY KEY,
+    entry_id INTEGER NOT NULL REFERENCES spending_expenses(id) ON DELETE CASCADE,
+    override_month CHAR(7) NOT NULL,
+    kind VARCHAR(20) NOT NULL DEFAULT 'skip' CHECK (kind IN ('skip', 'amount')),
+    amount NUMERIC(10,2),
+    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(entry_id, override_month)
+  )`);
+}
+
+function sanitizeMonth(value) {
+  if (!value) return null;
+  const s = String(value).slice(0, 7);
+  return /^\d{4}-\d{2}$/.test(s) ? s : null;
 }
 
 async function isOwner(pool, groupId, userId) {
@@ -118,12 +134,29 @@ async function loadGroupDetail(pool, groupId, userId) {
     amount: Number(row.amount),
   }));
 
+  // Overrides fuer alle Eintraege dieser Gruppe laden
+  const entryIds = all.map((e) => e.id);
+  let overrides = [];
+  if (entryIds.length > 0) {
+    const ovRes = await pool.query(
+      `SELECT id, entry_id, override_month, kind, amount, created_by, created_at
+       FROM spending_overrides
+       WHERE entry_id = ANY($1)`,
+      [entryIds]
+    );
+    overrides = ovRes.rows.map((row) => ({
+      ...row,
+      amount: row.amount != null ? Number(row.amount) : null,
+    }));
+  }
+
   return {
     ...group,
     is_owner: group.owner_id === userId,
     members: membersRes.rows,
     expenses: all.filter((e) => (e.kind || 'expense') === 'expense'),
     incomes: all.filter((e) => e.kind === 'income'),
+    overrides,
   };
 }
 
@@ -386,6 +419,53 @@ module.exports = async function handler(req, res) {
       });
     }
 
+    // PUT /api/spending/:id/entries/:id — Eintrag bearbeiten
+    if (segments.length === 3 && (segments[1] === 'entries' || segments[1] === 'expenses') && req.method === 'PUT') {
+      const groupId = Number(segments[0]);
+      const entryId = Number(segments[2]);
+      const {
+        kind, category, amount, description,
+        recurrence, entry_date, recurrence_end,
+      } = req.body || {};
+
+      // Berechtigung: eigener Eintrag oder Owner
+      const owner = await isOwner(pool, groupId, user.id);
+      const ownCheck = await pool.query(
+        `SELECT user_id FROM spending_expenses WHERE id = $1 AND spending_group_id = $2`,
+        [entryId, groupId]
+      );
+      if (ownCheck.rows.length === 0) return res.status(404).json({ error: 'Eintrag nicht gefunden' });
+      if (!owner && ownCheck.rows[0].user_id !== user.id) {
+        return res.status(403).json({ error: 'Kein Zugriff' });
+      }
+
+      // Validierung
+      if (!ALLOWED_KINDS.has(String(kind))) return res.status(400).json({ error: 'Art ungueltig' });
+      if (!validateCategoryForKind(kind, String(category))) return res.status(400).json({ error: 'Kategorie ungueltig' });
+      if (!ALLOWED_RECURRENCES.has(String(recurrence))) return res.status(400).json({ error: 'Wiederholung ungueltig' });
+      const amt = Number(amount);
+      if (!Number.isFinite(amt) || amt < 0 || amt > 10_000_000) return res.status(400).json({ error: 'Betrag ungueltig' });
+
+      const entryDate = sanitizeDate(entry_date) || new Date().toISOString().slice(0, 10);
+      const recEnd = sanitizeDate(recurrence_end);
+
+      const result = await pool.query(
+        `UPDATE spending_expenses
+            SET kind = $1, category = $2, amount = $3, description = $4,
+                recurrence = $5, entry_date = $6, recurrence_end = $7
+          WHERE id = $8 AND spending_group_id = $9
+       RETURNING id, user_id, kind, category, amount, description,
+                 recurrence, entry_date, recurrence_end, created_at`,
+        [
+          kind, category, amt, String(description || '').slice(0, 500),
+          recurrence, entryDate, recEnd,
+          entryId, groupId,
+        ]
+      );
+      const row = result.rows[0];
+      return res.json({ entry: { ...row, amount: Number(row.amount) } });
+    }
+
     // DELETE /api/spending/:id/entries/:id (Alias: /expenses/:id)
     if (segments.length === 3 && (segments[1] === 'entries' || segments[1] === 'expenses') && req.method === 'DELETE') {
       const groupId = Number(segments[0]);
@@ -397,6 +477,70 @@ module.exports = async function handler(req, res) {
       const params = owner ? [expenseId, groupId] : [expenseId, groupId, user.id];
       const r = await pool.query(`DELETE FROM spending_expenses WHERE ${where} RETURNING id`, params);
       if (r.rows.length === 0) return res.status(404).json({ error: 'Ausgabe nicht gefunden' });
+      return res.json({ success: true });
+    }
+
+    // POST /api/spending/:id/entries/:id/override — Skip oder Custom-Amount fuer einen Monat
+    if (segments.length === 4 && (segments[1] === 'entries' || segments[1] === 'expenses') && segments[3] === 'override' && req.method === 'POST') {
+      const groupId = Number(segments[0]);
+      const entryId = Number(segments[2]);
+      const { month, kind = 'skip', amount } = req.body || {};
+
+      const monthStr = sanitizeMonth(month);
+      if (!monthStr) return res.status(400).json({ error: 'Monat ungueltig (Format YYYY-MM)' });
+      if (!['skip', 'amount'].includes(kind)) return res.status(400).json({ error: 'Override-Art ungueltig' });
+
+      // Eintrag muss zur Gruppe gehoeren + User Berechtigung
+      const owner = await isOwner(pool, groupId, user.id);
+      const ownCheck = await pool.query(
+        `SELECT user_id, recurrence FROM spending_expenses WHERE id = $1 AND spending_group_id = $2`,
+        [entryId, groupId]
+      );
+      if (ownCheck.rows.length === 0) return res.status(404).json({ error: 'Eintrag nicht gefunden' });
+      if (!owner && ownCheck.rows[0].user_id !== user.id) return res.status(403).json({ error: 'Kein Zugriff' });
+      if (ownCheck.rows[0].recurrence === 'none') {
+        return res.status(400).json({ error: 'Overrides nur fuer wiederkehrende Eintraege' });
+      }
+
+      let amt = null;
+      if (kind === 'amount') {
+        amt = Number(amount);
+        if (!Number.isFinite(amt) || amt < 0 || amt > 10_000_000) {
+          return res.status(400).json({ error: 'Betrag ungueltig' });
+        }
+      }
+
+      const result = await pool.query(
+        `INSERT INTO spending_overrides (entry_id, override_month, kind, amount, created_by)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (entry_id, override_month) DO UPDATE
+           SET kind = EXCLUDED.kind, amount = EXCLUDED.amount, created_by = EXCLUDED.created_by, created_at = NOW()
+         RETURNING id, entry_id, override_month, kind, amount, created_at`,
+        [entryId, monthStr, kind, amt, user.id]
+      );
+      const row = result.rows[0];
+      return res.json({ override: { ...row, amount: row.amount != null ? Number(row.amount) : null } });
+    }
+
+    // DELETE /api/spending/:id/entries/:id/override?month=YYYY-MM — Override aufheben
+    if (segments.length === 4 && (segments[1] === 'entries' || segments[1] === 'expenses') && segments[3] === 'override' && req.method === 'DELETE') {
+      const groupId = Number(segments[0]);
+      const entryId = Number(segments[2]);
+      const monthStr = sanitizeMonth(req.query.month);
+      if (!monthStr) return res.status(400).json({ error: 'Monat ungueltig' });
+
+      const owner = await isOwner(pool, groupId, user.id);
+      const ownCheck = await pool.query(
+        `SELECT user_id FROM spending_expenses WHERE id = $1 AND spending_group_id = $2`,
+        [entryId, groupId]
+      );
+      if (ownCheck.rows.length === 0) return res.status(404).json({ error: 'Eintrag nicht gefunden' });
+      if (!owner && ownCheck.rows[0].user_id !== user.id) return res.status(403).json({ error: 'Kein Zugriff' });
+
+      await pool.query(
+        `DELETE FROM spending_overrides WHERE entry_id = $1 AND override_month = $2`,
+        [entryId, monthStr]
+      );
       return res.json({ success: true });
     }
 

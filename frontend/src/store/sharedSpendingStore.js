@@ -164,6 +164,19 @@ export const useSharedSpendingStore = create((set, get) => ({
     }
   },
 
+  updateEntry: async (groupId, entryId, payload) => {
+    try {
+      await api.updateSpendingEntry(groupId, entryId, payload);
+      if (get().activeGroup?.id === groupId) {
+        await get().fetchGroupDetail(groupId);
+      }
+      await get().fetchGroups();
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  },
+
   deleteEntry: async (groupId, entryId) => {
     try {
       await api.deleteSpendingEntry(groupId, entryId);
@@ -171,6 +184,30 @@ export const useSharedSpendingStore = create((set, get) => ({
         await get().fetchGroupDetail(groupId);
       }
       await get().fetchGroups();
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  },
+
+  setOverride: async (groupId, entryId, override) => {
+    try {
+      await api.setSpendingOverride(groupId, entryId, override);
+      if (get().activeGroup?.id === groupId) {
+        await get().fetchGroupDetail(groupId);
+      }
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  },
+
+  removeOverride: async (groupId, entryId, month) => {
+    try {
+      await api.removeSpendingOverride(groupId, entryId, month);
+      if (get().activeGroup?.id === groupId) {
+        await get().fetchGroupDetail(groupId);
+      }
       return { success: true };
     } catch (err) {
       return { success: false, error: err.message };

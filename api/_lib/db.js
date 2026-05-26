@@ -199,6 +199,18 @@ async function runSchemaInit(rawQuery) {
     `CREATE INDEX IF NOT EXISTS idx_spending_expenses_user ON spending_expenses(user_id)`,
     `CREATE INDEX IF NOT EXISTS idx_spending_expenses_kind ON spending_expenses(spending_group_id, kind)`,
     `CREATE INDEX IF NOT EXISTS idx_spending_expenses_recurrence ON spending_expenses(spending_group_id, recurrence)`,
+    // Pro-Monat Overrides fuer recurring Eintraege: skip, custom amount
+    `CREATE TABLE IF NOT EXISTS spending_overrides (
+      id SERIAL PRIMARY KEY,
+      entry_id INTEGER NOT NULL REFERENCES spending_expenses(id) ON DELETE CASCADE,
+      override_month CHAR(7) NOT NULL,
+      kind VARCHAR(20) NOT NULL DEFAULT 'skip' CHECK (kind IN ('skip', 'amount')),
+      amount NUMERIC(10,2),
+      created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(entry_id, override_month)
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_spending_overrides_entry ON spending_overrides(entry_id, override_month)`,
 
     // Ensure required preference keys exist on older rows
     `UPDATE users

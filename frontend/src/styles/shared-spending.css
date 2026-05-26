@@ -2130,3 +2130,454 @@
   /* Cursor-Spotlight auf Touch-Devices deaktivieren */
   .spending-cursor-spotlight { display: none; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+ * EXTENSION LAYER — Forecast / Balance / Activity / Sankey Anim / Entry-Actions
+ * ─────────────────────────────────────────────────────────────────────── */
+
+/* Sankey: Stagger Fade-in beim Laden */
+.sankey-band-anim {
+  opacity: 0;
+  animation: sankey-band-fade-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: calc(var(--i, 0) * 35ms);
+}
+
+@keyframes sankey-band-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sankey-band-anim {
+    animation: none;
+    opacity: 0.55;
+  }
+}
+
+/* Entry-Actions Container fuer Buchungsliste */
+.spending-expense-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.spending-icon-btn-warn {
+  background: rgba(251, 191, 36, 0.12) !important;
+  color: #FBBF24 !important;
+  border-color: rgba(251, 191, 36, 0.24) !important;
+}
+
+.spending-icon-btn-warn:hover {
+  background: rgba(251, 191, 36, 0.22) !important;
+}
+
+/* Override-Badge in der Buchungsliste */
+.spending-override-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  padding: 2px 8px;
+  background: rgba(251, 191, 36, 0.16);
+  color: #FBBF24;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+}
+
+.spending-expense-item.is-overridden {
+  border-left-color: rgba(251, 191, 36, 0.55);
+}
+
+/* Two-Col Premium fuer Forecast + Balance Cards */
+.spending-twocol-premium {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+/* ── Forecast Card ──────────────────────────────────────────────────── */
+.spending-forecast-card {
+  position: relative;
+  padding: 22px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(18, 24, 38, 0.6), rgba(10, 14, 24, 0.5));
+  backdrop-filter: blur(20px) saturate(1.15);
+  border: 1px solid rgba(96, 165, 250, 0.18);
+  box-shadow:
+    0 20px 50px -25px rgba(96, 165, 250, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+.spending-forecast-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.spending-forecast-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #93c5fd;
+  text-transform: uppercase;
+}
+
+.spending-forecast-sub {
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.spending-forecast-bars {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  align-items: end;
+  min-height: 130px;
+  margin-bottom: 16px;
+}
+
+.spending-forecast-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.spending-forecast-bar-track {
+  position: relative;
+  height: 110px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+}
+
+.spending-forecast-bar-fill {
+  display: block;
+  width: 100%;
+  background: linear-gradient(180deg, rgba(96, 165, 250, 0.85), rgba(167, 139, 250, 0.65));
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(96, 165, 250, 0.35);
+  animation: forecast-fill 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: bottom;
+}
+
+@keyframes forecast-fill {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+
+.spending-forecast-bar-meta {
+  text-align: center;
+}
+
+.spending-forecast-bar-meta strong {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  font-variant-numeric: tabular-nums;
+}
+
+.spending-forecast-bar-meta span {
+  display: block;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.spending-forecast-foot {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.spending-forecast-foot > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.spending-forecast-foot span {
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.spending-forecast-foot strong {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  font-variant-numeric: tabular-nums;
+}
+
+.spending-forecast-foot strong.is-positive {
+  color: #34D399;
+}
+
+/* ── Balance / Settlement Card ──────────────────────────────────────── */
+.spending-balance-card {
+  position: relative;
+  padding: 22px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(20, 16, 38, 0.6), rgba(10, 10, 24, 0.5));
+  backdrop-filter: blur(20px) saturate(1.15);
+  border: 1px solid rgba(167, 139, 250, 0.18);
+  box-shadow:
+    0 20px 50px -25px rgba(124, 58, 237, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+.spending-balance-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.spending-balance-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #c4b5fd;
+  text-transform: uppercase;
+}
+
+.spending-balance-sub {
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.spending-balance-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.spending-balance-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 14px;
+}
+
+.spending-balance-avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 0.82rem;
+}
+
+.spending-balance-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.spending-balance-info strong {
+  font-size: 0.92rem;
+  color: #f1f5f9;
+}
+
+.spending-balance-info span {
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.spending-balance-net {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.95rem;
+  color: #cbd5e1;
+}
+
+.spending-balance-net.is-positive { color: #34D399; }
+.spending-balance-net.is-negative { color: #F87171; }
+
+.spending-balance-settlements h4 {
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.spending-balance-settlements ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.spending-settlement {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: linear-gradient(90deg, rgba(248, 113, 113, 0.06), rgba(52, 211, 153, 0.06));
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+}
+
+.spending-settlement .spending-avatar {
+  width: 30px;
+  height: 30px;
+  font-size: 0.78rem;
+}
+
+.spending-settlement-text {
+  flex: 1;
+  font-size: 0.88rem;
+  color: #e2e8f0;
+}
+
+.spending-settlement-text strong {
+  color: #f1f5f9;
+}
+
+.spending-settlement-amt {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #f1f5f9;
+}
+
+/* ── Activity Feed ──────────────────────────────────────────────────── */
+.spending-activity-card {
+  position: relative;
+  padding: 22px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(18, 24, 38, 0.55), rgba(10, 14, 24, 0.45));
+  backdrop-filter: blur(20px) saturate(1.15);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 20px 50px -25px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+.spending-activity-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.spending-activity-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.spending-activity-sub {
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.spending-activity-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.spending-activity-list::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 8px;
+  bottom: 8px;
+  width: 1px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.02));
+}
+
+.spending-activity-item {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 8px 0 8px 22px;
+}
+
+.spending-activity-dot {
+  position: absolute;
+  left: 0;
+  top: 14px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #94a3b8;
+  border: 2px solid rgba(10, 14, 24, 0.8);
+}
+
+.spending-activity-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.spending-activity-body p {
+  margin: 0 0 2px;
+  font-size: 0.9rem;
+  color: #e2e8f0;
+  line-height: 1.5;
+}
+
+.spending-activity-body p strong {
+  color: #f1f5f9;
+  font-weight: 600;
+}
+
+.spending-activity-time {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+/* ── Mobile Adjustments fuer neue Komponenten ──────────────────────── */
+@media (max-width: 760px) {
+  .spending-twocol-premium {
+    grid-template-columns: 1fr;
+  }
+
+  .spending-forecast-card,
+  .spending-balance-card,
+  .spending-activity-card {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .spending-forecast-bar-track { height: 90px; }
+
+  .spending-forecast-foot {
+    grid-template-columns: 1fr;
+  }
+
+  .spending-balance-row {
+    padding: 8px 10px;
+  }
+}
