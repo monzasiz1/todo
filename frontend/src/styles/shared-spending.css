@@ -1239,19 +1239,18 @@
 
 .spending-modal.is-mobile-fullscreen {
   position: fixed;
-  width: 100vw;
-  height: 100vh;
-  max-height: 100vh;
-  inset: 0;
-  top: 0;
+  width: 100%;
+  max-height: none;
   left: 0;
   right: 0;
-  bottom: 0;
+  top: env(safe-area-inset-top, 0px);
+  bottom: env(safe-area-inset-bottom, 0px);
   border-radius: 0;
-  padding: calc(env(safe-area-inset-top, 0px) + 12px) 14px env(safe-area-inset-bottom, 0px) 14px;
+  padding: 12px 14px;
   z-index: 1101;
   margin: 0;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   background: rgba(30, 31, 35, 0.95);
   border: none;
