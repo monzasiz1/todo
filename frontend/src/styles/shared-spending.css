@@ -2019,6 +2019,7 @@
   bottom: -10%;
   left: 30%;
   animation: orb-float-3 40s ease-in-out infinite alternate;
+  opacity: 0.45;
 }
 
 @keyframes orb-float-1 {

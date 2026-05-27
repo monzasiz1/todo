@@ -795,7 +795,7 @@ html[data-theme="dark"] .profile-toast {
 html[data-theme="dark"] body,
 html[data-theme="dark"] #root,
 html[data-theme="dark"] .app-root {
-  background: var(--bg);
+  background: transparent;
 }
 
 /* ── Sicherer Fallback: Inline-Style #fff/#ffffff in JSX ────────────────
