@@ -1145,7 +1145,7 @@ function GroupDetail({
             <span className="spending-hero-eyebrow">
               <Users size={11} /> {activeMembers.length} {activeMembers.length === 1 ? 'Person' : 'Personen'} · {monthLabelStr}
             </span>
-            <h2 className="spending-hero-name">{activeGroup?.name}</h2>
+            <h2 className="spending-hero-name">{group?.name}</h2>
           </div>
           <div className="spending-hero-avatars">
             {activeMembers.slice(0, 4).map((m) => (
