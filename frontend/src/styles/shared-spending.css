@@ -1262,7 +1262,7 @@
 
 .modal-pull-handle {
   position: absolute;
-  top: 12px;
+  top: env(safe-area-inset-top, 12px);
   left: 50%;
   transform: translateX(-50%);
   width: 44px;
