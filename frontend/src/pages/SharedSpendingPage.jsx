@@ -632,23 +632,27 @@ export default function SharedSpendingPage() {
   // Aktuell gewaehlter Monat — default: heute
   const [viewMonth, setViewMonth] = useState(currentMonthKey);
 
-  const getCategoryLabelWithCustom = (catId) => {
-    if (catId.toString().startsWith('custom:')) {
-      const customId = parseInt(catId.toString().slice(7), 10);
-      const custom = (activeGroup?.custom_categories || []).find((c) => c.id === customId);
-      return custom?.label || catId;
-    }
-    return categoryLabel(catId);
-  };
+  const getCategoryLabelWithCustom = useMemo(() => {
+    return (catId) => {
+      if (catId.toString().startsWith('custom:')) {
+        const customId = parseInt(catId.toString().slice(7), 10);
+        const custom = (activeGroup?.custom_categories || []).find((c) => c.id === customId);
+        return custom?.label || catId;
+      }
+      return categoryLabel(catId);
+    };
+  }, [activeGroup?.custom_categories]);
 
-  const getCategoryColorWithCustom = (catId) => {
-    if (catId.toString().startsWith('custom:')) {
-      const customId = parseInt(catId.toString().slice(7), 10);
-      const custom = (activeGroup?.custom_categories || []).find((c) => c.id === customId);
-      return custom?.color || categoryColor(catId);
-    }
-    return categoryColor(catId);
-  };
+  const getCategoryColorWithCustom = useMemo(() => {
+    return (catId) => {
+      if (catId.toString().startsWith('custom:')) {
+        const customId = parseInt(catId.toString().slice(7), 10);
+        const custom = (activeGroup?.custom_categories || []).find((c) => c.id === customId);
+        return custom?.color || categoryColor(catId);
+      }
+      return categoryColor(catId);
+    };
+  }, [activeGroup?.custom_categories]);
 
   useEffect(() => {
     fetchGroups();
