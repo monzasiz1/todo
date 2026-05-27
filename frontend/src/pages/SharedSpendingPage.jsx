@@ -1136,7 +1136,7 @@ function GroupDetail({
 
   const [tab, setTab] = useState('overview');
   const monthLabelStr = monthLabel(viewMonth.year, viewMonth.month);
-  const customCategories = activeGroup?.custom_categories || [];
+  const customCategories = (activeGroup && activeGroup.custom_categories) || [];
 
   return (
     <>
