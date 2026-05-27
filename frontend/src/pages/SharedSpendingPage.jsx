@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Users, TrendingUp, TrendingDown, Plus, Trash2, X, Check,
   UserPlus, Receipt, Sparkles, ChevronRight, ChevronLeft, LogOut, AlertCircle,
@@ -1952,7 +1953,7 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
     }
   };
 
-  return (
+  const modalContent = (
     <AnimatePresence>
       <div className={`spending-modal-backdrop${isMobile ? ' is-mobile-fullscreen' : ''}`} onClick={onClose}>
         <motion.form
@@ -2205,6 +2206,8 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
       </div>
     </AnimatePresence>
   );
+
+  return createPortal(modalContent, document.body);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
