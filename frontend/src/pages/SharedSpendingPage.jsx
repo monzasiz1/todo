@@ -2037,7 +2037,6 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
                 value={newCatName}
                 onChange={(e) => setNewCatName(e.target.value)}
                 maxLength={80}
-                autoFocus
               />
               <div className="spending-color-picker">
                 {['#94A3B8', '#60A5FA', '#34D399', '#F87171', '#FBBF24', '#A78BFA', '#06B6D4'].map((col) => (
@@ -2080,7 +2079,6 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
               type="text"
               inputMode="decimal"
               value={amount}
-              autoFocus
               onChange={(e) => setAmount(e.target.value.replace(/[^0-9.,]/g, ''))}
               placeholder="0,00"
             />
