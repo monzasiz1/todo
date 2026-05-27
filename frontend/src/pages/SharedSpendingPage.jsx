@@ -1875,8 +1875,15 @@ function EntryModal({ mode, prefill, editing, viewMonth, onClose, onSubmit, onSw
       const splitObj = {};
       if (splitMode === 'equal') {
         const perPerson = amt / members.length;
-        members.forEach((m) => {
-          splitObj[m.id] = parseFloat(perPerson.toFixed(2));
+        let sum = 0;
+        members.forEach((m, i) => {
+          if (i === members.length - 1) {
+            splitObj[m.id] = Math.max(0, amt - sum);
+          } else {
+            const rounded = parseFloat(perPerson.toFixed(2));
+            splitObj[m.id] = rounded;
+            sum += rounded;
+          }
         });
       } else {
         Object.assign(splitObj, splitAmounts);
