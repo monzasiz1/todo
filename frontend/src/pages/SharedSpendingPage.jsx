@@ -8,6 +8,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSharedSpendingStore } from '../store/sharedSpendingStore';
 import { useFriendsStore } from '../store/friendsStore';
+import { useAuthStore } from '../store/authStore';
 import '../styles/shared-spending.css';
 
 const EXPENSE_CATEGORIES = [
@@ -602,6 +603,7 @@ export default function SharedSpendingPage() {
     setOverride, removeOverride,
   } = useSharedSpendingStore();
   const { friends, fetchFriends } = useFriendsStore();
+  const { user } = useAuthStore();
 
   const [toast, setToast] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -904,6 +906,7 @@ export default function SharedSpendingPage() {
           prefill={entryModal.prefill}
           editing={entryModal.editing}
           viewMonth={viewMonth}
+          currentUserId={user?.id}
           onClose={() => setEntryModal(null)}
           onSubmit={handleSubmitEntry}
           onSwitch={(k) => setEntryModal((m) => ({ ...(m || {}), kind: k, prefill: undefined, editing: undefined }))}
@@ -1745,7 +1748,7 @@ function InviteFriendModal({ friends, existingMemberIds, onClose, onSubmit }) {
 
 /* Unified Entry-Modal: Toggle zwischen Einnahme und Ausgabe oben.
  * Akzeptiert prefill aus KI-Parser (Kategorie, Betrag, Beschreibung). */
-function EntryModal({ mode, prefill, editing, viewMonth, onClose, onSubmit, onSwitch }) {
+function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose, onSubmit, onSwitch }) {
   const isIncome = mode === 'income';
   const isEdit = !!editing;
   const presetCategories = isIncome ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
@@ -1785,7 +1788,7 @@ function EntryModal({ mode, prefill, editing, viewMonth, onClose, onSubmit, onSw
   const [description, setDescription] = useState(initialDesc);
   const [recurrence, setRecurrence] = useState(initialRecurrence);
   const [entryDate, setEntryDate] = useState(defaultEntryDate);
-  const [payer, setPayer] = useState(editing?.user_id || activeGroup?.user_id || null);
+  const [payer, setPayer] = useState(editing?.user_id || currentUserId || null);
   const [splitMode, setSplitMode] = useState('equal');
   const [splitAmounts, setSplitAmounts] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -1894,7 +1897,7 @@ function EntryModal({ mode, prefill, editing, viewMonth, onClose, onSubmit, onSw
       }));
     }
 
-    await onSubmit({
+    const payload = {
       kind: mode,
       category,
       amount: amt,
@@ -1903,7 +1906,10 @@ function EntryModal({ mode, prefill, editing, viewMonth, onClose, onSubmit, onSw
       entry_date: entryDate || null,
       payer_user_id: payer,
       split_amounts: splits,
-    });
+    };
+    console.log('EntryModal submit payload:', payload, 'activeGroup members:', activeGroup?.members);
+
+    await onSubmit(payload);
     setSubmitting(false);
   };
 

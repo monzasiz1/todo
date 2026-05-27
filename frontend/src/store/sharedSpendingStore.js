@@ -160,7 +160,9 @@ export const useSharedSpendingStore = create((set, get) => ({
       await get().fetchGroups();
       return { success: true };
     } catch (err) {
-      return { success: false, error: err.message };
+      console.error('addEntry error:', err, err.payload);
+      const errorMsg = err.payload?.error || err.message;
+      return { success: false, error: errorMsg };
     }
   },
 
@@ -173,7 +175,9 @@ export const useSharedSpendingStore = create((set, get) => ({
       await get().fetchGroups();
       return { success: true };
     } catch (err) {
-      return { success: false, error: err.message };
+      console.error('updateEntry error:', err, err.payload);
+      const errorMsg = err.payload?.error || err.message;
+      return { success: false, error: errorMsg };
     }
   },
 
