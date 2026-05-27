@@ -91,7 +91,7 @@ html[data-theme="dark"] hr {
 
 /* ── Scrollbar (WebKit/Chromium) ───────────────────────────────────── */
 html[data-theme="dark"] *::-webkit-scrollbar {
-  width: 10px; height: 10px;
+  inline-size: 10px; block-size: 10px;
 }
 html[data-theme="dark"] *::-webkit-scrollbar-track {
   background: transparent;
@@ -369,12 +369,12 @@ html[data-theme="dark"] .calendar-wrapper {
 }
 html[data-theme="dark"] .calendar-wrapper .calendar-header {
   background: var(--surface) !important;
-  border-bottom-color: var(--border) !important;
+  border-block-end-color: var(--border) !important;
 }
 html[data-theme="dark"] .calendar-wrapper .calendar-day-header {
   background: var(--surface) !important;
   color: var(--text-tertiary);
-  border-bottom-color: var(--border);
+  border-block-end-color: var(--border);
 }
 html[data-theme="dark"] .cal-mp-trigger {
   color: var(--text) !important;
@@ -382,7 +382,7 @@ html[data-theme="dark"] .cal-mp-trigger {
 /* Desktop-Sidebar links (Kalenderquellen) */
 html[data-theme="dark"] .desktop-calendar-sidebar {
   background: linear-gradient(180deg, var(--bg-elevated) 0%, var(--surface) 100%) !important;
-  border-right-color: var(--border) !important;
+  border-inline-end-color: var(--border) !important;
 }
 html[data-theme="dark"] .desktop-calendar-sidebar-title {
   color: var(--text) !important;
@@ -619,7 +619,7 @@ html[data-theme="dark"] .manual-task-form-panel .task-edit-field label {
 /* Footer */
 html[data-theme="dark"] .task-edit-footer {
   background: var(--card-solid);
-  border-top-color: var(--border);
+  border-block-start-color: var(--border);
 }
 html[data-theme="dark"] .task-edit-cancel {
   background: transparent;
@@ -647,7 +647,7 @@ html[data-theme="dark"] .task-detail-collab.task-detail-group-subgroup-card {
 }
 html[data-theme="dark"] .task-detail-subgroup-row {
   background: color-mix(in srgb, var(--group-color, #5856D6) 10%, var(--surface-2));
-  border-top-color: color-mix(in srgb, var(--group-color, #5856D6) 28%, var(--border));
+  border-block-start-color: color-mix(in srgb, var(--group-color, #5856D6) 28%, var(--border));
 }
 html[data-theme="dark"] .task-detail-subgroup-card {
   background: color-mix(in srgb, #4DA3FF 10%, var(--surface-2));
@@ -934,7 +934,7 @@ html[data-theme="dark"] .dash-section-count {
    ──────────────────────────────────────────────────────────────────── */
 html[data-theme="dark"] .desktop-calendar-sidebar {
   background: linear-gradient(180deg, #14192a 0%, #0F1422 100%);
-  border-right-color: var(--border);
+  border-inline-end-color: var(--border);
   color: var(--text);
 }
 html[data-theme="dark"] .desktop-week-main {
@@ -948,10 +948,10 @@ html[data-theme="dark"] .desktop-week-all-day-row {
   border-color: var(--border);
 }
 html[data-theme="dark"] .desktop-week-hour-line {
-  border-top-color: rgba(255, 255, 255, 0.05);
+  border-block-start-color: rgba(255, 255, 255, 0.05);
 }
 html[data-theme="dark"] .desktop-week-half-hour-line {
-  border-top-color: rgba(255, 255, 255, 0.03);
+  border-block-start-color: rgba(255, 255, 255, 0.03);
 }
 html[data-theme="dark"] .desktop-week-hour-label,
 html[data-theme="dark"] .desktop-week-left-label,
@@ -964,7 +964,7 @@ html[data-theme="dark"] .desktop-week-hour-label {
 /* Wochenraster: dunkle Tageskolumnen statt weiss */
 html[data-theme="dark"] .desktop-week-day-col {
   background: var(--bg-elevated);
-  border-right-color: var(--border);
+  border-inline-end-color: var(--border);
 }
 html[data-theme="dark"] .desktop-week-day-col.today {
   background: rgba(77, 163, 255, 0.08);
@@ -976,17 +976,17 @@ html[data-theme="dark"] .desktop-week-main {
 html[data-theme="dark"] .desktop-week-days-row,
 html[data-theme="dark"] .desktop-week-all-day-row {
   background: var(--surface);
-  border-bottom-color: var(--border);
+  border-block-end-color: var(--border);
 }
 html[data-theme="dark"] .desktop-week-left-head,
 html[data-theme="dark"] .desktop-week-left-label {
   background: var(--surface);
-  border-right-color: var(--border);
+  border-inline-end-color: var(--border);
   color: var(--text-tertiary);
 }
 html[data-theme="dark"] .desktop-week-day-head {
   background: var(--surface);
-  border-right-color: var(--border);
+  border-inline-end-color: var(--border);
   color: var(--text-secondary);
 }
 html[data-theme="dark"] .desktop-week-day-head.today {
@@ -994,7 +994,7 @@ html[data-theme="dark"] .desktop-week-day-head.today {
   color: var(--primary);
 }
 html[data-theme="dark"] .desktop-week-all-day-cell {
-  border-right-color: var(--border);
+  border-inline-end-color: var(--border);
 }
 /* Sidebar-Logo Titel */
 html[data-theme="dark"] .sidebar-logo h1 {
@@ -1145,8 +1145,8 @@ html[data-theme="dark"] .cal-settings-hint {
 /* Mobile Calendar Modebar (Tag/Woche/Monat Tabs am unteren Rand) */
 html[data-theme="dark"] .mobile-calendar-modebar {
   background: rgba(19, 24, 38, 0.92);
-  border-top-color: var(--border);
-  border-bottom-color: var(--border);
+  border-block-start-color: var(--border);
+  border-block-end-color: var(--border);
   box-shadow: 0 -1px 12px rgba(0, 0, 0, 0.5);
 }
 html[data-theme="dark"] .mobile-calendar-modebar-tabs button {
@@ -1191,7 +1191,7 @@ html[data-theme="dark"] .mobile-day-grid {
   border-color: var(--border);
 }
 html[data-theme="dark"] .mobile-day-hour-row {
-  border-top-color: rgba(255, 255, 255, 0.05);
+  border-block-start-color: rgba(255, 255, 255, 0.05);
 }
 html[data-theme="dark"] .mobile-day-hour-label {
   color: var(--text-tertiary);
@@ -1205,7 +1205,7 @@ html[data-theme="dark"] .mobile-day-allday-item {
 /* Mobile Day-View „Ganztägig"-Top-Bar (über dem Stundenraster) */
 html[data-theme="dark"] .mobile-day-allday-top {
   background: transparent;
-  border-bottom-color: var(--border);
+  border-block-end-color: var(--border);
 }
 html[data-theme="dark"] .mobile-day-allday-label {
   color: var(--text-tertiary);
@@ -1218,55 +1218,55 @@ html[data-theme="dark"] .calendar-day-tasks {
 
 /* Calendar-Header: Trennlinie zwischen Mai-Header und Mein/Familie-Tabs entfernen */
 html[data-theme="dark"] .cal-header-row2 {
-  border-top: none !important;
+  border-block-start: none !important;
   box-shadow: none;
 }
 html[data-theme="dark"] .calendar-header {
-  border-bottom-color: transparent;
+  border-block-end-color: transparent;
 }
 /* Mobile-Page wrap überschreibt mit hartkodiertem #fff + #eef0f5 — neutralisieren */
 html[data-theme="dark"] .calendar-page-wrap .calendar-header {
   background: transparent !important;
-  border-bottom: none !important;
+  border-block-end: none !important;
 }
 html[data-theme="dark"] .calendar-page-wrap .calendar-grid {
   background: transparent !important;
 }
-/* Mobile Source-Switchbar hat hartkodiertes border-top: 1px solid #eef0f5 */
+/* Mobile Source-Switchbar hat hartkodiertes border-block-start: 1px solid #eef0f5 */
 html[data-theme="dark"] .calendar-source-switchbar {
-  border-top-color: transparent !important;
+  border-block-start-color: transparent !important;
 }
 
 /* Mobile Wochenansicht: Allday-Strip + Trennlinien */
 html[data-theme="dark"] .mobile-week-allday-strip {
   background: transparent;
-  border-bottom-color: var(--border);
+  border-block-end-color: var(--border);
 }
 html[data-theme="dark"] .mobile-week-allday-col {
-  border-left-color: var(--border);
+  border-inline-start-color: var(--border);
 }
 html[data-theme="dark"] .mobile-week-allday-corner {
   color: var(--text-tertiary);
 }
 html[data-theme="dark"] .mobile-week-grid-header {
   background: transparent;
-  border-bottom-color: var(--border);
+  border-block-end-color: var(--border);
 }
 html[data-theme="dark"] .mobile-week-grid-day-head {
-  border-left-color: var(--border);
+  border-inline-start-color: var(--border);
   color: var(--text);
 }
 html[data-theme="dark"] .mobile-week-grid-day-head:active {
   background: rgba(255, 255, 255, 0.05);
 }
 html[data-theme="dark"] .mobile-week-grid-hours {
-  border-right-color: var(--border);
+  border-inline-end-color: var(--border);
 }
 html[data-theme="dark"] .mobile-week-grid-col {
-  border-left-color: var(--border);
+  border-inline-start-color: var(--border);
 }
 html[data-theme="dark"] .mobile-week-grid-hour-line {
-  border-top-color: rgba(255, 255, 255, 0.05);
+  border-block-start-color: rgba(255, 255, 255, 0.05);
 }
 html[data-theme="dark"] .mobile-week-grid-hour-label {
   background: transparent;
@@ -1479,7 +1479,7 @@ html[data-theme="dark"] .sidebar-categories-wrap {
   scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
 }
 html[data-theme="dark"] .sidebar-categories-wrap::-webkit-scrollbar {
-  width: 8px;
+  inline-size: 8px;
 }
 html[data-theme="dark"] .sidebar-categories-wrap::-webkit-scrollbar-track {
   background: transparent;
@@ -1498,7 +1498,7 @@ html[data-theme="dark"] .sidebar-categories-wrap::-webkit-scrollbar-thumb:hover 
 
 /* Sidebar User-Block (unten, Profil-Link) */
 html[data-theme="dark"] .sidebar-bottom {
-  border-top-color: var(--border);
+  border-block-start-color: var(--border);
 }
 html[data-theme="dark"] .sidebar-user {
   color: var(--text);
@@ -1925,8 +1925,8 @@ html[data-theme="dark"] .gs-discover-back:hover {
 .dash-section-list .task-card-swipe-wrap,
 .dash-section-list .task-card {
   display: block;
-  width: 100%;
-  max-width: 100%;
+  inline-size: 100%;
+  max-inline-size: 100%;
   box-sizing: border-box;
 }
 .group-task-list .task-card-swipe-wrap,
@@ -1938,16 +1938,16 @@ html[data-theme="dark"] .gs-discover-back:hover {
 .group-task-list .task-card-swipe-wrap > .task-card-swipe-track,
 .dash-section-list .task-card-swipe-wrap > .task-card-swipe-track {
   display: flex;
-  width: 100%;
-  max-width: 100%;
+  inline-size: 100%;
+  max-inline-size: 100%;
 }
 /* Die Karte innerhalb des Tracks bleibt flex (fuer ihr internes Layout) */
 .group-task-list .task-card-swipe-wrap > .task-card-swipe-track > .task-card,
 .dash-section-list .task-card-swipe-wrap > .task-card-swipe-track > .task-card {
   display: flex;
   flex: 0 0 100%;
-  width: 100%;
-  max-width: 100%;
+  inline-size: 100%;
+  max-inline-size: 100%;
 }
 
 /* ============================================================
