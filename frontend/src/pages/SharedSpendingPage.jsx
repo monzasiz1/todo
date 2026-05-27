@@ -1023,8 +1023,13 @@ function GroupDetail({
 
   const usedExpenseCategories = useMemo(() => {
     const ids = new Set(group.expenses.map((e) => e.category));
-    return EXPENSE_CATEGORIES.filter((c) => ids.has(c.id));
-  }, [group.expenses]);
+    const presetCats = EXPENSE_CATEGORIES.filter((c) => ids.has(c.id));
+    const customCats = (activeGroup?.custom_categories || [])
+      .filter((c) => c.kind === 'expense')
+      .filter((c) => ids.has(`custom:${c.id}`))
+      .map(c => ({ id: `custom:${c.id}`, label: c.label, color: c.color }));
+    return [...presetCats, ...customCats];
+  }, [group.expenses, activeGroup?.custom_categories]);
 
   const usedIncomeCategories = useMemo(() => {
     const ids = new Set(incomes.map((e) => e.category));
