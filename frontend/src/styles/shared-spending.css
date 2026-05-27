@@ -1229,6 +1229,26 @@
   box-shadow: 0 32px 80px rgba(0,0,0,0.5);
 }
 
+.spending-modal.is-mobile-fullscreen {
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  border-radius: 20px 20px 0 0;
+  padding-top: 48px;
+}
+
+.modal-pull-handle {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 44px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.20);
+  border-radius: 2.5px;
+  z-index: 10;
+}
+
 .spending-modal-head {
   display: flex;
   align-items: center;
@@ -1543,10 +1563,49 @@
   .spending-member-item {
     padding: 10px;
     border-radius: 12px;
+    gap: 8px;
   }
 
-  .spending-expense-top strong { font-size: 0.9rem; }
-  .spending-expense-meta { font-size: 0.78rem; }
+  .spending-expense-dot {
+    width: 8px;
+    height: 8px;
+  }
+
+  .spending-expense-top {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .spending-expense-top strong {
+    font-size: 0.87rem;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .spending-expense-amt {
+    font-size: 0.88rem;
+    flex-shrink: 0;
+  }
+
+  .spending-expense-meta {
+    font-size: 0.75rem;
+    margin-top: 2px;
+  }
+
+  .spending-expense-actions {
+    gap: 2px;
+  }
+
+  .spending-icon-btn {
+    width: 32px;
+    height: 32px;
+    padding: 6px;
+  }
+
+  .spending-icon-btn svg {
+    width: 14px;
+    height: 14px;
+  }
 
   .shared-spending-toast {
     bottom: 16px;
@@ -1556,16 +1615,18 @@
   }
 
   .spending-modal {
-    border-radius: 20px 20px 0 0;
-    padding: 14px;
-    align-self: flex-end;
     width: 100%;
-    max-height: calc(100vh - 120px);
-    margin-bottom: 4px;
+    max-height: calc(100vh - 28px);
+    border-radius: 20px 20px 0 0;
+    align-self: flex-end;
+    padding: 14px;
+    padding-top: 40px;
   }
+
   .spending-modal-backdrop {
     align-items: flex-end;
     padding: 0;
+    justify-content: stretch;
   }
 
   .spending-modal-head h3 {

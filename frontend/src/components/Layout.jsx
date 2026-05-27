@@ -2,6 +2,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import FeedbackToast from './FeedbackToast';
 import BottomNav from './BottomNav';
+import PremiumBackground from './PremiumBackground';
 import { AnimatePresence } from 'framer-motion';
 import { lazy, Suspense, useState, useRef, useEffect } from 'react';
 import { Menu, X, MessageCircle } from 'lucide-react';
@@ -10,6 +11,7 @@ import ReminderChecker from './ReminderChecker';
 import FocusTimerPin from './FocusTimerPin';
 import { lockScroll, unlockScroll } from '../utils/scrollLock';
 import { useGroupStore } from '../store/groupStore';
+import '../styles/shared-spending.css';
 
 // On-Demand: erst beim Oeffnen laden, reduziert initiales App-Bundle.
 const DayCreateModal = lazy(() => import('./DayCreateModal'));
@@ -115,6 +117,7 @@ export default function Layout() {
 
   return (
     <div className={`app-layout ${sidebarOpen ? 'sidebar-active' : ''} ${isFullBleedRoute ? 'full-bleed-route' : ''}`}>
+      <PremiumBackground />
       {/* Scroll-Fade oben: verdunkelt Inhalte die unter den Header laufen */}
       {!isWhiteboardRoute && <div className="mobile-header-scrim" />}
 

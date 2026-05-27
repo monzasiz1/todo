@@ -5,6 +5,7 @@ import {
   Wand2, ArrowDownCircle, ArrowUpCircle, Wallet, Loader2, Repeat, Calendar,
   Pencil, PauseCircle, RotateCcw, Activity, ArrowRight, ChevronsRight,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useSharedSpendingStore } from '../store/sharedSpendingStore';
 import { useFriendsStore } from '../store/friendsStore';
 import '../styles/shared-spending.css';
@@ -149,18 +150,6 @@ function amountForMonth(entry, year, month, overrides = null) {
  * ─────────────────────────────────────────────────────────────────── */
 
 /* Fixed-position animated mesh + floating orbs + noise grain. */
-function PremiumBackground() {
-  return (
-    <div className="spending-bg" aria-hidden="true">
-      <div className="spending-bg-mesh" />
-      <div className="spending-bg-orb spending-bg-orb-1" />
-      <div className="spending-bg-orb spending-bg-orb-2" />
-      <div className="spending-bg-orb spending-bg-orb-3" />
-      <div className="spending-bg-noise" />
-    </div>
-  );
-}
-
 /* Subtle spotlight that follows the cursor — pointermove via CSS vars,
  * keine React-State-Updates (Performance). */
 function CursorSpotlight() {
@@ -777,7 +766,6 @@ export default function SharedSpendingPage() {
 
   return (
     <div className="shared-spending-page is-premium">
-      <PremiumBackground />
       <header className="spending-app-bar">
         <div className="spending-app-bar-title">
           <h1>Ausgaben</h1>
@@ -1737,6 +1725,7 @@ function EntryModal({ mode, prefill, editing, viewMonth, onClose, onSubmit, onSw
   const isEdit = !!editing;
   const categories = isIncome ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
   const defaultCategory = isIncome ? 'salary' : 'food';
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
 
   // Default-Datum: bei Edit aus dem Eintrag, sonst heute oder 1. des gewaehlten Monats
   const defaultEntryDate = useMemo(() => {
@@ -1766,6 +1755,11 @@ function EntryModal({ mode, prefill, editing, viewMonth, onClose, onSubmit, onSw
   const [recurrence, setRecurrence] = useState(initialRecurrence);
   const [entryDate, setEntryDate] = useState(defaultEntryDate);
   const [submitting, setSubmitting] = useState(false);
+  const [pullOffset, setPullOffset] = useState(0);
+  const swipeRef = useRef({ startY: 0, active: false });
+  const pullRafRef = useRef(null);
+  const pullNextRef = useRef(0);
+  const pullOffsetRef = useRef(0);
 
   // Wenn prefill nach KI-Parse aktualisiert wird, Felder uebernehmen.
   useEffect(() => {
@@ -1794,6 +1788,47 @@ function EntryModal({ mode, prefill, editing, viewMonth, onClose, onSubmit, onSw
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
+  const queuePullOffset = (next) => {
+    pullNextRef.current = next;
+    if (pullRafRef.current !== null) return;
+    pullRafRef.current = window.requestAnimationFrame(() => {
+      pullRafRef.current = null;
+      setPullOffset((prev) => (prev === pullNextRef.current ? prev : pullNextRef.current));
+    });
+  };
+
+  const handleTouchStart = (e) => {
+    if (!isMobile) return;
+    swipeRef.current = { startY: e.touches[0].clientY, active: true };
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isMobile || !swipeRef.current.active) return;
+    const dy = e.touches[0].clientY - swipeRef.current.startY;
+    if (dy <= 0 || e.currentTarget.scrollTop > 0) {
+      if (pullOffsetRef.current !== 0) {
+        pullOffsetRef.current = 0;
+        queuePullOffset(0);
+      }
+      return;
+    }
+    if (e.cancelable) e.preventDefault();
+    const maxPull = Math.max(420, (typeof window !== 'undefined' ? window.innerHeight : 800) - 28);
+    const resisted = Math.min(dy * 0.95, maxPull);
+    pullOffsetRef.current = resisted;
+    queuePullOffset(resisted);
+  };
+
+  const handleTouchEnd = (e) => {
+    if (!isMobile || !swipeRef.current.active) return;
+    const dy = e.changedTouches[0].clientY - swipeRef.current.startY;
+    swipeRef.current.active = false;
+    const shouldClose = dy > 120 && e.currentTarget.scrollTop <= 0;
+    pullOffsetRef.current = 0;
+    queuePullOffset(0);
+    if (shouldClose) onClose();
+  };
+
   const submit = async (e) => {
     e.preventDefault();
     const amt = Number((amount || '').replace(',', '.'));
@@ -1811,120 +1846,137 @@ function EntryModal({ mode, prefill, editing, viewMonth, onClose, onSubmit, onSw
   };
 
   return (
-    <div className="spending-modal-backdrop" onClick={onClose}>
-      <form className="spending-modal" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
-        <header className="spending-modal-head">
-          <h3>
-            {isEdit
-              ? (isIncome ? 'Einnahme bearbeiten' : 'Ausgabe bearbeiten')
-              : (isIncome ? 'Neue Einnahme' : 'Neue Ausgabe')}
-          </h3>
-          <button type="button" className="spending-icon-btn" onClick={onClose}><X size={16} /></button>
-        </header>
+    <AnimatePresence>
+      <div className="spending-modal-backdrop" onClick={onClose}>
+        <motion.form
+          className={`spending-modal${isMobile ? ' is-mobile-fullscreen' : ''}`}
+          onClick={(e) => e.stopPropagation()}
+          onSubmit={submit}
+          initial={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.96, y: 16 }}
+          animate={isMobile ? { y: pullOffset } : { opacity: 1, scale: 1, y: 0 }}
+          exit={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.96, y: 16 }}
+          transition={isMobile
+            ? { type: 'tween', duration: pullOffset > 0 ? 0 : 0.16, ease: 'easeOut' }
+            : { type: 'spring', damping: 28, stiffness: 350 }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          {isMobile && <div className="modal-pull-handle" />}
 
-        <div className="spending-tabs spending-tabs-kind">
-          <button
-            type="button"
-            className={`spending-tab ${isIncome ? 'is-active' : ''}`}
-            onClick={() => onSwitch('income')}
-          >
-            <ArrowDownCircle size={14} /> Einnahme
-          </button>
-          <button
-            type="button"
-            className={`spending-tab ${!isIncome ? 'is-active' : ''}`}
-            onClick={() => onSwitch('expense')}
-          >
-            <ArrowUpCircle size={14} /> Ausgabe
-          </button>
-        </div>
+          <header className="spending-modal-head">
+            <h3>
+              {isEdit
+                ? (isIncome ? 'Einnahme bearbeiten' : 'Ausgabe bearbeiten')
+                : (isIncome ? 'Neue Einnahme' : 'Neue Ausgabe')}
+            </h3>
+            <button type="button" className="spending-icon-btn" onClick={onClose}><X size={16} /></button>
+          </header>
 
-        {prefill && (
-          <div className="spending-ai-hint">
-            <Sparkles size={14} /> KI-Vorschlag — bei Bedarf anpassen
-          </div>
-        )}
-
-        <div className="spending-category-grid">
-          {categories.map((c) => (
+          <div className="spending-tabs spending-tabs-kind">
             <button
-              key={c.id}
               type="button"
-              className={`spending-category-btn ${category === c.id ? 'is-active' : ''}`}
-              style={{ '--cat-color': c.color }}
-              onClick={() => setCategory(c.id)}
+              className={`spending-tab ${isIncome ? 'is-active' : ''}`}
+              onClick={() => onSwitch('income')}
             >
-              <span className="spending-category-dot" style={{ background: c.color }} />
-              {c.label}
+              <ArrowDownCircle size={14} /> Einnahme
             </button>
-          ))}
-        </div>
+            <button
+              type="button"
+              className={`spending-tab ${!isIncome ? 'is-active' : ''}`}
+              onClick={() => onSwitch('expense')}
+            >
+              <ArrowUpCircle size={14} /> Ausgabe
+            </button>
+          </div>
 
-        <label className="spending-field">
-          <span>Betrag (€)</span>
-          <input
-            type="text"
-            inputMode="decimal"
-            value={amount}
-            autoFocus
-            onChange={(e) => setAmount(e.target.value.replace(/[^0-9.,]/g, ''))}
-            placeholder="0,00"
-          />
-        </label>
+          {prefill && (
+            <div className="spending-ai-hint">
+              <Sparkles size={14} /> KI-Vorschlag — bei Bedarf anpassen
+            </div>
+          )}
 
-        <label className="spending-field">
-          <span>Beschreibung (optional)</span>
-          <input
-            type="text"
-            value={description}
-            maxLength={500}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder={isIncome ? 'z.B. Gehalt Mai' : 'z.B. Einkauf REWE'}
-          />
-        </label>
-
-        <div className="spending-field">
-          <span><Repeat size={12} style={{ marginRight: 4, verticalAlign: 'middle' }} /> Wiederholung</span>
-          <div className="spending-recurrence-grid">
-            {[
-              { id: 'none',      label: 'Einmalig' },
-              { id: 'monthly',   label: 'Monatlich' },
-              { id: 'quarterly', label: 'Alle 3 Monate' },
-              { id: 'yearly',    label: 'Jährlich' },
-            ].map((r) => (
+          <div className="spending-category-grid">
+            {categories.map((c) => (
               <button
-                key={r.id}
+                key={c.id}
                 type="button"
-                className={`spending-recurrence-btn ${recurrence === r.id ? 'is-active' : ''}`}
-                onClick={() => setRecurrence(r.id)}
+                className={`spending-category-btn ${category === c.id ? 'is-active' : ''}`}
+                style={{ '--cat-color': c.color }}
+                onClick={() => setCategory(c.id)}
               >
-                {r.label}
+                <span className="spending-category-dot" style={{ background: c.color }} />
+                {c.label}
               </button>
             ))}
           </div>
-        </div>
 
-        <label className="spending-field">
-          <span>{recurrence === 'none' ? 'Datum' : 'Startet ab'}</span>
-          <input
-            type="date"
-            value={entryDate}
-            onChange={(e) => setEntryDate(e.target.value)}
-          />
-        </label>
+          <label className="spending-field">
+            <span>Betrag (€)</span>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={amount}
+              autoFocus
+              onChange={(e) => setAmount(e.target.value.replace(/[^0-9.,]/g, ''))}
+              placeholder="0,00"
+            />
+          </label>
 
-        <footer className="spending-modal-foot">
-          <button type="button" className="sankey-btn sankey-btn-ghost" onClick={onClose}>Abbrechen</button>
-          <button
-            type="submit"
-            className={`sankey-btn ${isIncome ? 'sankey-btn-income' : 'sankey-btn-primary'}`}
-            disabled={!amount || submitting}
-          >
-            <Plus size={16} /> {submitting ? 'Speichere…' : (isEdit ? 'Speichern' : 'Hinzufügen')}
-          </button>
-        </footer>
-      </form>
-    </div>
+          <label className="spending-field">
+            <span>Beschreibung (optional)</span>
+            <input
+              type="text"
+              value={description}
+              maxLength={500}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={isIncome ? 'z.B. Gehalt Mai' : 'z.B. Einkauf REWE'}
+            />
+          </label>
+
+          <div className="spending-field">
+            <span><Repeat size={12} style={{ marginRight: 4, verticalAlign: 'middle' }} /> Wiederholung</span>
+            <div className="spending-recurrence-grid">
+              {[
+                { id: 'none',      label: 'Einmalig' },
+                { id: 'monthly',   label: 'Monatlich' },
+                { id: 'quarterly', label: 'Alle 3 Monate' },
+                { id: 'yearly',    label: 'Jährlich' },
+              ].map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  className={`spending-recurrence-btn ${recurrence === r.id ? 'is-active' : ''}`}
+                  onClick={() => setRecurrence(r.id)}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <label className="spending-field">
+            <span>{recurrence === 'none' ? 'Datum' : 'Startet ab'}</span>
+            <input
+              type="date"
+              value={entryDate}
+              onChange={(e) => setEntryDate(e.target.value)}
+            />
+          </label>
+
+          <footer className="spending-modal-foot">
+            <button type="button" className="sankey-btn sankey-btn-ghost" onClick={onClose}>Abbrechen</button>
+            <button
+              type="submit"
+              className={`sankey-btn ${isIncome ? 'sankey-btn-income' : 'sankey-btn-primary'}`}
+              disabled={!amount || submitting}
+            >
+              <Plus size={16} /> {submitting ? 'Speichere…' : (isEdit ? 'Speichern' : 'Hinzufügen')}
+            </button>
+          </footer>
+        </motion.form>
+      </div>
+    </AnimatePresence>
   );
 }
 
