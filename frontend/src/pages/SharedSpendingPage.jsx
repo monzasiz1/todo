@@ -1936,7 +1936,7 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
 
   return (
     <AnimatePresence>
-      <div className="spending-modal-backdrop" onClick={onClose}>
+      <div className={`spending-modal-backdrop${isMobile ? ' is-mobile-fullscreen' : ''}`} onClick={onClose}>
         <motion.form
           className={`spending-modal${isMobile ? ' is-mobile-fullscreen' : ''}`}
           onClick={(e) => e.stopPropagation()}
