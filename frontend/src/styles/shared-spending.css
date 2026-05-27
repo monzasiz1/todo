@@ -1215,11 +1215,11 @@
 }
 
 .spending-modal-backdrop.is-mobile-fullscreen {
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: stretch;
   padding: 0;
-  background: transparent;
-  backdrop-filter: none;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
 }
 
 .spending-modal {
@@ -2014,13 +2014,7 @@
 }
 
 .spending-bg-orb-3 {
-  width: 480px;
-  height: 480px;
-  background: radial-gradient(circle, #34D399 0%, transparent 70%);
-  bottom: -10%;
-  left: 30%;
-  animation: orb-float-3 40s ease-in-out infinite alternate;
-  opacity: 0.45;
+  display: none;
 }
 
 @keyframes orb-float-1 {
