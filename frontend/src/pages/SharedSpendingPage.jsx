@@ -410,21 +410,21 @@ function ForecastCard({ forecast, annualExpense, annualIncome }) {
 }
 
 /* ── Balance/Settlement Card: wer schuldet wem wieviel ────────────── */
-/* Vereinfachte Logik: alle Ausgaben werden gleichmaessig auf alle
- * akzeptierten Mitglieder verteilt. Jedes Mitglied hat
- *   net = bezahlt - fairer Anteil
+/* Logik: Ausgaben werden basierend auf split_amounts aufgeteilt.
+ * Jedes Mitglied hat
+ *   net = bezahlt - owed
  * Positiv = bekommt zurueck, Negativ = schuldet. */
-function computeSettlements(members, expensesByUser) {
+function computeSettlements(members, expensesByUser, expensesOwedByUser) {
   const accepted = members.filter((m) => m.isOwner || m.status !== 'pending');
-  const count = accepted.length || 1;
-  const totalExpense = Object.values(expensesByUser).reduce((s, v) => s + v, 0);
-  const fairShare = totalExpense / count;
   const balances = accepted.map((m) => ({
     user: m,
     paid: expensesByUser[m.id] || 0,
-    fair: fairShare,
-    net: (expensesByUser[m.id] || 0) - fairShare,
+    owed: expensesOwedByUser[m.id] || 0,
+    net: (expensesByUser[m.id] || 0) - (expensesOwedByUser[m.id] || 0),
   }));
+
+  const totalOwed = Object.values(expensesOwedByUser).reduce((s, v) => s + v, 0);
+  const fairShare = totalOwed / (accepted.length || 1);
 
   // Settlements: groesster Debitor zahlt an groessten Kreditor
   const creditors = balances.filter((b) => b.net > 0.005).map((b) => ({ ...b }));
@@ -452,9 +452,9 @@ function computeSettlements(members, expensesByUser) {
   return { balances, settlements, fairShare };
 }
 
-function BalanceCard({ members, expensesByUser, totalExpense }) {
+function BalanceCard({ members, expensesByUser, expensesOwedByUser, totalExpense }) {
   if (!members || members.length === 0 || totalExpense <= 0) return null;
-  const { balances, settlements, fairShare } = computeSettlements(members, expensesByUser);
+  const { balances, settlements, fairShare } = computeSettlements(members, expensesByUser, expensesOwedByUser || {});
 
   return (
     <article className="spending-balance-card">
@@ -971,15 +971,29 @@ function GroupDetail({
 
   const summary = useMemo(() => {
     const byMember = {};
+    const byMemberOwed = {};
     const byMemberIncome = {};
     const byCategory = {};
     const byIncomeCategory = {};
     let totalExpense = 0;
     let totalIncome = 0;
     group.expenses.forEach((e) => {
-      byMember[e.user_id] = (byMember[e.user_id] || 0) + e.amount;
+      const payer = e.payer_user_id || e.user_id;
+      byMember[payer] = (byMember[payer] || 0) + e.amount;
       byCategory[e.category] = (byCategory[e.category] || 0) + e.amount;
       totalExpense += e.amount;
+      if (e.split_amounts && typeof e.split_amounts === 'object') {
+        Object.entries(e.split_amounts).forEach(([memberId, amount]) => {
+          const id = parseInt(memberId, 10);
+          byMemberOwed[id] = (byMemberOwed[id] || 0) + (amount || 0);
+        });
+      } else {
+        const memberCount = Object.keys(byMember).length || 1;
+        const share = e.amount / memberCount;
+        group.members?.forEach((m) => {
+          byMemberOwed[m.id] = (byMemberOwed[m.id] || 0) + share;
+        });
+      }
     });
     incomes.forEach((e) => {
       byMemberIncome[e.user_id] = (byMemberIncome[e.user_id] || 0) + e.amount;
@@ -987,10 +1001,10 @@ function GroupDetail({
       totalIncome += e.amount;
     });
     return {
-      byMember, byCategory, byMemberIncome, byIncomeCategory,
+      byMember, byMemberOwed, byCategory, byMemberIncome, byIncomeCategory,
       totalExpense, totalIncome, balance: totalIncome - totalExpense,
     };
-  }, [group.expenses, incomes]);
+  }, [group.expenses, group.members, incomes]);
 
   const allEntries = useMemo(() => {
     return [
@@ -1273,6 +1287,7 @@ function GroupDetail({
           <BalanceCard
             members={activeMembers}
             expensesByUser={summary.byMember}
+            expensesOwedByUser={summary.byMemberOwed}
             totalExpense={summary.totalExpense}
           />
         </div>
@@ -1331,6 +1346,7 @@ function GroupDetail({
         <BalanceCard
           members={activeMembers}
           expensesByUser={summary.byMember}
+          expensesOwedByUser={summary.byMemberOwed}
           totalExpense={summary.totalExpense}
         />
       )}
@@ -1383,7 +1399,16 @@ function GroupDetail({
                       </span>
                     </div>
                     <span className="spending-expense-meta">
-                      {memberMap[e.user_id]?.name || 'Unbekannt'} · {categoryLabel(e.category)} · {dateStr}
+                      {e.kind === 'expense' && e.payer_user_id ? (
+                        <>
+                          {memberMap[e.payer_user_id]?.name || 'Unbekannt'} bezahlt
+                          {e.split_amounts && Object.keys(e.split_amounts).length > 0 ? ' · Geteilt' : ''}
+                          {' · '}
+                        </>
+                      ) : (
+                        <>{memberMap[e.user_id]?.name || 'Unbekannt'} · </>
+                      )}
+                      {categoryLabel(e.category)} · {dateStr}
                     </span>
                   </div>
                   <div className="spending-expense-actions">
@@ -1723,8 +1748,14 @@ function InviteFriendModal({ friends, existingMemberIds, onClose, onSubmit }) {
 function EntryModal({ mode, prefill, editing, viewMonth, onClose, onSubmit, onSwitch }) {
   const isIncome = mode === 'income';
   const isEdit = !!editing;
-  const categories = isIncome ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  const presetCategories = isIncome ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  const activeGroup = useSharedSpendingStore((s) => s.activeGroup);
+  const customCategories = (activeGroup?.custom_categories || []).filter((c) => c.kind === (isIncome ? 'income' : 'expense'));
+  const allCategories = [...presetCategories, ...customCategories];
   const defaultCategory = isIncome ? 'salary' : 'food';
+  const [creatingCategory, setCreatingCategory] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatColor, setNewCatColor] = useState('#94A3B8');
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
 
   // Default-Datum: bei Edit aus dem Eintrag, sonst heute oder 1. des gewaehlten Monats
@@ -1741,7 +1772,7 @@ function EntryModal({ mode, prefill, editing, viewMonth, onClose, onSubmit, onSw
 
   // Initialwerte: edit > prefill > default
   const initialCategory = editing?.category
-    || (prefill?.category && categories.find((c) => c.id === prefill.category) ? prefill.category : null)
+    || (prefill?.category && allCategories.find((c) => c.id === prefill.category) ? prefill.category : null)
     || defaultCategory;
   const initialAmount = editing?.amount != null
     ? String(editing.amount).replace('.', ',')
@@ -1754,6 +1785,9 @@ function EntryModal({ mode, prefill, editing, viewMonth, onClose, onSubmit, onSw
   const [description, setDescription] = useState(initialDesc);
   const [recurrence, setRecurrence] = useState(initialRecurrence);
   const [entryDate, setEntryDate] = useState(defaultEntryDate);
+  const [payer, setPayer] = useState(editing?.payer_user_id || activeGroup?.user_id || null);
+  const [splitMode, setSplitMode] = useState('equal');
+  const [splitAmounts, setSplitAmounts] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [pullOffset, setPullOffset] = useState(0);
   const swipeRef = useRef({ startY: 0, active: false });
@@ -1764,7 +1798,7 @@ function EntryModal({ mode, prefill, editing, viewMonth, onClose, onSubmit, onSw
   // Wenn prefill nach KI-Parse aktualisiert wird, Felder uebernehmen.
   useEffect(() => {
     if (prefill) {
-      if (prefill.category && categories.find((c) => c.id === prefill.category)) {
+      if (prefill.category && allCategories.find((c) => c.id === prefill.category)) {
         setCategory(prefill.category);
       }
       if (typeof prefill.amount === 'number') {
@@ -1834,6 +1868,21 @@ function EntryModal({ mode, prefill, editing, viewMonth, onClose, onSubmit, onSw
     const amt = Number((amount || '').replace(',', '.'));
     if (!Number.isFinite(amt) || amt <= 0) return;
     setSubmitting(true);
+
+    let splits = null;
+    if (!isIncome && activeGroup?.members && activeGroup.members.length > 1) {
+      const members = activeGroup.members;
+      if (splitMode === 'equal') {
+        splits = {};
+        const perPerson = amt / members.length;
+        members.forEach((m) => {
+          splits[m.id] = parseFloat(perPerson.toFixed(2));
+        });
+      } else {
+        splits = splitAmounts;
+      }
+    }
+
     await onSubmit({
       kind: mode,
       category,
@@ -1841,8 +1890,26 @@ function EntryModal({ mode, prefill, editing, viewMonth, onClose, onSubmit, onSw
       description: description.trim(),
       recurrence,
       entry_date: entryDate || null,
+      payer_user_id: payer,
+      split_amounts: splits,
     });
     setSubmitting(false);
+  };
+
+  const submitNewCategory = async () => {
+    if (!newCatName.trim() || !activeGroup) return;
+    const createCat = useSharedSpendingStore.getState().createCustomCategory;
+    const res = await createCat(activeGroup.id, {
+      kind: isIncome ? 'income' : 'expense',
+      label: newCatName.trim(),
+      color: newCatColor,
+    });
+    if (res.success) {
+      setCategory(`custom:${res.category.id}`);
+      setCreatingCategory(false);
+      setNewCatName('');
+      setNewCatColor('#94A3B8');
+    }
   };
 
   return (
@@ -1897,19 +1964,75 @@ function EntryModal({ mode, prefill, editing, viewMonth, onClose, onSubmit, onSw
           )}
 
           <div className="spending-category-grid">
-            {categories.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                className={`spending-category-btn ${category === c.id ? 'is-active' : ''}`}
-                style={{ '--cat-color': c.color }}
-                onClick={() => setCategory(c.id)}
-              >
-                <span className="spending-category-dot" style={{ background: c.color }} />
-                {c.label}
-              </button>
-            ))}
+            {allCategories.map((c) => {
+              const catId = c.id.toString().startsWith('custom:') ? c.id : String(c.id);
+              return (
+                <button
+                  key={catId}
+                  type="button"
+                  className={`spending-category-btn ${category === catId ? 'is-active' : ''}`}
+                  style={{ '--cat-color': c.color }}
+                  onClick={() => setCategory(catId)}
+                >
+                  <span className="spending-category-dot" style={{ background: c.color }} />
+                  {c.label}
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              className="spending-category-btn is-add"
+              onClick={() => setCreatingCategory(!creatingCategory)}
+            >
+              <Plus size={16} />
+              Neu
+            </button>
           </div>
+
+          {creatingCategory && (
+            <div className="spending-new-category-form">
+              <input
+                type="text"
+                placeholder="Kategoriename"
+                value={newCatName}
+                onChange={(e) => setNewCatName(e.target.value)}
+                maxLength={80}
+                autoFocus
+              />
+              <div className="spending-color-picker">
+                {['#94A3B8', '#60A5FA', '#34D399', '#F87171', '#FBBF24', '#A78BFA', '#06B6D4'].map((col) => (
+                  <button
+                    key={col}
+                    type="button"
+                    className={`spending-color-swatch ${newCatColor === col ? 'is-active' : ''}`}
+                    style={{ background: col }}
+                    onClick={() => setNewCatColor(col)}
+                    title={col}
+                  />
+                ))}
+              </div>
+              <div className="spending-new-category-actions">
+                <button
+                  type="button"
+                  className="sankey-btn sankey-btn-secondary"
+                  onClick={() => {
+                    setCreatingCategory(false);
+                    setNewCatName('');
+                  }}
+                >
+                  Abbrechen
+                </button>
+                <button
+                  type="button"
+                  className="sankey-btn sankey-btn-primary"
+                  onClick={submitNewCategory}
+                  disabled={!newCatName.trim()}
+                >
+                  Erstellen
+                </button>
+              </div>
+            </div>
+          )}
 
           <label className="spending-field">
             <span>Betrag (€)</span>
@@ -1922,6 +2045,72 @@ function EntryModal({ mode, prefill, editing, viewMonth, onClose, onSubmit, onSw
               placeholder="0,00"
             />
           </label>
+
+          {!isIncome && activeGroup?.members && activeGroup.members.length > 1 && (
+            <>
+              <label className="spending-field">
+                <span>Zahler</span>
+                <select
+                  value={payer || ''}
+                  onChange={(e) => setPayer(e.target.value ? parseInt(e.target.value, 10) : null)}
+                  className="spending-field-select"
+                >
+                  {activeGroup.members.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="spending-field">
+                <span>Aufteilung</span>
+                <div className="spending-split-tabs">
+                  <button
+                    type="button"
+                    className={`spending-split-tab ${splitMode === 'equal' ? 'is-active' : ''}`}
+                    onClick={() => setSplitMode('equal')}
+                  >
+                    Gleich teilen
+                  </button>
+                  <button
+                    type="button"
+                    className={`spending-split-tab ${splitMode === 'custom' ? 'is-active' : ''}`}
+                    onClick={() => setSplitMode('custom')}
+                  >
+                    Individuell
+                  </button>
+                </div>
+              </div>
+
+              {splitMode === 'custom' && amount && (
+                <div className="spending-split-inputs">
+                  {activeGroup.members.map((m) => {
+                    const currentAmount = splitAmounts[m.id] || '';
+                    return (
+                      <div key={m.id} className="spending-split-row">
+                        <label htmlFor={`split-${m.id}`}>{m.name}</label>
+                        <input
+                          id={`split-${m.id}`}
+                          type="text"
+                          inputMode="decimal"
+                          value={currentAmount}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9.,]/g, '');
+                            const num = val ? parseFloat(val.replace(',', '.')) : '';
+                            setSplitAmounts({ ...splitAmounts, [m.id]: num === '' ? '' : num });
+                          }}
+                          placeholder="0,00"
+                          className="spending-split-input"
+                        />
+                        <span className="spending-split-currency">€</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
 
           <label className="spending-field">
             <span>Beschreibung (optional)</span>
