@@ -978,7 +978,7 @@ function GroupDetail({
     let totalExpense = 0;
     let totalIncome = 0;
     group.expenses.forEach((e) => {
-      const payer = e.payer_user_id || e.user_id;
+      const payer = e.user_id;
       byMember[payer] = (byMember[payer] || 0) + e.amount;
       byCategory[e.category] = (byCategory[e.category] || 0) + e.amount;
       totalExpense += e.amount;
@@ -1399,9 +1399,9 @@ function GroupDetail({
                       </span>
                     </div>
                     <span className="spending-expense-meta">
-                      {e.kind === 'expense' && e.payer_user_id ? (
+                      {e.kind === 'expense' ? (
                         <>
-                          {memberMap[e.payer_user_id]?.name || 'Unbekannt'} bezahlt
+                          {memberMap[e.user_id]?.name || 'Unbekannt'} bezahlt
                           {e.split_amounts && Object.keys(e.split_amounts).length > 0 ? ' · Geteilt' : ''}
                           {' · '}
                         </>
@@ -1785,7 +1785,7 @@ function EntryModal({ mode, prefill, editing, viewMonth, onClose, onSubmit, onSw
   const [description, setDescription] = useState(initialDesc);
   const [recurrence, setRecurrence] = useState(initialRecurrence);
   const [entryDate, setEntryDate] = useState(defaultEntryDate);
-  const [payer, setPayer] = useState(editing?.payer_user_id || activeGroup?.user_id || null);
+  const [payer, setPayer] = useState(editing?.user_id || activeGroup?.user_id || null);
   const [splitMode, setSplitMode] = useState('equal');
   const [splitAmounts, setSplitAmounts] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -1872,15 +1872,19 @@ function EntryModal({ mode, prefill, editing, viewMonth, onClose, onSubmit, onSw
     let splits = null;
     if (!isIncome && activeGroup?.members && activeGroup.members.length > 1) {
       const members = activeGroup.members;
+      const splitObj = {};
       if (splitMode === 'equal') {
-        splits = {};
         const perPerson = amt / members.length;
         members.forEach((m) => {
-          splits[m.id] = parseFloat(perPerson.toFixed(2));
+          splitObj[m.id] = parseFloat(perPerson.toFixed(2));
         });
       } else {
-        splits = splitAmounts;
+        Object.assign(splitObj, splitAmounts);
       }
+      splits = Object.entries(splitObj).map(([userId, amount]) => ({
+        user_id: parseInt(userId, 10),
+        amount: parseFloat(String(amount).toFixed(2)),
+      }));
     }
 
     await onSubmit({
