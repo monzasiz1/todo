@@ -293,8 +293,17 @@ function annualizeRecurring(entries) {
 
 /* Computes a few human-friendly insights from current vs previous month. */
 function buildInsights({
-  summary, prevSummary, topCategory, recurringCount,
+  summary, prevSummary, topCategory, recurringCount, customCategories = [],
 }) {
+  const getCategoryLabelForInsights = (catId) => {
+    if (catId.toString().startsWith('custom:')) {
+      const customId = parseInt(catId.toString().slice(7), 10);
+      const custom = customCategories.find((c) => c.id === customId);
+      return custom?.label || catId;
+    }
+    return categoryLabel(catId);
+  };
+
   const insights = [];
 
   if (prevSummary && prevSummary.totalExpense > 0) {
@@ -314,7 +323,7 @@ function buildInsights({
     insights.push({
       icon: 'star',
       color: '#A78BFA',
-      text: `${categoryLabel(topCategory[0])} macht ${share.toFixed(0)}% deiner Ausgaben aus.`,
+      text: `${getCategoryLabelForInsights(topCategory[0])} macht ${share.toFixed(0)}% deiner Ausgaben aus.`,
     });
   }
 
@@ -708,6 +717,24 @@ export default function SharedSpendingPage() {
     if (res.success) showToast('Mitglied entfernt');
   };
 
+  const getCategoryLabelWithCustom = (catId) => {
+    if (catId.toString().startsWith('custom:')) {
+      const customId = parseInt(catId.toString().slice(7), 10);
+      const custom = (activeGroup?.custom_categories || []).find((c) => c.id === customId);
+      return custom?.label || catId;
+    }
+    return categoryLabel(catId);
+  };
+
+  const getCategoryColorWithCustom = (catId) => {
+    if (catId.toString().startsWith('custom:')) {
+      const customId = parseInt(catId.toString().slice(7), 10);
+      const custom = (activeGroup?.custom_categories || []).find((c) => c.id === customId);
+      return custom?.color || categoryColor(catId);
+    }
+    return categoryColor(catId);
+  };
+
   const handleSubmitEntry = async (payload) => {
     if (!activeGroup) return;
     const editingId = entryModal?.editing?.id;
@@ -1094,8 +1121,8 @@ function GroupDetail({
   );
 
   const insights = useMemo(
-    () => buildInsights({ summary, prevSummary, topCategory, recurringCount }),
-    [summary, prevSummary, topCategory, recurringCount]
+    () => buildInsights({ summary, prevSummary, topCategory, recurringCount, customCategories: group.custom_categories || [] }),
+    [summary, prevSummary, topCategory, recurringCount, group.custom_categories]
   );
 
   // Forecast: naechste 3 Monate + jaehrliche Hochrechnung
@@ -1258,7 +1285,7 @@ function GroupDetail({
               <span className="spending-mini-stat-icon"><Sparkles size={14} /></span>
               <div>
                 <span>Top Kategorie</span>
-                <strong>{topCategory ? categoryLabel(topCategory[0]) : '—'}</strong>
+                <strong>{topCategory ? getCategoryLabelWithCustom(topCategory[0]) : '—'}</strong>
               </div>
               {topCategory && <em className="spending-mini-stat-tag">{fmtAmount(topCategory[1])} €</em>}
             </article>
@@ -1396,11 +1423,11 @@ function GroupDetail({
                 const hasOverride = ov && ov.kind === 'amount';
                 return (
                 <li key={`${e.kind}-${e.id}`} className={`spending-expense-item ${e.kind === 'income' ? 'is-income' : ''} ${isRecurring ? 'is-recurring' : ''} ${hasOverride ? 'is-overridden' : ''}`}>
-                  <span className="spending-expense-dot" style={{ background: categoryColor(e.category) }} />
+                  <span className="spending-expense-dot" style={{ background: getCategoryColorWithCustom(e.category) }} />
                   <div className="spending-expense-body">
                     <div className="spending-expense-top">
                       <strong>
-                        {e.description || categoryLabel(e.category)}
+                        {e.description || getCategoryLabelWithCustom(e.category)}
                         {isRecurring && (
                           <span className="spending-recurrence-badge" title={RECURRENCE_LABELS[rec]}>
                             <Repeat size={10} /> {RECURRENCE_LABELS[rec]}
@@ -1426,7 +1453,7 @@ function GroupDetail({
                       ) : (
                         <>{memberMap[e.user_id]?.name || 'Unbekannt'} · </>
                       )}
-                      {categoryLabel(e.category)} · {dateStr}
+                      {getCategoryLabelWithCustom(e.category)} · {dateStr}
                     </span>
                   </div>
                   <div className="spending-expense-actions">
