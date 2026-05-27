@@ -1122,8 +1122,8 @@ function GroupDetail({
   );
 
   const insights = useMemo(
-    () => buildInsights({ summary, prevSummary, topCategory, recurringCount, customCategories: group.custom_categories || [] }),
-    [summary, prevSummary, topCategory, recurringCount, group.custom_categories]
+    () => buildInsights({ summary, prevSummary, topCategory, recurringCount, customCategories: group?.custom_categories || [] }),
+    [summary, prevSummary, topCategory, recurringCount, group?.custom_categories]
   );
 
   // Forecast: naechste 3 Monate + jaehrliche Hochrechnung
