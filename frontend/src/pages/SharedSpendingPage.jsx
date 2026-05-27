@@ -46,6 +46,24 @@ function categoryColor(id) {
   return ALL_CATEGORIES.find((c) => c.id === id)?.color || '#8E8E93';
 }
 
+function getCategoryLabelWithCustom(id, customCategories = []) {
+  if (id.toString().startsWith('custom:')) {
+    const customId = parseInt(id.toString().slice(7), 10);
+    const custom = customCategories.find((c) => c.id === customId);
+    return custom?.label || id;
+  }
+  return categoryLabel(id);
+}
+
+function getCategoryColorWithCustom(id, customCategories = []) {
+  if (id.toString().startsWith('custom:')) {
+    const customId = parseInt(id.toString().slice(7), 10);
+    const custom = customCategories.find((c) => c.id === customId);
+    return custom?.color || categoryColor(id);
+  }
+  return categoryColor(id);
+}
+
 function fmtAmount(value) {
   const n = Number(value) || 0;
   return n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -632,27 +650,6 @@ export default function SharedSpendingPage() {
   // Aktuell gewaehlter Monat — default: heute
   const [viewMonth, setViewMonth] = useState(currentMonthKey);
 
-  const getCategoryLabelWithCustom = useMemo(() => {
-    return (catId) => {
-      if (catId.toString().startsWith('custom:')) {
-        const customId = parseInt(catId.toString().slice(7), 10);
-        const custom = (activeGroup?.custom_categories || []).find((c) => c.id === customId);
-        return custom?.label || catId;
-      }
-      return categoryLabel(catId);
-    };
-  }, [activeGroup?.custom_categories]);
-
-  const getCategoryColorWithCustom = useMemo(() => {
-    return (catId) => {
-      if (catId.toString().startsWith('custom:')) {
-        const customId = parseInt(catId.toString().slice(7), 10);
-        const custom = (activeGroup?.custom_categories || []).find((c) => c.id === customId);
-        return custom?.color || categoryColor(catId);
-      }
-      return categoryColor(catId);
-    };
-  }, [activeGroup?.custom_categories]);
 
   useEffect(() => {
     fetchGroups();
@@ -1289,7 +1286,7 @@ function GroupDetail({
               <span className="spending-mini-stat-icon"><Sparkles size={14} /></span>
               <div>
                 <span>Top Kategorie</span>
-                <strong>{topCategory ? getCategoryLabelWithCustom(topCategory[0]) : '—'}</strong>
+                <strong>{topCategory ? getCategoryLabelWithCustom(topCategory[0], activeGroup?.custom_categories || []) : '—'}</strong>
               </div>
               {topCategory && <em className="spending-mini-stat-tag">{fmtAmount(topCategory[1])} €</em>}
             </article>
@@ -1427,11 +1424,11 @@ function GroupDetail({
                 const hasOverride = ov && ov.kind === 'amount';
                 return (
                 <li key={`${e.kind}-${e.id}`} className={`spending-expense-item ${e.kind === 'income' ? 'is-income' : ''} ${isRecurring ? 'is-recurring' : ''} ${hasOverride ? 'is-overridden' : ''}`}>
-                  <span className="spending-expense-dot" style={{ background: getCategoryColorWithCustom(e.category) }} />
+                  <span className="spending-expense-dot" style={{ background: getCategoryColorWithCustom(e.category, activeGroup?.custom_categories || []) }} />
                   <div className="spending-expense-body">
                     <div className="spending-expense-top">
                       <strong>
-                        {e.description || getCategoryLabelWithCustom(e.category)}
+                        {e.description || getCategoryLabelWithCustom(e.category, activeGroup?.custom_categories || [])}
                         {isRecurring && (
                           <span className="spending-recurrence-badge" title={RECURRENCE_LABELS[rec]}>
                             <Repeat size={10} /> {RECURRENCE_LABELS[rec]}
@@ -1457,7 +1454,7 @@ function GroupDetail({
                       ) : (
                         <>{memberMap[e.user_id]?.name || 'Unbekannt'} · </>
                       )}
-                      {getCategoryLabelWithCustom(e.category)} · {dateStr}
+                      {getCategoryLabelWithCustom(e.category, activeGroup?.custom_categories || [])} · {dateStr}
                     </span>
                   </div>
                   <div className="spending-expense-actions">
