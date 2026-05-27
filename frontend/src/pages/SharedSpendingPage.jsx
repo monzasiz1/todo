@@ -1136,6 +1136,7 @@ function GroupDetail({
 
   const [tab, setTab] = useState('overview');
   const monthLabelStr = monthLabel(viewMonth.year, viewMonth.month);
+  const customCategories = activeGroup?.custom_categories || [];
 
   return (
     <>
@@ -1286,7 +1287,7 @@ function GroupDetail({
               <span className="spending-mini-stat-icon"><Sparkles size={14} /></span>
               <div>
                 <span>Top Kategorie</span>
-                <strong>{topCategory ? getCategoryLabelWithCustom(topCategory[0], activeGroup?.custom_categories || []) : '—'}</strong>
+                <strong>{topCategory ? getCategoryLabelWithCustom(topCategory[0], customCategories) : '—'}</strong>
               </div>
               {topCategory && <em className="spending-mini-stat-tag">{fmtAmount(topCategory[1])} €</em>}
             </article>
@@ -1424,11 +1425,11 @@ function GroupDetail({
                 const hasOverride = ov && ov.kind === 'amount';
                 return (
                 <li key={`${e.kind}-${e.id}`} className={`spending-expense-item ${e.kind === 'income' ? 'is-income' : ''} ${isRecurring ? 'is-recurring' : ''} ${hasOverride ? 'is-overridden' : ''}`}>
-                  <span className="spending-expense-dot" style={{ background: getCategoryColorWithCustom(e.category, activeGroup?.custom_categories || []) }} />
+                  <span className="spending-expense-dot" style={{ background: getCategoryColorWithCustom(e.category, customCategories) }} />
                   <div className="spending-expense-body">
                     <div className="spending-expense-top">
                       <strong>
-                        {e.description || getCategoryLabelWithCustom(e.category, activeGroup?.custom_categories || [])}
+                        {e.description || getCategoryLabelWithCustom(e.category, customCategories)}
                         {isRecurring && (
                           <span className="spending-recurrence-badge" title={RECURRENCE_LABELS[rec]}>
                             <Repeat size={10} /> {RECURRENCE_LABELS[rec]}
@@ -1454,7 +1455,7 @@ function GroupDetail({
                       ) : (
                         <>{memberMap[e.user_id]?.name || 'Unbekannt'} · </>
                       )}
-                      {getCategoryLabelWithCustom(e.category, activeGroup?.custom_categories || [])} · {dateStr}
+                      {getCategoryLabelWithCustom(e.category, customCategories)} · {dateStr}
                     </span>
                   </div>
                   <div className="spending-expense-actions">
