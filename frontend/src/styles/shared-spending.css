@@ -1243,10 +1243,11 @@
   max-height: none;
   left: 0;
   right: 0;
-  top: env(safe-area-inset-top, 0px);
-  bottom: env(safe-area-inset-bottom, 0px);
+  bottom: 0;
+  top: auto;
+  max-height: 100vh;
+  padding: env(safe-area-inset-top, 0px) 14px env(safe-area-inset-bottom, 0px) 14px;
   border-radius: 0;
-  padding: 12px 14px;
   z-index: 1101;
   margin: 0;
   overflow-y: auto;
