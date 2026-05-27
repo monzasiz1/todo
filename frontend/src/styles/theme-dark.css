@@ -1980,11 +1980,7 @@ html[data-theme="dark"] .task-detail-modal:not(.is-task-detail) .task-detail-gri
   background: color-mix(in srgb, var(--purple) 18%, transparent);
 }
 
-/* ── Premium Background Visibility ──────────────────────────────────── */
-html[data-theme="dark"] .app-layout {
-  background: transparent;
-}
-
-html[data-theme="dark"] .app-main {
+/* ── Premium Background Visibility (nur SharedSpending) ──────────────── */
+html[data-theme="dark"] .shared-spending-page .app-main {
   background: transparent;
 }
