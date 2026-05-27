@@ -2424,7 +2424,7 @@
   .spending-bg-orb { filter: blur(80px); opacity: 0.4; }
   .spending-bg-orb-1 { width: 380px; height: 380px; }
   .spending-bg-orb-2 { width: 340px; height: 340px; }
-  .spending-bg-orb-3 { width: 320px; height: 320px; }
+  .spending-bg-orb-3 { display: none; }
 
   .spending-card-premium {
     padding: 16px;
