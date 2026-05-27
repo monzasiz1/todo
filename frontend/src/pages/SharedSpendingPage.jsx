@@ -1921,11 +1921,16 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
       label: newCatName.trim(),
       color: newCatColor,
     });
+    console.log('submitNewCategory result:', res);
     if (res.success) {
-      setCategory(`custom:${res.category.id}`);
+      const catId = `custom:${res.category.id}`;
+      console.log('Category created, setting to:', catId);
+      setCategory(catId);
       setCreatingCategory(false);
       setNewCatName('');
       setNewCatColor('#94A3B8');
+    } else {
+      console.error('Category creation failed:', res.error);
     }
   };
 
