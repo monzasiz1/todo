@@ -1753,8 +1753,16 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
   const isEdit = !!editing;
   const presetCategories = isIncome ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
   const activeGroup = useSharedSpendingStore((s) => s.activeGroup);
-  const customCategories = (activeGroup?.custom_categories || []).filter((c) => c.kind === (isIncome ? 'income' : 'expense'));
-  const allCategories = [...presetCategories, ...customCategories];
+
+  const allCategories = useMemo(() => {
+    const custom = (activeGroup?.custom_categories || []).filter((c) => c.kind === (isIncome ? 'income' : 'expense'));
+    const customCats = custom.map(c => ({
+      id: `custom:${c.id}`,
+      label: c.label,
+      color: c.color,
+    }));
+    return [...presetCategories, ...customCats];
+  }, [activeGroup?.custom_categories, isIncome, presetCategories]);
   const defaultCategory = isIncome ? 'salary' : 'food';
   const [creatingCategory, setCreatingCategory] = useState(false);
   const [newCatName, setNewCatName] = useState('');
@@ -1916,21 +1924,26 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
   const submitNewCategory = async () => {
     if (!newCatName.trim() || !activeGroup) return;
     const createCat = useSharedSpendingStore.getState().createCustomCategory;
-    const res = await createCat(activeGroup.id, {
-      kind: isIncome ? 'income' : 'expense',
-      label: newCatName.trim(),
-      color: newCatColor,
-    });
-    console.log('submitNewCategory result:', res);
-    if (res.success) {
-      const catId = `custom:${res.category.id}`;
-      console.log('Category created, setting to:', catId);
-      setCategory(catId);
-      setCreatingCategory(false);
-      setNewCatName('');
-      setNewCatColor('#94A3B8');
-    } else {
-      console.error('Category creation failed:', res.error);
+    try {
+      const res = await createCat(activeGroup.id, {
+        kind: isIncome ? 'income' : 'expense',
+        label: newCatName.trim(),
+        color: newCatColor,
+      });
+      console.log('submitNewCategory result:', res, 'activeGroup after:', useSharedSpendingStore.getState().activeGroup?.custom_categories);
+      if (res.success) {
+        const catId = `custom:${res.category.id}`;
+        console.log('Category created with ID:', res.category.id, 'setting to:', catId);
+        setCategory(catId);
+        setCreatingCategory(false);
+        setNewCatName('');
+        setNewCatColor('#94A3B8');
+        console.log('Current allCategories:', allCategories.map(c => c.id));
+      } else {
+        console.error('Category creation failed:', res.error);
+      }
+    } catch (err) {
+      console.error('submitNewCategory error:', err);
     }
   };
 
