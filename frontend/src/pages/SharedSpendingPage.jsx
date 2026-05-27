@@ -1286,7 +1286,7 @@ function GroupDetail({
               <span className="spending-mini-stat-icon"><Sparkles size={14} /></span>
               <div>
                 <span>Top Kategorie</span>
-                <strong>{topCategory ? categoryLabel(topCategory[0]) : '—'}</strong>
+                <strong>{topCategory ? getCategoryLabelWithCustom(topCategory[0], group.custom_categories) : '—'}</strong>
               </div>
               {topCategory && <em className="spending-mini-stat-tag">{fmtAmount(topCategory[1])} €</em>}
             </article>
@@ -1424,11 +1424,11 @@ function GroupDetail({
                 const hasOverride = ov && ov.kind === 'amount';
                 return (
                 <li key={`${e.kind}-${e.id}`} className={`spending-expense-item ${e.kind === 'income' ? 'is-income' : ''} ${isRecurring ? 'is-recurring' : ''} ${hasOverride ? 'is-overridden' : ''}`}>
-                  <span className="spending-expense-dot" style={{ background: categoryColor(e.category) }} />
+                  <span className="spending-expense-dot" style={{ background: getCategoryColorWithCustom(e.category, group.custom_categories) }} />
                   <div className="spending-expense-body">
                     <div className="spending-expense-top">
                       <strong>
-                        {e.description || categoryLabel(e.category)}
+                        {e.description || getCategoryLabelWithCustom(e.category, group.custom_categories)}
                         {isRecurring && (
                           <span className="spending-recurrence-badge" title={RECURRENCE_LABELS[rec]}>
                             <Repeat size={10} /> {RECURRENCE_LABELS[rec]}
@@ -1454,7 +1454,7 @@ function GroupDetail({
                       ) : (
                         <>{memberMap[e.user_id]?.name || 'Unbekannt'} · </>
                       )}
-                      {categoryLabel(e.category)} · {dateStr}
+                      {getCategoryLabelWithCustom(e.category, group.custom_categories)} · {dateStr}
                     </span>
                   </div>
                   <div className="spending-expense-actions">
@@ -2405,7 +2405,7 @@ function buildSankeyLayout({
       txNodes.push({
         id: `t-${tx.id}`,
         catId: catNode.id,
-        label: tx.description || categoryLabel(tx.category),
+        label: tx.description || catNode.label,
         color: catNode.color,
         total: tx.amount,
         x: colX[3],
