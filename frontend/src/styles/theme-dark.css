@@ -1979,3 +1979,12 @@ html[data-theme="dark"] .task-detail-modal.is-task-detail .task-detail-grid {
 html[data-theme="dark"] .task-detail-modal:not(.is-task-detail) .task-detail-grid {
   background: color-mix(in srgb, var(--purple) 18%, transparent);
 }
+
+/* ── Premium Background Visibility ──────────────────────────────────── */
+html[data-theme="dark"] .app-layout {
+  background: transparent;
+}
+
+html[data-theme="dark"] .app-main {
+  background: transparent;
+}

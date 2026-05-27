@@ -1232,11 +1232,12 @@
 .spending-modal.is-mobile-fullscreen {
   position: fixed;
   width: 100vw;
-  height: 100vh;
-  max-height: 100vh;
-  inset: 0;
+  height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  max-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  inset: auto 0 0 0;
+  top: env(safe-area-inset-top, 0px);
   border-radius: 0;
-  padding: calc(env(safe-area-inset-top) + 12px) 0 env(safe-area-inset-bottom) 0;
+  padding: 12px 14px env(safe-area-inset-bottom, 0px) 14px;
 }
 
 .modal-pull-handle {
@@ -1943,7 +1944,7 @@
 .spending-bg {
   position: fixed;
   inset: 0;
-  z-index: -2;
+  z-index: -1;
   overflow: hidden;
   pointer-events: none;
   background:
