@@ -511,7 +511,16 @@ function BalanceCard({ members, expensesByUser, expensesOwedByUser, totalExpense
 }
 
 /* ── Activity Feed: derived events from entries (created/recurring) ─ */
-function ActivityFeed({ entries, memberMap, overrides }) {
+function ActivityFeed({ entries, memberMap, overrides, customCategories = [] }) {
+  const getCategoryLabel = (catId) => {
+    if (catId.toString().startsWith('custom:')) {
+      const customId = parseInt(catId.toString().slice(7), 10);
+      const custom = customCategories.find((c) => c.id === customId);
+      return custom?.label || catId;
+    }
+    return categoryLabel(catId);
+  };
+
   const events = useMemo(() => {
     const arr = [];
     entries.forEach((e) => {
@@ -524,7 +533,7 @@ function ActivityFeed({ entries, memberMap, overrides }) {
         color: e.kind === 'income' ? '#34D399' : '#F87171',
         text: (
           <>
-            <strong>{compactName(name)}</strong> hat {verb} hinzugefügt: <strong>{e.description || categoryLabel(e.category)}</strong> · {fmtAmount(Number(e.amount) || 0)} €
+            <strong>{compactName(name)}</strong> hat {verb} hinzugefügt: <strong>{e.description || getCategoryLabel(e.category)}</strong> · {fmtAmount(Number(e.amount) || 0)} €
           </>
         ),
         time: ts,
@@ -536,7 +545,7 @@ function ActivityFeed({ entries, memberMap, overrides }) {
           color: '#A78BFA',
           text: (
             <>
-              Neue wiederkehrende Zahlung erkannt: <strong>{e.description || categoryLabel(e.category)}</strong> ({RECURRENCE_LABELS[e.recurrence]})
+              Neue wiederkehrende Zahlung erkannt: <strong>{e.description || getCategoryLabel(e.category)}</strong> ({RECURRENCE_LABELS[e.recurrence]})
             </>
           ),
           time: ts,
@@ -556,7 +565,7 @@ function ActivityFeed({ entries, memberMap, overrides }) {
       });
     });
     return arr.sort((a, b) => b.ts - a.ts).slice(0, 12);
-  }, [entries, memberMap, overrides]);
+  }, [entries, memberMap, overrides, customCategories]);
 
   if (events.length === 0) return null;
 
@@ -1480,7 +1489,7 @@ function GroupDetail({
       )}
 
       {tab === 'overview' && (
-        <ActivityFeed entries={allEntries} memberMap={memberMap} overrides={overrides} />
+        <ActivityFeed entries={allEntries} memberMap={memberMap} overrides={overrides} customCategories={group.custom_categories || []} />
       )}
     </>
   );
