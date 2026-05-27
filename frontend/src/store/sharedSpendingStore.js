@@ -223,5 +223,37 @@ export const useSharedSpendingStore = create((set, get) => ({
     }
   },
 
+  createCustomCategory: async (groupId, { kind, label, color }) => {
+    try {
+      const data = await api.createSpendingCustomCategory(groupId, { kind, label, color });
+      // Aktualisiere die activeGroup mit der neuen Kategorie
+      if (get().activeGroup?.id === groupId) {
+        const updated = { ...get().activeGroup };
+        if (!updated.custom_categories) updated.custom_categories = [];
+        updated.custom_categories.push(data.category);
+        set({ activeGroup: updated });
+      }
+      return { success: true, category: data.category };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  },
+
+  deleteCustomCategory: async (groupId, categoryId) => {
+    try {
+      await api.deleteSpendingCustomCategory(groupId, categoryId);
+      if (get().activeGroup?.id === groupId) {
+        const updated = { ...get().activeGroup };
+        if (updated.custom_categories) {
+          updated.custom_categories = updated.custom_categories.filter((c) => c.id !== categoryId);
+        }
+        set({ activeGroup: updated });
+      }
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  },
+
   setActiveGroup: (group) => set({ activeGroup: group }),
 }));

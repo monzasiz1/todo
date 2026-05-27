@@ -675,6 +675,51 @@ module.exports = async function handler(req, res) {
       return res.json({ success: true });
     }
 
+    // POST /api/spending/:id/categories — Benutzerdefinierte Kategorie hinzufuegen
+    if (segments.length === 2 && segments[1] === 'categories' && req.method === 'POST') {
+      const groupId = Number(segments[0]);
+      const { kind, label, color } = req.body || {};
+      if (!Number.isFinite(groupId)) return res.status(400).json({ error: 'Ungueltige ID' });
+      if (!['income', 'expense'].includes(String(kind))) return res.status(400).json({ error: 'Kind ungueltig' });
+      const cleanLabel = String(label || '').trim().slice(0, 80);
+      if (!cleanLabel) return res.status(400).json({ error: 'Label erforderlich' });
+      const cleanColor = String(color || '#94A3B8').slice(0, 20);
+
+      const allowed = await isAcceptedMemberOrOwner(pool, groupId, user.id);
+      if (!allowed) return res.status(403).json({ error: 'Kein Zugriff' });
+
+      const result = await pool.query(
+        `INSERT INTO spending_custom_categories
+           (spending_group_id, kind, label, color, created_by)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING id, kind, label, color, created_by, created_at`,
+        [groupId, kind, cleanLabel, cleanColor, user.id]
+      );
+      const row = result.rows[0];
+      return res.status(201).json({ category: row });
+    }
+
+    // DELETE /api/spending/:id/categories/:id — Benutzerdefinierte Kategorie loeschen
+    if (segments.length === 3 && segments[1] === 'categories' && req.method === 'DELETE') {
+      const groupId = Number(segments[0]);
+      const categoryId = Number(segments[2]);
+      if (!Number.isFinite(groupId) || !Number.isFinite(categoryId)) {
+        return res.status(400).json({ error: 'Ungueltige ID' });
+      }
+
+      const allowed = await isAcceptedMemberOrOwner(pool, groupId, user.id);
+      if (!allowed) return res.status(403).json({ error: 'Kein Zugriff' });
+
+      const r = await pool.query(
+        `DELETE FROM spending_custom_categories
+         WHERE id = $1 AND spending_group_id = $2
+         RETURNING id`,
+        [categoryId, groupId]
+      );
+      if (r.rows.length === 0) return res.status(404).json({ error: 'Kategorie nicht gefunden' });
+      return res.json({ success: true });
+    }
+
     return res.status(404).json({ error: 'Route nicht gefunden' });
   } catch (err) {
     console.error('Spending API error:', err);

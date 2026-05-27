@@ -545,6 +545,15 @@ export const api = {
       method: 'DELETE',
     }),
 
+  createSpendingCustomCategory: (groupId, { kind, label, color }) =>
+    request(`/spending/${groupId}/categories`, {
+      method: 'POST',
+      body: JSON.stringify({ kind, label, color }),
+    }),
+
+  deleteSpendingCustomCategory: (groupId, categoryId) =>
+    request(`/spending/${groupId}/categories/${categoryId}`, { method: 'DELETE' }),
+
   parseSpendingText: (input) =>
     request('/ai/spending-parse', {
       method: 'POST',
