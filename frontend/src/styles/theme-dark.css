@@ -135,7 +135,6 @@ html[data-theme="dark"] .profile-teams-card {
 html[data-theme="dark"] .modal,
 html[data-theme="dark"] [class*="modal-content"],
 html[data-theme="dark"] [class*="-modal"]:not(.modal-overlay) {
-  background-color: var(--surface);
   color: var(--text);
   border-color: var(--border);
 }
@@ -499,10 +498,11 @@ html[data-theme="dark"] .notification-dropdown,
 html[data-theme="dark"] .friends-list,
 html[data-theme="dark"] .group-chat-panel,
 html[data-theme="dark"] .group-project-board {
-  background: var(--card-solid);
+  background: rgba(30, 31, 35, 0.95);
+  backdrop-filter: blur(8px);
   color: var(--text);
   border-color: var(--border);
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 32px 80px rgba(0,0,0,0.5);
 }
 
 /* Tabs / Pills / Filter */
@@ -777,7 +777,8 @@ html[data-theme="dark"] .bq-auth-overlay {
 }
 html[data-theme="dark"] .modal-content,
 html[data-theme="dark"] .bq-auth-card {
-  background: var(--card-solid);
+  background: rgba(30, 31, 35, 0.95);
+  backdrop-filter: blur(8px);
   color: var(--text);
   border-color: var(--border);
 }
@@ -1093,12 +1094,10 @@ html[data-theme="dark"] .cal-settings-modal,
 html[data-theme="dark"] .cal-settings-modal-body,
 html[data-theme="dark"] .cal-settings-modal-head,
 html[data-theme="dark"] .cal-settings-modal-foot {
-  background: var(--card-solid);
+  background: rgba(30, 31, 35, 0.95);
+  backdrop-filter: blur(8px);
   color: var(--text);
   border-color: var(--border);
-}
-html[data-theme="dark"] .cal-settings-modal-foot {
-  background: var(--card-solid);
 }
 html[data-theme="dark"] .cal-settings-modal-close {
   background: rgba(255, 255, 255, 0.06);
