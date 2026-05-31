@@ -1,4 +1,10 @@
-﻿const API_URL = '/api';
+﻿// API-Basis:
+//  - Im Web (Vercel etc.) → relativer Pfad "/api" (Same-Origin).
+//  - In nativem Capacitor-Build → absolute Production-URL aus VITE_API_BASE_URL,
+//    weil die App von capacitor://localhost laeuft und "/api" sonst ins Leere
+//    zeigt. Setze die Variable in einer .env.production.local oder im Build-CI.
+const API_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL)
+  || '/api';
 
 import { enqueueRequest } from './offlineQueue';
 

@@ -25,3 +25,19 @@ electron/node_modules/
 .claude/
 .cursor/
 .vscode/
+
+# Capacitor native build outputs
+frontend/android/.gradle/
+frontend/android/app/build/
+frontend/android/build/
+frontend/android/captures/
+frontend/android/.idea/
+frontend/android/local.properties
+frontend/android/app/src/main/assets/public/
+frontend/android/app/release/
+frontend/ios/App/build/
+frontend/ios/App/Pods/
+frontend/ios/DerivedData/
+frontend/ios/.idea/
+*.keystore
+*.jks

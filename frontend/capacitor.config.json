@@ -1,0 +1,18 @@
+{
+  "appId": "de.beequ.app",
+  "appName": "BeeQu",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "backgroundColor": "#0B1220",
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  },
+  "ios": {
+    "backgroundColor": "#0B1220",
+    "contentInset": "always"
+  }
+}

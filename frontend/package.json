@@ -6,9 +6,15 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "cap:sync": "vite build && cap sync",
+    "cap:android": "vite build && cap sync android && cap open android",
+    "cap:android:run": "vite build && cap sync android && cap run android"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/cli": "^8.3.4",
+    "@capacitor/core": "^8.3.4",
     "@supabase/supabase-js": "^2.106.0",
     "date-fns": "^3.6.0",
     "date-fns-tz": "^3.1.3",
