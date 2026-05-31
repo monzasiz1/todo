@@ -20473,6 +20473,265 @@ html[data-theme="dark"] .group-role-chip.role-member {
   margin: 8px auto 0;
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   BROWSER-MOCKUP (Hero v2.1) — ersetzt Trinity-3D-Carousel.
+   Das Screenshot-Asset (dashboard.png) ist ein WIDE-Desktop-Shot
+   (~2:1). Eine Phone-Form wuerde den Shot quetschen. Browser-Window
+   matched die Ratio natuerlich, der Screenshot wirkt wie eine echte
+   laufende App statt "reingestopft".
+   ══════════════════════════════════════════════════════════════════ */
+.bq-device-wrap {
+  inline-size: 100%;
+  max-inline-size: 1180px;
+  padding-block-start: 24px;
+  padding-inline: 24px;
+  position: relative;
+  z-index: 2;
+  margin-block-start: 8px;
+  margin-inline: auto;
+}
+
+/* Rotierende Caption (gleiche Struktur wie Trinity-Caption) */
+.bq-device-caption {
+  position: relative;
+  z-index: 4;
+  min-block-size: 110px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  text-align: center;
+  margin-block-end: 16px;
+}
+.bq-device-caption-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-inline-size: 720px;
+}
+.bq-device-eyebrow {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+.bq-device-headline {
+  font-size: clamp(1.45rem, 2.4vw, 2.05rem);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: #FFFFFF;
+  margin: 0;
+  line-height: 1.1;
+}
+.bq-device-sub {
+  font-size: 0.98rem;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Browser-Window Frame */
+.bq-device {
+  position: relative;
+  inline-size: 100%;
+  max-inline-size: 1080px;
+  margin: 0 auto;
+  border-radius: 18px;
+  background: linear-gradient(160deg, #1a1d2e 0%, #0e1119 100%);
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 50px 100px rgba(0, 0, 0, 0.55),
+    0 20px 50px rgba(0, 122, 255, 0.15),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  isolation: isolate;
+}
+
+/* Glow hinter dem Mockup */
+.bq-device-glow {
+  position: absolute;
+  inset-inline-start: 50%;
+  inset-block-end: -10%;
+  inline-size: 90%;
+  block-size: 60%;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse,
+    rgba(0, 122, 255, 0.30) 0%, transparent 65%);
+  filter: blur(60px);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Browser-Chrome (Top-Bar) */
+.bq-device-chrome {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-block: 11px;
+  padding-inline: 16px;
+  background: rgba(255, 255, 255, 0.025);
+  border-block-end: 1px solid rgba(255, 255, 255, 0.06);
+  position: relative;
+  z-index: 2;
+}
+.bq-device-dot {
+  inline-size: 11px;
+  block-size: 11px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.bq-device-url {
+  margin-inline-start: 14px;
+  padding-block: 4px;
+  padding-inline: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 7px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.65);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  max-inline-size: 360px;
+  justify-content: center;
+}
+.bq-device-lock {
+  color: #34D399;
+  font-size: 0.55rem;
+  line-height: 1;
+}
+.bq-device-live {
+  margin-inline-start: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #34D399;
+  padding-block: 3px;
+  padding-inline: 8px;
+  background: rgba(52, 211, 153, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.30);
+  border-radius: 999px;
+}
+.bq-device-live-dot {
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: #34D399;
+  box-shadow: 0 0 6px #34D399;
+  animation: bq-pulse 2s ease-in-out infinite;
+}
+
+/* Screen — der eigentliche Screenshot.
+   Aspect-Ratio matched die Dashboard-Screenshots (~2:1, wide).
+   object-fit: cover + object-position: top → zeigt den oberen Teil
+   des Screenshots clean, ohne Stretch. */
+.bq-device-screen {
+  position: relative;
+  inline-size: 100%;
+  aspect-ratio: 16 / 10;
+  background: #06080F;
+  overflow: hidden;
+}
+.bq-device-screen img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  object-position: top center;
+  display: block;
+  position: absolute;
+  inset: 0;
+}
+
+/* Tabs (Segments) — gleiche Optik wie Trinity-Segs */
+.bq-device-segs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-block-start: 20px;
+  padding-block-end: 8px;
+}
+.bq-device-seg {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding-block: 8px;
+  padding-inline: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, border-color 0.18s;
+  min-inline-size: 140px;
+}
+.bq-device-seg:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #FFFFFF;
+}
+.bq-device-seg.active {
+  background: rgba(96, 165, 250, 0.12);
+  border-color: rgba(96, 165, 250, 0.40);
+  color: #FFFFFF;
+}
+.bq-device-seg-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #60A5FA;
+}
+.bq-device-seg-label {
+  display: block;
+  text-align: center;
+}
+.bq-device-seg-rail {
+  display: block;
+  block-size: 2px;
+  inline-size: 100%;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.bq-device-seg-fill {
+  display: block;
+  block-size: 100%;
+  inline-size: 0;
+  background: linear-gradient(90deg, #60A5FA, #A78BFA);
+  border-radius: inherit;
+  animation: bq-device-fill 5.5s linear forwards;
+}
+.bq-device-seg-fill.is-paused { animation-play-state: paused; }
+
+@keyframes bq-device-fill {
+  from { inline-size: 0; }
+  to   { inline-size: 100%; }
+}
+
+/* Mobile: Caption + Tabs schmaler, Chrome-URL kurz */
+@media (max-width: 720px) {
+  .bq-device-wrap { padding-inline: 16px; }
+  .bq-device-caption { min-block-size: 90px; margin-block-end: 12px; }
+  .bq-device-chrome { padding-inline: 12px; }
+  .bq-device-url { max-inline-size: 180px; font-size: 0.7rem; }
+  .bq-device-live { display: none; }
+  .bq-device-seg { min-inline-size: 100px; font-size: 0.75rem; padding-inline: 10px; }
+  .bq-device-screen { aspect-ratio: 16 / 11; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bq-device-seg-fill { animation: none !important; }
+}
+
 /* ───────── Caption (rotierende Headline) ───────── */
 .bq-trinity-caption {
   position: relative;
