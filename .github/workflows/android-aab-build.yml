@@ -79,7 +79,7 @@ jobs:
 
       - name: Build Android App Bundle (AAB)
         working-directory: frontend/android
-        run: ./gradlew bundleRelease --no-daemon
+        run: chmod +x ./gradlew && ./gradlew bundleRelease --no-daemon
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
