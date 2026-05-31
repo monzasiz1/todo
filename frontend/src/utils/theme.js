@@ -13,6 +13,13 @@ const MQ = typeof window !== 'undefined' && window.matchMedia
   ? window.matchMedia('(prefers-color-scheme: dark)')
   : null;
 
+// Statusbar-/Chrome-Farben (Android Chrome, TWA, iOS Safari nutzen das alle).
+// Werte muessen mit --bg aus index.css/theme-dark.css uebereinstimmen.
+const THEME_COLORS = {
+  light: '#F2F2F7',
+  dark:  '#0B1220',
+};
+
 let listeners = new Set();
 let systemListenerAttached = false;
 
@@ -31,13 +38,36 @@ export function getEffectiveTheme(stored = getStoredTheme()) {
   return stored;
 }
 
+function ensureMeta(name) {
+  let el = document.querySelector(`meta[name="${name}"]`);
+  if (!el) {
+    el = document.createElement('meta');
+    el.setAttribute('name', name);
+    document.head.appendChild(el);
+  }
+  return el;
+}
+
+function applyMetaTheme(effective) {
+  const color = THEME_COLORS[effective] || THEME_COLORS.light;
+  // theme-color: Android Chrome Statusbar + TWA App-Bar, neuere iOS Safari.
+  ensureMeta('theme-color').setAttribute('content', color);
+  // msapplication-TileColor: Windows-Pin/Edge.
+  ensureMeta('msapplication-TileColor').setAttribute('content', color);
+  // iOS Safari Statusbar bei standalone PWA.
+  ensureMeta('apple-mobile-web-app-status-bar-style')
+    .setAttribute('content', effective === 'dark' ? 'black-translucent' : 'default');
+}
+
 function apply(stored) {
   if (typeof document === 'undefined') return;
   const effective = getEffectiveTheme(stored);
   const root = document.documentElement;
   root.setAttribute('data-theme', effective);
-  // Falls jemand prefers-color-scheme spielen will, signalisieren:
+  // color-scheme signalisiert dem Browser, dass die Seite das Theme bewusst
+  // steuert — verhindert insbesondere Android Chrome "Auto Dark Theme".
   root.style.colorScheme = effective;
+  applyMetaTheme(effective);
 }
 
 function attachSystemListener() {

@@ -8,14 +8,17 @@
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#007AFF" />
+    <!-- theme-color/status-bar werden von theme.js dynamisch je nach Light/Dark gesetzt.
+         Diese Defaults gelten nur bis der erste Frame gerendert ist. -->
+    <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0B1220" media="(prefers-color-scheme: dark)" />
     <meta name="description" content="BeeQu ist deine smarte Produktivitaets-App: Aufgaben, Kalender, Notizen, Gruppen und KI-Unterstuetzung in einer App. Offline-faehig, sicher und schnell." />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="BeeQu" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="application-name" content="BeeQu" />
-    <meta name="msapplication-TileColor" content="#007AFF" />
+    <meta name="msapplication-TileColor" content="#F2F2F7" />
     <!-- Inter self-hosted (Variable Font, latin subset, 47 KB).
          Same-origin -> kein DNS/TLS-Handshake zu fonts.gstatic.com.
          font-display:swap im @font-face sorgt fuer sofortigen Text-Paint
