@@ -1505,6 +1505,66 @@
   gap: 8px;
 }
 
+.spending-category-cell {
+  position: relative;
+  display: flex;
+}
+
+.spending-category-cell .spending-category-btn {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.spending-category-cell.is-custom .spending-category-btn {
+  padding-inline-end: 60px;
+}
+
+.spending-category-actions {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-end: 6px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.spending-category-edit,
+.spending-category-del {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 22px;
+  block-size: 22px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text-secondary);
+  cursor: pointer;
+  opacity: 0.7;
+  transition: background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+}
+
+.spending-category-edit:hover {
+  background: rgba(96,165,250,0.18);
+  border-color: rgba(96,165,250,0.40);
+  color: #60A5FA;
+  opacity: 1;
+}
+
+.spending-category-del:hover {
+  background: rgba(248,113,113,0.18);
+  border-color: rgba(248,113,113,0.40);
+  color: #F87171;
+  opacity: 1;
+}
+
+.spending-new-category-title {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
 .spending-category-btn {
   display: flex;
   align-items: center;

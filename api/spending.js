@@ -699,6 +699,32 @@ module.exports = async function handler(req, res) {
       return res.status(201).json({ category: row });
     }
 
+    // PATCH /api/spending/:id/categories/:id — Benutzerdefinierte Kategorie aktualisieren
+    if (segments.length === 3 && segments[1] === 'categories' && req.method === 'PATCH') {
+      const groupId = Number(segments[0]);
+      const categoryId = Number(segments[2]);
+      if (!Number.isFinite(groupId) || !Number.isFinite(categoryId)) {
+        return res.status(400).json({ error: 'Ungueltige ID' });
+      }
+      const { label, color } = req.body || {};
+      const cleanLabel = String(label || '').trim().slice(0, 80);
+      if (!cleanLabel) return res.status(400).json({ error: 'Label erforderlich' });
+      const cleanColor = String(color || '#94A3B8').slice(0, 20);
+
+      const allowed = await isAcceptedMemberOrOwner(pool, groupId, user.id);
+      if (!allowed) return res.status(403).json({ error: 'Kein Zugriff' });
+
+      const r = await pool.query(
+        `UPDATE spending_custom_categories
+            SET label = $1, color = $2
+          WHERE id = $3 AND spending_group_id = $4
+       RETURNING id, kind, label, color, created_by, created_at`,
+        [cleanLabel, cleanColor, categoryId, groupId]
+      );
+      if (r.rows.length === 0) return res.status(404).json({ error: 'Kategorie nicht gefunden' });
+      return res.json({ category: r.rows[0] });
+    }
+
     // DELETE /api/spending/:id/categories/:id — Benutzerdefinierte Kategorie loeschen
     if (segments.length === 3 && segments[1] === 'categories' && req.method === 'DELETE') {
       const groupId = Number(segments[0]);

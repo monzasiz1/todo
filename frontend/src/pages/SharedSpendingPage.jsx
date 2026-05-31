@@ -1808,6 +1808,7 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
   }, [activeGroup?.custom_categories, isIncome, presetCategories]);
   const defaultCategory = isIncome ? 'salary' : 'food';
   const [creatingCategory, setCreatingCategory] = useState(false);
+  const [editingCategoryId, setEditingCategoryId] = useState(null);
   const [newCatName, setNewCatName] = useState('');
   const [newCatColor, setNewCatColor] = useState('#94A3B8');
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
@@ -1966,27 +1967,64 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
 
   const submitNewCategory = async () => {
     if (!newCatName.trim() || !activeGroup) return;
-    const createCat = useSharedSpendingStore.getState().createCustomCategory;
+    const store = useSharedSpendingStore.getState();
     try {
-      const res = await createCat(activeGroup.id, {
-        kind: isIncome ? 'income' : 'expense',
-        label: newCatName.trim(),
-        color: newCatColor,
-      });
-      console.log('submitNewCategory result:', res, 'activeGroup after:', useSharedSpendingStore.getState().activeGroup?.custom_categories);
-      if (res.success) {
-        const catId = `custom:${res.category.id}`;
-        console.log('Category created with ID:', res.category.id, 'setting to:', catId);
-        setCategory(catId);
-        setCreatingCategory(false);
-        setNewCatName('');
-        setNewCatColor('#94A3B8');
-        console.log('Current allCategories:', allCategories.map(c => c.id));
+      if (editingCategoryId != null) {
+        const res = await store.updateCustomCategory(activeGroup.id, editingCategoryId, {
+          label: newCatName.trim(),
+          color: newCatColor,
+        });
+        if (res.success) {
+          resetCategoryForm();
+        } else {
+          console.error('Category update failed:', res.error);
+          window.alert('Speichern fehlgeschlagen: ' + (res.error || 'unbekannter Fehler'));
+        }
       } else {
-        console.error('Category creation failed:', res.error);
+        const res = await store.createCustomCategory(activeGroup.id, {
+          kind: isIncome ? 'income' : 'expense',
+          label: newCatName.trim(),
+          color: newCatColor,
+        });
+        if (res.success) {
+          setCategory(`custom:${res.category.id}`);
+          resetCategoryForm();
+        } else {
+          console.error('Category creation failed:', res.error);
+        }
       }
     } catch (err) {
       console.error('submitNewCategory error:', err);
+    }
+  };
+
+  const resetCategoryForm = () => {
+    setCreatingCategory(false);
+    setEditingCategoryId(null);
+    setNewCatName('');
+    setNewCatColor('#94A3B8');
+  };
+
+  const startEditCategory = (customNumericId, label, color) => {
+    setEditingCategoryId(customNumericId);
+    setNewCatName(label);
+    setNewCatColor(color || '#94A3B8');
+    setCreatingCategory(true);
+  };
+
+  const handleDeleteCategory = async (customNumericId, label, catId) => {
+    if (!activeGroup) return;
+    const ok = window.confirm(
+      `Kategorie "${label}" löschen?\n\nBereits eingetragene Buchungen bleiben erhalten, zeigen den Kategorienamen aber nicht mehr an.`
+    );
+    if (!ok) return;
+    const del = useSharedSpendingStore.getState().deleteCustomCategory;
+    const res = await del(activeGroup.id, customNumericId);
+    if (res.success) {
+      if (category === catId) setCategory(defaultCategory);
+    } else {
+      console.error('Category deletion failed:', res.error);
+      window.alert('Löschen fehlgeschlagen: ' + (res.error || 'unbekannter Fehler'));
     }
   };
 
@@ -2044,23 +2082,57 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
           <div className="spending-category-grid">
             {allCategories.map((c) => {
               const catId = c.id.toString().startsWith('custom:') ? c.id : String(c.id);
+              const isCustom = catId.startsWith('custom:');
+              const customNumericId = isCustom ? parseInt(catId.slice(7), 10) : null;
               return (
-                <button
-                  key={catId}
-                  type="button"
-                  className={`spending-category-btn ${category === catId ? 'is-active' : ''}`}
-                  style={{ '--cat-color': c.color }}
-                  onClick={() => setCategory(catId)}
-                >
-                  <span className="spending-category-dot" style={{ background: c.color }} />
-                  {c.label}
-                </button>
+                <div key={catId} className={`spending-category-cell${isCustom ? ' is-custom' : ''}`}>
+                  <button
+                    type="button"
+                    className={`spending-category-btn ${category === catId ? 'is-active' : ''}`}
+                    style={{ '--cat-color': c.color }}
+                    onClick={() => setCategory(catId)}
+                  >
+                    <span className="spending-category-dot" style={{ background: c.color }} />
+                    {c.label}
+                  </button>
+                  {isCustom && (
+                    <div className="spending-category-actions">
+                      <button
+                        type="button"
+                        className="spending-category-edit"
+                        onClick={() => startEditCategory(customNumericId, c.label, c.color)}
+                        aria-label={`Kategorie ${c.label} bearbeiten`}
+                        title="Kategorie bearbeiten"
+                      >
+                        <Pencil size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        className="spending-category-del"
+                        onClick={() => handleDeleteCategory(customNumericId, c.label, catId)}
+                        aria-label={`Kategorie ${c.label} löschen`}
+                        title="Kategorie löschen"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  )}
+                </div>
               );
             })}
             <button
               type="button"
               className="spending-category-btn is-add"
-              onClick={() => setCreatingCategory(!creatingCategory)}
+              onClick={() => {
+                if (creatingCategory) {
+                  resetCategoryForm();
+                } else {
+                  setEditingCategoryId(null);
+                  setNewCatName('');
+                  setNewCatColor('#94A3B8');
+                  setCreatingCategory(true);
+                }
+              }}
             >
               <Plus size={16} />
               Neu
@@ -2069,6 +2141,9 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
 
           {creatingCategory && (
             <div className="spending-new-category-form">
+              {editingCategoryId != null && (
+                <div className="spending-new-category-title">Kategorie bearbeiten</div>
+              )}
               <input
                 type="text"
                 placeholder="Kategoriename"
@@ -2092,10 +2167,7 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
                 <button
                   type="button"
                   className="sankey-btn sankey-btn-secondary"
-                  onClick={() => {
-                    setCreatingCategory(false);
-                    setNewCatName('');
-                  }}
+                  onClick={resetCategoryForm}
                 >
                   Abbrechen
                 </button>
@@ -2105,7 +2177,7 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
                   onClick={submitNewCategory}
                   disabled={!newCatName.trim()}
                 >
-                  Erstellen
+                  {editingCategoryId != null ? 'Speichern' : 'Erstellen'}
                 </button>
               </div>
             </div>

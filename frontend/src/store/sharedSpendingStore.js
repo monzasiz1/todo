@@ -243,6 +243,24 @@ export const useSharedSpendingStore = create((set, get) => ({
     }
   },
 
+  updateCustomCategory: async (groupId, categoryId, { label, color }) => {
+    try {
+      const data = await api.updateSpendingCustomCategory(groupId, categoryId, { label, color });
+      if (get().activeGroup?.id === groupId) {
+        const updated = { ...get().activeGroup };
+        if (updated.custom_categories) {
+          updated.custom_categories = updated.custom_categories.map((c) =>
+            c.id === categoryId ? { ...c, ...data.category } : c
+          );
+        }
+        set({ activeGroup: updated });
+      }
+      return { success: true, category: data.category };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  },
+
   deleteCustomCategory: async (groupId, categoryId) => {
     try {
       await api.deleteSpendingCustomCategory(groupId, categoryId);

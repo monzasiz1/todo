@@ -551,6 +551,12 @@ export const api = {
       body: JSON.stringify({ kind, label, color }),
     }),
 
+  updateSpendingCustomCategory: (groupId, categoryId, { label, color }) =>
+    request(`/spending/${groupId}/categories/${categoryId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ label, color }),
+    }),
+
   deleteSpendingCustomCategory: (groupId, categoryId) =>
     request(`/spending/${groupId}/categories/${categoryId}`, { method: 'DELETE' }),
 
