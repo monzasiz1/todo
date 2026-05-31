@@ -4,11 +4,25 @@ import App from './App';
 import './index.css';
 import './styles/theme-dark.css';
 import './styles/whiteboard.css';
+import './styles/platform-android.css';
 import { initTheme } from './utils/theme';
 import { purgeAuthQueueEntries } from './utils/offlineQueue';
 
 // Theme so früh wie möglich anwenden, um FOUC (Flash of Unstyled Theme) zu vermeiden.
 initTheme();
+
+// Plattform-Detection so frueh wie moeglich (vor dem ersten Render),
+// damit Android-spezifische CSS-Overrides (kein backdrop-filter, solide
+// Surfaces statt rgba+blur) sofort greifen und das UI nicht erst grau
+// rendert und dann umspringt.
+try {
+  if (typeof navigator !== 'undefined') {
+    const ua = navigator.userAgent || '';
+    const root = document.documentElement;
+    if (/android/i.test(ua)) root.classList.add('is-android');
+    if (/iphone|ipad|ipod/i.test(ua)) root.classList.add('is-ios');
+  }
+} catch {}
 
 // Markiere Body als Electron-Desktop-App, damit CSS den Platz fuer die
 // Custom-Titlebar reservieren kann und Plattform-spezifische Anpassungen

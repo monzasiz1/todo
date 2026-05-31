@@ -1,0 +1,136 @@
+/* ════════════════════════════════════════════════════════════════════
+   PLATFORM: ANDROID
+   Aktiviert per <html class="is-android"> (siehe main.jsx).
+
+   Warum:
+   Android Chrome rendert backdrop-filter deutlich schwaecher als iOS
+   Safari. Semi-transparente weisse Glas-Surfaces (rgba(255,255,255,.72)
+   ueber blur) wirken auf Android milchig-grau statt iOS-klar — der User
+   nimmt das als "anderes Theme" wahr.
+
+   Strategie:
+   - backdrop-filter komplett deaktivieren (kein Fallback noetig, weil
+     wir die Surfaces gleichzeitig solid machen).
+   - Glas-Tokens auf solide iOS-Farben mappen — gleiche Hex-Werte wie
+     iOS, nur ohne Alpha+Blur. Resultat: identische Farbflaechen, kein
+     verwaschener Grauschleier.
+   - --blur auf 0, damit jeglicher var(--blur)-Konsument neutral wird.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Glas-Tokens auf solide Surfaces mappen ───────────────────── */
+html.is-android {
+  --blur: 0px;
+}
+
+html.is-android:not([data-theme="dark"]),
+html.is-android[data-theme="light"] {
+  --glass:        #FFFFFF;
+  --glass-border: rgba(0, 0, 0, 0.06);
+  --card:         #FFFFFF;
+}
+
+html.is-android[data-theme="dark"] {
+  --glass:        #131A29;
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --card:         #1B2236;
+}
+
+/* ── 2. backdrop-filter ueberall deaktivieren ────────────────────── */
+/* Hoch-spezifischer Selector, damit alle Komponenten-Stylesheets
+   (auch die mit eigenem .is-mobile-fullscreen o.ae.) sicher gewinnen. */
+html.is-android *,
+html.is-android *::before,
+html.is-android *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ── 3. Font-Rendering glaetten (Android Default ist haerter) ────── */
+html.is-android {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ── 4. Pull-to-Refresh deaktivieren (Web-Page-Reload mitten in
+       der App ist auf Android stoerend, gibt's auf iOS Standalone
+       nicht). PWA/TWA bleibt davon unberuehrt. ─────────────────── */
+html.is-android,
+html.is-android body {
+  overscroll-behavior-y: contain;
+}
+
+/* ── 5. Tap-Highlight wegnehmen (Android Chrome zeigt blauen Cast
+       auf jedem Tap, iOS nicht). ──────────────────────────────── */
+html.is-android * {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── 6. Premium-Background fuer Android ─────────────────────────
+   .spending-bg auf iOS = animierte Orbs mit filter:blur(100px) +
+   mix-blend-mode: color-dodge + radiale Meshes. Android Chrome's
+   Compositor schmeisst diese Layer als zu teuer einfach raus →
+   der ganze Background bleibt unsichtbar.
+
+   Strategie: solide Mehrstop-Gradients direkt auf .spending-bg,
+   alle teuren Kindelemente (mesh / orbs / noise) ausblenden. Das
+   Ergebnis sieht wie ein bewusst gestalteter Premium-Hintergrund
+   aus statt wie ein gescheiterter Effekt.
+
+   Wir setzen den Background sowohl auf html als auch auf .spending-bg,
+   damit er garantiert sichtbar ist — egal in welchem Stacking-Context
+   .spending-bg landet. */
+html.is-android body {
+  background: transparent;
+}
+
+html.is-android:not([data-theme="dark"]) {
+  background:
+    radial-gradient(ellipse 120% 70% at 50% -10%,
+      rgba(96, 165, 250, 0.18) 0%,
+      rgba(167, 139, 250, 0.10) 35%,
+      transparent 70%),
+    linear-gradient(180deg, #FFFFFF 0%, #F2F2F7 60%, #EAEAF0 100%);
+  background-attachment: fixed;
+}
+
+html.is-android[data-theme="dark"] {
+  background:
+    radial-gradient(ellipse 120% 70% at 50% -10%,
+      rgba(96, 165, 250, 0.22) 0%,
+      rgba(167, 139, 250, 0.14) 35%,
+      transparent 70%),
+    linear-gradient(180deg, #0B1220 0%, #050813 70%, #02030A 100%);
+  background-attachment: fixed;
+}
+
+/* .spending-bg selbst neutral machen — die teuren Children verschwinden,
+   der Container wird transparent, damit der html-Background durchscheint. */
+html.is-android .spending-bg {
+  background: transparent !important;
+}
+
+html.is-android .spending-bg-mesh,
+html.is-android .spending-bg-orb,
+html.is-android .spending-bg-orb-1,
+html.is-android .spending-bg-orb-2,
+html.is-android .spending-bg-orb-3,
+html.is-android .spending-bg-noise {
+  display: none !important;
+}
+
+/* Premium-Karten-Effekte (filter:blur + mix-blend-mode) sind auf Android
+   ebenfalls fragil → solide Karten-Optik mit klarer Border. */
+html.is-android .spending-card-premium {
+  background: var(--card-solid, #FFFFFF) !important;
+  border-color: var(--border, rgba(0, 0, 0, 0.06)) !important;
+}
+
+html.is-android[data-theme="dark"] .spending-card-premium {
+  background: var(--card-solid, #1B2236) !important;
+  border-color: var(--border, rgba(255, 255, 255, 0.08)) !important;
+}
+
+html.is-android .spending-card-premium::before {
+  display: none !important;
+}
