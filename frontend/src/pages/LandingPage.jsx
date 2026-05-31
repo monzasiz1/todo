@@ -753,28 +753,27 @@ export default function LandingPage() {
     return () => clearInterval(t);
   }, [heroShotPaused]);
 
-  // Landing-V2 ist dunkel-premium (Linear-Style). Wir setzen <html data-theme="dark">
-  // solange die Page gemountet ist, ohne die User-Praeferenz in localStorage zu
-  // veraendern — nach Login/Register schaltet die App zurueck.
+  // Landing ist eine Marketing-Surface und folgt NICHT der App-Theme-Wahl.
+  // Wir erzwingen light, solange diese Seite gemountet ist — ohne localStorage
+  // zu verändern, damit die Nutzer-Präferenz nach dem Login erhalten bleibt.
   useEffect(() => {
     const root = document.documentElement;
     const prevTheme = root.getAttribute('data-theme');
     const prevColorScheme = root.style.colorScheme;
     const force = () => {
-      if (root.getAttribute('data-theme') !== 'dark') {
-        root.setAttribute('data-theme', 'dark');
+      if (root.getAttribute('data-theme') !== 'light') {
+        root.setAttribute('data-theme', 'light');
       }
-      if (root.style.colorScheme !== 'dark') {
-        root.style.colorScheme = 'dark';
+      if (root.style.colorScheme !== 'light') {
+        root.style.colorScheme = 'light';
       }
-      root.classList.add('bq-landing-active');
     };
     force();
+    // Falls theme.js (system-Listener) data-theme erneut setzt: zurückbiegen.
     const obs = new MutationObserver(force);
     obs.observe(root, { attributes: true, attributeFilter: ['data-theme'] });
     return () => {
       obs.disconnect();
-      root.classList.remove('bq-landing-active');
       if (prevTheme === null) root.removeAttribute('data-theme');
       else root.setAttribute('data-theme', prevTheme);
       root.style.colorScheme = prevColorScheme;
@@ -887,139 +886,85 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* ══════════ HERO v2 — Linear-Style Dark Premium ══════════ */}
-      <section className="bq-hero-v2" ref={heroRef}>
-        <div className="bq-hero-v2-grid" aria-hidden />
-        <div className="bq-hero-v2-glow" aria-hidden />
-        <div className="bq-hero-v2-glow bq-hero-v2-glow-2" aria-hidden />
+      {/* ══════════ HERO (dark) ══════════ */}
+      <section className="bq-hero" ref={heroRef}>
+        <div className="bq-hero-bg" aria-hidden />
+        <div className="bq-hero-grid-lines" aria-hidden />
+        <div className="bq-hero-logo-bg" aria-hidden>
+          <img src="/icons/icon.png" alt="" className="bq-hero-logo-mark" />
+          <div className="bq-hero-logo-aura" />
+        </div>
+        <div className="bq-hero-bottom-fade" aria-hidden />
 
-        {/* Subtile Brand-Bees als Akzent (3 Stueck, dezent) */}
-        <div className="bq-hero-v2-bees" aria-hidden="true">
-          <BeeMascot variant="gold"   size={36} pose="happy" className="bq-hero-v2-bee bq-hero-v2-bee-1" />
-          <BeeMascot variant="purple" size={28} pose="wink"  className="bq-hero-v2-bee bq-hero-v2-bee-2" />
-          <BeeMascot variant="blue"   size={32} pose="happy" className="bq-hero-v2-bee bq-hero-v2-bee-3" />
+        {/* ── Bee-Mascots (Brand-Figuren, Spond-Style) ── */}
+        <div className="bq-bee-swarm" aria-hidden="true">
+          <BeeMascot variant="blue"   size={56} pose="happy" className="bq-bee bq-bee-1" />
+          <BeeMascot variant="purple" size={38} pose="wink"  className="bq-bee bq-bee-2" />
+          <BeeMascot variant="gold"   size={48} pose="happy" className="bq-bee bq-bee-3" />
+          <BeeMascot variant="blue"   size={32} pose="happy" className="bq-bee bq-bee-4" />
+          <BeeMascot variant="purple" size={44} pose="happy" className="bq-bee bq-bee-5" />
+          <BeeMascot variant="gold"   size={30} pose="wink"  className="bq-bee bq-bee-6" />
         </div>
 
+        {/* copy */}
         <motion.div
-          className="bq-hero-v2-copy"
+          className="bq-hero-copy"
           initial="hidden" animate="visible"
-          variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
+          variants={{ visible: { transition: { staggerChildren: 0.09 } } }}
         >
-          <motion.div className="bq-hero-v2-eyebrow" variants={fadeUp}>
-            <BeeMascot variant="gold" size={18} pose="happy" />
-            <span>BeeQu · Productivity reimagined</span>
+          {/* Grosse Hero-Bee als visueller Anker ueber der Headline */}
+          <motion.div className="bq-hero-bee-anchor" variants={fadeUp}>
+            <BeeMascot variant="gold" size={120} pose="happy" className="bq-hero-bee-main" />
           </motion.div>
 
-          <motion.h1 className="bq-hero-v2-title" variants={fadeUp}>
-            Smarter planen.{' '}
-            <span className="bq-hero-v2-title-accent">Mehr erledigen.</span>
+          <motion.div className="bq-eyebrow bq-eyebrow-bee" variants={fadeUp}>
+            <span className="bq-live-dot" />
+            BeeQu — Jetzt verfügbar
+          </motion.div>
+
+          <motion.h1 className="bq-hero-h1" variants={fadeUp}>
+            Smarter planen.<br />
+            <span className="bq-hero-accent">Mehr erledigen.</span>
           </motion.h1>
 
-          <motion.p className="bq-hero-v2-sub" variants={fadeUp}>
-            Aufgaben, Kalender und Teams in einer App. Mit KI, die deine
-            Sprache versteht und Termine automatisch erkennt.
+          <motion.p className="bq-hero-sub" variants={fadeUp}>
+            BeeQu verbindet Aufgaben, Kalender und Teams in einer App —&nbsp;
+            mit KI, die deine Sprache versteht und Aufgaben automatisch anlegt.
           </motion.p>
 
-          <motion.div className="bq-hero-v2-actions" variants={fadeUp}>
-            <button onClick={() => setShowRegister(true)} className="bq-btn-v2 bq-btn-v2-primary">
-              Kostenlos starten <ArrowRight size={16} />
+          <motion.div className="bq-hero-actions" variants={fadeUp}>
+            <button onClick={() => setShowRegister(true)} className="bq-btn bq-primary bq-btn-lg">
+              Kostenlos starten <ArrowRight size={17} />
             </button>
-            <button onClick={() => setShowLogin(true)} className="bq-btn-v2 bq-btn-v2-ghost">
+            <button onClick={() => setShowLogin(true)} className="bq-btn bq-ghost bq-btn-lg">
               Anmelden
             </button>
+            <a 
+              href="/api/download?platform=windows"
+              className="bq-btn bq-ghost bq-btn-lg"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Download size={17} /> Desktop App
+            </a>
           </motion.div>
 
-          <motion.div className="bq-hero-v2-trust" variants={fadeUp}>
-            <span><Check size={12} strokeWidth={3} />Keine Kreditkarte</span>
-            <span><Check size={12} strokeWidth={3} />Free Plan inklusive</span>
-            <span><Check size={12} strokeWidth={3} />Web · iOS · Android · Desktop</span>
+          <motion.div className="bq-hero-trust" variants={fadeUp}>
+            <span><Check size={13} strokeWidth={3} />Keine Kreditkarte</span>
+            <span><Check size={13} strokeWidth={3} />Free Plan inklusive</span>
+            <a 
+              href="/api/download?platform=windows"
+              style={{ 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '4px',
+                textDecoration: 'none',
+                color: 'inherit',
+                cursor: 'pointer'
+              }}
+            >
+              <Download size={13} strokeWidth={3} />Desktop App (.exe)
+            </a>
           </motion.div>
-        </motion.div>
-
-        {/* Device-Mockup mit floating UI-Cards */}
-        <motion.div
-          className="bq-device-stage"
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.35, ease }}
-        >
-          <div className="bq-device-stage-glow" aria-hidden />
-
-          <motion.div
-            className="bq-float bq-float-tl"
-            initial={{ opacity: 0, x: -24, y: 12 }}
-            animate={{ opacity: 1, x: 0, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.85, ease }}
-          >
-            <div className="bq-float-icon" style={{ background: 'rgba(96,165,250,0.18)', color: '#60A5FA' }}>
-              <Sparkles size={16} />
-            </div>
-            <div className="bq-float-body">
-              <div className="bq-float-title">KI hat verstanden</div>
-              <div className="bq-float-meta">„Sprint Review Fr. 10:00"</div>
-              <div className="bq-float-chips">
-                <span>Freitag</span><span>10:00</span><span>Hoch</span>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            className="bq-float bq-float-tr"
-            initial={{ opacity: 0, x: 24, y: 12 }}
-            animate={{ opacity: 1, x: 0, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.95, ease }}
-          >
-            <div className="bq-float-icon" style={{ background: 'rgba(167,139,250,0.20)', color: '#A78BFA' }}>
-              <CalendarDays size={16} />
-            </div>
-            <div className="bq-float-body">
-              <div className="bq-float-title">Heute · 14 Termine</div>
-              <div className="bq-float-meta">10:00 Sprint Review</div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            className="bq-float bq-float-bl"
-            initial={{ opacity: 0, x: -24, y: -12 }}
-            animate={{ opacity: 1, x: 0, y: 0 }}
-            transition={{ duration: 0.7, delay: 1.05, ease }}
-          >
-            <div className="bq-float-icon" style={{ background: 'rgba(52,211,153,0.20)', color: '#34D399' }}>
-              <CheckCircle2 size={16} />
-            </div>
-            <div className="bq-float-body">
-              <div className="bq-float-title">12 / 18 erledigt</div>
-              <div className="bq-float-bar"><span style={{ width: '67%' }} /></div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            className="bq-float bq-float-br"
-            initial={{ opacity: 0, x: 24, y: -12 }}
-            animate={{ opacity: 1, x: 0, y: 0 }}
-            transition={{ duration: 0.7, delay: 1.15, ease }}
-          >
-            <div className="bq-float-icon" style={{ background: 'rgba(240,180,41,0.22)', color: '#F0B429' }}>
-              <UsersRound size={16} />
-            </div>
-            <div className="bq-float-body">
-              <div className="bq-float-title">WG Berlin</div>
-              <div className="bq-float-meta">4 online · 3 neue Tasks</div>
-            </div>
-          </motion.div>
-
-          <div className="bq-device">
-            <div className="bq-device-notch" aria-hidden />
-            <div className="bq-device-screen">
-              <img
-                src="/bilder/dashboard.png"
-                alt="BeeQu Dashboard"
-                loading="eager"
-                draggable={false}
-              />
-            </div>
-            <div className="bq-device-glare" aria-hidden />
-          </div>
         </motion.div>
 
         {/* ── Trinity 3D-Carousel ── */}
@@ -1189,6 +1134,40 @@ export default function LandingPage() {
           </div>
         </motion.div>
       </section>
+
+      {/* divider: hero (dark) → strip (light) — sanfter Wave-Übergang */}
+      <div className="bq-divider bq-divider-to-strip" aria-hidden>
+        <svg viewBox="0 0 1440 110" preserveAspectRatio="none">
+          <path
+            d="M0,72 C220,12 480,98 720,52 C960,8 1200,92 1440,38 L1440,110 L0,110 Z"
+            fill="#fafafa"
+          />
+        </svg>
+      </div>
+
+      {/* ══════════ STRIP ══════════ */}
+      <div className="bq-strip">
+        <div className="bq-strip-inner">
+          {[
+            { icon: Sparkles,    text: 'KI versteht natürliche Sprache' },
+            { icon: CalendarDays,text: 'Drag & Drop im Kalender' },
+            { icon: MessageSquare,text:'Team-Chat mit Events' },
+            { icon: FolderKanban,text: 'Geteilte Gruppen-Aufgaben' },
+            { icon: Timer,       text: 'Focus-Timer mit Push-Alert' },
+            { icon: Bell,        text: 'Push-Erinnerungen' },
+            { icon: Leaf,        text: '1 % für Stripe Climate' },
+          ].map(({ icon: Icon, text }, i) => (
+            <motion.div
+              key={text} className="bq-strip-item"
+              initial="hidden" whileInView="visible" viewport={{ once: true }}
+              variants={fadeIn} custom={i}
+            >
+              <Icon size={16} />
+              <span>{text}</span>
+            </motion.div>
+          ))}
+        </div>
+      </div>
 
       {/* ══════════ INTERACTIVE FEATURE SHOWCASE ══════════ */}
       <section className="bq-section bq-features-section" id="features">
@@ -1472,6 +1451,100 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* divider: pricing(light) → climate(dark green) */}
+      <div className="bq-divider bq-divider-to-climate" aria-hidden>
+        <svg viewBox="0 0 1440 80" preserveAspectRatio="none">
+          <path d="M0,80 C240,20 480,60 720,40 C960,20 1200,60 1440,30 L1440,80 Z" fill="#062215" />
+        </svg>
+      </div>
+
+      {/* ══════════ CLIMATE (eigene Section) ══════════ */}
+      <section className="bq-climate-section" id="climate">
+        <div className="bq-climate-bg" aria-hidden>
+          <div className="bq-climate-aurora bq-climate-aurora-1" />
+          <div className="bq-climate-aurora bq-climate-aurora-2" />
+          <div className="bq-climate-aurora bq-climate-aurora-3" />
+          <div className="bq-climate-grain" />
+        </div>
+        <div className="bq-container">
+          <motion.div
+            className="bq-climate-hero"
+            initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-60px' }}
+            variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
+          >
+            <motion.span className="bq-climate-eyebrow" variants={fadeUp}>
+              <span className="bq-climate-pulse" aria-hidden />
+              <Leaf size={14} />
+              <span>Stripe Climate · Mitglied</span>
+            </motion.span>
+
+            <motion.h2 className="bq-climate-headline" variants={fadeUp}>
+              <span className="bq-climate-mega">1 %</span>
+              <span className="bq-climate-headline-text">
+                jedes Abos für<br />unseren Planeten.
+              </span>
+            </motion.h2>
+
+            <motion.p className="bq-climate-lead" variants={fadeUp}>
+              Wir spenden automatisch <strong>1 % jedes Pro- und Team-Abos</strong> an{' '}
+              <a href="https://stripe.com/climate" target="_blank" rel="noopener noreferrer" className="bq-climate-link">
+                Stripe&nbsp;Climate
+              </a>{' '}
+              — eine Initiative, die <strong>nachweisbar CO₂ aus der Atmosphäre entfernt</strong>.
+              Kein Greenwashing, sondern direkte Förderung der nächsten Generation von Climate-Tech.
+            </motion.p>
+
+            <motion.div className="bq-climate-stats" variants={fadeUp}>
+              <div className="bq-climate-stat">
+                <div className="bq-climate-stat-icon">🌍</div>
+                <div className="bq-climate-stat-num">1 %</div>
+                <div className="bq-climate-stat-label">jedes bezahlten Abos</div>
+              </div>
+              <div className="bq-climate-stat">
+                <div className="bq-climate-stat-icon">🌬️</div>
+                <div className="bq-climate-stat-num">CO₂</div>
+                <div className="bq-climate-stat-label">nachweisbar entfernt</div>
+              </div>
+              <div className="bq-climate-stat">
+                <div className="bq-climate-stat-icon">⚡</div>
+                <div className="bq-climate-stat-num">Automatisch</div>
+                <div className="bq-climate-stat-label">ohne Aufpreis für dich</div>
+              </div>
+              <div className="bq-climate-stat">
+                <div className="bq-climate-stat-icon">🔬</div>
+                <div className="bq-climate-stat-num">Verifiziert</div>
+                <div className="bq-climate-stat-label">durch unabhängige Partner</div>
+              </div>
+            </motion.div>
+
+            <motion.div className="bq-climate-tech" variants={fadeUp}>
+              <span>Direct&nbsp;Air&nbsp;Capture</span>
+              <span>·</span>
+              <span>Pflanzenkohle</span>
+              <span>·</span>
+              <span>Mineralische Bindung</span>
+              <span>·</span>
+              <span>Ozean-Verfahren</span>
+            </motion.div>
+
+            <motion.p className="bq-climate-foot" variants={fadeUp}>
+              Du bezahlst den normalen Preis — der Klimabeitrag kommt aus unserer Marge.
+              Mehr erfahren auf{' '}
+              <a href="https://stripe.com/climate" target="_blank" rel="noopener noreferrer" className="bq-climate-link">
+                stripe.com/climate
+              </a>.
+            </motion.p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* divider: climate(dark green) → cta(dark blue) seamless wave */}
+      <div className="bq-divider bq-divider-to-cta" aria-hidden>
+        <svg viewBox="0 0 1440 80" preserveAspectRatio="none">
+          <path d="M0,40 C320,80 640,10 960,40 C1200,60 1320,30 1440,50 L1440,80 L0,80 Z" fill="#06080f" />
+        </svg>
+      </div>
+
       {/* ══════════ CTA (dark) ══════════ */}
       <section className="bq-cta">
         <div className="bq-cta-glow" aria-hidden />
@@ -1498,54 +1571,178 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      {/* ══════════ DOWNLOADS (kompakt, dark) ══════════ */}
-      <section className="bq-downloads-v2" id="downloads">
+      {/* divider: cta(dark) → downloads(light) flip wave */}
+      <div className="bq-divider bq-divider-flip bq-divider-to-downloads" aria-hidden>
+        <svg viewBox="0 0 1440 80" preserveAspectRatio="none">
+          <path d="M0,40 C240,10 520,70 720,40 C920,10 1200,70 1440,30 L1440,80 L0,80 Z" fill="#f5f8ff" />
+        </svg>
+      </div>
+
+      {/* ══════════ DOWNLOADS ══════════ */}
+      <section className="bq-section" id="downloads" style={{ background: 'linear-gradient(180deg, #f5f8ff 0%, #ffffff 100%)', paddingTop: '80px', paddingBottom: '80px' }}>
         <motion.div
-          className="bq-downloads-v2-inner"
+          className="bq-container"
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.3 }}
-          variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
+          variants={{ visible: { transition: { staggerChildren: 0.12 } } }}
         >
-          <motion.h2 className="bq-downloads-v2-h2" variants={fadeUp}>
-            Auf allen Plattformen verfügbar.
-          </motion.h2>
-          <motion.p className="bq-downloads-v2-sub" variants={fadeUp}>
-            Web · iOS · Android · Windows · macOS. Eine Codebase, alle Geräte.
-          </motion.p>
-
-          <motion.div className="bq-downloads-v2-row" variants={fadeUp}>
-            <a href="/api/download?platform=windows" className="bq-download-card">
-              <Download size={20} />
-              <div>
-                <strong>Windows</strong>
-                <span>10/11 · Installer (.exe)</span>
-              </div>
-            </a>
-            <button type="button" className="bq-download-card is-soon" disabled>
-              <Download size={20} />
-              <div>
-                <strong>macOS</strong>
-                <span>Bald verfügbar</span>
-              </div>
-            </button>
-            <button type="button" className="bq-download-card is-soon" disabled>
-              <Smartphone size={20} />
-              <div>
-                <strong>iOS · Android</strong>
-                <span>App Store · Play Store bald</span>
-              </div>
-            </button>
+          <motion.div style={{ textAlign: 'center', marginBottom: '48px' }} variants={fadeUp}>
+            <h2 className="bq-section-h2" style={{ marginBottom: '12px' }}>
+              <Download size={32} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '12px', color: '#007AFF' }} />
+              Desktop App
+            </h2>
+            <p className="bq-section-sub" style={{ maxWidth: '600px', margin: '0 auto' }}>
+              Nutze BeeQu als native Desktop-Anwendung für Windows und macOS. 
+              Schneller Start, offline verfügbar, automatische Updates.
+            </p>
           </motion.div>
 
-          <motion.p className="bq-downloads-v2-note" variants={fadeUp}>
-            <Check size={14} strokeWidth={3} />
-            Open Source auf{' '}
-            <a href="https://github.com/monzasiz1/todo" target="_blank" rel="noopener noreferrer">
-              GitHub
-            </a>
-            {' '}· keine Anmeldung erforderlich
-          </motion.p>
+          <motion.div 
+            style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+              gap: '24px',
+              maxWidth: '800px',
+              margin: '0 auto'
+            }}
+            variants={fadeUp}
+          >
+            {/* Windows */}
+            <div style={{
+              background: 'var(--card-solid, #ffffff)',
+              color: 'var(--text, #1C1C1E)',
+              borderRadius: '16px',
+              padding: '32px',
+              border: '1px solid var(--border, rgba(0, 122, 255, 0.15))',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+              textAlign: 'center'
+            }}>
+              <div style={{ 
+                width: '64px', 
+                height: '64px', 
+                margin: '0 auto 20px',
+                background: 'linear-gradient(135deg, #0078D4 0%, #0063B1 100%)',
+                borderRadius: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '32px',
+                color: 'white',
+                fontWeight: 'bold'
+              }}>
+                <svg viewBox="0 0 24 24" width="36" height="36" fill="currentColor">
+                  <path d="M0,0 L10,0 L10,10 L0,10 Z M11,0 L24,0 L24,13 L11,13 Z M0,11 L10,11 L10,24 L0,24 Z M11,14 L24,14 L24,24 L11,24 Z"/>
+                </svg>
+              </div>
+              <h3 style={{ fontSize: '1.3rem', fontWeight: '700', marginBottom: '8px', color: 'var(--text, #0c1d36)' }}>
+                Windows
+              </h3>
+              <p style={{ fontSize: '0.92rem', color: 'var(--text-secondary, #6b7c95)', marginBottom: '20px' }}>
+                Windows 10/11 (64-bit)
+              </p>
+              <a 
+                href="/api/download?platform=windows"
+                className="bq-btn bq-primary"
+                style={{ width: '100%', justifyContent: 'center' }}
+              >
+                <Download size={16} /> Installer (.exe)
+              </a>
+              <a 
+                href="/api/download?platform=windows-portable"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ 
+                  display: 'block',
+                  marginTop: '12px',
+                  fontSize: '0.85rem',
+                  color: '#007AFF',
+                  textDecoration: 'none'
+                }}
+              >
+                Portable Version →
+              </a>
+            </div>
+
+            {/* macOS */}
+            <div style={{
+              background: 'var(--card-solid, #ffffff)',
+              color: 'var(--text, #1C1C1E)',
+              borderRadius: '16px',
+              padding: '32px',
+              border: '1px solid var(--border, rgba(0, 0, 0, 0.1))',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+              textAlign: 'center'
+            }}>
+              <div style={{ 
+                width: '64px', 
+                height: '64px', 
+                margin: '0 auto 20px',
+                background: 'linear-gradient(135deg, #000000 0%, #333333 100%)',
+                borderRadius: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '36px',
+                color: 'white'
+              }}>
+                
+              </div>
+              <h3 style={{ fontSize: '1.3rem', fontWeight: '700', marginBottom: '8px', color: 'var(--text, #0c1d36)' }}>
+                macOS
+              </h3>
+              <p style={{ fontSize: '0.92rem', color: 'var(--text-secondary, #6b7c95)', marginBottom: '20px' }}>
+                Intel + Apple Silicon
+              </p>
+              <button 
+                disabled
+                className="bq-btn"
+                style={{ 
+                  width: '100%', 
+                  justifyContent: 'center',
+                  opacity: 0.5,
+                  cursor: 'not-allowed',
+                  background: '#e5e7eb',
+                  color: 'var(--text-secondary, #6b7c95)'
+                }}
+              >
+                In Kürze verfügbar
+              </button>
+              <a 
+                href="https://github.com/monzasiz1/todo/releases"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ 
+                  display: 'block',
+                  marginTop: '12px',
+                  fontSize: '0.85rem',
+                  color: 'var(--text-secondary, #6b7c95)',
+                  textDecoration: 'none'
+                }}
+              >
+                Build-Status anzeigen →
+              </a>
+            </div>
+          </motion.div>
+
+          <motion.div 
+            style={{ 
+              marginTop: '40px',
+              padding: '20px',
+              background: 'rgba(0, 122, 255, 0.05)',
+              borderRadius: '12px',
+              border: '1px solid rgba(0, 122, 255, 0.1)',
+              textAlign: 'center'
+            }}
+            variants={fadeUp}
+          >
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary, #6b7c95)', margin: 0 }}>
+              <Check size={16} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '6px', color: '#34C759' }} />
+              Keine Anmeldung für Download erforderlich &nbsp;•&nbsp; 
+              <Check size={16} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '6px', color: '#34C759' }} />
+              Open Source auf <a href="https://github.com/monzasiz1/todo" target="_blank" rel="noopener noreferrer" style={{ color: '#007AFF', textDecoration: 'none' }}>GitHub</a>
+            </p>
+          </motion.div>
         </motion.div>
       </section>
 
