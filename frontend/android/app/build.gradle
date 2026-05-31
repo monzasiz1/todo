@@ -3,6 +3,23 @@ apply plugin: 'com.android.application'
 android {
     namespace = "de.beequ.app"
     compileSdk = rootProject.ext.compileSdkVersion
+
+    signingConfigs {
+        release {
+            def keystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            def keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+            def keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+            def keystoreFile = file("keystore.jks")
+
+            if (keystorePassword && keyAlias && keyPassword && keystoreFile.exists()) {
+                storeFile keystoreFile
+                storePassword keystorePassword
+                keyAlias keyAlias
+                keyPassword keyPassword
+            }
+        }
+    }
+
     defaultConfig {
         applicationId "de.beequ.app"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -18,6 +35,7 @@ android {
     }
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
