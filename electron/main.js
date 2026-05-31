@@ -31,7 +31,7 @@ const APP_START_URL = 'https://beequ.de/app/login';
 
 // Windows-Taskbar/Notifications: konsistente App-ID
 if (process.platform === 'win32') {
-  app.setAppUserModelId('de.beequ.app');
+  app.setAppUserModelId('com.beequ.app');
 }
 
 // ─── Performance-Switches (müssen VOR app.ready laufen) ─────────────────────

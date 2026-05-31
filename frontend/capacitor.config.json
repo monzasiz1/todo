@@ -1,5 +1,5 @@
 {
-  "appId": "de.beequ.app",
+  "appId": "com.beequ.app",
   "appName": "BeeQu",
   "webDir": "dist",
   "server": {

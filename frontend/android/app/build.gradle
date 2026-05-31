@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "de.beequ.app"
+    namespace = "com.beequ.app"
     compileSdk = rootProject.ext.compileSdkVersion
 
     signingConfigs {
@@ -34,7 +34,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "de.beequ.app"
+        applicationId "com.beequ.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

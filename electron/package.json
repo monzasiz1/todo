@@ -18,7 +18,7 @@
     "release:draft": "electron-builder --win --x64 --publish onTagOrDraft"
   },
   "build": {
-    "appId": "de.beequ.app",
+    "appId": "com.beequ.app",
     "productName": "BeeQu",
     "copyright": "Copyright © 2026 BeeQu",
     "icon": "icon.png",

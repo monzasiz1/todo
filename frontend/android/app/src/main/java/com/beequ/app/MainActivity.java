@@ -1,4 +1,4 @@
-package de.beequ.app;
+package com.beequ.app;
 
 import android.os.Bundle;
 

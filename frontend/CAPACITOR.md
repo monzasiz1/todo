@@ -50,7 +50,7 @@ Das wird beim nächsten `vite build` in den nativen Bundle eingebaut.
 
 ## Was bereits konfiguriert ist
 
-- **App-ID**: `de.beequ.app` (`capacitor.config.json`)
+- **App-ID**: `com.beequ.app` (`capacitor.config.json`)
 - **App-Name**: `BeeQu`
 - **WebView Force-Dark deaktiviert** ([MainActivity.java](android/app/src/main/java/de/beequ/app/MainActivity.java)) — Android WebView wendet sein eigenes Auto-Darkening NICHT mehr auf unsere App an, unser CSS-Theming gewinnt.
 - **`background_color`** im Manifest auf dunkles `#0B1220` (Premium-Look).

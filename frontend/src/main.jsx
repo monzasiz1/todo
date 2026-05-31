@@ -5,6 +5,7 @@ import './index.css';
 import './styles/theme-dark.css';
 import './styles/whiteboard.css';
 import './styles/platform-android.css';
+import './styles/landing-v2.css';
 import { initTheme } from './utils/theme';
 import { purgeAuthQueueEntries } from './utils/offlineQueue';
 
