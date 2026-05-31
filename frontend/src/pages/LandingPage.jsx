@@ -896,14 +896,14 @@ export default function LandingPage() {
         </div>
         <div className="bq-hero-bottom-fade" aria-hidden />
 
-        {/* ── Bee-Mascots (Brand-Figuren) ── */}
+        {/* ── Bee-Mascots (Brand-Figuren, Spond-Style) ── */}
         <div className="bq-bee-swarm" aria-hidden="true">
-          <BeeMascot variant="blue"   size={42} className="bq-bee bq-bee-1" />
-          <BeeMascot variant="purple" size={28} className="bq-bee bq-bee-2" />
-          <BeeMascot variant="gold"   size={36} className="bq-bee bq-bee-3" />
-          <BeeMascot variant="blue"   size={24} className="bq-bee bq-bee-4" />
-          <BeeMascot variant="purple" size={32} className="bq-bee bq-bee-5" />
-          <BeeMascot variant="gold"   size={22} className="bq-bee bq-bee-6" />
+          <BeeMascot variant="blue"   size={56} pose="happy" className="bq-bee bq-bee-1" />
+          <BeeMascot variant="purple" size={38} pose="wink"  className="bq-bee bq-bee-2" />
+          <BeeMascot variant="gold"   size={48} pose="happy" className="bq-bee bq-bee-3" />
+          <BeeMascot variant="blue"   size={32} pose="happy" className="bq-bee bq-bee-4" />
+          <BeeMascot variant="purple" size={44} pose="happy" className="bq-bee bq-bee-5" />
+          <BeeMascot variant="gold"   size={30} pose="wink"  className="bq-bee bq-bee-6" />
         </div>
 
         {/* copy */}
@@ -912,10 +912,14 @@ export default function LandingPage() {
           initial="hidden" animate="visible"
           variants={{ visible: { transition: { staggerChildren: 0.09 } } }}
         >
+          {/* Grosse Hero-Bee als visueller Anker ueber der Headline */}
+          <motion.div className="bq-hero-bee-anchor" variants={fadeUp}>
+            <BeeMascot variant="gold" size={120} pose="happy" className="bq-hero-bee-main" />
+          </motion.div>
+
           <motion.div className="bq-eyebrow bq-eyebrow-bee" variants={fadeUp}>
-            <BeeMascot variant="gold" size={18} className="bq-eyebrow-bee-icon" />
-            BeeQu — Jetzt verfügbar
             <span className="bq-live-dot" />
+            BeeQu — Jetzt verfügbar
           </motion.div>
 
           <motion.h1 className="bq-hero-h1" variants={fadeUp}>
