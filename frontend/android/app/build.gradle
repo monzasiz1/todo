@@ -9,13 +9,34 @@ android {
             def keystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
             def keyAlias = System.getenv("ANDROID_KEY_ALIAS")
             def keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
-            def keystoreFile = file("keystore.jks")
+            def keystoreFile = file("${projectDir}/keystore.jks").absoluteFile
+
+            println "=== DEBUG SIGNING ==="
+            println "Keystore absolute path: ${keystoreFile.absolutePath}"
+            println "Keystore file exists: ${keystoreFile.exists()}"
+            println "ANDROID_KEYSTORE_PASSWORD present: ${keystorePassword != null}"
+            println "ANDROID_KEY_ALIAS present: ${keyAlias != null}"
+            println "ANDROID_KEY_PASSWORD present: ${keyPassword != null}"
 
             if (keystorePassword && keyAlias && keyPassword && keystoreFile.exists()) {
                 storeFile = keystoreFile
                 storePassword = keystorePassword
                 keyAlias = keyAlias
                 keyPassword = keyPassword
+            } else {
+                println "=== DEBUG SIGNING FAILED ==="
+                if (!keystoreFile.exists()) {
+                    println "Keystore file is missing at ${keystoreFile.absolutePath}"
+                }
+                if (!keystorePassword) {
+                    println "ANDROID_KEYSTORE_PASSWORD is missing or empty"
+                }
+                if (!keyAlias) {
+                    println "ANDROID_KEY_ALIAS is missing or empty"
+                }
+                if (!keyPassword) {
+                    println "ANDROID_KEY_PASSWORD is missing or empty"
+                }
             }
         }
     }
