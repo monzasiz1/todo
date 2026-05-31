@@ -80,28 +80,25 @@ html.is-android * {
    Wir setzen den Background sowohl auf html als auch auf .spending-bg,
    damit er garantiert sichtbar ist — egal in welchem Stacking-Context
    .spending-bg landet. */
+/* Auf iOS ist .spending-bg (PremiumBackground) hartcodiert dunkel und
+   ueberlagert IMMER — auch im Light-Theme. Damit Android visuell 1:1
+   identisch zu iOS ist, painten wir den exakt gleichen dunklen Verlauf
+   direkt auf html (themen-unabhaengig). Die Werte stammen 1:1 aus
+   .spending-bg + .bq-hero-bg, damit "Android = iOS" buchstaeblich gilt. */
 html.is-android body {
-  background: transparent;
+  background: transparent !important;
 }
 
-html.is-android:not([data-theme="dark"]) {
+html.is-android {
   background:
-    radial-gradient(ellipse 120% 70% at 50% -10%,
-      rgba(96, 165, 250, 0.18) 0%,
-      rgba(167, 139, 250, 0.10) 35%,
-      transparent 70%),
-    linear-gradient(180deg, #FFFFFF 0%, #F2F2F7 60%, #EAEAF0 100%);
-  background-attachment: fixed;
-}
-
-html.is-android[data-theme="dark"] {
-  background:
-    radial-gradient(ellipse 120% 70% at 50% -10%,
-      rgba(96, 165, 250, 0.22) 0%,
-      rgba(167, 139, 250, 0.14) 35%,
-      transparent 70%),
-    linear-gradient(180deg, #0B1220 0%, #050813 70%, #02030A 100%);
-  background-attachment: fixed;
+    radial-gradient(ellipse 80% 50% at 50% -10%,
+      rgba(0, 122, 255, 0.22) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 20% 60%,
+      rgba(88, 86, 214, 0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 80% 70%,
+      rgba(0, 122, 255, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse at top, #0b1226 0%, #050813 60%, #02030a 100%) !important;
+  background-attachment: fixed !important;
 }
 
 /* .spending-bg selbst neutral machen — die teuren Children verschwinden,

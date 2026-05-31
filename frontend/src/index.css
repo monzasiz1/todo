@@ -20219,6 +20219,90 @@ html[data-theme="dark"] .group-role-chip.role-member {
   z-index: 1;
 }
 
+/* ── Bee-Mascots: BeeQu-Brand-Figuren im Hero ──────────────────────
+   Sechs kleine Bienen schweben dezent durch den oberen Hero-Bereich.
+   Jede Biene hat eigene Position, eigenen Float-Pfad und eigene
+   Verzoegerung — kein "Tanzen im Gleichschritt".
+   z-index: 1 = ueber dem Hintergrund-Logo, unter dem Text. */
+.bq-bee-swarm {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.bq-bee {
+  position: absolute;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.35));
+  opacity: 0.92;
+  will-change: transform;
+}
+
+/* Float-Animationen — verschiedene Pfade fuer Lebendigkeit */
+@keyframes bq-bee-float-a {
+  0%   { transform: translate(0, 0)       rotate(-6deg); }
+  50%  { transform: translate(18px, 24px) rotate(8deg);  }
+  100% { transform: translate(-10px, 8px) rotate(-4deg); }
+}
+@keyframes bq-bee-float-b {
+  0%   { transform: translate(0, 0)         rotate(4deg);  }
+  50%  { transform: translate(-22px, 18px)  rotate(-10deg);}
+  100% { transform: translate(8px, -12px)   rotate(6deg);  }
+}
+@keyframes bq-bee-float-c {
+  0%   { transform: translate(0, 0)         rotate(0deg);  }
+  33%  { transform: translate(14px, -16px)  rotate(10deg); }
+  66%  { transform: translate(-18px, 12px)  rotate(-8deg); }
+  100% { transform: translate(6px, 4px)     rotate(2deg);  }
+}
+
+/* Individuelle Platzierung. Auf Mobile werden 3 ausgeblendet damit
+   der Hero nicht ueberladen wirkt. */
+.bq-bee-1 { inset-block-start: 16%; inset-inline-start: 8%;  animation: bq-bee-float-a 11s ease-in-out infinite alternate; }
+.bq-bee-2 { inset-block-start: 24%; inset-inline-end: 12%;   animation: bq-bee-float-b 9s  ease-in-out infinite alternate; animation-delay: -2s; }
+.bq-bee-3 { inset-block-start: 58%; inset-inline-start: 14%; animation: bq-bee-float-c 13s ease-in-out infinite alternate; animation-delay: -4s; }
+.bq-bee-4 { inset-block-start: 70%; inset-inline-end: 9%;    animation: bq-bee-float-a 10s ease-in-out infinite alternate; animation-delay: -1s; }
+.bq-bee-5 { inset-block-start: 42%; inset-inline-start: 4%;  animation: bq-bee-float-b 12s ease-in-out infinite alternate; animation-delay: -6s; }
+.bq-bee-6 { inset-block-start: 50%; inset-inline-end: 6%;    animation: bq-bee-float-c 14s ease-in-out infinite alternate; animation-delay: -3s; }
+
+/* Auf schmalen Screens nur 3 Bienen, sonst zu dicht am Text */
+@media (max-width: 720px) {
+  .bq-bee-2,
+  .bq-bee-4,
+  .bq-bee-6 { display: none; }
+  .bq-bee-1 { inset-block-start: 12%; inset-inline-start: 6%; }
+  .bq-bee-3 { inset-block-start: 56%; inset-inline-start: 8%; }
+  .bq-bee-5 { inset-block-start: 30%; inset-inline-end: 6%; inset-inline-start: auto; }
+}
+
+/* Respektiere prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .bq-bee { animation: none !important; }
+}
+
+/* ── Eyebrow mit Bee-Akzent (Brand-konform statt nur Live-Dot) ── */
+.bq-eyebrow-bee {
+  gap: 10px;
+  padding-block: 6px;
+  padding-inline: 14px 18px;
+  background: linear-gradient(135deg, rgba(240, 180, 41, 0.10), rgba(0, 122, 255, 0.06));
+  border-color: rgba(240, 180, 41, 0.22);
+}
+
+.bq-eyebrow-bee-icon {
+  flex-shrink: 0;
+  margin-inline-start: -2px;
+  transform: translateY(-1px);
+  filter: drop-shadow(0 2px 4px rgba(240, 180, 41, 0.30));
+  animation: bq-bee-wiggle 4s ease-in-out infinite;
+}
+
+@keyframes bq-bee-wiggle {
+  0%, 100% { transform: translateY(-1px) rotate(-6deg); }
+  50%      { transform: translateY(-2px) rotate(8deg);  }
+}
+
 @keyframes bq-hero-logo-float {
   0%, 100% { transform: translate(-50%, -50%) rotate(-22deg) scale(1); }
   50% { transform: translate(-50%, -48%) rotate(-20deg) scale(1.04); }
