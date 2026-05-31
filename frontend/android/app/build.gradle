@@ -12,10 +12,10 @@ android {
             def keystoreFile = file("keystore.jks")
 
             if (keystorePassword && keyAlias && keyPassword && keystoreFile.exists()) {
-                storeFile keystoreFile
-                storePassword keystorePassword
-                keyAlias keyAlias
-                keyPassword keyPassword
+                storeFile = keystoreFile
+                storePassword = keystorePassword
+                keyAlias = keyAlias
+                keyPassword = keyPassword
             }
         }
     }
