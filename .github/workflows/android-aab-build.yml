@@ -82,6 +82,19 @@ jobs:
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
 
+      - name: Validate decoded Android keystore
+        run: |
+          echo "Expected keystore path: frontend/android/app/keystore.jks"
+          ls -la frontend/android/app
+          if [ ! -f frontend/android/app/keystore.jks ]; then
+            echo "Keystore file missing: frontend/android/app/keystore.jks"
+            exit 1
+          fi
+          $JAVA_HOME/bin/keytool -list -keystore frontend/android/app/keystore.jks -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS"
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+
       - name: Build Android App Bundle (AAB)
         working-directory: frontend/android
         run: chmod +x ./gradlew && ./gradlew bundleRelease --no-daemon
