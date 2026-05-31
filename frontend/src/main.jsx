@@ -15,12 +15,43 @@ initTheme();
 // damit Android-spezifische CSS-Overrides (kein backdrop-filter, solide
 // Surfaces statt rgba+blur) sofort greifen und das UI nicht erst grau
 // rendert und dann umspringt.
+//
+// Mehrere Detection-Methoden, weil:
+//  - UA kann auf "Desktop-Modus" stehen (Chrome on Android Toggle)
+//  - userAgentData ist robuster aber nicht ueberall verfuegbar
+//  - manuelle ?platform=android URL-Param fuers Debugging
 try {
   if (typeof navigator !== 'undefined') {
-    const ua = navigator.userAgent || '';
     const root = document.documentElement;
-    if (/android/i.test(ua)) root.classList.add('is-android');
-    if (/iphone|ipad|ipod/i.test(ua)) root.classList.add('is-ios');
+    const ua = navigator.userAgent || '';
+    const params = new URLSearchParams(window.location.search);
+    const forced = params.get('platform'); // 'android' | 'ios' | 'desktop'
+
+    // iOS-Detection (UA + iPadOS-Quirk: iPad meldet sich als Mac mit Touch)
+    const isIOSUA = /iphone|ipad|ipod/i.test(ua);
+    const isIPadOS = /Macintosh/.test(ua)
+      && typeof navigator.maxTouchPoints === 'number'
+      && navigator.maxTouchPoints > 1;
+    const isIOS = isIOSUA || isIPadOS;
+
+    // Android-Detection: UA, userAgentData, oder "nicht iOS aber Touch
+    // auf kleinem Screen" als Fallback fuer Edge-Cases.
+    const isAndroidUA = /android/i.test(ua);
+    const isAndroidUAData = navigator.userAgentData?.platform === 'Android';
+    const isMobileTouch = !isIOS
+      && typeof navigator.maxTouchPoints === 'number'
+      && navigator.maxTouchPoints > 0
+      && window.matchMedia('(max-width: 1024px)').matches;
+    const isAndroid = isAndroidUA || isAndroidUAData || (isMobileTouch && !isIOS);
+
+    if (forced === 'android') {
+      root.classList.add('is-android');
+    } else if (forced === 'ios') {
+      root.classList.add('is-ios');
+    } else {
+      if (isIOS) root.classList.add('is-ios');
+      if (isAndroid) root.classList.add('is-android');
+    }
   }
 } catch {}
 

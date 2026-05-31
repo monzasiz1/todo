@@ -85,11 +85,14 @@ html.is-android * {
    identisch zu iOS ist, painten wir den exakt gleichen dunklen Verlauf
    direkt auf html (themen-unabhaengig). Die Werte stammen 1:1 aus
    .spending-bg + .bq-hero-bg, damit "Android = iOS" buchstaeblich gilt. */
-html.is-android body {
-  background: transparent !important;
-}
-
-html.is-android {
+/* Triple-Coverage: html + body + .app-layout bekommen ALLE den
+   dunklen Gradient. Selbst wenn ein Layer in Android Chrome's
+   Compositor anders behandelt wird, schlaegt mindestens einer durch.
+   !important ueberall, weil index.css body { background: var(--bg) }
+   sonst gewinnt. */
+html.is-android,
+html.is-android body,
+html.is-android .app-layout {
   background:
     radial-gradient(ellipse 80% 50% at 50% -10%,
       rgba(0, 122, 255, 0.22) 0%, transparent 70%),
@@ -99,6 +102,7 @@ html.is-android {
       rgba(0, 122, 255, 0.08) 0%, transparent 60%),
     radial-gradient(ellipse at top, #0b1226 0%, #050813 60%, #02030a 100%) !important;
   background-attachment: fixed !important;
+  background-color: #06060A !important;
 }
 
 /* .spending-bg behaelt seine dunkle Basis-Schicht (radialer Verlauf) —
