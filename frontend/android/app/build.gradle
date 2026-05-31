@@ -6,38 +6,30 @@ android {
 
     signingConfigs {
         release {
-            def keystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
-            def keyAlias = System.getenv("ANDROID_KEY_ALIAS")
-            def keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+            def alias = System.getenv("ANDROID_KEY_ALIAS")
+            def storeFilePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            def keyPasswordVal = System.getenv("ANDROID_KEY_PASSWORD")
             def keystoreFile = file("${projectDir}/keystore.jks").absoluteFile
 
             println "=== DEBUG SIGNING ==="
             println "Keystore absolute path: ${keystoreFile.absolutePath}"
             println "Keystore file exists: ${keystoreFile.exists()}"
-            println "ANDROID_KEYSTORE_PASSWORD present: ${keystorePassword != null}"
-            println "ANDROID_KEY_ALIAS present: ${keyAlias != null}"
-            println "ANDROID_KEY_PASSWORD present: ${keyPassword != null}"
+            println "ANDROID_KEYSTORE_PASSWORD present: ${storeFilePassword != null}"
+            println "ANDROID_KEY_ALIAS present: ${alias != null}"
+            println "ANDROID_KEY_PASSWORD present: ${keyPasswordVal != null}"
 
-            if (keystorePassword && keyAlias && keyPassword && keystoreFile.exists()) {
-                storeFile = keystoreFile
-                storePassword = keystorePassword
-                keyAlias = keyAlias
-                keyPassword = keyPassword
-            } else {
-                println "=== DEBUG SIGNING FAILED ==="
-                if (!keystoreFile.exists()) {
-                    println "Keystore file is missing at ${keystoreFile.absolutePath}"
-                }
-                if (!keystorePassword) {
-                    println "ANDROID_KEYSTORE_PASSWORD is missing or empty"
-                }
-                if (!keyAlias) {
-                    println "ANDROID_KEY_ALIAS is missing or empty"
-                }
-                if (!keyPassword) {
-                    println "ANDROID_KEY_PASSWORD is missing or empty"
-                }
+            if (alias == null || storeFilePassword == null || keyPasswordVal == null) {
+                throw new GradleException("ERROR: Eine oder mehrere Signing-Umgebungsvariablen sind NULL! alias=${alias == null}, storeFilePassword=${storeFilePassword == null}, keyPasswordVal=${keyPasswordVal == null}")
             }
+
+            if (!keystoreFile.exists()) {
+                throw new GradleException("ERROR: Keystore file is missing at ${keystoreFile.absolutePath}")
+            }
+
+            storeFile = keystoreFile
+            storePassword = storeFilePassword
+            keyAlias = alias
+            keyPassword = keyPasswordVal
         }
     }
 

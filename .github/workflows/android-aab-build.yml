@@ -74,11 +74,7 @@ jobs:
       - name: Decode Android keystore
         run: |
           mkdir -p frontend/android/app
-          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
-            printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > frontend/android/app/keystore.jks
-          else
-            echo "ANDROID_KEYSTORE_BASE64 is empty; skipping keystore decode."
-          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > frontend/android/app/keystore.jks
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
 
@@ -93,6 +89,7 @@ jobs:
           $JAVA_HOME/bin/keytool -list -keystore frontend/android/app/keystore.jks -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS"
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
 
       - name: Build Android App Bundle (AAB)
