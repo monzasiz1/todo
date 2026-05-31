@@ -41,3 +41,7 @@ frontend/ios/DerivedData/
 frontend/ios/.idea/
 *.keystore
 *.jks
+*.aab
+*.apk
+android-aab/
+android-aab.zip
