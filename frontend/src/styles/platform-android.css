@@ -101,17 +101,32 @@ html.is-android {
   background-attachment: fixed !important;
 }
 
-/* .spending-bg selbst neutral machen — die teuren Children verschwinden,
-   der Container wird transparent, damit der html-Background durchscheint. */
-html.is-android .spending-bg {
-  background: transparent !important;
+/* .spending-bg behaelt seine dunkle Basis-Schicht (radialer Verlauf) —
+   die liegt jetzt zusaetzlich zum html-Gradient drauf, was visuell
+   exakt iOS entspricht (selbe Schicht wie auf iOS). */
+
+/* Mesh sichtbar machen, aber mit Android-vertraeglichem Blur (70px →
+   30px). Bei 70px+ entscheidet Android Chrome dass der Layer zu teuer
+   ist und droppt ihn komplett — sichtbar = unsichtbar. 30px rendert. */
+html.is-android .spending-bg-mesh {
+  filter: blur(30px) !important;
+  opacity: 0.95 !important;
 }
 
-html.is-android .spending-bg-mesh,
-html.is-android .spending-bg-orb,
-html.is-android .spending-bg-orb-1,
-html.is-android .spending-bg-orb-2,
-html.is-android .spending-bg-orb-3,
+/* Orbs: mix-blend-mode:color-dodge ist der eigentliche Killer auf Android
+   Chrome (Compositor-Pfad nicht implementiert → Layer wird gedroppt).
+   "screen" ist universell unterstuetzt und ergibt einen sehr aehnlichen
+   "Glow"-Look. Blur von 100px auf 40px → renderbar, Animation laeuft. */
+html.is-android .spending-bg-orb {
+  filter: blur(40px) !important;
+  mix-blend-mode: screen !important;
+  opacity: 0.85 !important;
+}
+
+/* Noise-Layer (SVG fractalNoise + mix-blend-mode:overlay) ist auf
+   Android Chrome zu kostspielig fuer den Compositor und wird genauso
+   gedroppt. Optisch verkraftbar wegzulassen — die Atmosphaere kommt
+   aus Gradient + Orbs. */
 html.is-android .spending-bg-noise {
   display: none !important;
 }
