@@ -6,6 +6,17 @@ const INCOME_CATEGORIES = new Set(['salary', 'gift', 'side', 'other']);
 const ALLOWED_KINDS = new Set(['income', 'expense']);
 const ALLOWED_RECURRENCES = new Set(['none', 'monthly', 'quarterly', 'yearly']);
 
+// Hex-Color in #RRGGBB normalisieren; bei Ungueltigkeit faellt auf Fallback zurueck.
+function normalizeHexColor(input, fallback) {
+  const raw = String(input || '').trim();
+  if (/^#([0-9a-fA-F]{6})$/.test(raw)) return raw.toLowerCase();
+  if (/^#([0-9a-fA-F]{3})$/.test(raw)) {
+    const c = raw.slice(1);
+    return ('#' + c[0] + c[0] + c[1] + c[1] + c[2] + c[2]).toLowerCase();
+  }
+  return fallback;
+}
+
 // Category-ID-Format:
 //   Preset: 'food' | 'home' | 'travel' | 'free' (Expense) bzw. 'salary' | 'gift' | 'side' | 'other' (Income)
 //   Custom: 'custom:NUMBER' wobei NUMBER = spending_custom_categories.id
@@ -683,7 +694,7 @@ module.exports = async function handler(req, res) {
       if (!['income', 'expense'].includes(String(kind))) return res.status(400).json({ error: 'Kind ungueltig' });
       const cleanLabel = String(label || '').trim().slice(0, 80);
       if (!cleanLabel) return res.status(400).json({ error: 'Label erforderlich' });
-      const cleanColor = String(color || '#94A3B8').slice(0, 20);
+      const cleanColor = normalizeHexColor(color, '#94A3B8');
 
       const allowed = await isAcceptedMemberOrOwner(pool, groupId, user.id);
       if (!allowed) return res.status(403).json({ error: 'Kein Zugriff' });
@@ -709,7 +720,7 @@ module.exports = async function handler(req, res) {
       const { label, color } = req.body || {};
       const cleanLabel = String(label || '').trim().slice(0, 80);
       if (!cleanLabel) return res.status(400).json({ error: 'Label erforderlich' });
-      const cleanColor = String(color || '#94A3B8').slice(0, 20);
+      const cleanColor = normalizeHexColor(color, '#94A3B8');
 
       const allowed = await isAcceptedMemberOrOwner(pool, groupId, user.id);
       if (!allowed) return res.status(403).json({ error: 'Kein Zugriff' });

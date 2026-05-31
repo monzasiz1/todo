@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSharedSpendingStore } from '../store/sharedSpendingStore';
 import { useFriendsStore } from '../store/friendsStore';
 import { useAuthStore } from '../store/authStore';
+import { useTaskStore } from '../store/taskStore';
 import '../styles/shared-spending.css';
 
 const EXPENSE_CATEGORIES = [
@@ -50,7 +51,7 @@ function getCategoryLabelWithCustom(id, customCategories = []) {
   if (id.toString().startsWith('custom:')) {
     const customId = parseInt(id.toString().slice(7), 10);
     const custom = customCategories.find((c) => c.id === customId);
-    return custom?.label || id;
+    return custom?.label || 'Gelöschte Kategorie';
   }
   return categoryLabel(id);
 }
@@ -59,7 +60,7 @@ function getCategoryColorWithCustom(id, customCategories = []) {
   if (id.toString().startsWith('custom:')) {
     const customId = parseInt(id.toString().slice(7), 10);
     const custom = customCategories.find((c) => c.id === customId);
-    return custom?.color || categoryColor(id);
+    return custom?.color || '#8E8E93';
   }
   return categoryColor(id);
 }
@@ -1959,8 +1960,6 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
       payer_user_id: payer,
       split_amounts: splits,
     };
-    console.log('EntryModal submit payload:', payload, 'activeGroup members:', activeGroup?.members);
-
     await onSubmit(payload);
     setSubmitting(false);
   };
@@ -1977,8 +1976,10 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
         if (res.success) {
           resetCategoryForm();
         } else {
-          console.error('Category update failed:', res.error);
-          window.alert('Speichern fehlgeschlagen: ' + (res.error || 'unbekannter Fehler'));
+          useTaskStore.getState().addToast(
+            'Kategorie konnte nicht gespeichert werden: ' + (res.error || 'unbekannter Fehler'),
+            'error'
+          );
         }
       } else {
         const res = await store.createCustomCategory(activeGroup.id, {
@@ -1990,11 +1991,14 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
           setCategory(`custom:${res.category.id}`);
           resetCategoryForm();
         } else {
-          console.error('Category creation failed:', res.error);
+          useTaskStore.getState().addToast(
+            'Kategorie konnte nicht erstellt werden: ' + (res.error || 'unbekannter Fehler'),
+            'error'
+          );
         }
       }
     } catch (err) {
-      console.error('submitNewCategory error:', err);
+      useTaskStore.getState().addToast('Kategorie konnte nicht gespeichert werden', 'error');
     }
   };
 
@@ -2022,9 +2026,12 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
     const res = await del(activeGroup.id, customNumericId);
     if (res.success) {
       if (category === catId) setCategory(defaultCategory);
+      useTaskStore.getState().addToast(`Kategorie "${label}" gelöscht`);
     } else {
-      console.error('Category deletion failed:', res.error);
-      window.alert('Löschen fehlgeschlagen: ' + (res.error || 'unbekannter Fehler'));
+      useTaskStore.getState().addToast(
+        'Löschen fehlgeschlagen: ' + (res.error || 'unbekannter Fehler'),
+        'error'
+      );
     }
   };
 
