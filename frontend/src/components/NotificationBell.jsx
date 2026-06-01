@@ -122,8 +122,13 @@ export default function NotificationBell() {
     };
   }, [open]);
 
-  const handleToggle = async () => {
-    if (!subscribed && permission !== 'granted') await subscribe();
+  const handleToggle = () => {
+    // Glocke öffnet NUR das Panel — kein automatisches subscribe()/Permission-
+    // Request mehr. In der nativen App ist die Web-permission dauerhaft 'denied',
+    // wodurch hier sonst bei JEDEM Öffnen PushNotifications.register() (Beta-
+    // Plugin) erneut gefeuert wurde — das konnte die App zum Absturz bringen.
+    // Das Abo passiert jetzt ausschließlich über den expliziten Schalter in den
+    // Einstellungen (handleSubscribeClick).
     setOpen(v => !v);
     if (!open) setView('list');
   };
