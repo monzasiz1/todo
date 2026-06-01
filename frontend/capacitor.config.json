@@ -3,7 +3,13 @@
   "appName": "BeeQu",
   "webDir": "dist",
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "url": "https://beequ.de/app",
+    "cleartext": false,
+    "allowNavigation": [
+      "beequ.de",
+      "*.beequ.de"
+    ]
   },
   "android": {
     "backgroundColor": "#0B1220",
