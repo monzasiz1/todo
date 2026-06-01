@@ -24030,7 +24030,7 @@ html[data-theme="dark"] .group-role-chip.role-member {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #06060A !important;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%) !important;
   position: relative;
   padding: 24px;
 }
