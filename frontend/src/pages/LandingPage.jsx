@@ -11,6 +11,7 @@ import {
 import { PLANS } from '../lib/plans';
 import { useAuthStore } from '../store/authStore';
 import BeeMascot from '../components/BeeMascot';
+import '../styles/landing-v2.css';
 
 /* ─────────────── data ─────────────── */
 
@@ -753,29 +754,16 @@ export default function LandingPage() {
     return () => clearInterval(t);
   }, [heroShotPaused]);
 
-  // Landing ist eine Marketing-Surface und folgt NICHT der App-Theme-Wahl.
-  // Wir erzwingen light, solange diese Seite gemountet ist — ohne localStorage
-  // zu verändern, damit die Nutzer-Präferenz nach dem Login erhalten bleibt.
+  // Landing ist eine eigenständige, durchgehend DUNKLE Marketing-Surface.
+  // Sie folgt NICHT der App-Theme-Wahl und ist self-contained unter `.bq`
+  // gestylt (siehe landing-v2.css). Daher erzwingen wir hier nur noch das
+  // dunkle color-scheme für native Controls/Scrollbars und manipulieren das
+  // App-data-theme NICHT mehr (kein MutationObserver, kein forced light).
   useEffect(() => {
     const root = document.documentElement;
-    const prevTheme = root.getAttribute('data-theme');
     const prevColorScheme = root.style.colorScheme;
-    const force = () => {
-      if (root.getAttribute('data-theme') !== 'light') {
-        root.setAttribute('data-theme', 'light');
-      }
-      if (root.style.colorScheme !== 'light') {
-        root.style.colorScheme = 'light';
-      }
-    };
-    force();
-    // Falls theme.js (system-Listener) data-theme erneut setzt: zurückbiegen.
-    const obs = new MutationObserver(force);
-    obs.observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+    root.style.colorScheme = 'dark';
     return () => {
-      obs.disconnect();
-      if (prevTheme === null) root.removeAttribute('data-theme');
-      else root.setAttribute('data-theme', prevTheme);
       root.style.colorScheme = prevColorScheme;
     };
   }, []);
@@ -1058,16 +1046,6 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      {/* divider: hero (dark) → strip (light) — sanfter Wave-Übergang */}
-      <div className="bq-divider bq-divider-to-strip" aria-hidden>
-        <svg viewBox="0 0 1440 110" preserveAspectRatio="none">
-          <path
-            d="M0,72 C220,12 480,98 720,52 C960,8 1200,92 1440,38 L1440,110 L0,110 Z"
-            fill="#fafafa"
-          />
-        </svg>
-      </div>
-
       {/* ══════════ STRIP ══════════ */}
       <div className="bq-strip">
         <div className="bq-strip-inner">
@@ -1104,9 +1082,9 @@ export default function LandingPage() {
                 <path d="M56 52 L80 66 L80 94 L56 108 L32 94 L32 66 Z" fill="none" stroke="rgba(88,86,214,0.12)" strokeWidth="1" />
               </pattern>
               <radialGradient id="bq-hex-fade" cx="50%" cy="40%" r="70%">
-                <stop offset="0%" stopColor="#ffffff" stopOpacity="0" />
-                <stop offset="75%" stopColor="#ffffff" stopOpacity="0" />
-                <stop offset="100%" stopColor="#ffffff" stopOpacity="1" />
+                <stop offset="0%" stopColor="#070A12" stopOpacity="0" />
+                <stop offset="72%" stopColor="#070A12" stopOpacity="0" />
+                <stop offset="100%" stopColor="#070A12" stopOpacity="1" />
               </radialGradient>
             </defs>
             <rect width="100%" height="100%" fill="url(#bq-hex-pattern)" />
@@ -1129,14 +1107,6 @@ export default function LandingPage() {
           <FeatureShowcase features={bentoFeatures} />
         </div>
       </section>
-
-      {/* divider: features (light) → AI (greige) */}
-      <div className="bq-divider bq-divider-to-ai" aria-hidden>
-        <svg viewBox="0 0 1440 80" preserveAspectRatio="none">
-          <path d="M0,0 C220,70 460,20 720,42 C980,64 1220,18 1440,55 L1440,80 L0,80 Z" fill="#F4F1EB" />
-        </svg>
-        <div className="bq-divider-sparkle" />
-      </div>
 
       {/* ══════════ AI SPOTLIGHT ══════════ */}
       <section className="bq-section bq-section-alt bq-section-ai" id="ai">
@@ -1246,14 +1216,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
-      {/* divider: AI (greige) → Pricing (white) */}
-      <div className="bq-divider bq-divider-to-pricing" aria-hidden>
-        <svg viewBox="0 0 1440 80" preserveAspectRatio="none">
-          <path d="M0,80 C240,30 480,70 720,45 C960,18 1200,58 1440,28 L1440,80 Z" fill="#FFFFFF" />
-        </svg>
-        <div className="bq-divider-glow" />
-      </div>
 
       {/* ══════════ PRICING ══════════ */}
       <section className="bq-section bq-pricing-section" id="pricing">
@@ -1374,13 +1336,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* divider: pricing(light) → climate(dark green) */}
-      <div className="bq-divider bq-divider-to-climate" aria-hidden>
-        <svg viewBox="0 0 1440 80" preserveAspectRatio="none">
-          <path d="M0,80 C240,20 480,60 720,40 C960,20 1200,60 1440,30 L1440,80 Z" fill="#062215" />
-        </svg>
-      </div>
-
       {/* ══════════ CLIMATE (eigene Section) ══════════ */}
       <section className="bq-climate-section" id="climate">
         <div className="bq-climate-bg" aria-hidden>
@@ -1461,13 +1416,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* divider: climate(dark green) → cta(dark blue) seamless wave */}
-      <div className="bq-divider bq-divider-to-cta" aria-hidden>
-        <svg viewBox="0 0 1440 80" preserveAspectRatio="none">
-          <path d="M0,40 C320,80 640,10 960,40 C1200,60 1320,30 1440,50 L1440,80 L0,80 Z" fill="#06080f" />
-        </svg>
-      </div>
-
       {/* ══════════ CTA (dark) ══════════ */}
       <section className="bq-cta">
         <div className="bq-cta-glow" aria-hidden />
@@ -1494,15 +1442,12 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      {/* divider: cta(dark) → downloads(light) flip wave */}
-      <div className="bq-divider bq-divider-flip bq-divider-to-downloads" aria-hidden>
-        <svg viewBox="0 0 1440 80" preserveAspectRatio="none">
-          <path d="M0,40 C240,10 520,70 720,40 C920,10 1200,70 1440,30 L1440,80 L0,80 Z" fill="#f5f8ff" />
-        </svg>
-      </div>
-
       {/* ══════════ DOWNLOADS ══════════ */}
-      <section className="bq-section" id="downloads" style={{ background: 'linear-gradient(180deg, #f5f8ff 0%, #ffffff 100%)', paddingTop: '80px', paddingBottom: '80px' }}>
+      <section className="bq-section bq-downloads-section" id="downloads">
+        <div className="bq-downloads-bg" aria-hidden>
+          <div className="bq-downloads-aurora bq-downloads-aurora-1" />
+          <div className="bq-downloads-aurora bq-downloads-aurora-2" />
+        </div>
         <motion.div
           className="bq-container"
           initial="hidden"
@@ -1510,161 +1455,65 @@ export default function LandingPage() {
           viewport={{ once: true, amount: 0.3 }}
           variants={{ visible: { transition: { staggerChildren: 0.12 } } }}
         >
-          <motion.div style={{ textAlign: 'center', marginBottom: '48px' }} variants={fadeUp}>
-            <h2 className="bq-section-h2" style={{ marginBottom: '12px' }}>
-              <Download size={32} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '12px', color: '#007AFF' }} />
-              Desktop App
-            </h2>
-            <p className="bq-section-sub" style={{ maxWidth: '600px', margin: '0 auto' }}>
-              Nutze BeeQu als native Desktop-Anwendung für Windows und macOS. 
-              Schneller Start, offline verfügbar, automatische Updates.
-            </p>
+          <motion.div className="bq-section-head" variants={fadeUp}>
+            <span className="bq-label"><Download size={13} /> Desktop</span>
+            <h2>Überall produktiv.<br /><span className="bq-h2-muted">Auch nativ am Desktop.</span></h2>
+            <p>Nutze BeeQu als native Desktop-Anwendung für Windows und macOS. Schneller Start, offline verfügbar, automatische Updates.</p>
           </motion.div>
 
-          <motion.div 
-            style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
-              gap: '24px',
-              maxWidth: '800px',
-              margin: '0 auto'
-            }}
-            variants={fadeUp}
-          >
+          <motion.div className="bq-dl-grid" variants={fadeUp}>
             {/* Windows */}
-            <div style={{
-              background: 'var(--card-solid, #ffffff)',
-              color: 'var(--text, #1C1C1E)',
-              borderRadius: '16px',
-              padding: '32px',
-              border: '1px solid var(--border, rgba(0, 122, 255, 0.15))',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-              textAlign: 'center'
-            }}>
-              <div style={{ 
-                width: '64px', 
-                height: '64px', 
-                margin: '0 auto 20px',
-                background: 'linear-gradient(135deg, #0078D4 0%, #0063B1 100%)',
-                borderRadius: '14px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '32px',
-                color: 'white',
-                fontWeight: 'bold'
-              }}>
-                <svg viewBox="0 0 24 24" width="36" height="36" fill="currentColor">
+            <div className="bq-dl-card">
+              <div className="bq-dl-card-icon bq-dl-card-icon-win">
+                <svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor">
                   <path d="M0,0 L10,0 L10,10 L0,10 Z M11,0 L24,0 L24,13 L11,13 Z M0,11 L10,11 L10,24 L0,24 Z M11,14 L24,14 L24,24 L11,24 Z"/>
                 </svg>
               </div>
-              <h3 style={{ fontSize: '1.3rem', fontWeight: '700', marginBottom: '8px', color: 'var(--text, #0c1d36)' }}>
-                Windows
-              </h3>
-              <p style={{ fontSize: '0.92rem', color: 'var(--text-secondary, #6b7c95)', marginBottom: '20px' }}>
-                Windows 10/11 (64-bit)
-              </p>
-              <a 
+              <h3 className="bq-dl-card-title">Windows</h3>
+              <p className="bq-dl-card-sub">Windows 10/11 (64-bit)</p>
+              <a
                 href="/api/download?platform=windows"
-                className="bq-btn bq-primary"
-                style={{ width: '100%', justifyContent: 'center' }}
+                className="bq-btn bq-primary bq-btn-full"
               >
                 <Download size={16} /> Installer (.exe)
               </a>
-              <a 
+              <a
                 href="/api/download?platform=windows-portable"
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ 
-                  display: 'block',
-                  marginTop: '12px',
-                  fontSize: '0.85rem',
-                  color: '#007AFF',
-                  textDecoration: 'none'
-                }}
+                className="bq-dl-card-link"
               >
                 Portable Version →
               </a>
             </div>
 
             {/* macOS */}
-            <div style={{
-              background: 'var(--card-solid, #ffffff)',
-              color: 'var(--text, #1C1C1E)',
-              borderRadius: '16px',
-              padding: '32px',
-              border: '1px solid var(--border, rgba(0, 0, 0, 0.1))',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-              textAlign: 'center'
-            }}>
-              <div style={{ 
-                width: '64px', 
-                height: '64px', 
-                margin: '0 auto 20px',
-                background: 'linear-gradient(135deg, #000000 0%, #333333 100%)',
-                borderRadius: '14px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '36px',
-                color: 'white'
-              }}>
-                
+            <div className="bq-dl-card bq-dl-card-soon">
+              <div className="bq-dl-card-icon bq-dl-card-icon-mac">
+                <svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor">
+                  <path d="M16.37 12.78c-.02-2.13 1.74-3.15 1.82-3.2-1-1.46-2.55-1.66-3.1-1.68-1.32-.13-2.57.77-3.24.77-.67 0-1.7-.75-2.79-.73-1.44.02-2.76.83-3.5 2.11-1.49 2.58-.38 6.41 1.07 8.51.71 1.03 1.56 2.18 2.67 2.14 1.07-.04 1.48-.69 2.77-.69 1.29 0 1.66.69 2.79.67 1.15-.02 1.88-1.05 2.59-2.08.81-1.19 1.15-2.34 1.17-2.4-.03-.01-2.24-.86-2.26-3.39zM14.2 6.27c.59-.72.99-1.71.88-2.71-.85.03-1.89.57-2.5 1.28-.55.63-1.03 1.65-.9 2.62.95.07 1.93-.48 2.52-1.19z"/>
+                </svg>
               </div>
-              <h3 style={{ fontSize: '1.3rem', fontWeight: '700', marginBottom: '8px', color: 'var(--text, #0c1d36)' }}>
-                macOS
-              </h3>
-              <p style={{ fontSize: '0.92rem', color: 'var(--text-secondary, #6b7c95)', marginBottom: '20px' }}>
-                Intel + Apple Silicon
-              </p>
-              <button 
-                disabled
-                className="bq-btn"
-                style={{ 
-                  width: '100%', 
-                  justifyContent: 'center',
-                  opacity: 0.5,
-                  cursor: 'not-allowed',
-                  background: '#e5e7eb',
-                  color: 'var(--text-secondary, #6b7c95)'
-                }}
-              >
+              <h3 className="bq-dl-card-title">macOS</h3>
+              <p className="bq-dl-card-sub">Intel + Apple Silicon</p>
+              <button disabled className="bq-btn bq-btn-full bq-dl-disabled">
                 In Kürze verfügbar
               </button>
-              <a 
+              <a
                 href="https://github.com/monzasiz1/todo/releases"
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ 
-                  display: 'block',
-                  marginTop: '12px',
-                  fontSize: '0.85rem',
-                  color: 'var(--text-secondary, #6b7c95)',
-                  textDecoration: 'none'
-                }}
+                className="bq-dl-card-link bq-dl-card-link-muted"
               >
                 Build-Status anzeigen →
               </a>
             </div>
           </motion.div>
 
-          <motion.div 
-            style={{ 
-              marginTop: '40px',
-              padding: '20px',
-              background: 'rgba(0, 122, 255, 0.05)',
-              borderRadius: '12px',
-              border: '1px solid rgba(0, 122, 255, 0.1)',
-              textAlign: 'center'
-            }}
-            variants={fadeUp}
-          >
-            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary, #6b7c95)', margin: 0 }}>
-              <Check size={16} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '6px', color: '#34C759' }} />
-              Keine Anmeldung für Download erforderlich &nbsp;•&nbsp; 
-              <Check size={16} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '6px', color: '#34C759' }} />
-              Open Source auf <a href="https://github.com/monzasiz1/todo" target="_blank" rel="noopener noreferrer" style={{ color: '#007AFF', textDecoration: 'none' }}>GitHub</a>
-            </p>
+          <motion.div className="bq-dl-note" variants={fadeUp}>
+            <span><Check size={15} className="bq-dl-note-check" /> Keine Anmeldung für Download erforderlich</span>
+            <span className="bq-dl-note-sep">•</span>
+            <span><Check size={15} className="bq-dl-note-check" /> Open Source auf <a href="https://github.com/monzasiz1/todo" target="_blank" rel="noopener noreferrer" className="bq-dl-note-link">GitHub</a></span>
           </motion.div>
         </motion.div>
       </section>
@@ -1841,7 +1690,7 @@ export default function LandingPage() {
                             >
                               <div className="bq-verify-spinner-wrap">
                                 <svg className="bq-verify-arc" viewBox="0 0 48 48" fill="none">
-                                  <circle cx="24" cy="24" r="20" stroke="#E5E7EB" strokeWidth="4"/>
+                                  <circle cx="24" cy="24" r="20" stroke="rgba(255,255,255,0.14)" strokeWidth="4"/>
                                   <circle cx="24" cy="24" r="20" stroke="#007AFF" strokeWidth="4"
                                     strokeDasharray="60 66" strokeLinecap="round"
                                     style={{ transformOrigin: '50% 50%', animation: 'bq-spin 0.9s linear infinite' }}/>
