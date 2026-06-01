@@ -50,8 +50,17 @@ function StandaloneRedirector() {
   React.useEffect(() => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
     const isElectron = typeof window !== 'undefined' && !!window.electronApp;
-    // Landing-Page in Electron komplett überspringen.
-    if (isElectron && (location.pathname === '/' || location.pathname === '/landing')) {
+    // Capacitor (Android/iOS-App) injiziert den Bridge auch beim Remote-Laden
+    // via server.url. In der WebView ist display-mode NICHT "standalone",
+    // deshalb muessen wir den nativen Kontext separat erkennen — sonst
+    // landet die App auf der Landing-Page statt am Login.
+    const isCapacitor = typeof window !== 'undefined'
+      && !!window.Capacitor
+      && (typeof window.Capacitor.isNativePlatform !== 'function'
+        || window.Capacitor.isNativePlatform());
+    // In der nativen App (Electron/Capacitor) gibt es keine Landing-Page →
+    // direkt zum Login (bzw. von dort aus zum Dashboard, falls eingeloggt).
+    if ((isElectron || isCapacitor) && (location.pathname === '/' || location.pathname === '/landing')) {
       navigate('/app/login', { replace: true });
       return;
     }

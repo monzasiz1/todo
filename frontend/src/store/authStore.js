@@ -251,7 +251,11 @@ export const useAuthStore = create((set) => ({
     const isPwa = window.matchMedia('(display-mode: standalone)').matches
       || window.navigator.standalone === true;
     const isElectron = typeof window !== 'undefined' && !!window.electronApp;
-    window.location.href = (isPwa || isElectron) ? '/app/login' : '/';
+    const isCapacitor = typeof window !== 'undefined'
+      && !!window.Capacitor
+      && (typeof window.Capacitor.isNativePlatform !== 'function'
+        || window.Capacitor.isNativePlatform());
+    window.location.href = (isPwa || isElectron || isCapacitor) ? '/app/login' : '/';
   },
 
   setUser: (user) => {
