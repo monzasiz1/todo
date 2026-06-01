@@ -4,7 +4,7 @@
   "webDir": "dist",
   "server": {
     "androidScheme": "https",
-    "url": "https://beequ.de",
+    "url": "https://beequ.de/app",
     "cleartext": false,
     "allowNavigation": [
       "beequ.de",
