@@ -449,6 +449,10 @@ html[data-theme="dark"] .bq-auth-consent {
   color: #8E8E93 !important;
 }
 
+html[data-theme="dark"] .bq-auth-card-logo img {
+  background: #ffffff !important;
+}
+
 html[data-theme="dark"] .bq-field label {
   color: #3C3C43 !important;
 }

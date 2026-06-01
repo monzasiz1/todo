@@ -37,16 +37,8 @@ export default function Login() {
   // Hinweis nach Passwort-Reset anzeigen
   const showPwReset = location.search.includes('pwreset=1');
 
-  // In der Desktop-App (Electron) gibt es keine Landing-Page → kein Zurück-Link.
-  const isElectron = typeof window !== 'undefined' && !!window.electronApp;
-
   return (
     <div className="bq-auth-page">
-      {!isElectron && (
-        <Link to="/landing" className="bq-auth-back">
-          ← Zurück zur Startseite
-        </Link>
-      )}
       <div className="bq-auth-form-panel">
         {showPwReset && (
           <motion.div
