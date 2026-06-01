@@ -17,7 +17,7 @@ const VALID_PLANS = ['free', 'pro', 'team'];
 
 const PLAN_DEFS = {
   free:  { id: 'free',  label: 'Free',  price: 0,    priceLabel: 'Kostenlos' },
-  pro:   { id: 'pro',   label: 'Pro',   price: 4.99, priceLabel: '4,99 €/Monat' },
+  pro:   { id: 'pro',   label: 'Pro',   price: 2.99, priceLabel: '2,99 €/Monat' },
   team:  { id: 'team',  label: 'Team',  price: 9.99, priceLabel: '9,99 €/Monat/Nutzer' },
 };
 

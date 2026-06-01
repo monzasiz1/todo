@@ -40,10 +40,10 @@ export const PLANS = {
   pro: {
     id: 'pro',
     label: 'Pro',
-    price: 4.99,
-    priceLabel: '4,99 €/Monat',
-    priceLabelYear: '49,99 €/Jahr',
-    yearlyMonthly: 4.17,         // 49,99/12
+    price: 2.99,
+    priceLabel: '2,99 €/Monat',
+    priceLabelYear: '35,88 €/Jahr',
+    yearlyMonthly: 2.99,         // 35,88/12
     yearlySaveLabel: '~17% sparen',
     tagline: 'Fuer Vielnutzer',
     limits: {

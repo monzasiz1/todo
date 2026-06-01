@@ -16,8 +16,8 @@ const PLAN_HIGHLIGHTS = {
 // Preise je Plan & Intervall (Anzeige – die echten Preise liegen in Stripe).
 const PRICING = {
   pro:  {
-    month: { amount: '4,99 €',  suffix: '/Monat' },
-    year:  { amount: '49,99 €', suffix: '/Jahr', hint: '≈ 4,17 €/Mon · 2 Monate gratis' },
+    month: { amount: '2,99 €',  suffix: '/Monat' },
+    year:  { amount: '35,88 €', suffix: '/Jahr', hint: '≈ 2,99 €/Mon · Kein Unterschied zum Monatstarif' },
   },
   team: {
     month: { amount: '9,99 €',  suffix: '/Monat/Nutzer' },
