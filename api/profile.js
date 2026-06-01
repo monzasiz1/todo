@@ -443,33 +443,65 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // DELETE /api/profile — Delete account
+  // DELETE /api/profile — Delete account (hard delete, atomar)
   if (!action && req.method === 'DELETE') {
+    const { password } = req.body || {};
+    if (!password) {
+      return res.status(400).json({ error: 'Passwort zur Bestätigung erforderlich' });
+    }
+
+    const userResult = await pool.query('SELECT password FROM users WHERE id = $1', [user.id]);
+    if (!userResult.rows[0]) {
+      return res.status(404).json({ error: 'Konto nicht gefunden' });
+    }
+    const valid = await bcrypt.compare(password, userResult.rows[0].password);
+    if (!valid) {
+      return res.status(401).json({ error: 'Passwort ist falsch' });
+    }
+
+    // Avatar im externen Storage best-effort entfernen (nicht Teil der DB-Transaktion).
+    try { await storage.deleteAvatar(user.id); } catch { /* ignore */ }
+
+    // Gesamte Löschung in EINER Transaktion: entweder vollständig oder gar nichts.
+    // Verhindert den bisherigen halb-gelöschten Zustand (tasks/categories weg,
+    // User-Datensatz bleibt, Login weiter möglich).
+    const client = await pool.connect();
     try {
-      const { password } = req.body;
-      if (!password) {
-        return res.status(400).json({ error: 'Passwort zur Bestätigung erforderlich' });
+      await client.query('BEGIN');
+
+      const tableExists = async (name) =>
+        (await client.query('SELECT to_regclass($1) AS t', [name])).rows[0].t !== null;
+
+      // group_messages.pinned_by hat KEIN ON DELETE CASCADE und blockiert sonst
+      // das Löschen des Users (z. B. wenn er irgendwo eine Nachricht angepinnt hat).
+      // Referenz vorher auflösen.
+      if (await tableExists('public.group_messages')) {
+        await client.query(
+          'UPDATE group_messages SET pinned_by = NULL, is_pinned = FALSE, pinned_at = NULL WHERE pinned_by = $1',
+          [user.id]
+        );
       }
 
-      const userResult = await pool.query('SELECT password FROM users WHERE id = $1', [user.id]);
-      const valid = await bcrypt.compare(password, userResult.rows[0].password);
-      if (!valid) {
-        return res.status(401).json({ error: 'Passwort ist falsch' });
+      // Tabellen ohne FK-CASCADE explizit räumen (nur falls vorhanden).
+      if (await tableExists('public.friends')) {
+        await client.query('DELETE FROM friends WHERE user_id = $1 OR friend_id = $1', [user.id]);
+      }
+      if (await tableExists('public.task_permissions')) {
+        await client.query('DELETE FROM task_permissions WHERE user_id = $1', [user.id]);
       }
 
-      // Delete all user data
-      await pool.query('DELETE FROM tasks WHERE user_id = $1', [user.id]);
-      await pool.query('DELETE FROM categories WHERE user_id = $1', [user.id]);
-      try {
-        await pool.query('DELETE FROM friends WHERE user_id = $1 OR friend_id = $1', [user.id]);
-        await pool.query('DELETE FROM task_permissions WHERE user_id = $1', [user.id]);
-      } catch (e) { /* tables may not exist */ }
-      await pool.query('DELETE FROM users WHERE id = $1', [user.id]);
+      // Alles Übrige hängt per ON DELETE CASCADE am User-Datensatz
+      // (tasks, categories, notes, spending, group_members, eigene group_messages …).
+      await client.query('DELETE FROM users WHERE id = $1', [user.id]);
 
+      await client.query('COMMIT');
       return res.json({ success: true, message: 'Account gelöscht' });
     } catch (err) {
+      try { await client.query('ROLLBACK'); } catch { /* ignore */ }
       console.error('Delete account error:', err);
       return res.status(500).json({ error: 'Account konnte nicht gelöscht werden' });
+    } finally {
+      client.release();
     }
   }
 
