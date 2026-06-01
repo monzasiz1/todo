@@ -38,7 +38,7 @@ function getTarget(notification) {
 
 export default function NotificationBell() {
   const {
-    permission, subscribed, notifications, prefs, loading,
+    permission, subscribed, notifications, prefs, loading, nativePushToken,
     subscribe, unsubscribe, fetchLog, checkStatus, updatePref, updatePrefsBatch,
     deleteNotification, clearAllNotifications, markAsSeen, getUnseenNotifications
   } = useNotificationStore();
@@ -224,6 +224,18 @@ export default function NotificationBell() {
                     {!pushStatus.ok && !pushBlocked && <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>Aktiviere Push um Benachrichtigungen bei geschlossener App zu erhalten</div>}
                     {pushBlocked && <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>In Browser-Einstellungen für diese Seite erlauben</div>}
                   </div>
+                </div>
+                {/* TEMP-DIAGNOSE Push (entfernen wenn geklärt) */}
+                <div style={{ fontSize: 10, lineHeight: 1.55, color: 'var(--text-secondary)', fontFamily: 'monospace', background: 'rgba(127,127,127,0.08)', borderRadius: 8, padding: '8px 10px', marginBottom: 12, wordBreak: 'break-all' }}>
+                  <div style={{ fontWeight: 700, marginBottom: 2 }}>Diagnose (Push)</div>
+                  <div>Capacitor: {typeof window !== 'undefined' && window.Capacitor ? 'ja' : 'NEIN'}</div>
+                  <div>Plattform: {String((typeof window !== 'undefined' && window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform()) || '—')}</div>
+                  <div>isNativePlatform(): {typeof window !== 'undefined' && window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' ? String(window.Capacitor.isNativePlatform()) : 'n/a'}</div>
+                  <div>nativ erkannt: {String(isNativeApp)}</div>
+                  <div>Web-permission: {String(permission)}</div>
+                  <div>subscribed: {String(subscribed)}</div>
+                  <div>FCM-Token: {nativePushToken ? 'vorhanden' : '—'}</div>
+                  <div>Origin: {typeof window !== 'undefined' ? window.location.origin : '—'}</div>
                 </div>
                 <div className="notif-master">
                   <div className="notif-master-info">
