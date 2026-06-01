@@ -126,7 +126,11 @@ module.exports = async function handler(req, res) {
         `SELECT u.id as user_id, COUNT(t.id) as open_count
          FROM users u
          INNER JOIN tasks t ON t.user_id = u.id AND t.completed = false AND t.type != 'event'
-         INNER JOIN push_subscriptions ps ON ps.user_id = u.id
+         INNER JOIN (
+           SELECT user_id FROM push_subscriptions
+           UNION
+           SELECT user_id FROM mobile_push_subscriptions
+         ) ps ON ps.user_id = u.id
          GROUP BY u.id
          HAVING COUNT(t.id) > 0`
       );
@@ -155,7 +159,11 @@ module.exports = async function handler(req, res) {
       const { rows: inactiveUsers } = await pool.query(
         `SELECT u.id as user_id
          FROM users u
-         INNER JOIN push_subscriptions ps ON ps.user_id = u.id
+         INNER JOIN (
+           SELECT user_id FROM push_subscriptions
+           UNION
+           SELECT user_id FROM mobile_push_subscriptions
+         ) ps ON ps.user_id = u.id
          WHERE u.last_active_at < NOW() - INTERVAL '3 days'
          AND NOT EXISTS (
            SELECT 1 FROM notification_log nl

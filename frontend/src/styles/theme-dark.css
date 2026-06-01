@@ -232,8 +232,7 @@ html[data-theme="dark"] .bq-bento-card {
 html[data-theme="dark"] .bq-auth-page,
 html[data-theme="dark"] [class*="auth-page"],
 html[data-theme="dark"] [class*="auth-card"] {
-  background: var(--surface);
-  color: var(--text);
+ color: var(--text);
   border-color: var(--border);
 }
 

@@ -9,27 +9,40 @@ const PROFILE_CACHE_KEY = 'beequ_profile_cache_v1';
 
 async function detachCurrentPushSubscription(tokenOverride = null) {
   try {
-    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
-
     const token = tokenOverride || localStorage.getItem('token');
     if (!token) return;
 
-    const reg = await navigator.serviceWorker.ready;
-    const subscription = await reg.pushManager.getSubscription();
-    if (!subscription?.endpoint) return;
+    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.ready;
+      const subscription = await reg.pushManager.getSubscription();
+      if (subscription?.endpoint) {
+        await fetch('/api/notifications/subscribe', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ endpoint: subscription.endpoint }),
+        }).catch(() => {});
 
-    // Remove subscription mapping for currently authenticated user on backend.
-    await fetch('/api/notifications/subscribe', {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ endpoint: subscription.endpoint }),
-    }).catch(() => {});
+        await subscription.unsubscribe().catch(() => {});
+      }
+    }
 
-    // Unsubscribe browser-side so next user gets a fresh subscription mapping.
-    await subscription.unsubscribe().catch(() => {});
+    if (typeof window !== 'undefined' && window.Capacitor) {
+      const nativeToken = localStorage.getItem('beequ_native_push_token_v1');
+      if (nativeToken) {
+        await fetch('/api/notifications/subscribe', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ platform: window.Capacitor.getPlatform ? window.Capacitor.getPlatform() : 'android', token: nativeToken }),
+        }).catch(() => {});
+        localStorage.removeItem('beequ_native_push_token_v1');
+      }
+    }
   } catch {
     // Best-effort cleanup only.
   }
@@ -85,12 +98,19 @@ function clearLocalAppCaches() {
       for (let i = sessionStorage.length - 1; i >= 0; i--) {
         const key = sessionStorage.key(i);
         if (!key) continue;
-        
+
         if ((userScope && key.includes(`:${userScope}`)) ||
             key.startsWith('beequ_tasks_range_cache_v1:')) {
           sessionStorage.removeItem(key);
         }
       }
+    }
+
+    // Native push token cleanup for Capacitor environments.
+    try {
+      localStorage.removeItem('beequ_native_push_token_v1');
+    } catch {
+      // ignore
     }
   } catch {
     // Fallback: Original Keys löschen

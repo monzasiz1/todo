@@ -57,11 +57,97 @@ function getLastSeenAt() {
   } catch { return 0; }
 }
 
+const NATIVE_PUSH_TOKEN_KEY = 'beequ_native_push_token_v1';
+let nativePushHandlersInstalled = false;
+
+function getNativePushToken() {
+  try {
+    return localStorage.getItem(NATIVE_PUSH_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function setNativePushToken(token) {
+  try {
+    if (typeof token === 'string') {
+      localStorage.setItem(NATIVE_PUSH_TOKEN_KEY, token);
+    }
+  } catch {
+    // ignore
+  }
+}
+
+function clearNativePushToken() {
+  try {
+    localStorage.removeItem(NATIVE_PUSH_TOKEN_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+function isNativeCapacitorApp() {
+  if (typeof window === 'undefined' || !window.Capacitor) return false;
+  const platform = typeof window.Capacitor.getPlatform === 'function'
+    ? window.Capacitor.getPlatform()
+    : null;
+  return platform === 'android' || platform === 'ios' || window.Capacitor.isNativePlatform?.();
+}
+
+async function registerNativePush(set) {
+  if (!isNativeCapacitorApp()) return false;
+  try {
+    const { PushNotifications } = await import('@capacitor/push-notifications');
+    const permission = await PushNotifications.requestPermissions();
+    if (permission?.receive !== 'granted') {
+      return false;
+    }
+
+    if (!nativePushHandlersInstalled) {
+      nativePushHandlersInstalled = true;
+
+      PushNotifications.addListener('registration', async (tokenInfo) => {
+        const token = tokenInfo?.value || tokenInfo?.token || null;
+        if (!token) return;
+
+        setNativePushToken(token);
+        set({ subscribed: true });
+
+        try {
+          await api.subscribePush({ platform: window.Capacitor.getPlatform(), token, device_info: navigator.userAgent });
+          console.log('[NotificationStore] Native push token registered with backend');
+        } catch (err) {
+          console.error('[NotificationStore] Native push registration failed:', err);
+        }
+      });
+
+      PushNotifications.addListener('registrationError', (error) => {
+        console.error('[NotificationStore] Native push registration error:', error);
+      });
+
+      PushNotifications.addListener('pushNotificationReceived', (notification) => {
+        console.log('[NotificationStore] Native push received:', notification);
+      });
+
+      PushNotifications.addListener('pushNotificationActionPerformed', (event) => {
+        console.log('[NotificationStore] Native push action performed:', event);
+      });
+    }
+
+    await PushNotifications.register();
+    return true;
+  } catch (err) {
+    console.error('[NotificationStore] registerNativePush error:', err);
+    return false;
+  }
+}
+
 const notifCached = readNotifCache();
 
 const useNotificationStore = create((set, get) => ({
   ...(notifCached || {}),
   permission: typeof Notification !== 'undefined' ? Notification.permission : 'denied',
+  nativePushToken: getNativePushToken(),
   subscribed: notifCached?.subscribed ?? false,
   notifications: notifCached?.notifications ?? [],
   loading: false,
@@ -105,6 +191,13 @@ const useNotificationStore = create((set, get) => ({
         prefs: data?.prefs || { reminder: true, daily_tasks: true, engagement: true, team_task: true, group_message: true },
       });
 
+      if (isNativeCapacitorApp()) {
+        if (getNativePushToken()) {
+          set({ subscribed: true });
+        }
+        return;
+      }
+
       // Rebind existing browser subscription to current account.
       // This prevents cross-account push delivery on shared devices.
       if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
@@ -132,6 +225,11 @@ const useNotificationStore = create((set, get) => ({
 
   // Request permission + subscribe to push
   subscribe: async () => {
+    if (isNativeCapacitorApp()) {
+      const result = await registerNativePush(set);
+      return result;
+    }
+
     if (typeof Notification === 'undefined') return false;
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
     if (!window.isSecureContext) return false;
@@ -181,6 +279,16 @@ const useNotificationStore = create((set, get) => ({
   // Unsubscribe from push
   unsubscribe: async () => {
     try {
+      if (isNativeCapacitorApp()) {
+        const token = getNativePushToken();
+        if (token) {
+          await api.unsubscribePush({ platform: window.Capacitor.getPlatform(), token });
+          clearNativePushToken();
+        }
+        set({ subscribed: false, nativePushToken: null });
+        return;
+      }
+
       const reg = await navigator.serviceWorker.ready;
       const subscription = await reg.pushManager.getSubscription();
 

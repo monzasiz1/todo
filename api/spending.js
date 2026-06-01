@@ -259,6 +259,29 @@ async function loadGroupDetail(pool, groupId, userId) {
   };
 }
 
+async function loadPendingGroupInfo(pool, groupId, userId) {
+  const groupRes = await pool.query(
+    `SELECT g.id, g.name, g.owner_id, g.created_at,
+            u.name AS owner_name, u.email AS owner_email, u.avatar_color AS owner_avatar_color, u.avatar_url AS owner_avatar_url
+     FROM spending_groups g
+     JOIN users u ON u.id = g.owner_id
+     WHERE g.id = $1`,
+    [groupId]
+  );
+  if (groupRes.rows.length === 0) return null;
+
+  return {
+    ...groupRes.rows[0],
+    my_status: 'pending',
+    is_owner: false,
+    members: [],
+    expenses: [],
+    incomes: [],
+    overrides: [],
+    custom_categories: [],
+  };
+}
+
 module.exports = async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -285,9 +308,18 @@ module.exports = async function handler(req, res) {
                   WHEN g.owner_id = $1 THEN 'accepted'
                   ELSE m.status
                 END AS my_status,
-                COALESCE(member_counts.member_count, 0) AS member_count,
-                COALESCE(sums.total_expense, 0)::float AS total_amount,
-                COALESCE(sums.total_income, 0)::float AS total_income,
+                CASE
+                  WHEN g.owner_id = $1 OR m.status = 'accepted' THEN COALESCE(member_counts.member_count, 0)
+                  ELSE NULL
+                END AS member_count,
+                CASE
+                  WHEN g.owner_id = $1 OR m.status = 'accepted' THEN COALESCE(sums.total_expense, 0)::float
+                  ELSE NULL
+                END AS total_amount,
+                CASE
+                  WHEN g.owner_id = $1 OR m.status = 'accepted' THEN COALESCE(sums.total_income, 0)::float
+                  ELSE NULL
+                END AS total_income,
                 u.name AS owner_name, u.avatar_color AS owner_avatar_color, u.avatar_url AS owner_avatar_url
          FROM spending_groups g
          LEFT JOIN spending_members m ON m.spending_group_id = g.id AND m.user_id = $1
@@ -328,14 +360,16 @@ module.exports = async function handler(req, res) {
       const groupId = Number(segments[0]);
       if (!Number.isFinite(groupId)) return res.status(400).json({ error: 'Ungueltige ID' });
       const allowed = await isAcceptedMemberOrOwner(pool, groupId, user.id);
-      // Pending-Member duerfen die Detail-Sicht auch sehen, damit sie die
-      // Einladung im Dashboard sehen koennen.
       if (!allowed) {
         const pending = await pool.query(
-          `SELECT 1 FROM spending_members WHERE spending_group_id = $1 AND user_id = $2`,
+          `SELECT 1 FROM spending_members WHERE spending_group_id = $1 AND user_id = $2 AND status = 'pending'`,
           [groupId, user.id]
         );
         if (pending.rows.length === 0) return res.status(403).json({ error: 'Kein Zugriff' });
+
+        const detail = await loadPendingGroupInfo(pool, groupId, user.id);
+        if (!detail) return res.status(404).json({ error: 'Gruppe nicht gefunden' });
+        return res.json({ group: detail });
       }
       const detail = await loadGroupDetail(pool, groupId, user.id);
       if (!detail) return res.status(404).json({ error: 'Gruppe nicht gefunden' });
@@ -429,7 +463,18 @@ module.exports = async function handler(req, res) {
          RETURNING *`,
         [groupId, user.id]
       );
-      if (r.rows.length === 0) return res.status(404).json({ error: 'Einladung nicht gefunden' });
+      if (r.rows.length === 0) {
+        const existing = await pool.query(
+          'SELECT status FROM spending_members WHERE spending_group_id = $1 AND user_id = $2',
+          [groupId, user.id]
+        );
+        if (existing.rows.length > 0) {
+          const status = existing.rows[0].status;
+          if (status === 'accepted') return res.status(400).json({ error: 'Einladung bereits angenommen' });
+          if (status === 'declined') return res.status(400).json({ error: 'Einladung wurde abgelehnt' });
+        }
+        return res.status(404).json({ error: 'Einladung nicht gefunden' });
+      }
       return res.json({ success: true });
     }
 

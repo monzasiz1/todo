@@ -25,8 +25,9 @@ export default function Layout() {
   const isCalendarRoute = location.pathname === '/app/calendar';
   const isChatRoute = location.pathname === '/app/chat';
   const isWhiteboardRoute = location.pathname === '/app/whiteboard';
-  // Full-Bleed = Whiteboard (eigener Header) ODER Chat — beide verstecken
-  // Bottom-Nav UND Mobile-Header (Chat soll im Vollbild ohne Header laufen).
+  // Full-Bleed = Whiteboard (eigener Header) ODER Chat (eigene Top-Bar) — beide
+  // verstecken die Bottom-Nav. Der Mobile-Header wird NUR auf Whiteboard versteckt,
+  // weil Whiteboard einen eigenen Header mitbringt; Chat behält den Mobile-Header.
   const isFullBleedRoute = isChatRoute || isWhiteboardRoute;
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -118,10 +119,11 @@ export default function Layout() {
     <div className={`app-layout ${sidebarOpen ? 'sidebar-active' : ''} ${isFullBleedRoute ? 'full-bleed-route' : ''}`}>
       <PremiumBackground />
       {/* Scroll-Fade oben: verdunkelt Inhalte die unter den Header laufen */}
-      {!isFullBleedRoute && <div className="mobile-header-scrim" />}
+      {!isWhiteboardRoute && <div className="mobile-header-scrim" />}
 
-      {/* Mobile Header — auf Full-Bleed-Routen (Chat, Whiteboard) ausgeblendet. */}
-      {!isFullBleedRoute && (
+      {/* Mobile Header — nur auf Whiteboard ausgeblendet (eigener Header).
+          Auf Chat bleibt der Mobile-Header sichtbar. */}
+      {!isWhiteboardRoute && (
       <div className="mobile-header">
         <div className="mobile-header-logo">
             <img src="/icons/icon.png" alt="BeeQu" className="mobile-brand-mark" />

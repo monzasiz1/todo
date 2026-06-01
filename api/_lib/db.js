@@ -27,6 +27,15 @@ async function runSchemaInit(rawQuery) {
       created_at TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(user_id, endpoint)
     )`,
+    `CREATE TABLE IF NOT EXISTS mobile_push_subscriptions (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      platform TEXT NOT NULL,
+      token TEXT NOT NULL,
+      device_info TEXT DEFAULT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(user_id, platform, token)
+    )`,
     `CREATE TABLE IF NOT EXISTS notification_log (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -37,6 +46,7 @@ async function runSchemaInit(rawQuery) {
       sent_at TIMESTAMPTZ DEFAULT NOW()
     )`,
     `CREATE INDEX IF NOT EXISTS idx_push_sub_user ON push_subscriptions(user_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_mobile_push_user ON mobile_push_subscriptions(user_id)`,
     `CREATE INDEX IF NOT EXISTS idx_notif_log_user_type ON notification_log(user_id, type, sent_at)`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ DEFAULT NOW()`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS notification_prefs JSONB DEFAULT '{"reminder":true,"daily_tasks":true,"engagement":true,"team_task":true,"group_message":true}'::jsonb`,

@@ -29,7 +29,29 @@ module.exports = async function handler(req, res) {
   // POST /api/notifications/subscribe – save push subscription
   if (segments[0] === 'subscribe' && req.method === 'POST') {
     try {
-      const { endpoint, keys } = req.body;
+      const { platform, endpoint, keys, token, device_info } = req.body;
+
+      if (platform === 'android' || platform === 'ios') {
+        if (!token) {
+          return res.status(400).json({ error: 'Ungültige Native-Push-Daten' });
+        }
+
+        await pool.query(
+          'DELETE FROM mobile_push_subscriptions WHERE token = $1 AND user_id <> $2',
+          [token, user.id]
+        );
+
+        await pool.query(
+          `INSERT INTO mobile_push_subscriptions (user_id, platform, token, device_info)
+           VALUES ($1, $2, $3, $4)
+           ON CONFLICT (user_id, platform, token) DO UPDATE SET
+             device_info = EXCLUDED.device_info`,
+          [user.id, platform, token, device_info || null]
+        );
+
+        return res.json({ success: true });
+      }
+
       if (!endpoint || !keys?.p256dh || !keys?.auth) {
         return res.status(400).json({ error: 'Ungültige Subscription-Daten' });
       }
@@ -60,7 +82,18 @@ module.exports = async function handler(req, res) {
   // DELETE /api/notifications/subscribe – remove subscription
   if (segments[0] === 'subscribe' && req.method === 'DELETE') {
     try {
-      const { endpoint } = req.body;
+      const { platform, endpoint, token } = req.body;
+      if (platform === 'android' || platform === 'ios') {
+        if (!token) return res.status(400).json({ error: 'Token fehlt' });
+
+        await pool.query(
+          'DELETE FROM mobile_push_subscriptions WHERE user_id = $1 AND platform = $2 AND token = $3',
+          [user.id, platform, token]
+        );
+
+        return res.json({ success: true });
+      }
+
       if (!endpoint) return res.status(400).json({ error: 'Endpoint fehlt' });
 
       await pool.query(
@@ -220,8 +253,12 @@ module.exports = async function handler(req, res) {
   // GET /api/notifications/status – check subscription status + preferences
   if (segments[0] === 'status' && req.method === 'GET') {
     try {
-      const { rows: subRows } = await pool.query(
+      const { rows: webSubRows } = await pool.query(
         'SELECT COUNT(*) as count FROM push_subscriptions WHERE user_id = $1',
+        [user.id]
+      );
+      const { rows: mobileSubRows } = await pool.query(
+        'SELECT COUNT(*) as count FROM mobile_push_subscriptions WHERE user_id = $1',
         [user.id]
       );
       const { rows: userRows } = await pool.query(
@@ -229,7 +266,7 @@ module.exports = async function handler(req, res) {
         [user.id]
       );
       const prefs = userRows[0]?.notification_prefs || { reminder: true, daily_tasks: true, engagement: true, team_task: true, group_message: true };
-      return res.json({ subscribed: parseInt(subRows[0].count) > 0, prefs });
+      return res.json({ subscribed: (parseInt(webSubRows[0].count) + parseInt(mobileSubRows[0].count)) > 0, prefs });
     } catch (err) {
       return res.status(500).json({ error: 'Fehler' });
     }
@@ -238,25 +275,43 @@ module.exports = async function handler(req, res) {
   // GET /api/notifications/subscriptions – list current device subscriptions
   if (segments[0] === 'subscriptions' && req.method === 'GET') {
     try {
-      const { rows } = await pool.query(
+      const { rows: webRows } = await pool.query(
         `SELECT id, endpoint, created_at
          FROM push_subscriptions
          WHERE user_id = $1
          ORDER BY created_at DESC`,
         [user.id]
       );
+      const { rows: mobileRows } = await pool.query(
+        `SELECT id, platform, token, device_info, created_at
+         FROM mobile_push_subscriptions
+         WHERE user_id = $1
+         ORDER BY created_at DESC`,
+        [user.id]
+      );
 
-      const subscriptions = rows.map((row) => {
-        const endpointText = String(row.endpoint || '');
-        return {
+      const subscriptions = [
+        ...webRows.map((row) => {
+          const endpointText = String(row.endpoint || '');
+          return {
+            id: row.id,
+            type: 'web',
+            endpoint: endpointText,
+            endpoint_preview: endpointText.length > 60
+              ? `${endpointText.slice(0, 30)}...${endpointText.slice(-20)}`
+              : endpointText,
+            created_at: row.created_at,
+          };
+        }),
+        ...mobileRows.map((row) => ({
           id: row.id,
-          endpoint: endpointText,
-          endpoint_preview: endpointText.length > 60
-            ? `${endpointText.slice(0, 30)}...${endpointText.slice(-20)}`
-            : endpointText,
+          type: row.platform || 'native',
+          token: String(row.token || ''),
+          preview: String(row.token || '').slice(0, 40) + '...',
+          device_info: row.device_info || null,
           created_at: row.created_at,
-        };
-      });
+        })),
+      ];
 
       return res.json({ subscriptions, count: subscriptions.length });
     } catch (err) {
@@ -378,8 +433,12 @@ module.exports = async function handler(req, res) {
   // GET /api/notifications/health – diagnostics for push setup
   if (segments[0] === 'health' && req.method === 'GET') {
     try {
-      const { rows: subRows } = await pool.query(
+const { rows: webSubRows } = await pool.query(
         'SELECT COUNT(*)::int as count FROM push_subscriptions WHERE user_id = $1',
+        [user.id]
+      );
+      const { rows: mobileSubRows } = await pool.query(
+        'SELECT COUNT(*)::int as count FROM mobile_push_subscriptions WHERE user_id = $1',
         [user.id]
       );
       const { rows: userRows } = await pool.query(
@@ -407,9 +466,10 @@ module.exports = async function handler(req, res) {
       return res.json({
         ok: true,
         vapidConfigured: !!(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY),
+        firebaseConfigured: !!(process.env.FIREBASE_SERVICE_ACCOUNT || process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.FIREBASE_PROJECT_ID),
         cronConfigured: !!process.env.CRON_SECRET,
-        hasSubscription: (subRows[0]?.count || 0) > 0,
-        subscriptionCount: subRows[0]?.count || 0,
+        hasSubscription: (webSubRows[0]?.count || 0) + (mobileSubRows[0]?.count || 0) > 0,
+        subscriptionCount: (webSubRows[0]?.count || 0) + (mobileSubRows[0]?.count || 0),
         reminders_sent_24h: recentReminders[0]?.count || 0,
         reminders_due_now: dueNow[0]?.count || 0,
         prefs: userRows[0]?.notification_prefs || null,

@@ -1,6 +1,7 @@
 node_modules/
 .env
 .env.local
+backend/beequ-8475c-firebase-adminsdk-fbsvc-8710026c04.json
 dist/
 .vercel/
 *.log
