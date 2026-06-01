@@ -425,7 +425,6 @@
 ═══════════════════════════════════════════════════════════════ */
 html[data-theme="dark"] .bq-auth-page,
 html[data-theme="dark"][class*="auth-page"] .bq-auth-page {
-  background: #06060A !important;
   color: #1C1C1E;
 }
 
@@ -447,10 +446,6 @@ html[data-theme="dark"] .bq-auth-switch,
 html[data-theme="dark"] .bq-auth-back-btn,
 html[data-theme="dark"] .bq-auth-consent {
   color: #8E8E93 !important;
-}
-
-html[data-theme="dark"] .bq-auth-card-logo img {
-  background: #ffffff !important;
 }
 
 html[data-theme="dark"] .bq-field label {
