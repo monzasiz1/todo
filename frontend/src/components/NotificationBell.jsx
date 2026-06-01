@@ -160,7 +160,17 @@ export default function NotificationBell() {
 
   const unseenCount = getUnseenNotifications().length;
   const sortedNotifications = [...(notifications || [])].sort((a, b) => new Date(b.sent_at) - new Date(a.sent_at));
-  const pushStatus = permission === 'denied'
+  // In der nativen Capacitor-App (Android/iOS) kommt Push ueber FCM/APNs, NICHT
+  // ueber die Web-Notification-API. Dort ist Notification.permission in der
+  // WebView immer 'denied' — das darf hier NICHT als "Blockiert / im Browser
+  // erlauben" interpretiert werden. Der Status ergibt sich nativ aus `subscribed`
+  // (OS-Berechtigung + registrierter FCM-Token).
+  const isNativeApp = typeof window !== 'undefined' && !!window.Capacitor
+    && (typeof window.Capacitor.isNativePlatform === 'function'
+      ? window.Capacitor.isNativePlatform()
+      : ['android', 'ios'].includes(window.Capacitor.getPlatform?.()));
+  const pushBlocked = !isNativeApp && permission === 'denied';
+  const pushStatus = pushBlocked
     ? { ok: false, label: 'Blockiert', color: '#FF3B30' }
     : subscribed ? { ok: true, label: 'Aktiv', color: '#34C759' }
     : { ok: false, label: 'Nicht aktiviert', color: '#FF9500' };
@@ -211,8 +221,8 @@ export default function NotificationBell() {
                   {pushStatus.ok ? <Wifi size={16} style={{ color: '#34C759', flexShrink: 0 }} /> : <WifiOff size={16} style={{ color: '#FF9500', flexShrink: 0 }} />}
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: pushStatus.color }}>{pushStatus.label}</div>
-                    {!pushStatus.ok && permission !== 'denied' && <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>Aktiviere Push um Benachrichtigungen bei geschlossener App zu erhalten</div>}
-                    {permission === 'denied' && <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>In Browser-Einstellungen für diese Seite erlauben</div>}
+                    {!pushStatus.ok && !pushBlocked && <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>Aktiviere Push um Benachrichtigungen bei geschlossener App zu erhalten</div>}
+                    {pushBlocked && <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>In Browser-Einstellungen für diese Seite erlauben</div>}
                   </div>
                 </div>
                 <div className="notif-master">
@@ -223,7 +233,7 @@ export default function NotificationBell() {
                       <div className="notif-master-desc">{subscribed ? 'Aktiv auf diesem Gerät' : 'Nicht aktiviert'}</div>
                     </div>
                   </div>
-                  <button className={`notif-toggle-master ${subscribed ? 'active' : ''}`} onClick={() => subscribed ? unsubscribe() : handleSubscribeClick()} disabled={permission === 'denied'}>
+                  <button className={`notif-toggle-master ${subscribed ? 'active' : ''}`} onClick={() => subscribed ? unsubscribe() : handleSubscribeClick()} disabled={pushBlocked}>
                     <span className="notif-toggle-knob" />
                   </button>
                 </div>
