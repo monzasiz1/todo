@@ -42,10 +42,10 @@ export const PLANS = {
     label: 'Pro',
     price: 2.99,
     priceLabel: '2,99 €/Monat',
-    priceLabelYear: '35,88 €/Jahr',
-    yearlyMonthly: 2.99,         // 35,88/12
-    yearlySaveLabel: '~17% sparen',
-    tagline: 'Fuer Vielnutzer',
+    priceLabelYear: '29,99 €/Jahr',
+    yearlyMonthly: 2.50,         // 29,99/12 ≈ 2,50 — ~16% günstiger als 12× monatlich (35,88)
+    yearlySaveLabel: '~16% sparen',
+    tagline: 'Für Vielnutzer',
     limits: {
       tasks: Infinity,
       categories: Infinity,
@@ -75,7 +75,7 @@ export const PLANS = {
     priceLabelYear: '99,99 €/Jahr/Nutzer',
     yearlyMonthly: 8.33,
     yearlySaveLabel: '~17% sparen',
-    tagline: 'Fuer Teams & Familien',
+    tagline: 'Für Teams & Familien',
     limits: {
       tasks: Infinity,
       categories: Infinity,

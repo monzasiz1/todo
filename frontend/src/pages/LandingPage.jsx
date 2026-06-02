@@ -658,11 +658,14 @@ export default function LandingPage() {
               const priceLabel = !isPaid
                 ? plan.priceLabel
                 : pricingInterval === 'year' ? plan.priceLabelYear : plan.priceLabel;
+              // Spar-Hinweis nur zeigen, wenn der Jahrespreis WIRKLICH günstiger
+              // ist als 12× der Monatspreis (sonst keine falschen Versprechen).
+              const hasYearlySaving = isPaid && plan.yearlyMonthly < plan.price;
               const subPrice = !isPaid
                 ? null
                 : pricingInterval === 'year'
-                  ? `entspricht ${plan.yearlyMonthly.toFixed(2).replace('.', ',')} €/Monat`
-                  : `oder ${plan.priceLabelYear} · 2 Monate gratis`;
+                  ? `entspricht ${plan.yearlyMonthly.toFixed(2).replace('.', ',')} €/Monat${hasYearlySaving ? ` · ${plan.yearlySaveLabel}` : ''}`
+                  : `oder ${plan.priceLabelYear} im Jahr${hasYearlySaving ? ` · ${plan.yearlySaveLabel}` : ''}`;
               return (
                 <motion.div
                   key={plan.id}
