@@ -70,39 +70,40 @@ const featureCopy = [
   { icon: Smartphone,  color: '#34C759', tint: 'rgba(52,199,89,0.16)',   title: 'PWA — überall installierbar', desc: 'iOS, Android, macOS, Windows. Offline-fähig, Push-Benachrichtigungen, Home-Screen-Icon — kein App-Store nötig.',                                                       plan: 'Alle Pläne' },
 ];
 
-// Echte App-Screenshots — kein Mock. Liegen unter frontend/public/bilder/.
+// Echte Hochkant-App-Screenshots — kein Mock. Liegen unter frontend/public/bilder/.
+// Reihenfolge = echte App-Bottom-Nav: Home · Kalender · Gruppen · Profil.
 const storyChapters = [
   {
-    id: 'dashboard', src: '/bilder/dashboard.png', label: 'beequ.app/dashboard',
-    icon: Sparkles, color: '#007AFF', tint: 'rgba(0,122,255,0.18)',
-    eyebrow: 'Kapitel 01 · KI-Eingabe',
-    title: 'Tippen statt klicken.',
-    desc: 'Ein Satz reicht — Datum, Uhrzeit, Kategorie und Priorität werden automatisch erkannt und direkt aus dem Dashboard angelegt.',
+    id: 'home', src: '/bilder/homehandy.png', navLabel: 'Home',
+    icon: LayoutDashboard, color: '#007AFF',
+    eyebrow: 'Home',
+    title: 'Dein Tag auf einen Blick.',
+    desc: 'Überfällig, heute, diese Woche — plus KI-Eingabe ganz oben. Tippe einen Satz, BeeQu legt die Aufgabe an.',
     plan: 'Alle Pläne',
   },
   {
-    id: 'aufgaben', src: '/bilder/aufgaben.png', label: 'beequ.app/aufgaben',
-    icon: ListTodo, color: '#5856D6', tint: 'rgba(88,86,214,0.18)',
-    eyebrow: 'Kapitel 02 · Heute · Morgen · Später',
-    title: 'Alle Aufgaben. Nichts vergessen.',
-    desc: 'Filter nach Priorität, gruppiert nach Datum, durchsuchbar. Wiederkehrende Aufgaben erstellen sich von selbst.',
-    plan: 'Alle Pläne',
-  },
-  {
-    id: 'kalender', src: '/bilder/kalender.png', label: 'beequ.app/kalender',
-    icon: CalendarDays, color: '#34C759', tint: 'rgba(52,199,89,0.18)',
-    eyebrow: 'Kapitel 03 · Monats- & Wochen-Ansicht',
+    id: 'kalender', src: '/bilder/kalenderhandy.png', navLabel: 'Kalender',
+    icon: CalendarDays, color: '#34C759',
+    eyebrow: 'Kalender',
     title: 'Termine im Griff.',
-    desc: 'Eigene und geteilte Kalender im Wechsel. Mehrtages-Events und Drag & Drop direkt im Raster — flüssig wie nativ.',
+    desc: 'Monats- und Wochenansicht, eigene und geteilte Kalender im Wechsel, Drag & Drop direkt im Raster.',
     plan: 'Alle Pläne',
   },
   {
-    id: 'gruppen', src: '/bilder/gruppen.png', label: 'beequ.app/gruppen',
-    icon: UsersRound, color: '#FF9500', tint: 'rgba(255,149,0,0.18)',
-    eyebrow: 'Kapitel 04 · Collaboration Space',
-    title: 'Familie. Team. WG.',
-    desc: 'Mitglieder verwalten, Rollen vergeben, Aufgaben gemeinsam abarbeiten — mit Team-Chat, der Termine selbst erkennt.',
+    id: 'gruppen', src: '/bilder/gruppenhandy.png', navLabel: 'Gruppen',
+    icon: UsersRound, color: '#FF9500',
+    eyebrow: 'Gruppen',
+    title: 'Gemeinsam organisieren.',
+    desc: 'Familie, Team oder WG: geteilte Aufgaben, Team-Chat mit Event-Erkennung, Rollen & Rechte.',
     plan: 'Team',
+  },
+  {
+    id: 'profil', src: '/bilder/profil.png', navLabel: 'Profil',
+    icon: User, color: '#5856D6',
+    eyebrow: 'Profil',
+    title: 'Dein BeeQu, dein Stil.',
+    desc: 'Avatar & Farbe, helles oder dunkles Theme, Sicherheit und Level — alles an einem Ort.',
+    plan: 'Alle Pläne',
   },
 ];
 
@@ -150,7 +151,6 @@ function PhoneTour({ onCta }) {
 
   const current = storyChapters[active];
   const select = (i) => { setActive(i); setPaused(true); };
-  const navLabel = (c) => c.id.charAt(0).toUpperCase() + c.id.slice(1);
 
   return (
     <section className="lp-phone-tour" id="features">
@@ -158,54 +158,53 @@ function PhoneTour({ onCta }) {
         <div className="lp-section-head">
           <span className="lp-kicker">Produkt-Tour</span>
           <h2>Eine App.<br /><span className="lp-h2-muted">Vier Räume zum Arbeiten.</span></h2>
-          <p>Tippe dich unten durch die App — wie auf deinem eigenen Handy. Echte Screenshots, keine Attrappe.</p>
+          <p>Tippe dich durch die App — echte Screenshots vom Handy, keine Attrappe.</p>
+        </div>
+
+        {/* Raum-Umschalter (über dem Handy) */}
+        <div className="lp-room-tabs" role="tablist" aria-label="App-Bereiche">
+          {storyChapters.map((c, i) => {
+            const Icon = c.icon;
+            const on = i === active;
+            return (
+              <button
+                key={c.id}
+                type="button"
+                role="tab"
+                aria-selected={on}
+                className={`lp-room-tab${on ? ' is-active' : ''}`}
+                style={{ '--lp-active': c.color }}
+                onClick={() => select(i)}
+              >
+                <Icon size={16} />
+                <span>{c.navLabel}</span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="lp-phone-stage" style={{ '--lp-active': current.color }}>
-          {/* Phone */}
+          {/* Phone — zeigt den vollen echten Screenshot (inkl. App-Nav) */}
           <div
             className="lp-phone"
             onMouseEnter={() => setPaused(true)}
             onMouseLeave={() => setPaused(false)}
           >
             <div className="lp-phone-glow" aria-hidden />
-            <div className="lp-phone-notch" aria-hidden />
             <div className="lp-phone-screen">
               <AnimatePresence mode="wait">
                 <motion.img
                   key={current.id}
                   src={current.src}
-                  alt={`BeeQu — ${current.title}`}
-                  initial={{ opacity: 0, scale: 1.05 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.98 }}
-                  transition={{ duration: 0.45, ease }}
+                  alt={`BeeQu — ${current.navLabel}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4, ease }}
                   draggable={false}
                   loading="lazy"
                 />
               </AnimatePresence>
-            </div>
-            {/* Echte App-Bottom-Nav — antippbar */}
-            <div className="lp-phone-nav" role="tablist" aria-label="App-Bereiche">
-              {storyChapters.map((c, i) => {
-                const Icon = c.icon;
-                const on = i === active;
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={on}
-                    aria-label={navLabel(c)}
-                    className={`lp-phone-nav-btn${on ? ' is-active' : ''}`}
-                    style={{ '--lp-active': c.color }}
-                    onClick={() => select(i)}
-                  >
-                    <Icon size={19} />
-                    <span>{navLabel(c)}</span>
-                  </button>
-                );
-              })}
             </div>
           </div>
 

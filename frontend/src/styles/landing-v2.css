@@ -445,60 +445,63 @@
 .lp-section-head p { margin-top: 18px; font-size: 1.08rem; color: var(--lp-muted); }
 
 /* ============================================================
-   PRODUKT-TOUR — interactive phone with tappable bottom nav
+   PRODUKT-TOUR — interactive phone with room tabs
    ============================================================ */
 .lp-phone-tour { position: relative; z-index: 1; padding: 60px 0 50px; }
+
+/* Raum-Umschalter über dem Handy */
+.lp-room-tabs {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+  margin: 36px auto 0;
+}
+.lp-room-tab {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 16px; border-radius: 999px; cursor: pointer;
+  font-size: 0.9rem; font-weight: 600; color: var(--lp-muted);
+  background: var(--lp-panel-2); border: 1px solid var(--lp-line-soft);
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+.lp-room-tab:hover { color: var(--lp-text); }
+.lp-room-tab.is-active {
+  color: #fff;
+  border-color: var(--lp-active, #007AFF);
+  background: color-mix(in srgb, var(--lp-active, #007AFF) 22%, transparent);
+  box-shadow: 0 8px 24px -12px var(--lp-active, #007AFF);
+}
+
 .lp-phone-stage {
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr);
   gap: 64px;
   align-items: center;
-  margin-top: 44px;
+  margin-top: 40px;
 }
 .lp-phone {
   position: relative;
   width: 300px;
-  max-width: 88vw;
+  max-width: 86vw;
   justify-self: center;
   border-radius: 44px;
-  padding: 11px;
-  background: linear-gradient(165deg, #1b2233 0%, #0a0e18 70%);
+  padding: 10px;
+  background: linear-gradient(165deg, #232b3d 0%, #0a0e18 72%);
   border: 1px solid var(--lp-line);
-  box-shadow: 0 50px 110px -45px rgba(0,0,0,0.95), inset 0 1px 0 rgba(255,255,255,0.08);
+  box-shadow: 0 50px 110px -45px rgba(0,0,0,0.95), inset 0 1px 0 rgba(255,255,255,0.10);
 }
 .lp-phone-glow {
   position: absolute; inset: -50px; z-index: -1; border-radius: 70px;
   background: radial-gradient(58% 46% at 50% 28%, var(--lp-active, #007AFF), transparent 70%);
   opacity: 0.32; filter: blur(45px); transition: background 0.5s ease;
 }
-.lp-phone-notch {
-  position: absolute; top: 11px; left: 50%; transform: translateX(-50%);
-  width: 104px; height: 21px; background: #04060c; border-radius: 0 0 13px 13px; z-index: 3;
-}
+/* Screen passt exakt zu den Hochkant-Screenshots (≈ 9:19.46) → kein Crop, keine Ränder */
 .lp-phone-screen {
-  position: relative; aspect-ratio: 9 / 17.5; overflow: hidden;
-  border-radius: 34px 34px 0 0; background: #0a0e18;
+  position: relative; aspect-ratio: 431 / 932; overflow: hidden;
+  border-radius: 34px; background: #0a0e18;
 }
 .lp-phone-screen img {
   position: absolute; inset: 0; width: 100%; height: 100%;
   object-fit: cover; object-position: top center;
+  display: block;
 }
-.lp-phone-nav {
-  display: flex; align-items: stretch; justify-content: space-between;
-  gap: 2px; padding: 9px 6px 12px;
-  background: #0b1018; border-radius: 0 0 34px 34px;
-  border-top: 1px solid var(--lp-line-soft);
-}
-.lp-phone-nav-btn {
-  flex: 1 1 0; min-width: 0;
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-  padding: 7px 2px; border-radius: 13px; cursor: pointer;
-  color: var(--lp-faint); font-size: 0.6rem; font-weight: 600;
-  transition: color 0.2s ease, background 0.2s ease;
-}
-.lp-phone-nav-btn span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lp-phone-nav-btn:hover { color: var(--lp-muted); }
-.lp-phone-nav-btn.is-active { color: var(--lp-active, #007AFF); background: rgba(255,255,255,0.07); }
 
 .lp-phone-info { max-width: 460px; }
 .lp-phone-eyebrow { font-family: 'Space Grotesk', monospace; font-size: 0.82rem; letter-spacing: 0.08em; }
