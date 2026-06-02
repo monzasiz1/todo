@@ -4,7 +4,7 @@ async function parseTaskWithAI(input, options = {}) {
   const key = process.env.MISTRAL_API_KEY;
   if (!key) throw new Error('MISTRAL_API_KEY nicht konfiguriert');
 
-  const { groupNames = [], groupContext = null } = options;
+  const { groupNames = [], groupContext = null, categoryNames = [], knownLocations = [] } = options;
 
   const now = new Date();
   const days = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
@@ -41,7 +41,17 @@ Regeln:
 - Erkenne DATUMSBEREICHE: "vom 20. bis 24. April", "20.-24.04", "Montag bis Freitag" → setze date als Startdatum und date_end als Enddatum
 - Erkenne Uhrzeiten (18 Uhr, 14:30, nachmittags etc.)
 - Erkenne ZEITBEREICHE: "von 14 bis 16 Uhr", "9-12 Uhr", "14:00-15:30" → setze time als Startzeit und time_end als Endzeit
-- Wähle eine passende Kategorie aus: Arbeit, Persönlich, Gesundheit, Finanzen, Einkaufen, Haushalt, Bildung, Soziales
+- KATEGORIE: Wähle die am besten passende Kategorie.${categoryNames.length > 0 ? `
+  - Der Nutzer hat bereits diese Kategorien: ${categoryNames.join(', ')}.
+  - Bevorzuge IMMER eine bestehende Kategorie, wenn sie thematisch passt (auch fuzzy, z.B. "sport"/"laufen" → "Gesundheit" falls vorhanden). Gib den Namen EXAKT so zurück wie in der Liste.
+  - Nur wenn KEINE bestehende Kategorie passt, schlage eine neue, sinnvolle vor (z.B. Arbeit, Persönlich, Gesundheit, Finanzen, Einkaufen, Haushalt, Bildung, Soziales).` : `
+  - Nutze eine aus: Arbeit, Persönlich, Gesundheit, Finanzen, Einkaufen, Haushalt, Bildung, Soziales.`}
+- ORT/LOCATION erkennen: Wenn ein Ort, Treffpunkt, eine Adresse oder ein Raum genannt wird, extrahiere ihn als "location".
+  - Beispiele: "im Creative Space", "bei Dr. Müller", "Fitnessstudio McFit", "Büro", "Zuhause", "Rathausplatz 3", "Zoom", "online", "Stadion".
+  - Erkenne auch "bei", "im", "in der", "@", "Ort:", "Treffpunkt", "Adresse".
+  - Der Ort gehört NICHT in den Titel und NICHT in die Beschreibung — nur in "location".
+  - Wenn kein Ort erkennbar ist → location: null.${knownLocations.length > 0 ? `
+  - Häufig genutzte Orte des Nutzers (bevorzugt wiederverwenden bei passender Nennung): ${knownLocations.join(', ')}.` : ''}
 - Bestimme die Priorität: low, medium, high, urgent
 - Erkenne ob der Termin GANZTÄGIG ist:
   - "ganztägig", "den ganzen Tag", "ohne Uhrzeit", "all day", "Urlaub" (ohne Uhrzeit), Feiertage, mehrtägige Events ohne Uhrzeit → all_day: true, time: null, time_end: null
@@ -100,7 +110,10 @@ Beispiele:
 - "Einkaufen Milch Eier Butter Brot morgen" → title: "Einkaufen", description: "• Milch\\n• Eier\\n• Butter\\n• Brot", date: morgen, category: "Einkaufen"
 - "Kirmes vom 20. bis 24. April" → title: "Kirmes", date: "2026-04-20", date_end: "2026-04-24"
 - "Meeting morgen von 14 bis 16 Uhr" → title: "Meeting", date: morgen, time: "14:00", time_end: "16:00"
-- "Arzttermin Dienstag 10-11:30 Uhr Zahnarzt Dr. Mueller" → title: "Arzttermin", description: "Zahnarzt Dr. Mueller", date: Dienstag, time: "10:00", time_end: "11:30"
+- "Arzttermin Dienstag 10-11:30 Uhr Zahnarzt Dr. Mueller" → title: "Arzttermin", description: "Zahnarzt Dr. Mueller", date: Dienstag, time: "10:00", time_end: "11:30", category: "Gesundheit"
+- "Meeting morgen 14 Uhr im Creative Space" → type: "event", title: "Meeting", date: morgen, time: "14:00", location: "Creative Space", category: "Arbeit"
+- "Freitag 18:30 Fußballtraining im Stadion" → type: "event", title: "Fußballtraining", date: Freitag, time: "18:30", location: "Stadion", category: "Gesundheit"
+- "Zahnarzt bei Dr. Schmidt Mittwoch 9 Uhr" → type: "event", title: "Zahnarzt", date: Mittwoch, time: "09:00", location: "Dr. Schmidt", category: "Gesundheit"
 - "Einkaufen mit Melanie teilen" → title: "Einkaufen", share_with: ["Melanie"], category: "Einkaufen"
 - "Projekt für Max und Anna sichtbar machen morgen" → title: "Projekt", share_with: ["Max", "Anna"], date: morgen
 - "mit Melanie teilen Geburtstagsparty am Samstag" → title: "Geburtstagsparty", share_with: ["Melanie"], date: Samstag-Datum
@@ -121,6 +134,7 @@ JSON Format:
   "time": "HH:MM oder null",
   "time_end": "HH:MM oder null (nur bei Zeitbereichen)",
   "category": "string",
+  "location": "string oder null (Ort/Treffpunkt/Adresse, NICHT im Titel)",
   "priority": "low|medium|high|urgent",
   "hasReminder": true/false,
   "reminder_at": "YYYY-MM-DDTHH:MM:00 oder null (nur wenn hasReminder true)",
@@ -146,7 +160,7 @@ JSON Format:
         { role: 'user', content: input },
       ],
       temperature: 0.1,
-      max_tokens: 500,
+      max_tokens: 700,
       response_format: { type: 'json_object' },
     }),
   });
@@ -171,6 +185,7 @@ JSON Format:
       time: parsed.time || null,
       time_end: parsed.time_end || null,
       category: parsed.category || 'Persönlich',
+      location: parsed.location || null,
       priority: parsed.priority || 'medium',
       hasReminder: parsed.hasReminder || false,
       reminder_at: parsed.reminder_at || null,
@@ -195,6 +210,7 @@ JSON Format:
       time: null,
       time_end: null,
       category: 'Persönlich',
+      location: null,
       priority: 'medium',
       hasReminder: false,
       reminder_at: null,

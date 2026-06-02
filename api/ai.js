@@ -239,7 +239,41 @@ module.exports = async function handler(req, res) {
       );
       const groupNames = groupsRes.rows.map(g => g.name);
 
-      const parsed = await parseTaskWithAI(input, { groupNames });
+      // Echte Kategorien + häufige Orte des Nutzers laden (best-effort), damit die
+      // KI auf Bestehendes matcht statt zu erfinden.
+      let categoryRows = [];
+      let knownLocations = [];
+      try {
+        const catRes = await pool.query('SELECT id, name FROM categories WHERE user_id = $1 ORDER BY name', [user.id]);
+        categoryRows = catRes.rows;
+      } catch (e) { /* categories optional */ }
+      try {
+        const locRes = await pool.query(
+          `SELECT location, COUNT(*) AS n FROM tasks
+             WHERE user_id = $1 AND location IS NOT NULL AND location <> ''
+             GROUP BY location ORDER BY n DESC LIMIT 20`,
+          [user.id]
+        );
+        knownLocations = locRes.rows.map(r => r.location);
+      } catch (e) { /* locations optional */ }
+      const categoryNames = categoryRows.map(c => c.name);
+
+      const parsed = await parseTaskWithAI(input, { groupNames, categoryNames, knownLocations });
+
+      // Kategorie auf eine bestehende category_id mappen (exakt, sonst fuzzy).
+      if (parsed.category && categoryRows.length > 0) {
+        const wanted = parsed.category.toLowerCase().trim();
+        const matchedCat = categoryRows.find((c) => c.name.toLowerCase() === wanted)
+          || categoryRows.find((c) => {
+            const n = c.name.toLowerCase();
+            return n.includes(wanted) || wanted.includes(n);
+          });
+        if (matchedCat) {
+          parsed.category_id = matchedCat.id;
+          parsed.category = matchedCat.name;
+        }
+      }
+
       let matchedGroup = null;
       if (parsed.group_name) {
         matchedGroup = groupsRes.rows.find(
@@ -449,6 +483,18 @@ module.exports = async function handler(req, res) {
         [user.id]
       );
 
+      // Häufige Orte des Nutzers, damit die KI bekannte Orte wiedererkennt.
+      let knownLocations = [];
+      try {
+        const locRes = await pool.query(
+          `SELECT location, COUNT(*) AS n FROM tasks
+             WHERE user_id = $1 AND location IS NOT NULL AND location <> ''
+             GROUP BY location ORDER BY n DESC LIMIT 20`,
+          [user.id]
+        );
+        knownLocations = locRes.rows.map(r => r.location);
+      } catch (e) { /* locations optional */ }
+
       // Get user's groups for recognition
       const groupsRes = await pool.query(
         `SELECT g.id, g.name, g.color, g.image_url FROM groups g JOIN group_members gm ON gm.group_id = g.id WHERE gm.user_id = $1`,
@@ -456,7 +502,12 @@ module.exports = async function handler(req, res) {
       );
       const groupNames = groupsRes.rows.map(g => g.name);
 
-      const parsed = await parseTaskWithAI(enrichedInput, { groupNames, groupContext });
+      const parsed = await parseTaskWithAI(enrichedInput, {
+        groupNames,
+        groupContext,
+        categoryNames: categories.rows.map((c) => c.name),
+        knownLocations,
+      });
       if (!parsed || !parsed.title) {
         return res.status(400).json({ error: 'Aufgabe konnte nicht erkannt werden' });
       }
@@ -482,12 +533,15 @@ module.exports = async function handler(req, res) {
         parsed.auto_assigned_date = true;
       }
 
-      // Map AI category name to category_id
+      // Map AI category name to category_id (exakt, sonst fuzzy)
       let categoryId = null;
       if (parsed.category) {
-        const match = categories.rows.find(
-          (c) => c.name.toLowerCase() === parsed.category.toLowerCase()
-        );
+        const wanted = parsed.category.toLowerCase().trim();
+        const match = categories.rows.find((c) => c.name.toLowerCase() === wanted)
+          || categories.rows.find((c) => {
+            const n = c.name.toLowerCase();
+            return n.includes(wanted) || wanted.includes(n);
+          });
         if (match) categoryId = match.id;
       }
 
@@ -568,14 +622,14 @@ module.exports = async function handler(req, res) {
 
       const result = await pool.query(
         `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order, visibility,
-         recurrence_rule, recurrence_interval, recurrence_end, type)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+         recurrence_rule, recurrence_interval, recurrence_end, type, location)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
          RETURNING *`,
         [user.id, parsed.title, parsed.description || null, parsed.date || null,
          parsed.date_end || null, parsed.time || null, parsed.time_end || null,
          parsed.priority || 'medium', categoryId,
          reminderAt, maxOrder.rows[0].next_order, finalVisibility,
-         recurrenceRule, recurrenceInterval, recurrenceEnd, taskType]
+         recurrenceRule, recurrenceInterval, recurrenceEnd, taskType, parsed.location || null]
       );
 
       const firstTask = result.rows[0];
@@ -588,15 +642,15 @@ module.exports = async function handler(req, res) {
 
         const ins = await pool.query(
           `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order, visibility,
-           recurrence_rule, recurrence_interval, recurrence_end, recurrence_parent_id, type)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+           recurrence_rule, recurrence_interval, recurrence_end, recurrence_parent_id, type, location)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
            RETURNING *`,
           [user.id, parsed.title, parsed.description || null, occurrenceDate,
            occurrenceDateEnd, parsed.time || null, parsed.time_end || null,
            parsed.priority || 'medium', categoryId,
            parsed.hasReminder ? new Date(`${occurrenceDate}T${parsed.time || '09:00'}:00`).toISOString() : null,
            maxOrder.rows[0].next_order + i + 1, finalVisibility,
-           recurrenceRule, recurrenceInterval, recurrenceEnd, firstTask.id, taskType]
+           recurrenceRule, recurrenceInterval, recurrenceEnd, firstTask.id, taskType, parsed.location || null]
         );
 
         createdTasks.push(ins.rows[0]);

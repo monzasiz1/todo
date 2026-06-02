@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTaskStore } from '../store/taskStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ArrowUp, Calendar, CalendarCheck, Clock, Tag, Flag, Loader2, UsersRound, ListTodo, Trash2, MoveRight, Pencil, Paperclip, Lock } from 'lucide-react';
+import { Sparkles, ArrowUp, Calendar, CalendarCheck, Clock, Tag, Flag, Loader2, UsersRound, ListTodo, Trash2, MoveRight, Pencil, Paperclip, Lock, MapPin } from 'lucide-react';
 import { api } from '../utils/api';
 import AvatarBadge from './AvatarBadge';
 import { usePlan } from '../hooks/usePlan';
@@ -215,6 +215,12 @@ export default function AIInput({ onTaskCreated }) {
                   <span className="ai-tag time">
                     <Clock size={12} />
                     Ganztägig
+                  </span>
+                )}
+                {preview.location && (
+                  <span className="ai-tag location">
+                    <MapPin size={12} />
+                    {preview.location}
                   </span>
                 )}
                 {preview.category && (
