@@ -2150,7 +2150,7 @@ export default function NotesPage() {
               className="board-mobile-sheet-close"
               onClick={() => setMobileMoreOpen(false)}
             >
-              Schliessen
+              Schließen
             </button>
           </div>
         </div>
@@ -2320,7 +2320,7 @@ export default function NotesPage() {
                     <span>Schreibe <code>#idee</code> oder <code>#bug</code> - Tags werden automatisch erkannt und filterbar.</span>
                   </div>
                   <div className="empty-board-tile">
-                    <strong>Verknuepfen</strong>
+                    <strong>Verknüpfen</strong>
                     <span>Notizen mit Aufgaben oder anderen Notizen verbinden - inkl. Whiteboard-Modus.</span>
                   </div>
                 </div>

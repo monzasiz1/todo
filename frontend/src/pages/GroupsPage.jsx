@@ -834,7 +834,7 @@ function CreateGroup({ onBack, onCreate }) {
             Freunde direkt einladen (optional)
             {selectedFriendIds.length > 0 && (
               <span style={{ marginLeft: 8, opacity: 0.7, fontWeight: 400 }}>
-                {selectedFriendIds.length} ausgewaehlt
+                {selectedFriendIds.length} ausgewählt
               </span>
             )}
           </label>
@@ -842,7 +842,7 @@ function CreateGroup({ onBack, onCreate }) {
             <div style={{ padding: '8px 0', opacity: 0.6, fontSize: 13 }}>Lade Freunde...</div>
           ) : friends.length === 0 ? (
             <div style={{ padding: '8px 0', opacity: 0.6, fontSize: 13 }}>
-              Noch keine Freunde. Du kannst spaeter Mitglieder einladen.
+              Noch keine Freunde. Du kannst später Mitglieder einladen.
             </div>
           ) : (
             <>
@@ -1043,7 +1043,7 @@ function GroupDetail({ groupId, onBack }) {
   const isAdmin = myRole === 'owner' || myRole === 'admin';
   const isOwner = myRole === 'owner';
 
-  // Effektive Berechtigungen fuer den aktuellen User in dieser Gruppe.
+  // Effektive Berechtigungen für den aktuellen User in dieser Gruppe.
   // Owner/Admin = alle true. Member: Custom-Rolle falls zugewiesen, sonst
   // group.member_permissions, sonst Defaults. Genauso wie der Server rechnet.
   const myPerms = useMemo(() => {
@@ -1322,7 +1322,7 @@ function GroupDetail({ groupId, onBack }) {
         </article>
       </div>
 
-      {/* Invite Code — nur fuer Admins/Owner sichtbar */}
+      {/* Invite Code — nur für Admins/Owner sichtbar */}
       {isAdmin && (
         <div className="group-invite-row">
           <span className="group-invite-label">Einladungscode:</span>
@@ -1380,9 +1380,9 @@ function GroupDetail({ groupId, onBack }) {
             </button>
             <button
               className="group-add-task-btn"
-              onClick={() => can('create_tasks') ? setShowAddTask(true) : addToast('Eintraege erstellen ist fuer deine Rolle gesperrt')}
+              onClick={() => can('create_tasks') ? setShowAddTask(true) : addToast('Einträge erstellen ist für deine Rolle gesperrt')}
               disabled={!can('create_tasks')}
-              title={can('create_tasks') ? 'Eintrag hinzufuegen' : 'Fuer deine Rolle gesperrt'}
+              title={can('create_tasks') ? 'Eintrag hinzufügen' : 'Für deine Rolle gesperrt'}
               style={!can('create_tasks') ? { opacity: 0.55, cursor: 'not-allowed' } : undefined}
             >
               {can('create_tasks') ? <Plus size={16} /> : <Shield size={14} />} Eintrag hinzufügen
@@ -1870,7 +1870,7 @@ function GroupDetail({ groupId, onBack }) {
               onUpdate={(data) => updateGroup(groupId, data)}
               onDelete={async () => {
                 await deleteGroup(groupId);
-                addToast('Gruppe geloescht');
+                addToast('Gruppe gelöscht');
                 onBack();
               }}
               isOwner={myRole === 'owner'}
@@ -2502,7 +2502,7 @@ function SubgroupManager({ groupId, members, subgroups, onRefresh }) {
           {renderColorPresets(color, setColor)}
           <div style={{ marginTop: 12 }}>
             <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
-              Mitglieder ({selectedMembers.length} ausgewaehlt)
+              Mitglieder ({selectedMembers.length} ausgewählt)
             </p>
             {renderMemberPicker(selectedMembers, toggleMember)}
           </div>
@@ -2567,7 +2567,7 @@ function SubgroupManager({ groupId, members, subgroups, onRefresh }) {
                 {renderColorPresets(editColor, setEditColor)}
                 <div style={{ marginTop: 12 }}>
                   <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
-                    Mitglieder ({editMembers.length} ausgewaehlt)
+                    Mitglieder ({editMembers.length} ausgewählt)
                   </p>
                   {renderMemberPicker(editMembers, toggleEditMember)}
                 </div>
@@ -2665,7 +2665,7 @@ function SubgroupManager({ groupId, members, subgroups, onRefresh }) {
                   className="group-cat-delete-btn"
                   onClick={() => handleDelete(sg.id)}
                   disabled={deletingId === sg.id}
-                  title="Untergruppe loeschen"
+                  title="Untergruppe löschen"
                   style={{
                     width: 32, height: 32, borderRadius: 8,
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -2784,7 +2784,7 @@ function GroupPermissionsPanel({ groupId, currentGroup }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 700 }}>Standard-Berechtigungen</div>
           <div style={{ fontSize: 11, opacity: 0.65, marginTop: 1 }}>
-            {activeCount}/{PERMISSION_DEFS.length} aktiv &middot; gilt fuer Mitglieder ohne eigene Rolle
+            {activeCount}/{PERMISSION_DEFS.length} aktiv &middot; gilt für Mitglieder ohne eigene Rolle
           </div>
         </div>
         <ChevronDown size={16} style={{
@@ -2823,7 +2823,7 @@ function GroupCustomRolesPanel({ groupId, currentGroup }) {
 
   // Synthetische "Standard"-Rolle aus group.member_permissions. Wird genau
   // wie eine Custom-Rolle dargestellt, ist aber nicht loeschbar/umbenennbar
-  // und persistiert via PUT /permissions. Gilt fuer alle Member ohne
+  // und persistiert via PUT /permissions. Gilt für alle Member ohne
   // custom_role_id (siehe getEffectivePerms im Server).
   const defaultRole = {
     id: '__default__',
@@ -2907,13 +2907,13 @@ function GroupCustomRolesPanel({ groupId, currentGroup }) {
               onToggle={() => setEditingId(editingId === role.id ? null : role.id)}
               onUpdate={(data) => updateCustomRole(groupId, role.id, data)}
               onDelete={async () => {
-                if (!window.confirm(`Rolle "${role.name}" wirklich loeschen? Zugewiesene Mitglieder fallen auf Standard zurueck.`)) return;
+                if (!window.confirm(`Rolle "${role.name}" wirklich löschen? Zugewiesene Mitglieder fallen auf Standard zurück.`)) return;
                 try {
                   await deleteCustomRole(groupId, role.id);
                   setEditingId(null);
-                  addToast('Rolle geloescht');
+                  addToast('Rolle gelöscht');
                 } catch (err) {
-                  addToast(err?.message || 'Loeschen fehlgeschlagen');
+                  addToast(err?.message || 'Löschen fehlgeschlagen');
                 }
               }}
             />
@@ -3062,7 +3062,7 @@ function CustomRoleRow({ role, expanded, onToggle, onUpdate, onDelete, isDefault
               background: 'rgba(0,122,255,0.08)', color: 'var(--text-secondary, #555)',
               lineHeight: 1.45,
             }}>
-              Diese Berechtigungen gelten fuer alle Mitglieder, die keine eigene Rolle zugewiesen bekommen.
+              Diese Berechtigungen gelten für alle Mitglieder, die keine eigene Rolle zugewiesen bekommen.
             </div>
           )}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
@@ -3089,7 +3089,7 @@ function CustomRoleRow({ role, expanded, onToggle, onUpdate, onDelete, isDefault
                   border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
                 }}
               >
-                <Trash2 size={12} /> Rolle loeschen
+                <Trash2 size={12} /> Rolle löschen
               </button>
             </div>
           )}
