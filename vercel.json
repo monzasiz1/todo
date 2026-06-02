@@ -8,6 +8,15 @@
     },
     "api/billing.js": {
       "includeFiles": "node_modules/stripe/**"
+    },
+    "api/cron/notifications.js": {
+      "includeFiles": "node_modules/firebase-admin/**"
+    },
+    "api/notifications.js": {
+      "includeFiles": "node_modules/firebase-admin/**"
+    },
+    "api/tasks.js": {
+      "includeFiles": "node_modules/firebase-admin/**"
     }
   },
   "crons": [
