@@ -98,8 +98,10 @@ async function registerNativePush(set) {
   if (!isNativeCapacitorApp()) return false;
   try {
     const { PushNotifications } = await import('@capacitor/push-notifications');
+    set({ nativePushError: null });
     const permission = await PushNotifications.requestPermissions();
     if (permission?.receive !== 'granted') {
+      set({ nativePushError: 'Berechtigung verweigert (receive=' + (permission?.receive || '?') + ')' });
       return false;
     }
 
@@ -111,18 +113,22 @@ async function registerNativePush(set) {
         if (!token) return;
 
         setNativePushToken(token);
-        set({ subscribed: true });
+        set({ subscribed: true, nativePushToken: token, nativePushError: null });
 
         try {
           await api.subscribePush({ platform: window.Capacitor.getPlatform(), token, device_info: navigator.userAgent });
           console.log('[NotificationStore] Native push token registered with backend');
         } catch (err) {
           console.error('[NotificationStore] Native push registration failed:', err);
+          try { set({ nativePushError: 'Backend: ' + (err?.message || String(err)) }); } catch { /* ignore */ }
         }
       });
 
       PushNotifications.addListener('registrationError', (error) => {
         console.error('[NotificationStore] Native push registration error:', error);
+        try {
+          set({ nativePushError: String((error && (error.error || error.message)) || JSON.stringify(error)) });
+        } catch { /* ignore */ }
       });
 
       PushNotifications.addListener('pushNotificationReceived', (notification) => {
@@ -138,6 +144,7 @@ async function registerNativePush(set) {
     return true;
   } catch (err) {
     console.error('[NotificationStore] registerNativePush error:', err);
+    try { set({ nativePushError: 'register(): ' + (err?.message || String(err)) }); } catch { /* ignore */ }
     return false;
   }
 }
@@ -148,6 +155,7 @@ const useNotificationStore = create((set, get) => ({
   ...(notifCached || {}),
   permission: typeof Notification !== 'undefined' ? Notification.permission : 'denied',
   nativePushToken: getNativePushToken(),
+  nativePushError: null,
   subscribed: notifCached?.subscribed ?? false,
   notifications: notifCached?.notifications ?? [],
   loading: false,

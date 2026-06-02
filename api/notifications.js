@@ -268,7 +268,8 @@ module.exports = async function handler(req, res) {
       const prefs = userRows[0]?.notification_prefs || { reminder: true, daily_tasks: true, engagement: true, team_task: true, group_message: true };
       return res.json({ subscribed: (parseInt(webSubRows[0].count) + parseInt(mobileSubRows[0].count)) > 0, prefs });
     } catch (err) {
-      return res.status(500).json({ error: 'Fehler' });
+      console.error('[notifications/status] failed:', err);
+      return res.status(500).json({ error: 'Fehler', details: err.message });
     }
   }
 

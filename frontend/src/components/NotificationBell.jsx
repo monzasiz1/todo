@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, BellRing, X, Clock, Users, CheckCircle2, Sparkles, Settings, ArrowLeft, RefreshCw, AlertCircle, Wifi, WifiOff } from 'lucide-react';
 import { useNotificationStore } from '../store/notificationStore';
+import { api } from '../utils/api';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 
@@ -38,7 +39,7 @@ function getTarget(notification) {
 
 export default function NotificationBell() {
   const {
-    permission, subscribed, notifications, prefs, loading, nativePushToken,
+    permission, subscribed, notifications, prefs, loading, nativePushToken, nativePushError,
     subscribe, unsubscribe, fetchLog, checkStatus, updatePref, updatePrefsBatch,
     deleteNotification, clearAllNotifications, markAsSeen, getUnseenNotifications
   } = useNotificationStore();
@@ -47,6 +48,7 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState('list');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [testState, setTestState] = useState({ status: 'idle', msg: '' }); // idle | sending | done | error
   const [pos, setPos] = useState(null);
   const ref = useRef(null);
   const dropdownRef = useRef(null);
@@ -154,6 +156,21 @@ export default function NotificationBell() {
       }
     }
   };
+  const handleTestPush = async () => {
+    setTestState({ status: 'sending', msg: '' });
+    try {
+      const res = await api.sendTestNotification({});
+      const sent = typeof res?.sent === 'number' ? res.sent : null;
+      if (sent === 0) {
+        setTestState({ status: 'error', msg: 'Server hat 0 Geräte erreicht. Push aktiviert? (Token muss serverseitig gespeichert sein.)' });
+      } else {
+        setTestState({ status: 'done', msg: sent != null ? `Gesendet an ${sent} Gerät(e). Sollte gleich ankommen.` : 'Test-Push ausgelöst. Sollte gleich ankommen.' });
+      }
+    } catch (err) {
+      setTestState({ status: 'error', msg: err?.message || 'Senden fehlgeschlagen' });
+    }
+    setTimeout(() => setTestState((s) => (s.status === 'sending' ? s : { status: 'idle', msg: '' })), 6000);
+  };
   const handleToggleSetting = async (setting) => {
     const prefKeys = Array.isArray(setting.prefKeys) ? setting.prefKeys : [setting.key];
     const isEnabled = prefKeys.every(k => prefs[k] !== false);
@@ -240,6 +257,7 @@ export default function NotificationBell() {
                   <div>Web-permission: {String(permission)}</div>
                   <div>subscribed: {String(subscribed)}</div>
                   <div>FCM-Token: {nativePushToken ? 'vorhanden' : '—'}</div>
+                  <div style={{ color: nativePushError ? '#FF6B6B' : undefined }}>Fehler: {nativePushError || '—'}</div>
                   <div>Origin: {typeof window !== 'undefined' ? window.location.origin : '—'}</div>
                 </div>
                 <div className="notif-master">
@@ -254,6 +272,26 @@ export default function NotificationBell() {
                     <span className="notif-toggle-knob" />
                   </button>
                 </div>
+                {/* Test-Push: prüft die Zustellung über ALLE registrierten Dienste (Web + Mobile) */}
+                <button
+                  type="button"
+                  onClick={handleTestPush}
+                  disabled={testState.status === 'sending'}
+                  style={{
+                    width: '100%', marginBottom: 8, padding: '10px 12px', borderRadius: 10,
+                    border: '1px solid var(--border, rgba(0,122,255,0.25))', background: 'rgba(0,122,255,0.10)',
+                    color: 'var(--text)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  }}
+                >
+                  <Bell size={15} />
+                  {testState.status === 'sending' ? 'Sende Test…' : 'Test-Benachrichtigung senden'}
+                </button>
+                {testState.msg && (
+                  <div style={{ fontSize: 11, marginBottom: 12, color: testState.status === 'error' ? '#FF6B6B' : '#34C759' }}>
+                    {testState.msg}
+                  </div>
+                )}
                 <div className="notif-types-label">Benachrichtigungstypen</div>
                 {SETTINGS_CONFIG.map(cfg => {
                   const Icon = cfg.icon;

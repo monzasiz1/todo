@@ -261,6 +261,55 @@ async function runSchemaInit(rawQuery) {
   }
 }
 
+// Kritische Tabellen/Spalten, die für Push/Benachrichtigungen IMMER existieren
+// müssen — auch in Produktion, wo die volle runSchemaInit() aus Performance-
+// Gründen abgeschaltet ist. Alle Statements sind idempotent (IF NOT EXISTS) und
+// laufen einmalig pro Function-Instance, bevor irgendeine Query ausgeführt wird.
+const CRITICAL_SCHEMA_STATEMENTS = [
+  `CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      endpoint TEXT NOT NULL,
+      keys_p256dh TEXT NOT NULL,
+      keys_auth TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(user_id, endpoint)
+    )`,
+  `CREATE TABLE IF NOT EXISTS mobile_push_subscriptions (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      platform TEXT NOT NULL,
+      token TEXT NOT NULL,
+      device_info TEXT DEFAULT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(user_id, platform, token)
+    )`,
+  `CREATE TABLE IF NOT EXISTS notification_log (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      type TEXT NOT NULL,
+      task_id INTEGER REFERENCES tasks(id) ON DELETE SET NULL,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      sent_at TIMESTAMPTZ DEFAULT NOW()
+    )`,
+  `CREATE INDEX IF NOT EXISTS idx_push_sub_user ON push_subscriptions(user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_mobile_push_user ON mobile_push_subscriptions(user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_notif_log_user_type ON notification_log(user_id, type, sent_at)`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ DEFAULT NOW()`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS notification_prefs JSONB DEFAULT '{"reminder":true,"daily_tasks":true,"engagement":true,"team_task":true,"group_message":true}'::jsonb`,
+];
+
+async function ensureCriticalSchema(rawQuery) {
+  for (const sql of CRITICAL_SCHEMA_STATEMENTS) {
+    try {
+      await rawQuery(sql);
+    } catch (err) {
+      console.warn('[db] critical schema statement failed:', err.message);
+    }
+  }
+}
+
 function getPool() {
   if (!pool) {
     if (!process.env.DATABASE_URL) {
@@ -303,9 +352,16 @@ function getPool() {
 
     const originalQuery = pool.query.bind(pool);
 
-    // In production this is off by default to avoid extra DB load on cold starts.
-    if (shouldRunSchemaInit() && !schemaInitPromise) {
-      schemaInitPromise = runSchemaInit(originalQuery).catch((err) => {
+    // Kritisches Notif-/Push-Schema läuft IMMER (auch Prod), die volle
+    // runSchemaInit nur außerhalb der Produktion. pool.query wartet unten auf
+    // schemaInitPromise, sodass die Push-Tabellen vor jeder Query existieren.
+    if (!schemaInitPromise) {
+      schemaInitPromise = (async () => {
+        await ensureCriticalSchema(originalQuery);
+        if (shouldRunSchemaInit()) {
+          await runSchemaInit(originalQuery);
+        }
+      })().catch((err) => {
         console.warn('[db] schema initialization failed:', err.message);
       });
     }
