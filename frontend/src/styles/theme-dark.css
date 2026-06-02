@@ -88,6 +88,16 @@ html[data-theme="dark"] textarea::placeholder {
 html[data-theme="dark"] hr {
   border-color: var(--border);
 }
+/* Profil-Eingabefelder (Passwort ändern, Account löschen) haben einen hart
+   codierten weißen Hintergrund (.pv2-field/.profile-field input). Im Dark-Mode
+   wäre das heller Text auf Weiß = unsichtbar. Hier dunkler Feldhintergrund. */
+html[data-theme="dark"] .pv2-field input,
+html[data-theme="dark"] .profile-field input,
+html[data-theme="dark"] .profile-password-wrap input {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text);
+}
 
 /* ── Scrollbar (WebKit/Chromium) ───────────────────────────────────── */
 html[data-theme="dark"] *::-webkit-scrollbar {
@@ -146,7 +156,7 @@ html[data-theme="dark"] [class*="modal-overlay"] {
 html[data-theme="dark"] button:not([class]),
 html[data-theme="dark"] .btn-secondary,
 html[data-theme="dark"] .btn-ghost {
-  background: var(--surface-2);
+
   color: var(--text);
   border-color: var(--border);
 }
