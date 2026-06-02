@@ -10,7 +10,6 @@ import {
 } from 'lucide-react';
 import { PLANS } from '../lib/plans';
 import { useAuthStore } from '../store/authStore';
-import BeeMascot from '../components/BeeMascot';
 import '../styles/landing-v2.css';
 
 /* ─────────────── data (preserved verbatim) ─────────────── */
@@ -261,8 +260,7 @@ export default function LandingPage() {
   // hero parallax: tilt frame slightly with scroll
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
-  const frameY = useTransform(scrollYProgress, [0, 1], [0, -60]);
-  const frameRot = useTransform(scrollYProgress, [0, 1], [0, 6]);
+  const frameY = useTransform(scrollYProgress, [0, 1], [0, -50]);
 
   const openRegister = () => { setShowLogin(false); setShowRegister(true); };
   const openLogin = () => { setShowRegister(false); setShowLogin(true); };
@@ -396,99 +394,81 @@ export default function LandingPage() {
 
       {/* ══════════ HERO ══════════ */}
       <header className="lp-hero" ref={heroRef}>
-        <div className="lp-hero-inner">
-          {/* Left — kinetic copy + live parser */}
-          <motion.div
-            initial="hidden" animate="visible"
-            variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
-          >
-            <motion.span className="lp-eyebrow" variants={fadeUp}>
-              <span className="lp-live-dot" /> BeeQu · jetzt verfügbar
-            </motion.span>
+        <div className="lp-hero-aura" aria-hidden />
 
-            <motion.h1 className="lp-hero-h1" variants={fadeUp}>
-              <span className="lp-stroke">Sag, was ansteht.</span>
-              <span className="lp-stroke lp-hero-accent">BeeQu erledigt den Rest.</span>
-            </motion.h1>
+        <motion.div
+          className="lp-hero-center"
+          initial="hidden" animate="visible"
+          variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
+        >
+          <motion.span className="lp-eyebrow" variants={fadeUp}>
+            <span className="lp-live-dot" /> KI-Planer für Aufgaben, Kalender &amp; Teams
+          </motion.span>
 
-            <motion.p className="lp-hero-sub" variants={fadeUp}>
-              Aufgaben, Kalender, Notizen und Team-Arbeit in einer App —
-              mit einer KI, die deine Sprache versteht und Aufgaben automatisch anlegt.
-            </motion.p>
+          <motion.h1 className="lp-hero-h1" variants={fadeUp}>
+            Sag, was ansteht.<br />
+            <span className="lp-hero-accent">Der Rest passiert von selbst.</span>
+          </motion.h1>
 
-            {/* Live AI parser terminal */}
-            <motion.div className="lp-parser" variants={fadeUp}>
-              <div className="lp-parser-bar"><Sparkles size={13} /> KI-Texteingabe · live</div>
-              <div className="lp-parser-line">
-                <span className="lp-parser-prompt">›</span>
-                <span>Sprint-Review Freitag 10 Uhr, hohe Prio</span>
-                <span className="lp-parser-caret" aria-hidden />
-              </div>
-              <div className="lp-parser-tags">
-                <span className="lp-tag lp-tag-title"><Tag /> Sprint-Review</span>
-                <span className="lp-tag lp-tag-date"><CalendarDays /> Freitag</span>
-                <span className="lp-tag lp-tag-time"><Clock /> 10:00</span>
-                <span className="lp-tag lp-tag-cat">Produkt</span>
-                <span className="lp-tag lp-tag-prio"><Flag /> Hoch</span>
-              </div>
-            </motion.div>
+          <motion.p className="lp-hero-sub" variants={fadeUp}>
+            BeeQu vereint Aufgaben, Kalender, Notizen und Team-Arbeit in einer App —
+            mit einer KI, die deine Sprache versteht und alles automatisch anlegt.
+          </motion.p>
 
-            <motion.div className="lp-hero-actions" variants={fadeUp}>
-              <button onClick={openRegister} className="lp-btn lp-primary lp-btn-lg">
-                Kostenlos starten <ArrowRight size={17} />
-              </button>
-              <a href="/api/download?platform=windows" className="lp-btn lp-ghost lp-btn-lg">
-                <Download size={17} /> Desktop-App
-              </a>
-            </motion.div>
-
-            <motion.div className="lp-hero-trust" variants={fadeUp}>
-              <span><Check size={13} strokeWidth={3} /> Keine Kreditkarte</span>
-              <span><Check size={13} strokeWidth={3} /> Free-Plan inklusive</span>
-              <a href="/api/download?platform=windows"><Download size={13} strokeWidth={3} /> .exe für Windows</a>
-            </motion.div>
+          <motion.div className="lp-hero-actions" variants={fadeUp}>
+            <button onClick={openRegister} className="lp-btn lp-primary lp-btn-lg">
+              Kostenlos starten <ArrowRight size={17} />
+            </button>
+            <button onClick={openLogin} className="lp-btn lp-ghost lp-btn-lg">
+              Anmelden
+            </button>
           </motion.div>
 
-          {/* Right — tilted parallax product frame */}
-          <div className="lp-hero-stage">
-            <Honeycomb className="lp-hero-hex" />
-            <BeeMascot variant="gold" size={92} pose="happy" className="lp-hero-bee" />
-            <motion.div
-              className="lp-frame"
-              style={{ y: frameY, rotateZ: frameRot }}
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.3, ease }}
-            >
-              <div className="lp-frame-chrome">
-                <span className="lp-dot" style={{ background: '#FF5F57' }} />
-                <span className="lp-dot" style={{ background: '#FEBC2E' }} />
-                <span className="lp-dot" style={{ background: '#28C840' }} />
-                <span className="lp-frame-url"><b>●</b> beequ.app/dashboard</span>
-              </div>
-              <div className="lp-frame-screen">
-                <img src="/bilder/dashboard.png" alt="BeeQu Dashboard" draggable={false} loading="eager" />
-              </div>
-            </motion.div>
+          <motion.div className="lp-hero-trust" variants={fadeUp}>
+            <span><Check size={13} strokeWidth={3} /> Keine Kreditkarte</span>
+            <span><Check size={13} strokeWidth={3} /> Free-Plan inklusive</span>
+            <span><Check size={13} strokeWidth={3} /> DSGVO-konform</span>
+          </motion.div>
+        </motion.div>
 
-            <motion.div
-              className="lp-orbit lp-orbit-a"
-              initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.7, ease }}
-            >
-              <span className="lp-orbit-icon" style={{ background: 'rgba(52,199,89,0.16)', color: '#34C759' }}><CheckCircle2 size={18} /></span>
-              <span><strong>Aufgabe erstellt</strong><small>aus 1 Satz · 0,4 s</small></span>
-            </motion.div>
-            <motion.div
-              className="lp-orbit lp-orbit-b"
-              initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.9, ease }}
-            >
-              <span className="lp-orbit-icon" style={{ background: 'rgba(0,122,255,0.16)', color: '#4DA3FF' }}><Bell size={18} /></span>
-              <span><strong>Erinnerung gesetzt</strong><small>Fr · 09:45</small></span>
-            </motion.div>
+        {/* Produkt-Showcase (zentriert, darunter) */}
+        <motion.div
+          className="lp-hero-showcase"
+          style={{ y: frameY }}
+          initial={{ opacity: 0, y: 60 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.25, ease }}
+        >
+          <div className="lp-showcase-glow" aria-hidden />
+          <div className="lp-browser">
+            <div className="lp-browser-chrome">
+              <span className="lp-dot" style={{ background: '#FF5F57' }} />
+              <span className="lp-dot" style={{ background: '#FEBC2E' }} />
+              <span className="lp-dot" style={{ background: '#28C840' }} />
+              <span className="lp-browser-url"><b>●</b> beequ.de/app</span>
+            </div>
+            <div className="lp-browser-screen">
+              <img src="/bilder/dashboard.png" alt="BeeQu Dashboard" draggable={false} loading="eager" />
+            </div>
           </div>
-        </div>
+
+          <motion.div
+            className="lp-float lp-float-a"
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.7, ease }}
+          >
+            <span className="lp-float-icon" style={{ background: 'rgba(52,199,89,0.16)', color: '#34C759' }}><CheckCircle2 size={18} /></span>
+            <span><strong>Aufgabe erstellt</strong><small>aus 1 Satz · 0,4 s</small></span>
+          </motion.div>
+          <motion.div
+            className="lp-float lp-float-b"
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.9, ease }}
+          >
+            <span className="lp-float-icon" style={{ background: 'rgba(0,122,255,0.16)', color: '#4DA3FF' }}><Bell size={18} /></span>
+            <span><strong>Erinnerung gesetzt</strong><small>Fr · 09:45</small></span>
+          </motion.div>
+        </motion.div>
       </header>
 
       {/* ══════════ MARQUEE STRIP ══════════ */}
@@ -721,7 +701,6 @@ export default function LandingPage() {
             <motion.div className="lp-climate-mega-wrap" variants={fadeUp}>
               <div className="lp-climate-mega">1%</div>
               <div className="lp-climate-mega-sub">jedes Pro- &amp; Team-Abos</div>
-              <BeeMascot variant="blue" size={64} pose="wink" style={{ marginTop: 18 }} />
             </motion.div>
 
             <div>
