@@ -118,6 +118,19 @@ const fadeUp = {
   visible: (i = 0) => ({ opacity: 1, y: 0, transition: { delay: i * 0.07, duration: 0.5, ease } }),
 };
 
+// Hero: lebende Tages-Agenda (echtes UI, kein Screenshot) — Einträge laufen nacheinander ein.
+const heroAgenda = [
+  { time: '09:00', title: 'Standup',         tag: 'täglich',     icon: Repeat,       accent: '#5856D6' },
+  { time: '11:30', title: 'Sprint-Review',   tag: 'erinnert',    icon: Bell,         accent: '#007AFF' },
+  { time: '13:00', title: 'Mittag mit Anna', tag: 'geteilt',     icon: UsersRound,   accent: '#34C759' },
+  { time: '16:25', title: 'Zahnarzt',        tag: 'Gesundheit',  icon: CheckCircle2, accent: '#00C7BE' },
+  { time: '18:30', title: 'Workout',         tag: 'wöchentlich', icon: Repeat,       accent: '#FF9500' },
+];
+const agendaItem = {
+  hidden:  { opacity: 0, x: 26, scale: 0.98 },
+  visible: { opacity: 1, x: 0, scale: 1, transition: { duration: 0.45, ease } },
+};
+
 /* ─────────────── shared honeycomb signature ─────────────── */
 function Honeycomb({ className = '', a = 'rgba(0,122,255,0.16)', b = 'rgba(88,86,214,0.14)' }) {
   return (
@@ -392,83 +405,90 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* ══════════ HERO ══════════ */}
+      {/* ══════════ HERO — lebende Tages-Agenda ══════════ */}
       <header className="lp-hero" ref={heroRef}>
         <div className="lp-hero-aura" aria-hidden />
 
-        <motion.div
-          className="lp-hero-center"
-          initial="hidden" animate="visible"
-          variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
-        >
-          <motion.span className="lp-eyebrow" variants={fadeUp}>
-            <span className="lp-live-dot" /> KI-Planer für Aufgaben, Kalender &amp; Teams
-          </motion.span>
-
-          <motion.h1 className="lp-hero-h1" variants={fadeUp}>
-            Sag, was ansteht.<br />
-            <span className="lp-hero-accent">Der Rest passiert von selbst.</span>
-          </motion.h1>
-
-          <motion.p className="lp-hero-sub" variants={fadeUp}>
-            BeeQu vereint Aufgaben, Kalender, Notizen und Team-Arbeit in einer App —
-            mit einer KI, die deine Sprache versteht und alles automatisch anlegt.
-          </motion.p>
-
-          <motion.div className="lp-hero-actions" variants={fadeUp}>
-            <button onClick={openRegister} className="lp-btn lp-primary lp-btn-lg">
-              Kostenlos starten <ArrowRight size={17} />
-            </button>
-            <button onClick={openLogin} className="lp-btn lp-ghost lp-btn-lg">
-              Anmelden
-            </button>
-          </motion.div>
-
-          <motion.div className="lp-hero-trust" variants={fadeUp}>
-            <span><Check size={13} strokeWidth={3} /> Keine Kreditkarte</span>
-            <span><Check size={13} strokeWidth={3} /> Free-Plan inklusive</span>
-            <span><Check size={13} strokeWidth={3} /> DSGVO-konform</span>
-          </motion.div>
-        </motion.div>
-
-        {/* Produkt-Showcase (zentriert, darunter) */}
-        <motion.div
-          className="lp-hero-showcase"
-          style={{ y: frameY }}
-          initial={{ opacity: 0, y: 60 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.25, ease }}
-        >
-          <div className="lp-showcase-glow" aria-hidden />
-          <div className="lp-browser">
-            <div className="lp-browser-chrome">
-              <span className="lp-dot" style={{ background: '#FF5F57' }} />
-              <span className="lp-dot" style={{ background: '#FEBC2E' }} />
-              <span className="lp-dot" style={{ background: '#28C840' }} />
-              <span className="lp-browser-url"><b>●</b> beequ.de/app</span>
-            </div>
-            <div className="lp-browser-screen">
-              <img src="/bilder/dashboard.png" alt="BeeQu Dashboard" draggable={false} loading="eager" />
-            </div>
-          </div>
-
+        <div className="lp-hero-grid">
+          {/* Copy */}
           <motion.div
-            className="lp-float lp-float-a"
-            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.7, ease }}
+            className="lp-hero-copy"
+            initial="hidden" animate="visible"
+            variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
           >
-            <span className="lp-float-icon" style={{ background: 'rgba(52,199,89,0.16)', color: '#34C759' }}><CheckCircle2 size={18} /></span>
-            <span><strong>Aufgabe erstellt</strong><small>aus 1 Satz · 0,4 s</small></span>
+            <motion.span className="lp-eyebrow" variants={fadeUp}>
+              <span className="lp-live-dot" /> KI-Planer für Aufgaben, Kalender &amp; Teams
+            </motion.span>
+
+            <motion.h1 className="lp-hero-h1" variants={fadeUp}>
+              Dein Tag,<br />
+              <span className="lp-hero-accent">automatisch sortiert.</span>
+            </motion.h1>
+
+            <motion.p className="lp-hero-sub" variants={fadeUp}>
+              Schreib in einem Satz, was ansteht — BeeQu erkennt Datum, Uhrzeit,
+              Kategorie, Ort und Erinnerung und legt alles an die richtige Stelle.
+            </motion.p>
+
+            <motion.div className="lp-hero-actions" variants={fadeUp}>
+              <button onClick={openRegister} className="lp-btn lp-primary lp-btn-lg">
+                Kostenlos starten <ArrowRight size={17} />
+              </button>
+              <button onClick={openLogin} className="lp-btn lp-ghost lp-btn-lg">
+                Anmelden
+              </button>
+            </motion.div>
+
+            <motion.div className="lp-hero-trust" variants={fadeUp}>
+              <span><Check size={13} strokeWidth={3} /> Keine Kreditkarte</span>
+              <span><Check size={13} strokeWidth={3} /> Free-Plan inklusive</span>
+              <span><Check size={13} strokeWidth={3} /> DSGVO-konform</span>
+            </motion.div>
           </motion.div>
+
+          {/* Lebende Agenda */}
           <motion.div
-            className="lp-float lp-float-b"
-            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.9, ease }}
+            className="lp-agenda"
+            style={{ y: frameY }}
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.15, ease }}
           >
-            <span className="lp-float-icon" style={{ background: 'rgba(0,122,255,0.16)', color: '#4DA3FF' }}><Bell size={18} /></span>
-            <span><strong>Erinnerung gesetzt</strong><small>Fr · 09:45</small></span>
+            <div className="lp-agenda-glow" aria-hidden />
+            <div className="lp-agenda-head">
+              <div className="lp-agenda-head-l">
+                <span className="lp-agenda-day">Mittwoch</span>
+                <span className="lp-agenda-date">heute · 5 Einträge</span>
+              </div>
+              <span className="lp-agenda-badge"><Sparkles size={13} /> von BeeQu sortiert</span>
+            </div>
+
+            <motion.div
+              className="lp-agenda-list"
+              initial="hidden" animate="visible"
+              variants={{ visible: { transition: { delayChildren: 0.5, staggerChildren: 0.16 } } }}
+            >
+              {heroAgenda.map((it) => {
+                const Icon = it.icon;
+                return (
+                  <motion.div
+                    key={it.title}
+                    className="lp-agenda-item"
+                    variants={agendaItem}
+                    style={{ '--lp-ac': it.accent }}
+                  >
+                    <span className="lp-agenda-time">{it.time}</span>
+                    <span className="lp-agenda-rail" aria-hidden />
+                    <div className="lp-agenda-body">
+                      <span className="lp-agenda-title">{it.title}</span>
+                      <span className="lp-agenda-chip"><Icon size={12} /> {it.tag}</span>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </motion.div>
           </motion.div>
-        </motion.div>
+        </div>
       </header>
 
       {/* ══════════ MARQUEE STRIP ══════════ */}

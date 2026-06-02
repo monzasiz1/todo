@@ -234,28 +234,29 @@
    ============================================================ */
 .lp-hero {
   position: relative;
-  padding: 76px 0 96px;
+  padding: 72px 0 96px;
   z-index: 1;
   overflow: hidden;
-  text-align: center;
 }
 .lp-hero-aura {
-  position: absolute; left: 50%; top: -120px; transform: translateX(-50%);
-  width: min(1100px, 120vw); height: 640px; z-index: -1; pointer-events: none;
+  position: absolute; left: 50%; top: -140px; transform: translateX(-50%);
+  width: min(1200px, 130vw); height: 680px; z-index: -1; pointer-events: none;
   background:
-    radial-gradient(46% 60% at 50% 0%, rgba(0,122,255,0.24), transparent 70%),
-    radial-gradient(40% 55% at 72% 22%, rgba(88,86,214,0.20), transparent 72%),
-    radial-gradient(36% 50% at 26% 26%, rgba(0,199,190,0.12), transparent 72%);
-  filter: blur(8px);
+    radial-gradient(42% 58% at 32% 4%, rgba(0,122,255,0.22), transparent 70%),
+    radial-gradient(42% 55% at 78% 18%, rgba(88,86,214,0.22), transparent 72%),
+    radial-gradient(34% 48% at 60% 40%, rgba(0,199,190,0.12), transparent 72%);
+  filter: blur(10px);
 }
-.lp-hero-center {
-  max-width: 880px;
+.lp-hero-grid {
+  max-width: var(--lp-maxw);
   margin: 0 auto;
-  padding: 0 24px;
-  display: flex;
-  flex-direction: column;
+  padding: 0 28px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 480px);
+  gap: 56px;
   align-items: center;
 }
+.lp-hero-copy { display: flex; flex-direction: column; align-items: flex-start; }
 
 .lp-eyebrow {
   display: inline-flex;
@@ -288,15 +289,15 @@
   color: transparent;
 }
 .lp-hero-sub {
-  margin: 22px auto 0;
-  max-width: 36em;
+  margin-top: 22px;
+  max-width: 34em;
   font-size: clamp(1.02rem, 1.4vw, 1.2rem);
   color: var(--lp-muted);
 }
 
-.lp-hero-actions { margin-top: 32px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.lp-hero-actions { margin-top: 32px; display: flex; flex-wrap: wrap; gap: 12px; }
 
-.lp-hero-trust { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 18px; font-size: 0.85rem; color: var(--lp-faint); justify-content: center; }
+.lp-hero-trust { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 18px; font-size: 0.85rem; color: var(--lp-faint); }
 .lp-hero-trust span, .lp-hero-trust a { display: inline-flex; align-items: center; gap: 6px; }
 .lp-hero-trust svg { color: var(--lp-green); }
 .lp-hero-trust a { color: var(--lp-muted); transition: color 0.2s; }
@@ -347,67 +348,62 @@
 .lp-tag-cat   { background: rgba(88,86,214,0.16); border-color: rgba(88,86,214,0.45); color: var(--lp-violet-2); }
 .lp-tag-prio  { background: rgba(255,69,58,0.14); border-color: rgba(255,69,58,0.42); color: #ff7a70; }
 
-/* ── Produkt-Showcase (zentriert, unter dem Statement) ── */
-.lp-hero-showcase {
+/* ── Lebende Tages-Agenda (Hero, echtes UI – kein Screenshot) ── */
+.lp-agenda {
   position: relative;
-  max-width: 1040px;
-  margin: 64px auto 0;
-  padding: 0 24px;
+  border-radius: 22px;
+  border: 1px solid var(--lp-line);
+  background: linear-gradient(180deg, rgba(18,24,40,0.94), rgba(10,14,24,0.94));
+  box-shadow: 0 60px 130px -50px rgba(0,0,0,0.95), inset 0 1px 0 rgba(255,255,255,0.06);
+  padding: 20px 22px 8px;
+  backdrop-filter: blur(8px);
 }
-.lp-showcase-glow {
-  position: absolute; left: 8%; right: 8%; top: -6%; height: 72%; z-index: -1;
-  background: radial-gradient(58% 70% at 50% 28%, rgba(0,122,255,0.32), rgba(88,86,214,0.18) 46%, transparent 72%);
-  filter: blur(55px); opacity: 0.85; pointer-events: none;
+.lp-agenda-glow {
+  position: absolute; inset: -1px; z-index: -1; border-radius: 24px;
+  background: linear-gradient(140deg, rgba(0,122,255,0.55), rgba(88,86,214,0.4) 45%, transparent 70%);
+  filter: blur(26px); opacity: 0.5; pointer-events: none;
 }
-.lp-browser {
-  position: relative;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(12,16,28,0.72);
-  box-shadow: 0 60px 130px -45px rgba(0,0,0,0.95), 0 0 0 1px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.07);
-  overflow: hidden;
-}
-.lp-browser-chrome {
-  display: flex; align-items: center; gap: 7px;
-  padding: 12px 16px;
-  background: rgba(255,255,255,0.04);
+.lp-agenda-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding-bottom: 14px; margin-bottom: 4px;
   border-bottom: 1px solid var(--lp-line-soft);
 }
+.lp-agenda-head-l { display: flex; flex-direction: column; }
+.lp-agenda-day { font-size: 1.15rem; font-weight: 800; letter-spacing: -0.02em; }
+.lp-agenda-date { font-size: 0.8rem; color: var(--lp-faint); margin-top: 2px; }
+.lp-agenda-badge {
+  flex: none;
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.72rem; font-weight: 600; color: var(--lp-blue-2);
+  padding: 6px 11px; border-radius: 999px;
+  background: rgba(0,122,255,0.1); border: 1px solid rgba(0,122,255,0.28);
+}
+.lp-agenda-list { display: flex; flex-direction: column; }
+.lp-agenda-item {
+  display: grid;
+  grid-template-columns: 50px 12px minmax(0, 1fr);
+  align-items: center; gap: 13px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--lp-line-soft);
+}
+.lp-agenda-item:last-child { border-bottom: 0; }
+.lp-agenda-time { font-family: 'Space Grotesk', monospace; font-size: 0.82rem; color: var(--lp-muted); text-align: right; }
+.lp-agenda-rail {
+  width: 11px; height: 11px; border-radius: 50%;
+  background: var(--lp-ac, #007AFF);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--lp-ac, #007AFF) 20%, transparent);
+}
+.lp-agenda-body { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; }
+.lp-agenda-title { font-size: 0.98rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lp-agenda-chip {
+  flex: none;
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 0.72rem; font-weight: 600; color: var(--lp-ac, #007AFF);
+  padding: 4px 9px; border-radius: 999px;
+  background: color-mix(in srgb, var(--lp-ac, #007AFF) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--lp-ac, #007AFF) 34%, transparent);
+}
 .lp-dot { width: 11px; height: 11px; border-radius: 50%; }
-.lp-browser-url {
-  margin-left: 12px;
-  display: inline-flex; align-items: center; gap: 7px;
-  font-family: 'Space Grotesk', monospace;
-  font-size: 0.78rem; color: var(--lp-muted);
-  background: rgba(0,0,0,0.3);
-  padding: 6px 14px; border-radius: 999px;
-}
-.lp-browser-url b { color: var(--lp-green); font-size: 0.6rem; }
-.lp-browser-screen { position: relative; aspect-ratio: 16 / 10; background: #0a0e18; }
-.lp-browser-screen img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top center; }
-
-/* schwebende Glas-Karten am Showcase */
-.lp-float {
-  position: absolute;
-  z-index: 3;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: rgba(13,17,30,0.88);
-  backdrop-filter: blur(14px);
-  border: 1px solid var(--lp-line);
-  border-radius: 14px;
-  padding: 11px 14px;
-  font-size: 0.82rem;
-  box-shadow: 0 24px 60px -28px rgba(0,0,0,0.9);
-  animation: lp-float 6s ease-in-out infinite;
-}
-.lp-float-icon { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; flex: none; }
-.lp-float strong { display: block; font-size: 0.86rem; }
-.lp-float small { color: var(--lp-muted); font-size: 0.72rem; }
-.lp-float-a { top: 16%; left: -2%; animation-delay: 0s; }
-.lp-float-b { bottom: 14%; right: -2%; animation-delay: 1.4s; }
-@keyframes lp-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
 
 /* ── logo strip / trust marquee ── */
 .lp-marquee {
@@ -901,7 +897,8 @@
    RESPONSIVE
    ============================================================ */
 @media (max-width: 1080px) {
-  .lp-hero-showcase { margin-top: 48px; }
+  .lp-hero-grid { grid-template-columns: 1fr; gap: 40px; }
+  .lp-agenda { max-width: 520px; }
   .lp-phone-stage { grid-template-columns: 1fr; gap: 36px; justify-items: center; }
   .lp-phone-info { max-width: 560px; text-align: center; }
   .lp-phone-eyebrow { display: inline-block; }
@@ -918,15 +915,15 @@
   .lp-plan.featured { transform: none; }
   .lp-dl-grid { grid-template-columns: 1fr; }
   .lp-climate-stats { grid-template-columns: repeat(2, 1fr); }
-  .lp-float { display: none; }
   .lp-mobile-cta { display: flex; }
   .lp-auth-overlay { grid-template-columns: 1fr; }
   .lp-auth-brand { display: none; }
 }
 
 @media (max-width: 520px) {
-  .lp-container, .lp-hero-center, .lp-hero-showcase { padding: 0 18px; }
+  .lp-container, .lp-hero-grid { padding: 0 18px; }
   .lp-hero { padding: 40px 0 64px; }
+  .lp-agenda { padding: 18px 16px 6px; }
   .lp-verify-digit { width: 42px; height: 52px; font-size: 1.3rem; }
   .lp-verify-digits { gap: 7px; }
   .lp-nav-actions .lp-ghost { display: none; }
