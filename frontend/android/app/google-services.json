@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "205216129093",
+    "project_id": "beequ-8475c",
+    "storage_bucket": "beequ-8475c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:205216129093:android:e1b91fb7389a868804432c",
+        "android_client_info": {
+          "package_name": "com.beequ.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDOyYaSqpWre5o19ka3XW-OOR6V7_YSHGI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
