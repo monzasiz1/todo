@@ -134,104 +134,100 @@ function Honeycomb({ className = '', a = 'rgba(0,122,255,0.16)', b = 'rgba(88,86
   );
 }
 
-/* ─────────────── pinned scroll-story (signature) ─────────────── */
-function ScrollStory({ onCta }) {
-  const ref = useRef(null);
+/* ─────────────── interactive phone product tour ─────────────── */
+function PhoneTour({ onCta }) {
   const [active, setActive] = useState(0);
-  const chapterRefs = useRef([]);
+  const [paused, setPaused] = useState(false);
 
-  // IntersectionObserver picks the most-centered chapter -> sticky frame morphs.
+  // Sanftes Auto-Durchschalten der Räume; stoppt sobald der Nutzer selbst tippt.
   useEffect(() => {
-    const els = chapterRefs.current.filter(Boolean);
-    if (!els.length) return undefined;
-    const obs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const idx = Number(entry.target.getAttribute('data-idx'));
-            setActive(idx);
-          }
-        });
-      },
-      { rootMargin: '-45% 0px -45% 0px', threshold: 0 }
-    );
-    els.forEach((el) => obs.observe(el));
-    return () => obs.disconnect();
-  }, []);
+    if (paused) return undefined;
+    const t = setInterval(() => {
+      setActive((i) => (i + 1) % storyChapters.length);
+    }, 4200);
+    return () => clearInterval(t);
+  }, [paused]);
 
   const current = storyChapters[active];
+  const select = (i) => { setActive(i); setPaused(true); };
+  const navLabel = (c) => c.id.charAt(0).toUpperCase() + c.id.slice(1);
 
   return (
-    <section className="lp-story" id="features" ref={ref}>
+    <section className="lp-phone-tour" id="features">
       <div className="lp-container">
         <div className="lp-section-head">
           <span className="lp-kicker">Produkt-Tour</span>
           <h2>Eine App.<br /><span className="lp-h2-muted">Vier Räume zum Arbeiten.</span></h2>
-          <p>Scrolle dich durch BeeQu — der Bildschirm wechselt mit dir mit. Echte Screenshots, keine Attrappe.</p>
+          <p>Tippe dich unten durch die App — wie auf deinem eigenen Handy. Echte Screenshots, keine Attrappe.</p>
         </div>
 
-        <div className="lp-story-grid">
-          {/* Sticky morphing frame */}
-          <div className="lp-story-sticky">
-            <div className="lp-story-frame" style={{ '--lp-active': current.color }}>
-              <div className="lp-story-frame-chrome">
-                <span className="lp-dot" style={{ background: '#FF5F57' }} />
-                <span className="lp-dot" style={{ background: '#FEBC2E' }} />
-                <span className="lp-dot" style={{ background: '#28C840' }} />
-                <span className="lp-story-frame-tag">{current.label}</span>
-              </div>
-              <div className="lp-story-frame-screen">
-                <AnimatePresence mode="wait">
-                  <motion.img
-                    key={current.id}
-                    src={current.src}
-                    alt={`BeeQu — ${current.title}`}
-                    initial={{ opacity: 0, scale: 1.04 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.99 }}
-                    transition={{ duration: 0.5, ease }}
-                    draggable={false}
-                    loading="lazy"
-                  />
-                </AnimatePresence>
-              </div>
-              <div className="lp-story-progress">
-                {storyChapters.map((c, i) => (
-                  <span key={c.id} className={i === active ? 'on' : ''} />
-                ))}
-              </div>
+        <div className="lp-phone-stage" style={{ '--lp-active': current.color }}>
+          {/* Phone */}
+          <div
+            className="lp-phone"
+            onMouseEnter={() => setPaused(true)}
+            onMouseLeave={() => setPaused(false)}
+          >
+            <div className="lp-phone-glow" aria-hidden />
+            <div className="lp-phone-notch" aria-hidden />
+            <div className="lp-phone-screen">
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={current.id}
+                  src={current.src}
+                  alt={`BeeQu — ${current.title}`}
+                  initial={{ opacity: 0, scale: 1.05 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ duration: 0.45, ease }}
+                  draggable={false}
+                  loading="lazy"
+                />
+              </AnimatePresence>
+            </div>
+            {/* Echte App-Bottom-Nav — antippbar */}
+            <div className="lp-phone-nav" role="tablist" aria-label="App-Bereiche">
+              {storyChapters.map((c, i) => {
+                const Icon = c.icon;
+                const on = i === active;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={on}
+                    aria-label={navLabel(c)}
+                    className={`lp-phone-nav-btn${on ? ' is-active' : ''}`}
+                    style={{ '--lp-active': c.color }}
+                    onClick={() => select(i)}
+                  >
+                    <Icon size={19} />
+                    <span>{navLabel(c)}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Chapter narrative */}
-          <div className="lp-story-chapters">
-            {storyChapters.map((c, i) => {
-              const Icon = c.icon;
-              return (
-                <div
-                  key={c.id}
-                  data-idx={i}
-                  ref={(el) => { chapterRefs.current[i] = el; }}
-                  className={`lp-chapter${i === active ? ' is-active' : ''}`}
-                  style={{ '--lp-active': c.color }}
-                >
-                  <span className="lp-chapter-num">{c.eyebrow}</span>
-                  <div className="lp-chapter-head">
-                    <span className="lp-chapter-ico" style={{ background: c.tint, color: c.color, borderColor: c.color }}>
-                      <Icon size={20} />
-                    </span>
-                    <h3>{c.title}</h3>
-                  </div>
-                  <p>{c.desc}</p>
-                  <span className="lp-chapter-plan">{c.plan}</span>
-                </div>
-              );
-            })}
-            <div style={{ marginTop: 6 }}>
-              <button type="button" className="lp-btn lp-primary lp-btn-lg" onClick={onCta}>
-                Jetzt ausprobieren <ArrowRight size={17} />
-              </button>
-            </div>
+          {/* Copy zum aktiven Raum */}
+          <div className="lp-phone-info">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={current.id}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.35, ease }}
+              >
+                <span className="lp-phone-eyebrow" style={{ color: current.color }}>{current.eyebrow}</span>
+                <h3>{current.title}</h3>
+                <p>{current.desc}</p>
+                <span className="lp-chapter-plan">{current.plan}</span>
+              </motion.div>
+            </AnimatePresence>
+            <button type="button" className="lp-btn lp-primary lp-btn-lg lp-phone-cta" onClick={onCta}>
+              Jetzt ausprobieren <ArrowRight size={17} />
+            </button>
           </div>
         </div>
       </div>
@@ -518,7 +514,7 @@ export default function LandingPage() {
       </div>
 
       {/* ══════════ SIGNATURE: PINNED SCROLL-STORY ══════════ */}
-      <ScrollStory onCta={openRegister} />
+      <PhoneTour onCta={openRegister} />
 
       {/* ══════════ FEATURE MOSAIC (rest) ══════════ */}
       <section className="lp-section" id="more-features">
