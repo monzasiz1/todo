@@ -93,7 +93,9 @@ html[data-theme="dark"] hr {
    wäre das heller Text auf Weiß = unsichtbar. Hier dunkler Feldhintergrund. */
 html[data-theme="dark"] .pv2-field input,
 html[data-theme="dark"] .profile-field input,
-html[data-theme="dark"] .profile-password-wrap input {
+html[data-theme="dark"] .profile-password-wrap input,
+html[data-theme="dark"] .pv2-secret,
+html[data-theme="dark"] .pv2-code-input {
   background: var(--surface-2);
   border-color: var(--border);
   color: var(--text);
