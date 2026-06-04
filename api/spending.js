@@ -94,7 +94,14 @@ function sanitizeDate(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
 }
 
+// Pro warmer Lambda-Instanz nur EINMAL ausfuehren. Ohne diesen Guard liefe
+// das komplette DDL-Set (CREATE/ALTER/UPDATE/INDEX) bei jedem Request — beim
+// Oeffnen der Ausgaben-Seite feuern aber gleich mehrere GETs, was die Ladezeit
+// unnoetig vervielfacht. Schema-Aenderungen bleiben idempotent.
+let tablesReady = false;
+
 async function ensureTables(pool) {
+  if (tablesReady) return;
   // Idempotent guard fuer produktive Cold-Starts mit deaktiviertem
   // schemaInit (DB_SCHEMA_INIT_ON_START=0). Verhindert 500-Errors fuer
   // den allerersten Aufruf.
@@ -148,6 +155,7 @@ async function ensureTables(pool) {
   )`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_spending_custom_categories_group ON spending_custom_categories(spending_group_id, kind)`);
   await pool.query(`ALTER TABLE spending_expenses ADD COLUMN IF NOT EXISTS split_amounts JSONB`);
+  tablesReady = true;
 }
 
 function sanitizeMonth(value) {
