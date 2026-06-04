@@ -19165,9 +19165,9 @@ html[data-theme="dark"] .group-role-chip.role-member {
   .day-create-modal {
     width: 100%;
     max-width: 100%;
-    height: 100dvh;
-    max-height: 100dvh;
-    border-radius: 20px 20px 0 0;
+    /* Bottom-Sheet: nur so hoch wie noetig, max. 88dvh (kein Vollbild) */
+    max-height: 88dvh;
+    border-radius: 22px 22px 0 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
@@ -19196,11 +19196,11 @@ html[data-theme="dark"] .group-role-chip.role-member {
 
   .day-create-drag-handle {
     display: block;
-    width: 40px;
+    width: 44px;
     height: 5px;
     background: var(--border-strong);
-    border-radius: 3px;
-    margin: max(10px, calc(env(safe-area-inset-top, 0px) + 6px)) auto 0;
+    border-radius: 999px;
+    margin: 9px auto 0;
     flex-shrink: 0;
   }
 
@@ -19222,26 +19222,14 @@ html[data-theme="dark"] .group-role-chip.role-member {
     z-index: 7;
   }
 
-  /* DayCreateModal fullscreen on mobile */
+  /* DayCreateModal als Bottom-Sheet auf dem Handy (kein Vollbild) */
   .day-create-modal.day-create-fullscreen {
-    border-radius: 0 !important;
+    border-radius: 22px 22px 0 0 !important;
     background: var(--card-solid) !important;
   }
 
-  /* Handle absolut in die Safe-Area-Zone legen — sonst addiert sein
-     Flow-Margin sich mit dem padding-top des Headers (doppelte Safe-Area,
-     Header rutschte fast an die Tasks). */
-  .day-create-modal.day-create-fullscreen .day-create-drag-handle {
-    position: absolute;
-    top: calc(env(safe-area-inset-top, 0px) + 6px);
-    left: 50%;
-    transform: translateX(-50%);
-    margin: 0;
-    z-index: 3;
-  }
-
   .day-create-header {
-    padding: calc(env(safe-area-inset-top, 0px) + 18px) 18px 14px;
+    padding: 8px 18px 14px;
     border-radius: 0;
     position: sticky;
     top: 0;
