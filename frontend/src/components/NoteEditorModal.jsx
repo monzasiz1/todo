@@ -859,6 +859,34 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
     if (e.key === 'Tab') {
       e.preventDefault();
       document.execCommand('insertText', false, '  ');
+      return;
+    }
+    // Enter am ENDE eines Links: Caret aus dem <a> herausschieben, damit die
+    // neue Zeile (und neuer Text) NICHT mehr Teil des Links ist. Sonst bleibt
+    // der Cursor im Link "hängen" und man kommt nicht in die nächste Zeile.
+    if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey && !composingRef.current) {
+      const sel = typeof window !== 'undefined' && window.getSelection ? window.getSelection() : null;
+      if (!sel || sel.rangeCount === 0) return;
+      let node = sel.anchorNode;
+      let anchor = null;
+      while (node && node !== editorRef.current) {
+        if (node.nodeType === 1 && node.nodeName === 'A') { anchor = node; break; }
+        node = node.parentNode;
+      }
+      if (!anchor) return; // kein Link -> normaler Enter
+      const range = sel.getRangeAt(0);
+      // Steht der Caret am Ende des Link-Inhalts?
+      const tail = range.cloneRange();
+      tail.selectNodeContents(anchor);
+      tail.setStart(range.endContainer, range.endOffset);
+      if (tail.toString().length !== 0) return; // mitten im Link -> Browser-Default
+      // Caret direkt hinter den Link setzen; Default-Enter macht dann eine
+      // neue Zeile AUSSERHALB des <a>.
+      const out = document.createRange();
+      out.setStartAfter(anchor);
+      out.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(out);
     }
   };
 
