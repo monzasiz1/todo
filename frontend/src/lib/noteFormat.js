@@ -86,6 +86,30 @@ function escapeHtml(s) {
     .replace(/"/g, '&quot;');
 }
 
+// Lange URLs als kompakten, lesbaren Label anzeigen (Host + gekürzter Pfad),
+// der volle Link bleibt im href erhalten. So sprengt kein langer Link das Layout.
+function shortenUrlLabel(rawUrl) {
+  // rawUrl ist bereits HTML-escaped (&amp; etc.) — fuer die Anzeige zurueckwandeln.
+  const url = String(rawUrl).replace(/&amp;/g, '&');
+  const MAX = 38;
+  let label;
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, '');
+    let path = (u.pathname && u.pathname !== '/' ? u.pathname : '') + (u.search || '');
+    label = host + path;
+    if (label.length > MAX) {
+      // Host immer zeigen, Pfad in der Mitte kuerzen
+      const room = Math.max(0, MAX - host.length - 1);
+      label = room <= 1 ? host + '/…' : host + path.slice(0, room) + '…';
+    }
+  } catch {
+    label = url.length > MAX ? url.slice(0, MAX - 1) + '…' : url;
+  }
+  // Label wieder HTML-escapen (es wird als Linktext eingefuegt).
+  return label.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 // Inline-Markdown -> HTML
 function inlineMdToHtml(text) {
   if (!text) return '';
@@ -96,7 +120,8 @@ function inlineMdToHtml(text) {
   s = s.replace(/__([^_\n]+)__/g, '<u>$1</u>');
   s = s.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
   s = s.replace(/`([^`\n]+)`/g, '<code>$1</code>');
-  s = s.replace(/(https?:\/\/[^\s<)"]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+  s = s.replace(/(https?:\/\/[^\s<)"]+)/g, (m, url) =>
+    `<a href="${url}" target="_blank" rel="noopener noreferrer" class="note-link" title="${url}">${shortenUrlLabel(url)}</a>`);
   return s;
 }
 
