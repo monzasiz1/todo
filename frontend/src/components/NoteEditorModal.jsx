@@ -996,12 +996,28 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
     }
     setLinkPopover(null);
     if (readOnly) return;
-    // Klick direkt auf den Editor-Container (also Leerraum unter dem
-    // letzten Block) -> Caret ans Ende + ggf. neue Zeile anlegen.
-    if (t === editorRef.current) {
-      moveCaretToEnd();
-      onEditorInput();
+    // iOS-Notizen-Verhalten: überall hin tippen -> Cursor landet dort.
+    // Hat der Browser schon einen Caret/eine Auswahl IM Editor gesetzt
+    // (Normalklick, Drag-Select), respektieren wir das. Nur wenn KEIN Caret
+    // im Editor liegt (z.B. Klick in den Leerraum), setzen wir ihn an die
+    // Klickposition – oder ans Ende, falls darunter nichts editierbar ist.
+    const el = editorRef.current;
+    if (!el) return;
+    const sel = typeof window !== 'undefined' && window.getSelection ? window.getSelection() : null;
+    const caretInEditor = sel && sel.rangeCount > 0 && sel.anchorNode && el.contains(sel.anchorNode);
+    if (!caretInEditor) {
+      let placed = false;
+      if (document.caretRangeFromPoint) {
+        const r = document.caretRangeFromPoint(e.clientX, e.clientY);
+        if (r && el.contains(r.startContainer)) {
+          sel.removeAllRanges();
+          sel.addRange(r);
+          placed = true;
+        }
+      }
+      if (!placed) moveCaretToEnd();
     }
+    el.focus({ preventScroll: true });
   }, [readOnly, onEditorInput, moveCaretToEnd]);
 
   // Link-Popover schließen bei Klick außerhalb / Scroll / Resize.
