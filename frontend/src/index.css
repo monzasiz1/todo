@@ -8121,8 +8121,9 @@ body.cal-is-dragging * {
      Ausnahmen: task-detail-modal (eigene Fullscreen-Logik),
      focus-timer-modal (eigene Edge-to-Edge-Regeln inkl. Notch),
      task-edit-modal (eigene Edge-to-Edge-Regeln),
-     dt-choice-sheet (eigene Edge-to-Edge-Regeln). */
-  .modal-overlay > *:not(.task-detail-modal):not(.focus-timer-modal):not(.task-edit-modal):not(.dt-choice-sheet) {
+     dt-choice-sheet (eigene Edge-to-Edge-Regeln),
+     day-create-modal (eigenes Bottom-Sheet via .day-create-overlay). */
+  .modal-overlay > *:not(.task-detail-modal):not(.focus-timer-modal):not(.task-edit-modal):not(.dt-choice-sheet):not(.day-create-modal) {
     position: fixed !important;
     top: env(safe-area-inset-top, 0px) !important;
     left: 0 !important;
