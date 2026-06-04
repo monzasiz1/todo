@@ -2000,9 +2000,19 @@
   }
 }
 
+@media (max-width: 768px) {
+  /* Ausgaben darf auf dem Handy mehr Breite einnehmen: das globale
+     .app-main-Padding (16px je Seite) wird nur fuer diese Seite reduziert,
+     andere Seiten bleiben unberuehrt. */
+  .app-main:has(.shared-spending-page) {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
+
 @media (max-width: 700px) {
   .shared-spending-page {
-    padding: 0 10px 20px;
+    padding: 0 4px 20px;
   }
 
   .sankey-card {
