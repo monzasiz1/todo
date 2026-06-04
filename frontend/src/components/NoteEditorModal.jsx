@@ -7,7 +7,7 @@ import {
   UserPlus, Pencil,
   Bold, Italic, Underline, Strikethrough, Code, Heading1, Heading2,
   List, ListOrdered, CheckSquare, Quote, Table, History, Sparkles, Loader2,
-  Download, MoreHorizontal, Palette, Flag, ChevronDown,
+  Download, MoreHorizontal, Palette, Flag, ChevronDown, Copy, ExternalLink,
 } from 'lucide-react';
 import { format, parseISO, formatDistanceToNow } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -128,6 +128,39 @@ const FORMAT_GROUPS = [
     { type: 'table',      icon: Table,         label: 'Tabelle einfuegen' },
   ],
 ];
+
+// Vollständige URL in die Zwischenablage (mit Fallback für ältere WebViews).
+async function copyTextSafe(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch { /* fallback unten */ }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return ok;
+  } catch { return false; }
+}
+
+// URL-Token rund um eine Caret-Position in einem Textknoten ermitteln.
+function urlTokenFromCaret(node, offset) {
+  if (!node || node.nodeType !== 3) return null;
+  const text = node.nodeValue || '';
+  const isB = (c) => !c || /\s/.test(c) || c === '​';
+  let start = offset, end = offset;
+  while (start > 0 && !isB(text[start - 1])) start--;
+  while (end < text.length && !isB(text[end])) end++;
+  const token = text.slice(start, end).replace(/[).,;!?]+$/, '');
+  return /^https?:\/\/\S{3,}$/i.test(token) ? token : null;
+}
 
 function FormatToolbar({ onAction, onAiAction, aiBusy = false }) {
   const [aiOpen, setAiOpen] = useState(false);
@@ -270,6 +303,8 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   // Content wird ab sofort als HTML gespeichert (WYSIWYG-Editor). Bestands-
   // Notizen sind Markdown -> on-load nach HTML konvertieren.
   const [content, setContent] = useState(() => toDisplayHtml(initialParsed.rest));
+  const [linkPopover, setLinkPopover] = useState(null); // { url, x, y } | null
+  const [linkCopied, setLinkCopied] = useState(false);
   const [color, setColor] = useState(initialColor);
   const [importance, setImportance] = useState(note?.importance || 'medium');
   // Owner-/Readonly-Logik: Notes von anderen Usern (z. B. an gemeinsame
@@ -931,6 +966,24 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
       });
       return;
     }
+    // Link unter dem Klick (echtes <a> ODER reine Text-URL) -> Popover
+    // mit "Öffnen" + "Kopieren". Funktioniert auch im Lese-Modus.
+    const aEl = t && t.closest && t.closest('a[href]');
+    if (aEl) {
+      e.preventDefault();
+      setLinkPopover({ url: aEl.getAttribute('href'), x: e.clientX, y: e.clientY });
+      return;
+    }
+    let tok = null;
+    if (typeof document !== 'undefined' && document.caretRangeFromPoint) {
+      const r = document.caretRangeFromPoint(e.clientX, e.clientY);
+      if (r) tok = urlTokenFromCaret(r.startContainer, r.startOffset);
+    }
+    if (tok) {
+      setLinkPopover({ url: tok, x: e.clientX, y: e.clientY });
+      return;
+    }
+    setLinkPopover(null);
     if (readOnly) return;
     // Klick direkt auf den Editor-Container (also Leerraum unter dem
     // letzten Block) -> Caret ans Ende + ggf. neue Zeile anlegen.
@@ -939,6 +992,24 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
       onEditorInput();
     }
   }, [readOnly, onEditorInput, moveCaretToEnd]);
+
+  // Link-Popover schließen bei Klick außerhalb / Scroll / Resize.
+  useEffect(() => {
+    if (!linkPopover) return undefined;
+    setLinkCopied(false);
+    const close = () => setLinkPopover(null);
+    const onDocDown = (ev) => {
+      if (!ev.target || !ev.target.closest || !ev.target.closest('.nem-link-pop')) close();
+    };
+    document.addEventListener('pointerdown', onDocDown, true);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      document.removeEventListener('pointerdown', onDocDown, true);
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [linkPopover]);
 
   // ──────────────────────────────────────────────────────────────────
   // Formatierungs-Toolbar (WYSIWYG)
@@ -1264,6 +1335,38 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
                 onCompositionEnd={onCompositionEnd}
               />
             </div>
+            {linkPopover && createPortal(
+              <div
+                className="nem-link-pop"
+                style={{
+                  position: 'fixed',
+                  top: Math.max(8, linkPopover.y - 52),
+                  left: Math.min(Math.max(8, linkPopover.x - 70), (typeof window !== 'undefined' ? window.innerWidth : 400) - 160),
+                  zIndex: 2147483000,
+                }}
+                role="menu"
+              >
+                <button
+                  type="button"
+                  className="nem-link-pop-btn"
+                  onClick={() => { window.open(linkPopover.url, '_blank', 'noopener,noreferrer'); setLinkPopover(null); }}
+                >
+                  <ExternalLink size={14} /> Öffnen
+                </button>
+                <span className="nem-link-pop-sep" />
+                <button
+                  type="button"
+                  className="nem-link-pop-btn"
+                  onClick={async () => {
+                    const ok = await copyTextSafe(linkPopover.url);
+                    if (ok) { setLinkCopied(true); setTimeout(() => setLinkPopover(null), 700); }
+                  }}
+                >
+                  {linkCopied ? <Check size={14} /> : <Copy size={14} />} {linkCopied ? 'Kopiert' : 'Kopieren'}
+                </button>
+              </div>,
+              document.body
+            )}
           </div>
 
           {/* Verknuepfter Termin / Aufgabe (bidirektional). */}

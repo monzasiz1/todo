@@ -2448,4 +2448,42 @@ html[data-theme="dark"] .nem-mobile-sheet {
   }
 }
 
+/* Link-Popover im Editor (Öffnen / Kopieren) */
+.nem-link-pop {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--nem-surface, #1b2236);
+  border: 1px solid var(--nem-border-soft, rgba(255, 255, 255, 0.14));
+  box-shadow: 0 18px 50px -18px rgba(0, 0, 0, 0.7);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.nem-link-pop-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--nem-text, #e8eefc);
+}
+.nem-link-pop-btn:hover {
+  background: color-mix(in srgb, var(--nem-primary, #007AFF) 16%, transparent);
+  color: var(--nem-primary, #4da3ff);
+}
+.nem-link-pop-sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 4px 0;
+  background: var(--nem-border-soft, rgba(255, 255, 255, 0.14));
+}
+
 

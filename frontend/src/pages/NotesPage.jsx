@@ -697,28 +697,10 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
             className="note-display"
             onClick={(e) => {
               e.stopPropagation();
-              // Klicks auf interaktive Elemente (Checkbox / Link-Chip / Copy) starten den Editor nicht.
+              // Klicks auf interaktive Elemente (Checkbox / Link-Chip / Copy) öffnen NICHT den Editor.
               if (e.target.closest('.note-md-checkbox') || e.target.closest('.note-link')) return;
-              const now = Date.now();
-              const last = displayClickRef.current.time;
-              if (now - last < 320) {
-                // Doppelklick erkannt -> Vollbild-Editor
-                if (displayClickRef.current.timer) {
-                  clearTimeout(displayClickRef.current.timer);
-                  displayClickRef.current.timer = null;
-                }
-                displayClickRef.current.time = 0;
-                onOpenEditor?.(note.id);
-                return;
-              }
-              displayClickRef.current.time = now;
-              if (displayClickRef.current.timer) clearTimeout(displayClickRef.current.timer);
-              displayClickRef.current.timer = setTimeout(() => {
-                displayClickRef.current.time = 0;
-                displayClickRef.current.timer = null;
-                if (isReadOnly) return;
-                setIsEditing(true);
-              }, 320);
+              // Karte ist nicht mehr inline editierbar — jeder Klick öffnet den Editor.
+              onOpenEditor?.(note.id);
             }}
             onDoubleClick={(e) => {
               // Fallback (Browser dispatcht dblclick nativ): direkt öffnen.
