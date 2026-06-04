@@ -48,14 +48,23 @@ function LinkChip({ url }) {
     }
   };
   return (
-    <span className="note-link" onClick={(e) => e.stopPropagation()}>
+    <span
+      className="note-link"
+      onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+    >
       <a
         className="note-link-open"
         href={url}
         target="_blank"
         rel="noopener noreferrer"
         title={url}
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          window.open(url, '_blank', 'noopener,noreferrer');
+        }}
       >
         <span className="note-link-label">{shortenUrlLabel(url)}</span>
       </a>
@@ -688,8 +697,8 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
             className="note-display"
             onClick={(e) => {
               e.stopPropagation();
-              // Klicks auf interaktive Markdown-Elemente (Checkbox/Link) starten den Editor nicht.
-              if (e.target.closest('.note-md-checkbox') || e.target.closest('.note-md-link')) return;
+              // Klicks auf interaktive Elemente (Checkbox / Link-Chip / Copy) starten den Editor nicht.
+              if (e.target.closest('.note-md-checkbox') || e.target.closest('.note-link')) return;
               const now = Date.now();
               const last = displayClickRef.current.time;
               if (now - last < 320) {
@@ -743,6 +752,15 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
                           }
                         });
                       }
+                      return;
+                    }
+                    // Link-Chip öffnen (WebView-sicher per window.open)
+                    const openEl = t && t.closest && t.closest('.note-link-open');
+                    if (openEl) {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      const href = openEl.getAttribute('href');
+                      if (href) window.open(href, '_blank', 'noopener,noreferrer');
                       return;
                     }
                     if (t && t.tagName === 'INPUT' && t.getAttribute && t.getAttribute('type') === 'checkbox') {
