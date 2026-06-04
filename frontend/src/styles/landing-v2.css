@@ -234,29 +234,49 @@
    ============================================================ */
 .lp-hero {
   position: relative;
-  padding: 72px 0 96px;
+  min-height: clamp(560px, 82vh, 820px);
+  display: flex;
+  align-items: center;
+  padding: 80px 0 96px;
   z-index: 1;
   overflow: hidden;
+  text-align: center;
 }
-.lp-hero-aura {
-  position: absolute; left: 50%; top: -140px; transform: translateX(-50%);
-  width: min(1200px, 130vw); height: 680px; z-index: -1; pointer-events: none;
-  background:
-    radial-gradient(42% 58% at 32% 4%, rgba(0,122,255,0.22), transparent 70%),
-    radial-gradient(42% 55% at 78% 18%, rgba(88,86,214,0.22), transparent 72%),
-    radial-gradient(34% 48% at 60% 40%, rgba(0,199,190,0.12), transparent 72%);
-  filter: blur(10px);
+/* sanft driftende Lichtflächen — reine Atmosphäre */
+.lp-hero-orbs { position: absolute; inset: 0; z-index: -2; overflow: hidden; pointer-events: none; }
+.lp-orb { position: absolute; border-radius: 50%; filter: blur(80px); will-change: transform; }
+.lp-orb-1 {
+  width: 520px; height: 520px; top: -140px; left: 4%;
+  background: radial-gradient(circle, rgba(0,122,255,0.55), transparent 68%);
+  animation: lp-drift1 20s ease-in-out infinite;
 }
-.lp-hero-grid {
-  max-width: var(--lp-maxw);
+.lp-orb-2 {
+  width: 560px; height: 560px; top: -80px; right: 2%;
+  background: radial-gradient(circle, rgba(88,86,214,0.5), transparent 68%);
+  animation: lp-drift2 24s ease-in-out infinite;
+}
+.lp-orb-3 {
+  width: 440px; height: 440px; bottom: -160px; left: 36%;
+  background: radial-gradient(circle, rgba(0,199,190,0.32), transparent 70%);
+  animation: lp-drift3 28s ease-in-out infinite;
+}
+@keyframes lp-drift1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(46px, 34px) scale(1.12); } }
+@keyframes lp-drift2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-54px, 26px) scale(1.08); } }
+@keyframes lp-drift3 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(34px, -40px) scale(1.14); } }
+/* feines Korn gegen Banding */
+.lp-hero-grain {
+  position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: 0.5;
+  background-image: radial-gradient(circle at 50% 0%, rgba(8,11,20,0) 40%, rgba(6,7,13,0.65) 100%);
+}
+.lp-hero-center {
+  position: relative; z-index: 1;
+  max-width: 860px;
   margin: 0 auto;
-  padding: 0 28px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 480px);
-  gap: 56px;
+  padding: 0 24px;
+  display: flex;
+  flex-direction: column;
   align-items: center;
 }
-.lp-hero-copy { display: flex; flex-direction: column; align-items: flex-start; }
 
 .lp-eyebrow {
   display: inline-flex;
@@ -288,16 +308,17 @@
   background-clip: text;
   color: transparent;
 }
+.lp-hero-h1 { text-shadow: 0 0 60px rgba(0,122,255,0.18); }
 .lp-hero-sub {
-  margin-top: 22px;
+  margin: 24px auto 0;
   max-width: 34em;
-  font-size: clamp(1.02rem, 1.4vw, 1.2rem);
+  font-size: clamp(1.05rem, 1.5vw, 1.25rem);
   color: var(--lp-muted);
 }
 
-.lp-hero-actions { margin-top: 32px; display: flex; flex-wrap: wrap; gap: 12px; }
+.lp-hero-actions { margin-top: 34px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
 
-.lp-hero-trust { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 18px; font-size: 0.85rem; color: var(--lp-faint); }
+.lp-hero-trust { margin-top: 24px; display: flex; flex-wrap: wrap; gap: 18px; font-size: 0.85rem; color: var(--lp-faint); justify-content: center; }
 .lp-hero-trust span, .lp-hero-trust a { display: inline-flex; align-items: center; gap: 6px; }
 .lp-hero-trust svg { color: var(--lp-green); }
 .lp-hero-trust a { color: var(--lp-muted); transition: color 0.2s; }
@@ -348,62 +369,6 @@
 .lp-tag-cat   { background: rgba(88,86,214,0.16); border-color: rgba(88,86,214,0.45); color: var(--lp-violet-2); }
 .lp-tag-prio  { background: rgba(255,69,58,0.14); border-color: rgba(255,69,58,0.42); color: #ff7a70; }
 
-/* ── Lebende Tages-Agenda (Hero, echtes UI – kein Screenshot) ── */
-.lp-agenda {
-  position: relative;
-  border-radius: 22px;
-  border: 1px solid var(--lp-line);
-  background: linear-gradient(180deg, rgba(18,24,40,0.94), rgba(10,14,24,0.94));
-  box-shadow: 0 60px 130px -50px rgba(0,0,0,0.95), inset 0 1px 0 rgba(255,255,255,0.06);
-  padding: 20px 22px 8px;
-  backdrop-filter: blur(8px);
-}
-.lp-agenda-glow {
-  position: absolute; inset: -1px; z-index: -1; border-radius: 24px;
-  background: linear-gradient(140deg, rgba(0,122,255,0.55), rgba(88,86,214,0.4) 45%, transparent 70%);
-  filter: blur(26px); opacity: 0.5; pointer-events: none;
-}
-.lp-agenda-head {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding-bottom: 14px; margin-bottom: 4px;
-  border-bottom: 1px solid var(--lp-line-soft);
-}
-.lp-agenda-head-l { display: flex; flex-direction: column; }
-.lp-agenda-day { font-size: 1.15rem; font-weight: 800; letter-spacing: -0.02em; }
-.lp-agenda-date { font-size: 0.8rem; color: var(--lp-faint); margin-top: 2px; }
-.lp-agenda-badge {
-  flex: none;
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 0.72rem; font-weight: 600; color: var(--lp-blue-2);
-  padding: 6px 11px; border-radius: 999px;
-  background: rgba(0,122,255,0.1); border: 1px solid rgba(0,122,255,0.28);
-}
-.lp-agenda-list { display: flex; flex-direction: column; }
-.lp-agenda-item {
-  display: grid;
-  grid-template-columns: 50px 12px minmax(0, 1fr);
-  align-items: center; gap: 13px;
-  padding: 13px 0;
-  border-bottom: 1px solid var(--lp-line-soft);
-}
-.lp-agenda-item:last-child { border-bottom: 0; }
-.lp-agenda-time { font-family: 'Space Grotesk', monospace; font-size: 0.82rem; color: var(--lp-muted); text-align: right; }
-.lp-agenda-rail {
-  width: 11px; height: 11px; border-radius: 50%;
-  background: var(--lp-ac, #007AFF);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--lp-ac, #007AFF) 20%, transparent);
-}
-.lp-agenda-body { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; }
-.lp-agenda-title { font-size: 0.98rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.lp-agenda-chip {
-  flex: none;
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 0.72rem; font-weight: 600; color: var(--lp-ac, #007AFF);
-  padding: 4px 9px; border-radius: 999px;
-  background: color-mix(in srgb, var(--lp-ac, #007AFF) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--lp-ac, #007AFF) 34%, transparent);
-}
-.lp-dot { width: 11px; height: 11px; border-radius: 50%; }
 
 /* ── logo strip / trust marquee ── */
 .lp-marquee {
@@ -897,8 +862,6 @@
    RESPONSIVE
    ============================================================ */
 @media (max-width: 1080px) {
-  .lp-hero-grid { grid-template-columns: 1fr; gap: 40px; }
-  .lp-agenda { max-width: 520px; }
   .lp-phone-stage { grid-template-columns: 1fr; gap: 36px; justify-items: center; }
   .lp-phone-info { max-width: 560px; text-align: center; }
   .lp-phone-eyebrow { display: inline-block; }
@@ -921,9 +884,9 @@
 }
 
 @media (max-width: 520px) {
-  .lp-container, .lp-hero-grid { padding: 0 18px; }
-  .lp-hero { padding: 40px 0 64px; }
-  .lp-agenda { padding: 18px 16px 6px; }
+  .lp-container, .lp-hero-center { padding: 0 18px; }
+  .lp-hero { min-height: auto; padding: 56px 0 72px; }
+  .lp-orb { filter: blur(60px); opacity: 0.8; }
   .lp-verify-digit { width: 42px; height: 52px; font-size: 1.3rem; }
   .lp-verify-digits { gap: 7px; }
   .lp-nav-actions .lp-ghost { display: none; }

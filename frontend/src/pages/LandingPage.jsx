@@ -118,19 +118,6 @@ const fadeUp = {
   visible: (i = 0) => ({ opacity: 1, y: 0, transition: { delay: i * 0.07, duration: 0.5, ease } }),
 };
 
-// Hero: lebende Tages-Agenda (echtes UI, kein Screenshot) — Einträge laufen nacheinander ein.
-const heroAgenda = [
-  { time: '09:00', title: 'Standup',         tag: 'täglich',     icon: Repeat,       accent: '#5856D6' },
-  { time: '11:30', title: 'Sprint-Review',   tag: 'erinnert',    icon: Bell,         accent: '#007AFF' },
-  { time: '13:00', title: 'Mittag mit Anna', tag: 'geteilt',     icon: UsersRound,   accent: '#34C759' },
-  { time: '16:25', title: 'Zahnarzt',        tag: 'Gesundheit',  icon: CheckCircle2, accent: '#00C7BE' },
-  { time: '18:30', title: 'Workout',         tag: 'wöchentlich', icon: Repeat,       accent: '#FF9500' },
-];
-const agendaItem = {
-  hidden:  { opacity: 0, x: 26, scale: 0.98 },
-  visible: { opacity: 1, x: 0, scale: 1, transition: { duration: 0.45, ease } },
-};
-
 /* ─────────────── shared honeycomb signature ─────────────── */
 function Honeycomb({ className = '', a = 'rgba(0,122,255,0.16)', b = 'rgba(88,86,214,0.14)' }) {
   return (
@@ -405,90 +392,49 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* ══════════ HERO — lebende Tages-Agenda ══════════ */}
+      {/* ══════════ HERO — atmosphärisch & ästhetisch ══════════ */}
       <header className="lp-hero" ref={heroRef}>
-        <div className="lp-hero-aura" aria-hidden />
-
-        <div className="lp-hero-grid">
-          {/* Copy */}
-          <motion.div
-            className="lp-hero-copy"
-            initial="hidden" animate="visible"
-            variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
-          >
-            <motion.span className="lp-eyebrow" variants={fadeUp}>
-              <span className="lp-live-dot" /> KI-Planer für Aufgaben, Kalender &amp; Teams
-            </motion.span>
-
-            <motion.h1 className="lp-hero-h1" variants={fadeUp}>
-              Dein Tag,<br />
-              <span className="lp-hero-accent">automatisch sortiert.</span>
-            </motion.h1>
-
-            <motion.p className="lp-hero-sub" variants={fadeUp}>
-              Schreib in einem Satz, was ansteht — BeeQu erkennt Datum, Uhrzeit,
-              Kategorie, Ort und Erinnerung und legt alles an die richtige Stelle.
-            </motion.p>
-
-            <motion.div className="lp-hero-actions" variants={fadeUp}>
-              <button onClick={openRegister} className="lp-btn lp-primary lp-btn-lg">
-                Kostenlos starten <ArrowRight size={17} />
-              </button>
-              <button onClick={openLogin} className="lp-btn lp-ghost lp-btn-lg">
-                Anmelden
-              </button>
-            </motion.div>
-
-            <motion.div className="lp-hero-trust" variants={fadeUp}>
-              <span><Check size={13} strokeWidth={3} /> Keine Kreditkarte</span>
-              <span><Check size={13} strokeWidth={3} /> Free-Plan inklusive</span>
-              <span><Check size={13} strokeWidth={3} /> DSGVO-konform</span>
-            </motion.div>
-          </motion.div>
-
-          {/* Lebende Agenda */}
-          <motion.div
-            className="lp-agenda"
-            style={{ y: frameY }}
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.15, ease }}
-          >
-            <div className="lp-agenda-glow" aria-hidden />
-            <div className="lp-agenda-head">
-              <div className="lp-agenda-head-l">
-                <span className="lp-agenda-day">Mittwoch</span>
-                <span className="lp-agenda-date">heute · 5 Einträge</span>
-              </div>
-              <span className="lp-agenda-badge"><Sparkles size={13} /> von BeeQu sortiert</span>
-            </div>
-
-            <motion.div
-              className="lp-agenda-list"
-              initial="hidden" animate="visible"
-              variants={{ visible: { transition: { delayChildren: 0.5, staggerChildren: 0.16 } } }}
-            >
-              {heroAgenda.map((it) => {
-                const Icon = it.icon;
-                return (
-                  <motion.div
-                    key={it.title}
-                    className="lp-agenda-item"
-                    variants={agendaItem}
-                    style={{ '--lp-ac': it.accent }}
-                  >
-                    <span className="lp-agenda-time">{it.time}</span>
-                    <span className="lp-agenda-rail" aria-hidden />
-                    <div className="lp-agenda-body">
-                      <span className="lp-agenda-title">{it.title}</span>
-                      <span className="lp-agenda-chip"><Icon size={12} /> {it.tag}</span>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-          </motion.div>
+        <div className="lp-hero-orbs" aria-hidden>
+          <span className="lp-orb lp-orb-1" />
+          <span className="lp-orb lp-orb-2" />
+          <span className="lp-orb lp-orb-3" />
         </div>
+        <div className="lp-hero-grain" aria-hidden />
+
+        <motion.div
+          className="lp-hero-center"
+          initial="hidden" animate="visible"
+          variants={{ visible: { transition: { staggerChildren: 0.09 } } }}
+        >
+          <motion.span className="lp-eyebrow" variants={fadeUp}>
+            <span className="lp-live-dot" /> Aufgaben · Kalender · Notizen · Teams
+          </motion.span>
+
+          <motion.h1 className="lp-hero-h1" variants={fadeUp}>
+            Ordnung, die sich<br />
+            <span className="lp-hero-accent">gut anfühlt.</span>
+          </motion.h1>
+
+          <motion.p className="lp-hero-sub" variants={fadeUp}>
+            Alles, was dein Tag braucht — an einem ruhigen, schönen Ort.
+            Klar, schnell und überall dabei: am Desktop wie am Handy.
+          </motion.p>
+
+          <motion.div className="lp-hero-actions" variants={fadeUp}>
+            <button onClick={openRegister} className="lp-btn lp-primary lp-btn-lg">
+              Kostenlos starten <ArrowRight size={17} />
+            </button>
+            <button onClick={openLogin} className="lp-btn lp-ghost lp-btn-lg">
+              Anmelden
+            </button>
+          </motion.div>
+
+          <motion.div className="lp-hero-trust" variants={fadeUp}>
+            <span><Check size={13} strokeWidth={3} /> Keine Kreditkarte</span>
+            <span><Check size={13} strokeWidth={3} /> Free-Plan inklusive</span>
+            <span><Check size={13} strokeWidth={3} /> DSGVO-konform</span>
+          </motion.div>
+        </motion.div>
       </header>
 
       {/* ══════════ MARQUEE STRIP ══════════ */}
