@@ -27452,8 +27452,22 @@ body.gchat-resizing * {
 .cal-import-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 @media (max-width: 600px) {
-  .cal-import-overlay { padding: 0; align-items: stretch; }
-  .cal-import-modal { border-radius: 0; max-height: 100vh; width: 100%; }
+  /* ueber der schwebenden Bottom-Nav (z-index: 10100), sonst kollidiert der
+     Footer-Button mit ihr. */
+  .cal-import-overlay { padding: 0; align-items: stretch; z-index: 10300; }
+  .cal-import-modal {
+    border-radius: 0;
+    max-height: 100dvh;
+    width: 100%;
+  }
+  /* Header unter die Notch / Dynamic Island schieben */
+  .cal-import-head {
+    padding-top: calc(18px + env(safe-area-inset-top, 0px));
+  }
+  /* Footer ueber den Home-Indicator heben */
+  .cal-import-foot {
+    padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 /* ── Kalender-Einstellungen Modal ─────────────────────────────────────── */
