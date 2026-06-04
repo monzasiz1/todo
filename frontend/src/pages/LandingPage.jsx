@@ -430,7 +430,7 @@ export default function LandingPage() {
           </motion.div>
 
           <motion.div className="lp-hero-trust" variants={fadeUp}>
-            <span><Check size={13} strokeWidth={3} /> Keine Kreditkarte</span>
+            <span><Check size={13} strokeWidth={3} /> Kostenlos starten</span>
             <span><Check size={13} strokeWidth={3} /> Free-Plan inklusive</span>
             <span><Check size={13} strokeWidth={3} /> DSGVO-konform</span>
           </motion.div>
