@@ -809,7 +809,7 @@ export default function SharedSpendingPage() {
     <div className="shared-spending-page is-premium">
       <header className="spending-app-bar">
         <div className="spending-app-bar-title">
-          <h1>Ausgaben</h1>
+          <h1>Budget</h1>
           {acceptedGroups.length > 0 && (
             <span className="spending-app-bar-count">{acceptedGroups.length}</span>
           )}
@@ -889,7 +889,7 @@ export default function SharedSpendingPage() {
           <div className="spending-empty-main">
             <Sparkles size={28} />
             <h3>Noch keine Gruppe</h3>
-            <p>Lege deine erste Ausgaben-Gruppe an, lade Freunde ein und teile Kosten live.</p>
+            <p>Lege deine erste Budget-Gruppe an, lade Freunde ein und teile Kosten live.</p>
             <button type="button" className="sankey-btn sankey-btn-primary" onClick={() => setShowCreate(true)}>
               <Plus size={16} /> Erste Gruppe anlegen
             </button>
@@ -1646,7 +1646,7 @@ function CreateGroupModal({ onClose, onSubmit }) {
     <div className="spending-modal-backdrop" onClick={onClose}>
       <form className="spending-modal" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
         <header className="spending-modal-head">
-          <h3>Neue Ausgaben-Gruppe</h3>
+          <h3>Neue Budget-Gruppe</h3>
           <button type="button" className="spending-icon-btn" onClick={onClose}><X size={16} /></button>
         </header>
         <label className="spending-field">

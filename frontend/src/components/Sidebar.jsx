@@ -96,7 +96,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
     { to: '/app/calendar', icon: CalendarDays, label: 'Kalender' },
     { to: '/app/notes', icon: Sparkles, label: 'Notes' },
     { to: '/app/groups', icon: UsersRound, label: 'Gruppen' },
-    { to: '/app/shared-spending', icon: TrendingUp, label: 'Ausgaben' },
+    { to: '/app/shared-spending', icon: TrendingUp, label: 'Budget' },
   ];
 
   const getTaskCount = (categoryId) => {
