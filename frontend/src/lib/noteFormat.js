@@ -249,6 +249,15 @@ export function toDisplayHtml(content) {
   return decorateLinks(sanitizeHtml(html));
 }
 
+// Wie toDisplayHtml, aber OHNE Link-Chips. Für den contentEditable-Editor —
+// dort müssen echte <a>/Text-URLs bleiben, Chips würden das Editieren brechen
+// (Cursor klebt am Chip, Enter erzeugt Chip-Markup).
+export function toEditorHtml(content) {
+  if (!content) return '';
+  const html = looksLikeHtml(content) ? content : mdToHtml(content);
+  return sanitizeHtml(html);
+}
+
 // Plaintext-Extraktion fuer Suche / Titel-Fallback / AI.
 export function htmlToPlain(html) {
   if (!html) return '';

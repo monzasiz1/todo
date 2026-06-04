@@ -15,7 +15,7 @@ import { useTaskStore } from '../store/taskStore';
 import { useAuthStore } from '../store/authStore';
 import { useFriendsStore } from '../store/friendsStore';
 import { useNotesStore } from '../store/notesStore';
-import { toDisplayHtml, sanitizeHtml, htmlToMarkdown, safeFileName } from '../lib/noteFormat';
+import { toEditorHtml, sanitizeHtml, htmlToMarkdown, safeFileName } from '../lib/noteFormat';
 import { walkEditorBlocks } from '../lib/noteAuthorship';
 import { api } from '../utils/api';
 import NoteActivityPanel from './NoteActivityPanel';
@@ -302,7 +302,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   const [title, setTitle] = useState(note?.title || '');
   // Content wird ab sofort als HTML gespeichert (WYSIWYG-Editor). Bestands-
   // Notizen sind Markdown -> on-load nach HTML konvertieren.
-  const [content, setContent] = useState(() => toDisplayHtml(initialParsed.rest));
+  const [content, setContent] = useState(() => toEditorHtml(initialParsed.rest));
   const [linkPopover, setLinkPopover] = useState(null); // { url, x, y } | null
   const [linkCopied, setLinkCopied] = useState(false);
   const [color, setColor] = useState(initialColor);
@@ -663,7 +663,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
   useEffect(() => {
     const el = editorRef.current;
     if (!el) return;
-    const html = toDisplayHtml(initialParsed.rest);
+    const html = toEditorHtml(initialParsed.rest);
     el.innerHTML = html;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [note?.id]);
@@ -711,7 +711,7 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
     if (savingInFlightRef.current) return;
     if (Date.now() - userTypingRef.current < 1500) return;
     const parsed = parseColor(note?.content || '');
-    const nextHtml = toDisplayHtml(parsed.rest);
+    const nextHtml = toEditorHtml(parsed.rest);
     const nextTitle = note?.title || '';
     const nextColorName = note?.color || parsed.color?.name || '';
     const nextImportance = note?.importance || 'medium';
