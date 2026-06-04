@@ -9,8 +9,69 @@ import NoteEditorModal from '../components/NoteEditorModal';
 import NoteShareRequestsBanner from '../components/NoteShareRequestsBanner';
 import { useNotesStore } from '../store/notesStore';
 import { useTaskStore } from '../store/taskStore';
-import { looksLikeHtml, toDisplayHtml, sanitizeHtml } from '../lib/noteFormat';
+import { looksLikeHtml, toDisplayHtml, sanitizeHtml, shortenUrlLabel } from '../lib/noteFormat';
 import '../styles/notes.css';
+
+// Vollen Link in die Zwischenablage kopieren (mit Fallback für ältere WebViews).
+async function copyLinkToClipboard(url) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(url);
+      return true;
+    }
+  } catch { /* fallback unten */ }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
+// Kompakter Link-Chip: kurzer Label öffnet den Link, Icon kopiert die volle URL.
+function LinkChip({ url }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const ok = await copyLinkToClipboard(url);
+    if (ok) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1300);
+    }
+  };
+  return (
+    <span className="note-link" onClick={(e) => e.stopPropagation()}>
+      <a
+        className="note-link-open"
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={url}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <span className="note-link-label">{shortenUrlLabel(url)}</span>
+      </a>
+      <span
+        className={`note-link-copy${copied ? ' is-copied' : ''}`}
+        role="button"
+        tabIndex={0}
+        title={copied ? 'Kopiert!' : 'Link kopieren'}
+        aria-label="Link kopieren"
+        onClick={handleCopy}
+        onPointerDown={(e) => e.stopPropagation()}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleCopy(e); }}
+      />
+    </span>
+  );
+}
 
 const NOTE_COLORS = [
   { name: 'Gelb', bg: '#FFFE94', border: '#E6D35C', shadow: '#D4AC0D' },
@@ -38,14 +99,7 @@ function renderInlineMd(text, baseKey) {
     else if (tok.startsWith('`')) parts.push(<code key={`${baseKey}-c-${i}`} className="note-md-code">{tok.slice(1, -1)}</code>);
     else if (tok.startsWith('*')) parts.push(<em key={`${baseKey}-i-${i}`}>{tok.slice(1, -1)}</em>);
     else parts.push(
-      <a
-        key={`${baseKey}-a-${i}`}
-        href={tok}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="note-md-link"
-        onClick={(e) => e.stopPropagation()}
-      >{tok}</a>
+      <LinkChip key={`${baseKey}-a-${i}`} url={tok} />
     );
     last = m.index + tok.length;
     i++;
@@ -675,6 +729,22 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
                   dangerouslySetInnerHTML={{ __html: htmlForDisplay }}
                   onClickCapture={(e) => {
                     const t = e.target;
+                    // Copy-Icon eines Link-Chips: vollen Link kopieren
+                    const copyEl = t && t.closest && t.closest('.note-link-copy');
+                    if (copyEl) {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      const url = copyEl.getAttribute('data-url');
+                      if (url) {
+                        copyLinkToClipboard(url).then((ok) => {
+                          if (ok) {
+                            copyEl.classList.add('is-copied');
+                            setTimeout(() => copyEl.classList.remove('is-copied'), 1300);
+                          }
+                        });
+                      }
+                      return;
+                    }
                     if (t && t.tagName === 'INPUT' && t.getAttribute && t.getAttribute('type') === 'checkbox') {
                       e.stopPropagation();
                       e.preventDefault();
@@ -688,7 +758,7 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
                   onPointerDown={(e) => {
                     const t = e.target;
                     if (t && t.tagName === 'INPUT') e.stopPropagation();
-                    if (t && t.tagName === 'A') e.stopPropagation();
+                    if (t && t.closest && t.closest('.note-link')) e.stopPropagation();
                   }}
                 />
               ) : (

@@ -86,28 +86,63 @@ function escapeHtml(s) {
     .replace(/"/g, '&quot;');
 }
 
-// Lange URLs als kompakten, lesbaren Label anzeigen (Host + gekürzter Pfad),
-// der volle Link bleibt im href erhalten. So sprengt kein langer Link das Layout.
-function shortenUrlLabel(rawUrl) {
-  // rawUrl ist bereits HTML-escaped (&amp; etc.) — fuer die Anzeige zurueckwandeln.
-  const url = String(rawUrl).replace(/&amp;/g, '&');
-  const MAX = 38;
-  let label;
+// Kompakten, lesbaren Label aus einer URL bilden (Host + gekürzter Pfad).
+// Gibt ROHTEXT zurück (kein HTML-Escaping) — Aufrufer escapen bei Bedarf.
+export function shortenUrlLabel(rawUrl) {
+  const url = String(rawUrl).replace(/&amp;/g, '&').trim();
+  const MAX = 32;
   try {
     const u = new URL(url);
     const host = u.hostname.replace(/^www\./, '');
-    let path = (u.pathname && u.pathname !== '/' ? u.pathname : '') + (u.search || '');
-    label = host + path;
+    const path = (u.pathname && u.pathname !== '/' ? u.pathname : '') + (u.search || '');
+    let label = host + path;
     if (label.length > MAX) {
-      // Host immer zeigen, Pfad in der Mitte kuerzen
       const room = Math.max(0, MAX - host.length - 1);
       label = room <= 1 ? host + '/…' : host + path.slice(0, room) + '…';
     }
+    return label;
   } catch {
-    label = url.length > MAX ? url.slice(0, MAX - 1) + '…' : url;
+    return url.length > MAX ? url.slice(0, MAX - 1) + '…' : url;
   }
-  // Label wieder HTML-escapen (es wird als Linktext eingefuegt).
-  return label.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// Bereits sanitisiertes HTML: vorhandene <a> in kompakte Chips umwandeln —
+// Wrapper .note-link [ Open-Link .note-link-open > .note-link-label ] + Copy-Icon
+// .note-link-copy (data-url). Läuft NACH DOMPurify, daher unkritisch.
+function decorateLinks(html) {
+  if (!html || typeof document === 'undefined' || html.indexOf('<a') === -1) return html;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  tmp.querySelectorAll('a[href]').forEach((a) => {
+    const full = a.getAttribute('href') || '';
+    if (!/^https?:/i.test(full)) return;
+    if (a.parentElement && a.parentElement.classList.contains('note-link')) return; // schon dekoriert
+    const txt = (a.textContent || '').trim();
+    const looksLikeUrl = /^https?:\/\//i.test(txt) || txt === full || txt === '';
+    const label = looksLikeUrl ? shortenUrlLabel(full) : (txt.length > 32 ? txt.slice(0, 31) + '…' : txt);
+
+    a.className = 'note-link-open';
+    a.setAttribute('title', full);
+    a.textContent = '';
+    const lbl = document.createElement('span');
+    lbl.className = 'note-link-label';
+    lbl.textContent = label;
+    a.appendChild(lbl);
+
+    const wrap = document.createElement('span');
+    wrap.className = 'note-link';
+    const copy = document.createElement('span');
+    copy.className = 'note-link-copy';
+    copy.setAttribute('role', 'button');
+    copy.setAttribute('aria-label', 'Link kopieren');
+    copy.setAttribute('title', 'Link kopieren');
+    copy.setAttribute('data-url', full);
+
+    a.parentNode.insertBefore(wrap, a);
+    wrap.appendChild(a);
+    wrap.appendChild(copy);
+  });
+  return tmp.innerHTML;
 }
 
 // Inline-Markdown -> HTML
@@ -120,8 +155,7 @@ function inlineMdToHtml(text) {
   s = s.replace(/__([^_\n]+)__/g, '<u>$1</u>');
   s = s.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
   s = s.replace(/`([^`\n]+)`/g, '<code>$1</code>');
-  s = s.replace(/(https?:\/\/[^\s<)"]+)/g, (m, url) =>
-    `<a href="${url}" target="_blank" rel="noopener noreferrer" class="note-link" title="${url}">${shortenUrlLabel(url)}</a>`);
+  s = s.replace(/(https?:\/\/[^\s<)"]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
   return s;
 }
 
@@ -173,7 +207,7 @@ export function mdToHtml(md) {
 export function toDisplayHtml(content) {
   if (!content) return '';
   const html = looksLikeHtml(content) ? content : mdToHtml(content);
-  return sanitizeHtml(html);
+  return decorateLinks(sanitizeHtml(html));
 }
 
 // Plaintext-Extraktion fuer Suche / Titel-Fallback / AI.

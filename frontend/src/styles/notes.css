@@ -2893,17 +2893,61 @@ html[data-theme="dark"] .note-share-requests-modal {
   text-decoration: line-through;
 }
 
-/* ── Links in Notizen: nie das Layout sprengen ──
-   Markdown-Links zeigen einen gekuerzten Label (.note-link, siehe noteFormat.js),
-   im Rich-Text-Editor eingefuegte <a> brechen sauber innerhalb der Karte um. */
-.note-html a,
+/* ── Link-Chip in Notizen ──────────────────────────────────────────────
+   Kleiner Pill: kurzer Label öffnet den Link, Icon kopiert die volle URL.
+   Gleiche Klassen für Markdown- (React LinkChip) und HTML-Pfad (decorateLinks). */
 .note-link {
-  color: var(--primary, #007AFF);
-  font-weight: 500;
-  text-decoration: none;
-  border-bottom: 1px solid color-mix(in srgb, var(--primary, #007AFF) 38%, transparent);
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  max-width: 100%;
+  vertical-align: -2px;
+  border-radius: 7px;
+  padding: 0 3px 0 7px;
+  line-height: 1.45;
+  background: color-mix(in srgb, var(--primary, #007AFF) 11%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary, #007AFF) 26%, transparent);
 }
-.note-html a:hover,
-.note-link:hover { border-bottom-color: var(--primary, #007AFF); }
+.note-link-open {
+  min-width: 0;
+  color: var(--primary, #007AFF);
+  font-weight: 600;
+  text-decoration: none;
+}
+.note-link-label {
+  display: inline-block;
+  max-width: 24ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+.note-link-copy {
+  flex: none;
+  width: 22px;
+  height: 19px;
+  margin-left: 1px;
+  border-radius: 5px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: color-mix(in srgb, var(--primary, #007AFF) 78%, var(--text, #888));
+}
+.note-link-copy::before {
+  content: '';
+  width: 13px; height: 13px;
+  background: currentColor;
+  -webkit-mask: var(--note-copy-icon) center / 13px no-repeat;
+  mask: var(--note-copy-icon) center / 13px no-repeat;
+}
+.note-link-copy:hover { background: color-mix(in srgb, var(--primary, #007AFF) 18%, transparent); }
+.note-link-copy.is-copied { color: var(--success, #34C759); }
+.note-link-copy.is-copied::before {
+  -webkit-mask: var(--note-check-icon) center / 13px no-repeat;
+  mask: var(--note-check-icon) center / 13px no-repeat;
+}
+:root {
+  --note-copy-icon: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Crect%20x='9'%20y='9'%20width='13'%20height='13'%20rx='2'/%3E%3Cpath%20d='M5%2015H4a2%202%200%200%201-2-2V4a2%202%200%200%201%202-2h9a2%202%200%200%201%202%202v1'/%3E%3C/svg%3E");
+  --note-check-icon: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='3'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpolyline%20points='20%206%209%2017%204%2012'/%3E%3C/svg%3E");
+}
