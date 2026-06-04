@@ -15,7 +15,7 @@ import { useTaskStore } from '../store/taskStore';
 import { useAuthStore } from '../store/authStore';
 import { useFriendsStore } from '../store/friendsStore';
 import { useNotesStore } from '../store/notesStore';
-import { toEditorHtml, sanitizeHtml, htmlToMarkdown, safeFileName } from '../lib/noteFormat';
+import { toEditorHtml, undecorateLinks, sanitizeHtml, htmlToMarkdown, safeFileName } from '../lib/noteFormat';
 import { walkEditorBlocks } from '../lib/noteAuthorship';
 import { api } from '../utils/api';
 import NoteActivityPanel from './NoteActivityPanel';
@@ -51,7 +51,9 @@ function parseColor(content) {
 function buildContent(rest /* , color */) {
   // Color wird ab sofort als eigenes Feld an die API geschickt; der
   // Legacy '[COLOR:Name]' Prefix wird nicht mehr in content geschrieben.
-  return String(rest ?? '');
+  // Link-Chips zurück zu reinem <a href>URL</a> machen, damit nie Chip-Markup
+  // gespeichert wird (die Anzeige dekoriert beim Rendern frisch).
+  return undecorateLinks(String(rest ?? ''));
 }
 
 // Live-Markdown-Vorschau (nutzt simple Block-/Inline-Regeln).
@@ -966,14 +968,23 @@ export default function NoteEditorModal({ note, onClose, onUpdate, onDelete, onC
       });
       return;
     }
-    // Link unter dem Klick (echtes <a> ODER reine Text-URL) -> Popover
-    // mit "Öffnen" + "Kopieren". Funktioniert auch im Lese-Modus.
-    const aEl = t && t.closest && t.closest('a[href]');
-    if (aEl) {
+    // Link-Chip angeklickt: Copy-Icon kopiert die volle URL, sonst öffnen.
+    const chip = t && t.closest && t.closest('.note-link');
+    if (chip) {
       e.preventDefault();
-      setLinkPopover({ url: aEl.getAttribute('href'), x: e.clientX, y: e.clientY });
+      const href = chip.querySelector('a[href]') ? chip.querySelector('a[href]').getAttribute('href') : null;
+      if (t.closest('.note-link-copy')) {
+        const copyEl = chip.querySelector('.note-link-copy');
+        const url = (copyEl && copyEl.getAttribute('data-url')) || href;
+        if (url) copyTextSafe(url).then((ok) => {
+          if (ok && copyEl) { copyEl.classList.add('is-copied'); setTimeout(() => copyEl.classList.remove('is-copied'), 1200); }
+        });
+      } else if (href) {
+        window.open(href, '_blank', 'noopener,noreferrer');
+      }
       return;
     }
+    // Noch nicht gechippte reine Text-URL -> Popover mit Öffnen/Kopieren.
     let tok = null;
     if (typeof document !== 'undefined' && document.caretRangeFromPoint) {
       const r = document.caretRangeFromPoint(e.clientX, e.clientY);

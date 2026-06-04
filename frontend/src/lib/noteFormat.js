@@ -109,7 +109,7 @@ export function shortenUrlLabel(rawUrl) {
 // Link-Chips wieder zu reinem <a href>URL</a> zurückbauen. Wichtig für den
 // Editor (Chips würden das Editieren brechen) UND um Inhalte zu säubern, die
 // während eines früheren Bugs versehentlich mit Chip-Markup gespeichert wurden.
-function undecorateLinks(html) {
+export function undecorateLinks(html) {
   if (!html || typeof document === 'undefined' || html.indexOf('note-link') === -1) return html;
   const tmp = document.createElement('div');
   tmp.innerHTML = html;
@@ -132,9 +132,12 @@ function undecorateLinks(html) {
 
 // Einen Link-Chip als DOM bauen: Wrapper .note-link [ <a .note-link-open>
 // <span .note-link-label>label</span></a> + <span .note-link-copy data-url> ].
-function buildChipEl(fullUrl, label) {
+function buildChipEl(fullUrl, label, forEditor) {
   const wrap = document.createElement('span');
   wrap.className = 'note-link';
+  // Im Editor: atomarer, NICHT editierbarer Baustein -> Cursor klebt nicht,
+  // man kann normal drumherum schreiben; Klick öffnet/kopiert.
+  if (forEditor) wrap.setAttribute('contenteditable', 'false');
   const a = document.createElement('a');
   a.className = 'note-link-open';
   a.setAttribute('href', fullUrl);
@@ -158,7 +161,7 @@ function buildChipEl(fullUrl, label) {
 
 // Bereits sanitisiertes HTML: (1) vorhandene <a> und (2) blanke URL-Texte
 // in kompakte Link-Chips umwandeln. Läuft NACH DOMPurify, daher unkritisch.
-function decorateLinks(rawHtml) {
+function decorateLinks(rawHtml, forEditor = false) {
   if (!rawHtml || typeof document === 'undefined') return rawHtml;
   // Evtl. schon vorhandene Chips zuerst entfernen -> immer frische, konsistente
   // Chips mit data-url (verhindert doppelte/kaputte Chips bei gespeichertem Markup).
@@ -175,7 +178,7 @@ function decorateLinks(rawHtml) {
     const txt = (a.textContent || '').trim();
     const looksLikeUrl = /^https?:\/\//i.test(txt) || txt === full || txt === '';
     const label = looksLikeUrl ? shortenUrlLabel(full) : (txt.length > 32 ? txt.slice(0, 31) + '…' : txt);
-    a.replaceWith(buildChipEl(full, label));
+    a.replaceWith(buildChipEl(full, label, forEditor));
   });
 
   // (2) blanke URLs in Textknoten -> Chip (nicht innerhalb bestehender Links)
@@ -201,7 +204,7 @@ function decorateLinks(rawHtml) {
     while ((m = re.exec(text)) !== null) {
       if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
       const full = m[0];
-      frag.appendChild(buildChipEl(full, shortenUrlLabel(full)));
+      frag.appendChild(buildChipEl(full, shortenUrlLabel(full), forEditor));
       last = m.index + full.length;
     }
     if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
@@ -282,7 +285,9 @@ export function toDisplayHtml(content) {
 export function toEditorHtml(content) {
   if (!content) return '';
   const html = looksLikeHtml(content) ? content : mdToHtml(content);
-  return undecorateLinks(sanitizeHtml(html));
+  // Editor zeigt dieselben kompakten Chips wie die Anzeige, aber als atomare
+  // contenteditable=false-Bausteine (Bearbeiten drumherum bleibt normal).
+  return decorateLinks(sanitizeHtml(html), true);
 }
 
 // Plaintext-Extraktion fuer Suche / Titel-Fallback / AI.
