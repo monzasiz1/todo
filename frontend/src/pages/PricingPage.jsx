@@ -166,7 +166,7 @@ export default function PricingPage() {
   return (
     <div>
       <motion.div
-        className="page-header"
+        className="page-header pricing-header"
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
