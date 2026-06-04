@@ -106,6 +106,30 @@ export function shortenUrlLabel(rawUrl) {
   }
 }
 
+// Link-Chips wieder zu reinem <a href>URL</a> zurückbauen. Wichtig für den
+// Editor (Chips würden das Editieren brechen) UND um Inhalte zu säubern, die
+// während eines früheren Bugs versehentlich mit Chip-Markup gespeichert wurden.
+function undecorateLinks(html) {
+  if (!html || typeof document === 'undefined' || html.indexOf('note-link') === -1) return html;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  tmp.querySelectorAll('.note-link-copy').forEach((el) => el.remove());
+  tmp.querySelectorAll('a.note-link-open, a.note-link').forEach((a) => {
+    const href = a.getAttribute('href') || '';
+    a.removeAttribute('class');
+    a.removeAttribute('title');
+    a.textContent = href || (a.textContent || '');
+  });
+  // Wrapper-Span .note-link auflösen (Kind-Anker behalten)
+  tmp.querySelectorAll('span.note-link').forEach((w) => {
+    const parent = w.parentNode;
+    if (!parent) return;
+    while (w.firstChild) parent.insertBefore(w.firstChild, w);
+    parent.removeChild(w);
+  });
+  return tmp.innerHTML;
+}
+
 // Einen Link-Chip als DOM bauen: Wrapper .note-link [ <a .note-link-open>
 // <span .note-link-label>label</span></a> + <span .note-link-copy data-url> ].
 function buildChipEl(fullUrl, label) {
@@ -134,8 +158,11 @@ function buildChipEl(fullUrl, label) {
 
 // Bereits sanitisiertes HTML: (1) vorhandene <a> und (2) blanke URL-Texte
 // in kompakte Link-Chips umwandeln. Läuft NACH DOMPurify, daher unkritisch.
-function decorateLinks(html) {
-  if (!html || typeof document === 'undefined') return html;
+function decorateLinks(rawHtml) {
+  if (!rawHtml || typeof document === 'undefined') return rawHtml;
+  // Evtl. schon vorhandene Chips zuerst entfernen -> immer frische, konsistente
+  // Chips mit data-url (verhindert doppelte/kaputte Chips bei gespeichertem Markup).
+  const html = undecorateLinks(rawHtml);
   if (html.indexOf('<a') === -1 && !/https?:\/\//i.test(html)) return html;
   const tmp = document.createElement('div');
   tmp.innerHTML = html;
@@ -255,7 +282,7 @@ export function toDisplayHtml(content) {
 export function toEditorHtml(content) {
   if (!content) return '';
   const html = looksLikeHtml(content) ? content : mdToHtml(content);
-  return sanitizeHtml(html);
+  return undecorateLinks(sanitizeHtml(html));
 }
 
 // Plaintext-Extraktion fuer Suche / Titel-Fallback / AI.

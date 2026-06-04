@@ -813,7 +813,8 @@ html[data-theme="dark"] .note-tag-chip {
      Bei sehr langen Notizen -> Doppelklick oeffnet den Vollbild-Editor. */
   min-height: 95px;
   max-height: 520px;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   scrollbar-width: thin;
 }
 
@@ -2909,14 +2910,17 @@ html[data-theme="dark"] .note-share-requests-modal {
   border: 1px solid color-mix(in srgb, var(--primary, #007AFF) 26%, transparent);
 }
 .note-link-open {
+  display: inline-flex;
+  align-items: center;
   min-width: 0;
+  max-width: 100%;
   color: var(--primary, #007AFF);
   font-weight: 600;
   text-decoration: none;
 }
 .note-link-label {
   display: inline-block;
-  max-width: 24ch;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
