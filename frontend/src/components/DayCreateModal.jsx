@@ -521,10 +521,8 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
     </>
   );
 
-  if (isMobile) {
-    return createPortal(modalInner, portalTarget || document.body);
-  }
-
+  // Overlay-Wrapper sowohl auf Desktop als auch auf dem Handy: liefert die
+  // Positionierung (fixed, flex-end = Bottom-Sheet auf Mobile) und den Backdrop.
   return createPortal(
     <motion.div
       className="modal-overlay day-create-overlay"
