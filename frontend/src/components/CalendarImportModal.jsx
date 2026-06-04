@@ -19,6 +19,17 @@ export default function CalendarImportModal({ open, onClose, onImported }) {
   const [progress, setProgress] = useState({ done: 0, total: 0, failed: 0 });
   const fileInputRef = useRef(null);
   const addToast = useTaskStore((s) => s.addToast);
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 600px)').matches
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const mq = window.matchMedia('(max-width: 600px)');
+    const handler = (e) => setIsMobile(e.matches);
+    mq.addEventListener?.('change', handler);
+    return () => mq.removeEventListener?.('change', handler);
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -147,20 +158,32 @@ export default function CalendarImportModal({ open, onClose, onImported }) {
       >
         <motion.div
           className="cal-import-modal"
-          initial={{ opacity: 0, y: 24, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 24, scale: 0.98 }}
+          initial={isMobile ? { y: '100%' } : { opacity: 0, y: 24, scale: 0.98 }}
+          animate={isMobile ? { y: 0 } : { opacity: 1, y: 0, scale: 1 }}
+          exit={isMobile ? { y: '100%' } : { opacity: 0, y: 24, scale: 0.98 }}
           transition={{ type: 'spring', stiffness: 320, damping: 28 }}
           onClick={(e) => e.stopPropagation()}
+          {...(isMobile ? {
+            drag: 'y',
+            dragDirectionLock: true,
+            dragConstraints: { top: 0, bottom: 0 },
+            dragElastic: { top: 0, bottom: 0.6 },
+            onDragEnd: (_, info) => {
+              if (info.offset.y > 110 || info.velocity.y > 500) onClose();
+            },
+          } : {})}
         >
+          {isMobile && <div className="cal-import-drag" aria-hidden="true" />}
           <header className="cal-import-head">
             <div>
               <h3>Kalender importieren</h3>
               <p>Lade eine .ics-Datei aus Google Calendar, Apple Kalender oder Outlook hoch.</p>
             </div>
-            <button type="button" className="cal-import-close" onClick={onClose} aria-label="Schliessen">
-              <X size={18} />
-            </button>
+            {!isMobile && (
+              <button type="button" className="cal-import-close" onClick={onClose} aria-label="Schliessen">
+                <X size={18} />
+              </button>
+            )}
           </header>
 
           <div className="cal-import-body">

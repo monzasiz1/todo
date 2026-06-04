@@ -27277,7 +27277,7 @@ body.gchat-resizing * {
   width: min(640px, 100%);
   max-height: calc(100vh - 40px);
   display: flex; flex-direction: column;
-  background: var(--bg, #fff);
+  background: var(--card-solid, #fff);
   color: var(--text);
   border-radius: 18px;
   border: 1px solid var(--border);
@@ -27465,6 +27465,19 @@ body.gchat-resizing * {
     border-radius: 22px 22px 0 0;
     max-height: 88dvh;
     width: 100%;
+    touch-action: pan-y;
+  }
+  /* Grab-Handle fuer Swipe-nach-unten zum Schliessen */
+  .cal-import-drag {
+    width: 44px;
+    height: 5px;
+    border-radius: 999px;
+    background: var(--border-strong, rgba(255, 255, 255, 0.18));
+    margin: 9px auto 0;
+    flex-shrink: 0;
+  }
+  .cal-import-head {
+    padding-top: 12px;
   }
   /* Footer ueber den Home-Indicator heben */
   .cal-import-foot {

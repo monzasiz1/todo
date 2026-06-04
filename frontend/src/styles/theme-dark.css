@@ -1115,13 +1115,17 @@ html[data-theme="dark"] .cal-mp-m.now {
   background: var(--surface, rgba(255, 255, 255, 0.04));
 }
 
-/* Calendar-Settings Modal */
-html[data-theme="dark"] .cal-settings-modal,
+/* Calendar-Settings Modal — gleicher Blau-Navy-Ton wie die anderen Modals
+   (vorher neutrales Grau rgba(30,31,35), wirkte uneinheitlich). */
+html[data-theme="dark"] .cal-settings-modal {
+  background: var(--card-solid);
+  color: var(--text);
+  border-color: var(--border);
+}
 html[data-theme="dark"] .cal-settings-modal-body,
 html[data-theme="dark"] .cal-settings-modal-head,
 html[data-theme="dark"] .cal-settings-modal-foot {
-  background: rgba(30, 31, 35, 0.95);
-  backdrop-filter: blur(8px);
+  background: transparent;
   color: var(--text);
   border-color: var(--border);
 }
@@ -1134,7 +1138,7 @@ html[data-theme="dark"] .cal-settings-modal-close:hover {
   color: var(--text);
 }
 html[data-theme="dark"] .cal-settings-field {
-  background: var(--surface-2);
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 12px 14px;
