@@ -6,7 +6,7 @@ import {
   Check, CheckCircle2, Clock, FileText, Flag,
   Key, Layers3, LayoutDashboard, ListTodo, Mail, Paperclip, Repeat,
   Sparkles, Tag, UsersRound, User, X, Zap, Download,
-  Leaf, Timer, MessageSquare, FolderKanban, MoveDiagonal, Smartphone,
+  Leaf, Timer, MessageSquare, FolderKanban, MoveDiagonal, Smartphone, TrendingUp,
 } from 'lucide-react';
 import { PLANS } from '../lib/plans';
 import { useAuthStore } from '../store/authStore';
@@ -70,7 +70,7 @@ const featureCopy = [
 ];
 
 // Echte Hochkant-App-Screenshots — kein Mock. Liegen unter frontend/public/bilder/.
-// Reihenfolge = echte App-Bottom-Nav: Home · Kalender · Gruppen · Profil.
+// Reihenfolge = echte App-Nav: Home · Kalender · Notes · Gruppen · Budget · Profil.
 const storyChapters = [
   {
     id: 'home', src: '/bilder/homehandy.png', navLabel: 'Home',
@@ -89,12 +89,28 @@ const storyChapters = [
     plan: 'Alle Pläne',
   },
   {
+    id: 'notes', src: '/bilder/notes.png', navLabel: 'Notes',
+    icon: FileText, color: '#00C7BE',
+    eyebrow: 'Notes',
+    title: 'Ideen, die kleben bleiben.',
+    desc: 'Sticky-Notes frei auf dem Board platzieren, Farben wählen, Termine verknüpfen und mit Freunden teilen.',
+    plan: 'Alle Pläne',
+  },
+  {
     id: 'gruppen', src: '/bilder/gruppenhandy.png', navLabel: 'Gruppen',
     icon: UsersRound, color: '#FF9500',
     eyebrow: 'Gruppen',
     title: 'Gemeinsam organisieren.',
     desc: 'Familie, Team oder WG: geteilte Aufgaben, Team-Chat mit Event-Erkennung, Rollen & Rechte.',
     plan: 'Team',
+  },
+  {
+    id: 'budget', src: '/bilder/budget.png', navLabel: 'Budget',
+    icon: TrendingUp, color: '#FF2D55',
+    eyebrow: 'Budget',
+    title: 'Kosten gemeinsam im Griff.',
+    desc: 'Gemeinsame Ausgaben & Einnahmen in Echtzeit, Kosten fair aufteilen und live sehen, wer was zahlt.',
+    plan: 'Alle Pläne',
   },
   {
     id: 'profil', src: '/bilder/profil.png', navLabel: 'Profil',
@@ -156,7 +172,7 @@ function PhoneTour({ onCta }) {
       <div className="lp-container">
         <div className="lp-section-head">
           <span className="lp-kicker">Produkt-Tour</span>
-          <h2>Eine App.<br /><span className="lp-h2-muted">Vier Räume zum Arbeiten.</span></h2>
+          <h2>Eine App.<br /><span className="lp-h2-muted">Sechs Räume zum Arbeiten.</span></h2>
           <p>Tippe dich durch die App — echte Screenshots vom Handy, keine Attrappe.</p>
         </div>
 
