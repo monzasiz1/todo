@@ -1230,6 +1230,8 @@ input, textarea, select {
 
 .task-creation-stack .ai-input-wrapper {
   margin-bottom: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .ai-input-glow-wrap {
@@ -1518,6 +1520,28 @@ input, textarea, select {
 
 .manual-task-launcher-chevron.open {
   transform: rotate(180deg);
+}
+
+/* Dashboard: "Manuell erstellen" wächst optisch aus dem KI-Input heraus —
+   wie eine Schublade, die hinter dem Input sitzt und unten herausschaut. */
+.manual-task-launcher.dashboard-manual-launcher {
+  position: relative;
+  z-index: 0;                        /* unter dem KI-Input (z-index:1), der oben überlappt */
+  width: calc(100% - 34px);          /* etwas schmaler -> schaut hinter dem Input hervor */
+  margin: -22px auto 0;              /* nach oben unter den Input ziehen */
+  padding: 28px 18px 13px;           /* Text unter die Input-Unterkante */
+  justify-content: center;
+  gap: 8px;
+  background: var(--card-solid);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  box-shadow: 0 18px 34px -22px rgba(0, 0, 0, 0.6);
+  color: var(--text-tertiary);
+}
+.manual-task-launcher.dashboard-manual-launcher:hover {
+  color: var(--primary);
+  background: var(--card-solid);
 }
 
 .manual-task-form-panel {
