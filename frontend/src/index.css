@@ -27445,11 +27445,14 @@ body.gchat-resizing * {
 }
 
 /* ── Kalender-Einstellungen Modal ─────────────────────────────────────── */
+/* ── Kalender-Einstellungen — App-Modal (Desktop) / Bottom-Sheet (Handy) ──
+   Abgestimmt auf den Monatspicker: card-solid-Panel, weiche Layer-Schatten,
+   Primary-Glow, Felder als Karten. */
 .cal-settings-modal-overlay {
   position: fixed; inset: 0;
-  background: rgba(15, 17, 25, 0.5);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: rgba(8, 12, 22, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   z-index: 240;
   display: flex; align-items: center; justify-content: center;
   padding: 20px;
@@ -27458,14 +27461,16 @@ body.gchat-resizing * {
 @keyframes cal-settings-fade { from { opacity: 0; } to { opacity: 1; } }
 
 .cal-settings-modal {
-  width: min(480px, 100%);
-  max-height: calc(100vh - 40px);
+  width: min(460px, 100%);
+  max-height: calc(100dvh - 40px);
   display: flex; flex-direction: column;
-  background: var(--bg, #fff);
+  background: var(--card-solid, #fff);
   color: var(--text);
-  border-radius: 18px;
+  border-radius: 20px;
   border: 1px solid var(--border);
-  box-shadow: 0 30px 80px rgba(0,0,0,0.25);
+  box-shadow:
+    0 24px 60px rgba(20, 28, 46, 0.28),
+    0 2px 8px rgba(20, 28, 46, 0.10);
   overflow: hidden;
   animation: cal-settings-pop 0.22s cubic-bezier(.2,.8,.2,1);
 }
@@ -27480,21 +27485,37 @@ body.gchat-resizing * {
   padding: 18px 20px 14px;
   border-bottom: 1px solid var(--border);
 }
+.cal-settings-modal-head .cal-settings-head strong {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+}
+.cal-settings-modal-head .cal-settings-head span {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
 /* Drag-Handle (nur Mobile sichtbar, siehe Media Query unten) */
 .cal-settings-modal-drag {
   display: none;
 }
 .cal-settings-modal-close {
-  width: 32px; height: 32px;
-  border-radius: 10px;
-  border: none;
-  background: var(--hover);
+  width: 34px; height: 34px;
+  border-radius: 11px;
+  border: 1px solid var(--border);
+  background: var(--bg);
   color: var(--text-secondary);
   font-size: 22px; line-height: 1;
   cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center;
+  transition: background 0.15s, color 0.15s, transform 0.12s;
+  flex-shrink: 0;
 }
-.cal-settings-modal-close:hover { color: var(--text); background: var(--border); }
+.cal-settings-modal-close:hover {
+  color: var(--text);
+  background: var(--hover, rgba(0, 0, 0, 0.05));
+  transform: translateY(-1px);
+}
 
 .cal-settings-modal-body {
   padding: 16px 20px;
@@ -27503,30 +27524,72 @@ body.gchat-resizing * {
   gap: 14px;
 }
 
+/* Felder als Karten — einheitlich Light/Dark, passend zum App-Stil */
+.cal-settings-modal-body .cal-settings-field {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  gap: 9px;
+}
+.cal-settings-modal-body .cal-settings-field > span {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+.cal-settings-modal-body .cal-settings-field select {
+  height: 40px;
+  border-radius: 11px;
+  border: 1px solid var(--border);
+  background: var(--card-solid);
+}
+.cal-settings-modal-body .cal-settings-field select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
+}
+.cal-settings-modal-body .cal-settings-import-btn {
+  border-radius: 11px;
+  border: 1px solid var(--border);
+  background: var(--card-solid);
+}
+.cal-settings-modal-body .cal-settings-hint {
+  margin: 0;
+}
+
 .cal-settings-modal-foot {
   border-top: 1px solid var(--border);
-  padding: 12px 20px;
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px));
   display: flex; justify-content: flex-end;
-  background: var(--bg);
+  background: transparent;
 }
 .cal-settings-modal-done {
-  height: 36px; padding: 0 18px;
-  border-radius: 10px;
+  height: 40px; padding: 0 22px;
+  border-radius: 12px;
   border: none;
   background: var(--primary, #6366f1);
   color: #fff;
-  font-size: 13px; font-weight: 700; cursor: pointer;
+  font-size: 13.5px; font-weight: 700; cursor: pointer;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--primary) 38%, transparent);
+  transition: filter 0.15s, transform 0.12s;
 }
-.cal-settings-modal-done:hover { filter: brightness(1.05); }
+.cal-settings-modal-done:hover { filter: brightness(1.05); transform: translateY(-1px); }
 
 @media (max-width: 600px) {
-  .cal-settings-modal-overlay { padding: 0; align-items: stretch; }
+  /* Bottom-Sheet statt Vollbild — konsistent mit dem Monatspicker */
+  .cal-settings-modal-overlay { padding: 0; align-items: flex-end; }
   .cal-settings-modal {
-    border-radius: 0;
-    max-height: 100vh;
+    border-radius: 22px 22px 0 0;
     width: 100%;
-    height: 100vh;
+    max-height: 88dvh;
     touch-action: pan-y;
+    animation: cal-settings-sheet 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @keyframes cal-settings-sheet {
+    from { opacity: 0.5; transform: translateY(100%); }
+    to   { opacity: 1; transform: translateY(0); }
   }
   /* Drag-Handle oben für Wisch-nach-unten zum Schließen */
   .cal-settings-modal-drag {
@@ -27534,15 +27597,13 @@ body.gchat-resizing * {
     width: 44px;
     height: 5px;
     border-radius: 999px;
-    background: var(--border, rgba(0, 0, 0, 0.18));
-    margin: 8px auto 0;
+    background: var(--border-strong, rgba(0, 0, 0, 0.18));
+    margin: 9px auto 0;
     flex-shrink: 0;
-    /* iPhone-Notch: Drag-Handle unter Safe-Area schieben */
-    margin-top: calc(8px + env(safe-area-inset-top));
   }
   /* Header bekommt weniger Top-Padding, da Handle bereits Abstand schafft */
   .cal-settings-modal-head {
-    padding-top: 10px;
+    padding-top: 8px;
   }
 }
 .gchat-event-card-ai {
