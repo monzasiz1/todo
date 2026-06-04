@@ -27452,17 +27452,19 @@ body.gchat-resizing * {
 .cal-import-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 @media (max-width: 600px) {
-  /* ueber der schwebenden Bottom-Nav (z-index: 10100), sonst kollidiert der
-     Footer-Button mit ihr. */
-  .cal-import-overlay { padding: 0; align-items: stretch; z-index: 10300; }
-  .cal-import-modal {
-    border-radius: 0;
-    max-height: 100dvh;
-    width: 100%;
+  /* Bottom-Sheet statt Vollbild — konsistent mit Settings/Monatspicker.
+     Loest zugleich das Notch-Problem (env(safe-area-inset-top) ist in der
+     standalone-PWA unzuverlaessig/0): der Header sitzt unten, weit weg von
+     der Statusleiste. z-index ueber der Bottom-Nav (10100). */
+  .cal-import-overlay {
+    padding: 0;
+    align-items: flex-end;
+    z-index: 10300;
   }
-  /* Header unter die Notch / Dynamic Island schieben */
-  .cal-import-head {
-    padding-top: calc(18px + env(safe-area-inset-top, 0px));
+  .cal-import-modal {
+    border-radius: 22px 22px 0 0;
+    max-height: 88dvh;
+    width: 100%;
   }
   /* Footer ueber den Home-Indicator heben */
   .cal-import-foot {
