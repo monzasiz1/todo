@@ -106,42 +106,81 @@ export function shortenUrlLabel(rawUrl) {
   }
 }
 
-// Bereits sanitisiertes HTML: vorhandene <a> in kompakte Chips umwandeln —
-// Wrapper .note-link [ Open-Link .note-link-open > .note-link-label ] + Copy-Icon
-// .note-link-copy (data-url). Läuft NACH DOMPurify, daher unkritisch.
+// Einen Link-Chip als DOM bauen: Wrapper .note-link [ <a .note-link-open>
+// <span .note-link-label>label</span></a> + <span .note-link-copy data-url> ].
+function buildChipEl(fullUrl, label) {
+  const wrap = document.createElement('span');
+  wrap.className = 'note-link';
+  const a = document.createElement('a');
+  a.className = 'note-link-open';
+  a.setAttribute('href', fullUrl);
+  a.setAttribute('target', '_blank');
+  a.setAttribute('rel', 'noopener noreferrer');
+  a.setAttribute('title', fullUrl);
+  const lbl = document.createElement('span');
+  lbl.className = 'note-link-label';
+  lbl.textContent = label;
+  a.appendChild(lbl);
+  const copy = document.createElement('span');
+  copy.className = 'note-link-copy';
+  copy.setAttribute('role', 'button');
+  copy.setAttribute('aria-label', 'Link kopieren');
+  copy.setAttribute('title', 'Link kopieren');
+  copy.setAttribute('data-url', fullUrl);
+  wrap.appendChild(a);
+  wrap.appendChild(copy);
+  return wrap;
+}
+
+// Bereits sanitisiertes HTML: (1) vorhandene <a> und (2) blanke URL-Texte
+// in kompakte Link-Chips umwandeln. Läuft NACH DOMPurify, daher unkritisch.
 function decorateLinks(html) {
-  if (!html || typeof document === 'undefined' || html.indexOf('<a') === -1) return html;
+  if (!html || typeof document === 'undefined') return html;
+  if (html.indexOf('<a') === -1 && !/https?:\/\//i.test(html)) return html;
   const tmp = document.createElement('div');
   tmp.innerHTML = html;
+
+  // (1) vorhandene Anker -> Chip
   tmp.querySelectorAll('a[href]').forEach((a) => {
     const full = a.getAttribute('href') || '';
     if (!/^https?:/i.test(full)) return;
-    if (a.parentElement && a.parentElement.classList.contains('note-link')) return; // schon dekoriert
+    if (a.parentElement && a.parentElement.classList.contains('note-link')) return;
     const txt = (a.textContent || '').trim();
     const looksLikeUrl = /^https?:\/\//i.test(txt) || txt === full || txt === '';
     const label = looksLikeUrl ? shortenUrlLabel(full) : (txt.length > 32 ? txt.slice(0, 31) + '…' : txt);
-
-    a.className = 'note-link-open';
-    a.setAttribute('title', full);
-    a.textContent = '';
-    const lbl = document.createElement('span');
-    lbl.className = 'note-link-label';
-    lbl.textContent = label;
-    a.appendChild(lbl);
-
-    const wrap = document.createElement('span');
-    wrap.className = 'note-link';
-    const copy = document.createElement('span');
-    copy.className = 'note-link-copy';
-    copy.setAttribute('role', 'button');
-    copy.setAttribute('aria-label', 'Link kopieren');
-    copy.setAttribute('title', 'Link kopieren');
-    copy.setAttribute('data-url', full);
-
-    a.parentNode.insertBefore(wrap, a);
-    wrap.appendChild(a);
-    wrap.appendChild(copy);
+    a.replaceWith(buildChipEl(full, label));
   });
+
+  // (2) blanke URLs in Textknoten -> Chip (nicht innerhalb bestehender Links)
+  const isInsideLink = (n) => {
+    let p = n.parentNode;
+    while (p && p !== tmp) {
+      if (p.nodeName === 'A' || (p.classList && p.classList.contains('note-link'))) return true;
+      p = p.parentNode;
+    }
+    return false;
+  };
+  const walker = document.createTreeWalker(tmp, NodeFilter.SHOW_TEXT, null);
+  const textNodes = [];
+  let n;
+  while ((n = walker.nextNode())) {
+    if (n.nodeValue && /https?:\/\//i.test(n.nodeValue) && !isInsideLink(n)) textNodes.push(n);
+  }
+  textNodes.forEach((textNode) => {
+    const text = textNode.nodeValue;
+    const re = /https?:\/\/[^\s<>"')\]]+/g;
+    const frag = document.createDocumentFragment();
+    let last = 0; let m;
+    while ((m = re.exec(text)) !== null) {
+      if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+      const full = m[0];
+      frag.appendChild(buildChipEl(full, shortenUrlLabel(full)));
+      last = m.index + full.length;
+    }
+    if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+    textNode.parentNode.replaceChild(frag, textNode);
+  });
+
   return tmp.innerHTML;
 }
 
