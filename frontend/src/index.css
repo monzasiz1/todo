@@ -2984,23 +2984,43 @@ input, textarea, select {
   transform: rotate(180deg);
 }
 
-.cal-mp-dropdown {
-  overflow: hidden;
-  border-top: 1px solid var(--border);
-  max-height: 0;
-  opacity: 0;
-  pointer-events: none;
-  transition: max-height 0.25s ease, opacity 0.2s ease;
+/* Portal-Overlay: Popover (Desktop) bzw. Bottom-Sheet (Handy). Liegt am
+   document.body, damit es nie vom overflow:hidden des Kalenders abgeschnitten
+   wird (frueher: Akkordeon im Wrapper -> auf dem Handy "nur bis September"). */
+.cal-mp-portal {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
 }
 
-.cal-mp-dropdown.open {
-  max-height: 440px;
-  opacity: 1;
-  pointer-events: auto;
+.cal-mp-backdrop {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+}
+
+.cal-mp-panel {
+  position: fixed;
+  width: 320px;
+  max-width: calc(100vw - 24px);
+  background: var(--card-solid, #fff);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow:
+    0 18px 48px rgba(20, 28, 46, 0.22),
+    0 2px 8px rgba(20, 28, 46, 0.08);
+  overflow: hidden;
+  transform-origin: top left;
+  animation: calMpPop 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes calMpPop {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .cal-mp-inner {
-  padding: 14px 20px;
+  padding: 16px;
   display: grid;
   gap: 14px;
 }
@@ -3008,39 +3028,43 @@ input, textarea, select {
 .cal-mp-year-nav {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
+  gap: 6px;
 }
 
 .cal-mp-year-nav span {
-  font-size: 15px;
-  font-weight: 700;
+  flex: 1;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
   color: var(--text);
 }
 
 .cal-mp-year-nav button {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  display: flex;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: none;
-  border: none;
+  background: var(--bg);
+  border: 1px solid var(--border);
   cursor: pointer;
   color: var(--text-secondary);
-  transition: all 0.15s;
+  transition: background 0.15s, color 0.15s, transform 0.12s;
+  flex-shrink: 0;
 }
 
 .cal-mp-year-nav button:hover {
-  background: var(--bg);
+  background: var(--hover, rgba(0, 0, 0, 0.05));
   color: var(--text);
+  transform: translateY(-1px);
 }
 
 .cal-mp-months {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 4px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 7px;
 }
 
 .cal-settings-block {
@@ -3161,50 +3185,108 @@ input, textarea, select {
 }
 
 .cal-mp-m {
-  padding: 8px 2px;
-  border-radius: 8px;
-  border: none;
-  background: none;
+  position: relative;
+  padding: 11px 4px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: var(--bg);
   cursor: pointer;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text);
   text-transform: capitalize;
-  transition: all 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.12s;
   text-align: center;
 }
 
 .cal-mp-m:hover {
-  background: var(--bg);
+  background: var(--hover, rgba(0, 0, 0, 0.05));
+  transform: translateY(-1px);
 }
 
 .cal-mp-m.now {
   color: var(--primary);
-  font-weight: 600;
+  border-color: color-mix(in srgb, var(--primary) 35%, transparent);
 }
 
 .cal-mp-m.active {
   background: var(--primary);
-  color: white;
+  border-color: var(--primary);
+  color: #fff;
   font-weight: 700;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--primary) 40%, transparent);
 }
 
 .cal-mp-m.active:hover {
-  filter: brightness(1.1);
+  filter: brightness(1.05);
+  transform: translateY(-1px);
 }
 
+/* ── Handy: Picker als Bottom-Sheet ────────────────────────────────── */
 @media (max-width: 768px) {
   .cal-mp-trigger {
     font-size: 17px;
   }
 
+  .cal-mp-portal {
+    z-index: 1300;
+  }
+
+  .cal-mp-backdrop {
+    background: rgba(8, 12, 22, 0.45);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+  }
+
+  .cal-mp-panel.is-sheet {
+    top: auto !important;
+    left: 0 !important;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 22px 22px 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    animation: calMpSheet 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .cal-mp-panel.is-sheet::before {
+    content: "";
+    display: block;
+    width: 40px;
+    height: 4px;
+    border-radius: 99px;
+    background: var(--border-strong, rgba(0, 0, 0, 0.18));
+    margin: 9px auto 0;
+  }
+
+  @keyframes calMpSheet {
+    from { opacity: 0.4; transform: translateY(100%); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .cal-mp-inner {
+    padding: 16px 18px calc(16px + env(safe-area-inset-bottom, 0px));
+    gap: 16px;
+  }
+
   .cal-mp-months {
-    gap: 6px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
   }
 
   .cal-mp-m {
-    padding: 10px 2px;
-    font-size: 14px;
+    padding: 15px 6px;
+    font-size: 15px;
+  }
+
+  .cal-mp-year-nav button {
+    width: 38px;
+    height: 38px;
+  }
+
+  .cal-mp-year-nav span {
+    font-size: 17px;
   }
 }
 

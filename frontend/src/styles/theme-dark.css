@@ -1090,14 +1090,29 @@ html[data-theme="dark"] [class*="view-toggle"].active {
   color: #fff;
 }
 
-/* Monatspicker Popover */
+/* Monatspicker Popover / Bottom-Sheet (Portal) */
 html[data-theme="dark"] .cal-mp-wrap,
 html[data-theme="dark"] .cal-mp-inner,
 html[data-theme="dark"] .cal-mp-months,
 html[data-theme="dark"] .cal-mp-year-nav {
-  background: var(--card-solid);
+  background: transparent;
   color: var(--text);
   border-color: var(--border);
+}
+html[data-theme="dark"] .cal-mp-panel {
+  background: var(--card-solid);
+  border-color: var(--border);
+  box-shadow:
+    0 18px 48px rgba(0, 0, 0, 0.5),
+    0 2px 8px rgba(0, 0, 0, 0.35);
+}
+html[data-theme="dark"] .cal-mp-year-nav button,
+html[data-theme="dark"] .cal-mp-m:not(.active):not(.now) {
+  background: var(--surface, rgba(255, 255, 255, 0.04));
+  border-color: var(--border);
+}
+html[data-theme="dark"] .cal-mp-m.now {
+  background: var(--surface, rgba(255, 255, 255, 0.04));
 }
 
 /* Calendar-Settings Modal */

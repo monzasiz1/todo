@@ -319,6 +319,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   const [showSidebarCategories, setShowSidebarCategories] = useState(true);
   const [isCalendarFullscreen, setIsCalendarFullscreen] = useState(false);
   const [pickerYear, setPickerYear] = useState(getYear(new Date()));
+  const [pickerRect, setPickerRect] = useState(null);
   const [holidayStateCode, setHolidayStateCode] = useState(() => {
     return getUserCalendarSetting(CALENDAR_HOLIDAY_STATE_KEY, '');
   });
@@ -2568,7 +2569,11 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
             <button
               ref={triggerRef}
               className="cal-mp-trigger"
-              onClick={() => { setPickerYear(getYear(currentDate)); setShowMonthPicker(v => !v); }}
+              onClick={() => {
+                setPickerYear(getYear(currentDate));
+                if (triggerRef.current) setPickerRect(triggerRef.current.getBoundingClientRect());
+                setShowMonthPicker(v => !v);
+              }}
             >
               <span style={{ textTransform: 'capitalize' }}>{headerText}</span>
               <ChevronDown size={15} className={`cal-mp-chevron ${showMonthPicker ? 'open' : ''}`} />
@@ -2691,41 +2696,51 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
         )}
       </div>
 
-      <div
-        ref={dropdownRef}
-        className={`cal-mp-dropdown ${showMonthPicker ? 'open' : ''}`}
-      >
-        <div className="cal-mp-inner">
-          <div className="cal-mp-year-nav">
-            <button onClick={() => setPickerYear(y => y - 1)}><ChevronLeft size={16} /></button>
-            <span>{pickerYear}</span>
-            <button onClick={() => setPickerYear(y => y + 1)}><ChevronRight size={16} /></button>
-            <button
-              className={`calendar-fs-btn cal-settings-trigger cal-settings-trigger-in-dropdown ${showHolidaySettings ? 'active' : ''}`}
-              onClick={() => { setShowHolidaySettings(v => !v); setShowMonthPicker(false); }}
-              title="Kalendereinstellungen"
-            >
-              <Settings size={16} />
-            </button>
+      {showMonthPicker && createPortal(
+        <div className="cal-mp-portal">
+          <div className="cal-mp-backdrop" onClick={() => setShowMonthPicker(false)} />
+          <div
+            ref={dropdownRef}
+            className={`cal-mp-panel ${isMobile ? 'is-sheet' : 'is-popover'}`}
+            style={!isMobile && pickerRect ? {
+              top: Math.round(pickerRect.bottom + 8),
+              left: Math.round(Math.max(12, Math.min(pickerRect.left, window.innerWidth - 332))),
+            } : undefined}
+          >
+            <div className="cal-mp-inner">
+              <div className="cal-mp-year-nav">
+                <button onClick={() => setPickerYear(y => y - 1)} aria-label="Vorheriges Jahr"><ChevronLeft size={16} /></button>
+                <span>{pickerYear}</span>
+                <button onClick={() => setPickerYear(y => y + 1)} aria-label="Nächstes Jahr"><ChevronRight size={16} /></button>
+                <button
+                  className={`calendar-fs-btn cal-settings-trigger cal-settings-trigger-in-dropdown ${showHolidaySettings ? 'active' : ''}`}
+                  onClick={() => { setShowHolidaySettings(v => !v); setShowMonthPicker(false); }}
+                  title="Kalendereinstellungen"
+                >
+                  <Settings size={16} />
+                </button>
+              </div>
+              <div className="cal-mp-months">
+                {Array.from({ length: 12 }, (_, i) => (
+                  <button
+                    key={i}
+                    className={`cal-mp-m${getMonth(currentDate) === i && getYear(currentDate) === pickerYear ? ' active' : ''}${getMonth(new Date()) === i && getYear(new Date()) === pickerYear ? ' now' : ''}`}
+                    onClick={() => {
+                      const nextDate = setYear(setMonth(currentDate, i), pickerYear);
+                      setCurrentDate(nextDate);
+                      setSelectedDate(nextDate);
+                      setShowMonthPicker(false);
+                    }}
+                  >
+                    {format(new Date(2024, i, 1), 'MMM', { locale: de })}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-          <div className="cal-mp-months">
-            {Array.from({ length: 12 }, (_, i) => (
-              <button
-                key={i}
-                className={`cal-mp-m${getMonth(currentDate) === i && getYear(currentDate) === pickerYear ? ' active' : ''}${getMonth(new Date()) === i && getYear(new Date()) === pickerYear ? ' now' : ''}`}
-                onClick={() => {
-                  const nextDate = setYear(setMonth(currentDate, i), pickerYear);
-                  setCurrentDate(nextDate);
-                  setSelectedDate(nextDate);
-                  setShowMonthPicker(false);
-                }}
-              >
-                {format(new Date(2024, i, 1), 'MMM', { locale: de })}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+        </div>,
+        document.body
+      )}
 
       {showHolidaySettings && createPortal(
         <div
