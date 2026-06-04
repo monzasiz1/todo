@@ -203,6 +203,112 @@ BEGIN
   END IF;
 END $$;
 
+-- ── 7) AUSGABEN (Shared Spending) ────────────────────────────────────────
+-- Realtime-Sichtbarkeit für die spending_* Tabellen. Membership-Check via
+-- SECURITY DEFINER, damit die spending_members-Policy nicht rekursiv wird.
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='spending_groups') THEN
+
+    -- Helper: ist der aktuelle User Owner ODER akzeptiertes Mitglied der Spending-Gruppe?
+    EXECUTE $FN$
+      CREATE OR REPLACE FUNCTION public.app_is_spending_member(_sg_id int)
+      RETURNS boolean
+      LANGUAGE sql
+      STABLE
+      SECURITY DEFINER
+      SET search_path = public
+      AS $BODY$
+        SELECT EXISTS (
+          SELECT 1 FROM public.spending_groups g
+          WHERE g.id = _sg_id AND g.owner_id = public.app_user_id()
+        ) OR EXISTS (
+          SELECT 1 FROM public.spending_members m
+          WHERE m.spending_group_id = _sg_id
+            AND m.user_id = public.app_user_id()
+            AND m.status = 'accepted'
+        );
+      $BODY$;
+    $FN$;
+    EXECUTE 'REVOKE ALL ON FUNCTION public.app_is_spending_member(int) FROM public';
+    EXECUTE 'GRANT EXECUTE ON FUNCTION public.app_is_spending_member(int) TO authenticated, anon';
+
+    -- RLS aktivieren
+    EXECUTE 'ALTER TABLE public.spending_groups  ENABLE ROW LEVEL SECURITY';
+    EXECUTE 'ALTER TABLE public.spending_members ENABLE ROW LEVEL SECURITY';
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='spending_expenses') THEN
+      EXECUTE 'ALTER TABLE public.spending_expenses ENABLE ROW LEVEL SECURITY';
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='spending_custom_categories') THEN
+      EXECUTE 'ALTER TABLE public.spending_custom_categories ENABLE ROW LEVEL SECURITY';
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='spending_overrides') THEN
+      EXECUTE 'ALTER TABLE public.spending_overrides ENABLE ROW LEVEL SECURITY';
+    END IF;
+
+    -- SELECT-Policies
+    EXECUTE 'DROP POLICY IF EXISTS rt_select_spending_groups ON public.spending_groups';
+    EXECUTE 'CREATE POLICY rt_select_spending_groups ON public.spending_groups
+               FOR SELECT TO authenticated
+               USING (owner_id = public.app_user_id() OR public.app_is_spending_member(id))';
+
+    EXECUTE 'DROP POLICY IF EXISTS rt_select_spending_members ON public.spending_members';
+    EXECUTE 'CREATE POLICY rt_select_spending_members ON public.spending_members
+               FOR SELECT TO authenticated
+               USING (user_id = public.app_user_id() OR public.app_is_spending_member(spending_group_id))';
+
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='spending_expenses') THEN
+      EXECUTE 'DROP POLICY IF EXISTS rt_select_spending_expenses ON public.spending_expenses';
+      EXECUTE 'CREATE POLICY rt_select_spending_expenses ON public.spending_expenses
+                 FOR SELECT TO authenticated
+                 USING (public.app_is_spending_member(spending_group_id))';
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='spending_custom_categories') THEN
+      EXECUTE 'DROP POLICY IF EXISTS rt_select_spending_custom_categories ON public.spending_custom_categories';
+      EXECUTE 'CREATE POLICY rt_select_spending_custom_categories ON public.spending_custom_categories
+                 FOR SELECT TO authenticated
+                 USING (public.app_is_spending_member(spending_group_id))';
+    END IF;
+
+    -- Overrides haben keine spending_group_id → über entry_id auf die Ausgabe ableiten.
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='spending_overrides') THEN
+      EXECUTE 'DROP POLICY IF EXISTS rt_select_spending_overrides ON public.spending_overrides';
+      EXECUTE $POL$
+        CREATE POLICY rt_select_spending_overrides ON public.spending_overrides
+          FOR SELECT TO authenticated
+          USING (
+            EXISTS (
+              SELECT 1 FROM public.spending_expenses e
+              WHERE e.id = spending_overrides.entry_id
+                AND public.app_is_spending_member(e.spending_group_id)
+            )
+          )
+      $POL$;
+    END IF;
+
+    -- Publication
+    IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='spending_groups') THEN
+      EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE public.spending_groups';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='spending_members') THEN
+      EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE public.spending_members';
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='spending_expenses')
+       AND NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='spending_expenses') THEN
+      EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE public.spending_expenses';
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='spending_custom_categories')
+       AND NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='spending_custom_categories') THEN
+      EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE public.spending_custom_categories';
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='spending_overrides')
+       AND NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='spending_overrides') THEN
+      EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE public.spending_overrides';
+    END IF;
+
+  END IF;
+END $$;
+
 -- ── Fertig ───────────────────────────────────────────────────────────────
 -- Verify (optional, eigene Query):
 --   SELECT tablename FROM pg_publication_tables WHERE pubname = 'supabase_realtime';

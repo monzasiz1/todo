@@ -398,6 +398,32 @@ export function useRealtime({ userId, enabled = true } = {}) {
         });
       _rt.channels.push({ channel: notesBroadcastChannel });
 
+      // 3c) AUSGABEN (Shared Spending) — Änderungen an spending_* refreshen die
+      //     Gruppenliste und die gerade geöffnete Gruppe. RLS filtert auf
+      //     Gruppen, in denen der User Owner/akzeptiertes Mitglied ist.
+      const refetchSpending = debounce(async () => {
+        try {
+          const { useSharedSpendingStore } = await import('../store/sharedSpendingStore');
+          const store = useSharedSpendingStore.getState();
+          await store.fetchGroups();
+          const active = store.activeGroup;
+          if (active?.id) await store.fetchGroupDetail(active.id);
+        } catch { /* ignore */ }
+        try { window.dispatchEvent(new CustomEvent('beequ:spending-changed')); } catch { /* ignore */ }
+      }, 300);
+
+      const spendingChannel = supabase
+        .channel(`rt-spending-${userId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'spending_expenses' }, () => refetchSpending())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'spending_groups' }, () => refetchSpending())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'spending_members' }, () => refetchSpending())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'spending_custom_categories' }, () => refetchSpending())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'spending_overrides' }, () => refetchSpending())
+        .subscribe((status, err) => {
+          setStatus({ spendingChannel: status, spendingErr: err?.message });
+        });
+      _rt.channels.push({ channel: spendingChannel, cancel: refetchSpending.cancel });
+
       // 4) ONLINE-PRESENCE — Channel 'rt-presence'. Jeder verbundene Client
       //    'tracked' seine user_id; alle anderen sehen joins/leaves sofort.
       //    Kein DB-Write notwendig.
