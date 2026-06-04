@@ -19228,8 +19228,20 @@ html[data-theme="dark"] .group-role-chip.role-member {
     background: var(--card-solid) !important;
   }
 
+  /* Handle absolut in die Safe-Area-Zone legen — sonst addiert sein
+     Flow-Margin sich mit dem padding-top des Headers (doppelte Safe-Area,
+     Header rutschte fast an die Tasks). */
+  .day-create-modal.day-create-fullscreen .day-create-drag-handle {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
+    z-index: 3;
+  }
+
   .day-create-header {
-    padding: calc(env(safe-area-inset-top, 0px) + 8px) 18px 14px;
+    padding: calc(env(safe-area-inset-top, 0px) + 18px) 18px 14px;
     border-radius: 0;
     position: sticky;
     top: 0;
@@ -27453,7 +27465,9 @@ body.gchat-resizing * {
   background: rgba(8, 12, 22, 0.55);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  z-index: 240;
+  /* ueber der schwebenden Bottom-Nav (z-index: 10100), damit das Sheet samt
+     "Fertig"-Button sie ueberlagert statt mit ihr zu kollidieren. */
+  z-index: 10300;
   display: flex; align-items: center; justify-content: center;
   padding: 20px;
   animation: cal-settings-fade 0.18s ease-out;
