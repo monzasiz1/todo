@@ -173,7 +173,7 @@ function PhoneTour({ onCta }) {
         <div className="lp-section-head">
           <span className="lp-kicker">Produkt-Tour</span>
           <h2>Eine App.<br /><span className="lp-h2-muted">Sechs Räume zum Arbeiten.</span></h2>
-          <p>Tippe dich durch die App — echte Screenshots vom Handy, keine Attrappe.</p>
+          <p>Alles in einer App — tippe dich durch die sechs Bereiche.</p>
         </div>
 
         {/* Raum-Umschalter (über dem Handy) */}

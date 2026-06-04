@@ -635,6 +635,23 @@
   opacity: 1;
 }
 
+/* Auf dem Handy: Month-Navigator mittig statt links (space-between +
+   flex-wrap legt die umgebrochenen Zeilen sonst linksbuendig ab). */
+@media (max-width: 760px) {
+  .spending-month-nav {
+    justify-content: center;
+  }
+  .spending-month-main {
+    width: 100%;
+    justify-content: center;
+  }
+  .spending-month-strip {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
 /* ── Recurrence Picker im Modal ────────────────────────────────────── */
 .spending-recurrence-grid {
   display: grid;

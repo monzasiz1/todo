@@ -133,7 +133,7 @@ export default function GroupsPage() {
   // Mit aktuellem Free-Plan (1 Gruppe) wird der Limit-Check beim Erstellen geprueft.
   if (!can('groups') || limit('groups') === 0) {
     return (
-      <div>
+      <div className="groups-page">
         {showUpgrade && (
           <UpgradeModal feature="groups" onClose={() => setShowUpgrade(false)} />
         )}

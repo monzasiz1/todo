@@ -42,10 +42,12 @@
   body:has(.notes-board-container) .bottom-nav-scrim { display: none !important; }
 
   .notes-board-container {
-    /* Komplette Bildschirmhoehe inkl. Safe-Areas (iOS Notch). */
+    /* Komplette Bildschirmhoehe inkl. Safe-Areas (iOS Notch / Android 15
+       Edge-to-Edge). Die Safe-Area oben uebernimmt der .notes-board-header
+       selbst (durchgehender App-Bar hinter der Statusleiste) — hier KEIN
+       zusaetzliches padding-top, sonst doppelter Abstand + Farbkante. */
     min-height: 100dvh;
     max-height: 100dvh;
-    padding-top: env(safe-area-inset-top, 0px);
   }
 }
 
@@ -1248,7 +1250,7 @@ html[data-theme="dark"] .empty-board--no-results .empty-board-content {
 @media (max-width: 900px) {
   .notes-board-header {
     height: auto;
-    padding: 10px 14px;
+    padding: calc(10px + env(safe-area-inset-top, 0px)) 14px 10px;
     flex-wrap: wrap;
     gap: 8px;
   }
@@ -1290,7 +1292,7 @@ html[data-theme="dark"] .empty-board--no-results .empty-board-content {
 @media (max-width: 720px) {
   .notes-board-header {
     flex-wrap: nowrap;        /* keine Zeilenumbrueche, alles in eine Reihe */
-    padding: 8px 10px;
+    padding: calc(8px + env(safe-area-inset-top, 0px)) 10px 8px;
     gap: 6px;
   }
 
@@ -1473,7 +1475,7 @@ html[data-theme="dark"] .empty-board--no-results .empty-board-content {
   }
 
   .notes-board-header {
-    padding: 8px 10px;
+    padding: calc(8px + env(safe-area-inset-top, 0px)) 10px 8px;
     gap: 6px;
   }
 
