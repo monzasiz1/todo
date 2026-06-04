@@ -2990,7 +2990,9 @@ input, textarea, select {
 .cal-mp-portal {
   position: fixed;
   inset: 0;
-  z-index: 1200;
+  /* ueber der schwebenden Bottom-Nav (z-index: 10100), damit das Sheet sie
+     ueberlagert statt darunter zu verschwinden (Okt-Dez waren verdeckt). */
+  z-index: 10200;
 }
 
 .cal-mp-backdrop {
@@ -3226,10 +3228,6 @@ input, textarea, select {
 @media (max-width: 768px) {
   .cal-mp-trigger {
     font-size: 17px;
-  }
-
-  .cal-mp-portal {
-    z-index: 1300;
   }
 
   .cal-mp-backdrop {
