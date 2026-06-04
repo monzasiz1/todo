@@ -2699,13 +2699,22 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       {showMonthPicker && createPortal(
         <div className="cal-mp-portal">
           <div className="cal-mp-backdrop" onClick={() => setShowMonthPicker(false)} />
-          <div
+          <motion.div
             ref={dropdownRef}
             className={`cal-mp-panel ${isMobile ? 'is-sheet' : 'is-popover'}`}
             style={!isMobile && pickerRect ? {
               top: Math.round(pickerRect.bottom + 8),
               left: Math.round(Math.max(12, Math.min(pickerRect.left, window.innerWidth - 332))),
             } : undefined}
+            {...(isMobile ? {
+              drag: 'y',
+              dragDirectionLock: true,
+              dragConstraints: { top: 0, bottom: 0 },
+              dragElastic: { top: 0, bottom: 0.6 },
+              onDragEnd: (_, info) => {
+                if (info.offset.y > 110 || info.velocity.y > 500) setShowMonthPicker(false);
+              },
+            } : {})}
           >
             <div className="cal-mp-inner">
               <div className="cal-mp-year-nav">
@@ -2737,7 +2746,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                 ))}
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>,
         document.body
       )}
