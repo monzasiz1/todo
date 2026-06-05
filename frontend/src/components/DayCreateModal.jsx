@@ -236,7 +236,7 @@ export default function DayCreateModal({ date, tasks, onClose, onTaskCreated, po
   const modalInner = (
     <>
       <motion.div
-        className={`day-create-modal${isMobile ? ' day-create-fullscreen' : ''}${isMobile && mode ? ' day-create-form-view' : ''}`}
+        className={`day-create-modal${isMobile ? ' day-create-fullscreen' : ''}${isMobile && mode === 'manual' ? ' day-create-form-view' : ''}`}
         onClick={(e) => e.stopPropagation()}
         initial={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.96, y: 16 }}
         animate={isMobile ? { y: pullOffset } : { opacity: 1, scale: 1, y: 0 }}
