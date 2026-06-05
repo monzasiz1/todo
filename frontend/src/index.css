@@ -28131,7 +28131,9 @@ body.gchat-resizing * {
 @media (max-width: 1024px) {
   .gchat-panel.gchat-page-mode {
     position: fixed;
-    inset-block-start: env(safe-area-inset-top, 0px);
+    /* Panel-Hintergrund deckt den ganzen Screen inkl. hinter Notch/Island;
+       der Header-Inhalt wird per padding-top unter die Safe-Area gelegt. */
+    inset-block-start: 0;
     left: 0;
     right: 0;
     bottom: 0;
@@ -28142,6 +28144,10 @@ body.gchat-resizing * {
     box-shadow: none;
     z-index: 50;
     overflow: hidden;
+  }
+  /* Header-Inhalt unter Notch/Island (max()-Fallback, da env() teils 0 ist) */
+  .gchat-panel.gchat-page-mode .gchat-header {
+    padding-top: max(20px, calc(env(safe-area-inset-top, 0px) + 8px));
   }
   /* Remove drag-handle pseudo on page mode */
   .gchat-panel.gchat-page-mode .gchat-header::before {
