@@ -3591,3 +3591,142 @@
     transition: none;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LIGHT THEME — Budget/Spending an das helle App-Design anpassen.
+   Das Basis-Design ist dark (weiße Glas-/Neon-Werte auf dunklem Grund).
+   Hier remappen wir Flächen, Borders, Fills, Schatten und helle Akzent-
+   Texte fürs Light-Theme. Dark bleibt unverändert.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Karten- & Panel-Flächen → helle App-Karte (statt dunklem Glas) */
+html[data-theme="light"] .sankey-summary-card,
+html[data-theme="light"] .sankey-card,
+html[data-theme="light"] .sankey-node-card,
+html[data-theme="light"] .sankey-chart-wrapper,
+html[data-theme="light"] .spending-sidebar,
+html[data-theme="light"] .spending-month-nav,
+html[data-theme="light"] .spending-balance-card,
+html[data-theme="light"] .spending-hero,
+html[data-theme="light"] .is-premium .spending-panel,
+html[data-theme="light"] .is-premium .spending-sidebar,
+html[data-theme="light"] .is-premium .spending-month-nav,
+html[data-theme="light"] .is-premium .sankey-diagram-wrap,
+html[data-theme="light"] .sankey-diagram-wrap {
+  background: var(--card-solid);
+  border-color: var(--border);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.04);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* Hero-Banner: dezenter heller Verlauf statt dunklem Navy */
+html[data-theme="light"] .spending-hero {
+  background:
+    radial-gradient(120% 100% at 0% 0%, rgba(96, 165, 250, 0.10), transparent 55%),
+    radial-gradient(140% 120% at 100% 100%, rgba(167, 139, 250, 0.08), transparent 60%),
+    var(--card-solid);
+}
+html[data-theme="light"] .spending-hero::before { opacity: 0; }
+html[data-theme="light"] .spending-hero-name {
+  background: none;
+  -webkit-text-fill-color: var(--text);
+  color: var(--text);
+}
+html[data-theme="light"] .spending-hero-avatar {
+  border-color: var(--card-solid);
+}
+
+/* Subtile weiße Fills → dezente dunkle Fills auf hell */
+html[data-theme="light"] .spending-app-bar-count,
+html[data-theme="light"] .spending-app-bar-action,
+html[data-theme="light"] .sankey-summary-icon,
+html[data-theme="light"] .spending-bar-track,
+html[data-theme="light"] .sankey-legend-item,
+html[data-theme="light"] .sankey-btn-secondary,
+html[data-theme="light"] .spending-recurrence-btn,
+html[data-theme="light"] .spending-tabs,
+html[data-theme="light"] .spending-split-tabs,
+html[data-theme="light"] .spending-field input,
+html[data-theme="light"] .spending-field-select,
+html[data-theme="light"] .spending-member-item,
+html[data-theme="light"] .spending-expense-item,
+html[data-theme="light"] .spending-mini-stat,
+html[data-theme="light"] .spending-month-arrow,
+html[data-theme="light"] .spending-month-label,
+html[data-theme="light"] .spending-month-chip,
+html[data-theme="light"] .spending-month-today {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: var(--border);
+}
+
+/* Generische weiße Borders → App-Border */
+html[data-theme="light"] .sankey-btn,
+html[data-theme="light"] .sankey-btn-ghost,
+html[data-theme="light"] .spending-group-item {
+  border-color: var(--border);
+}
+
+/* Hover-Fills → dunkler statt heller */
+html[data-theme="light"] .spending-app-bar-action:hover,
+html[data-theme="light"] .sankey-btn-ghost:hover,
+html[data-theme="light"] .spending-recurrence-btn:hover,
+html[data-theme="light"] .spending-group-item:hover,
+html[data-theme="light"] .spending-member-item:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* Modal hell */
+html[data-theme="light"] .spending-modal,
+html[data-theme="light"] .spending-modal.is-mobile-fullscreen {
+  background: var(--card-solid);
+  border-color: var(--border);
+  box-shadow: 0 24px 60px rgba(20, 28, 46, 0.22), 0 2px 8px rgba(20, 28, 46, 0.10);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+html[data-theme="light"] .modal-pull-handle {
+  background: var(--border-strong);
+}
+html[data-theme="light"] .spending-field-select option {
+  background: var(--card-solid);
+  color: var(--text);
+}
+html[data-theme="light"] .spending-field input[type="date"] {
+  color-scheme: light;
+}
+
+/* AI-Input hell */
+html[data-theme="light"] .spending-ai-input,
+html[data-theme="light"] .is-premium .spending-ai-input {
+  background: color-mix(in srgb, var(--primary) 5%, var(--card-solid));
+  border-color: color-mix(in srgb, #7c3aed 26%, transparent);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* Helle Akzent-Texte (waren für dunklen Grund gedacht) → dunkler */
+html[data-theme="light"] .spending-ai-icon,
+html[data-theme="light"] .spending-ai-hint,
+html[data-theme="light"] .spending-recurrence-badge {
+  color: #6d28d9;
+}
+html[data-theme="light"] .spending-ai-card-item {
+  color: var(--text);
+}
+html[data-theme="light"] .spending-balance-sub {
+  color: var(--text-secondary);
+}
+
+/* Sankey-Diagramm-Wrap: heller Innenschatten statt dunklem Overlay */
+html[data-theme="light"] .sankey-diagram-wrap,
+html[data-theme="light"] .is-premium .sankey-diagram-wrap {
+  box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+/* Weißer Progress-Balken → Primary auf hell */
+html[data-theme="light"] .spending-bar-fill {
+  background: var(--primary);
+  box-shadow: none;
+}
