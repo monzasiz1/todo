@@ -19255,10 +19255,23 @@ html[data-theme="dark"] .group-role-chip.role-member {
     padding-top: max(44px, calc(env(safe-area-inset-top, 0px) + 8px));
   }
 
+  /* Im Bottom-Sheet (Auswahl): Drag-Handle absolut an die Sheet-Oberkante —
+     flow-unabhaengig, damit er garantiert oben mittig sitzt (nicht unter dem
+     Header). Modal ist position: relative. */
+  .day-create-modal.day-create-fullscreen:not(.day-create-form-view) {
+    position: relative;
+  }
+  .day-create-modal.day-create-fullscreen:not(.day-create-form-view) .day-create-drag-handle {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
+    z-index: 5;
+  }
   .day-create-header {
-    /* Im Bottom-Sheet NICHT sticky — sonst legt sich der z-index-Header ueber
-       den davor stehenden Drag-Handle und verschiebt ihn unter den Header. */
-    padding: 4px 18px 14px;
+    /* Oben Platz fuer den absolut sitzenden Handle, nicht sticky im Sheet. */
+    padding: 20px 18px 14px;
     border-radius: 0;
     position: static;
     background: var(--card-solid);
