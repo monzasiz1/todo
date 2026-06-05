@@ -487,10 +487,17 @@ html[data-theme="dark"] .task-edit-input:focus {
   box-shadow: 0 0 0 3px rgba(77, 163, 255, 0.18);
 }
 
+/* Group-Settings-Karten: gleicher Navy-Ton wie die App-Karten (--card-solid),
+   nicht das neutrale Grau der Modal-Gruppe. */
+html[data-theme="dark"] .gs-card {
+  background: var(--card-solid);
+  border-color: var(--border);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.25);
+}
+
 /* ── Modals & Sheets ────────────────────────────────────────────────── */
 html[data-theme="dark"] .upgrade-modal,
 html[data-theme="dark"] .pricing-card,
-html[data-theme="dark"] .gs-card,
 html[data-theme="dark"] .quick-add-sheet,
 html[data-theme="dark"] .qas-card,
 html[data-theme="dark"] .task-detail-modal,

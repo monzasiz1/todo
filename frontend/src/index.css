@@ -17204,8 +17204,8 @@ html[data-theme="dark"] .group-role-chip.role-member {
 
 /* Base card */
 .gs-card {
-  background: #fff;
-  border: 1px solid rgba(0,0,0,0.07);
+  background: var(--card-solid, #fff);
+  border: 1px solid var(--border, rgba(0,0,0,0.07));
   border-radius: 20px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.04);
   overflow: hidden;
@@ -17219,7 +17219,7 @@ html[data-theme="dark"] .group-role-chip.role-member {
   align-items: center;
   gap: 10px;
   padding: 16px 18px 14px;
-  border-bottom: 1px solid rgba(0,0,0,0.05);
+  border-bottom: 1px solid var(--border, rgba(0,0,0,0.05));
 }
 .gs-card-header-icon {
   width: 34px;
@@ -17268,7 +17268,7 @@ html[data-theme="dark"] .group-role-chip.role-member {
   gap: 8px;
   align-items: center;
   padding: 14px 16px 12px;
-  border-bottom: 1px solid rgba(0,0,0,0.05);
+  border-bottom: 1px solid var(--border, rgba(0,0,0,0.05));
 }
 
 /* Shared input */
@@ -17276,8 +17276,8 @@ html[data-theme="dark"] .group-role-chip.role-member {
   width: 100%;
   padding: 11px 14px;
   border-radius: 12px;
-  border: 1px solid rgba(0,0,0,0.1);
-  background: #F7F7F8;
+  border: 1px solid var(--border, rgba(0,0,0,0.1));
+  background: var(--bg, #F7F7F8);
   font-size: 14px;
   color: var(--text, #1C1C1E);
   outline: none;
@@ -17285,9 +17285,9 @@ html[data-theme="dark"] .group-role-chip.role-member {
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 .gs-input:focus {
-  border-color: #007AFF;
-  background: #fff;
-  box-shadow: 0 0 0 3px rgba(0,122,255,0.1);
+  border-color: var(--primary, #007AFF);
+  background: var(--card-solid, #fff);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary, #007AFF) 18%, transparent);
 }
 .gs-textarea {
   resize: vertical;
@@ -17329,7 +17329,7 @@ html[data-theme="dark"] .group-role-chip.role-member {
   padding: 0 14px;
   height: 40px;
   border-radius: 12px;
-  background: #007AFF;
+  background: var(--primary, #007AFF);
   color: #fff;
   font-size: 13px;
   font-weight: 600;
@@ -17340,9 +17340,9 @@ html[data-theme="dark"] .group-role-chip.role-member {
   flex-shrink: 0;
 }
 .gs-add-btn:hover:not(:disabled) {
-  background: #0071E3;
+  filter: brightness(1.05);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0,122,255,0.3);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--primary, #007AFF) 30%, transparent);
 }
 .gs-add-btn:disabled {
   opacity: 0.45;
@@ -17359,7 +17359,7 @@ html[data-theme="dark"] .group-role-chip.role-member {
   align-items: center;
   gap: 10px;
   padding: 13px 16px;
-  border-bottom: 1px solid rgba(0,0,0,0.04);
+  border-bottom: 1px solid var(--border, rgba(0,0,0,0.04));
   transition: background 0.15s;
   min-height: 52px;
 }
@@ -17367,7 +17367,7 @@ html[data-theme="dark"] .group-role-chip.role-member {
   border-bottom: none;
 }
 .gs-cat-row:hover {
-  background: rgba(0,0,0,0.02);
+  background: var(--hover, rgba(0,0,0,0.02));
 }
 .gs-cat-dot {
   width: 10px;
@@ -17414,7 +17414,7 @@ html[data-theme="dark"] .group-role-chip.role-member {
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  border: 1px solid rgba(0,0,0,0.08);
+  border: 1px solid var(--border, rgba(0,0,0,0.08));
   background: transparent;
   color: var(--text-secondary, #8E8E93);
   cursor: pointer;
@@ -17426,13 +17426,13 @@ html[data-theme="dark"] .group-role-chip.role-member {
   opacity: 1;
 }
 .gs-cat-edit-btn:hover {
-  background: rgba(0,122,255,0.08);
-  color: #007AFF;
-  border-color: rgba(0,122,255,0.2);
+  background: color-mix(in srgb, var(--primary, #007AFF) 10%, transparent);
+  color: var(--primary, #007AFF);
+  border-color: color-mix(in srgb, var(--primary, #007AFF) 24%, transparent);
 }
 .gs-cat-row-editing {
-  background: rgba(0,122,255,0.03);
-  border-bottom-color: rgba(0,122,255,0.12) !important;
+  background: color-mix(in srgb, var(--primary, #007AFF) 5%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--primary, #007AFF) 14%, transparent) !important;
   gap: 6px;
   padding: 8px 12px;
 }
@@ -17456,14 +17456,14 @@ html[data-theme="dark"] .group-role-chip.role-member {
   height: 30px;
   border-radius: 9px;
   border: none;
-  background: #007AFF;
+  background: var(--primary, #007AFF);
   color: #fff;
   cursor: pointer;
   transition: all 0.18s;
   flex-shrink: 0;
 }
 .gs-cat-save-btn:hover:not(:disabled) {
-  background: #0071E3;
+  filter: brightness(1.05);
 }
 .gs-cat-save-btn:disabled {
   opacity: 0.45;
@@ -17476,7 +17476,7 @@ html[data-theme="dark"] .group-role-chip.role-member {
   width: 30px;
   height: 30px;
   border-radius: 9px;
-  border: 1px solid rgba(0,0,0,0.1);
+  border: 1px solid var(--border, rgba(0,0,0,0.1));
   background: transparent;
   color: var(--text-secondary, #8E8E93);
   cursor: pointer;
@@ -17484,7 +17484,7 @@ html[data-theme="dark"] .group-role-chip.role-member {
   flex-shrink: 0;
 }
 .gs-cat-cancel-edit-btn:hover {
-  background: rgba(0,0,0,0.05);
+  background: var(--hover, rgba(0,0,0,0.05));
 }
 @media (max-width: 600px) {
   .gs-cat-edit-btn {
@@ -17523,12 +17523,12 @@ html[data-theme="dark"] .group-role-chip.role-member {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: #007AFF;
+  background: var(--primary, #007AFF);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid #fff;
+  border: 2px solid var(--card-solid, #fff);
   box-shadow: 0 1px 4px rgba(0,0,0,0.2);
   pointer-events: none;
 }
@@ -17592,8 +17592,8 @@ html[data-theme="dark"] .group-role-chip.role-member {
   transform: scale(1.15);
 }
 .gs-color-swatch-btn.active {
-  border-color: rgba(0,0,0,0.25);
-  box-shadow: 0 0 0 2.5px #fff, 0 0 0 4.5px currentColor;
+  border-color: var(--border-strong, rgba(0,0,0,0.25));
+  box-shadow: 0 0 0 2.5px var(--card-solid, #fff), 0 0 0 4.5px currentColor;
 }
 
 /* Save button */
@@ -17602,7 +17602,7 @@ html[data-theme="dark"] .group-role-chip.role-member {
   padding: 13px;
   border-radius: 14px;
   border: none;
-  background: #007AFF;
+  background: var(--primary, #007AFF);
   color: #fff;
   font-size: 15px;
   font-weight: 600;
@@ -17613,9 +17613,9 @@ html[data-theme="dark"] .group-role-chip.role-member {
   margin-top: 4px;
 }
 .gs-save-btn:hover:not(:disabled) {
-  background: #0071E3;
+  filter: brightness(1.05);
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(0,122,255,0.35);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--primary, #007AFF) 35%, transparent);
 }
 .gs-save-btn:disabled {
   opacity: 0.5;
