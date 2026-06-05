@@ -1703,8 +1703,8 @@ function InviteFriendModal({ friends, existingMemberIds, onClose, onSubmit }) {
   };
 
   return (
-    <div className="spending-modal-backdrop" onClick={onClose}>
-      <div className="spending-modal" onClick={(e) => e.stopPropagation()}>
+    <div className="spending-modal-backdrop is-sheet" onClick={onClose}>
+      <div className="spending-modal is-sheet" onClick={(e) => e.stopPropagation()}>
         <header className="spending-modal-head">
           <h3>Freund einladen</h3>
           <button type="button" className="spending-icon-btn" onClick={onClose}><X size={16} /></button>
