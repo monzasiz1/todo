@@ -19230,11 +19230,11 @@ html[data-theme="dark"] .group-role-chip.role-member {
   }
 
   .day-create-header {
-    padding: 8px 18px 14px;
+    /* Im Bottom-Sheet NICHT sticky — sonst legt sich der z-index-Header ueber
+       den davor stehenden Drag-Handle und verschiebt ihn unter den Header. */
+    padding: 4px 18px 14px;
     border-radius: 0;
-    position: sticky;
-    top: 0;
-    z-index: 2;
+    position: static;
     background: var(--card-solid);
   }
 
