@@ -19223,10 +19223,36 @@ html[data-theme="dark"] .group-role-chip.role-member {
     z-index: 7;
   }
 
-  /* DayCreateModal als Bottom-Sheet auf dem Handy (kein Vollbild) */
+  /* DayCreateModal als Bottom-Sheet auf dem Handy (kein Vollbild) — gilt fuer
+     die Auswahl (Mit KI / Manuell). */
   .day-create-modal.day-create-fullscreen {
     border-radius: 22px 22px 0 0 !important;
     background: var(--card-solid) !important;
+  }
+
+  /* Formular-Ansicht (nach Auswahl): wieder Vollbild wie zuvor. */
+  .day-create-modal.day-create-fullscreen.day-create-form-view {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+    overflow-y: auto;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  /* Im Vollbild-Formular braucht es keinen Sheet-Pull-Handle. */
+  .day-create-modal.day-create-form-view .day-create-drag-handle {
+    display: none;
+  }
+  /* Header bleibt im Vollbild oben kleben und sitzt unter Notch/Statusleiste
+     (max()-Fallback, da env() hier teils 0 liefert). */
+  .day-create-modal.day-create-form-view .day-create-header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding-top: max(44px, calc(env(safe-area-inset-top, 0px) + 8px));
   }
 
   .day-create-header {
