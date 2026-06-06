@@ -301,7 +301,7 @@ export default function PricingPage() {
             })}
           </div>
           <p className="pricing-pain-foot">
-            Mit <strong>Pro</strong> sind alle Limits weg – schon ab 4,17 €/Monat.
+            Mit <strong>Pro</strong> sind alle Limits weg – schon ab 2,50 €/Monat.
           </p>
         </motion.div>
       )}
