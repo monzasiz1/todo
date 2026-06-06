@@ -8,7 +8,7 @@ import { useAuthStore } from '../store/authStore';
 
 const PLAN_ICONS = { free: Zap, pro: Sparkles, team: Users };
 const PLAN_HIGHLIGHTS = {
-  free: ['Bis zu 30 Aufgaben', '2 Kategorien', '1 eigene Gruppe · max. 3 Mitglieder', 'Budget mit max. 20 Einträgen', 'Nur 5 KI-Anfragen / Monat'],
+  free: ['Bis zu 30 Aufgaben', '2 eigene Kategorien', '1 eigene Gruppe · max. 3 Mitglieder', 'Budget mit max. 20 Einträgen', 'Nur 5 KI-Anfragen / Monat'],
   pro:  ['Unbegrenzte Aufgaben & Kategorien', '200 KI-Anfragen / Monat', 'Unbegrenztes Budget', '2 eigene Gruppen · bis 5 Mitglieder', 'Wiederkehrende Aufgaben', 'Kalender-Sync · Anhänge · Statistiken'],
   team: ['Alles aus Pro', 'Unbegrenzte eigene Gruppen & Mitglieder', 'Team-Chat & geteilte Aufgaben', 'Rollen, Rechte & Admin-Tools', '1.000 KI-Anfragen / Monat', 'Prioritäts-Support'],
 };
@@ -17,7 +17,7 @@ const PLAN_HIGHLIGHTS = {
 const PRICING = {
   pro:  {
     month: { amount: '2,99 €',  suffix: '/Monat' },
-    year:  { amount: '35,88 €', suffix: '/Jahr', hint: '≈ 2,99 €/Mon · Kein Unterschied zum Monatstarif' },
+    year:  { amount: '29,99 €', suffix: '/Jahr', hint: '≈ 2,50 €/Mon · ~16% sparen' },
   },
   team: {
     month: { amount: '9,99 €',  suffix: '/Monat/Nutzer' },

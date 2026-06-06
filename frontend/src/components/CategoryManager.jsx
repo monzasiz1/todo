@@ -6,6 +6,13 @@ import { useTaskStore } from '../store/taskStore';
 import { usePlan } from '../hooks/usePlan';
 import UpgradeModal from './UpgradeModal';
 
+// Standard-Kategorien aus der Registrierung (api/auth.js) — zaehlen nicht gegen
+// das Plan-Limit. Synchron halten mit api/categories.js + api/auth.js.
+const DEFAULT_CATEGORY_NAMES = new Set([
+  'Arbeit', 'Persönlich', 'Gesundheit', 'Finanzen',
+  'Einkaufen', 'Haushalt', 'Bildung', 'Soziales',
+]);
+
 const PRESET_COLORS = [
   '#007AFF', '#5856D6', '#AF52DE', '#FF2D55', '#FF6482',
   '#FF9500', '#FFCC00', '#34C759', '#00C7BE', '#30B0C7',
@@ -114,7 +121,10 @@ export default function CategoryManager({ onClose }) {
   const [editCat, setEditCat] = useState(null);
   const { limit } = usePlan();
   const maxCategories = limit('categories');
-  const atCategoryLimit = Number.isFinite(maxCategories) && categories.length >= maxCategories;
+  // Standard-Kategorien (bei Registrierung angelegt) zaehlen nicht gegen das Limit —
+  // nur selbst erstellte. Muss mit api/categories.js + api/auth.js synchron bleiben.
+  const customCategoryCount = categories.filter((c) => !DEFAULT_CATEGORY_NAMES.has(c.name)).length;
+  const atCategoryLimit = Number.isFinite(maxCategories) && customCategoryCount >= maxCategories;
   const [showUpgrade, setShowUpgrade] = useState(false);
 
   const handleCreate = async (data) => {

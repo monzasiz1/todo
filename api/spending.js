@@ -566,7 +566,7 @@ module.exports = async function handler(req, res) {
           if (cnt.rows[0].c >= maxEntries) {
             return paymentRequired(res, {
               feature: 'budgetEntries',
-              message: `Im Free-Plan sind max. ${maxEntries} Budget-Eintraege pro Budget moeglich. Upgrade auf Pro fuer unbegrenztes Budget.`,
+              message: `Im Free-Plan sind max. ${maxEntries} Budget-Einträge pro Budget möglich. Upgrade auf Pro für unbegrenztes Budget.`,
             });
           }
         }

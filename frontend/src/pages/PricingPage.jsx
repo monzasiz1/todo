@@ -72,7 +72,7 @@ const FEATURE_ROWS = [
 
 const FREE_PAIN_POINTS = [
   { icon: Sparkles, label: 'Nur 5 KI-Anfragen pro Monat' },
-  { icon: Zap,      label: 'Max. 30 Aufgaben & 2 Kategorien' },
+  { icon: Zap,      label: 'Max. 30 Aufgaben & 2 eigene Kategorien' },
   { icon: AlertCircle, label: '1 Gruppe mit max. 3 Mitgliedern · kein Team-Chat' },
 ];
 

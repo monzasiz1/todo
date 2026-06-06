@@ -480,7 +480,7 @@ module.exports = async function handler(req, res) {
       if (!pacUsage.ok) {
         return paymentRequired(res, {
           feature: 'aiCalls',
-          message: `Dein KI-Kontingent ist aufgebraucht (${pacUsage.limit}/Monat im Free-Plan). Upgrade auf Pro fuer mehr KI-Anfragen.`,
+          message: `Dein KI-Kontingent ist aufgebraucht (${pacUsage.limit}/Monat im Free-Plan). Upgrade auf Pro für mehr KI-Anfragen.`,
         });
       }
 
@@ -827,7 +827,7 @@ module.exports = async function handler(req, res) {
       if (!smartUsage.ok) {
         return paymentRequired(res, {
           feature: 'aiCalls',
-          message: `Dein KI-Kontingent ist aufgebraucht (${smartUsage.limit}/Monat im Free-Plan). Upgrade auf Pro fuer mehr KI-Anfragen.`,
+          message: `Dein KI-Kontingent ist aufgebraucht (${smartUsage.limit}/Monat im Free-Plan). Upgrade auf Pro für mehr KI-Anfragen.`,
         });
       }
 

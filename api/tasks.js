@@ -1382,7 +1382,7 @@ module.exports = async function handler(req, res) {
         if (!canUseFeature(planId, 'recurringTasks')) {
           return paymentRequired(res, {
             feature: 'recurringTasks',
-            message: 'Wiederkehrende Aufgaben sind im Free-Plan nicht verfuegbar. Upgrade auf Pro, um sie zu nutzen.',
+            message: 'Wiederkehrende Aufgaben sind im Free-Plan nicht verfügbar. Upgrade auf Pro, um sie zu nutzen.',
           });
         }
       }
@@ -2400,7 +2400,7 @@ module.exports = async function handler(req, res) {
         if (!canUseFeature(planId, 'recurringTasks')) {
           return paymentRequired(res, {
             feature: 'recurringTasks',
-            message: 'Wiederkehrende Aufgaben sind im Free-Plan nicht verfuegbar. Upgrade auf Pro, um sie zu nutzen.',
+            message: 'Wiederkehrende Aufgaben sind im Free-Plan nicht verfügbar. Upgrade auf Pro, um sie zu nutzen.',
           });
         }
       }

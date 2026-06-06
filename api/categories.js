@@ -2,6 +2,14 @@ const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
 const { getUserPlan, getLimit, paymentRequired } = require('./_lib/plans');
 
+// Bei der Registrierung automatisch angelegte Standard-Kategorien (siehe api/auth.js).
+// Diese zaehlen NICHT gegen das Plan-Limit — nur selbst erstellte Kategorien.
+// Muss mit der Liste in auth.js und frontend/CategoryManager.jsx synchron bleiben.
+const DEFAULT_CATEGORY_NAMES = [
+  'Arbeit', 'Persönlich', 'Gesundheit', 'Finanzen',
+  'Einkaufen', 'Haushalt', 'Bildung', 'Soziales',
+];
+
 module.exports = async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -40,14 +48,16 @@ module.exports = async function handler(req, res) {
       const planId = await getUserPlan(pool, user.id);
       const maxCategories = getLimit(planId, 'categories');
       if (Number.isFinite(maxCategories)) {
+        // Nur selbst erstellte Kategorien zaehlen — Standard-Kategorien aus der
+        // Registrierung sind ausgenommen.
         const { rows: catCount } = await pool.query(
-          'SELECT COUNT(*)::int AS cnt FROM categories WHERE user_id = $1',
-          [user.id]
+          'SELECT COUNT(*)::int AS cnt FROM categories WHERE user_id = $1 AND name <> ALL($2::text[])',
+          [user.id, DEFAULT_CATEGORY_NAMES]
         );
         if (catCount[0].cnt >= maxCategories) {
           return paymentRequired(res, {
             feature: 'categories',
-            message: `Im Free-Plan sind max. ${maxCategories} Kategorien moeglich. Upgrade auf Pro fuer unbegrenzte Kategorien.`,
+            message: `Im Free-Plan sind max. ${maxCategories} eigene Kategorien möglich. Upgrade auf Pro für unbegrenzte Kategorien.`,
           });
         }
       }

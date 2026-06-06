@@ -150,7 +150,7 @@ module.exports = async function handler(req, res) {
       if (!canUseFeature(planId, 'attachments')) {
         return paymentRequired(res, {
           feature: 'attachments',
-          message: 'Datei-Anhaenge sind im Free-Plan nicht verfuegbar. Upgrade auf Pro, um Dateien anzuhaengen.',
+          message: 'Datei-Anhänge sind im Free-Plan nicht verfügbar. Upgrade auf Pro, um Dateien anzuhängen.',
         });
       }
 

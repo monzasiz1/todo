@@ -5311,10 +5311,11 @@ body.cal-is-dragging * {
 }
 
 .plan-gate-blur {
-  filter: blur(3px);
+  filter: blur(5px);
   pointer-events: none;
   user-select: none;
-  opacity: 0.6;
+  opacity: 0.45;
+  transform: scale(1.02);
 }
 
 .plan-gate-overlay {
@@ -5324,47 +5325,54 @@ body.cal-is-dragging * {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 11px;
   cursor: pointer;
-  background: rgba(255,255,255,0.5);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  padding: 12px;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(8,12,28,0.42) 0%, rgba(8,12,28,0.72) 100%);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  transition: background 0.2s ease;
+}
+.plan-gate-overlay:hover {
+  background: linear-gradient(180deg, rgba(8,12,28,0.5) 0%, rgba(8,12,28,0.8) 100%);
 }
 
 .plan-gate-lock {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: #fff;
-  border: 1.5px solid var(--border);
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #339bff 0%, #0a84ff 100%);
+  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-secondary);
-  box-shadow: var(--shadow-sm);
+  color: #fff;
+  box-shadow: 0 10px 26px rgba(0,122,255,0.45), inset 0 1px 0 rgba(255,255,255,0.35);
 }
 
 .plan-gate-label {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1.4px;
+  text-shadow: 0 1px 10px rgba(0,0,0,0.45);
 }
 
 .plan-gate-btn {
-  padding: 7px 16px;
+  padding: 9px 22px;
   border-radius: 999px;
-  background: var(--primary);
-  color: #fff;
+  background: #fff;
+  color: #0a1020;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
   border: none;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0,122,255,0.28);
-  transition: filter 0.15s;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+  transition: transform 0.12s ease, box-shadow 0.15s ease;
 }
-.plan-gate-btn:hover { filter: brightness(1.08); }
+.plan-gate-btn:hover { transform: translateY(-1px); box-shadow: 0 9px 24px rgba(0,0,0,0.36); }
 
 .plan-gate-inline {
   display: inline-flex;
@@ -5606,10 +5614,11 @@ body.cal-is-dragging * {
 }
 
 .plan-gate-blur {
-  filter: blur(3px);
+  filter: blur(5px);
   pointer-events: none;
   user-select: none;
-  opacity: 0.6;
+  opacity: 0.45;
+  transform: scale(1.02);
 }
 
 .plan-gate-overlay {
@@ -5619,47 +5628,54 @@ body.cal-is-dragging * {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 11px;
   cursor: pointer;
-  background: rgba(255,255,255,0.5);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  padding: 12px;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(8,12,28,0.42) 0%, rgba(8,12,28,0.72) 100%);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  transition: background 0.2s ease;
+}
+.plan-gate-overlay:hover {
+  background: linear-gradient(180deg, rgba(8,12,28,0.5) 0%, rgba(8,12,28,0.8) 100%);
 }
 
 .plan-gate-lock {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: #fff;
-  border: 1.5px solid var(--border);
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #339bff 0%, #0a84ff 100%);
+  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-secondary);
-  box-shadow: var(--shadow-sm);
+  color: #fff;
+  box-shadow: 0 10px 26px rgba(0,122,255,0.45), inset 0 1px 0 rgba(255,255,255,0.35);
 }
 
 .plan-gate-label {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1.4px;
+  text-shadow: 0 1px 10px rgba(0,0,0,0.45);
 }
 
 .plan-gate-btn {
-  padding: 7px 16px;
+  padding: 9px 22px;
   border-radius: 999px;
-  background: var(--primary);
-  color: #fff;
+  background: #fff;
+  color: #0a1020;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
   border: none;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0,122,255,0.28);
-  transition: filter 0.15s;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+  transition: transform 0.12s ease, box-shadow 0.15s ease;
 }
-.plan-gate-btn:hover { filter: brightness(1.08); }
+.plan-gate-btn:hover { transform: translateY(-1px); box-shadow: 0 9px 24px rgba(0,0,0,0.36); }
 
 .plan-gate-inline {
   display: inline-flex;
