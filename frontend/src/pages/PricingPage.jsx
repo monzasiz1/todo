@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Check, ArrowLeft, Sparkles, Zap, AlertCircle, Settings, Leaf, TreeDeciduous, Wind } from 'lucide-react';
+import { Check, ArrowLeft, Sparkles, Settings, Leaf, TreeDeciduous, Wind, Infinity as InfinityIcon, Wallet, Repeat, Paperclip } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { PLANS } from '../lib/plans';
 import { usePlan } from '../hooks/usePlan';
@@ -70,10 +70,14 @@ const FEATURE_ROWS = [
   { key: 'prioritySupport', label: 'Prioritäts-Support',      type: 'feature' },
 ];
 
-const FREE_PAIN_POINTS = [
-  { icon: Sparkles, label: 'Nur 5 KI-Anfragen pro Monat' },
-  { icon: Zap,      label: 'Max. 30 Aufgaben & 2 eigene Kategorien' },
-  { icon: AlertCircle, label: '1 Gruppe mit max. 3 Mitgliedern · kein Team-Chat' },
+// Was ein Upgrade auf Pro konkret freischaltet (akkurat – Team-Chat/Admin sind
+// Team-exklusiv und gehoeren NICHT hierher).
+const UPGRADE_BENEFITS = [
+  { icon: Sparkles,     title: '200 KI-Anfragen / Monat',           sub: 'statt nur 5 im Free-Plan' },
+  { icon: InfinityIcon, title: 'Unbegrenzte Aufgaben & Kategorien', sub: 'statt 30 Aufgaben & 2 Kategorien' },
+  { icon: Wallet,       title: 'Unbegrenztes Budget',               sub: 'statt 20 Budget-Einträgen' },
+  { icon: Repeat,       title: 'Wiederkehrende Aufgaben',           sub: 'im Free-Plan gesperrt' },
+  { icon: Paperclip,    title: 'Anhänge, Statistiken & Kalender-Sync', sub: 'im Free-Plan gesperrt' },
 ];
 
 function formatLimit(value) {
@@ -280,28 +284,41 @@ export default function PricingPage() {
 
       {planId === 'free' && (
         <motion.div
-          className="pricing-pain-card"
+          className="pricing-upgrade-card"
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.25 }}
         >
-          <div className="pricing-pain-head">
-            <Sparkles size={16} />
-            <span>Wofür sich ein Upgrade lohnt</span>
+          <div className="pricing-upgrade-head">
+            <span className="pricing-upgrade-head-ic"><Sparkles size={18} /></span>
+            <div className="pricing-upgrade-head-texts">
+              <strong>Wofür sich Pro lohnt</strong>
+              <span>Alle Free-Limits fallen weg</span>
+            </div>
           </div>
-          <div className="pricing-pain-grid">
-            {FREE_PAIN_POINTS.map((pt, idx) => {
-              const Icon = pt.icon;
+          <div className="pricing-upgrade-grid">
+            {UPGRADE_BENEFITS.map((b, idx) => {
+              const Icon = b.icon;
               return (
-                <div key={idx} className="pricing-pain-item">
-                  <Icon size={14} />
-                  <span>{pt.label}</span>
-                </div>
+                <motion.div
+                  key={idx}
+                  className="pricing-upgrade-tile"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.3 + idx * 0.06 }}
+                >
+                  <span className="pricing-upgrade-tile-ic"><Icon size={16} /></span>
+                  <div className="pricing-upgrade-tile-texts">
+                    <strong>{b.title}</strong>
+                    <span>{b.sub}</span>
+                  </div>
+                  <Check className="pricing-upgrade-tile-check" size={15} />
+                </motion.div>
               );
             })}
           </div>
-          <p className="pricing-pain-foot">
-            Mit <strong>Pro</strong> sind alle Limits weg – schon ab 2,50 €/Monat.
+          <p className="pricing-upgrade-foot">
+            Mit <strong>Pro</strong> schon ab <strong>2,50 €/Monat</strong> · jederzeit kündbar
           </p>
         </motion.div>
       )}
