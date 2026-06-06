@@ -12,6 +12,7 @@
 
 const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
+const { getAiUsage } = require('./_lib/plans');
 
 const VALID_PLANS = ['free', 'pro', 'team'];
 
@@ -47,7 +48,16 @@ module.exports = async function handler(req, res) {
     if (!result.rows.length) return res.status(404).json({ error: 'Nutzer nicht gefunden' });
 
     const row = result.rows[0];
-    return res.json({ plan: row.plan ?? 'free', expires_at: row.plan_expires_at ?? null });
+    const planId = row.plan ?? 'free';
+    let aiUsage = null;
+    try {
+      aiUsage = await getAiUsage(pool, user.id, planId);
+    } catch { /* usage best-effort */ }
+    return res.json({
+      plan: planId,
+      expires_at: row.plan_expires_at ?? null,
+      ai_usage: aiUsage, // { used, limit, period, remaining }
+    });
   }
 
   // ── POST /api/plans/upgrade ────────────────────────────────────────────

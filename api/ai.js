@@ -1,5 +1,6 @@
 const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
+const { getUserPlan, canUseFeature, consumeAiCall, paymentRequired } = require('./_lib/plans');
 const {
   parseTaskWithAI,
   parsePermissionsWithAI,
@@ -472,6 +473,17 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ error: 'Eingabe ist erforderlich' });
       }
 
+      // Plan-Gate: KI-Anfragen-Kontingent (Free: 5/Monat). Diese Aktion ist
+      // der eigentliche Erstell-Schritt -> hier wird verbraucht (nicht in /smart).
+      const pacPlanId = await getUserPlan(pool, user.id);
+      const pacUsage = await consumeAiCall(pool, user.id, pacPlanId);
+      if (!pacUsage.ok) {
+        return paymentRequired(res, {
+          feature: 'aiCalls',
+          message: `Dein KI-Kontingent ist aufgebraucht (${pacUsage.limit}/Monat im Free-Plan). Upgrade auf Pro fuer mehr KI-Anfragen.`,
+        });
+      }
+
       // Enrich input with type hint so AI correctly classifies
       let enrichedInput = input;
       if (typeHint === 'aufgabe') enrichedInput = `Aufgabe (task): ${input}`;
@@ -510,6 +522,15 @@ module.exports = async function handler(req, res) {
       });
       if (!parsed || !parsed.title) {
         return res.status(400).json({ error: 'Aufgabe konnte nicht erkannt werden' });
+      }
+
+      // Plan-Gate: Wiederkehrende Aufgaben sind ein bezahltes Feature.
+      // Fuer Free-User die von der KI erkannte Wiederholung verwerfen, statt
+      // den Erstell-Vorgang komplett abzubrechen.
+      if (!canUseFeature(pacPlanId, 'recurringTasks')) {
+        parsed.recurrence_rule = null;
+        parsed.recurrence_interval = null;
+        parsed.recurrence_end = null;
       }
 
       // Reminder flow must never create events. It should always create a task
@@ -793,8 +814,21 @@ module.exports = async function handler(req, res) {
       })));
 
       // === CREATE → delegate to parse-and-create logic ===
+      // Hier NICHT abrechnen: das Kontingent wird im /parse-and-create-Schritt
+      // verbraucht, damit ein einzelnes Erstellen nicht doppelt zaehlt.
       if (intent.intent === 'create') {
         return res.json({ intent: 'create', redirect: true });
+      }
+
+      // Plan-Gate: Alle anderen Assistenten-Intents (query/delete/move/update/attach)
+      // sind eine echte KI-Anfrage und zaehlen je 1 gegen das Monatskontingent.
+      const smartPlanId = await getUserPlan(pool, user.id);
+      const smartUsage = await consumeAiCall(pool, user.id, smartPlanId);
+      if (!smartUsage.ok) {
+        return paymentRequired(res, {
+          feature: 'aiCalls',
+          message: `Dein KI-Kontingent ist aufgebraucht (${smartUsage.limit}/Monat im Free-Plan). Upgrade auf Pro fuer mehr KI-Anfragen.`,
+        });
       }
 
       // === QUERY → answer free time / capacity question ===
@@ -1014,6 +1048,13 @@ module.exports = async function handler(req, res) {
           for (const [k, v] of Object.entries(intent.updates)) {
             if (allowed.includes(k) && v != null) updates[k] = v;
           }
+        }
+
+        // Plan-Gate: Free darf bestehende Tasks nicht nachtraeglich wiederkehrend machen.
+        if (!canUseFeature(smartPlanId, 'recurringTasks')) {
+          delete updates.recurrence_rule;
+          delete updates.recurrence_interval;
+          delete updates.recurrence_end;
         }
 
         if (Object.keys(updates).length === 0) {

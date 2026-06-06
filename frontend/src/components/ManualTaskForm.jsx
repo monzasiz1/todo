@@ -6,6 +6,8 @@ import { api } from '../utils/api';
 import AvatarBadge from './AvatarBadge';
 import LocationAutocomplete from './LocationAutocomplete';
 import { useFriendsStore } from '../store/friendsStore';
+import { usePlan } from '../hooks/usePlan';
+import UpgradeModal from './UpgradeModal';
 
 const PRIORITIES = [
   { value: 'low', label: 'Niedrig', color: 'var(--success)' },
@@ -99,6 +101,9 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
   const [reminderAt, setReminderAt] = useState('');
   const [recurrenceRule, setRecurrenceRule] = useState('');
   const [recurrenceEnd, setRecurrenceEnd] = useState('');
+  const { can: canPlan } = usePlan();
+  const canRecurring = canPlan('recurringTasks');
+  const [showRecurUpgrade, setShowRecurUpgrade] = useState(false);
   const [groups, setGroups] = useState([]);
   const [groupId, setGroupId] = useState('');
   const [groupCategories, setGroupCategories] = useState([]);
@@ -530,16 +535,32 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
 
             <div className="task-edit-row manual-task-two-col">
               <div className="task-edit-field flex-1" style={{ marginBottom: 0 }}>
-                <label><Repeat size={14} /> Wiederholung</label>
-                <select
-                  value={recurrenceRule}
-                  onChange={(e) => setRecurrenceRule(e.target.value)}
-                  className="task-edit-input task-edit-select"
-                >
-                  {RECURRENCE_OPTIONS.map((item) => (
-                    <option key={item.value} value={item.value}>{item.label}</option>
-                  ))}
-                </select>
+                <label>
+                  <Repeat size={14} /> Wiederholung
+                  {!canRecurring && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, marginInlineStart: 6, padding: '1px 7px', borderRadius: 999, fontSize: 11, fontWeight: 700, background: 'var(--primary)', color: '#fff' }}><Lock size={11} /> Pro</span>
+                  )}
+                </label>
+                {canRecurring ? (
+                  <select
+                    value={recurrenceRule}
+                    onChange={(e) => setRecurrenceRule(e.target.value)}
+                    className="task-edit-input task-edit-select"
+                  >
+                    {RECURRENCE_OPTIONS.map((item) => (
+                      <option key={item.value} value={item.value}>{item.label}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <button
+                    type="button"
+                    className="task-edit-input task-edit-select"
+                    onClick={() => setShowRecurUpgrade(true)}
+                    style={{ textAlign: 'left', color: 'var(--text-tertiary)', cursor: 'pointer' }}
+                  >
+                    Keine Wiederholung · Pro freischalten
+                  </button>
+                )}
               </div>
               <div className="task-edit-field flex-1" style={{ marginBottom: 0 }}>
                 <label><Calendar size={14} /> Wiederholen bis</label>
@@ -556,6 +577,9 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
               <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: -4, paddingLeft: 2 }}>
                 Ohne Enddatum werden Termine für 5 Jahre erstellt.
               </div>
+            )}
+            {showRecurUpgrade && (
+              <UpgradeModal feature="recurringTasks" onClose={() => setShowRecurUpgrade(false)} />
             )}
 
             <div className="task-edit-field" style={{ marginBottom: 0 }}>

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
+import PlanGate from '../components/PlanGate';
 
 const PROFILE_CACHE_KEY = 'beequ_profile_cache_v1';
 
@@ -563,6 +564,7 @@ export default function ProfilePage() {
         {stats && (
           <div className="pv2-card">
             <div className="pv2-section-head"><Target size={15} /><span>Statistiken</span></div>
+            <PlanGate feature="statistics">
             <div className="pv2-stats-grid">
               {[
                 { icon: Target,       color: '#007AFF', bg: 'rgba(0,122,255,0.1)',  val: stats.total_tasks,        label: 'Gesamt'   },
@@ -618,6 +620,7 @@ export default function ProfilePage() {
                 ))}
               </div>
             )}
+            </PlanGate>
           </div>
         )}
 
@@ -1115,6 +1118,7 @@ export default function ProfilePage() {
       {stats && (
         <div className="profile-stats-section">
           <h3 className="profile-section-title">Statistiken</h3>
+          <PlanGate feature="statistics">
           <div className="profile-stats-grid">
             <div className="profile-stat-card">
               <div className="profile-stat-icon" style={{ background: 'rgba(0,122,255,0.1)', color: '#007AFF' }}>
@@ -1208,6 +1212,7 @@ export default function ProfilePage() {
               ))}
             </div>
           )}
+          </PlanGate>
         </div>
       )}
 

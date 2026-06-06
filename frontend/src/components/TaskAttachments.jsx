@@ -5,6 +5,9 @@ import { api } from '../utils/api';
 import { useTaskStore } from '../store/taskStore';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
+import { Lock } from 'lucide-react';
+import { usePlan } from '../hooks/usePlan';
+import UpgradeModal from './UpgradeModal';
 
 const FILE_ICONS = {
   'image/': Image,
@@ -31,6 +34,9 @@ export default function TaskAttachments({ taskId, canEdit = true, compact = fals
   const [loading, setLoading] = useState(true);
   const fileRef = useRef(null);
   const addToast = useTaskStore((s) => s.addToast);
+  const { can: canPlan } = usePlan();
+  const canAttachments = canPlan('attachments');
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   useEffect(() => {
     if (taskId) loadAttachments();
@@ -161,16 +167,29 @@ export default function TaskAttachments({ taskId, canEdit = true, compact = fals
         })}
       </AnimatePresence>
 
-      {/* Upload Button */}
+      {/* Upload Button — fuer Free als Pro-Sperre, Bestand bleibt sichtbar */}
       {canEdit && attachments.length < 10 && (
-        <button
-          className="task-attachment-upload"
-          onClick={() => fileRef.current?.click()}
-          disabled={uploading}
-        >
-          {uploading ? <Loader2 size={14} className="spin" /> : <Upload size={14} />}
-          {uploading ? 'Wird hochgeladen...' : 'Datei anhängen'}
-        </button>
+        canAttachments ? (
+          <button
+            className="task-attachment-upload"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+          >
+            {uploading ? <Loader2 size={14} className="spin" /> : <Upload size={14} />}
+            {uploading ? 'Wird hochgeladen...' : 'Datei anhängen'}
+          </button>
+        ) : (
+          <button
+            className="task-attachment-upload"
+            onClick={() => setShowUpgrade(true)}
+          >
+            <Lock size={14} /> Datei anhängen · Pro
+          </button>
+        )
+      )}
+
+      {showUpgrade && (
+        <UpgradeModal feature="attachments" onClose={() => setShowUpgrade(false)} />
       )}
 
       <input

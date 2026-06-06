@@ -1,5 +1,6 @@
 const { getPool } = require('./_lib/db');
 const { verifyToken, cors, signDownloadToken, verifyDownloadToken } = require('./_lib/auth');
+const { getUserPlan, canUseFeature, paymentRequired } = require('./_lib/plans');
 
 function parseVirtualId(id) {
   if (typeof id !== 'string' || !id.startsWith('v_')) return null;
@@ -144,6 +145,15 @@ module.exports = async function handler(req, res) {
     if (isNaN(taskId)) return res.status(400).json({ error: 'Ungültige Task-ID' });
 
     try {
+      // Plan-Gate: Datei-Anhaenge sind ein bezahltes Feature.
+      const planId = await getUserPlan(pool, user.id);
+      if (!canUseFeature(planId, 'attachments')) {
+        return paymentRequired(res, {
+          feature: 'attachments',
+          message: 'Datei-Anhaenge sind im Free-Plan nicht verfuegbar. Upgrade auf Pro, um Dateien anzuhaengen.',
+        });
+      }
+
       // Verify task ownership or edit permission
       const { rows: taskRows } = await pool.query(
         `SELECT id FROM tasks WHERE id = $1 AND (user_id = $2

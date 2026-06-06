@@ -152,6 +152,22 @@ async function request(endpoint, options = {}) {
       const err = new Error(data.error || `Anfrage fehlgeschlagen (${res.status})`);
       err.status = res.status;
       err.payload = data;
+      // Plan-Gate: Server signalisiert via 402 + upgrade_required, dass das
+      // Feature/Kontingent im aktuellen Plan nicht enthalten ist. Wir feuern ein
+      // globales Event, auf das ein zentraler Listener die UpgradeModal zeigt —
+      // so muss nicht jeder Aufrufer den Fehler selbst behandeln.
+      if (res.status === 402 && data.upgrade_required && typeof window !== 'undefined') {
+        try {
+          window.dispatchEvent(new CustomEvent('beequ:upgrade-required', {
+            detail: {
+              feature: data.feature || null,
+              recommendPlan: data.recommend_plan || 'pro',
+              message: data.error || null,
+            },
+          }));
+        } catch { /* ignore */ }
+        err.upgradeRequired = true;
+      }
       // Bei transienten Server-Fehlern bei GET-Requests: lokalen Cache verwenden,
       // damit die UI weiter funktioniert (Profil, Tasks, Kategorien usw.).
       if (isRead && TRANSIENT_STATUSES.has(res.status)) {

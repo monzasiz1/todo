@@ -1,5 +1,6 @@
 const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
+const { getUserPlan, getLimit, paymentRequired } = require('./_lib/plans');
 
 module.exports = async function handler(req, res) {
   cors(res);
@@ -33,6 +34,24 @@ module.exports = async function handler(req, res) {
       if (!name) {
         return res.status(400).json({ error: 'Name ist erforderlich' });
       }
+
+      // Plan-Gate: Kategorie-Limit (Free: 2). Bestand bleibt, nur Neuanlage
+      // ueber dem Limit wird geblockt.
+      const planId = await getUserPlan(pool, user.id);
+      const maxCategories = getLimit(planId, 'categories');
+      if (Number.isFinite(maxCategories)) {
+        const { rows: catCount } = await pool.query(
+          'SELECT COUNT(*)::int AS cnt FROM categories WHERE user_id = $1',
+          [user.id]
+        );
+        if (catCount[0].cnt >= maxCategories) {
+          return paymentRequired(res, {
+            feature: 'categories',
+            message: `Im Free-Plan sind max. ${maxCategories} Kategorien moeglich. Upgrade auf Pro fuer unbegrenzte Kategorien.`,
+          });
+        }
+      }
+
       const result = await pool.query(
         'INSERT INTO categories (user_id, name, color, icon) VALUES ($1, $2, $3, $4) RETURNING *',
         [user.id, name, color || '#007AFF', icon || 'folder']

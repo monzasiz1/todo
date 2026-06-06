@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Pencil, Trash2, Check, Tag } from 'lucide-react';
+import { X, Plus, Pencil, Trash2, Check, Tag, Lock } from 'lucide-react';
 import { useTaskStore } from '../store/taskStore';
+import { usePlan } from '../hooks/usePlan';
+import UpgradeModal from './UpgradeModal';
 
 const PRESET_COLORS = [
   '#007AFF', '#5856D6', '#AF52DE', '#FF2D55', '#FF6482',
@@ -110,6 +112,10 @@ export default function CategoryManager({ onClose }) {
   const deleteCategory = useTaskStore((s) => s.deleteCategory);
   const [mode, setMode] = useState('list'); // 'list' | 'create' | 'edit'
   const [editCat, setEditCat] = useState(null);
+  const { limit } = usePlan();
+  const maxCategories = limit('categories');
+  const atCategoryLimit = Number.isFinite(maxCategories) && categories.length >= maxCategories;
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   const handleCreate = async (data) => {
     const result = await createCategory(data);
@@ -168,10 +174,10 @@ export default function CategoryManager({ onClose }) {
             >
               <button
                 className="catm-add-btn"
-                onClick={() => setMode('create')}
+                onClick={() => atCategoryLimit ? setShowUpgrade(true) : setMode('create')}
               >
-                <Plus size={18} />
-                Neue Kategorie
+                {atCategoryLimit ? <Lock size={18} /> : <Plus size={18} />}
+                {atCategoryLimit ? `Limit erreicht (${maxCategories}) · Pro` : 'Neue Kategorie'}
               </button>
 
               <div className="catm-list">
@@ -226,6 +232,9 @@ export default function CategoryManager({ onClose }) {
             </motion.div>
           )}
         </AnimatePresence>
+        {showUpgrade && (
+          <UpgradeModal feature="categories" onClose={() => setShowUpgrade(false)} />
+        )}
       </motion.div>
     </motion.div>,
     document.body

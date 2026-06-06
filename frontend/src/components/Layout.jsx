@@ -9,6 +9,7 @@ import { Menu, X, MessageCircle } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import ReminderChecker from './ReminderChecker';
 import FocusTimerPin from './FocusTimerPin';
+import UpgradeGate from './UpgradeGate';
 import { lockScroll, unlockScroll } from '../utils/scrollLock';
 import { useGroupStore } from '../store/groupStore';
 import '../styles/shared-spending.css';
@@ -191,6 +192,9 @@ export default function Layout() {
           </Suspense>
         )}
       </AnimatePresence>
+
+      {/* Plan-Gate: zentrale Upgrade-Modal bei 402/upgrade_required vom Server */}
+      <UpgradeGate />
 
       {/* Toast Notifications */}
       <FeedbackToast />

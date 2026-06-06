@@ -2,6 +2,7 @@ const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
 const { cacheManager } = require('./_lib/cache');
 const { sendPushToUser } = require('./_lib/pushService');
+const { getUserPlan, canUseFeature, paymentRequired } = require('./_lib/plans');
 
 const REMINDER_GRACE_WINDOW = '6 hours';
 const EVENT_REMINDER_OFFSET = '5 hours';
@@ -1374,6 +1375,18 @@ module.exports = async function handler(req, res) {
         return res.status(403).json({ error: editCheck.message || 'Keine Berechtigung' });
       }
 
+      // Plan-Gate: Eine bestehende Aufgabe nachtraeglich wiederkehrend zu
+      // machen ist ebenfalls ein bezahltes Feature (sonst Umgehung des POST-Gates).
+      if (recurrence_rule) {
+        const planId = await getUserPlan(pool, user.id);
+        if (!canUseFeature(planId, 'recurringTasks')) {
+          return paymentRequired(res, {
+            feature: 'recurringTasks',
+            message: 'Wiederkehrende Aufgaben sind im Free-Plan nicht verfuegbar. Upgrade auf Pro, um sie zu nutzen.',
+          });
+        }
+      }
+
       // Only update fields that were explicitly sent in the request body.
       const hasTitle = Object.prototype.hasOwnProperty.call(req.body, 'title');
       const hasDescription = Object.prototype.hasOwnProperty.call(req.body, 'description');
@@ -2378,6 +2391,18 @@ module.exports = async function handler(req, res) {
               visibility, permissions, type, enable_group_rsvp } = req.body;
       if (!title) {
         return res.status(400).json({ error: 'Titel ist erforderlich' });
+      }
+
+      // Plan-Gate: Wiederkehrende Aufgaben sind ein bezahltes Feature.
+      // Nur die Neuanlage wird geblockt — Bestand bleibt unberuehrt.
+      if (recurrence_rule) {
+        const planId = await getUserPlan(pool, user.id);
+        if (!canUseFeature(planId, 'recurringTasks')) {
+          return paymentRequired(res, {
+            feature: 'recurringTasks',
+            message: 'Wiederkehrende Aufgaben sind im Free-Plan nicht verfuegbar. Upgrade auf Pro, um sie zu nutzen.',
+          });
+        }
       }
 
       const taskType = type === 'event' ? 'event' : 'task';
