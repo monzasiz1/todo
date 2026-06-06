@@ -4,7 +4,7 @@ import {
   X, ArrowLeft, Send, Pin, ChevronDown, ChevronUp,
   MessageCircle, Users, Sparkles, Check,
   Pencil, Trash2, Undo2, BarChart2, AlertTriangle,
-  CalendarCheck, UserCheck, ThumbsUp, ThumbsDown, MessageSquare, Paperclip, Search
+  CalendarCheck, UserCheck, ThumbsUp, ThumbsDown, MessageSquare, Paperclip, Search, Eye
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useGroupStore } from '../store/groupStore';
@@ -509,6 +509,7 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
   const sendMessage = async (text) => {
     const content = (text || input).trim();
     if (!content || sending || !selectedGroupId) return;
+    if (writeDenied) return; // Rolle ohne Schreibrecht — Composer ist ohnehin ausgeblendet
     setSending(true);
     setInput('');
     try {
@@ -883,6 +884,9 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
   }, [messages, showPastEvents, nowTs]);
   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
   const chatLocked = !!selectedGroup && selectedGroup.chat_available === false;
+  // Chat ist verfuegbar (Team-Plan), aber die Rolle des Users hat kein Schreibrecht:
+  // mitlesen erlaubt, Composer wird durch einen Lesezugriff-Hinweis ersetzt.
+  const writeDenied = !!selectedGroup && !chatLocked && selectedGroup.can_write === false;
 
   // ── Render ─────────────────────────────────────────────────────────────────
   const panelContent = (
@@ -1539,6 +1543,16 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
                   <div ref={messagesEndRef} />
                 </div>
 
+                {writeDenied ? (
+                  <div className="gchat-readonly-note">
+                    <div className="gchat-readonly-icon"><Eye size={16} /></div>
+                    <div className="gchat-readonly-texts">
+                      <strong>Nur Lesezugriff</strong>
+                      <span>Schreiben ist für deine Rolle in dieser Gruppe deaktiviert. Ein Admin kann dir Schreibrechte geben.</span>
+                    </div>
+                  </div>
+                ) : (
+                <>
                 {/* ── Smart Replies ── */}
                 <div className="gchat-smart-replies">
                   {SMART_REPLIES.map((r) => (
@@ -1631,6 +1645,8 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
                     )}
                   </button>
                 </div>
+                </>
+                )}
               </>
             )}
 

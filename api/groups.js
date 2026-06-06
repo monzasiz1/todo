@@ -483,9 +483,16 @@ module.exports = async function handler(req, res) {
          ORDER BY ${orderExpr}`,
         [user.id]
       );
-      const enriched = result.rows.map((row) => ({
-        ...row,
-        chat_available: String(row.owner_plan || '').trim().toLowerCase() === 'team',
+      const enriched = await Promise.all(result.rows.map(async (row) => {
+        // Effektive Chat-Schreibberechtigung des aktuellen Users (Owner/Admin
+        // immer true; Member je nach Custom-Rolle/Default-Perms). Damit kann das
+        // Frontend den Composer proaktiv sperren statt erst beim 403 zu reagieren.
+        const eff = await getEffectivePerms(pool, row.id, user.id);
+        return {
+          ...row,
+          chat_available: String(row.owner_plan || '').trim().toLowerCase() === 'team',
+          can_write: eff ? eff.perms.chat !== false : true,
+        };
       }));
       return res.json({ groups: enriched });
     } catch (err) {

@@ -26308,6 +26308,52 @@ body.gchat-resizing * {
     padding-bottom: max(20px, calc(env(safe-area-inset-bottom) + 6px));
   }
 }
+
+/* Lesezugriff-Hinweis: ersetzt den Composer, wenn die Rolle kein Schreibrecht hat */
+.gchat-readonly-note {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+  background: var(--card-solid);
+  flex-shrink: 0;
+}
+.gchat-readonly-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(120, 130, 150, 0.14);
+  color: var(--text-secondary);
+}
+.gchat-readonly-texts {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.gchat-readonly-texts strong {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.gchat-readonly-texts span {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+@media (max-width: 768px) {
+  .gchat-readonly-note {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-bottom: max(20px, calc(env(safe-area-inset-bottom) + 6px));
+  }
+}
 .gchat-input {
   flex: 1;
   background: var(--bg);
