@@ -30136,6 +30136,113 @@ body.is-electron.is-mac .desktop-titlebar-center {
 }
 .pricing-upgrade-foot strong { color: var(--text); font-weight: 700; }
 
+/* ════════ STATISTIK-DASHBOARD (Pro) ════════ */
+.stats-dash { display: flex; flex-direction: column; gap: 14px; }
+.stats-dash-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.stats-dash-kpi {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 11px 12px;
+  border-radius: 14px;
+  background: var(--card-solid, var(--card));
+  border: 1px solid var(--border);
+}
+.stats-dash-kpi-ic {
+  width: 30px; height: 30px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+}
+.stats-dash-kpi-val {
+  font-size: 20px; font-weight: 800; color: var(--text);
+  letter-spacing: -0.02em; line-height: 1; display: flex; align-items: baseline; gap: 4px;
+}
+.stats-dash-kpi-val span { font-size: 11px; font-weight: 700; color: var(--text-tertiary); }
+.stats-dash-kpi-label { font-size: 11px; color: var(--text-secondary); }
+
+.stats-dash-block {
+  padding: 13px 14px;
+  border-radius: 14px;
+  background: var(--card-solid, var(--card));
+  border: 1px solid var(--border);
+}
+.stats-dash-block-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  font-size: 12.5px; font-weight: 700; color: var(--text); margin-bottom: 12px;
+}
+.stats-dash-block-note { font-size: 11px; font-weight: 600; color: var(--primary); }
+
+/* 30-Tage Sparkline */
+.stats-dash-spark {
+  display: flex; align-items: flex-end; gap: 2px; height: 60px;
+}
+.stats-dash-spark-bar {
+  flex: 1; min-width: 0; border-radius: 3px 3px 1px 1px;
+  background: linear-gradient(180deg, #339bff, #0a84ff);
+  transition: opacity 0.2s;
+}
+
+/* Wochentage + Prioritaeten nebeneinander */
+.stats-dash-two {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+}
+.stats-dash-weekdays {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 5px; height: 76px;
+}
+.stats-dash-wd { display: flex; flex-direction: column; align-items: center; gap: 5px; flex: 1; height: 100%; }
+.stats-dash-wd-track {
+  flex: 1; width: 100%; display: flex; align-items: flex-end;
+  border-radius: 5px; background: rgba(120,130,150,0.10); overflow: hidden;
+}
+.stats-dash-wd-fill {
+  width: 100%; border-radius: 5px;
+  background: rgba(10,132,255,0.45); transition: height 0.3s;
+}
+.stats-dash-wd-fill.is-top { background: linear-gradient(180deg, #339bff, #0a84ff); }
+.stats-dash-wd-label { font-size: 10.5px; color: var(--text-secondary); font-weight: 600; }
+
+/* Prioritaeten */
+.stats-dash-prio-bar {
+  display: flex; height: 12px; border-radius: 999px; overflow: hidden; gap: 2px;
+  background: rgba(120,130,150,0.10); margin-bottom: 12px;
+}
+.stats-dash-prio-seg { height: 100%; border-radius: 2px; min-width: 4px; }
+.stats-dash-prio-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; }
+.stats-dash-prio-item {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11.5px; color: var(--text-secondary);
+}
+.stats-dash-prio-item strong { color: var(--text); font-weight: 700; }
+.stats-dash-prio-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* Aufgaben vs. Termine */
+.stats-dash-split {
+  padding: 13px 14px; border-radius: 14px;
+  background: var(--card-solid, var(--card)); border: 1px solid var(--border);
+}
+.stats-dash-split-row {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12px; color: var(--text-secondary); margin: 0 0 7px;
+}
+.stats-dash-split-row strong { font-size: 15px; color: var(--text); }
+.stats-dash-split-row strong:last-child { color: #5856D6; }
+.stats-dash-split-row strong:first-child { color: #007AFF; }
+.stats-dash-split-label { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; }
+.stats-dash-split-bar {
+  display: flex; height: 14px; border-radius: 999px; overflow: hidden; gap: 3px; margin: 7px 0;
+}
+.stats-dash-split-tasks { background: linear-gradient(90deg, #0a84ff, #339bff); border-radius: 999px 3px 3px 999px; }
+.stats-dash-split-events { background: linear-gradient(90deg, #6e6ce0, #5856D6); border-radius: 3px 999px 999px 3px; }
+
+@media (max-width: 600px) {
+  .stats-dash-kpis { grid-template-columns: repeat(2, 1fr); }
+  .stats-dash-two { grid-template-columns: 1fr; }
+}
+
 .pricing-manage-btn {
   display: inline-flex;
   align-items: center;

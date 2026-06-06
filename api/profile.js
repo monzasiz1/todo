@@ -2,7 +2,74 @@ const bcrypt = require('bcryptjs');
 const { getPool } = require('./_lib/db');
 const { verifyToken, generateToken, cors } = require('./_lib/auth');
 const { sendPasswordChangedMail } = require('./_lib/mailer');
+const { getUserPlan, canUseFeature } = require('./_lib/plans');
 const storage = require('./_lib/storage');
+
+// Erweiterte Produktivitaets-Statistiken (Pro/Team). Bewusst nur fuer
+// berechtigte Plaene berechnet, damit der Free-Profil-Load leicht bleibt.
+async function computeAdvancedStats(pool, userId) {
+  const [daily, weekday, priority, best, months, ontime, types, busiest] = await Promise.all([
+    // Erledigte Aufgaben pro Tag (letzte 30 Tage)
+    pool.query(
+      `SELECT to_char(DATE(updated_at), 'YYYY-MM-DD') AS d, COUNT(*)::int AS c
+         FROM tasks
+        WHERE user_id = $1 AND completed = true
+          AND updated_at >= (NOW() - INTERVAL '29 days')
+        GROUP BY DATE(updated_at) ORDER BY d`, [userId]),
+    // Erledigt nach Wochentag (0=So .. 6=Sa)
+    pool.query(
+      `SELECT EXTRACT(DOW FROM updated_at)::int AS dow, COUNT(*)::int AS c
+         FROM tasks WHERE user_id = $1 AND completed = true GROUP BY dow`, [userId]),
+    // Verteilung nach Prioritaet (alle Aufgaben)
+    pool.query(
+      `SELECT priority, COUNT(*)::int AS c FROM tasks WHERE user_id = $1 GROUP BY priority`, [userId]),
+    // Laengste jemals erreichte Serie (aufeinanderfolgende Tage mit Erledigung)
+    pool.query(
+      `WITH d AS (
+         SELECT DISTINCT DATE(updated_at) AS day FROM tasks WHERE user_id = $1 AND completed = true
+       ), g AS (
+         SELECT day, day - (ROW_NUMBER() OVER (ORDER BY day))::int * INTERVAL '1 day' AS grp FROM d
+       )
+       SELECT COALESCE(MAX(cnt), 0)::int AS best FROM (SELECT COUNT(*)::int AS cnt FROM g GROUP BY grp) z`, [userId]),
+    // Diesen Monat vs. letzten Monat erledigt
+    pool.query(
+      `SELECT
+         COUNT(*) FILTER (WHERE updated_at >= date_trunc('month', NOW()))::int AS this_month,
+         COUNT(*) FILTER (WHERE updated_at >= date_trunc('month', NOW()) - INTERVAL '1 month'
+                            AND updated_at <  date_trunc('month', NOW()))::int AS last_month
+         FROM tasks WHERE user_id = $1 AND completed = true`, [userId]),
+    // Puenktlichkeit: erledigt am/vor Faelligkeitsdatum
+    pool.query(
+      `SELECT
+         COUNT(*) FILTER (WHERE date IS NOT NULL)::int AS with_due,
+         COUNT(*) FILTER (WHERE date IS NOT NULL AND DATE(updated_at) <= date)::int AS on_time
+         FROM tasks WHERE user_id = $1 AND completed = true`, [userId]),
+    // Aufgaben vs. Termine
+    pool.query(
+      `SELECT
+         COUNT(*) FILTER (WHERE type = 'event')::int AS events,
+         COUNT(*) FILTER (WHERE type IS DISTINCT FROM 'event')::int AS tasks
+         FROM tasks WHERE user_id = $1`, [userId]),
+    // Produktivste Tageszeit (Stunde mit den meisten Erledigungen)
+    pool.query(
+      `SELECT EXTRACT(HOUR FROM updated_at)::int AS hour, COUNT(*)::int AS c
+         FROM tasks WHERE user_id = $1 AND completed = true
+        GROUP BY hour ORDER BY c DESC LIMIT 1`, [userId]),
+  ]);
+  return {
+    daily: daily.rows,
+    weekday: weekday.rows,
+    priority: priority.rows,
+    best_streak: best.rows[0]?.best || 0,
+    this_month: months.rows[0]?.this_month || 0,
+    last_month: months.rows[0]?.last_month || 0,
+    on_time: ontime.rows[0]?.on_time || 0,
+    with_due: ontime.rows[0]?.with_due || 0,
+    events: types.rows[0]?.events || 0,
+    tasks: types.rows[0]?.tasks || 0,
+    peak_hour: busiest.rows[0]?.hour ?? null,
+  };
+}
 
 module.exports = async function handler(req, res) {
   cors(res);
@@ -112,6 +179,18 @@ module.exports = async function handler(req, res) {
         ? Math.round((s.completed_tasks / s.total_tasks) * 100)
         : 0;
 
+      // Erweiterte Statistiken nur fuer Plaene mit statistics-Feature (Pro/Team).
+      let advanced = null;
+      try {
+        const planId = await getUserPlan(pool, user.id);
+        if (canUseFeature(planId, 'statistics')) {
+          advanced = await computeAdvancedStats(pool, user.id);
+        }
+      } catch (advErr) {
+        console.error('Advanced stats error:', advErr.message);
+        advanced = null;
+      }
+
       return res.json({
         user: userResult.rows[0],
         twofa_enabled: userResult.rows[0].twofa_enabled,
@@ -128,6 +207,7 @@ module.exports = async function handler(req, res) {
           week_completed: parseInt(weekResult.rows[0]?.week_completed || 0),
           first_task_at: s.first_task_at,
           category_breakdown: categoryStats.rows,
+          advanced,
         },
       });
     } catch (err) {

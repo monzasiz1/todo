@@ -15,6 +15,7 @@ import {
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import PlanGate from '../components/PlanGate';
+import StatisticsDashboard from '../components/StatisticsDashboard';
 
 const PROFILE_CACHE_KEY = 'beequ_profile_cache_v1';
 
@@ -579,6 +580,7 @@ export default function ProfilePage() {
                 </div>
               ))}
             </div>
+            <StatisticsDashboard advanced={stats.advanced} basic={stats} isPreview={!stats.advanced} />
             <div className="pv2-ring-wrap">
               <div className="pv2-ring-container">
                 <svg viewBox="0 0 120 120" className="pv2-ring">
