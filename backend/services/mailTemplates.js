@@ -11,7 +11,7 @@ function wrapBeeQuMail({ title, body }) {
   <div style="${baseStyle} min-height:100vh; padding:0;">
     <div style="max-width:480px;margin:40px auto;background:#fff;border-radius:18px;box-shadow:0 4px 32px #0a84ff22;padding:32px 28px 24px 28px;">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
-        <img src='https://beequ.de/logo-mail.png' alt='BeeQu' style='height:38px;width:38px;border-radius:10px;box-shadow:0 2px 8px #0a84ff33;'>
+        <img src='https://www.beequ.de/icons/icon.png' alt='BeeQu' style='height:38px;width:38px;border-radius:10px;box-shadow:0 2px 8px #0a84ff33;'>
         <span style='font-size:1.5rem;font-weight:800;color:#0A84FF;'>BeeQu</span>
       </div>
       <h2 style='font-size:1.2rem;font-weight:700;margin:0 0 18px 0;color:#0A84FF;'>${title}</h2>
