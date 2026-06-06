@@ -8,8 +8,8 @@ import { useAuthStore } from '../store/authStore';
 
 const PLAN_ICONS = { free: Zap, pro: Sparkles, team: Users };
 const PLAN_HIGHLIGHTS = {
-  free: ['Bis zu 30 Aufgaben', '2 Kategorien', '1 eigene Gruppe · max. 3 Mitglieder', 'Beitritt zu Gruppen unbegrenzt', 'Nur 5 KI-Anfragen / Monat'],
-  pro:  ['Unbegrenzte Aufgaben & Kategorien', '200 KI-Anfragen / Monat', '2 eigene Gruppen · bis 5 Mitglieder', 'Wiederkehrende Aufgaben', 'Kalender-Sync · Anhänge · Statistiken'],
+  free: ['Bis zu 30 Aufgaben', '2 Kategorien', '1 eigene Gruppe · max. 3 Mitglieder', 'Budget mit max. 20 Einträgen', 'Nur 5 KI-Anfragen / Monat'],
+  pro:  ['Unbegrenzte Aufgaben & Kategorien', '200 KI-Anfragen / Monat', 'Unbegrenztes Budget', '2 eigene Gruppen · bis 5 Mitglieder', 'Wiederkehrende Aufgaben', 'Kalender-Sync · Anhänge · Statistiken'],
   team: ['Alles aus Pro', 'Unbegrenzte eigene Gruppen & Mitglieder', 'Team-Chat & geteilte Aufgaben', 'Rollen, Rechte & Admin-Tools', '1.000 KI-Anfragen / Monat', 'Prioritäts-Support'],
 };
 
@@ -47,6 +47,8 @@ export default function UpgradeModal({ onClose, feature, recommendPlan = 'pro' }
     recurringTasks: 'Wiederkehrende Aufgaben',
     statistics: 'Statistiken',
     attachments: 'Anhänge',
+    budgetEntries: 'Unbegrenztes Budget',
+    aiCalls: 'Mehr KI-Anfragen',
   };
 
   const handleUpgrade = async (planId) => {

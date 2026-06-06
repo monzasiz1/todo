@@ -1,5 +1,6 @@
 const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
+const { getUserPlan, getLimit, paymentRequired } = require('./_lib/plans');
 
 const EXPENSE_CATEGORIES = new Set(['food', 'home', 'travel', 'free']);
 const INCOME_CATEGORIES = new Set(['salary', 'gift', 'side', 'other']);
@@ -548,6 +549,28 @@ module.exports = async function handler(req, res) {
 
       const allowed = await isAcceptedMemberOrOwner(pool, groupId, user.id);
       if (!allowed) return res.status(403).json({ error: 'Kein Zugriff' });
+
+      // Plan-Gate: Budget-Eintraege-Limit. Das Budget gehoert dem Owner, daher
+      // richtet sich die Drosselung nach dessen Plan (Free gedrosselt, Pro/Team
+      // unbegrenzt). Bestand bleibt, nur das Hinzufuegen ueber dem Limit wird geblockt.
+      const ownerRow = await pool.query('SELECT owner_id FROM spending_groups WHERE id = $1', [groupId]);
+      const budgetOwnerId = ownerRow.rows[0]?.owner_id;
+      if (budgetOwnerId) {
+        const ownerPlan = await getUserPlan(pool, budgetOwnerId);
+        const maxEntries = getLimit(ownerPlan, 'budgetEntries');
+        if (Number.isFinite(maxEntries)) {
+          const cnt = await pool.query(
+            'SELECT COUNT(*)::int AS c FROM spending_expenses WHERE spending_group_id = $1',
+            [groupId]
+          );
+          if (cnt.rows[0].c >= maxEntries) {
+            return paymentRequired(res, {
+              feature: 'budgetEntries',
+              message: `Im Free-Plan sind max. ${maxEntries} Budget-Eintraege pro Budget moeglich. Upgrade auf Pro fuer unbegrenztes Budget.`,
+            });
+          }
+        }
+      }
 
       // Payer: optional, default = caller. Muss Group-Member sein.
       let payerId = user.id;

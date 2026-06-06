@@ -7,7 +7,7 @@
 const PLANS = {
   free: {
     id: 'free',
-    limits: { tasks: 30, categories: 2, groups: 1, groupMembers: 3, aiCalls: 5, notes: 10 },
+    limits: { tasks: 30, categories: 2, groups: 1, groupMembers: 3, aiCalls: 5, notes: 10, budgetEntries: 20 },
     features: {
       ai: true, groups: true, teamChat: false, groupAdmin: false,
       recurringTasks: false, calendarSync: false, attachments: false,
@@ -16,7 +16,7 @@ const PLANS = {
   },
   pro: {
     id: 'pro',
-    limits: { tasks: Infinity, categories: Infinity, groups: 2, groupMembers: 5, aiCalls: 200, notes: Infinity },
+    limits: { tasks: Infinity, categories: Infinity, groups: 2, groupMembers: 5, aiCalls: 200, notes: Infinity, budgetEntries: Infinity },
     features: {
       ai: true, groups: true, teamChat: false, groupAdmin: false,
       recurringTasks: true, calendarSync: true, attachments: true,
@@ -25,7 +25,7 @@ const PLANS = {
   },
   team: {
     id: 'team',
-    limits: { tasks: Infinity, categories: Infinity, groups: Infinity, groupMembers: Infinity, aiCalls: 1000, notes: Infinity },
+    limits: { tasks: Infinity, categories: Infinity, groups: Infinity, groupMembers: Infinity, aiCalls: 1000, notes: Infinity, budgetEntries: Infinity },
     features: {
       ai: true, groups: true, teamChat: true, groupAdmin: true,
       recurringTasks: true, calendarSync: true, attachments: true,

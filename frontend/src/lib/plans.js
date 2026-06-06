@@ -23,6 +23,7 @@ export const PLANS = {
       groupMembers: 3,    // max 3 Mitglieder pro Gruppe
       aiCalls: 5,         // Geschmacksprobe der KI -> stiftet Wunsch
       notes: 10,
+      budgetEntries: 20,  // Budget nutzbar, aber gedrosselt -> Upgrade-Anreiz
     },
     features: {
       ai: true,           // KI ist aktiv, aber stark limitiert (siehe aiCalls)
@@ -53,6 +54,7 @@ export const PLANS = {
       groupMembers: 5,
       aiCalls: 200,
       notes: Infinity,
+      budgetEntries: Infinity,
     },
     features: {
       ai: true,
@@ -83,6 +85,7 @@ export const PLANS = {
       groupMembers: Infinity,
       aiCalls: 1000,
       notes: Infinity,
+      budgetEntries: Infinity,
     },
     features: {
       ai: true,
