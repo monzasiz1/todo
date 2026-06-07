@@ -167,7 +167,7 @@ export default function TaskAttachments({ taskId, canEdit = true, compact = fals
         })}
       </AnimatePresence>
 
-      {/* Upload Button — fuer Free als Pro-Sperre, Bestand bleibt sichtbar */}
+      {/* Upload Button — für Free als Pro-Sperre, Bestand bleibt sichtbar */}
       {canEdit && attachments.length < 10 && (
         canAttachments ? (
           <button

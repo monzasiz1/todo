@@ -4,42 +4,42 @@ const sections = [
   {
     title: '1. Verantwortlicher',
     text: [
-      'Verantwortlich fuer die Datenverarbeitung im Sinne der DSGVO ist BeeQu.',
-      'Bitte ergaenze fuer den Live-Betrieb die vollstaendigen Anbieterangaben (Firma, Anschrift, E-Mail, ggf. Datenschutzbeauftragter).',
+      'Verantwortlich für die Datenverarbeitung im Sinne der DSGVO ist BeeQu.',
+      'Bitte ergänze für den Live-Betrieb die vollständigen Anbieterangaben (Firma, Anschrift, E-Mail, ggf. Datenschutzbeauftragter).',
     ],
   },
   {
     title: '2. Verarbeitete Daten',
     text: [
-      'Bei der Nutzung von BeeQu koennen insbesondere folgende Daten verarbeitet werden: Kontaktdaten (z. B. E-Mail-Adresse), Profildaten, Aufgaben- und Kalenderinhalte, Gruppen- und Chatdaten sowie technische Nutzungsdaten.',
-      'Bei Uploads koennen zudem Dateimetadaten verarbeitet werden, soweit dies fuer die Bereitstellung der Funktion erforderlich ist.',
+      'Bei der Nutzung von BeeQu können insbesondere folgende Daten verarbeitet werden: Kontaktdaten (z. B. E-Mail-Adresse), Profildaten, Aufgaben- und Kalenderinhalte, Gruppen- und Chatdaten sowie technische Nutzungsdaten.',
+      'Bei Uploads können zudem Dateimetadaten verarbeitet werden, soweit dies für die Bereitstellung der Funktion erforderlich ist.',
     ],
   },
   {
     title: '3. Zwecke und Rechtsgrundlagen',
     text: [
-      'Die Verarbeitung erfolgt zur Bereitstellung und Sicherheit der Plattform, zur Vertragsdurchfuehrung, zur Kommunikation mit Nutzern sowie zur Fehleranalyse und Weiterentwicklung.',
-      'Rechtsgrundlagen sind insbesondere Art. 6 Abs. 1 lit. b DSGVO (Vertragserfuellung), lit. c (rechtliche Verpflichtung), lit. f (berechtigtes Interesse) und, soweit erforderlich, lit. a DSGVO (Einwilligung).',
+      'Die Verarbeitung erfolgt zur Bereitstellung und Sicherheit der Plattform, zur Vertragsdurchführung, zur Kommunikation mit Nutzern sowie zur Fehleranalyse und Weiterentwicklung.',
+      'Rechtsgrundlagen sind insbesondere Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung), lit. c (rechtliche Verpflichtung), lit. f (berechtigtes Interesse) und, soweit erforderlich, lit. a DSGVO (Einwilligung).',
     ],
   },
   {
-    title: '4. Speicherung und Loeschung',
+    title: '4. Speicherung und Löschung',
     text: [
-      'Personenbezogene Daten werden nur so lange gespeichert, wie es fuer die jeweiligen Zwecke erforderlich ist oder gesetzliche Aufbewahrungspflichten bestehen.',
-      'Nach Wegfall der Zwecke oder nach Ablauf gesetzlicher Fristen werden Daten geloescht oder anonymisiert.',
+      'Personenbezogene Daten werden nur so lange gespeichert, wie es für die jeweiligen Zwecke erforderlich ist oder gesetzliche Aufbewahrungspflichten bestehen.',
+      'Nach Wegfall der Zwecke oder nach Ablauf gesetzlicher Fristen werden Daten gelöscht oder anonymisiert.',
     ],
   },
   {
-    title: '5. Empfaenger und Auftragsverarbeitung',
+    title: '5. Empfänger und Auftragsverarbeitung',
     text: [
-      'Zur technischen Bereitstellung koennen externe Dienstleister als Auftragsverarbeiter eingesetzt werden (z. B. Hosting, Datenbank, E-Mail-Versand).',
-      'Mit solchen Dienstleistern werden, soweit erforderlich, Vertraege zur Auftragsverarbeitung geschlossen.',
+      'Zur technischen Bereitstellung können externe Dienstleister als Auftragsverarbeiter eingesetzt werden (z. B. Hosting, Datenbank, E-Mail-Versand).',
+      'Mit solchen Dienstleistern werden, soweit erforderlich, Verträge zur Auftragsverarbeitung geschlossen.',
     ],
   },
   {
-    title: '6. Internationale Datenuebermittlungen',
+    title: '6. Internationale Datenübermittlungen',
     text: [
-      'Sofern Daten in Laender ausserhalb der EU/des EWR uebermittelt werden, erfolgt dies nur bei Vorliegen geeigneter Garantien nach Art. 44 ff. DSGVO (z. B. EU-Standardvertragsklauseln).',
+      'Sofern Daten in Länder ausserhalb der EU/des EWR übermittelt werden, erfolgt dies nur bei Vorliegen geeigneter Garantien nach Art. 44 ff. DSGVO (z. B. EU-Standardvertragsklauseln).',
     ],
   },
   {
@@ -51,9 +51,9 @@ const sections = [
   {
     title: '8. Betroffenenrechte',
     text: [
-      'Nutzer haben nach DSGVO insbesondere das Recht auf Auskunft, Berichtigung, Loeschung, Einschraenkung der Verarbeitung, Datenuebertragbarkeit sowie Widerspruch.',
-      'Erteilte Einwilligungen koennen jederzeit mit Wirkung fuer die Zukunft widerrufen werden.',
-      'Zudem besteht ein Beschwerderecht bei einer Datenschutzaufsichtsbehoerde.',
+      'Nutzer haben nach DSGVO insbesondere das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit sowie Widerspruch.',
+      'Erteilte Einwilligungen können jederzeit mit Wirkung für die Zukunft widerrufen werden.',
+      'Zudem besteht ein Beschwerderecht bei einer Datenschutzaufsichtsbehörde.',
     ],
   },
   {
@@ -64,9 +64,9 @@ const sections = [
     ],
   },
   {
-    title: '10. Aktualisierung dieser Erklaerung',
+    title: '10. Aktualisierung dieser Erklärung',
     text: [
-      'Diese Datenschutzerklaerung kann angepasst werden, wenn sich rechtliche oder technische Rahmenbedingungen aendern.',
+      'Diese Datenschutzerklärung kann angepasst werden, wenn sich rechtliche oder technische Rahmenbedingungen ändern.',
       'Die jeweils aktuelle Version ist auf dieser Seite abrufbar.',
     ],
   },

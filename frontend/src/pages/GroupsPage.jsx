@@ -1200,7 +1200,7 @@ function GroupDetail({ groupId, onBack }) {
     () => groupTasks.filter((t) => !dismissedIdSet.has(String(t.id))),
     [groupTasks, dismissedIdSet]
   );
-  // Aktive Aufgaben: nach naechstem Datum/Zeit aufsteigend ("Naechste zuerst")
+  // Aktive Aufgaben: nach naechstem Datum/Zeit aufsteigend ("Nächste zuerst")
   // Vergangene/Erledigte: nach Datum absteigend (Neueste zuerst)
   const sortAsc = (a, b) => {
     const da = String(a.date || '9999-12-31');

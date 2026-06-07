@@ -124,7 +124,7 @@ const storyChapters = [
 ];
 
 const aiExamples = [
-  { input: '"Sprint Review Freitag 10 Uhr, hohe Prioritaet"', title: 'Sprint Review', date: 'Freitag', time: '10:00', cat: 'Produkt', prio: 'Hoch' },
+  { input: '"Sprint Review Freitag 10 Uhr, hohe Priorität"', title: 'Sprint Review', date: 'Freitag', time: '10:00', cat: 'Produkt', prio: 'Hoch' },
   { input: '"Montag Rechnung abschicken um 9 Uhr"',            title: 'Rechnung',      date: 'Montag',  time: '09:00', cat: 'Finanzen', prio: 'Mittel' },
   { input: '"Mittwoch Workout 18:30 erinnern"',               title: 'Workout',       date: 'Mittwoch',time: '18:30', cat: 'Gesundheit', prio: 'Niedrig' },
 ];

@@ -54,7 +54,7 @@ async function assertChatAvailable(pool, res, groupId) {
     if (ownerPlan !== 'team') {
       res.status(403).json({
         error: 'plan_limit_team_chat',
-        message: 'Team-Chat ist exklusiv fuer Team-Gruppen. Der Gruppen-Owner braucht ein Team-Abo, damit der Chat fuer alle Mitglieder freigeschaltet ist.',
+        message: 'Team-Chat ist exklusiv für Team-Gruppen. Der Gruppen-Owner braucht ein Team-Abo, damit der Chat für alle Mitglieder freigeschaltet ist.',
         plan: ownerPlan,
       });
       return false;
@@ -62,7 +62,7 @@ async function assertChatAvailable(pool, res, groupId) {
     return true;
   } catch (err) {
     console.error('assertChatAvailable error:', err);
-    res.status(500).json({ error: 'Chat-Pruefung fehlgeschlagen' });
+    res.status(500).json({ error: 'Chat-Prüfung fehlgeschlagen' });
     return false;
   }
 }
@@ -237,7 +237,7 @@ module.exports = async function handler(req, res) {
     }
     if (eff.role === 'owner' || eff.role === 'admin') return { role: eff.role };
     if (!eff.perms[permKey]) {
-      res.status(403).json({ error: errorMsg || 'Diese Aktion ist fuer Mitglieder in dieser Gruppe gesperrt' });
+      res.status(403).json({ error: errorMsg || 'Diese Aktion ist für Mitglieder in dieser Gruppe gesperrt' });
       return null;
     }
     return { role: eff.role };
@@ -420,7 +420,7 @@ module.exports = async function handler(req, res) {
         if (owned >= maxGroups) {
           return res.status(403).json({
             error: 'plan_limit_groups',
-            message: `Dein ${planId === 'free' ? 'Free' : 'Pro'}-Plan erlaubt maximal ${maxGroups} ${maxGroups === 1 ? 'Gruppe' : 'Gruppen'}. Upgrade auf ${planId === 'free' ? 'Pro oder Team' : 'Team'} fuer mehr.`,
+            message: `Dein ${planId === 'free' ? 'Free' : 'Pro'}-Plan erlaubt maximal ${maxGroups} ${maxGroups === 1 ? 'Gruppe' : 'Gruppen'}. Upgrade auf ${planId === 'free' ? 'Pro oder Team' : 'Team'} für mehr.`,
             limit: maxGroups,
             current: owned,
             plan: planId,
@@ -502,7 +502,7 @@ module.exports = async function handler(req, res) {
       if (err?.code === '42P01' || err?.code === '42703') {
         return res.status(200).json({
           groups: [],
-          warning: 'Gruppen-Schema unvollstaendig in DB. Bitte Migration ausfuehren.',
+          warning: 'Gruppen-Schema unvollständig in DB. Bitte Migration ausführen.',
           db_code: err.code,
         });
       }
@@ -806,7 +806,7 @@ module.exports = async function handler(req, res) {
       // Merge mit bestehenden Werten
       const current = await getGroupMemberPerms(pool, groupId);
       const merged = { ...current, ...sanitized };
-      // Nur die nicht-default Keys speichern haelt JSON klein; aber wir speichern alles fuer Klarheit.
+      // Nur die nicht-default Keys speichern hält JSON klein; aber wir speichern alles für Klarheit.
       await pool.query(
         `UPDATE groups SET member_permissions = $1::jsonb, updated_at = NOW() WHERE id = $2`,
         [JSON.stringify(merged), groupId]
@@ -889,8 +889,8 @@ module.exports = async function handler(req, res) {
   }
 
   // ============================================
-  // DELETE /api/groups/:id/roles/:roleId — Custom-Rolle loeschen
-  // (alle Member mit dieser Rolle werden auf Default zurueckgesetzt)
+  // DELETE /api/groups/:id/roles/:roleId — Custom-Rolle löschen
+  // (alle Member mit dieser Rolle werden auf Default zurückgesetzt)
   // ============================================
   if (segments.length === 3 && segments[1] === 'roles' && req.method === 'DELETE') {
     try {
@@ -1225,7 +1225,7 @@ module.exports = async function handler(req, res) {
       const membership = await getMembership(groupId);
       if (!membership || membership.role === 'member') return res.status(403).json({ error: 'Kein Zugriff' });
 
-      // Subgruppe gehoert zur Gruppe?
+      // Subgruppe gehört zur Gruppe?
       const exists = await pool.query(
         `SELECT id FROM group_subgroups WHERE id = $1 AND group_id = $2`,
         [subgroupId, groupId]
@@ -1248,7 +1248,7 @@ module.exports = async function handler(req, res) {
         await pool.query(`UPDATE group_subgroups SET ${sets.join(', ')} WHERE id = $${vals.length}`, vals);
       }
 
-      // Member-Liste komplett ersetzen, wenn uebergeben
+      // Member-Liste komplett ersetzen, wenn übergeben
       if (Array.isArray(member_ids)) {
         await pool.query(`DELETE FROM group_subgroup_members WHERE subgroup_id = $1`, [subgroupId]);
         if (member_ids.length > 0) {
@@ -1621,8 +1621,8 @@ module.exports = async function handler(req, res) {
         return res.status(403).json({ error: 'Owner kann nicht entfernt werden' });
       }
 
-      // Vollstaendige Bereinigung in einer Transaktion. Alles, was den
-      // entfernten Nutzer an die Gruppe bindet, wird hart geloescht.
+      // Vollständige Bereinigung in einer Transaktion. Alles, was den
+      // entfernten Nutzer an die Gruppe bindet, wird hart gelöscht.
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
@@ -1656,7 +1656,7 @@ module.exports = async function handler(req, res) {
           [targetUserId, groupId]
         );
 
-        // 4) Eigentliche Mitgliedschaft entfernen. group_members traegt die
+        // 4) Eigentliche Mitgliedschaft entfernen. group_members trägt die
         //    Rolle + custom_role_id; beide verschwinden mit dieser Zeile.
         await client.query(
           'DELETE FROM group_members WHERE group_id = $1 AND user_id = $2',
@@ -1698,7 +1698,7 @@ module.exports = async function handler(req, res) {
       const membership = await getMembership(groupId);
       if (!membership) return res.status(403).json({ error: 'Kein Zugriff' });
 
-      // Plan-Gate: Chat nur in Team-Gruppen verfuegbar
+      // Plan-Gate: Chat nur in Team-Gruppen verfügbar
       if (!(await assertChatAvailable(pool, res, groupId))) return;
 
       const result = await pool.query(
@@ -1799,7 +1799,7 @@ module.exports = async function handler(req, res) {
 
       const task = taskResult.rows[0];
       if (task.group_id !== Number(groupId)) {
-        return res.status(403).json({ error: 'Dieser Termin gehoert nicht zu dieser Gruppe' });
+        return res.status(403).json({ error: 'Dieser Termin gehört nicht zu dieser Gruppe' });
       }
 
       const isEventTask = String(task.type || '').toLowerCase() === 'event';
@@ -1878,7 +1878,7 @@ module.exports = async function handler(req, res) {
       return res.json({ message });
     } catch (err) {
       console.error('Claim event error:', err);
-      return res.status(500).json({ error: 'Fehler beim Uebernehmen' });
+      return res.status(500).json({ error: 'Fehler beim Übernehmen' });
     }
   }
 
@@ -1897,7 +1897,7 @@ module.exports = async function handler(req, res) {
 
       const status = String(req.body?.status || 'yes').toLowerCase();
       const allowed = ['yes', 'maybe', 'no'];
-      if (!allowed.includes(status)) return res.status(400).json({ error: 'Ungueltiger RSVP-Status' });
+      if (!allowed.includes(status)) return res.status(400).json({ error: 'Ungültiger RSVP-Status' });
 
       const msgCheck = await pool.query(
         `SELECT m.id,
@@ -2026,7 +2026,7 @@ module.exports = async function handler(req, res) {
   if (segments.length === 2 && segments[1] === 'messages' && req.method === 'POST') {
     try {
       const groupId = segments[0];
-      const membership = await assertMemberCan(groupId, 'chat', 'Chat ist fuer Mitglieder in dieser Gruppe gesperrt');
+      const membership = await assertMemberCan(groupId, 'chat', 'Chat ist für Mitglieder in dieser Gruppe gesperrt');
       if (!membership) return;
 
       // Plan-Gate: Chat nur in Team-Gruppen verfuegbar
@@ -2214,7 +2214,7 @@ module.exports = async function handler(req, res) {
   if (segments.length === 2 && segments[1] === 'invite-user' && req.method === 'POST') {
     try {
       const groupId = segments[0];
-      const membership = await assertMemberCan(groupId, 'invite', 'Nur Admins koennen Nutzer einladen');
+      const membership = await assertMemberCan(groupId, 'invite', 'Nur Admins können Nutzer einladen');
       if (!membership) return;
       const { user_id: targetUserId } = req.body;
       if (!targetUserId) return res.status(400).json({ error: 'user_id erforderlich' });

@@ -2,7 +2,7 @@ import { addDays, format } from 'date-fns';
 
 export const FEDERAL_STATES = [
   { code: '', label: 'Nur bundesweit' },
-  { code: 'BW', label: 'Baden-Wuerttemberg' },
+  { code: 'BW', label: 'Baden-Württemberg' },
   { code: 'BY', label: 'Bayern' },
   { code: 'BE', label: 'Berlin' },
   { code: 'BB', label: 'Brandenburg' },
@@ -17,7 +17,7 @@ export const FEDERAL_STATES = [
   { code: 'SN', label: 'Sachsen' },
   { code: 'ST', label: 'Sachsen-Anhalt' },
   { code: 'SH', label: 'Schleswig-Holstein' },
-  { code: 'TH', label: 'Thueringen' },
+  { code: 'TH', label: 'Thüringen' },
 ];
 
 function getEasterSunday(year) {
@@ -77,7 +77,7 @@ export function getGermanStateHolidays(year, stateCode = '') {
   const holidays = [];
 
   if (['BW', 'BY', 'ST'].includes(code)) {
-    holidays.push(createHoliday(new Date(year, 0, 6), 'Heilige Drei Koenige'));
+    holidays.push(createHoliday(new Date(year, 0, 6), 'Heilige Drei Könige'));
   }
 
   if (['BW', 'BY', 'HE', 'NW', 'RP', 'SL'].includes(code)) {
@@ -85,7 +85,7 @@ export function getGermanStateHolidays(year, stateCode = '') {
   }
 
   if (['SL', 'BY'].includes(code)) {
-    holidays.push(createHoliday(new Date(year, 7, 15), 'Mariae Himmelfahrt'));
+    holidays.push(createHoliday(new Date(year, 7, 15), 'Mariä Himmelfahrt'));
   }
 
   if (['TH'].includes(code)) {

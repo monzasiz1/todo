@@ -69,13 +69,13 @@ async function canEditGroupTask(pool, taskId, userId) {
   for (const g of groups.rows) {
     if (g.role === 'owner' || g.role === 'admin') continue;
     if (!isOwn) {
-      return { allowed: false, reason: 'not_admin', message: 'Nur Admins koennen fremde Gruppen-Tasks bearbeiten' };
+      return { allowed: false, reason: 'not_admin', message: 'Nur Admins können fremde Gruppen-Tasks bearbeiten' };
     }
     if (typeof getEffectivePerms === 'function') {
       try {
         const eff = await getEffectivePerms(pool, g.group_id, userId);
         if (eff && eff.perms && !eff.perms.edit_own_tasks) {
-          return { allowed: false, reason: 'no_perm', message: 'Eigene Gruppen-Tasks bearbeiten ist fuer deine Rolle gesperrt' };
+          return { allowed: false, reason: 'no_perm', message: 'Eigene Gruppen-Tasks bearbeiten ist für deine Rolle gesperrt' };
         }
       } catch (err) {
         console.warn('[tasks] getEffectivePerms failed:', err.message);
@@ -1140,7 +1140,7 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ error: 'Termine können nicht als erledigt markiert werden' });
       }
 
-      // Gruppen-Rolle/Permissions pruefen
+      // Gruppen-Rolle/Permissions prüfen
       const toggleCheck = await canEditGroupTask(pool, taskId, user.id);
       if (!toggleCheck.allowed) {
         return res.status(403).json({ error: toggleCheck.message || 'Keine Berechtigung' });
@@ -1369,13 +1369,13 @@ module.exports = async function handler(req, res) {
         taskId = String(concreteRow.id);
       }
 
-      // Gruppen-Rolle/Permissions pruefen
+      // Gruppen-Rolle/Permissions prüfen
       const editCheck = await canEditGroupTask(pool, taskId, user.id);
       if (!editCheck.allowed) {
         return res.status(403).json({ error: editCheck.message || 'Keine Berechtigung' });
       }
 
-      // Plan-Gate: Eine bestehende Aufgabe nachtraeglich wiederkehrend zu
+      // Plan-Gate: Eine bestehende Aufgabe nachträglich wiederkehrend zu
       // machen ist ebenfalls ein bezahltes Feature (sonst Umgehung des POST-Gates).
       if (recurrence_rule) {
         const planId = await getUserPlan(pool, user.id);
@@ -1617,7 +1617,7 @@ module.exports = async function handler(req, res) {
         action = isOwner ? 'full' : 'dismiss';
       }
 
-      // Bei full-delete zusaetzlich Gruppen-Rolle pruefen (edit_own_tasks).
+      // Bei full-delete zusätzlich Gruppen-Rolle prüfen (edit_own_tasks).
       if (action === 'full') {
         const delCheck = await canEditGroupTask(pool, taskId, user.id);
         if (!delCheck.allowed) {
@@ -2394,7 +2394,7 @@ module.exports = async function handler(req, res) {
       }
 
       // Plan-Gate: Wiederkehrende Aufgaben sind ein bezahltes Feature.
-      // Nur die Neuanlage wird geblockt — Bestand bleibt unberuehrt.
+      // Nur die Neuanlage wird geblockt — Bestand bleibt unberührt.
       if (recurrence_rule) {
         const planId = await getUserPlan(pool, user.id);
         if (!canUseFeature(planId, 'recurringTasks')) {
@@ -2427,7 +2427,7 @@ module.exports = async function handler(req, res) {
         }
         groupInfo = groupAccess.rows[0];
 
-        // Member-Permission pruefen: nur normale Member sind einschraenkbar,
+        // Member-Permission prüfen: nur normale Member sind einschränkbar,
         // Owner/Admin haben immer das Recht Tasks zu erstellen.
         if (groupInfo.my_role === 'member') {
           try {

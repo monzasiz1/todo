@@ -1814,7 +1814,7 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
   const [newCatColor, setNewCatColor] = useState('#94A3B8');
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
 
-  // Default-Datum: bei Edit aus dem Eintrag, sonst heute oder 1. des gewaehlten Monats
+  // Default-Datum: bei Edit aus dem Eintrag, sonst heute oder 1. des gewählten Monats
   const defaultEntryDate = useMemo(() => {
     if (editing?.entry_date) return String(editing.entry_date).slice(0, 10);
     const today = new Date();
@@ -1851,7 +1851,7 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
   const pullNextRef = useRef(0);
   const pullOffsetRef = useRef(0);
 
-  // Wenn prefill nach KI-Parse aktualisiert wird, Felder uebernehmen.
+  // Wenn prefill nach KI-Parse aktualisiert wird, Felder übernehmen.
   useEffect(() => {
     if (prefill) {
       if (prefill.category && allCategories.find((c) => c.id === prefill.category)) {
@@ -1870,7 +1870,7 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefill, mode]);
 
-  // Wenn der Modus per Switch geaendert wird, default-Kategorie setzen.
+  // Wenn der Modus per Switch geändert wird, default-Kategorie setzen.
   useEffect(() => {
     if (!prefill || prefill.kind !== mode) {
       setCategory(defaultCategory);
@@ -2327,10 +2327,10 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
- * Sankey-Layout: berechnet stacked, proportionale Baender zwischen
+ * Sankey-Layout: berechnet stacked, proportionale Bänder zwischen
  * Mitgliedern (source) und Kategorien (target). Jeder Knoten ist so hoch
- * wie die Summe seiner Fluesse. Innerhalb eines Knotens stapeln sich die
- * Baender luekenlos uebereinander — wie in echten Sankey-Charts.
+ * wie die Summe seiner Flüsse. Innerhalb eines Knotens stapeln sich die
+ * Bänder luekenlos übereinander — wie in echten Sankey-Charts.
  * ─────────────────────────────────────────────────────────────────────── */
 /* 4-Tier-Sankey:
  *   T1 (links):       Personen / Einnahmenquellen
@@ -2338,7 +2338,7 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
  *   T3 (mid-rechts):  Hauptkategorien + Verbleibend
  *   T4 (rechts):      Einzelne Transaktionen (top 12)
  *
- * Hoehe jedes Knotens proportional zu seiner Summe. Skalierung global,
+ * Höhe jedes Knotens proportional zu seiner Summe. Skalierung global,
  * damit alle Tiers proportional bleiben (echtes Sankey-Verhalten).
  */
 function buildSankeyLayout({
@@ -2421,7 +2421,7 @@ function buildSankeyLayout({
 
   // ── Skalierung ──────────────────────────────────────────────────────
   const refSum = Math.max(personsSum, poolTotal, catsSum);
-  // Berechne pro Tier den verfuegbaren Platz (innerHeight minus gaps)
+  // Berechne pro Tier den verfügbaren Platz (innerHeight minus gaps)
   const personsGaps = Math.max(0, persons.length - 1) * NODE_GAP;
   const catsGaps = Math.max(0, cats.length - 1) * NODE_GAP;
   // Wir nehmen den restriktivsten Tier (mit den meisten Gaps) als Skalierungs-
@@ -2511,7 +2511,7 @@ function buildSankeyLayout({
     }
   });
 
-  // ── Baender T1 → T2 (Person → Pool) ─────────────────────────────────
+  // ── Bänder T1 → T2 (Person → Pool) ─────────────────────────────────
   let cursorIn = poolNode.y0;
   const bands12 = personNodes.map((p, i) => {
     const tY0 = cursorIn;
@@ -2529,7 +2529,7 @@ function buildSankeyLayout({
     };
   });
 
-  // ── Baender T2 → T3 (Pool → Kategorie) ──────────────────────────────
+  // ── Bänder T2 → T3 (Pool → Kategorie) ──────────────────────────────
   let cursorOut = poolNode.y0;
   const bands23 = catNodes.map((c, i) => {
     const sY0 = cursorOut;
@@ -2547,7 +2547,7 @@ function buildSankeyLayout({
     };
   });
 
-  // ── Baender T3 → T4 (Kategorie → Transaktion) ──────────────────────
+  // ── Bänder T3 → T4 (Kategorie → Transaktion) ──────────────────────
   const bands34 = txNodes.map((tx, i) => {
     // Quelle: Kategorie-Knoten rechte Kante an gleichen y-Positionen wie tx
     return {
@@ -2618,7 +2618,7 @@ function SankeyDiagram({ layout }) {
           </filter>
         </defs>
 
-        {/* Proportionale Baender mit Farbverlauf + Stagger Fade-In On Mount */}
+        {/* Proportionale Bänder mit Farbverlauf + Stagger Fade-In On Mount */}
         <g className="sankey-bands">
           {bands.map((b, i) => (
             <path
@@ -2648,7 +2648,7 @@ function SankeyDiagram({ layout }) {
 
 function SankeyNodeLabel({ node, side, nodeWidth }) {
   const cy = node.y0 + node.height / 2;
-  // Mindesthoehe fuer 2-Zeilen-Label (Name + Wert)
+  // Mindesthöhe für 2-Zeilen-Label (Name + Wert)
   const showSub = node.height >= 28;
 
   const rect = (
@@ -2774,7 +2774,7 @@ function SankeyNodeLabel({ node, side, nodeWidth }) {
 
   // Tier 4: Transaktionen — Labels nach RECHTS vom Knoten
   if (side === 'tx') {
-    // Skip label entirely fuer sehr kleine Baender
+    // Skip label entirely für sehr kleine Bänder
     if (node.height < 8) {
       return rect;
     }
@@ -2822,7 +2822,7 @@ function SankeyNodeLabel({ node, side, nodeWidth }) {
 }
 
 /* Mobile: statt unleserlichem Mini-Sankey horizontale Balken
- * fuer Einnahmen, Ausgaben pro Mitglied und Kategorien. */
+ * für Einnahmen, Ausgaben pro Mitglied und Kategorien. */
 function MobileFlowView({ members, expenseCategories, summary }) {
   const incomeByMember = summary.byMemberIncome || {};
   const memberIncomeMax = Math.max(...members.map((m) => incomeByMember[m.id] || 0), 1);

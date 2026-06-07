@@ -191,7 +191,7 @@ module.exports = async (req, res) => {
 
       const nextStatus = status == null ? null : String(status).toLowerCase();
       if (nextStatus !== null && nextStatus !== 'yes' && nextStatus !== 'no') {
-        return res.status(400).json({ error: 'Ungueltiger Status' });
+        return res.status(400).json({ error: 'Ungültiger Status' });
       }
 
       const resolved = await resolveTaskForVotes(pool, taskId, user.id);

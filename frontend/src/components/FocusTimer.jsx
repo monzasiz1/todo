@@ -354,7 +354,7 @@ export default function FocusTimer() {
                 <Play size={14} />
               </button>
             )}
-            <button type="button" className="focus-timer-mini-btn" onClick={resetTimer} aria-label="Zuruecksetzen">
+            <button type="button" className="focus-timer-mini-btn" onClick={resetTimer} aria-label="Zurücksetzen">
               <RotateCcw size={14} />
             </button>
           </div>
@@ -392,7 +392,7 @@ export default function FocusTimer() {
                   <Timer size={18} />
                   <h3>Fokus-Timer starten</h3>
                 </div>
-                <button type="button" className="focus-timer-close" onClick={() => setOpen(false)} aria-label="Schliessen">
+                <button type="button" className="focus-timer-close" onClick={() => setOpen(false)} aria-label="Schließen">
                   <X size={18} />
                 </button>
               </div>

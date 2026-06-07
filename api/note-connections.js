@@ -91,7 +91,7 @@ module.exports = async function handler(req, res) {
       const b = toPositiveInt(rawB);
 
       if (!a || !b || a === b) {
-        return res.status(400).json({ error: 'Ungueltige Note-IDs' });
+        return res.status(400).json({ error: 'Ungültige Note-IDs' });
       }
 
       const [hasA, hasB] = await Promise.all([
@@ -100,7 +100,7 @@ module.exports = async function handler(req, res) {
       ]);
 
       if (!hasA || !hasB) {
-        return res.status(403).json({ error: 'Keine Berechtigung fuer eine der Notes' });
+        return res.status(403).json({ error: 'Keine Berechtigung für eine der Notes' });
       }
 
       const [n1, n2] = a < b ? [a, b] : [b, a];

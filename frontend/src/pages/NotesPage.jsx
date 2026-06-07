@@ -171,7 +171,7 @@ function renderNoteMarkdown(text, onToggleLine) {
 }
 
 // ── Checklist-Fortschritt ──────────────────────────────────────────────
-// Zaehlt Markdown-Checkboxen (- [ ] / - [x]) und HTML-Checkboxen
+// Zählt Markdown-Checkboxen (- [ ] / - [x]) und HTML-Checkboxen
 // (<input type="checkbox" checked>). Liefert { total, done, percent }
 // oder null wenn keine Checklist im content vorhanden ist.
 function computeChecklistProgress(rawContent) {
@@ -180,7 +180,7 @@ function computeChecklistProgress(rawContent) {
   let total = 0;
   let done = 0;
   if (looksLikeHtml(str)) {
-    // HTML-Pfad: per DOMParser sicher zaehlen, keine Regex auf HTML.
+    // HTML-Pfad: per DOMParser sicher zählen, keine Regex auf HTML.
     try {
       const parser = new DOMParser();
       const doc = parser.parseFromString(str, 'text/html');
@@ -231,7 +231,7 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
   const noteRef = useRef(null);
   const dragStartPos = useRef({ x: 0, y: 0 });
   // Doppelklick-Erkennung auf .note-display: erster Klick startet
-  // setIsEditing erst nach kurzer Verzoegerung — kommt ein zweiter Klick
+  // setIsEditing erst nach kurzer Verzögerung — kommt ein zweiter Klick
   // davor, wird stattdessen der Vollbild-Editor geöffnet.
   const displayClickRef = useRef({ time: 0, timer: null });
   // Drag-Controls für swipe-to-close des Termin-Pickers — Drag startet
@@ -265,7 +265,7 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
     // HTML-Inhalte (WYSIWYG-Editor) NIE kürzen — würde Tags zerschneiden.
     if (looksLikeHtml(actualContent)) return false;
     // Mehr Platz für Listen / Checklisten: erst ab 220 Zeichen kürzen.
-    // Wenn der Inhalt Checklisten oder Mehrzeiler enthaelt, NIE kürzen.
+    // Wenn der Inhalt Checklisten oder Mehrzeiler enthält, NIE kürzen.
     if (/\n/.test(actualContent)) return false;
     return actualContent.length > 220;
   }, [actualContent]);
@@ -532,7 +532,7 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
             ? `${unreadCount} ungelesene Kommentare - du wurdest erwähnt`
             : `${unreadCount} ungelesene Kommentare`}
           aria-label={hasUnreadMention
-            ? `${unreadCount} ungelesene Kommentare mit Erwaehnung`
+            ? `${unreadCount} ungelesene Kommentare mit Erwähnung`
             : `${unreadCount} ungelesene Kommentare`}
         >
           {hasUnreadMention ? '@' : ''}{unreadCount > 99 ? '99+' : unreadCount}
@@ -667,7 +667,7 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
             value={content}
             onChange={(e) => setContent(e.target.value)}
             onInput={(e) => {
-              // Auto-Grow: Textarea waechst mit dem Inhalt, .note-content
+              // Auto-Grow: Textarea wächst mit dem Inhalt, .note-content
               // capped per CSS und scrollt darüber hinaus.
               const ta = e.currentTarget;
               ta.style.height = 'auto';
@@ -1021,7 +1021,7 @@ const MAX_SCALE = 2.0;
 // Erkennt #tag in Titel + Content (HTML wird gestrippt). Liefert eine
 // unique, lowercased Liste in der Reihenfolge des ersten Vorkommens.
 // Tags: 1-30 Zeichen aus [a-z0-9_-], case-insensitive. Erlaubt deutsche
-// Umlaute (\u00e4\u00f6\u00fc\u00df) und Backend-vertraeglich.
+// Umlaute (\u00e4\u00f6\u00fc\u00df) und Backend-verträglich.
 const TAG_RE = /(?:^|\s)#([a-z0-9_\-\u00e4\u00f6\u00fc\u00df]{1,30})/gi;
 function extractNoteTags(note) {
   if (!note) return [];
@@ -1060,14 +1060,14 @@ export default function NotesPage() {
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   // Swipe-to-dismiss State für das Bottom-Sheet.
   // dragY = aktuelles Drag-Offset in px (>=0). Wenn > 120 oder Velocity
-  // beim Release > 0.5 px/ms, schliessen wir das Sheet.
+  // beim Release > 0.5 px/ms, schließen wir das Sheet.
   const [sheetDragY, setSheetDragY] = useState(0);
   const sheetDragRef = useRef({ startY: 0, lastY: 0, lastT: 0, active: false });
   const handleSheetTouchStart = useCallback((e) => {
     const t = e.touches?.[0];
     if (!t) return;
     // Verhindert, dass der Canvas-Pan-Handler darunter das Touch verarbeitet
-    // (sonst wandert die Notes-Buehne mit, während man das Sheet zieht).
+    // (sonst wandert die Notes-Bühne mit, während man das Sheet zieht).
     e.stopPropagation();
     sheetDragRef.current = { startY: t.clientY, lastY: t.clientY, lastT: performance.now(), active: true };
   }, []);
@@ -1095,7 +1095,7 @@ export default function NotesPage() {
       setSheetDragY(0);
     }
   }, []);
-  // Suche im Board: dimmt nicht-passende Notes, behaelt aber alle
+  // Suche im Board: dimmt nicht-passende Notes, behält aber alle
   // Positionen, damit das Layout nicht springt.
   const [searchQuery, setSearchQuery] = useState('');
   // Aktiv ausgewählte Hashtag-Filter (Set lowercase). AND-Logik: eine
@@ -1124,7 +1124,7 @@ export default function NotesPage() {
   const [editorNoteId, setEditorNoteId] = useState(null);
 
   // Unread-Comments-Map: noteId -> { count, hasMention }. Wird vom
-  // /api/note-comments?action=unread Endpoint befuellt und nach jedem
+  // /api/note-comments?action=unread Endpoint befüllt und nach jedem
   // Notes-Realtime-Tick oder Editor-Close refresht. Beim Öffnen des
   // Editors wird der Eintrag lokal entfernt (optimistic), Server-Seite
   // markiert das GET im Modal als read.
@@ -1154,7 +1154,7 @@ export default function NotesPage() {
     }
   }, []);
 
-  // Globaler ESC-Handler: schliesst Bottom-Sheet bzw. Archiv-Overlay.
+  // Globaler ESC-Handler: schließt Bottom-Sheet bzw. Archiv-Overlay.
   // Greift nicht in Inputs/Textareas/contentEditable ein, damit z. B.
   // das Inline-Title-Edit weiterhin sein eigenes ESC nutzen kann.
   useEffect(() => {
@@ -1297,13 +1297,13 @@ export default function NotesPage() {
   }, [fetchNotes, fetchTasks, fetchConnections, refreshUnreadComments]);
 
   // Auto-Refresh: wenn der Tab/Fenster wieder Fokus bekommt oder sichtbar
-  // wird, Notes & Tasks neu laden. Loest "andere User schreibt Note, ich
+  // wird, Notes & Tasks neu laden. Löst "andere User schreibt Note, ich
   // sehe es nicht" ohne dedizierten Realtime-Channel.
   //
   // Zusätzlich hören wir auf 'beequ:notes-changed' (vom useRealtime-Hook
   // via Supabase Broadcast + postgres_changes) — damit kommen Updates in
   // <1 Sekunde rein und das Polling-Intervall ist nur noch Safety-Net.
-  // Wenn Realtime aktiv ist, koennen wir den Poll auf 60s entspannen.
+  // Wenn Realtime aktiv ist, können wir den Poll auf 60s entspannen.
   useEffect(() => {
     const refresh = () => {
       if (document.visibilityState === 'hidden') return;
@@ -1494,8 +1494,8 @@ export default function NotesPage() {
   // Tidy / Auto-Arrange: ordnet alle nicht-archivierten Notizen in einem
   // sauberen Raster an (ausgehend von 60/60 oben-links). Persistiert die
   // neuen x/y-Werte einzeln — langsam aber sicher, bei Fehlern werden
-  // die uebrigen Notizen trotzdem positioniert. Bestätigung per confirm,
-  // damit das Layout nicht versehentlich zerstoert wird.
+  // die übrigen Notizen trotzdem positioniert. Bestätigung per confirm,
+  // damit das Layout nicht versehentlich zerstört wird.
   const handleAutoArrange = useCallback(async () => {
     const active = (notes || []).filter((n) => !(n.completed || n.status === 'archived'));
     if (active.length === 0) return;
@@ -1606,7 +1606,7 @@ export default function NotesPage() {
     return map;
   }, [notes]);
 
-  // Alle bekannten Tags nach Haeufigkeit sortiert (max 30 zur Anzeige).
+  // Alle bekannten Tags nach Häufigkeit sortiert (max 30 zur Anzeige).
   const allTagsRanked = useMemo(() => {
     const counts = new Map();
     for (const tags of tagsByNoteId.values()) {
@@ -1631,7 +1631,7 @@ export default function NotesPage() {
   const matchedNoteIds = useMemo(() => {
     const raw = searchQuery.trim();
     const q = raw.toLowerCase();
-    // "#tag" als Suchsyntax: filtert ausschliesslich auf Tags (substring).
+    // "#tag" als Suchsyntax: filtert ausschließlich auf Tags (substring).
     const hashOnly = raw.startsWith('#');
     const hashQuery = hashOnly ? raw.replace(/^#+/, '').toLowerCase() : '';
     const tagActive = activeTags.size > 0;
@@ -1959,7 +1959,7 @@ export default function NotesPage() {
   // ── Desktop-Mausrad: nur Pan, kein Zoom ────────────────────────────────────
   //   plain wheel      → vertikal pannen
   //   shift + wheel    → horizontal pannen
-  //   Zoom passiert ausschliesslich über die +/- Buttons in der Toolbar.
+  //   Zoom passiert ausschließlich über die +/- Buttons in der Toolbar.
   const onWheel = useCallback((e) => {
     const target = e.target;
     if (
@@ -2098,7 +2098,7 @@ export default function NotesPage() {
               <Archive size={16} />
             </button>
           </div>
-          {/* Mobile-only: Mehr-Menue öffnet Bottom-Sheet mit den Secondary-Aktionen */}
+          {/* Mobile-only: Mehr-Menü öffnet Bottom-Sheet mit den Secondary-Aktionen */}
           <button
             type="button"
             className="board-control-btn board-more-btn"
@@ -2115,7 +2115,7 @@ export default function NotesPage() {
         </div>
       </div>
 
-      {/* Mobile Bottom-Sheet: Sekundaere Board-Aktionen */}
+      {/* Mobile Bottom-Sheet: Sekundäre Board-Aktionen */}
       {mobileMoreOpen && (
         <div
           className="board-mobile-sheet-backdrop"
@@ -2226,7 +2226,7 @@ export default function NotesPage() {
         </div>
       )}
 
-      {/* Hashtag-Filter-Leiste: zeigt die haeufigsten Tags als Chips,
+      {/* Hashtag-Filter-Leiste: zeigt die häufigsten Tags als Chips,
           aktive Tags sind hervorgehoben. AND-Filter (alle aktiven Tags
           müssen vorhanden sein). Auf Mobile horizontal scrollbar. */}
       {allTagsRanked.length > 0 && (

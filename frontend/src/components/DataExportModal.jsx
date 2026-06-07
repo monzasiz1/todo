@@ -160,14 +160,14 @@ export default function DataExportModal({ open, onClose }) {
     {
       key: 'csv',
       title: 'CSV (Aufgaben)',
-      sub: 'Tabelle fuer Excel, Numbers, Google Sheets',
+      sub: 'Tabelle für Excel, Numbers, Google Sheets',
       icon: <FileSpreadsheet size={18} />,
       tint: '#34C759',
     },
     {
       key: 'ics',
       title: 'ICS (Kalender)',
-      sub: 'Termine fuer Apple, Google, Outlook',
+      sub: 'Termine für Apple, Google, Outlook',
       icon: <CalendarDays size={18} />,
       tint: '#00C7BE',
     },
@@ -203,7 +203,7 @@ export default function DataExportModal({ open, onClose }) {
               type="button"
               className="data-export-close"
               onClick={onClose}
-              aria-label="Schliessen"
+              aria-label="Schließen"
             >
               <X size={18} />
             </button>

@@ -101,7 +101,7 @@ const getEventGlowClass = (task) => {
   if (task?.type !== 'event') return '';
   const key = normalizeCategoryKey(task?.category_name);
   if (key.includes('arbeit')) return 'cal-event-glow-work';
-  if (key.includes('persoenlich')) return 'cal-event-glow-personal';
+  if (key.includes('persönlich')) return 'cal-event-glow-personal';
   if (key.includes('gut schlag') || key.includes('gut-schlag')) return 'cal-event-glow-gutschlag';
   return 'cal-event-glow-default';
 };
@@ -302,7 +302,7 @@ const getTaskSource = (t) => {
       color: t.category_color || '#4C7BD9',
     };
   }
-  return { key: 'default:persoenlich', name: 'Persoenlich', color: '#4C7BD9' };
+  return { key: 'default:persönlich', name: 'Persönlich', color: '#4C7BD9' };
 };
 
 export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeChange, onTaskUpdated, onTaskCreated }) {
@@ -795,7 +795,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     // Maximal verfuegbare Breite ermitteln (Parent-Container = .app-main bzw.
     // .app-content-shell). Faellt der User von einem grossen Monitor zurueck
     // auf z.B. ein MacBook 13", war eine zuvor gespeicherte Breite (z.B.
-    // 2000px) groesser als der Viewport und der Kalender ragte rechts raus.
+    // 2000px) größer als der Viewport und der Kalender ragte rechts raus.
     const getMaxWidth = () => {
       const parent = wrapper.parentElement;
       const parentW = parent ? parent.clientWidth : window.innerWidth;
@@ -821,7 +821,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     }
 
     // Wenn das Fenster verkleinert wird, gespeicherte Breite hart clampen,
-    // damit der Kalender nie ueber den sichtbaren Bereich hinausragt.
+    // damit der Kalender nie über den sichtbaren Bereich hinausragt.
     const onWindowResize = () => {
       const maxW = getMaxWidth();
       const currentW = wrapper.getBoundingClientRect().width;
@@ -830,7 +830,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       }
     };
     window.addEventListener('resize', onWindowResize);
-    // Einmal initial nach Restore ausfuehren (falls Parent inzwischen
+    // Einmal initial nach Restore ausführen (falls Parent inzwischen
     // schmaler ist als zur Zeit des Speicherns).
     onWindowResize();
 
@@ -1541,7 +1541,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                     const showBorderLeft = !isMobile && !['multi-day-middle', 'multi-day-end'].includes(multiClass);
                     const showTaskLabel = !seg || dayIndexInWeek === seg.startIdx;
                     const slotOrder = assignedLane;
-                    // Bei Mehrtages-Eintraegen: bereits vergangene Tage anteilig grau einfaerben.
+                    // Bei Mehrtages-Einträgen: bereits vergangene Tage anteilig grau einfärben.
                     const isMultiDayBar = !!seg && spanDaysInRow > 1 && !ended && !isHolidayTask;
                     const multiDayProgress = isMultiDayBar
                       ? buildMultiDayBackground(

@@ -110,7 +110,7 @@ Beispiele:
 - "Einkaufen Milch Eier Butter Brot morgen" → title: "Einkaufen", description: "• Milch\\n• Eier\\n• Butter\\n• Brot", date: morgen, category: "Einkaufen"
 - "Kirmes vom 20. bis 24. April" → title: "Kirmes", date: "2026-04-20", date_end: "2026-04-24"
 - "Meeting morgen von 14 bis 16 Uhr" → title: "Meeting", date: morgen, time: "14:00", time_end: "16:00"
-- "Arzttermin Dienstag 10-11:30 Uhr Zahnarzt Dr. Mueller" → title: "Arzttermin", description: "Zahnarzt Dr. Mueller", date: Dienstag, time: "10:00", time_end: "11:30", category: "Gesundheit"
+- "Arzttermin Dienstag 10-11:30 Uhr Zahnarzt Dr. Müller" → title: "Arzttermin", description: "Zahnarzt Dr. Müller", date: Dienstag, time: "10:00", time_end: "11:30", category: "Gesundheit"
 - "Meeting morgen 14 Uhr im Creative Space" → type: "event", title: "Meeting", date: morgen, time: "14:00", location: "Creative Space", category: "Arbeit"
 - "Freitag 18:30 Fußballtraining im Stadion" → type: "event", title: "Fußballtraining", date: Freitag, time: "18:30", location: "Stadion", category: "Gesundheit"
 - "Zahnarzt bei Dr. Schmidt Mittwoch 9 Uhr" → type: "event", title: "Zahnarzt", date: Mittwoch, time: "09:00", location: "Dr. Schmidt", category: "Gesundheit"
@@ -489,14 +489,14 @@ async function parseChecklistWithAI(input) {
   const key = process.env.MISTRAL_API_KEY;
   if (!key) throw new Error('MISTRAL_API_KEY nicht konfiguriert');
 
-  const systemPrompt = `Du bist ein Assistent fuer Notizen. Deine Aufgabe: aus freiem Text eine abhakbare To-do-Liste erzeugen.
+  const systemPrompt = `Du bist ein Assistent für Notizen. Deine Aufgabe: aus freiem Text eine abhakbare To-do-Liste erzeugen.
 
 Regeln:
-- Erkenne Aufgaben/Artikel in Texten wie: "gemuese, aepfel, bananen", "bitte kaufen: Milch, Eier", "Packen: Shirt, Hose".
-- Entferne Fuellwoerter und gib kurze, klare Item-Texte aus.
+- Erkenne Aufgaben/Artikel in Texten wie: "gemüse, äpfel, bananen", "bitte kaufen: Milch, Eier", "Packen: Shirt, Hose".
+- Entferne Füllwörter und gib kurze, klare Item-Texte aus.
 - Liefere maximal 20 Items.
 - Erhalte die Reihenfolge aus dem Ursprungstext.
-- Wenn kein Listeninhalt erkennbar ist, gib items als leeres Array zurueck.
+- Wenn kein Listeninhalt erkennbar ist, gib items als leeres Array zurück.
 - Antworte NUR mit validem JSON.
 
 JSON Format:
@@ -635,19 +635,19 @@ async function rewriteNoteWithAI(input, style = 'cleanup') {
   if (!text) return { rewritten: '', confidence: 0.0 };
 
   const styleHint = {
-    cleanup: 'Behalte Inhalt und Tonalitaet, verbessere Grammatik, Rechtschreibung und Lesbarkeit. Keine Kuerzungen.',
-    short: 'Kuerze auf das Wesentliche (max 50 Prozent der Laenge). Keine Fakten weglassen.',
-    formal: 'Schreibe sachlich und foermlich (Sie-Form, klare Saetze). Inhalt unveraendert.',
-    casual: 'Schreibe locker und freundlich (Du-Form, kurze Saetze). Inhalt unveraendert.',
-  }[style] || 'Behalte Inhalt und Tonalitaet, verbessere Grammatik und Lesbarkeit.';
+    cleanup: 'Behalte Inhalt und Tonalität, verbessere Grammatik, Rechtschreibung und Lesbarkeit. Keine Kürzungen.',
+    short: 'Kürze auf das Wesentliche (max 50 Prozent der Länge). Keine Fakten weglassen.',
+    formal: 'Schreibe sachlich und förmlich (Sie-Form, klare Sätze). Inhalt unverändert.',
+    casual: 'Schreibe locker und freundlich (Du-Form, kurze Sätze). Inhalt unverändert.',
+  }[style] || 'Behalte Inhalt und Tonalität, verbessere Grammatik und Lesbarkeit.';
 
-  const systemPrompt = `Du ueberarbeitest Notizen auf Deutsch.
+  const systemPrompt = `Du überarbeitest Notizen auf Deutsch.
 
 ${styleHint}
 
 Regeln:
-- Antworte mit dem ueberarbeiteten Text als reiner Plain-Text.
-- KEIN Markdown, KEINE Anfuehrungszeichen drumherum, KEINE Erklaerung.
+- Antworte mit dem überarbeiteten Text als reiner Plain-Text.
+- KEIN Markdown, KEINE Anführungszeichen drumherum, KEINE Erklärung.
 - Behalte Absatz-Struktur (Leerzeilen).`;
 
   const response = await fetch(MISTRAL_API_URL, {
@@ -686,9 +686,9 @@ function buildFallbackNoteTags(input, reason = 'fallback') {
 
   const stop = new Set([
     'und', 'oder', 'aber', 'dass', 'das', 'der', 'die', 'den', 'dem', 'des', 'ein', 'eine',
-    'einer', 'einem', 'einen', 'ist', 'sind', 'war', 'waren', 'mit', 'fuer', 'auf', 'bei',
+    'einer', 'einem', 'einen', 'ist', 'sind', 'war', 'waren', 'mit', 'für', 'auf', 'bei',
     'von', 'vom', 'zum', 'zur', 'im', 'in', 'am', 'an', 'aus', 'als', 'auch', 'nicht',
-    'noch', 'nur', 'bitte', 'heute', 'morgen', 'gestern', 'dann', 'wenn', 'weil', 'ueber',
+    'noch', 'nur', 'bitte', 'heute', 'morgen', 'gestern', 'dann', 'wenn', 'weil', 'über',
     'unter', 'ohne', 'wie', 'ich', 'du', 'er', 'sie', 'es', 'wir', 'ihr', 'mein', 'dein',
     'sein', 'ihr', 'unser', 'euer', 'todo', 'notiz', 'notizen', 'task', 'tasks',
   ]);
@@ -739,7 +739,7 @@ async function suggestNoteTagsWithAI(input) {
   if (!text) return { tags: [], confidence: 0.0 };
   if (!key) return buildFallbackNoteTags(text, 'missing_api_key');
 
-  const systemPrompt = `Du schlaegst Tags fuer Notizen vor.
+  const systemPrompt = `Du schlägst Tags für Notizen vor.
 
 Regeln:
 - 3 bis 6 kurze Tags (1-2 Worte, kleingeschrieben, Deutsch).

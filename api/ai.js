@@ -454,7 +454,7 @@ module.exports = async function handler(req, res) {
       return res.json({ result });
     } catch (err) {
       console.error('AI note-tags error:', err);
-      return res.status(500).json({ error: 'KI-Tag-Vorschlaege fehlgeschlagen' });
+      return res.status(500).json({ error: 'KI-Tag-Vorschläge fehlgeschlagen' });
     }
   }
 
@@ -525,7 +525,7 @@ module.exports = async function handler(req, res) {
       }
 
       // Plan-Gate: Wiederkehrende Aufgaben sind ein bezahltes Feature.
-      // Fuer Free-User die von der KI erkannte Wiederholung verwerfen, statt
+      // Für Free-User die von der KI erkannte Wiederholung verwerfen, statt
       // den Erstell-Vorgang komplett abzubrechen.
       if (!canUseFeature(pacPlanId, 'recurringTasks')) {
         parsed.recurrence_rule = null;
@@ -918,7 +918,7 @@ module.exports = async function handler(req, res) {
         }
 
         if (!matchedTask.can_edit) {
-          return res.json(permissionDeniedResponse('delete', matchedTask, 'loeschen'));
+          return res.json(permissionDeniedResponse('delete', matchedTask, 'löschen'));
         }
 
         // Delete the task and all recurring children
@@ -1039,7 +1039,7 @@ module.exports = async function handler(req, res) {
         }
 
         if (!matchedTask.can_edit) {
-          return res.json(permissionDeniedResponse('update', matchedTask, 'aendern'));
+          return res.json(permissionDeniedResponse('update', matchedTask, 'ändern'));
         }
 
         const allowed = ['title', 'description', 'priority', 'date', 'time', 'time_end', 'date_end', 'recurrence_rule', 'recurrence_interval', 'recurrence_end'];
@@ -1144,7 +1144,7 @@ module.exports = async function handler(req, res) {
             );
             const scopeRow = permissionScope.rows[0] || { total_count: 0, editable_count: 0 };
             if (scopeRow.total_count > 0 && scopeRow.editable_count < scopeRow.total_count) {
-              return res.json(permissionDeniedResponse('update', matchedTask, 'alle Wiederholungen aendern'));
+              return res.json(permissionDeniedResponse('update', matchedTask, 'alle Wiederholungen ändern'));
             }
           }
 
@@ -1192,7 +1192,7 @@ module.exports = async function handler(req, res) {
         }
 
         if (!matchedTask.can_edit) {
-          return res.json(permissionDeniedResponse('attach', matchedTask, 'Dateien anhaengen'));
+          return res.json(permissionDeniedResponse('attach', matchedTask, 'Dateien anhängen'));
         }
 
         return res.json({

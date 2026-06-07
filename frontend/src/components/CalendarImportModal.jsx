@@ -105,7 +105,7 @@ export default function CalendarImportModal({ open, onClose, onImported }) {
     if (!parseResult || importing) return;
     const items = parseResult.events.filter((_, idx) => selected[idx]);
     if (!items.length) {
-      addToast('Bitte mindestens einen Termin auswaehlen', 'error');
+      addToast('Bitte mindestens einen Termin auswählen', 'error');
       return;
     }
     setImporting(true);
@@ -180,7 +180,7 @@ export default function CalendarImportModal({ open, onClose, onImported }) {
               <p>Lade eine .ics-Datei aus Google Calendar, Apple Kalender oder Outlook hoch.</p>
             </div>
             {!isMobile && (
-              <button type="button" className="cal-import-close" onClick={onClose} aria-label="Schliessen">
+              <button type="button" className="cal-import-close" onClick={onClose} aria-label="Schließen">
                 <X size={18} />
               </button>
             )}
@@ -329,7 +329,7 @@ function formatEventLabel(ev) {
   const dateStr = formatGermanDate(ev.date);
   const endStr = ev.date_end ? ` – ${formatGermanDate(ev.date_end)}` : '';
   if (ev.all_day) {
-    return `${dateStr}${endStr} · ganztaegig`;
+    return `${dateStr}${endStr} · ganztägig`;
   }
   const t = ev.time || '';
   const te = ev.time_end ? ` – ${ev.time_end}` : '';

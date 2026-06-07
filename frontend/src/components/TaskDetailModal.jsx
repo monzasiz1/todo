@@ -1354,7 +1354,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
                   <div className="shr-row-copy">
                     <span className="shr-row-label">{shareRowLabel}</span>
                     <span className="shr-row-sub">
-                      {shareRowVisibility === 'private' && (isGroupContextTask ? 'Fuer Gruppenmitglieder sichtbar' : 'Nicht mit anderen geteilt')}
+                      {shareRowVisibility === 'private' && (isGroupContextTask ? 'Für Gruppenmitglieder sichtbar' : 'Nicht mit anderen geteilt')}
                       {shareRowVisibility === 'shared' && 'Sichtbar für alle Freunde'}
                       {shareRowVisibility === 'selected_users' && (canEdit ? 'Gezielt mit dir geteilt (Bearbeiten)' : 'Gezielt mit dir geteilt (Nur lesen)')}
                     </span>
@@ -1369,8 +1369,8 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
                   <div className="shr-row-copy">
                     <span className="shr-row-label">{shareRowLabel}</span>
                     <span className="shr-row-sub">
-                      {shareRowVisibility === 'private' && (isGroupContextTask ? 'Fuer Gruppenmitglieder sichtbar' : 'Nicht mit anderen geteilt')}
-                      {shareRowVisibility === 'shared' && 'Sichtbar fuer alle Freunde'}
+                      {shareRowVisibility === 'private' && (isGroupContextTask ? 'Für Gruppenmitglieder sichtbar' : 'Nicht mit anderen geteilt')}
+                      {shareRowVisibility === 'shared' && 'Sichtbar für alle Freunde'}
                       {shareRowVisibility === 'selected_users' && (!isOwnerResolved ? 'Gezielt mit Personen geteilt (Du darfst weiterteilen)' : 'Gezielt mit Personen geteilt')}
                     </span>
                   </div>
@@ -1720,7 +1720,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       onClose={() => setOpenNoteId(null)}
       onUpdate={async (id, updates) => { try { await updateNoteStore(id, updates); } catch (e) { console.error(e); } }}
       onDelete={async (id) => {
-        if (!window.confirm('Notiz wirklich loeschen?')) return;
+        if (!window.confirm('Notiz wirklich löschen?')) return;
         try { await deleteNoteStore?.(id); setOpenNoteId(null); } catch (e) { console.error(e); }
       }}
       onComplete={async (id) => { try { await completeNoteStore?.(id); setOpenNoteId(null); } catch (e) { console.error(e); } }}
@@ -1813,8 +1813,8 @@ function LinkedNotesSection({ task, notesAll, updateNoteStore, onOpenNote, picke
     if (!Array.isArray(notesAll)) return [];
     const q = pickerQuery.trim().toLowerCase();
     return notesAll
-      // Nur eigene Notes, die noch nicht an die aktuelle Task gehaengt sind,
-      // koennen via Picker angeheftet werden — fremde Team-Notes bleiben aussen vor.
+      // Nur eigene Notes, die noch nicht an die aktuelle Task gehängt sind,
+      // können via Picker angeheftet werden — fremde Team-Notes bleiben aussen vor.
       .filter((n) => n && (!currentUserId || String(n.user_id) === String(currentUserId)))
         .filter((n) => n && String(n.linked_task_id || '') !== String(taskLinkId || ''))
       .filter((n) => !q || (n.title || '').toLowerCase().includes(q) || (n.content || '').toLowerCase().includes(q))
@@ -1837,7 +1837,7 @@ function LinkedNotesSection({ task, notesAll, updateNoteStore, onOpenNote, picke
     try { await updateNoteStore(noteId, { linked_task_id: null }); } catch (err) { console.error(err); }
   };
   const handleOpenNote = (note) => {
-    // Notiz direkt im Vollbild-Editor oeffnen (statt zur NotesPage zu navigieren).
+    // Notiz direkt im Vollbild-Editor öffnen (statt zur NotesPage zu navigieren).
     try { onOpenNote?.(note.id); } catch (err) { console.error(err); }
   };
 
@@ -1877,7 +1877,7 @@ function LinkedNotesSection({ task, notesAll, updateNoteStore, onOpenNote, picke
                 className={chipClasses}
                 style={{ '--note-accent': meta.accent }}
                 onClick={() => handleOpenNote(note)}
-                title={isOwn ? 'Notiz oeffnen' : `Notiz von ${note.owner_name || 'Teammitglied'} ansehen`}
+                title={isOwn ? 'Notiz öffnen' : `Notiz von ${note.owner_name || 'Teammitglied'} ansehen`}
               >
                 <span className="task-detail-note-chip-stripe" aria-hidden="true" />
                 {!isOwn ? (
@@ -1904,8 +1904,8 @@ function LinkedNotesSection({ task, notesAll, updateNoteStore, onOpenNote, picke
                     tabIndex={0}
                     onClick={(e) => handleDetach(note.id, e)}
                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleDetach(note.id, e); } }}
-                    title={isOwn ? 'Verknuepfung loesen' : 'Notiz von dieser Task entfernen (Moderation)'}
-                    aria-label="Verknuepfung loesen"
+                    title={isOwn ? 'Verknüpfung lösen' : 'Notiz von dieser Task entfernen (Moderation)'}
+                    aria-label="Verknüpfung lösen"
                   >
                     <Link2Off size={13} />
                   </span>
@@ -1959,7 +1959,7 @@ function LinkedNotesSection({ task, notesAll, updateNoteStore, onOpenNote, picke
                       type="button"
                       className="task-detail-notes-picker-close"
                       onClick={() => { setPickerOpen(false); setPickerQuery(''); }}
-                      aria-label="Schliessen"
+                      aria-label="Schließen"
                     >×</button>
                   </div>
                   <div className="task-detail-notes-picker-list">

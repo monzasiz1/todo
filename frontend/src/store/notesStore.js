@@ -289,7 +289,7 @@ export const useNotesStore = create((set, get) => ({
     }
   },
 
-  // Eingehende Share-Anfragen ("X moechte eine Notiz mit dir teilen").
+  // Eingehende Share-Anfragen ("X möchte eine Notiz mit dir teilen").
   shareRequests: [],
   shareRequestsLoading: false,
 

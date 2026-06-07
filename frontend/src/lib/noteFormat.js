@@ -218,7 +218,7 @@ function decorateLinks(rawHtml, forEditor = false) {
 function inlineMdToHtml(text) {
   if (!text) return '';
   let s = escapeHtml(text);
-  // Reihenfolge: laenger zuerst
+  // Reihenfolge: länger zuerst
   s = s.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
   s = s.replace(/~~([^~\n]+)~~/g, '<del>$1</del>');
   s = s.replace(/__([^_\n]+)__/g, '<u>$1</u>');
@@ -290,7 +290,7 @@ export function toEditorHtml(content) {
   return decorateLinks(sanitizeHtml(html), true);
 }
 
-// Plaintext-Extraktion fuer Suche / Titel-Fallback / AI.
+// Plaintext-Extraktion für Suche / Titel-Fallback / AI.
 export function htmlToPlain(html) {
   if (!html) return '';
   const tmp = document.createElement('div');
@@ -374,7 +374,7 @@ export function htmlToMarkdown(html) {
             checkPrefix = cb.checked ? '[x] ' : '[ ] ';
             cb.remove();
           }
-          // Innere Liste separat behandeln (Einrueckung)
+          // Innere Liste separat behandeln (Einrückung)
           const nested = Array.from(li.children)
             .filter((c) => ['ul', 'ol'].includes(c.tagName?.toLowerCase()));
           nested.forEach((n) => n.remove());
@@ -411,7 +411,7 @@ export function htmlToMarkdown(html) {
   return md.replace(/\n{3,}/g, '\n\n').replace(/[ \t]+\n/g, '\n').trim() + '\n';
 }
 
-// Sicherer Dateiname fuer Downloads (latin + Bindestriche, max 80).
+// Sicherer Dateiname für Downloads (latin + Bindestriche, max 80).
 export function safeFileName(name, fallback = 'notiz') {
   const s = String(name || '').trim()
     .replace(/[\u00e4]/g, 'ae').replace(/[\u00f6]/g, 'oe').replace(/[\u00fc]/g, 'ue')

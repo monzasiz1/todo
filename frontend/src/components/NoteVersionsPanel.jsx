@@ -116,7 +116,7 @@ export default function NoteVersionsPanel({ noteId, onClose, onRestored, canEdit
           <span>Verlauf</span>
           {versions.length > 0 && <span className="nem-ver-count">({versions.length})</span>}
         </div>
-        <button type="button" className="nem-ver-close" onClick={onClose} title="Schliessen">
+        <button type="button" className="nem-ver-close" onClick={onClose} title="Schließen">
           <X size={16} />
         </button>
       </div>

@@ -4,8 +4,8 @@ const sections = [
   {
     title: '1. Geltungsbereich',
     text: [
-      'Diese Allgemeinen Geschaeftsbedingungen (AGB) gelten fuer die Nutzung der Web- und App-Dienste von BeeQu (nachfolgend BeeQu).',
-      'Mit der Registrierung oder Nutzung der Plattform stimmen Nutzer diesen AGB in der jeweils gueltigen Fassung zu.',
+      'Diese Allgemeinen Geschäftsbedingungen (AGB) gelten für die Nutzung der Web- und App-Dienste von BeeQu (nachfolgend BeeQu).',
+      'Mit der Registrierung oder Nutzung der Plattform stimmen Nutzer diesen AGB in der jeweils gültigen Fassung zu.',
     ],
   },
   {
@@ -18,58 +18,58 @@ const sections = [
   {
     title: '3. Registrierung und Nutzerkonto',
     text: [
-      'Fuer die vollstaendige Nutzung ist ein Nutzerkonto erforderlich. Die bei der Registrierung gemachten Angaben muessen wahrheitsgemaess sein.',
-      'Nutzer sind verpflichtet, ihre Zugangsdaten vertraulich zu behandeln und vor unbefugtem Zugriff zu schuetzen.',
+      'Für die vollständige Nutzung ist ein Nutzerkonto erforderlich. Die bei der Registrierung gemachten Angaben müssen wahrheitsgemäß sein.',
+      'Nutzer sind verpflichtet, ihre Zugangsdaten vertraulich zu behandeln und vor unbefugtem Zugriff zu schützen.',
     ],
   },
   {
-    title: '4. Zulaessige Nutzung',
+    title: '4. Zulässige Nutzung',
     text: [
       'Die Plattform darf nur im Rahmen der geltenden Gesetze verwendet werden.',
-      'Unzulaessig sind insbesondere missbraeuchliche, rechtswidrige oder sicherheitsgefaehrdende Handlungen sowie Versuche, den Dienst technisch zu stoeren.',
+      'Unzulässig sind insbesondere missbräuchliche, rechtswidrige oder sicherheitsgefährdende Handlungen sowie Versuche, den Dienst technisch zu stören.',
     ],
   },
   {
-    title: '5. Verfuegbarkeit und Aenderungen',
+    title: '5. Verfügbarkeit und Änderungen',
     text: [
-      'BeeQu ist um eine hohe Verfuegbarkeit bemueht, kann jedoch keine unterbrechungsfreie Erreichbarkeit garantieren.',
-      'BeeQu behaelt sich vor, Funktionen weiterzuentwickeln, anzupassen oder einzustellen, sofern berechtigte Interessen und die Zumutbarkeit fuer Nutzer gewahrt bleiben.',
+      'BeeQu ist um eine hohe Verfügbarkeit bemüht, kann jedoch keine unterbrechungsfreie Erreichbarkeit garantieren.',
+      'BeeQu behält sich vor, Funktionen weiterzuentwickeln, anzupassen oder einzustellen, sofern berechtigte Interessen und die Zumutbarkeit für Nutzer gewahrt bleiben.',
     ],
   },
   {
     title: '6. Preise und Zahlung',
     text: [
       'Kostenpflichtige Tarife werden vor Vertragsschluss klar ausgewiesen.',
-      'Abrechnungszeitraum, Zahlungsart, Laufzeit und Kuendigungsfristen ergeben sich aus dem jeweils gebuchten Plan.',
+      'Abrechnungszeitraum, Zahlungsart, Laufzeit und Kündigungsfristen ergeben sich aus dem jeweils gebuchten Plan.',
     ],
   },
   {
     title: '7. Inhalte und Rechte',
     text: [
       'Nutzer bleiben Inhaber der von ihnen eingestellten Inhalte.',
-      'Soweit fuer die Vertragserfuellung erforderlich, raeumen Nutzer BeeQu ein einfaches, nicht ausschliessliches Nutzungsrecht zur Speicherung, Verarbeitung und Anzeige der Inhalte ein.',
+      'Soweit für die Vertragserfüllung erforderlich, räumen Nutzer BeeQu ein einfaches, nicht ausschließliches Nutzungsrecht zur Speicherung, Verarbeitung und Anzeige der Inhalte ein.',
     ],
   },
   {
     title: '8. Haftung',
     text: [
-      'BeeQu haftet unbeschraenkt bei Vorsatz und grober Fahrlaessigkeit sowie bei Verletzung von Leben, Koerper und Gesundheit.',
-      'Bei leicht fahrlaessiger Verletzung wesentlicher Vertragspflichten ist die Haftung auf den vertragstypisch vorhersehbaren Schaden begrenzt.',
-      'Im Uebrigen ist die Haftung ausgeschlossen, soweit gesetzlich zulaessig.',
+      'BeeQu haftet unbeschränkt bei Vorsatz und grober Fahrlässigkeit sowie bei Verletzung von Leben, Körper und Gesundheit.',
+      'Bei leicht fahrlässiger Verletzung wesentlicher Vertragspflichten ist die Haftung auf den vertragstypisch vorhersehbaren Schaden begrenzt.',
+      'Im Uebrigen ist die Haftung ausgeschlossen, soweit gesetzlich zulässig.',
     ],
   },
   {
-    title: '9. Laufzeit und Kuendigung',
+    title: '9. Laufzeit und Kündigung',
     text: [
-      'Nutzer koennen ihr Konto jederzeit kuendigen, sofern keine abweichenden Fristen bei kostenpflichtigen Tarifen gelten.',
-      'BeeQu kann Konten aus wichtigem Grund sperren oder kuendigen, insbesondere bei schwerwiegenden Verstoessen gegen diese AGB.',
+      'Nutzer können ihr Konto jederzeit kündigen, sofern keine abweichenden Fristen bei kostenpflichtigen Tarifen gelten.',
+      'BeeQu kann Konten aus wichtigem Grund sperren oder kündigen, insbesondere bei schwerwiegenden Verstößen gegen diese AGB.',
     ],
   },
   {
     title: '10. Schlussbestimmungen',
     text: [
       'Es gilt das Recht der Bundesrepublik Deutschland unter Ausschluss des UN-Kaufrechts, soweit keine zwingenden Verbraucherschutzvorschriften entgegenstehen.',
-      'Sollten einzelne Bestimmungen dieser AGB unwirksam sein, bleibt die Wirksamkeit der uebrigen Bestimmungen unberuehrt.',
+      'Sollten einzelne Bestimmungen dieser AGB unwirksam sein, bleibt die Wirksamkeit der übrigen Bestimmungen unberührt.',
     ],
   },
 ];

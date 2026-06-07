@@ -614,7 +614,7 @@ export default function TaskEditModal({ task, onClose, onSaved }) {
             <LocationAutocomplete
               value={location}
               onChange={setLocation}
-              placeholder="Strasse, PLZ, Ort... (Vorschlaege erscheinen)"
+              placeholder="Straße, PLZ, Ort... (Vorschläge erscheinen)"
             />
           </div>
 

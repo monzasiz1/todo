@@ -180,7 +180,7 @@ export default function FocusTimerPin({ variant = 'desktop' }) {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 16, scale: 0.9 }}
           transition={{ type: 'spring', stiffness: 320, damping: 26 }}
-          aria-label="Fokus-Timer oeffnen"
+          aria-label="Fokus-Timer öffnen"
         >
           <span className="focus-timer-pin-ring">
             <svg viewBox="0 0 36 36" aria-hidden="true">

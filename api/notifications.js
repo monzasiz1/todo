@@ -184,7 +184,7 @@ module.exports = async function handler(req, res) {
 
       const allowedTypes = new Set(['reminder', 'reminder_seen', 'group_message', 'team_task', 'team_task_created', 'test']);
       if (!allowedTypes.has(type)) {
-        return res.status(400).json({ error: 'Ungueltiger Typ' });
+        return res.status(400).json({ error: 'Ungültiger Typ' });
       }
       if (!title || !body) {
         return res.status(400).json({ error: 'Titel und Text erforderlich' });

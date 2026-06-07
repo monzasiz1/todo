@@ -145,7 +145,7 @@ function groupTasksByDate(tasks) {
       if (isEventEnded(task, nowTs)) {
         pastEvents.push(task);
       } else if (!isBirthday) {
-        // Geburtstage sollen nicht in "Ueberfaellig" landen.
+        // Geburtstage sollen nicht in "Überfällig" landen.
         overdue.push(task);
       }
     } else if (isToday(d)) {

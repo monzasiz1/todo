@@ -678,7 +678,7 @@ export const useTaskStore = create((set, get) => ({
 
     const mode = options.mode || null; // 'full' | 'dismiss' | null
 
-    // Sofort als "in Loeschung" markieren, damit parallele Refetches
+    // Sofort als "in Löschung" markieren, damit parallele Refetches
     // (z. B. durch beequ:tasks-changed, Fokus-Refetch) die Task nicht
     // zurueckholen, solange Server-Delete/Dismiss noch nicht durch ist.
     pendingDeleteIds.add(key);

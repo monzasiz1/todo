@@ -179,7 +179,7 @@ module.exports = async function handler(req, res) {
         ? Math.round((s.completed_tasks / s.total_tasks) * 100)
         : 0;
 
-      // Erweiterte Statistiken nur fuer Plaene mit statistics-Feature (Pro/Team).
+      // Erweiterte Statistiken nur für Pläne mit statistics-Feature (Pro/Team).
       let advanced = null;
       try {
         const planId = await getUserPlan(pool, user.id);
@@ -287,7 +287,7 @@ module.exports = async function handler(req, res) {
         return res.json({ avatar_url: null });
       }
 
-      // Falls bereits eine HTTPS-URL geschickt wird (z.B. Re-Save ohne Aenderung),
+      // Falls bereits eine HTTPS-URL geschickt wird (z.B. Re-Save ohne Änderung),
       // nicht erneut hochladen, nur persistieren.
       if (/^https?:\/\//i.test(avatar_url)) {
         await pool.query('UPDATE users SET avatar_url = $2 WHERE id = $1', [user.id, avatar_url]);

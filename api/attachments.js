@@ -30,7 +30,7 @@ const ALLOWED_TYPES = [
 ];
 
 // Liefert true, wenn der User die Task lesen darf:
-// (a) Owner, (b) explizit ueber task_permissions berechtigt, oder
+// (a) Owner, (b) explizit über task_permissions berechtigt, oder
 // (c) Mitglied einer Gruppe, in der die Task geteilt ist.
 async function userCanAccessTask(pool, userId, taskId) {
   const { rows } = await pool.query(
@@ -51,9 +51,9 @@ async function userCanAccessTask(pool, userId, taskId) {
   return rows.length > 0;
 }
 
-// Inline-Anzeige nur fuer harmlose Bilder erlauben \u2014 alles andere als
+// Inline-Anzeige nur für harmlose Bilder erlauben \u2014 alles andere als
 // Download ausliefern, damit kein Script via HTML/SVG/PDF im selben
-// Origin ausgefuehrt werden kann.
+// Origin ausgeführt werden kann.
 const INLINE_TYPES = new Set([
   'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic',
 ]);
@@ -66,8 +66,8 @@ module.exports = async function handler(req, res) {
   const subPath = req.query.__path || '';
   const segments = subPath.split('/').filter(Boolean);
 
-  // Auth: Header-Bearer als Standard. Fuer den Download-Endpoint
-  // (GET /:taskId/:attachmentId) wird zusaetzlich ein kurzlebiges,
+  // Auth: Header-Bearer als Standard. Für den Download-Endpoint
+  // (GET /:taskId/:attachmentId) wird zusätzlich ein kurzlebiges,
   // an taskId+attachmentId gebundenes Token via ?token=... akzeptiert,
   // damit Bild-Thumbnails / Tab-Downloads ohne Bearer-Header laden.
   let user = verifyToken(req);
@@ -95,7 +95,7 @@ module.exports = async function handler(req, res) {
         [taskId]
       );
       // Jede Attachment-Zeile bekommt eine fertige, kurzlebige Download-URL.
-      // Das ersetzt den frueheren long-lived JWT-in-Query-Hack im Frontend.
+      // Das ersetzt den früheren long-lived JWT-in-Query-Hack im Frontend.
       const attachments = rows.map((row) => {
         const token = signDownloadToken({ userId: user.id, taskId, attachmentId: row.id });
         return { ...row, download_url: `/api/attachments/${taskId}/${row.id}?token=${token}` };
@@ -145,7 +145,7 @@ module.exports = async function handler(req, res) {
     if (isNaN(taskId)) return res.status(400).json({ error: 'Ungültige Task-ID' });
 
     try {
-      // Plan-Gate: Datei-Anhaenge sind ein bezahltes Feature.
+      // Plan-Gate: Datei-Anhänge sind ein bezahltes Feature.
       const planId = await getUserPlan(pool, user.id);
       if (!canUseFeature(planId, 'attachments')) {
         return paymentRequired(res, {

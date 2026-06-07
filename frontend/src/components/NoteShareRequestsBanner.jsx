@@ -98,7 +98,7 @@ export default function NoteShareRequestsBanner() {
                 type="button"
                 className="icon-btn"
                 onClick={() => setOpen(false)}
-                aria-label="Schliessen"
+                aria-label="Schließen"
               >
                 <X size={18} />
               </button>

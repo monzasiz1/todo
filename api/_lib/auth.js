@@ -53,7 +53,7 @@ function cors(res) {
   if (allowList.length === 0) {
     if (process.env.NODE_ENV === 'production' && !cors._warned) {
       // eslint-disable-next-line no-console
-      console.warn('[cors] WARN: Keine ALLOWED_ORIGINS/APP_BASE_URL gesetzt — falle auf wildcard zurueck.');
+      console.warn('[cors] WARN: Keine ALLOWED_ORIGINS/APP_BASE_URL gesetzt — falle auf wildcard zurück.');
       cors._warned = true;
     }
     allowOrigin = origin || '*';

@@ -80,7 +80,7 @@ export default function UpgradeModal({ onClose, feature, recommendPlan = 'pro' }
       window.location.assign(url);
     } catch (err) {
       console.error(err);
-      setErrorMsg(err?.message || 'Portal konnte nicht geoeffnet werden');
+      setErrorMsg(err?.message || 'Portal konnte nicht geöffnet werden');
       setLoading(null);
     }
   };

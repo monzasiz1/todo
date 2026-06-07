@@ -44,7 +44,7 @@ module.exports = async function handler(req, res) {
       const isGroupTask = task.rows[0].group_id != null;
       const isGroupAdmin = task.rows[0].my_group_role === 'owner' || task.rows[0].my_group_role === 'admin';
       if (isGroupTask && !isGroupAdmin) {
-        return res.status(403).json({ error: 'Nur Gruppen-Owner/Admin duerfen Freigaben verwalten' });
+        return res.status(403).json({ error: 'Nur Gruppen-Owner/Admin dürfen Freigaben verwalten' });
       }
       if (!isOwner && !isGroupTask) {
         const canEdit = await pool.query(
@@ -95,7 +95,7 @@ module.exports = async function handler(req, res) {
       const isGroupTask = task.rows[0].group_id != null;
       const isGroupAdmin = task.rows[0].my_group_role === 'owner' || task.rows[0].my_group_role === 'admin';
       if (isGroupTask && !isGroupAdmin) {
-        return res.status(403).json({ error: 'Nur Gruppen-Owner/Admin duerfen Freigaben verwalten' });
+        return res.status(403).json({ error: 'Nur Gruppen-Owner/Admin dürfen Freigaben verwalten' });
       }
       if (!isOwner && !isGroupTask) {
         const canEdit = await pool.query(

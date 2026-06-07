@@ -61,7 +61,7 @@ module.exports = async function handler(req, res) {
   }
 
   // ── POST /api/plans/upgrade ────────────────────────────────────────────
-  // Produktiv: bezahlte Plaene laufen ueber Stripe (POST /api/billing/checkout).
+  // Produktiv: bezahlte Pläne laufen über Stripe (POST /api/billing/checkout).
   // Dieser Endpoint erlaubt nur noch das freiwillige Downgrade auf "free".
   if (req.method === 'POST' && action === 'upgrade') {
     const user = verifyToken(req);

@@ -262,7 +262,7 @@ module.exports = async (req, res) => {
             await sendPushToUser(
               t.id,
               {
-                title: `${author.name || 'Jemand'} hat dich erwaehnt`,
+                title: `${author.name || 'Jemand'} hat dich erwähnt`,
                 body: textStr.slice(0, 140),
                 tag: `note-mention-${noteIdStr}-${created.id}`,
                 url: `/notes?open=${encodeURIComponent(noteIdStr)}`,

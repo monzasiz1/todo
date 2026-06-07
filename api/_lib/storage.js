@@ -25,7 +25,7 @@ function isConfigured() {
 // Wandelt "data:image/png;base64,iVBOR..." in { buffer, mime, ext } um.
 function parseDataUri(dataUri) {
   if (typeof dataUri !== 'string' || !dataUri.startsWith('data:')) {
-    throw new Error('Kein gueltiger Data-URI');
+    throw new Error('Kein gültiger Data-URI');
   }
   const m = dataUri.match(/^data:([^;,]+)(?:;base64)?,(.*)$/i);
   if (!m) throw new Error('Data-URI kann nicht geparst werden');
@@ -103,7 +103,7 @@ async function createSignedUrl({ bucket, path, expiresIn = 60 * 60 }) {
 async function uploadAvatarFromDataUri(userId, dataUri) {
   const { buffer, mime, ext } = parseDataUri(dataUri);
   const ALLOWED = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
-  if (!ALLOWED.has(mime)) throw new Error('Bildformat nicht unterstuetzt');
+  if (!ALLOWED.has(mime)) throw new Error('Bildformat nicht unterstützt');
   if (buffer.length > 2 * 1024 * 1024) throw new Error('Bild zu gross (max. 2 MB)');
 
   const path = `users/${userId}/avatar.${ext}`;

@@ -51,7 +51,7 @@ module.exports = async function handler(req, res) {
       if (trimmedName.length < 2 || trimmedName.length > 80)
         return res.status(400).json({ error: 'Name muss 2 bis 80 Zeichen lang sein' });
       if (trimmedEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail))
-        return res.status(400).json({ error: 'Bitte eine gueltige E-Mail-Adresse angeben' });
+        return res.status(400).json({ error: 'Bitte eine gültige E-Mail-Adresse angeben' });
       if (typeof password !== 'string' || password.length < 8 || password.length > 128)
         return res.status(400).json({ error: 'Passwort muss zwischen 8 und 128 Zeichen lang sein' });
       if (!/[A-Za-z]/.test(password) || !/\d/.test(password))
@@ -283,9 +283,9 @@ module.exports = async function handler(req, res) {
           if (!otp) {
             // FAIL-CLOSED: otplib ist nicht verfuegbar. NIEMALS 2FA disablen
             // und durchlassen — das waere ein vollstaendiger 2FA-Bypass.
-            console.error('[2FA-CRITICAL] getOtp() returned null — otplib nicht verfuegbar. Login verweigert.');
+            console.error('[2FA-CRITICAL] getOtp() returned null — otplib nicht verfügbar. Login verweigert.');
             return res.status(503).json({
-              error: '2FA-System voruebergehend nicht verfuegbar. Bitte spaeter erneut versuchen oder Support kontaktieren.',
+              error: '2FA-System vorübergehend nicht verfügbar. Bitte später erneut versuchen oder Support kontaktieren.',
             });
           } else {
             try {

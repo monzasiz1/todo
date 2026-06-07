@@ -199,9 +199,9 @@ function diffNoteUpdate(prev, next) {
 // Frontend andere Werte schickt, wird auf null normalisiert (Default-Look
 // im UI). Begrenzt damit kein Wildwuchs in der DB landet.
 const VALID_NOTE_COLORS = new Set([
-  'Gelb', 'Rosa', 'Blau', 'Gruen', 'Lila', 'Orange', 'Tuerkis', 'Grau',
+  'Gelb', 'Rosa', 'Blau', 'Grün', 'Lila', 'Orange', 'Türkis', 'Grau',
   // Legacy / alternative Schreibweisen
-  'Gruen ', 'Grün', 'Tuerkis ', 'Türkis',
+  'Grün ', 'Grün', 'Türkis ', 'Türkis',
 ]);
 
 function normalizeNoteColor(value) {
@@ -494,13 +494,13 @@ async function normalizeParticipantIdsForDb(pool, participantIds, userId) {
 }
 
 function buildAccessibleNoteClause(noteAlias, noteShareAlias, userIdTextParam, userIdParam) {
-  // Eine Notiz ist fuer den User zugaenglich wenn:
+  // Eine Notiz ist für den User zugänglich wenn:
   //  - er der Owner ist, ODER
-  //  - er als Empfaenger akzeptiert hat (note_shares.status='accepted'), ODER
+  //  - er als Empfänger akzeptiert hat (note_shares.status='accepted'), ODER
   //  - er als Participant gelistet ist, ODER
   //  - er als Verantwortlicher eingetragen ist.
-  // Pending-Shares zaehlen explizit NICHT, damit der Empfaenger erst aktiv
-  // bestaetigen muss bevor die Notiz erscheint.
+  // Pending-Shares zählen explizit NICHT, damit der Empfänger erst aktiv
+  // bestätigen muss bevor die Notiz erscheint.
   return `(
     ${noteAlias}.user_id::text = ${userIdTextParam}
     OR (${noteShareAlias}.friend_id::text = ${userIdTextParam} AND COALESCE(${noteShareAlias}.status, 'accepted') = 'accepted')
@@ -696,7 +696,7 @@ module.exports = async function handler(req, res) {
         await syncParticipantShares(pool, note.id, userIdText, [], normalizedParticipantIds, null, normalizedResponsibleId).catch(() => null);
       }
 
-      // Zusaetzlich: Team-Notes (visibility='group') die an Tasks haengen,
+      // Zusätzlich: Team-Notes (visibility='group') die an Tasks hängen,
       // auf die der User Zugriff hat (eigene, geteilte, Gruppenmitglied).
       // Performance: indexed via idx_notes_linked_task_visibility; ein einziges
       // EXISTS-Subquery deckt alle Zugriffsarten ab.
@@ -791,8 +791,8 @@ module.exports = async function handler(req, res) {
             [userIdText]
           );
           // Markiere als foreign; read_only nur wenn keine edit-Permission via note_shares.
-          // So koennen Empfaenger mit Schreibrecht die Note auch im Canvas bearbeiten,
-          // waehrend reine Gruppen-Leser sie weiterhin nur lesen koennen.
+          // So können Empfänger mit Schreibrecht die Note auch im Canvas bearbeiten,
+          // während reine Gruppen-Leser sie weiterhin nur lesen können.
           const taskManageCache = new Map();
           const teamNotes = await Promise.all((teamResult.rows || []).map(async (n) => {
             let canEdit = n.shared_permission === 'edit';
@@ -814,9 +814,9 @@ module.exports = async function handler(req, res) {
           console.log('[notes] team-notes fetched:', teamNotes.length, 'for user', userIdText);
           ownNotes = ownNotes.concat(teamNotes);
         } catch (teamErr) {
-          // Fehler nicht fatal — Tabellen group_tasks/task_permissions koennten
+          // Fehler nicht fatal — Tabellen group_tasks/task_permissions könnten
           // fehlen oder visibility-Spalte ist noch nicht migriert. Eigene Notes
-          // werden bereits korrekt zurueckgegeben.
+          // werden bereits korrekt zurückgegeben.
           console.warn('[notes] team-notes query skipped:', teamErr?.message || teamErr);
         }
       }
@@ -824,7 +824,7 @@ module.exports = async function handler(req, res) {
       // Color-Backfill: alte Notes haben '[COLOR:Name]' im content statt
       // in der color-Spalte. Wir extrahieren on-the-fly (Response wird
       // 'sauber' ausgeliefert) und stossen einen UPDATE im Hintergrund an,
-      // damit kuenftige Reads die Spalte direkt nutzen koennen.
+      // damit künftige Reads die Spalte direkt nutzen können.
       for (const note of ownNotes) {
         if (!note || note.is_foreign) continue;
         if (note.color) continue;
@@ -859,7 +859,7 @@ module.exports = async function handler(req, res) {
         color: colorInput,
       } = req.body || {};
 
-      // iOS-Notes-Stil: leerer Titel erlaubt (frueher 400 "Titel ist erforderlich")
+      // iOS-Notes-Stil: leerer Titel erlaubt (früher 400 "Titel ist erforderlich")
       const safeTitle = (title && String(title).trim()) ? String(title).trim() : '';
 
       // Color-DB-Spalte: explizit gesetzter color-Wert hat Vorrang vor
@@ -1370,7 +1370,7 @@ module.exports = async function handler(req, res) {
         const hasInput = !(linkedTaskInput === null || linkedTaskInput === '' || linkedTaskInput === undefined);
         const normalizedTask = await normalizeLinkedTaskForDb(pool, linkedTaskInput, userId);
         if (hasInput && !normalizedTask.allowed) {
-          return res.status(403).json({ error: 'Keine Berechtigung fuer verknuepfte Aufgabe' });
+          return res.status(403).json({ error: 'Keine Berechtigung für verknüpfte Aufgabe' });
         }
         fields.push(`linked_task_id = $${idx++}`);
         values.push(normalizedTask.value);
@@ -1420,7 +1420,7 @@ module.exports = async function handler(req, res) {
       fields.push('updated_at = NOW()');
 
       if (fields.length === 1) {
-        return res.status(400).json({ error: 'Keine gueltigen Felder zum Updaten' });
+        return res.status(400).json({ error: 'Keine gültigen Felder zum Updaten' });
       }
 
       values.push(noteId);
@@ -1483,7 +1483,7 @@ module.exports = async function handler(req, res) {
           const hasInput = !(linkedTaskInput === null || linkedTaskInput === '' || linkedTaskInput === undefined);
           const normalizedTask = await normalizeLinkedTaskForDb(pool, linkedTaskInput, userId);
           if (hasInput && !normalizedTask.allowed) {
-            return res.status(403).json({ error: 'Keine Berechtigung fuer verknuepfte Aufgabe' });
+            return res.status(403).json({ error: 'Keine Berechtigung für verknüpfte Aufgabe' });
           }
           rebuiltFields.push(`linked_task_id = $${paramIdx++}`);
           rebuiltValues.push(normalizedTask.value);
@@ -1584,7 +1584,7 @@ module.exports = async function handler(req, res) {
               await sendPushToUser(
                 t.id,
                 {
-                  title: `${user.name || 'Jemand'} hat dich in einer Notiz erwaehnt`,
+                  title: `${user.name || 'Jemand'} hat dich in einer Notiz erwähnt`,
                   body: (finalNote?.title || 'Notiz').slice(0, 140),
                   tag: `note-mention-${noteId}`,
                   url: `/notes?open=${encodeURIComponent(noteId)}`,
@@ -1618,7 +1618,7 @@ module.exports = async function handler(req, res) {
       (isRootAction && ['delete', 'remove'].includes(rootAction))
     ) {
       if (!isOwner) {
-        return res.status(403).json({ error: 'Nur Eigentuemer kann loeschen' });
+        return res.status(403).json({ error: 'Nur Eigentümer kann löschen' });
       }
 
       // Vor dem DELETE die betroffenen User einsammeln, damit Realtime-Broadcast
@@ -1657,7 +1657,7 @@ module.exports = async function handler(req, res) {
       const hasInput = !(req.body?.task_id === null || req.body?.task_id === undefined || String(req.body?.task_id).trim() === '');
       const normalizedTask = await normalizeLinkedTaskForDb(pool, req.body?.task_id, userId);
       if (hasInput && !normalizedTask.allowed) {
-        return res.status(403).json({ error: 'Keine Berechtigung fuer verknuepfte Aufgabe' });
+        return res.status(403).json({ error: 'Keine Berechtigung für verknüpfte Aufgabe' });
       }
 
       let updated;
@@ -1695,7 +1695,7 @@ module.exports = async function handler(req, res) {
       (isRootAction && rootAction === 'share')
     ) {
       if (!isOwner) {
-        return res.status(403).json({ error: 'Nur Eigentuemer kann teilen' });
+        return res.status(403).json({ error: 'Nur Eigentümer kann teilen' });
       }
 
       const { friend_id, permission = 'view' } = req.body || {};
@@ -1758,7 +1758,7 @@ module.exports = async function handler(req, res) {
       (isRootAction && ['unshare', 'remove-share'].includes(rootAction))
     ) {
       if (!isOwner) {
-        return res.status(403).json({ error: 'Nur Eigentuemer kann Freigaben entfernen' });
+        return res.status(403).json({ error: 'Nur Eigentümer kann Freigaben entfernen' });
       }
 
       const { friend_id } = req.body || {};
@@ -1791,7 +1791,7 @@ module.exports = async function handler(req, res) {
       }
 
       if (!targetUserId) {
-        return res.status(400).json({ error: 'friend_id ist ungueltig' });
+        return res.status(400).json({ error: 'friend_id ist ungültig' });
       }
 
       const removed = await pool.query(
@@ -2072,7 +2072,7 @@ module.exports = async function handler(req, res) {
       const relationshipType = req.body?.relationship_type || 'related';
 
       if (!isValidNoteIdString(otherNoteId) || String(otherNoteId) === String(noteId)) {
-        return res.status(400).json({ error: 'Ungueltige Ziel-Note' });
+        return res.status(400).json({ error: 'Ungültige Ziel-Note' });
       }
 
       const otherAccess = await pool.query(
@@ -2129,7 +2129,7 @@ module.exports = async function handler(req, res) {
       const otherNoteId = req.body?.other_note_id || req.body?.note_id;
 
       if (!isValidNoteIdString(otherNoteId) || String(otherNoteId) === String(noteId)) {
-        return res.status(400).json({ error: 'Ungueltige Ziel-Note' });
+        return res.status(400).json({ error: 'Ungültige Ziel-Note' });
       }
 
       const otherAccess = await pool.query(

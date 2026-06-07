@@ -37,7 +37,7 @@ module.exports = async function handler(req, res) {
     await ensureSchema(pool);
   } catch (err) {
     console.error('[focus-timer] ensureSchema failed:', err.message);
-    return res.status(500).json({ error: 'Datenbank nicht verfuegbar' });
+    return res.status(500).json({ error: 'Datenbank nicht verfügbar' });
   }
 
   // GET /api/focus-timer -> aktiver (jüngster, nicht-gefeuerter) Timer
@@ -83,7 +83,7 @@ module.exports = async function handler(req, res) {
       const durationSec = Math.round(Number(body.durationSec));
       const label = typeof body.label === 'string' ? body.label.slice(0, 100) : null;
       if (!Number.isFinite(durationSec) || durationSec < 30 || durationSec > 4 * 60 * 60) {
-        return res.status(400).json({ error: 'Ungueltige Dauer (30s - 4h)' });
+        return res.status(400).json({ error: 'Ungültige Dauer (30s - 4h)' });
       }
 
       // Alte unverbrauchte Timer des Nutzers verwerfen (nur einer aktiv)

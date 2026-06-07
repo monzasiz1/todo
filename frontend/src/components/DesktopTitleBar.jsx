@@ -16,7 +16,7 @@ import {
 // - Aktueller Seiten-Titel basierend auf Route
 // - Hilfe-Button: triggert das vorhandene HelpChat ueber CustomEvent
 // - Update-Indikator: zeigt Status aus electronApp.getUpdateState() und
-//   reagiert per onUpdateStateChanged. Klick fuehrt "Pruefen" oder "Installieren" aus.
+//   reagiert per onUpdateStateChanged. Klick fuehrt "Prüfen" oder "Installieren" aus.
 
 const ROUTE_TITLES = [
   { match: /^\/app\/?$/, title: 'Dashboard' },
@@ -171,7 +171,7 @@ export default function DesktopTitleBar() {
         <button
           className={`${baseClass} is-available`}
           onClick={handleUpdateClick}
-          title="Update verfuegbar"
+          title="Update verfügbar"
         >
           <Download size={14} />
           <span>Update verfuegbar</span>
@@ -205,8 +205,8 @@ export default function DesktopTitleBar() {
           className="desktop-titlebar-navbtn"
           onClick={handleBack}
           disabled={!historyState.canBack}
-          title="Zurueck"
-          aria-label="Zurueck"
+          title="Zurück"
+          aria-label="Zurück"
         >
           <ArrowLeft size={16} />
         </button>

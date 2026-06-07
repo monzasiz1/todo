@@ -210,14 +210,14 @@ async function handleCheckout(req, res) {
   const interval = String(body.interval || 'month').toLowerCase();
 
   if (!VALID_PLANS.includes(plan)) {
-    return res.status(400).json({ error: 'Ungueltiger Plan' });
+    return res.status(400).json({ error: 'Ungültiger Plan' });
   }
   if (!VALID_INTERVALS.includes(interval)) {
-    return res.status(400).json({ error: 'Ungueltiges Intervall' });
+    return res.status(400).json({ error: 'Ungültiges Intervall' });
   }
   const priceId = priceIdFor(plan, interval);
   if (!priceId) {
-    return res.status(500).json({ error: `Stripe-Preis fuer ${plan}/${interval} nicht konfiguriert` });
+    return res.status(500).json({ error: `Stripe-Preis für ${plan}/${interval} nicht konfiguriert` });
   }
 
   const pool = getPool();
@@ -313,8 +313,8 @@ async function handleWebhook(req, res) {
     const stripe = getStripe();
     event = stripe.webhooks.constructEvent(raw, sig, secret);
   } catch (err) {
-    console.error('[billing] Webhook-Signaturpruefung fehlgeschlagen:', err.message);
-    return res.status(400).json({ error: `Signatur ungueltig: ${err.message}` });
+    console.error('[billing] Webhook-Signaturprüfung fehlgeschlagen:', err.message);
+    return res.status(400).json({ error: `Signatur ungültig: ${err.message}` });
   }
 
   const pool = getPool();

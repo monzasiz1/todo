@@ -50,8 +50,8 @@ async function validateSplit(pool, groupId, amount, splitAmounts, payerUserId) {
   for (const s of splitAmounts) {
     const uid = Number(s?.user_id);
     const amt = Number(s?.amount);
-    if (!Number.isFinite(uid)) return { ok: false, error: 'split: user_id ungueltig' };
-    if (!Number.isFinite(amt) || amt < 0) return { ok: false, error: 'split: amount ungueltig' };
+    if (!Number.isFinite(uid)) return { ok: false, error: 'split: user_id ungültig' };
+    if (!Number.isFinite(amt) || amt < 0) return { ok: false, error: 'split: amount ungültig' };
     if (seenIds.has(uid)) return { ok: false, error: 'split: doppelte user_id' };
     seenIds.add(uid);
     clean.push({ user_id: uid, amount: Math.round(amt * 100) / 100 });
@@ -367,7 +367,7 @@ module.exports = async function handler(req, res) {
     // GET /api/spending/:id — Detail
     if (segments.length === 1 && req.method === 'GET') {
       const groupId = Number(segments[0]);
-      if (!Number.isFinite(groupId)) return res.status(400).json({ error: 'Ungueltige ID' });
+      if (!Number.isFinite(groupId)) return res.status(400).json({ error: 'Ungültige ID' });
       const allowed = await isAcceptedMemberOrOwner(pool, groupId, user.id);
       if (!allowed) {
         const pending = await pool.query(
@@ -388,9 +388,9 @@ module.exports = async function handler(req, res) {
     // DELETE /api/spending/:id — Owner loescht Gruppe
     if (segments.length === 1 && req.method === 'DELETE') {
       const groupId = Number(segments[0]);
-      if (!Number.isFinite(groupId)) return res.status(400).json({ error: 'Ungueltige ID' });
+      if (!Number.isFinite(groupId)) return res.status(400).json({ error: 'Ungültige ID' });
       const owner = await isOwner(pool, groupId, user.id);
-      if (!owner) return res.status(403).json({ error: 'Nur der Owner darf loeschen' });
+      if (!owner) return res.status(403).json({ error: 'Nur der Owner darf löschen' });
       await pool.query('DELETE FROM spending_groups WHERE id = $1', [groupId]);
       return res.json({ success: true });
     }
@@ -399,7 +399,7 @@ module.exports = async function handler(req, res) {
     if (segments.length === 2 && segments[1] === 'invite' && req.method === 'POST') {
       const groupId = Number(segments[0]);
       const { email, user_id: targetUserId } = req.body || {};
-      if (!Number.isFinite(groupId)) return res.status(400).json({ error: 'Ungueltige ID' });
+      if (!Number.isFinite(groupId)) return res.status(400).json({ error: 'Ungültige ID' });
 
       const owner = await isOwner(pool, groupId, user.id);
       const memberOk = owner || await isAcceptedMemberOrOwner(pool, groupId, user.id);
@@ -504,7 +504,7 @@ module.exports = async function handler(req, res) {
     if (segments.length === 2 && segments[1] === 'leave' && req.method === 'DELETE') {
       const groupId = Number(segments[0]);
       const owner = await isOwner(pool, groupId, user.id);
-      if (owner) return res.status(400).json({ error: 'Owner muss die Gruppe loeschen, nicht verlassen' });
+      if (owner) return res.status(400).json({ error: 'Owner muss die Gruppe löschen, nicht verlassen' });
       await pool.query(
         'DELETE FROM spending_members WHERE spending_group_id = $1 AND user_id = $2',
         [groupId, user.id]
@@ -535,16 +535,16 @@ module.exports = async function handler(req, res) {
         recurrence = 'none', entry_date, recurrence_end,
         payer_user_id, split_amounts,
       } = req.body || {};
-      if (!Number.isFinite(groupId)) return res.status(400).json({ error: 'Ungueltige ID' });
-      if (!ALLOWED_KINDS.has(String(kind))) return res.status(400).json({ error: 'Art ungueltig' });
+      if (!Number.isFinite(groupId)) return res.status(400).json({ error: 'Ungültige ID' });
+      if (!ALLOWED_KINDS.has(String(kind))) return res.status(400).json({ error: 'Art ungültig' });
       const catOk = await validateCategoryForKind(pool, groupId, kind, category);
-      if (!catOk) return res.status(400).json({ error: 'Kategorie ungueltig' });
+      if (!catOk) return res.status(400).json({ error: 'Kategorie ungültig' });
       if (!ALLOWED_RECURRENCES.has(String(recurrence))) {
-        return res.status(400).json({ error: 'Wiederholung ungueltig' });
+        return res.status(400).json({ error: 'Wiederholung ungültig' });
       }
       const amt = Number(amount);
       if (!Number.isFinite(amt) || amt < 0 || amt > 10_000_000) {
-        return res.status(400).json({ error: 'Betrag ungueltig' });
+        return res.status(400).json({ error: 'Betrag ungültig' });
       }
 
       const allowed = await isAcceptedMemberOrOwner(pool, groupId, user.id);
@@ -576,7 +576,7 @@ module.exports = async function handler(req, res) {
       let payerId = user.id;
       if (payer_user_id != null) {
         const pid = Number(payer_user_id);
-        if (!Number.isFinite(pid)) return res.status(400).json({ error: 'payer_user_id ungueltig' });
+        if (!Number.isFinite(pid)) return res.status(400).json({ error: 'payer_user_id ungültig' });
         const memOk = await isGroupMember(pool, groupId, pid);
         if (!memOk) return res.status(400).json({ error: 'Payer ist kein Group-Member' });
         payerId = pid;
@@ -635,18 +635,18 @@ module.exports = async function handler(req, res) {
       }
 
       // Validierung
-      if (!ALLOWED_KINDS.has(String(kind))) return res.status(400).json({ error: 'Art ungueltig' });
+      if (!ALLOWED_KINDS.has(String(kind))) return res.status(400).json({ error: 'Art ungültig' });
       const catOk = await validateCategoryForKind(pool, groupId, kind, category);
-      if (!catOk) return res.status(400).json({ error: 'Kategorie ungueltig' });
-      if (!ALLOWED_RECURRENCES.has(String(recurrence))) return res.status(400).json({ error: 'Wiederholung ungueltig' });
+      if (!catOk) return res.status(400).json({ error: 'Kategorie ungültig' });
+      if (!ALLOWED_RECURRENCES.has(String(recurrence))) return res.status(400).json({ error: 'Wiederholung ungültig' });
       const amt = Number(amount);
-      if (!Number.isFinite(amt) || amt < 0 || amt > 10_000_000) return res.status(400).json({ error: 'Betrag ungueltig' });
+      if (!Number.isFinite(amt) || amt < 0 || amt > 10_000_000) return res.status(400).json({ error: 'Betrag ungültig' });
 
       // Payer (optional ueberschreiben)
       let payerId = ownCheck.rows[0].user_id;
       if (payer_user_id != null) {
         const pid = Number(payer_user_id);
-        if (!Number.isFinite(pid)) return res.status(400).json({ error: 'payer_user_id ungueltig' });
+        if (!Number.isFinite(pid)) return res.status(400).json({ error: 'payer_user_id ungültig' });
         const memOk = await isGroupMember(pool, groupId, pid);
         if (!memOk) return res.status(400).json({ error: 'Payer ist kein Group-Member' });
         payerId = pid;
@@ -705,8 +705,8 @@ module.exports = async function handler(req, res) {
       const { month, kind = 'skip', amount } = req.body || {};
 
       const monthStr = sanitizeMonth(month);
-      if (!monthStr) return res.status(400).json({ error: 'Monat ungueltig (Format YYYY-MM)' });
-      if (!['skip', 'amount'].includes(kind)) return res.status(400).json({ error: 'Override-Art ungueltig' });
+      if (!monthStr) return res.status(400).json({ error: 'Monat ungültig (Format YYYY-MM)' });
+      if (!['skip', 'amount'].includes(kind)) return res.status(400).json({ error: 'Override-Art ungültig' });
 
       // Eintrag muss zur Gruppe gehoeren + User Berechtigung
       const owner = await isOwner(pool, groupId, user.id);
@@ -717,14 +717,14 @@ module.exports = async function handler(req, res) {
       if (ownCheck.rows.length === 0) return res.status(404).json({ error: 'Eintrag nicht gefunden' });
       if (!owner && ownCheck.rows[0].user_id !== user.id) return res.status(403).json({ error: 'Kein Zugriff' });
       if (ownCheck.rows[0].recurrence === 'none') {
-        return res.status(400).json({ error: 'Overrides nur fuer wiederkehrende Eintraege' });
+        return res.status(400).json({ error: 'Overrides nur für wiederkehrende Einträge' });
       }
 
       let amt = null;
       if (kind === 'amount') {
         amt = Number(amount);
         if (!Number.isFinite(amt) || amt < 0 || amt > 10_000_000) {
-          return res.status(400).json({ error: 'Betrag ungueltig' });
+          return res.status(400).json({ error: 'Betrag ungültig' });
         }
       }
 
@@ -745,7 +745,7 @@ module.exports = async function handler(req, res) {
       const groupId = Number(segments[0]);
       const entryId = Number(segments[2]);
       const monthStr = sanitizeMonth(req.query.month);
-      if (!monthStr) return res.status(400).json({ error: 'Monat ungueltig' });
+      if (!monthStr) return res.status(400).json({ error: 'Monat ungültig' });
 
       const owner = await isOwner(pool, groupId, user.id);
       const ownCheck = await pool.query(
@@ -766,8 +766,8 @@ module.exports = async function handler(req, res) {
     if (segments.length === 2 && segments[1] === 'categories' && req.method === 'POST') {
       const groupId = Number(segments[0]);
       const { kind, label, color } = req.body || {};
-      if (!Number.isFinite(groupId)) return res.status(400).json({ error: 'Ungueltige ID' });
-      if (!['income', 'expense'].includes(String(kind))) return res.status(400).json({ error: 'Kind ungueltig' });
+      if (!Number.isFinite(groupId)) return res.status(400).json({ error: 'Ungültige ID' });
+      if (!['income', 'expense'].includes(String(kind))) return res.status(400).json({ error: 'Kind ungültig' });
       const cleanLabel = String(label || '').trim().slice(0, 80);
       if (!cleanLabel) return res.status(400).json({ error: 'Label erforderlich' });
       const cleanColor = normalizeHexColor(color, '#94A3B8');
@@ -791,7 +791,7 @@ module.exports = async function handler(req, res) {
       const groupId = Number(segments[0]);
       const categoryId = Number(segments[2]);
       if (!Number.isFinite(groupId) || !Number.isFinite(categoryId)) {
-        return res.status(400).json({ error: 'Ungueltige ID' });
+        return res.status(400).json({ error: 'Ungültige ID' });
       }
       const { label, color } = req.body || {};
       const cleanLabel = String(label || '').trim().slice(0, 80);
@@ -817,7 +817,7 @@ module.exports = async function handler(req, res) {
       const groupId = Number(segments[0]);
       const categoryId = Number(segments[2]);
       if (!Number.isFinite(groupId) || !Number.isFinite(categoryId)) {
-        return res.status(400).json({ error: 'Ungueltige ID' });
+        return res.status(400).json({ error: 'Ungültige ID' });
       }
 
       const allowed = await isAcceptedMemberOrOwner(pool, groupId, user.id);

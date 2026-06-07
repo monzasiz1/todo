@@ -348,7 +348,7 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
       clearTimeout(touchDragRef.current.timer);
       touchDragRef.current.timer = null;
     }
-    // Swipe-Geste abschliessen
+    // Swipe-Geste abschließen
     if (swipeStateRef.current.isSwipe) {
       const wrapW = swipeStateRef.current.wrapWidth || 320;
       setSwipeDragging(false);

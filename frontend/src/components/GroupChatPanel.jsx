@@ -455,7 +455,7 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
       // User braucht klare Rueckmeldung statt stillem Schlucken.
       const status = err?.status;
       const msg = status === 403
-        ? 'Diese Aufgabe gehoert zu einer anderen Gruppe und kann hier nicht geteilt werden.'
+        ? 'Diese Aufgabe gehört zu einer anderen Gruppe und kann hier nicht geteilt werden.'
         : status === 404
           ? 'Aufgabe nicht gefunden.'
           : (err?.message || 'Teilen fehlgeschlagen');
@@ -1201,7 +1201,7 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
                                   disabled={claimingMsgId === msg.id || isEnded}
                                 >
                                   <UserCheck size={12} />
-                                  {isEnded ? 'Beendet' : (msg.responsible_user_id === user?.id ? 'Du uebernimmst' : 'Uebernehmen')}
+                                  {isEnded ? 'Beendet' : (msg.responsible_user_id === user?.id ? 'Du übernimmst' : 'Übernehmen')}
                                 </button>
                                 <button
                                   className={`gchat-shared-btn gchat-rsvp-yes-btn ${msg.my_rsvp === 'yes' ? 'active' : ''}`}
