@@ -249,7 +249,7 @@ module.exports = async function handler(req, res) {
              theme = COALESCE($5, theme),
              calendar_holiday_color = COALESCE($6, calendar_holiday_color)
            WHERE id = $1
-           RETURNING id, name, email, avatar_url, avatar_color, bio, theme, created_at, twofa_enabled, calendar_holiday_color`,
+           RETURNING id, name, email, avatar_url, avatar_color, bio, theme, created_at, twofa_enabled, calendar_holiday_color, plan`,
           [user.id, name || null, bio !== undefined ? bio : null, avatar_color || null, theme || null, calendar_holiday_color || null]
         )
         : await pool.query(
@@ -259,7 +259,7 @@ module.exports = async function handler(req, res) {
              avatar_color = COALESCE($4, avatar_color),
              theme = COALESCE($5, theme)
            WHERE id = $1
-           RETURNING id, name, email, avatar_url, avatar_color, bio, theme, created_at, twofa_enabled`,
+           RETURNING id, name, email, avatar_url, avatar_color, bio, theme, created_at, twofa_enabled, plan`,
           [user.id, name || null, bio !== undefined ? bio : null, avatar_color || null, theme || null]
         );
 

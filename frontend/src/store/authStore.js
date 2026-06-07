@@ -278,10 +278,16 @@ export const useAuthStore = create((set) => ({
     window.location.href = (isPwa || isElectron || isCapacitor) ? '/app/login' : '/';
   },
 
-  setUser: (user) => {
-    localStorage.setItem('user', JSON.stringify(user));
-    set({ user });
-  },
+  // setUser MERGEt in den bestehenden User statt ihn komplett zu ersetzen.
+  // Grund: Profil-Updates (Name/Bio/Farbe/Avatar) liefern ein User-Objekt OHNE
+  // das `plan`-Feld zurueck. Ein voller Replace wuerde `plan` loeschen -> die App
+  // faellt auf 'free' zurueck bis zum naechsten Reload. Login/Register setzen den
+  // User direkt ueber set({ user }), nicht ueber setUser, sind also nicht betroffen.
+  setUser: (partial) => set((state) => {
+    const merged = state.user ? { ...state.user, ...partial } : partial;
+    try { localStorage.setItem('user', JSON.stringify(merged)); } catch { /* ignore */ }
+    return { user: merged };
+  }),
 
   clearError: () => set({ error: null }),
 }));
