@@ -23505,16 +23505,29 @@ html[data-theme="dark"] .group-role-chip.role-member {
   .pv2-hero { padding: 20px 16px 16px; }
   .pv2-code-input { width: 100%; }
 
-  /* Theme-Toggle (3 Buttons) bekommt eigene Zeile damit die Beschreibung
-     darunter nicht ueberlappt wird. */
+}
+
+/* Theme-Toggle (3 Buttons) bekommt auf Phone/kleinem Tablet eine eigene, volle
+   Zeile mit gleich breiten Buttons — sonst klebt er gequetscht neben dem Text. */
+@media (max-width: 768px) {
   .pv2-row:has(.theme-toggle) {
     flex-wrap: wrap;
-    row-gap: 10px;
+    row-gap: 12px;
   }
   .pv2-row:has(.theme-toggle) .theme-toggle {
+    display: flex;
     flex: 1 1 100%;
     margin-left: 50px; /* an pv2-row-body ausrichten (Icon 36 + gap 14) */
   }
+  .pv2-row:has(.theme-toggle) .theme-toggle-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 9px 6px;
+  }
+}
+@media (max-width: 400px) {
+  .pv2-row:has(.theme-toggle) .theme-toggle { margin-left: 0; }
+  .pv2-row:has(.theme-toggle) .theme-toggle-btn { gap: 4px; font-size: 12.5px; }
 }
 
 /* lp-* classes still used by modal components â€” see landing-modal-* rules above */
