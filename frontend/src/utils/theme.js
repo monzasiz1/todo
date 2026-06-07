@@ -28,7 +28,9 @@ export function getStoredTheme() {
     const v = localStorage.getItem(STORAGE_KEY);
     if (v === 'light' || v === 'dark' || v === 'system') return v;
   } catch {}
-  return 'system';
+  // Standard ist Dark — BeeQu ist ein Dark-First-Design. Nutzer koennen jederzeit
+  // ueber die Darstellung-Einstellung auf Hell/System wechseln.
+  return 'dark';
 }
 
 export function getEffectiveTheme(stored = getStoredTheme()) {

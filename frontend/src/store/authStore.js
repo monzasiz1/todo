@@ -1,5 +1,6 @@
 ﻿import { create } from 'zustand';
 import { api, clearApiCacheForCurrentUser } from '../utils/api';
+import { setTheme } from '../utils/theme';
 
 const TASK_CACHE_KEY = 'beequ_tasks_cache_v1';
 const GROUP_CACHE_KEY = 'beequ_groups_cache_v1';
@@ -178,7 +179,10 @@ export const useAuthStore = create((set) => ({
       // WICHTIG: Beim Register alle alten Daten löschen
       clearApiCacheForCurrentUser();
       clearLocalAppCaches();
-      
+
+      // Neue Accounts starten standardmaessig im Dark-Theme (Dark-First-Design).
+      try { setTheme('dark'); } catch { /* ignore */ }
+
       const data = await api.register(name, email, password);
       if (data.token) {
         localStorage.setItem('token', data.token);

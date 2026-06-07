@@ -8,11 +8,30 @@
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <!-- Theme so frueh wie moeglich setzen (vor dem ersten Paint), damit kein
+         heller Flash entsteht. Standard ist Dark (Dark-First-Design); muss mit
+         getStoredTheme()/initTheme() in utils/theme.js uebereinstimmen. -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('beequ:theme');
+          if (t !== 'light' && t !== 'dark' && t !== 'system') t = 'dark';
+          var eff = t === 'system'
+            ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+            : t;
+          document.documentElement.setAttribute('data-theme', eff);
+          document.documentElement.style.colorScheme = eff;
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+          document.documentElement.style.colorScheme = 'dark';
+        }
+      })();
+    </script>
     <!-- theme-color/status-bar werden von theme.js dynamisch je nach Light/Dark gesetzt.
          Diese Defaults gelten nur bis der erste Frame gerendert ist. -->
     <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0B1220" media="(prefers-color-scheme: dark)" />
-    <meta name="description" content="BeeQu ist deine smarte Produktivitaets-App: Aufgaben, Kalender, Notizen, Gruppen und KI-Unterstuetzung in einer App. Offline-faehig, sicher und schnell." />
+    <meta name="description" content="BeeQu ist deine smarte Produktivitäts-App: Aufgaben, Kalender, Notizen, Gruppen und KI-Unterstützung in einer App. Offline-fähig, sicher und schnell." />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="BeeQu" />
