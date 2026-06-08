@@ -1687,6 +1687,29 @@ function CreateGroupModal({ onClose, onSubmit }) {
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
+  // Swipe-down-to-close (Mobile)
+  const [pullOffset, setPullOffset] = useState(0);
+  const swipeRef = useRef({ startY: 0, active: false });
+
+  const onTouchStart = (e) => {
+    if (!isMobile) return;
+    swipeRef.current = { startY: e.touches[0].clientY, active: true };
+  };
+  const onTouchMove = (e) => {
+    if (!isMobile || !swipeRef.current.active) return;
+    const dy = e.touches[0].clientY - swipeRef.current.startY;
+    if (dy <= 0 || e.currentTarget.scrollTop > 0) { if (pullOffset !== 0) setPullOffset(0); return; }
+    if (e.cancelable) e.preventDefault();
+    setPullOffset(Math.min(dy * 0.9, 500));
+  };
+  const onTouchEnd = (e) => {
+    if (!isMobile || !swipeRef.current.active) return;
+    const dy = e.changedTouches[0].clientY - swipeRef.current.startY;
+    swipeRef.current.active = false;
+    const shouldClose = dy > 110 && e.currentTarget.scrollTop <= 0;
+    setPullOffset(0);
+    if (shouldClose) onClose();
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -1698,7 +1721,16 @@ function CreateGroupModal({ onClose, onSubmit }) {
 
   return createPortal((
     <div className={`spending-modal-backdrop${isMobile ? ' is-mobile-fullscreen' : ''}`} onClick={onClose}>
-      <form className={`spending-modal${isMobile ? ' is-mobile-fullscreen' : ''}`} onClick={(e) => e.stopPropagation()} onSubmit={submit}>
+      <motion.form
+        className={`spending-modal${isMobile ? ' is-mobile-fullscreen' : ''}`}
+        onClick={(e) => e.stopPropagation()}
+        onSubmit={submit}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        animate={{ y: isMobile ? pullOffset : 0 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 40 }}
+      >
         {isMobile && <span className="modal-pull-handle" />}
         <header className="spending-modal-head">
           <h3>Neue Budget-Gruppe</h3>
@@ -1721,7 +1753,7 @@ function CreateGroupModal({ onClose, onSubmit }) {
             <Plus size={16} /> {submitting ? 'Erstelle…' : 'Erstellen'}
           </button>
         </footer>
-      </form>
+      </motion.form>
     </div>
   ), document.body);
 }
