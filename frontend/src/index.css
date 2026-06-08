@@ -16454,6 +16454,20 @@ html[data-theme="dark"] .group-role-chip.role-member {
 }
 .gbud-connect-open:hover { filter: brightness(1.06); }
 .gbud-connect-open:active { transform: scale(0.99); }
+.gbud-connect-deactivate {
+  align-self: center;
+  margin-top: 2px;
+  padding: 6px 10px;
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: color 0.15s, background 0.15s;
+}
+.gbud-connect-deactivate:hover { color: #EF4444; background: rgba(255,59,48,0.10); }
 
 /* Aktivierungs-Karte (Budget noch nicht aktiviert) */
 .gbud-activate {

@@ -52,6 +52,18 @@ export default function GroupBudgetPanel({ groupId }) {
     }
   };
 
+  const deactivate = async () => {
+    if (!window.confirm('Gruppen-Budget deaktivieren? Alle Einträge dieses Budgets werden gelöscht.')) return;
+    try {
+      await api.deactivateGroupBudget(groupId);
+      setBudget(null);
+      setCanActivate(true);
+      addToast('Gruppen-Budget deaktiviert');
+    } catch (err) {
+      addToast(err?.message || 'Deaktivieren fehlgeschlagen', 'error');
+    }
+  };
+
   const totals = useMemo(() => {
     if (!budget) return { income: 0, expense: 0, balance: 0 };
     const { year, month } = currentMonthKey();
@@ -151,6 +163,12 @@ export default function GroupBudgetPanel({ groupId }) {
       <button className="gbud-connect-open" onClick={open}>
         Budget öffnen <ArrowRight size={17} />
       </button>
+
+      {budget.is_owner && (
+        <button className="gbud-connect-deactivate" onClick={deactivate}>
+          Budget deaktivieren
+        </button>
+      )}
     </div>
   );
 }

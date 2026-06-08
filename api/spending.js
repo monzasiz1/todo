@@ -412,6 +412,22 @@ module.exports = async function handler(req, res) {
       return res.status(201).json({ group: detail });
     }
 
+    // DELETE /api/spending/for-group/:groupId — Budget der Gruppe DEAKTIVIEREN.
+    // Nur Owner/Admin. Loescht das spending_group (CASCADE entfernt Eintraege/
+    // Kategorien/Overrides). Danach zeigt die Gruppe wieder die Aktivierungs-Karte.
+    if (segments[0] === 'for-group' && segments.length === 2 && req.method === 'DELETE') {
+      const realGroupId = Number(segments[1]);
+      if (!Number.isFinite(realGroupId)) return res.status(400).json({ error: 'Ungültige Gruppen-ID' });
+
+      const g = await loadRealGroup(realGroupId);
+      if (!g) return res.status(403).json({ error: 'Kein Zugriff auf diese Gruppe' });
+      if (!(g.role === 'owner' || g.role === 'admin')) {
+        return res.status(403).json({ error: 'Nur Owner/Admin darf das Budget deaktivieren' });
+      }
+      await pool.query('DELETE FROM spending_groups WHERE group_id = $1', [realGroupId]);
+      return res.json({ ok: true });
+    }
+
     // GET /api/spending — liste alle Gruppen des Users (eigene + akzeptierte + offene Einladungen)
     if (segments.length === 0 && req.method === 'GET') {
       // Inklusive aktivierter GRUPPEN-Budgets (group_id gesetzt): erscheinen fuer

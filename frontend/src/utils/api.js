@@ -519,6 +519,8 @@ export const api = {
   getGroupBudget: (realGroupId) => request(`/spending/for-group/${realGroupId}`),
   activateGroupBudget: (realGroupId) =>
     request(`/spending/for-group/${realGroupId}/activate`, { method: 'POST' }),
+  deactivateGroupBudget: (realGroupId) =>
+    request(`/spending/for-group/${realGroupId}`, { method: 'DELETE' }),
 
   createSpendingGroup: (name) =>
     request('/spending', {
