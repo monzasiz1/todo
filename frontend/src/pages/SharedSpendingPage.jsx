@@ -715,8 +715,13 @@ export default function SharedSpendingPage() {
 
   const handleAccept = async (groupId) => {
     const res = await acceptInvite(groupId);
-    if (res.success) showToast('Einladung angenommen');
-    else showToast(res.error || 'Fehler', 'error');
+    if (res.success) {
+      showToast('Einladung angenommen');
+      // Sofort das angenommene Budget oeffnen (statt erst beim naechsten Aufruf).
+      await fetchGroupDetail(groupId);
+    } else {
+      showToast(res.error || 'Fehler', 'error');
+    }
   };
 
   const handleDecline = async (groupId) => {
