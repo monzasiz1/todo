@@ -1202,7 +1202,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       // Horizontal swipe detection
       if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
         swipeDay = dx > 0 ? -1 : 1;
-        setDragInfo({ task, x: ev.clientX, y: ev.clientY, previewTime: swipeDay < 0 ? 'â† Vorheriger Tag' : 'NÃ¤chster Tag â†’' });
+        setDragInfo({ task, x: ev.clientX, y: ev.clientY, previewTime: swipeDay < 0 ? '← Vorheriger Tag' : 'Nächster Tag →' });
         return;
       }
       swipeDay = 0;
@@ -1372,14 +1372,14 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     const PX_PER_DAY = 65; // pixels to drag before day changes
     let lastDelta = 0;
     let previewDelta = 0;
-    let previewLabel = edge === 'end' ? 'Enddatum' : 'Startdatum';
+    let previewLabel = edge === 'end' ? '→' : '←';
 
     const de = document.body.querySelectorAll ? null : null; // unused, just clarity
 
     const onMove = (ev) => {
       const dx = ev.clientX - startX;
       previewDelta = Math.round(dx / PX_PER_DAY) * (edge === 'end' ? 1 : -1);
-      setDragInfo({ task, x: ev.clientX, y: ev.clientY, previewTime: `${edge === 'end' ? 'â‡¥' : 'â‡¤'} ${previewLabel}` });
+      setDragInfo({ task, x: ev.clientX, y: ev.clientY, previewTime: `${edge === 'end' ? '⇥' : '⇤'} ${previewLabel}` });
       if (previewDelta === lastDelta) return;
       lastDelta = previewDelta;
 
@@ -2487,7 +2487,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                 {!t.completed && ended && <span className="mobile-day-event-ended">Beendet</span>}
                 {(t.date_end && t.date_end !== t.date) && (
                   <span style={{ fontSize: 10, opacity: 0.8 }}>
-                    {format(parseISO(t.date?.substring(0,10)), 'd.M.')} â€“ {format(parseISO(t.date_end.substring(0,10)), 'd.M.')}
+                    {format(parseISO(t.date?.substring(0,10)), 'd.M.')} – {format(parseISO(t.date_end.substring(0,10)), 'd.M.')}
                   </span>
                 )}
                 {!ended && (
@@ -2930,7 +2930,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       {/* Resize time preview badge */}
       {resizeInfo && createPortal(
         <div className="cal-resize-preview">
-          {resizeInfo.edge === 'date-end' ? 'â‡¥' : resizeInfo.edge === 'date-start' ? 'â‡¤' : resizeInfo.edge === 'start' ? 'â–²' : 'â–¼'} {resizeInfo.previewTime}
+          {resizeInfo.edge === 'date-end' ? '→' : resizeInfo.edge === 'date-start' ? '←' : resizeInfo.edge === 'start' ? '▲' : '▼'} {resizeInfo.previewTime}
         </div>,
         document.body
       )}
@@ -2938,7 +2938,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       {/* Drop feedback toast */}
       {dropFeedback && createPortal(
         <div key={dropFeedback.id + dropFeedback.msg} className="cal-drop-toast">
-          âœ“ {dropFeedback.msg}
+          ✓ {dropFeedback.msg}
         </div>,
         document.body
       )}
