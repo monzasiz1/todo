@@ -1696,7 +1696,7 @@ function CreateGroupModal({ onClose, onSubmit }) {
     setSubmitting(false);
   };
 
-  return (
+  return createPortal((
     <div className={`spending-modal-backdrop${isMobile ? ' is-mobile-fullscreen' : ''}`} onClick={onClose}>
       <form className={`spending-modal${isMobile ? ' is-mobile-fullscreen' : ''}`} onClick={(e) => e.stopPropagation()} onSubmit={submit}>
         {isMobile && <span className="modal-pull-handle" />}
@@ -1723,7 +1723,7 @@ function CreateGroupModal({ onClose, onSubmit }) {
         </footer>
       </form>
     </div>
-  );
+  ), document.body);
 }
 
 function InviteFriendModal({ friends, existingMemberIds, onClose, onSubmit }) {
