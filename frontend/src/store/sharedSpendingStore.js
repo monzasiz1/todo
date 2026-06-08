@@ -64,6 +64,20 @@ export const useSharedSpendingStore = create((set, get) => ({
     }
   },
 
+  // Oeffnet das gemeinsame Budget einer ECHTEN Gruppe (find-or-create im Backend).
+  // Mitglieder = Gruppen-Mitglieder; nutzt dieselbe Detail-Ansicht wie persoenliche Budgets.
+  openGroupBudget: async (realGroupId) => {
+    set({ detailLoading: true, error: null });
+    try {
+      const data = await api.getGroupBudget(realGroupId);
+      set({ activeGroup: data.group, detailLoading: false });
+      return data.group;
+    } catch (err) {
+      set({ detailLoading: false, error: err.message });
+      return null;
+    }
+  },
+
   createGroup: async (name) => {
     try {
       const data = await api.createSpendingGroup(name);

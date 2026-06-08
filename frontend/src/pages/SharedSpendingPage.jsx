@@ -7,6 +7,7 @@ import {
   Pencil, PauseCircle, RotateCcw, Activity, ArrowRight, ChevronsRight,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSharedSpendingStore } from '../store/sharedSpendingStore';
 import { useFriendsStore } from '../store/friendsStore';
 import { useAuthStore } from '../store/authStore';
@@ -638,10 +639,14 @@ export default function SharedSpendingPage() {
     fetchGroups, fetchGroupDetail, createGroup, deleteGroup,
     inviteMember, acceptInvite, declineInvite, leaveGroup, removeMember,
     addEntry, updateEntry, deleteEntry, parseWithAI,
-    setOverride, removeOverride,
+    setOverride, removeOverride, openGroupBudget,
   } = useSharedSpendingStore();
   const { friends, fetchFriends } = useFriendsStore();
   const { user } = useAuthStore();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Wenn ueber ?group=<id> geoeffnet: Budget DIESER echten Gruppe direkt anzeigen.
+  const cameFromGroupRef = useRef(false);
 
   const [toast, setToast] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -653,12 +658,21 @@ export default function SharedSpendingPage() {
 
 
   useEffect(() => {
+    // Direkt das Budget einer echten Gruppe oeffnen (von der Gruppen-Seite verlinkt).
+    const gp = searchParams.get('group');
+    if (gp && Number.isFinite(Number(gp))) {
+      cameFromGroupRef.current = true;
+      openGroupBudget(Number(gp));
+      setSearchParams({}, { replace: true });
+    }
     fetchGroups();
     fetchFriends();
   }, []);
 
-  // Bei aktiver Gruppe regelmaessig aktualisierte Detail-Daten laden
+  // Auto-Auswahl der ersten persoenlichen Gruppe — NICHT, wenn wir gezielt ein
+  // Gruppen-Budget geoeffnet haben.
   useEffect(() => {
+    if (cameFromGroupRef.current) return;
     if (!activeGroup && groups.length > 0) {
       const firstAccepted = groups.find((g) => g.my_status === 'accepted');
       if (firstAccepted) fetchGroupDetail(firstAccepted.id);
@@ -814,15 +828,27 @@ export default function SharedSpendingPage() {
             <span className="spending-app-bar-count">{acceptedGroups.length}</span>
           )}
         </div>
+        {!activeGroup?.is_linked_group && (
+          <button
+            type="button"
+            className="spending-app-bar-action"
+            onClick={() => setShowCreate(true)}
+            aria-label="Neue Gruppe"
+          >
+            <Plus size={18} />
+          </button>
+        )}
+      </header>
+
+      {activeGroup?.is_linked_group && (
         <button
           type="button"
-          className="spending-app-bar-action"
-          onClick={() => setShowCreate(true)}
-          aria-label="Neue Gruppe"
+          className="spending-back-group"
+          onClick={() => navigate(`/app/groups?group=${activeGroup.linked_group_id}`)}
         >
-          <Plus size={18} />
+          <ChevronLeft size={16} /> Zurück zur Gruppe «{activeGroup.name}»
         </button>
-      </header>
+      )}
 
       {pendingInvites.length > 0 && (
         <section className="spending-invites">
@@ -848,7 +874,7 @@ export default function SharedSpendingPage() {
         </section>
       )}
 
-      {acceptedGroups.length > 0 && (
+      {acceptedGroups.length > 0 && !activeGroup?.is_linked_group && (
         <nav className="spending-group-switcher" aria-label="Gruppen">
           <div className="spending-group-switcher-track">
             {acceptedGroups.map((g) => (
@@ -885,7 +911,7 @@ export default function SharedSpendingPage() {
           </div>
         )}
 
-        {!loading && acceptedGroups.length === 0 && (
+        {!loading && acceptedGroups.length === 0 && !activeGroup && !detailLoading && (
           <div className="spending-empty-main">
             <Sparkles size={28} />
             <h3>Noch keine Gruppe</h3>
@@ -1197,11 +1223,14 @@ function GroupDetail({
             <ArrowDownCircle size={18} />
             <span>Einnahme</span>
           </button>
-          <button type="button" className="spending-hero-action" onClick={onInvite}>
-            <UserPlus size={18} />
-            <span>Einladen</span>
-          </button>
-          {group.is_owner ? (
+          {/* Gruppen-Budget: Mitglieder & Lebenszyklus werden in der Gruppe verwaltet */}
+          {!group.is_linked_group && (
+            <button type="button" className="spending-hero-action" onClick={onInvite}>
+              <UserPlus size={18} />
+              <span>Einladen</span>
+            </button>
+          )}
+          {!group.is_linked_group && (group.is_owner ? (
             <button type="button" className="spending-hero-action is-danger" onClick={onDelete}>
               <Trash2 size={18} />
               <span>Löschen</span>
@@ -1211,7 +1240,7 @@ function GroupDetail({
               <LogOut size={18} />
               <span>Verlassen</span>
             </button>
-          )}
+          ))}
         </div>
       </section>
 
@@ -1344,9 +1373,14 @@ function GroupDetail({
         <section className="spending-panel">
           <header className="spending-panel-head">
             <h3>Mitglieder · {activeMembers.length}</h3>
-            <button type="button" className="sankey-btn sankey-btn-secondary" onClick={onInvite}>
-              <UserPlus size={14} /> Einladen
-            </button>
+            {!group.is_linked_group && (
+              <button type="button" className="sankey-btn sankey-btn-secondary" onClick={onInvite}>
+                <UserPlus size={14} /> Einladen
+              </button>
+            )}
+            {group.is_linked_group && (
+              <span className="spending-linked-hint">Über die Gruppe verwaltet</span>
+            )}
           </header>
           <ul className="spending-member-list">
             {activeMembers.map((m) => (
@@ -1362,7 +1396,7 @@ function GroupDetail({
                   <strong>{m.name}</strong>
                   <span>{m.isOwner ? 'Owner' : 'Mitglied'} · {fmtAmount(summary.byMember[m.id] || 0)} €</span>
                 </div>
-                {group.is_owner && !m.isOwner && (
+                {group.is_owner && !m.isOwner && !group.is_linked_group && (
                   <button
                     type="button"
                     className="spending-icon-btn"

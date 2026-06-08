@@ -1353,10 +1353,10 @@ function GroupDetail({ groupId, onBack }) {
         )}
       </div>
 
-      {/* Budget Tab — gemeinsames Ein-/Ausgaben-Budget der Gruppe */}
+      {/* Budget Tab — oeffnet das gemeinsame Budget der Gruppe (echte Budget-Funktion) */}
       {tab === 'budget' && (
         <div className="group-tab-content">
-          <GroupBudgetPanel groupId={groupId} isAdmin={isAdmin} userId={user?.id} />
+          <GroupBudgetPanel groupId={groupId} />
         </div>
       )}
 
