@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import AvatarBadge from '../components/AvatarBadge';
 import { useSharedSpendingStore } from '../store/sharedSpendingStore';
 import { useFriendsStore } from '../store/friendsStore';
 import { useAuthStore } from '../store/authStore';
@@ -888,9 +889,16 @@ export default function SharedSpendingPage() {
                 className={`spending-group-chip ${activeGroup?.id === g.id ? 'is-active' : ''} ${g.is_linked_group ? 'is-group' : ''}`}
                 onClick={() => handleSelectGroup(g.id)}
               >
-                <span className="spending-group-chip-dot">
-                  {g.is_linked_group && <Users size={11} />}
-                </span>
+                {g.is_linked_group ? (
+                  <AvatarBadge
+                    name={g.name}
+                    color={g.linked_group_color || '#5856D6'}
+                    avatarUrl={g.linked_group_image_url}
+                    size={24}
+                  />
+                ) : (
+                  <span className="spending-group-chip-dot" />
+                )}
                 <span className="spending-group-chip-body">
                   <strong>{g.name}{g.is_linked_group && <span className="spending-chip-badge">Gruppe</span>}</strong>
                   <em>{g.member_count} · {fmtAmount(g.total_amount)} €</em>

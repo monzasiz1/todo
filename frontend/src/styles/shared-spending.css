@@ -3054,13 +3054,21 @@ html[data-theme="light"] .spending-linked-hint { color: rgba(0,0,0,0.45); }
 .spending-group-switcher {
   margin: 0 -4px;
   position: relative;
+  min-width: 0;
 }
 
 .spending-group-switcher-track {
   display: flex;
+  flex-wrap: nowrap;
   gap: 8px;
   padding: 4px;
+  /* width:100% + min-width:0 = Track scrollt horizontal statt sich aufzublaehen
+     (sonst wird ab der 3. Gruppe rechts abgeschnitten). */
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   scroll-snap-type: x proximity;
   scrollbar-width: none;
 }

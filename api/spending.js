@@ -436,6 +436,8 @@ module.exports = async function handler(req, res) {
         `SELECT g.id, g.name, g.owner_id, g.created_at,
                 g.group_id AS linked_group_id,
                 (g.group_id IS NOT NULL) AS is_linked_group,
+                (SELECT image_url FROM groups WHERE id = g.group_id) AS linked_group_image_url,
+                (SELECT color FROM groups WHERE id = g.group_id) AS linked_group_color,
                 CASE
                   WHEN g.owner_id = $1 OR g.group_id IS NOT NULL THEN 'accepted'
                   ELSE m.status
