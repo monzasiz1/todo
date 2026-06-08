@@ -225,7 +225,6 @@ body.is-electron .launch-splash { top: 40px; }
 
 .lsp-float svg {
   width: 15px;
-  height: 15px;
   flex-shrink: 0;
   opacity: 0.9;
 }
@@ -16366,6 +16365,149 @@ html[data-theme="dark"] .group-role-chip.role-member {
 /* --- Group Tab Content --- */
 .group-tab-content {
   min-height: 100px;
+}
+
+/* ════════ GRUPPEN-BUDGET (GroupBudgetPanel) ════════ */
+.gbud { display: flex; flex-direction: column; gap: 14px; }
+.gbud-loading { display: flex; align-items: center; justify-content: center; padding: 40px; color: var(--text-tertiary); }
+.gbud-spin { animation: spin 0.7s linear infinite; }
+
+.gbud-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.gbud-monthnav { display: inline-flex; align-items: center; gap: 6px; }
+.gbud-monthbtn {
+  width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--card); border: 1px solid var(--border); color: var(--text-secondary); cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.gbud-monthbtn:hover { background: var(--hover); color: var(--text); }
+.gbud-month { font-size: 14px; font-weight: 700; color: var(--text); min-width: 116px; text-align: center; }
+.gbud-today {
+  font-size: 11px; font-weight: 700; color: var(--primary);
+  background: rgba(0,122,255,0.10); border: 1px solid rgba(0,122,255,0.22);
+  border-radius: 999px; padding: 4px 10px; cursor: pointer; margin-left: 2px;
+}
+.gbud-members { display: inline-flex; align-items: center; }
+.gbud-avatar {
+  width: 28px; height: 28px; border-radius: 50%; margin-left: -8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800; color: #fff; overflow: hidden;
+  border: 2px solid var(--card-solid, var(--bg)); box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.gbud-avatar:first-child { margin-left: 0; }
+.gbud-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.gbud-avatar-more { background: var(--text-tertiary); }
+
+/* Summen */
+.gbud-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.gbud-stat {
+  display: flex; align-items: center; gap: 9px; padding: 11px 12px;
+  border-radius: 14px; background: var(--card-solid, var(--card)); border: 1px solid var(--border);
+}
+.gbud-stat-ic { width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.gbud-stat-income  .gbud-stat-ic { background: rgba(52,211,153,0.16); color: #10B981; }
+.gbud-stat-expense .gbud-stat-ic { background: rgba(255,107,107,0.16); color: #EF4444; }
+.gbud-stat-balance.pos .gbud-stat-ic { background: rgba(0,122,255,0.14); color: #007AFF; }
+.gbud-stat-balance.neg .gbud-stat-ic { background: rgba(255,107,107,0.16); color: #EF4444; }
+.gbud-stat-txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.gbud-stat-label { font-size: 11px; color: var(--text-secondary); }
+.gbud-stat-val { font-size: 15px; font-weight: 800; color: var(--text); letter-spacing: -0.01em; white-space: nowrap; }
+.gbud-stat-income  .gbud-stat-val { color: #10B981; }
+.gbud-stat-expense .gbud-stat-val { color: #EF4444; }
+.gbud-stat-balance.neg .gbud-stat-val { color: #EF4444; }
+
+/* Hinzufuegen-Button */
+.gbud-add-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 11px 14px; border-radius: 12px; font-size: 13.5px; font-weight: 700; cursor: pointer;
+  background: var(--primary); color: #fff; border: none; box-shadow: 0 4px 14px rgba(0,122,255,0.28);
+  transition: filter 0.15s, transform 0.12s;
+}
+.gbud-add-btn:hover { filter: brightness(1.06); }
+.gbud-add-btn:active { transform: scale(0.98); }
+
+/* Formular */
+.gbud-form {
+  overflow: hidden; border-radius: 16px; border: 1px solid var(--border);
+  background: var(--card-solid, var(--card)); padding: 14px; display: flex; flex-direction: column; gap: 12px;
+}
+.gbud-form-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.gbud-kind-toggle { display: inline-flex; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 3px; gap: 3px; }
+.gbud-kind {
+  display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 8px;
+  font-size: 12.5px; font-weight: 700; color: var(--text-secondary); background: transparent; border: none; cursor: pointer;
+}
+.gbud-kind.active.expense { background: rgba(255,107,107,0.16); color: #EF4444; }
+.gbud-kind.active.income  { background: rgba(52,211,153,0.16); color: #10B981; }
+.gbud-form-close { width: 30px; height: 30px; border-radius: 8px; border: none; background: var(--hover); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+.gbud-form-row { display: flex; gap: 8px; }
+.gbud-amount-wrap { position: relative; flex: 1; }
+.gbud-amount {
+  width: 100%; box-sizing: border-box; padding: 12px 30px 12px 14px;
+  font-size: 22px; font-weight: 800; letter-spacing: -0.02em;
+  border-radius: 12px; border: 1px solid var(--border); background: var(--bg); color: var(--text);
+}
+.gbud-amount-cur { position: absolute; right: 13px; top: 50%; transform: translateY(-50%); font-size: 16px; font-weight: 700; color: var(--text-tertiary); pointer-events: none; }
+.gbud-date {
+  width: 150px; box-sizing: border-box; padding: 0 12px; border-radius: 12px;
+  border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 13px; font-family: inherit;
+}
+
+.gbud-cats { display: flex; flex-wrap: wrap; gap: 6px; }
+.gbud-cat {
+  display: inline-flex; align-items: center; gap: 6px; padding: 7px 11px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; color: var(--text-secondary);
+  background: var(--bg); border: 1px solid var(--border); cursor: pointer; transition: all 0.12s;
+}
+.gbud-cat-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+.gbud-desc {
+  width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 11px;
+  border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 13px; font-family: inherit;
+}
+
+.gbud-form-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.gbud-recur { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 12px; }
+.gbud-recur select {
+  background: var(--bg); border: 1px solid var(--border); color: var(--text);
+  border-radius: 8px; padding: 6px 8px; font-size: 12px; font-family: inherit; cursor: pointer;
+}
+.gbud-save {
+  display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 10px;
+  font-size: 13px; font-weight: 700; color: #fff; background: var(--primary); border: none; cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,122,255,0.26);
+}
+.gbud-save:disabled { opacity: 0.6; cursor: default; }
+
+/* Liste */
+.gbud-list { display: flex; flex-direction: column; gap: 6px; }
+.gbud-empty { padding: 28px 12px; text-align: center; color: var(--text-tertiary); font-size: 13px; }
+.gbud-row {
+  display: flex; align-items: center; gap: 11px; padding: 11px 12px;
+  border-radius: 13px; background: var(--card-solid, var(--card)); border: 1px solid var(--border);
+}
+.gbud-row-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.gbud-row-main { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.gbud-row-cat { display: inline-flex; align-items: center; gap: 5px; font-size: 13.5px; font-weight: 700; color: var(--text); }
+.gbud-row-recur { color: var(--text-tertiary); }
+.gbud-row-desc { font-size: 12px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gbud-row-meta { font-size: 11px; color: var(--text-tertiary); }
+.gbud-row-amt { font-size: 14px; font-weight: 800; white-space: nowrap; letter-spacing: -0.01em; }
+.gbud-row-amt.income { color: #10B981; }
+.gbud-row-amt.expense { color: #EF4444; }
+.gbud-row-del {
+  width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0; border: none; cursor: pointer;
+  background: transparent; color: var(--text-tertiary); display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.gbud-row-del:hover { background: rgba(255,59,48,0.12); color: #EF4444; }
+
+@media (max-width: 480px) {
+  .gbud-stats { grid-template-columns: 1fr; }
+  .gbud-stat-val { font-size: 16px; }
+  .gbud-form-row { flex-direction: column; }
+  .gbud-date { width: 100%; padding: 11px 12px; }
 }
 
 .group-tab-toolbar {

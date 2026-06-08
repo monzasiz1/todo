@@ -13,13 +13,14 @@ import {
   Calendar, CalendarCheck, Clock, Flag, Search, ArrowLeft, ListTodo,
   Camera, Tag, AlertTriangle, Pencil, ChevronsDown, ThumbsUp, Bell, EyeOff, RotateCcw,
   Activity, CalendarClock, Sparkles,
-  MessageCircle, FileText, Save, Palette,
+  MessageCircle, FileText, Save, Palette, Wallet,
 } from 'lucide-react';
 import { formatDistanceToNowStrict, isToday as isTodayDate, parseISO, format as formatDate } from 'date-fns';
 import { de as deLocale } from 'date-fns/locale';
 import AvatarBadge from '../components/AvatarBadge';
 import { usePlan } from '../hooks/usePlan';
 import UpgradeModal from '../components/UpgradeModal';
+import GroupBudgetPanel from '../components/GroupBudgetPanel';
 
 const GROUP_COLORS = [
   '#007AFF', '#5856D6', '#34C759', '#FF9500', '#FF3B30',
@@ -1339,6 +1340,9 @@ function GroupDetail({ groupId, onBack }) {
         <button className={`group-tab ${tab === 'tasks' ? 'active' : ''}`} onClick={() => setTab('tasks')}>
           Einträge <span className="group-tab-count">{visibleGroupTasks.length}</span>
         </button>
+        <button className={`group-tab ${tab === 'budget' ? 'active' : ''}`} onClick={() => setTab('budget')}>
+          <Wallet size={14} /> Budget
+        </button>
         <button className={`group-tab ${tab === 'members' ? 'active' : ''}`} onClick={() => setTab('members')}>
           Mitglieder <span className="group-tab-count">{members.length}</span>
         </button>
@@ -1348,6 +1352,13 @@ function GroupDetail({ groupId, onBack }) {
           </button>
         )}
       </div>
+
+      {/* Budget Tab — gemeinsames Ein-/Ausgaben-Budget der Gruppe */}
+      {tab === 'budget' && (
+        <div className="group-tab-content">
+          <GroupBudgetPanel groupId={groupId} isAdmin={isAdmin} userId={user?.id} />
+        </div>
+      )}
 
       {/* Tasks Tab */}
       {tab === 'tasks' && (
