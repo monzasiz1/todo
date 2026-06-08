@@ -348,12 +348,8 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // GET /api/spending/for-group/:groupId — Budget EINER echten Gruppe (find-or-create).
-    // Mitglieder = group_members; wird beim ersten Oeffnen automatisch angelegt.
-    if (segments[0] === 'for-group' && segments.length === 2 && req.method === 'GET') {
-      const realGroupId = Number(segments[1]);
-      if (!Number.isFinite(realGroupId)) return res.status(400).json({ error: 'Ungültige Gruppen-ID' });
-
+    // Hilfsfunktion: prueft Gruppen-Mitgliedschaft + Rolle des Users.
+    const loadRealGroup = async (realGroupId) => {
       const grp = await pool.query(
         `SELECT g.id, g.name, g.created_by, gm.role
            FROM groups g
@@ -361,16 +357,44 @@ module.exports = async function handler(req, res) {
           WHERE g.id = $1 LIMIT 1`,
         [realGroupId, user.id]
       );
-      if (grp.rows.length === 0) return res.status(403).json({ error: 'Kein Zugriff auf diese Gruppe' });
-      const g = grp.rows[0];
+      return grp.rows[0] || null;
+    };
+
+    // GET /api/spending/for-group/:groupId — Budget einer echten Gruppe ABRUFEN.
+    // Legt NICHTS an. Wenn noch nicht aktiviert: { group: null, can_activate }.
+    if (segments[0] === 'for-group' && segments.length === 2 && req.method === 'GET') {
+      const realGroupId = Number(segments[1]);
+      if (!Number.isFinite(realGroupId)) return res.status(400).json({ error: 'Ungültige Gruppen-ID' });
+
+      const g = await loadRealGroup(realGroupId);
+      if (!g) return res.status(403).json({ error: 'Kein Zugriff auf diese Gruppe' });
+
+      const existing = await pool.query('SELECT id FROM spending_groups WHERE group_id = $1 LIMIT 1', [realGroupId]);
+      if (existing.rows.length === 0) {
+        return res.json({ group: null, can_activate: g.role === 'owner' || g.role === 'admin' });
+      }
+      const detail = await loadGroupDetail(pool, existing.rows[0].id, user.id);
+      return res.json({ group: detail });
+    }
+
+    // POST /api/spending/for-group/:groupId/activate — Budget fuer die Gruppe AKTIVIEREN.
+    // Nur Owner/Admin. Idempotent (find-or-create). owner_id = Gruppen-Owner,
+    // damit Plan-Limits (budgetEntries) am Plan des Owners haengen.
+    if (segments[0] === 'for-group' && segments.length === 3 && segments[2] === 'activate' && req.method === 'POST') {
+      const realGroupId = Number(segments[1]);
+      if (!Number.isFinite(realGroupId)) return res.status(400).json({ error: 'Ungültige Gruppen-ID' });
+
+      const g = await loadRealGroup(realGroupId);
+      if (!g) return res.status(403).json({ error: 'Kein Zugriff auf diese Gruppe' });
+      if (!(g.role === 'owner' || g.role === 'admin')) {
+        return res.status(403).json({ error: 'Nur Owner/Admin darf das Budget aktivieren' });
+      }
 
       let spendingGroupId;
       const existing = await pool.query('SELECT id FROM spending_groups WHERE group_id = $1 LIMIT 1', [realGroupId]);
       if (existing.rows.length > 0) {
         spendingGroupId = existing.rows[0].id;
       } else {
-        // Beim ersten Oeffnen automatisch anlegen. owner_id = Gruppen-Owner,
-        // damit Plan-Limits (budgetEntries) am Plan des Owners haengen.
         const ownerId = g.created_by || user.id;
         try {
           const created = await pool.query(
@@ -379,36 +403,41 @@ module.exports = async function handler(req, res) {
           );
           spendingGroupId = created.rows[0].id;
         } catch (insErr) {
-          // Race: parallel angelegt -> erneut suchen
           const again = await pool.query('SELECT id FROM spending_groups WHERE group_id = $1 LIMIT 1', [realGroupId]);
           spendingGroupId = again.rows[0]?.id;
           if (!spendingGroupId) throw insErr;
         }
       }
-
       const detail = await loadGroupDetail(pool, spendingGroupId, user.id);
-      return res.json({ group: detail });
+      return res.status(201).json({ group: detail });
     }
 
     // GET /api/spending — liste alle Gruppen des Users (eigene + akzeptierte + offene Einladungen)
     if (segments.length === 0 && req.method === 'GET') {
+      // Inklusive aktivierter GRUPPEN-Budgets (group_id gesetzt): erscheinen fuer
+      // alle Gruppen-Mitglieder wie eigene Budgets, mit Gruppen-Mitgliederzahl.
       const result = await pool.query(
         `SELECT g.id, g.name, g.owner_id, g.created_at,
+                g.group_id AS linked_group_id,
+                (g.group_id IS NOT NULL) AS is_linked_group,
                 CASE
-                  WHEN g.owner_id = $1 THEN 'accepted'
+                  WHEN g.owner_id = $1 OR g.group_id IS NOT NULL THEN 'accepted'
                   ELSE m.status
                 END AS my_status,
                 CASE
-                  WHEN g.owner_id = $1 OR m.status = 'accepted' THEN COALESCE(member_counts.member_count, 0)
+                  WHEN g.owner_id = $1 OR g.group_id IS NOT NULL OR m.status = 'accepted'
+                    THEN CASE WHEN g.group_id IS NOT NULL
+                              THEN (SELECT COUNT(*) FROM group_members gmc WHERE gmc.group_id = g.group_id)
+                              ELSE COALESCE(member_counts.member_count, 0) END
                   ELSE NULL
                 END AS member_count,
                 CASE
-                  WHEN g.owner_id = $1 OR m.status = 'accepted' THEN COALESCE(sums.total_expense, 0)::float
-                  ELSE NULL
+                  WHEN g.owner_id = $1 OR g.group_id IS NOT NULL OR m.status = 'accepted'
+                    THEN COALESCE(sums.total_expense, 0)::float ELSE NULL
                 END AS total_amount,
                 CASE
-                  WHEN g.owner_id = $1 OR m.status = 'accepted' THEN COALESCE(sums.total_income, 0)::float
-                  ELSE NULL
+                  WHEN g.owner_id = $1 OR g.group_id IS NOT NULL OR m.status = 'accepted'
+                    THEN COALESCE(sums.total_income, 0)::float ELSE NULL
                 END AS total_income,
                 u.name AS owner_name, u.avatar_color AS owner_avatar_color, u.avatar_url AS owner_avatar_url
          FROM spending_groups g
@@ -424,9 +453,13 @@ module.exports = async function handler(req, res) {
            FROM spending_expenses GROUP BY spending_group_id
          ) sums ON sums.spending_group_id = g.id
          JOIN users u ON u.id = g.owner_id
-         WHERE g.group_id IS NULL
-           AND (g.owner_id = $1
-            OR EXISTS (SELECT 1 FROM spending_members WHERE spending_group_id = g.id AND user_id = $1))
+         WHERE
+           (g.group_id IS NULL
+             AND (g.owner_id = $1
+               OR EXISTS (SELECT 1 FROM spending_members WHERE spending_group_id = g.id AND user_id = $1)))
+           OR
+           (g.group_id IS NOT NULL
+             AND EXISTS (SELECT 1 FROM group_members gm WHERE gm.group_id = g.group_id AND gm.user_id = $1))
          ORDER BY g.created_at DESC`,
         [user.id]
       );

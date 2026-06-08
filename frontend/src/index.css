@@ -16455,6 +16455,46 @@ html[data-theme="dark"] .group-role-chip.role-member {
 .gbud-connect-open:hover { filter: brightness(1.06); }
 .gbud-connect-open:active { transform: scale(0.99); }
 
+/* Aktivierungs-Karte (Budget noch nicht aktiviert) */
+.gbud-activate {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  gap: 12px; padding: 28px 22px; border-radius: 20px;
+  background: linear-gradient(160deg, rgba(10,132,255,0.10), rgba(88,86,214,0.10));
+  border: 1px solid rgba(10,132,255,0.22);
+}
+.gbud-activate-ic {
+  width: 60px; height: 60px; border-radius: 18px;
+  display: flex; align-items: center; justify-content: center; color: #fff;
+  background: linear-gradient(135deg, #339bff, #0a84ff);
+  box-shadow: 0 10px 26px rgba(0,122,255,0.40), inset 0 1px 0 rgba(255,255,255,0.35);
+}
+.gbud-activate-title { margin: 2px 0 0; font-size: 19px; font-weight: 800; color: var(--text); letter-spacing: -0.02em; }
+.gbud-activate-sub { margin: 0; max-width: 380px; font-size: 13.5px; line-height: 1.5; color: var(--text-secondary); }
+.gbud-activate-sub strong { color: var(--text); font-weight: 700; }
+.gbud-activate-feats {
+  list-style: none; margin: 4px 0 2px; padding: 0;
+  display: flex; flex-direction: column; gap: 8px; align-items: flex-start;
+}
+.gbud-activate-feats li {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--text-secondary);
+}
+.gbud-activate-feats li svg { color: var(--primary); flex-shrink: 0; }
+.gbud-activate-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  margin-top: 4px; padding: 12px 22px; border-radius: 12px;
+  font-size: 14px; font-weight: 700; color: #fff; cursor: pointer; border: none;
+  background: var(--primary); box-shadow: 0 6px 18px rgba(0,122,255,0.32);
+  transition: filter 0.15s, transform 0.12s;
+}
+.gbud-activate-btn:hover { filter: brightness(1.06); }
+.gbud-activate-btn:active { transform: scale(0.98); }
+.gbud-activate-btn:disabled { opacity: 0.65; cursor: default; }
+.gbud-activate-locked {
+  display: inline-flex; align-items: center; gap: 7px; margin-top: 2px;
+  font-size: 12.5px; color: var(--text-tertiary);
+}
+
 @media (max-width: 480px) {
   .gbud-connect-stats { grid-template-columns: 1fr; }
 }

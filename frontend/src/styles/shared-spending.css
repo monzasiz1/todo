@@ -3102,6 +3102,30 @@ html[data-theme="light"] .spending-linked-hint { color: rgba(0,0,0,0.45); }
   flex-shrink: 0;
 }
 
+/* Gruppen-Budget-Chip: Dot wird zum Icon-Kreis, kleiner "Gruppe"-Badge */
+.spending-group-chip.is-group .spending-group-chip-dot {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(135deg, #5AC8FA, #5856D6);
+}
+.spending-chip-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+  color: #cfe1ff;
+  background: rgba(88, 86, 214, 0.28);
+  border: 1px solid rgba(88, 86, 214, 0.45);
+}
+
 .spending-group-chip-body {
   display: flex;
   flex-direction: column;

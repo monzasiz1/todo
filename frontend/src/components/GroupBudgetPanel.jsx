@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wallet, TrendingUp, TrendingDown, ArrowRight, Loader2 } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, ArrowRight, Loader2, Sparkles, Lock } from 'lucide-react';
 import { api } from '../utils/api';
+import { useTaskStore } from '../store/taskStore';
 import {
   fmtAmount, currentMonthKey, isEntryInMonth, amountForMonth,
 } from '../lib/spending';
@@ -12,24 +13,44 @@ function initials(name) {
 }
 
 /**
- * GroupBudgetPanel — Verbindung zur echten Budget-Funktion.
- * Zeigt eine kompakte Vorschau (Mitglieder + Saldo dieses Monats) und oeffnet
- * das vollwertige gemeinsame Budget der Gruppe (SharedSpendingPage, ?group=).
+ * GroupBudgetPanel — Einstieg ins gemeinsame Budget einer Gruppe.
+ * - Nicht aktiviert: Aktivierungs-Karte (Owner/Admin kann aktivieren).
+ * - Aktiviert: kompakte Vorschau (Mitglieder + Monats-Saldo) + "Budget oeffnen"
+ *   -> volle Budget-Ansicht (SharedSpendingPage, ?group=).
  */
 export default function GroupBudgetPanel({ groupId }) {
   const navigate = useNavigate();
+  const addToast = useTaskStore((s) => s.addToast);
   const [budget, setBudget] = useState(null);
+  const [canActivate, setCanActivate] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [activating, setActivating] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    api.getGroupBudget(groupId)
-      .then((data) => { if (!cancelled) setBudget(data.group); })
-      .catch(() => { /* still let user open it */ })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [groupId]);
+  const load = async () => {
+    try {
+      const data = await api.getGroupBudget(groupId);
+      setBudget(data.group || null);
+      setCanActivate(!!data.can_activate);
+    } catch {
+      /* belassen */
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => { setLoading(true); load(); /* eslint-disable-next-line */ }, [groupId]);
+
+  const activate = async () => {
+    setActivating(true);
+    try {
+      const data = await api.activateGroupBudget(groupId);
+      setBudget(data.group);
+      addToast('Gruppen-Budget aktiviert');
+    } catch (err) {
+      addToast(err?.message || 'Aktivierung fehlgeschlagen', 'error');
+    } finally {
+      setActivating(false);
+    }
+  };
 
   const totals = useMemo(() => {
     if (!budget) return { income: 0, expense: 0, balance: 0 };
@@ -45,8 +66,42 @@ export default function GroupBudgetPanel({ groupId }) {
   }, [budget]);
 
   const open = () => navigate(`/app/shared-spending?group=${groupId}`);
-  const members = budget?.members || [];
 
+  if (loading) {
+    return <div className="gbud-connect-loading" style={{ padding: 40 }}><Loader2 size={20} className="gbud-spin" /></div>;
+  }
+
+  // ── Noch nicht aktiviert: Aktivierungs-Karte ──
+  if (!budget) {
+    return (
+      <div className="gbud-activate">
+        <div className="gbud-activate-ic"><Wallet size={26} /></div>
+        <h3 className="gbud-activate-title">Gemeinsames Budget</h3>
+        <p className="gbud-activate-sub">
+          Verwaltet Ein- & Ausgaben dieser Gruppe zusammen – mit Aufteilung, Verlauf
+          und Statistiken. Nach der Aktivierung erscheint es auch unter <strong>Budget</strong>.
+        </p>
+        <ul className="gbud-activate-feats">
+          <li><Sparkles size={14} /> KI-Eingabe & Kategorien</li>
+          <li><TrendingUp size={14} /> Einnahmen, Ausgaben & Splits</li>
+          <li><Wallet size={14} /> Saldo & Monatsverlauf</li>
+        </ul>
+        {canActivate ? (
+          <button className="gbud-activate-btn" onClick={activate} disabled={activating}>
+            {activating ? <Loader2 size={17} className="gbud-spin" /> : <Sparkles size={17} />}
+            Budget aktivieren
+          </button>
+        ) : (
+          <div className="gbud-activate-locked">
+            <Lock size={14} /> Nur ein Gruppen-Admin kann das Budget aktivieren.
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── Aktiviert: Vorschau-Karte ──
+  const members = budget.members || [];
   return (
     <div className="gbud-connect">
       <div className="gbud-connect-head">
@@ -67,35 +122,31 @@ export default function GroupBudgetPanel({ groupId }) {
         )}
       </div>
 
-      {loading ? (
-        <div className="gbud-connect-stats gbud-connect-loading"><Loader2 size={18} className="gbud-spin" /></div>
-      ) : (
-        <div className="gbud-connect-stats">
-          <div className="gbud-connect-stat">
-            <span className="gbud-cs-ic income"><TrendingUp size={14} /></span>
-            <div>
-              <span className="gbud-cs-label">Einnahmen</span>
-              <span className="gbud-cs-val income">+{fmtAmount(totals.income)} €</span>
-            </div>
-          </div>
-          <div className="gbud-connect-stat">
-            <span className="gbud-cs-ic expense"><TrendingDown size={14} /></span>
-            <div>
-              <span className="gbud-cs-label">Ausgaben</span>
-              <span className="gbud-cs-val expense">−{fmtAmount(totals.expense)} €</span>
-            </div>
-          </div>
-          <div className="gbud-connect-stat">
-            <span className={`gbud-cs-ic ${totals.balance >= 0 ? 'bal-pos' : 'expense'}`}><Wallet size={14} /></span>
-            <div>
-              <span className="gbud-cs-label">Saldo (Monat)</span>
-              <span className={`gbud-cs-val ${totals.balance >= 0 ? 'bal-pos' : 'expense'}`}>
-                {totals.balance >= 0 ? '+' : '−'}{fmtAmount(Math.abs(totals.balance))} €
-              </span>
-            </div>
+      <div className="gbud-connect-stats">
+        <div className="gbud-connect-stat">
+          <span className="gbud-cs-ic income"><TrendingUp size={14} /></span>
+          <div>
+            <span className="gbud-cs-label">Einnahmen</span>
+            <span className="gbud-cs-val income">+{fmtAmount(totals.income)} €</span>
           </div>
         </div>
-      )}
+        <div className="gbud-connect-stat">
+          <span className="gbud-cs-ic expense"><TrendingDown size={14} /></span>
+          <div>
+            <span className="gbud-cs-label">Ausgaben</span>
+            <span className="gbud-cs-val expense">−{fmtAmount(totals.expense)} €</span>
+          </div>
+        </div>
+        <div className="gbud-connect-stat">
+          <span className={`gbud-cs-ic ${totals.balance >= 0 ? 'bal-pos' : 'expense'}`}><Wallet size={14} /></span>
+          <div>
+            <span className="gbud-cs-label">Saldo (Monat)</span>
+            <span className={`gbud-cs-val ${totals.balance >= 0 ? 'bal-pos' : 'expense'}`}>
+              {totals.balance >= 0 ? '+' : '−'}{fmtAmount(Math.abs(totals.balance))} €
+            </span>
+          </div>
+        </div>
+      </div>
 
       <button className="gbud-connect-open" onClick={open}>
         Budget öffnen <ArrowRight size={17} />

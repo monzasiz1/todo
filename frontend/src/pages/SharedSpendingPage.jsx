@@ -645,8 +645,11 @@ export default function SharedSpendingPage() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  // Wenn ueber ?group=<id> geoeffnet: Budget DIESER echten Gruppe direkt anzeigen.
+  // Wenn ueber ?group=<id> geoeffnet: Budget DIESER echten Gruppe direkt anzeigen
+  // (mit Zurueck-zur-Gruppe-Leiste). Aus der Liste geoeffnete Gruppen-Budgets
+  // verhalten sich wie normale Budgets (Switcher bleibt).
   const cameFromGroupRef = useRef(false);
+  const [fromGroupId, setFromGroupId] = useState(null);
 
   const [toast, setToast] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -662,6 +665,7 @@ export default function SharedSpendingPage() {
     const gp = searchParams.get('group');
     if (gp && Number.isFinite(Number(gp))) {
       cameFromGroupRef.current = true;
+      setFromGroupId(Number(gp));
       openGroupBudget(Number(gp));
       setSearchParams({}, { replace: true });
     }
@@ -828,7 +832,7 @@ export default function SharedSpendingPage() {
             <span className="spending-app-bar-count">{acceptedGroups.length}</span>
           )}
         </div>
-        {!activeGroup?.is_linked_group && (
+        {!fromGroupId && (
           <button
             type="button"
             className="spending-app-bar-action"
@@ -840,13 +844,13 @@ export default function SharedSpendingPage() {
         )}
       </header>
 
-      {activeGroup?.is_linked_group && (
+      {fromGroupId && (
         <button
           type="button"
           className="spending-back-group"
-          onClick={() => navigate(`/app/groups?group=${activeGroup.linked_group_id}`)}
+          onClick={() => navigate(`/app/groups?group=${fromGroupId}`)}
         >
-          <ChevronLeft size={16} /> Zurück zur Gruppe «{activeGroup.name}»
+          <ChevronLeft size={16} /> Zurück zur Gruppe{activeGroup?.name ? ` «${activeGroup.name}»` : ''}
         </button>
       )}
 
@@ -874,19 +878,21 @@ export default function SharedSpendingPage() {
         </section>
       )}
 
-      {acceptedGroups.length > 0 && !activeGroup?.is_linked_group && (
+      {acceptedGroups.length > 0 && !fromGroupId && (
         <nav className="spending-group-switcher" aria-label="Gruppen">
           <div className="spending-group-switcher-track">
             {acceptedGroups.map((g) => (
               <button
                 key={g.id}
                 type="button"
-                className={`spending-group-chip ${activeGroup?.id === g.id ? 'is-active' : ''}`}
+                className={`spending-group-chip ${activeGroup?.id === g.id ? 'is-active' : ''} ${g.is_linked_group ? 'is-group' : ''}`}
                 onClick={() => handleSelectGroup(g.id)}
               >
-                <span className="spending-group-chip-dot" />
+                <span className="spending-group-chip-dot">
+                  {g.is_linked_group && <Users size={11} />}
+                </span>
                 <span className="spending-group-chip-body">
-                  <strong>{g.name}</strong>
+                  <strong>{g.name}{g.is_linked_group && <span className="spending-chip-badge">Gruppe</span>}</strong>
                   <em>{g.member_count} · {fmtAmount(g.total_amount)} €</em>
                 </span>
               </button>

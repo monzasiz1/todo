@@ -514,8 +514,11 @@ export const api = {
 
   getSpendingGroup: (groupId) => request(`/spending/${groupId}`),
 
-  // Budget einer echten Gruppe (groups) — find-or-create, Mitglieder = group_members.
+  // Budget einer echten Gruppe (groups). GET ruft nur ab (legt nichts an);
+  // wenn nicht aktiviert: { group: null, can_activate }. activate legt es an.
   getGroupBudget: (realGroupId) => request(`/spending/for-group/${realGroupId}`),
+  activateGroupBudget: (realGroupId) =>
+    request(`/spending/for-group/${realGroupId}/activate`, { method: 'POST' }),
 
   createSpendingGroup: (name) =>
     request('/spending', {
