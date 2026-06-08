@@ -1686,6 +1686,7 @@ function AIQuickInput({ onParse }) {
 function CreateGroupModal({ onClose, onSubmit }) {
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
 
   const submit = async (e) => {
     e.preventDefault();
@@ -1696,8 +1697,9 @@ function CreateGroupModal({ onClose, onSubmit }) {
   };
 
   return (
-    <div className="spending-modal-backdrop" onClick={onClose}>
-      <form className="spending-modal" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
+    <div className={`spending-modal-backdrop${isMobile ? ' is-mobile-fullscreen' : ''}`} onClick={onClose}>
+      <form className={`spending-modal${isMobile ? ' is-mobile-fullscreen' : ''}`} onClick={(e) => e.stopPropagation()} onSubmit={submit}>
+        {isMobile && <span className="modal-pull-handle" />}
         <header className="spending-modal-head">
           <h3>Neue Budget-Gruppe</h3>
           <button type="button" className="spending-icon-btn" onClick={onClose}><X size={16} /></button>
