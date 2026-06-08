@@ -1347,8 +1347,8 @@ function GroupDetail({ groupId, onBack }) {
           Mitglieder <span className="group-tab-count">{members.length}</span>
         </button>
         {isAdmin && (
-          <button className={`group-tab ${tab === 'settings' ? 'active' : ''}`} onClick={() => setTab('settings')}>
-            <Settings size={14} />
+          <button className={`group-tab group-tab-icon ${tab === 'settings' ? 'active' : ''}`} onClick={() => setTab('settings')} aria-label="Einstellungen">
+            <Settings size={15} />
           </button>
         )}
       </div>
