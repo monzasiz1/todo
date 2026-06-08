@@ -1908,33 +1908,30 @@ html[data-theme="dark"] .tooltip {
    .group-tabs hatte hartkodierte weisse Hintergruende (rgba(255,255,255,...)
    und linear-gradient(#fff -> #f3f7ff)), die im Dark Mode hell blieben.
    ============================================================ */
+/* Identisch zu .spending-tabs (dunkles Glas, blau-violetter Active-State). */
 html[data-theme="dark"] .group-tabs {
-  background: var(--surface);
-  border-color: var(--border);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow: none;
 }
 html[data-theme="dark"] .group-tab {
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
 }
 html[data-theme="dark"] .group-tab:hover {
-  background: color-mix(in srgb, #ffffff 6%, transparent);
-  color: var(--text);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
 }
 html[data-theme="dark"] .group-tab.active {
-  background: linear-gradient(180deg,
-    color-mix(in srgb, var(--primary) 18%, var(--surface-2)),
-    var(--surface-2));
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.20), rgba(167, 139, 250, 0.16));
   color: var(--text);
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  box-shadow: 0 4px 14px rgba(96, 165, 250, 0.18);
 }
 html[data-theme="dark"] .group-tab-count {
-  background: color-mix(in srgb, #ffffff 10%, transparent);
+  background: rgba(255, 255, 255, 0.08);
   color: var(--text-secondary);
 }
 html[data-theme="dark"] .group-tab.active .group-tab-count {
-  background: var(--primary);
+  background: rgba(255, 255, 255, 0.18);
   color: #fff;
 }
 
