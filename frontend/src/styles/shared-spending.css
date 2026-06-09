@@ -1363,15 +1363,15 @@ html[data-theme="light"] .spending-linked-hint { color: rgba(0,0,0,0.45); }
 /* EntryModal als echtes Fullscreen (is-mobile-fullscreen, wie Task-Modals):
    Header + Pull-Handle unter die Notch/Dynamic Island ziehen (env wie task-edit). */
 .spending-modal.is-mobile-fullscreen .spending-modal-head {
-  padding-top: calc(env(safe-area-inset-top, 0px) + 12px);
+  padding-top: calc(env(safe-area-inset-top, 0px) + 4px);
 }
+/* Im Fullscreen kein sichtbarer Pull-Handle (Schliessen via X); Titel kann hoeher. */
 .spending-modal.is-mobile-fullscreen .modal-pull-handle {
-  position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + 4px);
-  left: 50%;
-  transform: translateX(-50%);
-  margin: 0;
-  z-index: 7;
+  display: none;
+}
+/* Genug Platz unten, damit der Inhalt komplett bis ganz nach unten scrollbar ist. */
+.spending-modal.is-mobile-fullscreen {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 40px) !important;
 }
 
 .spending-modal-head h3 {
