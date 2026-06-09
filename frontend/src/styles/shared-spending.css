@@ -1363,11 +1363,11 @@ html[data-theme="light"] .spending-linked-hint { color: rgba(0,0,0,0.45); }
 /* EntryModal als echtes Fullscreen (is-mobile-fullscreen, wie Task-Modals):
    Header + Pull-Handle unter die Notch/Dynamic Island ziehen (env wie task-edit). */
 .spending-modal.is-mobile-fullscreen .spending-modal-head {
-  padding-top: calc(env(safe-area-inset-top, 0px) + 22px);
+  padding-top: calc(env(safe-area-inset-top, 0px) + 12px);
 }
 .spending-modal.is-mobile-fullscreen .modal-pull-handle {
   position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + 8px);
+  top: calc(env(safe-area-inset-top, 0px) + 4px);
   left: 50%;
   transform: translateX(-50%);
   margin: 0;
