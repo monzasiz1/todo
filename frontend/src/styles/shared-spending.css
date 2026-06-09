@@ -1315,13 +1315,19 @@ html[data-theme="light"] .spending-linked-hint { color: rgba(0,0,0,0.45); }
 /* Bottom-Sheet wie day-create: unten verankert, NICHT Vollbild -> man sieht die
    Seite darueber, obere Ecken immer rund, kein Tastatur-Hochspringen. */
 .spending-modal.spending-sheet {
-  position: relative;
+  /* Fest am unteren Rand verankert (robust gegen dvh/Flex-Quirks im iOS-WebView).
+     top:auto + grosszuegiger vh-Cap -> Oberkante immer weit unter der Dynamic Island. */
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: auto;
   width: 100%;
   max-width: 100%;
-  max-height: calc(100dvh - max(env(safe-area-inset-top, 0px), 60px));
+  max-height: 86vh;
   padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 18px);
   border-radius: 22px 22px 0 0;
-  z-index: 10000;
+  z-index: 10001;
   margin: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -1988,11 +1994,15 @@ html[data-theme="light"] .spending-linked-hint { color: rgba(0,0,0,0.45); }
   /* Budget-Modals als Bottom-Sheet (wie day-create): unten verankert, gerundet,
      NICHT Vollbild -> Seite darueber sichtbar, nicht hinter der Dynamic Island. */
   .spending-modal.spending-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
     width: 100%;
     max-width: 100%;
     height: auto;
-    max-height: calc(100dvh - max(env(safe-area-inset-top, 0px), 60px));
-    inset: auto;
+    max-height: 86vh;
     border-radius: 22px 22px 0 0;
     padding: 6px 16px calc(env(safe-area-inset-bottom, 0px) + 18px);
     overflow-y: auto;
