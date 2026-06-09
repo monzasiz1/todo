@@ -1260,8 +1260,10 @@ html[data-theme="light"] .spending-linked-hint { color: rgba(0,0,0,0.45); }
   align-items: stretch;
   justify-content: flex-end;
   padding: 0;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4px);
+  background: rgba(8, 10, 20, 0.5);
+  /* KEIN Blur — beim Runterziehen soll die Seite dahinter klar (1:1) sichtbar sein. */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   /* Wie day-create-overlay: kein Hintergrund-Scroll/Jitter waehrend des Ziehens. */
   touch-action: none;
   overscroll-behavior: none;
@@ -1325,10 +1327,9 @@ html[data-theme="light"] .spending-linked-hint { color: rgba(0,0,0,0.45); }
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  background: rgba(30, 31, 35, 0.95);
+  background: var(--surface, #1e1f23);
   border: none;
-  box-shadow: none;
-  backdrop-filter: blur(8px);
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.35);
   display: flex;
   flex-direction: column;
   transition: border-radius 0.2s ease;

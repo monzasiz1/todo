@@ -1747,9 +1747,10 @@ function CreateGroupModal({ onClose, onSubmit }) {
 
   const pullProg = isMobile ? Math.min(pullOffset / 360, 1) : 0;
   const backdropStyle = isMobile ? {
-    background: `rgba(0,0,0,${(0.42 * (1 - pullProg * 0.92)).toFixed(3)})`,
-    backdropFilter: `blur(${(4 * (1 - pullProg)).toFixed(1)}px)`,
-    WebkitBackdropFilter: `blur(${(4 * (1 - pullProg)).toFixed(1)}px)`,
+    // Beim Ziehen schnell auf transparent + KEIN Blur -> Seite dahinter klar sichtbar (1:1).
+    background: `rgba(8,10,20,${(0.5 * (1 - Math.min(pullProg * 1.5, 1))).toFixed(3)})`,
+    backdropFilter: 'none',
+    WebkitBackdropFilter: 'none',
   } : undefined;
 
   return createPortal((
@@ -2163,9 +2164,10 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
 
   const pullProg = isMobile ? Math.min(pullOffset / 360, 1) : 0;
   const backdropStyle = isMobile ? {
-    background: `rgba(0,0,0,${(0.42 * (1 - pullProg * 0.92)).toFixed(3)})`,
-    backdropFilter: `blur(${(4 * (1 - pullProg)).toFixed(1)}px)`,
-    WebkitBackdropFilter: `blur(${(4 * (1 - pullProg)).toFixed(1)}px)`,
+    // Beim Ziehen schnell auf transparent + KEIN Blur -> Seite dahinter klar sichtbar (1:1).
+    background: `rgba(8,10,20,${(0.5 * (1 - Math.min(pullProg * 1.5, 1))).toFixed(3)})`,
+    backdropFilter: 'none',
+    WebkitBackdropFilter: 'none',
   } : undefined;
 
   const modalContent = (
