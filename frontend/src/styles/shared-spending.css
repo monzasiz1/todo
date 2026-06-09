@@ -1262,6 +1262,9 @@ html[data-theme="light"] .spending-linked-hint { color: rgba(0,0,0,0.45); }
   padding: 0;
   background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(4px);
+  /* Wie day-create-overlay: kein Hintergrund-Scroll/Jitter waehrend des Ziehens. */
+  touch-action: none;
+  overscroll-behavior: none;
 }
 
 @media (max-width: 1024px) {
