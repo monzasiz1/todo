@@ -1362,6 +1362,12 @@ html[data-theme="light"] .spending-linked-hint { color: rgba(0,0,0,0.45); }
 
 /* EntryModal als echtes Fullscreen (is-mobile-fullscreen, wie Task-Modals):
    Header + Pull-Handle unter die Notch/Dynamic Island ziehen (env wie task-edit). */
+/* Eigen-Padding oben raus (Basis hat 22px) -> Titel ganz nach oben unter die Island.
+   Unten genug Platz, damit alles bis ganz unten scrollbar ist. */
+.spending-modal.is-mobile-fullscreen {
+  padding-top: 0 !important;
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 48px) !important;
+}
 .spending-modal.is-mobile-fullscreen .spending-modal-head {
   padding-top: calc(env(safe-area-inset-top, 0px) + 4px);
 }
@@ -1369,9 +1375,12 @@ html[data-theme="light"] .spending-linked-hint { color: rgba(0,0,0,0.45); }
 .spending-modal.is-mobile-fullscreen .modal-pull-handle {
   display: none;
 }
-/* Genug Platz unten, damit der Inhalt komplett bis ganz nach unten scrollbar ist. */
-.spending-modal.is-mobile-fullscreen {
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 40px) !important;
+/* Bottom-Nav ausblenden, solange das Vollbild-Budget-Modal offen ist (wie Fokus-Timer)
+   -> Buttons (Abbrechen/Hinzufuegen) liegen nicht mehr hinter/in der Nav. */
+body.spending-modal-open .bottom-nav {
+  transform: translateY(120%);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .spending-modal-head h3 {

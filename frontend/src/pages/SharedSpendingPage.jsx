@@ -2018,6 +2018,13 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
   }, [isMobile]);
   useEffect(() => () => { if (pullRafRef.current !== null) window.cancelAnimationFrame(pullRafRef.current); }, []);
 
+  // Bottom-Nav ausblenden, solange das Vollbild-Modal offen ist (wie Fokus-Timer).
+  useEffect(() => {
+    if (!isMobile) return undefined;
+    document.body.classList.add('spending-modal-open');
+    return () => document.body.classList.remove('spending-modal-open');
+  }, [isMobile]);
+
   // Wenn prefill nach KI-Parse aktualisiert wird, Felder übernehmen.
   useEffect(() => {
     if (prefill) {
