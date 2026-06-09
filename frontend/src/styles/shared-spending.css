@@ -1985,26 +1985,35 @@ html[data-theme="light"] .spending-linked-hint { color: rgba(0,0,0,0.45); }
     -webkit-overflow-scrolling: touch;
   }
 
+  /* Budget-Modals als Bottom-Sheet (wie day-create): unten verankert, gerundet,
+     NICHT Vollbild -> Seite darueber sichtbar, nicht hinter der Dynamic Island. */
   .spending-modal.is-mobile-fullscreen {
-    width: 100vw;
-    height: 100vh;
-    max-height: 100vh;
-    inset: 0;
-    border-radius: 0;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    max-height: 90dvh;
+    inset: auto;
+    border-radius: 22px 22px 0 0;
+    padding: 6px 16px calc(env(safe-area-inset-bottom, 0px) + 18px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .spending-modal-backdrop {
     align-items: stretch;
     padding: 0;
-    justify-content: stretch;
+    justify-content: flex-end;
   }
 
+  /* Pull-Handle IN-FLOW (oben im Sheet), nicht absolut/fixed -> nie mitten im Text. */
   .modal-pull-handle {
-    position: fixed;
-    top: env(safe-area-inset-top, 12px);
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 11;
+    position: static;
+    transform: none;
+    display: block;
+    width: 40px;
+    height: 5px;
+    margin: 2px auto 12px;
+    border-radius: 3px;
   }
 
   .spending-modal-head h3 {
