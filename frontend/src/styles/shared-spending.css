@@ -1312,16 +1312,15 @@ html[data-theme="light"] .spending-linked-hint { color: rgba(0,0,0,0.45); }
   flex-shrink: 0;
 }
 
+/* Bottom-Sheet wie day-create: unten verankert, NICHT Vollbild -> man sieht die
+   Seite darueber, obere Ecken immer rund, kein Tastatur-Hochspringen. */
 .spending-modal.is-mobile-fullscreen {
-  position: fixed;
+  position: relative;
   width: 100%;
-  height: 100%;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  padding: calc(env(safe-area-inset-top, 0px) + 12px) 14px env(safe-area-inset-bottom, 0px) 14px;
-  border-radius: 0;
+  max-width: 100%;
+  max-height: 90dvh;
+  padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 18px);
+  border-radius: 22px 22px 0 0;
   z-index: 10000;
   margin: 0;
   overflow-y: auto;
@@ -1332,12 +1331,6 @@ html[data-theme="light"] .spending-linked-hint { color: rgba(0,0,0,0.45); }
   box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.35);
   display: flex;
   flex-direction: column;
-  transition: border-radius 0.2s ease;
-}
-
-/* Beim Runterziehen abgerundete obere Ecken — wie ein Sheet, das sich loest. */
-.spending-modal.is-mobile-fullscreen.is-pulling {
-  border-radius: 22px 22px 0 0;
 }
 
 .modal-pull-handle {

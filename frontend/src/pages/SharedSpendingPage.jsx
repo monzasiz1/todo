@@ -1778,7 +1778,6 @@ function CreateGroupModal({ onClose, onSubmit }) {
           <input
             type="text"
             value={name}
-            autoFocus
             maxLength={120}
             onChange={(e) => setName(e.target.value)}
             placeholder="z.B. WG Berlin, Urlaub Italien …"
