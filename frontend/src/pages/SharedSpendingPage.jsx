@@ -1798,6 +1798,66 @@ function InviteFriendModal({ friends, existingMemberIds, onClose, onSubmit }) {
   const [mode, setMode] = useState('friends');
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
+
+  // Swipe-to-close + Fullscreen wie EntryModal.
+  const swipeRef = useRef({ startY: 0, active: false });
+  const pullRafRef = useRef(null);
+  const pullNextRef = useRef(0);
+  const pullOffsetRef = useRef(0);
+  const [pullOffset, setPullOffset] = useState(0);
+  const queuePullOffset = (next) => {
+    pullNextRef.current = next;
+    if (pullRafRef.current !== null) return;
+    pullRafRef.current = window.requestAnimationFrame(() => {
+      pullRafRef.current = null;
+      setPullOffset((prev) => (prev === pullNextRef.current ? prev : pullNextRef.current));
+    });
+  };
+  const handleTouchStart = (e) => {
+    if (!isMobile) return;
+    swipeRef.current = { startY: e.touches[0].clientY, active: true };
+  };
+  const handleTouchMove = (e) => {
+    if (!isMobile || !swipeRef.current.active) return;
+    const dy = e.touches[0].clientY - swipeRef.current.startY;
+    if (dy <= 0 || e.currentTarget.scrollTop > 0) {
+      if (pullOffsetRef.current !== 0) { pullOffsetRef.current = 0; queuePullOffset(0); }
+      return;
+    }
+    if (e.cancelable) e.preventDefault();
+    const maxPull = Math.max(420, (typeof window !== 'undefined' ? window.innerHeight : 800) - 28);
+    const resisted = Math.min(dy * 0.95, maxPull);
+    pullOffsetRef.current = resisted;
+    queuePullOffset(resisted);
+  };
+  const handleTouchEnd = (e) => {
+    if (!isMobile || !swipeRef.current.active) return;
+    const dy = e.changedTouches[0].clientY - swipeRef.current.startY;
+    swipeRef.current.active = false;
+    const shouldClose = dy > 120 && e.currentTarget.scrollTop <= 0;
+    pullOffsetRef.current = 0;
+    queuePullOffset(0);
+    if (shouldClose) onClose();
+  };
+  useEffect(() => {
+    if (!isMobile) return undefined;
+    const block = (e) => { if (pullOffsetRef.current > 0 && e.cancelable) e.preventDefault(); };
+    document.addEventListener('touchmove', block, { passive: false });
+    return () => document.removeEventListener('touchmove', block);
+  }, [isMobile]);
+  useEffect(() => () => { if (pullRafRef.current !== null) window.cancelAnimationFrame(pullRafRef.current); }, []);
+  useEffect(() => {
+    if (!isMobile) return undefined;
+    document.body.classList.add('spending-modal-open');
+    return () => document.body.classList.remove('spending-modal-open');
+  }, [isMobile]);
+  const pullProg = isMobile ? Math.min(pullOffset / 360, 1) : 0;
+  const backdropStyle = isMobile ? {
+    background: `rgba(8,10,20,${(0.5 * (1 - Math.min(pullProg * 1.5, 1))).toFixed(3)})`,
+    backdropFilter: 'none',
+    WebkitBackdropFilter: 'none',
+  } : undefined;
 
   const availableFriends = useMemo(() => {
     return (friends || [])
@@ -1825,9 +1885,21 @@ function InviteFriendModal({ friends, existingMemberIds, onClose, onSubmit }) {
     setSubmitting(false);
   };
 
-  return (
-    <div className="spending-modal-backdrop is-sheet" onClick={onClose}>
-      <div className="spending-modal is-sheet" onClick={(e) => e.stopPropagation()}>
+  return createPortal((
+    <div className="spending-modal-backdrop" onClick={onClose} style={backdropStyle}>
+      <motion.div
+        className={`spending-modal${isMobile ? ' is-mobile-fullscreen' : ''}`}
+        onClick={(e) => e.stopPropagation()}
+        initial={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.96, y: 16 }}
+        animate={isMobile ? { y: pullOffset } : { opacity: 1, scale: 1, y: 0 }}
+        transition={isMobile
+          ? { type: 'tween', duration: pullOffset > 0 ? 0 : 0.16, ease: 'easeOut' }
+          : { type: 'spring', damping: 28, stiffness: 350 }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {isMobile && <span className="modal-pull-handle" />}
         <header className="spending-modal-head">
           <h3>Freund einladen</h3>
           <button type="button" className="spending-icon-btn" onClick={onClose}><X size={16} /></button>
@@ -1908,9 +1980,9 @@ function InviteFriendModal({ friends, existingMemberIds, onClose, onSubmit }) {
             </footer>
           </form>
         )}
-      </div>
+      </motion.div>
     </div>
-  );
+  ), document.body);
 }
 
 /* Unified Entry-Modal: Toggle zwischen Einnahme und Ausgabe oben.
