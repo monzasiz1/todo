@@ -6,7 +6,7 @@ import {
   Wand2, ArrowDownCircle, ArrowUpCircle, Wallet, Loader2, Repeat, Calendar,
   Pencil, PauseCircle, RotateCcw, Activity, ArrowRight, ChevronsRight,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import AvatarBadge from '../components/AvatarBadge';
 import { useSharedSpendingStore } from '../store/sharedSpendingStore';
@@ -1687,29 +1687,6 @@ function CreateGroupModal({ onClose, onSubmit }) {
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
-  // Swipe-down-to-close (Mobile)
-  const [pullOffset, setPullOffset] = useState(0);
-  const swipeRef = useRef({ startY: 0, active: false });
-
-  const onTouchStart = (e) => {
-    if (!isMobile) return;
-    swipeRef.current = { startY: e.touches[0].clientY, active: true };
-  };
-  const onTouchMove = (e) => {
-    if (!isMobile || !swipeRef.current.active) return;
-    const dy = e.touches[0].clientY - swipeRef.current.startY;
-    if (dy <= 0 || e.currentTarget.scrollTop > 0) { if (pullOffset !== 0) setPullOffset(0); return; }
-    if (e.cancelable) e.preventDefault();
-    setPullOffset(Math.min(dy * 0.9, 500));
-  };
-  const onTouchEnd = (e) => {
-    if (!isMobile || !swipeRef.current.active) return;
-    const dy = e.changedTouches[0].clientY - swipeRef.current.startY;
-    swipeRef.current.active = false;
-    const shouldClose = dy > 110 && e.currentTarget.scrollTop <= 0;
-    setPullOffset(0);
-    if (shouldClose) onClose();
-  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -1725,11 +1702,14 @@ function CreateGroupModal({ onClose, onSubmit }) {
         className={`spending-modal${isMobile ? ' is-mobile-fullscreen' : ''}`}
         onClick={(e) => e.stopPropagation()}
         onSubmit={submit}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-        animate={{ y: isMobile ? pullOffset : 0 }}
-        transition={{ type: 'spring', stiffness: 400, damping: 40 }}
+        initial={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.96, y: 16 }}
+        animate={isMobile ? { y: 0 } : { opacity: 1, scale: 1, y: 0 }}
+        transition={{ type: 'spring', damping: 30, stiffness: 320 }}
+        drag={isMobile ? 'y' : false}
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0, bottom: 0.6 }}
+        dragMomentum={false}
+        onDragEnd={(_, info) => { if (info.offset.y > 120 || info.velocity.y > 600) onClose(); }}
       >
         {isMobile && <span className="modal-pull-handle" />}
         <header className="spending-modal-head">
@@ -1932,11 +1912,9 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
   const [splitMode, setSplitMode] = useState('equal');
   const [splitAmounts, setSplitAmounts] = useState({});
   const [submitting, setSubmitting] = useState(false);
-  const [pullOffset, setPullOffset] = useState(0);
-  const swipeRef = useRef({ startY: 0, active: false });
-  const pullRafRef = useRef(null);
-  const pullNextRef = useRef(0);
-  const pullOffsetRef = useRef(0);
+  // Swipe-to-close via Framer dragControls (nur am Pull-Handle gestartet,
+  // damit der Body weiter scrollbar bleibt). GPU-fluessig, kein State pro Frame.
+  const dragControls = useDragControls();
 
   // Wenn prefill nach KI-Parse aktualisiert wird, Felder übernehmen.
   useEffect(() => {
@@ -1964,47 +1942,6 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
-
-  const queuePullOffset = (next) => {
-    pullNextRef.current = next;
-    if (pullRafRef.current !== null) return;
-    pullRafRef.current = window.requestAnimationFrame(() => {
-      pullRafRef.current = null;
-      setPullOffset((prev) => (prev === pullNextRef.current ? prev : pullNextRef.current));
-    });
-  };
-
-  const handleTouchStart = (e) => {
-    if (!isMobile) return;
-    swipeRef.current = { startY: e.touches[0].clientY, active: true };
-  };
-
-  const handleTouchMove = (e) => {
-    if (!isMobile || !swipeRef.current.active) return;
-    const dy = e.touches[0].clientY - swipeRef.current.startY;
-    if (dy <= 0 || e.currentTarget.scrollTop > 0) {
-      if (pullOffsetRef.current !== 0) {
-        pullOffsetRef.current = 0;
-        queuePullOffset(0);
-      }
-      return;
-    }
-    if (e.cancelable) e.preventDefault();
-    const maxPull = Math.max(420, (typeof window !== 'undefined' ? window.innerHeight : 800) - 28);
-    const resisted = Math.min(dy * 0.95, maxPull);
-    pullOffsetRef.current = resisted;
-    queuePullOffset(resisted);
-  };
-
-  const handleTouchEnd = (e) => {
-    if (!isMobile || !swipeRef.current.active) return;
-    const dy = e.changedTouches[0].clientY - swipeRef.current.startY;
-    swipeRef.current.active = false;
-    const shouldClose = dy > 120 && e.currentTarget.scrollTop <= 0;
-    pullOffsetRef.current = 0;
-    queuePullOffset(0);
-    if (shouldClose) onClose();
-  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -2130,16 +2067,24 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
           onClick={(e) => e.stopPropagation()}
           onSubmit={submit}
           initial={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.96, y: 16 }}
-          animate={isMobile ? { y: pullOffset } : { opacity: 1, scale: 1, y: 0 }}
+          animate={isMobile ? { y: 0 } : { opacity: 1, scale: 1, y: 0 }}
           exit={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.96, y: 16 }}
-          transition={isMobile
-            ? { type: 'tween', duration: pullOffset > 0 ? 0 : 0.16, ease: 'easeOut' }
-            : { type: 'spring', damping: 28, stiffness: 350 }}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
+          transition={{ type: 'spring', damping: 30, stiffness: 320 }}
+          drag={isMobile ? 'y' : false}
+          dragListener={false}
+          dragControls={dragControls}
+          dragConstraints={{ top: 0, bottom: 0 }}
+          dragElastic={{ top: 0, bottom: 0.6 }}
+          dragMomentum={false}
+          onDragEnd={(_, info) => { if (info.offset.y > 120 || info.velocity.y > 600) onClose(); }}
         >
-          {isMobile && <div className="modal-pull-handle" />}
+          {isMobile && (
+            <div
+              className="modal-pull-handle"
+              onPointerDown={(e) => dragControls.start(e)}
+              style={{ touchAction: 'none', cursor: 'grab' }}
+            />
+          )}
 
           <header className="spending-modal-head">
             <h3>
