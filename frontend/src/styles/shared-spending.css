@@ -1256,7 +1256,7 @@ html[data-theme="light"] .spending-linked-hint { color: rgba(0,0,0,0.45); }
   overflow: hidden;
 }
 
-.spending-modal-backdrop.is-mobile-fullscreen {
+.spending-modal-backdrop.spending-sheet {
   align-items: stretch;
   justify-content: flex-end;
   padding: 0;
@@ -1270,7 +1270,7 @@ html[data-theme="light"] .spending-linked-hint { color: rgba(0,0,0,0.45); }
 }
 
 @media (max-width: 1024px) {
-  .spending-modal-backdrop:not(.is-mobile-fullscreen) {
+  .spending-modal-backdrop:not(.spending-sheet) {
     align-items: flex-start;
     padding-block-start: calc(60px + env(safe-area-inset-top, 0px) + 16px);
   }
@@ -1314,7 +1314,7 @@ html[data-theme="light"] .spending-linked-hint { color: rgba(0,0,0,0.45); }
 
 /* Bottom-Sheet wie day-create: unten verankert, NICHT Vollbild -> man sieht die
    Seite darueber, obere Ecken immer rund, kein Tastatur-Hochspringen. */
-.spending-modal.is-mobile-fullscreen {
+.spending-modal.spending-sheet {
   position: relative;
   width: 100%;
   max-width: 100%;
@@ -1987,7 +1987,7 @@ html[data-theme="light"] .spending-linked-hint { color: rgba(0,0,0,0.45); }
 
   /* Budget-Modals als Bottom-Sheet (wie day-create): unten verankert, gerundet,
      NICHT Vollbild -> Seite darueber sichtbar, nicht hinter der Dynamic Island. */
-  .spending-modal.is-mobile-fullscreen {
+  .spending-modal.spending-sheet {
     width: 100%;
     max-width: 100%;
     height: auto;
@@ -3747,7 +3747,7 @@ html[data-theme="light"] .spending-member-item:hover {
 
 /* Modal hell */
 html[data-theme="light"] .spending-modal,
-html[data-theme="light"] .spending-modal.is-mobile-fullscreen {
+html[data-theme="light"] .spending-modal.spending-sheet {
   background: var(--card-solid);
   border-color: var(--border);
   box-shadow: 0 24px 60px rgba(20, 28, 46, 0.22), 0 2px 8px rgba(20, 28, 46, 0.10);

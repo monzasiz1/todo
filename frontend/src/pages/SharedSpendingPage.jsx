@@ -1754,9 +1754,9 @@ function CreateGroupModal({ onClose, onSubmit }) {
   } : undefined;
 
   return createPortal((
-    <div className={`spending-modal-backdrop${isMobile ? ' is-mobile-fullscreen' : ''}`} onClick={onClose} style={backdropStyle}>
+    <div className={`spending-modal-backdrop${isMobile ? ' spending-sheet' : ''}`} onClick={onClose} style={backdropStyle}>
       <motion.form
-        className={`spending-modal${isMobile ? ' is-mobile-fullscreen' : ''}${isMobile && pullOffset > 0 ? ' is-pulling' : ''}`}
+        className={`spending-modal${isMobile ? ' spending-sheet' : ''}${isMobile && pullOffset > 0 ? ' is-pulling' : ''}`}
         onClick={(e) => e.stopPropagation()}
         onSubmit={submit}
         initial={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.96, y: 16 }}
@@ -2171,9 +2171,9 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
 
   const modalContent = (
     <AnimatePresence>
-      <div className={`spending-modal-backdrop${isMobile ? ' is-mobile-fullscreen' : ''}`} onClick={onClose} style={backdropStyle}>
+      <div className={`spending-modal-backdrop${isMobile ? ' spending-sheet' : ''}`} onClick={onClose} style={backdropStyle}>
         <motion.form
-          className={`spending-modal${isMobile ? ' is-mobile-fullscreen' : ''}${isMobile && pullOffset > 0 ? ' is-pulling' : ''}`}
+          className={`spending-modal${isMobile ? ' spending-sheet' : ''}${isMobile && pullOffset > 0 ? ' is-pulling' : ''}`}
           onClick={(e) => e.stopPropagation()}
           onSubmit={submit}
           initial={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.96, y: 16 }}
