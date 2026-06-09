@@ -1745,10 +1745,17 @@ function CreateGroupModal({ onClose, onSubmit }) {
     setSubmitting(false);
   };
 
+  const pullProg = isMobile ? Math.min(pullOffset / 360, 1) : 0;
+  const backdropStyle = isMobile ? {
+    background: `rgba(0,0,0,${(0.42 * (1 - pullProg * 0.92)).toFixed(3)})`,
+    backdropFilter: `blur(${(4 * (1 - pullProg)).toFixed(1)}px)`,
+    WebkitBackdropFilter: `blur(${(4 * (1 - pullProg)).toFixed(1)}px)`,
+  } : undefined;
+
   return createPortal((
-    <div className={`spending-modal-backdrop${isMobile ? ' is-mobile-fullscreen' : ''}`} onClick={onClose}>
+    <div className={`spending-modal-backdrop${isMobile ? ' is-mobile-fullscreen' : ''}`} onClick={onClose} style={backdropStyle}>
       <motion.form
-        className={`spending-modal${isMobile ? ' is-mobile-fullscreen' : ''}`}
+        className={`spending-modal${isMobile ? ' is-mobile-fullscreen' : ''}${isMobile && pullOffset > 0 ? ' is-pulling' : ''}`}
         onClick={(e) => e.stopPropagation()}
         onSubmit={submit}
         initial={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.96, y: 16 }}
@@ -2154,11 +2161,18 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
     }
   };
 
+  const pullProg = isMobile ? Math.min(pullOffset / 360, 1) : 0;
+  const backdropStyle = isMobile ? {
+    background: `rgba(0,0,0,${(0.42 * (1 - pullProg * 0.92)).toFixed(3)})`,
+    backdropFilter: `blur(${(4 * (1 - pullProg)).toFixed(1)}px)`,
+    WebkitBackdropFilter: `blur(${(4 * (1 - pullProg)).toFixed(1)}px)`,
+  } : undefined;
+
   const modalContent = (
     <AnimatePresence>
-      <div className={`spending-modal-backdrop${isMobile ? ' is-mobile-fullscreen' : ''}`} onClick={onClose}>
+      <div className={`spending-modal-backdrop${isMobile ? ' is-mobile-fullscreen' : ''}`} onClick={onClose} style={backdropStyle}>
         <motion.form
-          className={`spending-modal${isMobile ? ' is-mobile-fullscreen' : ''}`}
+          className={`spending-modal${isMobile ? ' is-mobile-fullscreen' : ''}${isMobile && pullOffset > 0 ? ' is-pulling' : ''}`}
           onClick={(e) => e.stopPropagation()}
           onSubmit={submit}
           initial={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.96, y: 16 }}

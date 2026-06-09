@@ -1331,6 +1331,12 @@ html[data-theme="light"] .spending-linked-hint { color: rgba(0,0,0,0.45); }
   backdrop-filter: blur(8px);
   display: flex;
   flex-direction: column;
+  transition: border-radius 0.2s ease;
+}
+
+/* Beim Runterziehen abgerundete obere Ecken — wie ein Sheet, das sich loest. */
+.spending-modal.is-mobile-fullscreen.is-pulling {
+  border-radius: 22px 22px 0 0;
 }
 
 .modal-pull-handle {
