@@ -1318,7 +1318,7 @@ html[data-theme="light"] .spending-linked-hint { color: rgba(0,0,0,0.45); }
   position: relative;
   width: 100%;
   max-width: 100%;
-  max-height: 90dvh;
+  max-height: calc(100dvh - max(env(safe-area-inset-top, 0px), 60px));
   padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 18px);
   border-radius: 22px 22px 0 0;
   z-index: 10000;
@@ -1991,7 +1991,7 @@ html[data-theme="light"] .spending-linked-hint { color: rgba(0,0,0,0.45); }
     width: 100%;
     max-width: 100%;
     height: auto;
-    max-height: 90dvh;
+    max-height: calc(100dvh - max(env(safe-area-inset-top, 0px), 60px));
     inset: auto;
     border-radius: 22px 22px 0 0;
     padding: 6px 16px calc(env(safe-area-inset-bottom, 0px) + 18px);
