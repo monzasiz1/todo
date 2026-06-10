@@ -200,6 +200,27 @@ export default function App() {
     return () => { cancelled = true; };
   }, [token]);
 
+  // Prefetch der schweren In-App-Seiten im Leerlauf, sobald eingeloggt.
+  // Ohne das laedt z.B. das Notiz-Board seinen Chunk (+ NoteEditorModal/
+  // TaskDetailModal) erst beim Klick hinter einem leeren Suspense-Fallback
+  // -> sichtbare Verzoegerung. Hier warmen wir die Chunks vorab im Hintergrund,
+  // damit die Navigation gefuehlt sofort ist. Fehler ignorieren (Offline etc.).
+  useEffect(() => {
+    if (!token) return undefined;
+    const prefetch = () => {
+      import('./pages/CalendarPage').catch(() => {});
+      import('./pages/NotesPage').catch(() => {});
+      import('./pages/GroupsPage').catch(() => {});
+    };
+    const ric = window.requestIdleCallback;
+    if (typeof ric === 'function') {
+      const id = ric(prefetch, { timeout: 4000 });
+      return () => { try { window.cancelIdleCallback?.(id); } catch { /* ignore */ } };
+    }
+    const id = window.setTimeout(prefetch, 1500);
+    return () => window.clearTimeout(id);
+  }, [token]);
+
   const waitForInitialDashboard =
     isInitialDashboardRoute &&
     !!token &&
