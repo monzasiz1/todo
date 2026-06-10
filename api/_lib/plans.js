@@ -48,7 +48,21 @@ function getLimit(planId, limitKey) {
 }
 
 // Liest den effektiven Plan eines Users aus der DB. Abgelaufene bezahlte
-// Plaene (plan_expires_at in der Vergangenheit) zaehlen wieder als 'free'.
+// Plaene (plan_expires_at in der Vergangenheit) zaehlen wieder als 'free' —
+// aber erst nach einer Karenzzeit (PLAN_EXPIRY_GRACE_MS).
+//
+// Warum die Karenzzeit:
+//   plan_expires_at wird ausschliesslich vom Stripe-Webhook auf
+//   subscription.current_period_end gesetzt. Zwischen dem Ablauf des
+//   Abrechnungszeitraums und dem Eintreffen des Verlaengerungs-Webhooks
+//   (invoice.paid) liegt ein Fenster, in dem ein AKTIV zahlender Nutzer
+//   sonst faelschlich als 'free' behandelt und z.B. an wiederkehrenden
+//   Aufgaben gehindert wird. Bei einer wirklich gescheiterten Zahlung
+//   setzt der Webhook plan ohnehin selbst auf 'free' (Status != active),
+//   d.h. die Karenz schwaecht die Durchsetzung nicht aus, sie verhindert
+//   nur Fehlalarme bei verspaeteten/ausgebliebenen Renewal-Webhooks.
+const PLAN_EXPIRY_GRACE_MS = 3 * 24 * 60 * 60 * 1000; // 3 Tage
+
 async function getUserPlan(pool, userId) {
   try {
     const { rows } = await pool.query(
@@ -59,7 +73,9 @@ async function getUserPlan(pool, userId) {
     const planId = rows[0].plan || 'free';
     if (planId !== 'free' && rows[0].plan_expires_at) {
       const exp = new Date(rows[0].plan_expires_at);
-      if (!isNaN(exp.getTime()) && exp.getTime() < Date.now()) return 'free';
+      if (!isNaN(exp.getTime()) && exp.getTime() + PLAN_EXPIRY_GRACE_MS < Date.now()) {
+        return 'free';
+      }
     }
     return PLANS[planId] ? planId : 'free';
   } catch {
