@@ -1,5 +1,8 @@
 const { getPool } = require('../_lib/db');
 const { sendPushToUser, wasSentToday, wasTaskReminderSent, wasTaskTypeSent } = require('../_lib/pushService');
+const { ensurePlanColumns } = require('../_lib/plans');
+
+const PLAN_LABELS = { pro: 'Pro', team: 'Team' };
 
 const REMINDER_GRACE_WINDOW = '6 hours';
 const EVENT_REMINDER_OFFSET = '5 hours';
@@ -41,7 +44,7 @@ module.exports = async function handler(req, res) {
   }
 
   const pool = getPool();
-  const results = { reminders: 0, dailySummary: 0, engagement: 0, team: 0, focusTimers: 0 };
+  const results = { reminders: 0, dailySummary: 0, engagement: 0, team: 0, focusTimers: 0, planExpiry: 0 };
 
   // Helper: check if user has a notification type enabled
   async function isTypeEnabled(userId, type) {
@@ -243,6 +246,62 @@ module.exports = async function handler(req, res) {
           'engagement'
         );
         results.engagement++;
+      }
+    }
+
+    // ─── 3b. Plan-Ablauf-Erinnerung (1x pro Tag, ~9 Uhr UTC) ───
+    //   Erinnert NUR Nutzer, deren Zugang wirklich endet:
+    //     • Abo zum Periodenende gekuendigt (plan_cancel_at_period_end) und
+    //       laeuft in <= 3 Tagen ab  -> rechtzeitig zum Verlaengern anstossen
+    //     • Plan bereits abgelaufen (innerhalb der letzten 7 Tage) -> Hinweis
+    //   Auto-verlaengernde Abos und comped Accounts (plan_comp) werden NICHT
+    //   benachrichtigt.
+    if (currentHour === 9) {
+      try {
+        await ensurePlanColumns(pool);
+        const { rows: expiring } = await pool.query(
+          `SELECT id AS user_id, plan, plan_expires_at,
+                  (plan_expires_at <= NOW()) AS expired
+           FROM users
+           WHERE plan IN ('pro', 'team')
+             AND COALESCE(plan_comp, FALSE) = FALSE
+             AND plan_expires_at IS NOT NULL
+             AND (
+               (COALESCE(plan_cancel_at_period_end, FALSE) = TRUE
+                  AND plan_expires_at > NOW()
+                  AND plan_expires_at <= NOW() + INTERVAL '3 days')
+               OR
+               (plan_expires_at <= NOW()
+                  AND plan_expires_at > NOW() - INTERVAL '7 days')
+             )`
+        );
+
+        for (const row of expiring) {
+          if (!(await isTypeEnabled(row.user_id, 'plan_expiry'))) continue;
+          if (await wasSentToday(row.user_id, 'plan_expiry')) continue;
+
+          const label = PLAN_LABELS[row.plan] || row.plan;
+          let title;
+          let body;
+          if (row.expired) {
+            title = '⚠️ Dein Plan ist abgelaufen';
+            body = `Dein ${label}-Abo ist abgelaufen. Jetzt verlängern, um alle Funktionen zu behalten.`;
+          } else {
+            const msLeft = new Date(row.plan_expires_at).getTime() - Date.now();
+            const daysLeft = Math.max(1, Math.ceil(msLeft / (24 * 60 * 60 * 1000)));
+            title = '⏳ Dein Plan läuft bald ab';
+            body = `Dein ${label}-Abo läuft in ${daysLeft} Tag${daysLeft === 1 ? '' : 'en'} ab. Tippe zum Verlängern.`;
+          }
+
+          await sendPushToUser(
+            row.user_id,
+            { title, body, tag: 'plan-expiry', url: '/app/pricing' },
+            'plan_expiry'
+          );
+          results.planExpiry++;
+        }
+      } catch (planErr) {
+        console.error('[cron] plan-expiry block failed:', planErr.message);
       }
     }
 

@@ -75,6 +75,8 @@ async function ensureSchema(pool) {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_interval TEXT`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_expires_at TIMESTAMPTZ`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_updated_at TIMESTAMPTZ`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_comp BOOLEAN NOT NULL DEFAULT FALSE`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_cancel_at_period_end BOOLEAN NOT NULL DEFAULT FALSE`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_users_stripe_customer ON users(stripe_customer_id)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_users_stripe_sub      ON users(stripe_subscription_id)`);
   schemaReady = true;
@@ -130,23 +132,30 @@ async function applySubscriptionToUser(pool, subscription) {
   const item = subscription.items?.data?.[0];
   const priceId = item?.price?.id;
   const mapped = planForPriceId(priceId);
-  const periodEnd = subscription.current_period_end
-    ? new Date(subscription.current_period_end * 1000)
-    : null;
+  // current_period_end liegt je nach Stripe-API-Version auf dem Subscription-
+  // Objekt ODER auf dem Item -> beide pruefen, damit Verlaengerungen das
+  // Ablaufdatum zuverlaessig nachziehen.
+  const periodEndUnix = subscription.current_period_end || item?.current_period_end || null;
+  const periodEnd = periodEndUnix ? new Date(periodEndUnix * 1000) : null;
+  const cancelAtPeriodEnd = subscription.cancel_at_period_end === true;
 
   const status = subscription.status; // active, trialing, past_due, canceled, ...
   const isActive = status === 'active' || status === 'trialing';
 
-  // Wenn nicht (mehr) aktiv: Plan auf free, expires bleibt für die App lesbar
+  // Wenn nicht (mehr) aktiv: Plan auf free, expires bleibt für die App lesbar.
+  // Comped-Accounts (plan_comp) bleiben unangetastet — sie werden bewusst
+  // manuell vergeben und nie automatisch heruntergestuft.
   if (!isActive || !mapped) {
     await pool.query(
       `UPDATE users
          SET plan = 'free',
              plan_interval = NULL,
              plan_expires_at = $2,
+             plan_cancel_at_period_end = FALSE,
              stripe_subscription_id = $3,
              plan_updated_at = NOW()
-       WHERE stripe_customer_id = $1`,
+       WHERE stripe_customer_id = $1
+         AND COALESCE(plan_comp, FALSE) = FALSE`,
       [customerId, periodEnd, subscription.id || null]
     );
     return;
@@ -157,10 +166,12 @@ async function applySubscriptionToUser(pool, subscription) {
        SET plan = $2,
            plan_interval = $3,
            plan_expires_at = $4,
-           stripe_subscription_id = $5,
+           plan_cancel_at_period_end = $5,
+           stripe_subscription_id = $6,
            plan_updated_at = NOW()
-     WHERE stripe_customer_id = $1`,
-    [customerId, mapped.plan, mapped.interval, periodEnd, subscription.id]
+     WHERE stripe_customer_id = $1
+       AND COALESCE(plan_comp, FALSE) = FALSE`,
+    [customerId, mapped.plan, mapped.interval, periodEnd, cancelAtPeriodEnd, subscription.id]
   );
 }
 

@@ -63,15 +63,35 @@ function getLimit(planId, limitKey) {
 //   nur Fehlalarme bei verspaeteten/ausgebliebenen Renewal-Webhooks.
 const PLAN_EXPIRY_GRACE_MS = 3 * 24 * 60 * 60 * 1000; // 3 Tage
 
+// ── Plan-Spalten (lazy, idempotent) ──────────────────────────────────
+//   plan_comp                 – "comped"/manuell vergebener Plan. Laeuft NIE
+//                               ab (Stripe-Ablauf wird ignoriert), wird nicht
+//                               an Ablauf-Erinnerungen erinnert. Fuer Test-/
+//                               Freundschafts-/VIP-Accounts. Per SQL setzen:
+//                                 UPDATE users SET plan='team', plan_comp=TRUE,
+//                                   plan_expires_at=NULL WHERE email='...';
+//   plan_cancel_at_period_end – aus Stripe gespiegelt; true = Abo endet zum
+//                               Periodenende (keine Auto-Verlaengerung) ->
+//                               nur dann vor Ablauf erinnern.
+let planColsEnsured = false;
+async function ensurePlanColumns(pool) {
+  if (planColsEnsured) return;
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_comp BOOLEAN NOT NULL DEFAULT FALSE`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_cancel_at_period_end BOOLEAN NOT NULL DEFAULT FALSE`);
+  planColsEnsured = true;
+}
+
 async function getUserPlan(pool, userId) {
   try {
+    await ensurePlanColumns(pool);
     const { rows } = await pool.query(
-      'SELECT plan, plan_expires_at FROM users WHERE id = $1',
+      'SELECT plan, plan_expires_at, plan_comp FROM users WHERE id = $1',
       [userId]
     );
     if (!rows.length) return 'free';
     const planId = rows[0].plan || 'free';
-    if (planId !== 'free' && rows[0].plan_expires_at) {
+    // Comped/manuell vergebene Plaene laufen nie ab.
+    if (planId !== 'free' && !rows[0].plan_comp && rows[0].plan_expires_at) {
       const exp = new Date(rows[0].plan_expires_at);
       if (!isNaN(exp.getTime()) && exp.getTime() + PLAN_EXPIRY_GRACE_MS < Date.now()) {
         return 'free';
@@ -153,6 +173,7 @@ module.exports = {
   canUseFeature,
   getLimit,
   getUserPlan,
+  ensurePlanColumns,
   paymentRequired,
   ensureAiUsageColumns,
   consumeAiCall,
