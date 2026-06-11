@@ -6,6 +6,7 @@ import { useTaskStore } from '../store/taskStore';
 import {
   fmtAmount, currentMonthKey, isEntryInMonth, amountForMonth,
 } from '../lib/spending';
+import './GroupBudgetPanel.css';
 
 function initials(name) {
   if (!name) return '?';

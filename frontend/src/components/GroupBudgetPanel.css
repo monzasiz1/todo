@@ -1,0 +1,253 @@
+/* GroupBudgetPanel — gemeinsames Gruppen-Budget (Budget-Tab in der Gruppe).
+   Folgt dem App-Theme über CSS-Variablen. */
+
+.gbud-connect-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary, #8E8E93);
+}
+.gbud-spin { animation: gbud-spin 0.8s linear infinite; }
+@keyframes gbud-spin { to { transform: rotate(360deg); } }
+
+/* ── Aktivierte Vorschau-Karte ── */
+.gbud-connect {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+  background: var(--surface, rgba(255,255,255,0.04));
+  border: 1px solid var(--border, rgba(255,255,255,0.1));
+  border-radius: 16px;
+}
+
+.gbud-connect-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.gbud-connect-ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(88,86,214,0.16);
+  color: #8b85f5;
+  flex-shrink: 0;
+}
+.gbud-connect-texts {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.gbud-connect-texts strong {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--text-primary, #fff);
+}
+.gbud-connect-texts span {
+  font-size: 0.82rem;
+  color: var(--text-secondary, #8E8E93);
+  line-height: 1.35;
+}
+
+/* Mitglieder-Avatare (Stapel) */
+.gbud-connect-members {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.gbud-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #fff;
+  overflow: hidden;
+  border: 2px solid var(--surface, #11182a);
+  margin-left: -8px;
+  flex-shrink: 0;
+}
+.gbud-avatar:first-child { margin-left: 0; }
+.gbud-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.gbud-avatar-more {
+  background: rgba(255,255,255,0.14);
+  color: var(--text-secondary, #cbd5e1);
+}
+
+/* ── Statistik-Zeile (Einnahmen / Ausgaben / Saldo) ── */
+.gbud-connect-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+@media (max-width: 560px) {
+  .gbud-connect-stats { grid-template-columns: 1fr; }
+}
+.gbud-connect-stat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: rgba(127,127,127,0.06);
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-radius: 12px;
+}
+.gbud-cs-ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  flex-shrink: 0;
+}
+.gbud-cs-ic.income  { background: rgba(52,199,89,0.16);  color: #34c759; }
+.gbud-cs-ic.expense { background: rgba(255,69,58,0.16);   color: #ff453a; }
+.gbud-cs-ic.bal-pos { background: rgba(96,165,250,0.16);  color: #60a5fa; }
+.gbud-connect-stat > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.gbud-cs-label {
+  font-size: 0.72rem;
+  color: var(--text-secondary, #8E8E93);
+}
+.gbud-cs-val {
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary, #fff);
+}
+.gbud-cs-val.income  { color: #34c759; }
+.gbud-cs-val.expense { color: #ff453a; }
+.gbud-cs-val.bal-pos { color: #60a5fa; }
+
+/* ── Aktions-Buttons ── */
+.gbud-connect-open {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(120deg, #007aff, #5856d6);
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+.gbud-connect-open:hover { filter: brightness(1.08); }
+
+.gbud-connect-deactivate {
+  align-self: center;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #8E8E93);
+  font-size: 0.82rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: color 0.15s ease;
+}
+.gbud-connect-deactivate:hover { color: #ff453a; }
+
+/* ── Aktivierungs-Karte (noch nicht aktiviert) ── */
+.gbud-activate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  padding: 32px 24px;
+  background: var(--surface, rgba(255,255,255,0.04));
+  border: 1px solid var(--border, rgba(255,255,255,0.1));
+  border-radius: 16px;
+  max-width: 460px;
+  margin: 0 auto;
+}
+.gbud-activate-ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: rgba(88,86,214,0.16);
+  color: #8b85f5;
+}
+.gbud-activate-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary, #fff);
+}
+.gbud-activate-sub {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--text-secondary, #8E8E93);
+}
+.gbud-activate-feats {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-self: stretch;
+}
+.gbud-activate-feats li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.86rem;
+  color: var(--text-primary, #e5e7eb);
+}
+.gbud-activate-feats li svg { color: #8b85f5; flex-shrink: 0; }
+.gbud-activate-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 12px 22px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(120deg, #007aff, #5856d6);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+.gbud-activate-btn:hover { filter: brightness(1.08); }
+.gbud-activate-btn:disabled { opacity: 0.6; cursor: wait; }
+.gbud-activate-locked {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(127,127,127,0.08);
+  font-size: 0.82rem;
+  color: var(--text-secondary, #8E8E93);
+}
