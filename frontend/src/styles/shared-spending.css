@@ -1552,6 +1552,74 @@ body.spending-modal-open .bottom-nav {
   flex-shrink: 0;
 }
 
+/* Master-Schalter "Kosten aufteilen" */
+.spending-split-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+}
+.spending-split-toggle input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #60a5fa;
+  cursor: pointer;
+}
+
+/* Mitglied auswaehlen (Checkbox + Name) innerhalb einer Split-Zeile */
+.spending-split-member {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+.spending-split-member input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  accent-color: #60a5fa;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.spending-split-member span {
+  font-size: 0.9rem;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Ausgeschlossenes Mitglied abdunkeln */
+.spending-split-row.is-excluded { opacity: 0.45; }
+
+/* Berechneter Gleich-Teilen-Anteil */
+.spending-split-share {
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.spending-split-amount {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.spending-split-input:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Live-Summe der individuellen Aufteilung */
+.spending-split-sum {
+  margin-top: 8px;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+.spending-split-sum.is-ok { color: #34c759; }
+.spending-split-sum.is-warn { color: #ff9f0a; }
+
 .spending-friends-pick ul {
   list-style: none;
   padding: 0;

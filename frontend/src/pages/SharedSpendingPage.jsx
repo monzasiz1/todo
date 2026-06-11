@@ -1069,17 +1069,24 @@ function GroupDetail({
       byMember[payer] = (byMember[payer] || 0) + e.amount;
       byCategory[e.category] = (byCategory[e.category] || 0) + e.amount;
       totalExpense += e.amount;
-      if (e.split_amounts && typeof e.split_amounts === 'object') {
-        Object.entries(e.split_amounts).forEach(([memberId, amount]) => {
+      // split_amounts ist das Array [{ user_id, amount }] aus dem Backend.
+      // Jeder Anteil wird dem jeweiligen Mitglied (user_id) als "schuldet" gutgeschrieben.
+      const split = e.split_amounts;
+      if (Array.isArray(split) && split.length > 0) {
+        split.forEach((s) => {
+          const id = Number(s.user_id);
+          if (Number.isFinite(id)) byMemberOwed[id] = (byMemberOwed[id] || 0) + (Number(s.amount) || 0);
+        });
+      } else if (split && typeof split === 'object' && !Array.isArray(split) && Object.keys(split).length > 0) {
+        // Alt-Format { user_id: amount } weiterhin unterstuetzen.
+        Object.entries(split).forEach(([memberId, amount]) => {
           const id = parseInt(memberId, 10);
-          byMemberOwed[id] = (byMemberOwed[id] || 0) + (amount || 0);
+          if (Number.isFinite(id)) byMemberOwed[id] = (byMemberOwed[id] || 0) + (Number(amount) || 0);
         });
       } else {
-        const memberCount = Object.keys(byMember).length || 1;
-        const share = e.amount / memberCount;
-        group.members?.forEach((m) => {
-          byMemberOwed[m.id] = (byMemberOwed[m.id] || 0) + share;
-        });
+        // Keine Aufteilung → die zahlende Person traegt die Kosten allein
+        // (entspricht der Backend-Semantik "null = nur der Zahler ist beteiligt").
+        byMemberOwed[payer] = (byMemberOwed[payer] || 0) + e.amount;
       }
     });
     incomes.forEach((e) => {
@@ -2037,8 +2044,76 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
   const [recurrence, setRecurrence] = useState(initialRecurrence);
   const [entryDate, setEntryDate] = useState(defaultEntryDate);
   const [payer, setPayer] = useState(editing?.user_id || currentUserId || null);
-  const [splitMode, setSplitMode] = useState('equal');
-  const [splitAmounts, setSplitAmounts] = useState({});
+
+  // Gruppen-Mitglieder einheitlich ueber user_id adressieren — inkl. Owner,
+  // der bei persoenlichen (nicht verknuepften) Budgets nicht in members steht.
+  const groupMembers = useMemo(() => {
+    if (!activeGroup) return [];
+    const list = [];
+    const seen = new Set();
+    if (activeGroup.owner_id != null) {
+      seen.add(Number(activeGroup.owner_id));
+      list.push({
+        user_id: Number(activeGroup.owner_id),
+        name: activeGroup.owner_name || 'Owner',
+        avatar_color: activeGroup.owner_avatar_color,
+        avatar_url: activeGroup.owner_avatar_url,
+      });
+    }
+    (activeGroup.members || []).forEach((m) => {
+      if (m.status && m.status !== 'accepted') return;
+      const uid = Number(m.user_id);
+      if (seen.has(uid)) return;
+      seen.add(uid);
+      list.push({ user_id: uid, name: m.name, avatar_color: m.avatar_color, avatar_url: m.avatar_url });
+    });
+    return list;
+  }, [activeGroup]);
+
+  // Bestehende Aufteilung beim Bearbeiten vorladen (Array [{user_id, amount}],
+  // Alt-Format { user_id: amount } wird mit uebersetzt).
+  const editingSplit = useMemo(() => {
+    const s = editing?.split_amounts;
+    if (Array.isArray(s) && s.length > 0) {
+      return s.map((x) => ({ user_id: Number(x.user_id), amount: Number(x.amount) }));
+    }
+    if (s && typeof s === 'object' && !Array.isArray(s) && Object.keys(s).length > 0) {
+      return Object.entries(s).map(([uid, amt]) => ({ user_id: Number(uid), amount: Number(amt) }));
+    }
+    return null;
+  }, [editing]);
+
+  const [splitEnabled, setSplitEnabled] = useState(!!editingSplit);
+  const [splitMode, setSplitMode] = useState(editingSplit ? 'custom' : 'equal');
+  const [splitMembers, setSplitMembers] = useState(
+    () => new Set(editingSplit ? editingSplit.map((s) => s.user_id) : [])
+  );
+  const [splitAmounts, setSplitAmounts] = useState(() => {
+    const init = {};
+    if (editingSplit) editingSplit.forEach((s) => { init[s.user_id] = s.amount; });
+    return init;
+  });
+  // Fuer neue Eintraege: sobald die Mitglieder geladen sind, alle einbeziehen.
+  useEffect(() => {
+    if (editingSplit) return;
+    setSplitMembers(new Set(groupMembers.map((m) => m.user_id)));
+  }, [groupMembers, editingSplit]);
+
+  const includedMembers = useMemo(
+    () => groupMembers.filter((m) => splitMembers.has(m.user_id)),
+    [groupMembers, splitMembers]
+  );
+
+  // Gueltigkeit der individuellen Aufteilung (Summe muss zum Betrag passen).
+  const splitSumOk = useMemo(() => {
+    if (isIncome || !splitEnabled) return true;
+    if (includedMembers.length === 0) return false;
+    if (splitMode === 'equal') return true;
+    const amtNum = Number((amount || '').replace(',', '.')) || 0;
+    const sum = includedMembers.reduce((s, m) => s + (Number(splitAmounts[m.user_id]) || 0), 0);
+    return Math.abs(sum - amtNum) < 0.02;
+  }, [isIncome, splitEnabled, splitMode, includedMembers, amount, splitAmounts]);
+
   const [submitting, setSubmitting] = useState(false);
   // Swipe-to-close wie DayCreateModal: von ueberall ziehbar (scrollTop-bewusst),
   // RAF-gethrottelt, folgt 1:1. Hintergrund-Touch wird waehrend des Ziehens geblockt.
@@ -2130,29 +2205,29 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
     if (!Number.isFinite(amt) || amt <= 0) return;
     setSubmitting(true);
 
+    // Aufteilung als Array [{ user_id, amount }] aufbauen — adressiert die
+    // Mitglieder ueber user_id (Backend erwartet genau dieses Format).
     let splits = null;
-    if (!isIncome && activeGroup?.members && activeGroup.members.length > 1) {
-      const members = activeGroup.members;
-      const splitObj = {};
+    if (!isIncome && splitEnabled && includedMembers.length > 0) {
       if (splitMode === 'equal') {
-        const perPerson = amt / members.length;
-        let sum = 0;
-        members.forEach((m, i) => {
-          if (i === members.length - 1) {
-            splitObj[m.id] = Math.max(0, amt - sum);
+        const per = amt / includedMembers.length;
+        let acc = 0;
+        splits = includedMembers.map((m, i) => {
+          let val;
+          if (i === includedMembers.length - 1) {
+            val = Math.round((amt - acc) * 100) / 100; // Rest auf die letzte Person
           } else {
-            const rounded = parseFloat(perPerson.toFixed(2));
-            splitObj[m.id] = rounded;
-            sum += rounded;
+            val = Math.round(per * 100) / 100;
+            acc += val;
           }
+          return { user_id: m.user_id, amount: val };
         });
       } else {
-        Object.assign(splitObj, splitAmounts);
+        splits = includedMembers.map((m) => ({
+          user_id: m.user_id,
+          amount: Math.round((Number(splitAmounts[m.user_id]) || 0) * 100) / 100,
+        }));
       }
-      splits = Object.entries(splitObj).map(([userId, amount]) => ({
-        user_id: parseInt(userId, 10),
-        amount: parseFloat(String(amount).toFixed(2)),
-      }));
     }
 
     const payload = {
@@ -2414,70 +2489,113 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
             />
           </label>
 
-          {!isIncome && activeGroup?.members && activeGroup.members.length > 1 && (
-            <>
-              <label className="spending-field">
-                <span>Zahler</span>
-                <select
-                  value={payer || ''}
-                  onChange={(e) => setPayer(e.target.value ? parseInt(e.target.value, 10) : null)}
-                  className="spending-field-select"
-                >
-                  {activeGroup.members.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
+          {groupMembers.length > 1 && (
+            <label className="spending-field">
+              <span>{isIncome ? 'Eingenommen von' : 'Bezahlt von'}</span>
+              <select
+                value={payer || ''}
+                onChange={(e) => setPayer(e.target.value ? parseInt(e.target.value, 10) : null)}
+                className="spending-field-select"
+              >
+                {groupMembers.map((m) => (
+                  <option key={m.user_id} value={m.user_id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          {!isIncome && groupMembers.length > 1 && (
+            <div className="spending-field">
+              <label className="spending-split-toggle">
+                <span>Kosten aufteilen</span>
+                <input
+                  type="checkbox"
+                  checked={splitEnabled}
+                  onChange={(e) => setSplitEnabled(e.target.checked)}
+                />
               </label>
 
-              <div className="spending-field">
-                <span>Aufteilung</span>
-                <div className="spending-split-tabs">
-                  <button
-                    type="button"
-                    className={`spending-split-tab ${splitMode === 'equal' ? 'is-active' : ''}`}
-                    onClick={() => setSplitMode('equal')}
-                  >
-                    Gleich teilen
-                  </button>
-                  <button
-                    type="button"
-                    className={`spending-split-tab ${splitMode === 'custom' ? 'is-active' : ''}`}
-                    onClick={() => setSplitMode('custom')}
-                  >
-                    Individuell
-                  </button>
-                </div>
-              </div>
+              {splitEnabled && (
+                <>
+                  <div className="spending-split-tabs">
+                    <button
+                      type="button"
+                      className={`spending-split-tab ${splitMode === 'equal' ? 'is-active' : ''}`}
+                      onClick={() => setSplitMode('equal')}
+                    >
+                      Gleich teilen
+                    </button>
+                    <button
+                      type="button"
+                      className={`spending-split-tab ${splitMode === 'custom' ? 'is-active' : ''}`}
+                      onClick={() => setSplitMode('custom')}
+                    >
+                      Individuell
+                    </button>
+                  </div>
 
-              {splitMode === 'custom' && amount && (
-                <div className="spending-split-inputs">
-                  {activeGroup.members.map((m) => {
-                    const currentAmount = splitAmounts[m.id] || '';
+                  <div className="spending-split-inputs">
+                    {groupMembers.map((m) => {
+                      const included = splitMembers.has(m.user_id);
+                      const amtNum = Number((amount || '').replace(',', '.')) || 0;
+                      const equalShare = includedMembers.length > 0 ? amtNum / includedMembers.length : 0;
+                      return (
+                        <div key={m.user_id} className={`spending-split-row ${included ? '' : 'is-excluded'}`}>
+                          <label className="spending-split-member">
+                            <input
+                              type="checkbox"
+                              checked={included}
+                              onChange={(e) => {
+                                const next = new Set(splitMembers);
+                                if (e.target.checked) next.add(m.user_id);
+                                else next.delete(m.user_id);
+                                setSplitMembers(next);
+                              }}
+                            />
+                            <span>{m.name}</span>
+                          </label>
+                          {splitMode === 'equal' ? (
+                            <span className="spending-split-share">
+                              {included ? `${fmtAmount(equalShare)} €` : '—'}
+                            </span>
+                          ) : (
+                            <div className="spending-split-amount">
+                              <input
+                                type="text"
+                                inputMode="decimal"
+                                disabled={!included}
+                                value={splitAmounts[m.user_id] ?? ''}
+                                onChange={(e) => {
+                                  const val = e.target.value.replace(/[^0-9.,]/g, '');
+                                  const num = val ? parseFloat(val.replace(',', '.')) : '';
+                                  setSplitAmounts({ ...splitAmounts, [m.user_id]: num === '' ? '' : num });
+                                }}
+                                placeholder="0,00"
+                                className="spending-split-input"
+                              />
+                              <span className="spending-split-currency">€</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {splitMode === 'custom' && (() => {
+                    const amtNum = Number((amount || '').replace(',', '.')) || 0;
+                    const sum = includedMembers.reduce((s, m) => s + (Number(splitAmounts[m.user_id]) || 0), 0);
                     return (
-                      <div key={m.id} className="spending-split-row">
-                        <label htmlFor={`split-${m.id}`}>{m.name}</label>
-                        <input
-                          id={`split-${m.id}`}
-                          type="text"
-                          inputMode="decimal"
-                          value={currentAmount}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(/[^0-9.,]/g, '');
-                            const num = val ? parseFloat(val.replace(',', '.')) : '';
-                            setSplitAmounts({ ...splitAmounts, [m.id]: num === '' ? '' : num });
-                          }}
-                          placeholder="0,00"
-                          className="spending-split-input"
-                        />
-                        <span className="spending-split-currency">€</span>
+                      <div className={`spending-split-sum ${splitSumOk ? 'is-ok' : 'is-warn'}`}>
+                        Summe: {fmtAmount(sum)} € / {fmtAmount(amtNum)} €
+                        {!splitSumOk && <span> · muss zum Betrag passen</span>}
                       </div>
                     );
-                  })}
-                </div>
+                  })()}
+                </>
               )}
-            </>
+            </div>
           )}
 
           <label className="spending-field">
@@ -2526,7 +2644,7 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
             <button
               type="submit"
               className={`sankey-btn ${isIncome ? 'sankey-btn-income' : 'sankey-btn-primary'}`}
-              disabled={!amount || submitting}
+              disabled={!amount || submitting || !splitSumOk}
             >
               <Plus size={16} /> {submitting ? 'Speichere…' : (isEdit ? 'Speichern' : 'Hinzufügen')}
             </button>
