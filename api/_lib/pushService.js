@@ -74,8 +74,30 @@ if (VAPID_PUBLIC && VAPID_PRIVATE) {
 // nächsten App-Öffnen ankommen.
 const HIGH_URGENCY_TYPES = new Set(['focus_timer', 'reminder', 'reminder_seen']);
 
-async function sendPushToUser(userId, payload, type, taskId = null, groupId = null) {
+async function sendPushToUser(userId, payload, type, taskId = null, groupId = null, prefKey = null) {
   const pool = getPool();
+
+  // ─── STEP 0: Respect the recipient's notification preferences ───────────
+  // If a prefKey is given (e.g. 'team_task' for group notifications) and the
+  // user disabled that category, skip the notification entirely — no log,
+  // no push. This mirrors how the cron/groups paths skip the call upfront,
+  // so "Gruppen-Benachrichtigungen aus" really means nothing arrives.
+  if (prefKey) {
+    try {
+      const { rows } = await pool.query('SELECT notification_prefs FROM users WHERE id = $1', [userId]);
+      let prefs = rows[0]?.notification_prefs || {};
+      if (typeof prefs === 'string') {
+        try { prefs = JSON.parse(prefs); } catch { prefs = {}; }
+      }
+      if (prefs[prefKey] === false) {
+        console.log(`[pushService] pref '${prefKey}' disabled for user ${userId} — skipping ${type}`);
+        return 0;
+      }
+    } catch (prefErr) {
+      // Fail open: on lookup error we still deliver rather than silently drop.
+      console.error('[pushService] pref lookup failed:', prefErr.message);
+    }
+  }
 
   // ─── STEP 1: ALWAYS log to notification_log FIRST ───────────────────────
   // This guarantees the in-app notification bell always shows entries,

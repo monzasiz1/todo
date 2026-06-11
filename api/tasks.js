@@ -1232,7 +1232,9 @@ module.exports = async function handler(req, res) {
               },
               'task_completed',
               taskId,
-              r.group_id || null
+              r.group_id || null,
+              // Gruppen-Erledigungen folgen dem „Gruppen-Benachrichtigungen"-Schalter.
+              inGroup ? 'team_task' : null
             ).catch(() => null);
           }
         } catch (notifyErr) {
@@ -2615,7 +2617,9 @@ module.exports = async function handler(req, res) {
             },
             'team_task_created',
             firstTask.id,
-            groupInfo.id
+            groupInfo.id,
+            // Folgt dem „Gruppen-Benachrichtigungen"-Schalter (team_task).
+            'team_task'
           ).catch(() => null);
         }
       }
