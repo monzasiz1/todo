@@ -1172,6 +1172,74 @@ module.exports = async function handler(req, res) {
       // We only cache-invalidate so the dashboard refreshes.
       await cacheManager.invalidateByEvent(String(user.id), 'task_updated');
 
+      // ── „Papa hat ‚Einkaufen' erledigt" ──────────────────────────────────
+      // Wenn eine geteilte oder Gruppen-Aufgabe abgehakt wird, bekommen die
+      // anderen Beteiligten (Owner, ausgewählte Nutzer, Gruppenmitglieder,
+      // bei visibility='shared' auch Freunde) eine Benachrichtigung — außer
+      // die Person, die sie selbst erledigt hat. Best-effort, blockiert die
+      // Antwort nicht durch Fehler.
+      if (toggled.completed === true) {
+        try {
+          const actorRow = await pool.query('SELECT name FROM users WHERE id = $1', [user.id]);
+          const actorName = actorRow.rows[0]?.name || 'Jemand';
+          const taskTitle = toggled.title || 'Aufgabe';
+
+          const recipients = await pool.query(
+            `WITH ctx AS (
+               -- Gruppenmitglieder der Gruppe(n), in der die Aufgabe liegt
+               SELECT gm.user_id, gt.group_id, grp.name AS group_name, true AS in_group
+               FROM group_tasks gt
+               JOIN group_members gm ON gm.group_id = gt.group_id
+               JOIN groups grp ON grp.id = gt.group_id
+               WHERE gt.task_id = $1
+               UNION ALL
+               -- gezielt geteilte Nutzer (visibility='selected_users')
+               SELECT tp.user_id, NULL::int, NULL::text, false
+               FROM task_permissions tp
+               WHERE tp.task_id = $1 AND tp.can_view = true
+               UNION ALL
+               -- mit allen Freunden geteilt (visibility='shared')
+               SELECT CASE WHEN f.user_id = t.user_id THEN f.friend_id ELSE f.user_id END,
+                      NULL::int, NULL::text, false
+               FROM tasks t
+               JOIN friends f ON f.status = 'accepted'
+                 AND (f.user_id = t.user_id OR f.friend_id = t.user_id)
+               WHERE t.id = $1 AND t.visibility = 'shared'
+               UNION ALL
+               -- Eigentümer der Aufgabe
+               SELECT t.user_id, NULL::int, NULL::text, false
+               FROM tasks t WHERE t.id = $1
+             )
+             SELECT user_id,
+                    MAX(group_id) AS group_id,
+                    MAX(group_name) AS group_name,
+                    bool_or(in_group) AS in_group
+             FROM ctx
+             WHERE user_id IS NOT NULL AND user_id <> $2
+             GROUP BY user_id`,
+            [taskId, user.id]
+          );
+
+          for (const r of recipients.rows) {
+            const inGroup = r.in_group && r.group_name;
+            await sendPushToUser(
+              r.user_id,
+              {
+                title: `${actorName} hat „${taskTitle}" erledigt`,
+                body: inGroup ? `Gruppe · ${r.group_name}` : 'Geteilte Aufgabe',
+                tag: `task-done-${taskId}`,
+                url: inGroup ? '/groups' : '/calendar',
+              },
+              'task_completed',
+              taskId,
+              r.group_id || null
+            ).catch(() => null);
+          }
+        } catch (notifyErr) {
+          console.error('[tasks] completion notify failed:', notifyErr.message);
+        }
+      }
+
       return res.json({ task: normalizeTaskRow(toggled), nextTask: null });
     } catch (err) {
       console.error('Toggle error:', err);

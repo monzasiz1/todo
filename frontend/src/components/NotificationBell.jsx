@@ -14,6 +14,7 @@ const TYPE_CONFIG = {
   engagement: { icon: Sparkles, color: '#AF52DE' },
   team_task: { icon: Users, color: '#5856D6' },
   team_task_created: { icon: Users, color: '#5856D6' },
+  task_completed: { icon: CheckCircle2, color: '#34C759' },
   group_message: { icon: Users, color: '#2F80ED' },
   test: { icon: Bell, color: '#34C759' },
 };
@@ -29,6 +30,11 @@ function getTarget(notification) {
   const { type, task_id, group_id } = notification;
   if (type === 'group_message' || type === 'team_task' || type === 'team_task_created') {
     return group_id ? `/app/groups?group=${group_id}` : '/app/groups';
+  }
+  if (type === 'task_completed') {
+    if (group_id) return `/app/groups?group=${group_id}`;
+    if (task_id) return `/app/calendar?task=${task_id}`;
+    return '/app/calendar';
   }
   if (task_id) return `/app/calendar?task=${task_id}`;
   if (type === 'reminder' || type === 'reminder_created') return '/app/calendar';
