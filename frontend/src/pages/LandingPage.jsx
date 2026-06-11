@@ -409,7 +409,7 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* ══════════ HERO — atmosphärisch & ästhetisch ══════════ */}
+      {/* ══════════ HERO — für Familien & Teams, App im Mittelpunkt ══════════ */}
       <header className="lp-hero" ref={heroRef}>
         <div className="lp-hero-orbs" aria-hidden>
           <span className="lp-orb lp-orb-1" />
@@ -418,40 +418,102 @@ export default function LandingPage() {
         </div>
         <div className="lp-hero-grain" aria-hidden />
 
-        <motion.div
-          className="lp-hero-center"
-          initial="hidden" animate="visible"
-          variants={{ visible: { transition: { staggerChildren: 0.09 } } }}
-        >
-          <motion.span className="lp-eyebrow" variants={fadeUp}>
-            <span className="lp-live-dot" /> Aufgaben · Kalender · Notizen · Teams
-          </motion.span>
+        <div className="lp-hero-split">
+          {/* ── linke Spalte: Copy ── */}
+          <motion.div
+            className="lp-hero-copy"
+            initial="hidden" animate="visible"
+            variants={{ visible: { transition: { staggerChildren: 0.09 } } }}
+          >
+            <motion.span className="lp-eyebrow" variants={fadeUp}>
+              <span className="lp-live-dot" /> Für Familien · WGs · Teams
+            </motion.span>
 
-          <motion.h1 className="lp-hero-h1" variants={fadeUp}>
-            Ordnung, die sich<br />
-            <span className="lp-hero-accent">gut anfühlt.</span>
-          </motion.h1>
+            <motion.h1 className="lp-hero-h1" variants={fadeUp}>
+              Das Familien-Chaos.<br />
+              <span className="lp-hero-accent">Endlich auf einer Seite.</span>
+            </motion.h1>
 
-          <motion.p className="lp-hero-sub" variants={fadeUp}>
-            Alles, was dein Tag braucht — an einem ruhigen, schönen Ort.
-            Klar, schnell und überall dabei: am Desktop wie am Handy.
-          </motion.p>
+            <motion.p className="lp-hero-sub" variants={fadeUp}>
+              Aufgaben, Kalender, Notizen und Budget — geteilt mit Familie, WG oder Team.
+              Jeder sieht, was ansteht, niemand vergisst etwas. Und die KI versteht einen
+              einzigen Satz.
+            </motion.p>
 
-          <motion.div className="lp-hero-actions" variants={fadeUp}>
-            <button onClick={openRegister} className="lp-btn lp-primary lp-btn-lg">
-              Kostenlos starten <ArrowRight size={17} />
-            </button>
-            <button onClick={openLogin} className="lp-btn lp-ghost lp-btn-lg">
-              Anmelden
-            </button>
+            <motion.div className="lp-hero-actions" variants={fadeUp}>
+              <button onClick={openRegister} className="lp-btn lp-primary lp-btn-lg">
+                Gemeinsam starten <ArrowRight size={17} />
+              </button>
+              <button onClick={openLogin} className="lp-btn lp-ghost lp-btn-lg">
+                Anmelden
+              </button>
+            </motion.div>
+
+            <motion.div className="lp-hero-social" variants={fadeUp}>
+              <div className="lp-hero-avatars" aria-hidden>
+                {[
+                  { i: 'M', c: '#007AFF' },
+                  { i: 'P', c: '#34C759' },
+                  { i: 'L', c: '#FF9500' },
+                  { i: 'A', c: '#5856D6' },
+                ].map((a) => (
+                  <span key={a.i} className="lp-hero-av" style={{ background: a.c }}>{a.i}</span>
+                ))}
+                <span className="lp-hero-av lp-hero-av-more">+</span>
+              </div>
+              <span className="lp-hero-social-text">
+                Familien &amp; Teams organisieren sich mit BeeQu — kostenlos starten, DSGVO-konform.
+              </span>
+            </motion.div>
           </motion.div>
 
-          <motion.div className="lp-hero-trust" variants={fadeUp}>
-            <span><Check size={13} strokeWidth={3} /> Kostenlos starten</span>
-            <span><Check size={13} strokeWidth={3} /> Free-Plan inklusive</span>
-            <span><Check size={13} strokeWidth={3} /> DSGVO-konform</span>
+          {/* ── rechte Spalte: echte App + schwebende Karten ── */}
+          <motion.div
+            className="lp-hero-visual"
+            style={{ y: frameY }}
+            initial={{ opacity: 0, scale: 0.94, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.7, ease, delay: 0.15 }}
+          >
+            <div className="lp-hero-phone-glow" aria-hidden />
+            <div className="lp-hero-phone">
+              <img src="/bilder/homehandy.png" alt="BeeQu App — Home" draggable={false} />
+            </div>
+
+            <motion.div
+              className="lp-float lp-float-task"
+              initial={{ opacity: 0, x: -24, y: 10 }} animate={{ opacity: 1, x: 0, y: 0 }}
+              transition={{ duration: 0.5, ease, delay: 0.7 }}
+            >
+              <span className="lp-float-av" style={{ background: '#34C759' }}>P</span>
+              <div>
+                <span className="lp-float-title"><CheckCircle2 size={13} /> Papa hat „Einkaufen" erledigt</span>
+                <span className="lp-float-sub">vor 2 Min · geteilte Aufgabe</span>
+              </div>
+            </motion.div>
+
+            <motion.div
+              className="lp-float lp-float-ai"
+              initial={{ opacity: 0, x: 24, y: -10 }} animate={{ opacity: 1, x: 0, y: 0 }}
+              transition={{ duration: 0.5, ease, delay: 0.95 }}
+            >
+              <span className="lp-float-ico"><Sparkles size={14} /></span>
+              <div>
+                <span className="lp-float-title">„Zahnarzt Dienstag 15 Uhr"</span>
+                <span className="lp-float-sub"><CalendarDays size={11} /> Di · 15:00 · von KI erkannt</span>
+              </div>
+            </motion.div>
+
+            <motion.div
+              className="lp-float lp-float-members"
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease, delay: 1.15 }}
+            >
+              <UsersRound size={15} />
+              <span><strong>4 Mitglieder</strong> · Familie Schmidt</span>
+            </motion.div>
           </motion.div>
-        </motion.div>
+        </div>
       </header>
 
       {/* ══════════ MARQUEE STRIP ══════════ */}
