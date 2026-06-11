@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wallet, TrendingUp, TrendingDown, ArrowRight, Loader2, Sparkles, Lock } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, ArrowRight, Loader2, Sparkles, Lock, Users, ChevronDown } from 'lucide-react';
 import { api } from '../utils/api';
 import { useTaskStore } from '../store/taskStore';
 import {
@@ -24,18 +24,35 @@ export default function GroupBudgetPanel({ groupId }) {
   const addToast = useTaskStore((s) => s.addToast);
   const [budget, setBudget] = useState(null);
   const [canActivate, setCanActivate] = useState(false);
+  const [locked, setLocked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activating, setActivating] = useState(false);
+  const [showAccess, setShowAccess] = useState(false);
+  const [savingAccessId, setSavingAccessId] = useState(null);
 
   const load = async () => {
     try {
       const data = await api.getGroupBudget(groupId);
       setBudget(data.group || null);
       setCanActivate(!!data.can_activate);
+      setLocked(!!data.locked);
     } catch {
       /* belassen */
     } finally {
       setLoading(false);
+    }
+  };
+
+  const toggleAccess = async (member) => {
+    setSavingAccessId(member.user_id);
+    try {
+      const data = await api.setGroupBudgetAccess(groupId, member.user_id, !member.budget_allowed);
+      if (data.group) setBudget(data.group);
+      addToast(member.budget_allowed ? `${member.name} hat keinen Budget-Zugriff mehr` : `${member.name} darf jetzt aufs Budget`);
+    } catch (err) {
+      addToast(err?.message || 'Änderung fehlgeschlagen', 'error');
+    } finally {
+      setSavingAccessId(null);
     }
   };
   useEffect(() => { setLoading(true); load(); /* eslint-disable-next-line */ }, [groupId]);
@@ -84,6 +101,20 @@ export default function GroupBudgetPanel({ groupId }) {
     return <div className="gbud-connect-loading" style={{ padding: 40 }}><Loader2 size={20} className="gbud-spin" /></div>;
   }
 
+  // ── Pro-Nutzer gesperrt: kein Budget-Zugriff ──
+  if (locked) {
+    return (
+      <div className="gbud-activate">
+        <div className="gbud-activate-ic"><Lock size={24} /></div>
+        <h3 className="gbud-activate-title">Kein Budget-Zugriff</h3>
+        <p className="gbud-activate-sub">
+          Ein Admin dieser Gruppe hat dir den Zugriff auf das gemeinsame Budget nicht freigegeben.
+          Wende dich an eine:n Admin, wenn du Zugriff brauchst.
+        </p>
+      </div>
+    );
+  }
+
   // ── Noch nicht aktiviert: Aktivierungs-Karte ──
   if (!budget) {
     return (
@@ -115,6 +146,8 @@ export default function GroupBudgetPanel({ groupId }) {
 
   // ── Aktiviert: Vorschau-Karte ──
   const members = budget.members || [];
+  // Owner/Admins haben immer Zugriff → nur normale Mitglieder sind individuell schaltbar.
+  const manageableMembers = members.filter((m) => m.role !== 'owner' && m.role !== 'admin');
   return (
     <div className="gbud-connect">
       <div className="gbud-connect-head">
@@ -164,6 +197,42 @@ export default function GroupBudgetPanel({ groupId }) {
       <button className="gbud-connect-open" onClick={open}>
         Budget öffnen <ArrowRight size={17} />
       </button>
+
+      {budget.is_owner && manageableMembers.length > 0 && (
+        <div className="gbud-access">
+          <button className={`gbud-access-toggle ${showAccess ? 'is-open' : ''}`} onClick={() => setShowAccess((v) => !v)}>
+            <Users size={15} />
+            <span>Budget-Zugriff verwalten</span>
+            <ChevronDown size={16} className="gbud-access-chevron" />
+          </button>
+          {showAccess && (
+            <div className="gbud-access-list">
+              <p className="gbud-access-hint">
+                Lege fest, wer aufs gemeinsame Budget zugreifen darf — unabhängig von der Rolle.
+                Admins haben immer Zugriff.
+              </p>
+              {manageableMembers.map((m) => (
+                <div key={m.user_id} className="gbud-access-row">
+                  <span className="gbud-avatar" style={{ background: m.avatar_color || '#5856D6' }}>
+                    {m.avatar_url ? <img src={m.avatar_url} alt={m.name} /> : initials(m.name)}
+                  </span>
+                  <span className="gbud-access-name">{m.name}</span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={m.budget_allowed !== false}
+                    className={`gbud-switch ${m.budget_allowed !== false ? 'is-on' : ''}`}
+                    disabled={savingAccessId === m.user_id}
+                    onClick={() => toggleAccess(m)}
+                  >
+                    <span className="gbud-switch-knob" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {budget.is_owner && (
         <button className="gbud-connect-deactivate" onClick={deactivate}>

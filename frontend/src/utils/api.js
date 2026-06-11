@@ -521,6 +521,12 @@ export const api = {
     request(`/spending/for-group/${realGroupId}/activate`, { method: 'POST' }),
   deactivateGroupBudget: (realGroupId) =>
     request(`/spending/for-group/${realGroupId}`, { method: 'DELETE' }),
+  // Budget-Zugriff eines Mitglieds individuell erlauben/sperren (Owner/Admin).
+  setGroupBudgetAccess: (realGroupId, userId, allowed) =>
+    request(`/spending/for-group/${realGroupId}/access/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ allowed }),
+    }),
 
   createSpendingGroup: (name) =>
     request('/spending', {
