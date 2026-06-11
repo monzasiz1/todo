@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Users, TrendingUp, TrendingDown, Plus, Trash2, X, Check,
   UserPlus, Receipt, Sparkles, ChevronRight, ChevronLeft, LogOut, AlertCircle,
   Wand2, ArrowDownCircle, ArrowUpCircle, Wallet, Loader2, Repeat, Calendar,
-  Pencil, PauseCircle, RotateCcw, Activity, ArrowRight, ChevronsRight,
+  Pencil, PauseCircle, RotateCcw, Activity, ArrowRight, ChevronsRight, ChevronDown,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -1992,6 +1992,110 @@ function InviteFriendModal({ friends, existingMemberIds, onClose, onSubmit }) {
   ), document.body);
 }
 
+/* Avatar-Auswahl (Zahler / Eingenommen von): Dropdown mit Avatar + Name.
+ * Portal + fixed-Position wie der Custom-Rollen-Picker, damit nichts im
+ * scrollenden Modal abgeschnitten wird. */
+function AvatarSelect({ members, value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState(null);
+  const wrapRef = useRef(null);
+  const menuRef = useRef(null);
+  const selected = members.find((m) => m.user_id === value) || members[0] || null;
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDoc = (e) => {
+      if (wrapRef.current?.contains(e.target) || menuRef.current?.contains(e.target)) return;
+      setOpen(false);
+    };
+    const onEsc = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onEsc);
+    };
+  }, [open]);
+
+  useLayoutEffect(() => {
+    if (!open || !wrapRef.current) { setMenuPos(null); return; }
+    const compute = () => {
+      const r = wrapRef.current.getBoundingClientRect();
+      const menuH = Math.min(members.length, 6) * 46 + 10;
+      const spaceBelow = window.innerHeight - r.bottom - 24;
+      const dropUp = spaceBelow < menuH && r.top > menuH;
+      setMenuPos({
+        left: r.left,
+        width: r.width,
+        top: dropUp ? undefined : r.bottom + 6,
+        bottom: dropUp ? window.innerHeight - r.top + 6 : undefined,
+      });
+    };
+    compute();
+    window.addEventListener('resize', compute);
+    window.addEventListener('scroll', compute, true);
+    return () => {
+      window.removeEventListener('resize', compute);
+      window.removeEventListener('scroll', compute, true);
+    };
+  }, [open, members.length]);
+
+  return (
+    <div ref={wrapRef} className="spending-avatar-select">
+      <button
+        type="button"
+        className={`spending-avatar-select-trigger ${open ? 'is-open' : ''}`}
+        onClick={() => setOpen((v) => !v)}
+      >
+        {selected && (
+          <AvatarBadge
+            name={selected.name}
+            color={selected.avatar_color || '#007AFF'}
+            avatarUrl={selected.avatar_url}
+            size={26}
+          />
+        )}
+        <span className="spending-avatar-select-name">{selected?.name || 'Auswählen'}</span>
+        <ChevronDown size={16} className="spending-avatar-select-chevron" />
+      </button>
+
+      {open && menuPos && createPortal(
+        <div
+          ref={menuRef}
+          className="spending-avatar-select-menu"
+          style={{
+            position: 'fixed',
+            left: menuPos.left,
+            top: menuPos.top,
+            bottom: menuPos.bottom,
+            width: menuPos.width,
+            zIndex: 10300,
+          }}
+        >
+          {members.map((m) => (
+            <button
+              key={m.user_id}
+              type="button"
+              className={`spending-avatar-select-option ${m.user_id === value ? 'is-active' : ''}`}
+              onClick={() => { onChange(m.user_id); setOpen(false); }}
+            >
+              <AvatarBadge
+                name={m.name}
+                color={m.avatar_color || '#007AFF'}
+                avatarUrl={m.avatar_url}
+                size={26}
+              />
+              <span className="spending-avatar-select-option-name">{m.name}</span>
+              {m.user_id === value && <Check size={15} className="spending-avatar-select-check" />}
+            </button>
+          ))}
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}
+
 /* Unified Entry-Modal: Toggle zwischen Einnahme und Ausgabe oben.
  * Akzeptiert prefill aus KI-Parser (Kategorie, Betrag, Beschreibung). */
 function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose, onSubmit, onSwitch }) {
@@ -2490,32 +2594,26 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
           </label>
 
           {groupMembers.length > 1 && (
-            <label className="spending-field">
+            <div className="spending-field">
               <span>{isIncome ? 'Eingenommen von' : 'Bezahlt von'}</span>
-              <select
-                value={payer || ''}
-                onChange={(e) => setPayer(e.target.value ? parseInt(e.target.value, 10) : null)}
-                className="spending-field-select"
-              >
-                {groupMembers.map((m) => (
-                  <option key={m.user_id} value={m.user_id}>
-                    {m.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+              <AvatarSelect members={groupMembers} value={payer} onChange={setPayer} />
+            </div>
           )}
 
           {!isIncome && groupMembers.length > 1 && (
             <div className="spending-field">
-              <label className="spending-split-toggle">
+              <div className="spending-split-toggle">
                 <span>Kosten aufteilen</span>
-                <input
-                  type="checkbox"
-                  checked={splitEnabled}
-                  onChange={(e) => setSplitEnabled(e.target.checked)}
-                />
-              </label>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={splitEnabled}
+                  className={`spending-switch ${splitEnabled ? 'is-on' : ''}`}
+                  onClick={() => setSplitEnabled(!splitEnabled)}
+                >
+                  <span className="spending-switch-knob" />
+                </button>
+              </div>
 
               {splitEnabled && (
                 <>
@@ -2543,19 +2641,28 @@ function EntryModal({ mode, prefill, editing, viewMonth, currentUserId, onClose,
                       const equalShare = includedMembers.length > 0 ? amtNum / includedMembers.length : 0;
                       return (
                         <div key={m.user_id} className={`spending-split-row ${included ? '' : 'is-excluded'}`}>
-                          <label className="spending-split-member">
-                            <input
-                              type="checkbox"
-                              checked={included}
-                              onChange={(e) => {
-                                const next = new Set(splitMembers);
-                                if (e.target.checked) next.add(m.user_id);
-                                else next.delete(m.user_id);
-                                setSplitMembers(next);
-                              }}
+                          <button
+                            type="button"
+                            className="spending-split-member"
+                            onClick={() => {
+                              const next = new Set(splitMembers);
+                              if (included) next.delete(m.user_id);
+                              else next.add(m.user_id);
+                              setSplitMembers(next);
+                            }}
+                            aria-pressed={included}
+                          >
+                            <span className={`spending-check ${included ? 'is-on' : ''}`}>
+                              {included && <Check size={13} strokeWidth={3} />}
+                            </span>
+                            <AvatarBadge
+                              name={m.name}
+                              color={m.avatar_color || '#007AFF'}
+                              avatarUrl={m.avatar_url}
+                              size={28}
                             />
-                            <span>{m.name}</span>
-                          </label>
+                            <span className="spending-split-member-name">{m.name}</span>
+                          </button>
                           {splitMode === 'equal' ? (
                             <span className="spending-split-share">
                               {included ? `${fmtAmount(equalShare)} €` : '—'}

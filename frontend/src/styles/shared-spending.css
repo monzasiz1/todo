@@ -1620,6 +1620,135 @@ body.spending-modal-open .bottom-nav {
 .spending-split-sum.is-ok { color: #34c759; }
 .spending-split-sum.is-warn { color: #ff9f0a; }
 
+/* ── Avatar-Auswahl (Zahler / Eingenommen von) ── */
+.spending-avatar-select { position: relative; width: 100%; }
+.spending-avatar-select-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.spending-avatar-select-trigger:hover { background: rgba(255,255,255,0.06); }
+.spending-avatar-select-trigger.is-open { border-color: rgba(96,165,250,0.55); }
+.spending-avatar-select-name {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  font-size: 0.95rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.spending-avatar-select-chevron { color: var(--text-secondary); flex-shrink: 0; transition: transform 0.15s ease; }
+.spending-avatar-select-trigger.is-open .spending-avatar-select-chevron { transform: rotate(180deg); }
+
+.spending-avatar-select-menu {
+  background: var(--surface, #11182a);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+  padding: 4px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.spending-avatar-select-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 9px;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.spending-avatar-select-option:hover { background: rgba(255,255,255,0.06); }
+.spending-avatar-select-option.is-active { background: rgba(96,165,250,0.14); }
+.spending-avatar-select-option-name {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  font-size: 0.92rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.spending-avatar-select-check { color: #60a5fa; flex-shrink: 0; }
+
+/* ── Toggle-Switch (Kosten aufteilen) ── */
+.spending-switch {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(255,255,255,0.16);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.18s ease;
+}
+.spending-switch.is-on { background: #34c759; }
+.spending-switch-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.35);
+  transition: transform 0.18s ease;
+}
+.spending-switch.is-on .spending-switch-knob { transform: translateX(18px); }
+
+/* ── Custom Checkbox (Mitglied einbeziehen) ── */
+.spending-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  border: 1.5px solid rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.04);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.spending-check.is-on { background: #60a5fa; border-color: #60a5fa; }
+
+/* Mitglied-Zeile als klickbarer Button (Avatar + Name) */
+.spending-split-member {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--text);
+}
+.spending-split-member-name {
+  font-size: 0.9rem;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .spending-friends-pick ul {
   list-style: none;
   padding: 0;
