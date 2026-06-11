@@ -1772,21 +1772,15 @@ function GroupDetail({ groupId, onBack }) {
                       {memberSubgroups.map((sg) => (
                         <span
                           key={sg.id}
+                          className="group-subgroup-badge"
                           title={`Untergruppe: ${sg.name}`}
                           style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 4,
-                            fontSize: 11,
-                            fontWeight: 600,
-                            padding: '2px 8px',
-                            borderRadius: 999,
                             color: sg.color || '#007AFF',
-                            background: `${sg.color || '#007AFF'}1a`,
-                            border: `1px solid ${sg.color || '#007AFF'}55`,
+                            background: `${sg.color || '#007AFF'}14`,
+                            borderColor: `${sg.color || '#007AFF'}40`,
                           }}
                         >
-                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: sg.color || '#007AFF' }} />
+                          <Hash size={10} style={{ flexShrink: 0 }} />
                           {sg.name}
                         </span>
                       ))}
