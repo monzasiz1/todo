@@ -2103,8 +2103,11 @@ export default function NotesPage() {
         </div>
       </div>
 
-      {/* Mobile Bottom-Sheet: Sekundäre Board-Aktionen */}
-      {mobileMoreOpen && (
+      {/* Mobile Bottom-Sheet: Sekundäre Board-Aktionen.
+          Per Portal auf document.body — innerhalb der Seite sperrt ein
+          Vorfahren-Stacking-Context (transform/filter) den z-index sonst
+          UNTER die Bottom-Nav (sichtbar auf iOS). */}
+      {mobileMoreOpen && createPortal(
         <div
           className="board-mobile-sheet-backdrop"
           onClick={() => { setMobileMoreOpen(false); setSheetDragY(0); }}
@@ -2211,7 +2214,8 @@ export default function NotesPage() {
               Schließen
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Hashtag-Filter-Leiste: zeigt die häufigsten Tags als Chips,
