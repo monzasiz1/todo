@@ -1,4 +1,5 @@
 import { Flame, Clock, TrendingUp, TrendingDown, Minus, CalendarCheck, ListTodo, Sparkles } from 'lucide-react';
+import './StatisticsDashboard.css';
 
 /**
  * StatisticsDashboard
