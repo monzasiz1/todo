@@ -74,27 +74,39 @@ function deduplicateRecurring(tasks) {
   });
 }
 
+// Synonyme für Geburtstag/Jahrestag — gilt für Titel UND Kategorie-Namen.
+const BIRTHDAY_WORDS = /(geburtstag|geburi|wiegenfest|ehrentag|namenstag|jahrestag|hochzeitstag|jubil(?:ä|ae)um|b-?day|bday|birthday|anniversary)/i;
+// Icon-Namen (Lucide) bzw. Emojis, die auf Geburtstag/Feier hindeuten.
+const BIRTHDAY_ICONS = /(cake|gift|party|balloon|🎂|🥳|🎉|🎈)/i;
+
 // Kategorie- bzw. Gruppen-Kategorie-Name deutet auf einen Geburtstag/Jahrestag
 // hin. So werden Einträge auch erkannt, wenn im Titel nichts davon steht (z.B.
 // nur "Oma" in der Kategorie "Geburtstage").
 function isBirthdayCategoryName(name) {
-  if (!name) return false;
-  return /(geburtstag|birthday|jahrestag|ehrentag|namenstag|jubil(ä|ae)um|anniversary)/i.test(String(name));
+  return !!name && BIRTHDAY_WORDS.test(String(name));
 }
 
 function isBirthdayTask(task) {
   if (!task) return false;
   const raw = String(task.title || '');
 
-  // 🎂 = eindeutiger Birthday-Marker, immer Treffer.
-  if (raw.includes('🎂')) return true;
+  // 🎂 / 🥳 im Titel = eindeutiger Marker, immer Treffer.
+  if (/[🎂🥳]/.test(raw)) return true;
 
   const t = raw.toLowerCase();
-  // Treffer entweder über die Kategorie/Gruppen-Kategorie ODER über den Titel.
+
+  // Signal über die Kategorie/Gruppen-Kategorie (Name oder gesetztes Icon).
   const byCategory = isBirthdayCategoryName(task.category_name)
-    || isBirthdayCategoryName(task.group_category_name);
-  const byTitle = /(^|\W)(geburtstag|birthday|b-?day|bday)(\W|s|$)/.test(t);
-  if (!byCategory && !byTitle) return false;
+    || isBirthdayCategoryName(task.group_category_name)
+    || (task.category_icon && BIRTHDAY_ICONS.test(String(task.category_icon)));
+
+  // Signal über den Titel: ein Synonym ODER eine Altersangabe wie "wird 30",
+  // "wird 80 Jahre alt" bzw. "30. Geburtstag".
+  const byWord = BIRTHDAY_WORDS.test(t);
+  const byAge = /(^|\W)wird\s+\d{1,3}(\s+jahre)?(\s+alt)?(\s*[!?.…]|\s*$)/.test(t)
+    || /(^|\W)\d{1,3}(\.|ter|te|tes)\s+geburtstag/.test(t);
+
+  if (!byCategory && !byWord && !byAge) return false;
 
   // Aktionen rund um einen Geburtstag sind keine Geburtstags-Termine — das gilt
   // auch für Einträge, die nur über die Kategorie erkannt wurden (z.B. ein
