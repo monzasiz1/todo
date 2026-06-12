@@ -74,19 +74,31 @@ function deduplicateRecurring(tasks) {
   });
 }
 
+// Kategorie- bzw. Gruppen-Kategorie-Name deutet auf einen Geburtstag/Jahrestag
+// hin. So werden Einträge auch erkannt, wenn im Titel nichts davon steht (z.B.
+// nur "Oma" in der Kategorie "Geburtstage").
+function isBirthdayCategoryName(name) {
+  if (!name) return false;
+  return /(geburtstag|birthday|jahrestag|ehrentag|namenstag|jubil(ä|ae)um|anniversary)/i.test(String(name));
+}
+
 function isBirthdayTask(task) {
   if (!task) return false;
   const raw = String(task.title || '');
-  if (!raw) return false;
-  const t = raw.toLowerCase();
 
   // 🎂 = eindeutiger Birthday-Marker, immer Treffer.
   if (raw.includes('🎂')) return true;
 
-  const mentionsBirthday = /(^|\W)(geburtstag|birthday|b-?day|bday)(\W|s|$)/.test(t);
-  if (!mentionsBirthday) return false;
+  const t = raw.toLowerCase();
+  // Treffer entweder über die Kategorie/Gruppen-Kategorie ODER über den Titel.
+  const byCategory = isBirthdayCategoryName(task.category_name)
+    || isBirthdayCategoryName(task.group_category_name);
+  const byTitle = /(^|\W)(geburtstag|birthday|b-?day|bday)(\W|s|$)/.test(t);
+  if (!byCategory && !byTitle) return false;
 
-  // Aktionen rund um einen Geburtstag sind keine Geburtstags-Termine.
+  // Aktionen rund um einen Geburtstag sind keine Geburtstags-Termine — das gilt
+  // auch für Einträge, die nur über die Kategorie erkannt wurden (z.B. ein
+  // "Geschenk kaufen"-Task in der Kategorie "Geburtstage").
   const actionVerbs = /\b(kaufen|besorgen|planen|organisier\w*|vorbereiten|backen|basteln|schreiben|gestalten|buchen|reservieren|bestellen|abholen|einpacken|einkaufen|suchen|finden|ueberlegen|überlegen|gratulieren|anrufen|posten|erinnern)\b/;
   if (actionVerbs.test(t)) return false;
 
@@ -170,13 +182,20 @@ function groupTasksByDate(tasks) {
       return (priorityOrder[a.priority] || 2) - (priorityOrder[b.priority] || 2);
     });
 
+  // Geburtstage nach Datum sortiert (alle anstehenden zusammen).
+  const sortByDate = (arr) =>
+    arr.sort((a, b) => compareAsc(parseISO(a.date || '9999-01-01'), parseISO(b.date || '9999-01-01')));
+
+  // Reihenfolge: Geburtstage erscheinen als eigene Übersicht erst NACH "Später"
+  // (nicht mehr ganz oben). Sie tauchen zusätzlich in ihrer Datums-Section auf
+  // (Heute / Diese Woche / Später …), je nachdem wann sie stattfinden.
   return [
     { key: 'overdue', label: 'Überfällig', icon: AlertTriangle, color: '#FF3B30', tasks: sortGroup(overdue) },
-    { key: 'birthdays', label: 'Geburtstage', icon: Cake, color: '#FF2D92', tasks: sortGroup(birthdays) },
     { key: 'today', label: 'Heute', icon: Clock, color: '#FF9500', tasks: sortGroup(today) },
     { key: 'tomorrow', label: 'Morgen', icon: CalendarDays, color: '#007AFF', tasks: sortGroup(tomorrow) },
     { key: 'week', label: 'Diese Woche', icon: CalendarDays, color: '#5856D6', tasks: sortGroup(thisWeek) },
     { key: 'later', label: 'Später', icon: CalendarDays, color: '#8E8E93', tasks: sortGroup(later) },
+    { key: 'birthdays', label: 'Geburtstage', icon: Cake, color: '#FF2D92', tasks: sortByDate(birthdays) },
     { key: 'nodate', label: 'Ohne Datum', icon: Circle, color: '#8E8E93', tasks: sortGroup(noDate) },
     { key: 'past_events', label: 'Vergangene Termine', icon: CalendarDays, color: '#8E8E93', tasks: sortGroup(pastEvents) },
   ].filter((g) => g.tasks.length > 0);
