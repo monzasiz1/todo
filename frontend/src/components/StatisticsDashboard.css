@@ -43,7 +43,7 @@
   font-size: 1.4rem;
   font-weight: 800;
   line-height: 1;
-  color: var(--text-primary, #fff);
+  color: var(--text);
   font-variant-numeric: tabular-nums;
 }
 .stats-dash-kpi-val span {
@@ -73,7 +73,7 @@
 .stats-dash-block-head > span:first-child {
   font-size: 0.86rem;
   font-weight: 700;
-  color: var(--text-primary, #fff);
+  color: var(--text);
 }
 .stats-dash-block-note {
   font-size: 0.72rem;
@@ -166,7 +166,7 @@
   font-size: 0.76rem;
   color: var(--text-secondary, #8E8E93);
 }
-.stats-dash-prio-item strong { color: var(--text-primary, #fff); }
+.stats-dash-prio-item strong { color: var(--text); }
 .stats-dash-prio-dot {
   width: 8px;
   height: 8px;
@@ -190,7 +190,7 @@
 .stats-dash-split-row strong {
   font-size: 1rem;
   font-weight: 700;
-  color: var(--text-primary, #fff);
+  color: var(--text);
   font-variant-numeric: tabular-nums;
 }
 .stats-dash-split-label {

@@ -47,7 +47,7 @@
 .gbud-connect-texts strong {
   font-size: 0.98rem;
   font-weight: 700;
-  color: var(--text-primary, #fff);
+  color: var(--text);
 }
 .gbud-connect-texts span {
   font-size: 0.82rem;
@@ -84,8 +84,8 @@
   display: block;
 }
 .gbud-avatar-more {
-  background: rgba(255,255,255,0.14);
-  color: var(--text-secondary, #cbd5e1);
+  background: rgba(127,127,127,0.18);
+  color: var(--text-secondary, #8E8E93);
 }
 
 /* ── Statistik-Zeile (Einnahmen / Ausgaben / Saldo) ── */
@@ -132,7 +132,7 @@
   font-size: 0.95rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: var(--text-primary, #fff);
+  color: var(--text);
 }
 .gbud-cs-val.income  { color: #34c759; }
 .gbud-cs-val.expense { color: #ff453a; }
@@ -197,7 +197,7 @@
   margin: 0;
   font-size: 1.15rem;
   font-weight: 700;
-  color: var(--text-primary, #fff);
+  color: var(--text);
 }
 .gbud-activate-sub {
   margin: 0;
@@ -219,7 +219,7 @@
   align-items: center;
   gap: 8px;
   font-size: 0.86rem;
-  color: var(--text-primary, #e5e7eb);
+  color: var(--text);
 }
 .gbud-activate-feats li svg { color: #8b85f5; flex-shrink: 0; }
 .gbud-activate-btn {
@@ -265,7 +265,7 @@
   background: transparent;
   border: none;
   padding: 4px 0;
-  color: var(--text-primary, #e5e7eb);
+  color: var(--text);
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
@@ -302,7 +302,7 @@
   flex: 1;
   min-width: 0;
   font-size: 0.9rem;
-  color: var(--text-primary, #fff);
+  color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
