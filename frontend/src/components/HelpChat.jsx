@@ -61,10 +61,11 @@ export default function HelpChat({ hideFab = false }) {
   };
 
   const quickQuestions = [
-    'Wie erstelle ich eine Aufgabe?',
-    'Wie funktionieren Erinnerungen?',
-    'Wie teile ich Aufgaben?',
-    'Wie erstelle ich Kategorien?',
+    'Wie erstelle ich eine Aufgabe per KI?',
+    'Wie teile ich Aufgaben mit Familie oder Team?',
+    'Wie funktioniert das gemeinsame Budget?',
+    'Wie aktiviere ich Push-Benachrichtigungen?',
+    'Was kann der Pro-Plan?',
   ];
 
   return (
