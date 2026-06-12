@@ -470,16 +470,6 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
     await onUpdate(note.id, { linked_task_id: null });
   }, [note.id, onUpdate]);
 
-  // Stable rotation seeded from note.id — kein Wechsel bei Re-Mount,
-  // kein Flash nach dem ersten Paint (nicht mehr in useEffect).
-  const rotation = useMemo(() => {
-    const id = String(note?.id ?? '');
-    let h = 0;
-    for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
-    const rotations = [-3, -2, -1, 0, 1, 2, 3];
-    return rotations[Math.abs(h) % rotations.length];
-  }, [note?.id]);
-
   useEffect(() => {
     setContent(actualContent);
   }, [actualContent]);
@@ -509,12 +499,13 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
         position: 'absolute',
         left: posX,
         top: posY,
-        // Vollflächige Note-Farbe ohne Transparenz — Kork darf nicht durchscheinen.
+        // Vollflächige Note-Farbe ohne Transparenz.
         backgroundColor: noteColor.bg,
-        boxShadow: `2px 4px 8px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255,255,255,0.28)`,
+        // Moderner Karten-Schatten (weich, abgesetzt) statt Papier-Look.
+        boxShadow: '0 10px 28px -10px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.2)',
         borderColor: noteColor.border,
         zIndex: isSelected ? 15 : isDragging ? 20 : 1,
-        transform: `translateZ(0) rotate(${rotation}deg)`,
+        transform: 'translateZ(0)',
       }}
       onMouseDown={handlePointerDown}
       onDoubleClick={(e) => {
@@ -550,10 +541,7 @@ function StickyNoteImpl({ note, onUpdate, onDelete, onComplete, onPositionChange
       )}
 
       <div className="sticky-note-header">
-        <span className="note-attach-anchor">
-          {variantIndex === 0 && <span className="thumbtack" aria-hidden="true" />}
-        </span>
-        {variantIndex === 3 && <span className="paperclip-icon" aria-hidden="true" />}
+        <span className="note-attach-anchor" />
         <div className="note-actions">
           <button
             type="button"

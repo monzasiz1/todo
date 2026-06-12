@@ -2957,3 +2957,107 @@ html[data-theme="dark"] .note-share-requests-modal {
   --note-copy-icon: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Crect%20x='9'%20y='9'%20width='13'%20height='13'%20rx='2'/%3E%3Cpath%20d='M5%2015H4a2%202%200%200%201-2-2V4a2%202%200%200%201%202-2h9a2%202%200%200%201%202%202v1'/%3E%3C/svg%3E");
   --note-check-icon: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='3'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpolyline%20points='20%206%209%2017%204%2012'/%3E%3C/svg%3E");
 }
+/* ════════════════════════════════════════════════════════════════════
+   DARK CANVAS REDESIGN — ersetzt das Korkbrett durch ein ruhiges
+   Punktraster-Canvas (Miro/FigJam-Stil), passend zum App-Design.
+   Steht bewusst am Dateiende, damit es die Kork-Regeln oben (inkl.
+   html[data-theme="dark"]-Varianten) per Kaskade überschreibt.
+════════════════════════════════════════════════════════════════════ */
+
+/* Canvas: Hell-Theme = helles Grau mit dunklen Punkten */
+.notes-board,
+html[data-theme="light"] .notes-board {
+  background-color: #eef1f6;
+  background-image: radial-gradient(rgba(15, 23, 42, 0.13) 1.1px, transparent 1.4px);
+  background-size: 26px 26px;
+  background-repeat: repeat;
+}
+/* Dunkel-Theme = Navy mit feinen hellen Punkten */
+html[data-theme="dark"] .notes-board {
+  background-color: #0b1220;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.09) 1.1px, transparent 1.4px);
+  background-size: 26px 26px;
+  background-repeat: repeat;
+}
+/* Mobile: gleiches Canvas (Punktraster ist billig zu malen, kein JPG mehr) */
+@media (max-width: 1024px) {
+  .notes-board,
+  html[data-theme="light"] .notes-board {
+    background-color: #eef1f6;
+    background-image: radial-gradient(rgba(15, 23, 42, 0.13) 1.1px, transparent 1.4px);
+    background-size: 26px 26px;
+    background-repeat: repeat;
+  }
+  html[data-theme="dark"] .notes-board {
+    background-color: #0b1220;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.09) 1.1px, transparent 1.4px);
+    background-size: 26px 26px;
+    background-repeat: repeat;
+  }
+}
+
+/* Warmer Kork-Lichtschein + Vignette entfallen ersatzlos */
+.notes-viewport::after,
+html[data-theme="dark"] .notes-viewport::after {
+  background: none;
+}
+.cork-board-background,
+html[data-theme="dark"] .cork-board-background {
+  display: none;
+}
+
+/* Notes als moderne Karten: runde Ecken, kein Papier-Glanz, keine Deko */
+.sticky-note {
+  border-radius: 14px;
+  border-width: 1px;
+}
+.sticky-note::before,
+.sticky-note[data-variant="0"]::before,
+.sticky-note[data-variant="1"]::before,
+.sticky-note[data-variant="2"]::before,
+.sticky-note[data-variant="3"]::before {
+  background: none;
+}
+.sticky-note::after,
+.sticky-note[data-variant="0"]::after,
+.sticky-note[data-variant="1"]::after,
+.sticky-note[data-variant="2"]::after,
+.sticky-note[data-variant="3"]::after {
+  content: none;
+}
+.thumbtack,
+.paperclip-icon {
+  display: none;
+}
+
+/* Klare App-Typografie statt Handschrift */
+.note-textarea,
+.note-display,
+.note-title-input,
+.note-title-display {
+  font-family: var(--font, 'Inter', system-ui, sans-serif);
+}
+.note-textarea,
+.note-display {
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+.note-title-input,
+.note-title-display {
+  border-bottom-style: solid;
+  border-bottom-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Empty-State neutral statt Papier-beige */
+.empty-board-content {
+  border: 2px dashed rgba(100, 116, 139, 0.4);
+  color: var(--text-primary, #1f2937);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+}
+html[data-theme="dark"] .empty-board-content {
+  border-color: rgba(148, 163, 184, 0.3);
+  color: #e5e9f2;
+  background: rgba(20, 26, 42, 0.85);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+}
