@@ -74,16 +74,21 @@ function deduplicateRecurring(tasks) {
   });
 }
 
-// Synonyme für Geburtstag/Jahrestag — gilt für Titel UND Kategorie-Namen.
-const BIRTHDAY_WORDS = /(geburtstag|geburi|wiegenfest|ehrentag|namenstag|jahrestag|hochzeitstag|jubil(?:ä|ae)um|b-?day|bday|birthday|anniversary)/i;
+// TITEL: nur echte Geburtstagswörter. Bewusst OHNE Jahrestags-Synonyme
+// (Hochzeitstag, Jahrestag, Jubiläum …) — ein "Hochzeitstag" ist kein
+// Geburtstag und soll nicht allein über den Titel hier landen.
+const BIRTHDAY_TITLE_WORDS = /(geburtstag|geburi|wiegenfest|b-?day|bday|birthday)/i;
+// KATEGORIE: die vom Nutzer bewusst angelegten "Geburtstag/Jahrestag"-
+// Kategorien zählen — auch ohne passendes Titelwort (z.B. nur "Oma" in der
+// Kategorie "Geburtstage"). Hochzeitstag bleibt bewusst draußen.
+const BIRTHDAY_CATEGORY_WORDS = /(geburtstag|geburi|wiegenfest|jahrestag|ehrentag|namenstag|jubil(?:ä|ae)um|birthday|bday|b-day|anniversary)/i;
 // Icon-Namen (Lucide) bzw. Emojis, die auf Geburtstag/Feier hindeuten.
 const BIRTHDAY_ICONS = /(cake|gift|party|balloon|🎂|🥳|🎉|🎈)/i;
 
 // Kategorie- bzw. Gruppen-Kategorie-Name deutet auf einen Geburtstag/Jahrestag
-// hin. So werden Einträge auch erkannt, wenn im Titel nichts davon steht (z.B.
-// nur "Oma" in der Kategorie "Geburtstage").
+// hin. So werden Einträge auch erkannt, wenn im Titel nichts davon steht.
 function isBirthdayCategoryName(name) {
-  return !!name && BIRTHDAY_WORDS.test(String(name));
+  return !!name && BIRTHDAY_CATEGORY_WORDS.test(String(name));
 }
 
 function isBirthdayTask(task) {
@@ -102,9 +107,9 @@ function isBirthdayTask(task) {
     || isBirthdayCategoryName(task.group_category_name)
     || (task.category_icon && BIRTHDAY_ICONS.test(String(task.category_icon)));
 
-  // Signal über den Titel: ein Synonym ODER eine Altersangabe wie "wird 30",
-  // "wird 80 Jahre alt" bzw. "30. Geburtstag".
-  const byWord = BIRTHDAY_WORDS.test(t);
+  // Signal über den Titel: ein echtes Geburtstagswort ODER eine Altersangabe
+  // wie "wird 30", "wird 80 Jahre alt" bzw. "30. Geburtstag".
+  const byWord = BIRTHDAY_TITLE_WORDS.test(t);
   const byAge = /(^|\W)wird\s+\d{1,3}(\s+jahre)?(\s+alt)?(\s*[!?.…]|\s*$)/.test(t)
     || /(^|\W)\d{1,3}(\.|ter|te|tes)\s+geburtstag/.test(t);
 
