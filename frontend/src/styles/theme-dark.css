@@ -549,7 +549,13 @@ html[data-theme="dark"] .data-export-radio {
 }
 
 /* ── Task Edit / Manual Task Form (Aurora card sections) ───────────── */
-html[data-theme="dark"] .task-edit-body,
+/* .task-edit-body bleibt bewusst transparent: das Edit-Modal soll wie die
+   anderen Overlays (task-detail, day-create ...) durchgaengig die graue
+   Glas-Flaeche zeigen. Ein eigener --card-solid-Body erzeugte auf Desktop
+   einen sichtbaren grauen Header-Streifen ueber blauem Body. */
+html[data-theme="dark"] .task-edit-body {
+  background: transparent;
+}
 html[data-theme="dark"] .manual-task-form-panel {
   background: var(--card-solid);
   border-color: var(--border);
@@ -634,9 +640,10 @@ html[data-theme="dark"] .task-edit-body .task-edit-field label,
 html[data-theme="dark"] .manual-task-form-panel .task-edit-field label {
   color: var(--text-tertiary);
 }
-/* Footer */
+/* Footer — transparent, damit das Modal (graue Glas-Flaeche) durchgaengig
+   einheitlich wirkt; ein --card-solid-Footer waere blau auf grau. */
 html[data-theme="dark"] .task-edit-footer {
-  background: var(--card-solid);
+  background: transparent;
   border-block-start-color: var(--border);
 }
 html[data-theme="dark"] .task-edit-cancel {
