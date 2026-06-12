@@ -91,7 +91,9 @@ function isBirthdayTask(task) {
   const raw = String(task.title || '');
 
   // 🎂 / 🥳 im Titel = eindeutiger Marker, immer Treffer.
-  if (/[🎂🥳]/.test(raw)) return true;
+  // (Exakte includes-Prüfung statt Zeichenklasse — eine Emoji-Zeichenklasse
+  //  ohne u-Flag matcht über geteilte Surrogate fälschlich andere Emojis wie 🤵.)
+  if (raw.includes('🎂') || raw.includes('🥳')) return true;
 
   const t = raw.toLowerCase();
 
