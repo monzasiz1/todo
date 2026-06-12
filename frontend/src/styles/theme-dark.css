@@ -501,7 +501,6 @@ html[data-theme="dark"] .pricing-card,
 html[data-theme="dark"] .quick-add-sheet,
 html[data-theme="dark"] .qas-card,
 html[data-theme="dark"] .task-detail-modal,
-html[data-theme="dark"] .task-edit-modal,
 html[data-theme="dark"] .delete-task-choice-modal,
 html[data-theme="dark"] .day-create-modal,
 html[data-theme="dark"] .calendar-import-modal,
@@ -521,6 +520,20 @@ html[data-theme="dark"] .group-project-board {
   color: var(--text);
   border-color: var(--border);
   box-shadow: 0 32px 80px rgba(0,0,0,0.5);
+}
+
+/* Hilfe-Chat: Eingabefeld dunkel (Basis-CSS faellt sonst auf helles
+   #f8f8fc zurueck -> weisser Text auf weissem Feld) */
+html[data-theme="dark"] .help-chat-input {
+  border-top-color: var(--border);
+}
+html[data-theme="dark"] .help-chat-input input {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text);
+}
+html[data-theme="dark"] .help-chat-input input::placeholder {
+  color: var(--text-tertiary);
 }
 
 /* Tabs / Pills / Filter */
@@ -549,10 +562,15 @@ html[data-theme="dark"] .data-export-radio {
 }
 
 /* ── Task Edit / Manual Task Form (Aurora card sections) ───────────── */
-/* .task-edit-body bleibt bewusst transparent: das Edit-Modal soll wie die
-   anderen Overlays (task-detail, day-create ...) durchgaengig die graue
-   Glas-Flaeche zeigen. Ein eigener --card-solid-Body erzeugte auf Desktop
-   einen sichtbaren grauen Header-Streifen ueber blauem Body. */
+/* Das Edit-Modal nutzt dieselbe Flaeche wie das Create-Modal
+   (manual-task-modal-wrap): --card-solid. Body/Footer bleiben transparent,
+   damit Header/Body/Footer eine durchgaengige Flaeche bilden. */
+html[data-theme="dark"] .task-edit-modal {
+  background: var(--card-solid);
+  color: var(--text);
+  border-color: var(--border);
+  box-shadow: 0 32px 80px rgba(0,0,0,0.5);
+}
 html[data-theme="dark"] .task-edit-body {
   background: transparent;
 }

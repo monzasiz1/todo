@@ -2,6 +2,14 @@
 import { MessageCircleQuestion, X, Send, Loader2 } from 'lucide-react';
 import { api } from '../utils/api';
 
+// Minimaler Formatter: **fett** als <strong> rendern statt rohe Sternchen
+// anzuzeigen (die KI soll zwar kein Markdown liefern, aber sicher ist sicher).
+function renderHelpText(text) {
+  const parts = String(text || '').split('**');
+  if (parts.length === 1) return text;
+  return parts.map((part, i) => (i % 2 === 1 ? <strong key={i}>{part}</strong> : part));
+}
+
 export default function HelpChat({ hideFab = false }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([
@@ -98,7 +106,7 @@ export default function HelpChat({ hideFab = false }) {
           <div className="help-chat-messages">
             {messages.map((msg, i) => (
               <div key={i} className={`help-msg ${msg.role}`}>
-                <div className="help-msg-bubble">{msg.content}</div>
+                <div className="help-msg-bubble">{renderHelpText(msg.content)}</div>
               </div>
             ))}
 
