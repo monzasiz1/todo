@@ -167,11 +167,11 @@ async function ensureTables(pool) {
   // Gruppen-Owner/Admin. spending_members wird dann nicht genutzt.
   await pool.query(`ALTER TABLE spending_groups ADD COLUMN IF NOT EXISTS group_id INTEGER REFERENCES groups(id) ON DELETE CASCADE`);
   await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_spending_groups_group ON spending_groups(group_id) WHERE group_id IS NOT NULL`);
-  // Pro-Nutzer-Budget-Sperre fuer verknuepfte Gruppen-Budgets: Admins koennen
-  // einzelnen Mitgliedern (unabhaengig von der Rolle) den Budget-Zugriff
-  // entziehen. Default = Zugriff (keine Zeile). Owner/Admins sind nie gesperrt.
-  // An die ECHTE Gruppe gebunden, damit die Sperre auch nach Re-Aktivierung bleibt.
-  await pool.query(`CREATE TABLE IF NOT EXISTS group_budget_denied (
+  // Pro-Nutzer-Budget-Freigabe fuer verknuepfte Gruppen-Budgets. Default =
+  // KEIN Zugriff (keine Zeile) — so hat bei Neuaufnahme niemand faelschlich
+  // Zugriff. Admins geben einzelne Mitglieder gezielt frei. Owner/Admins haben
+  // immer Zugriff. An die ECHTE Gruppe gebunden (bleibt nach Re-Aktivierung).
+  await pool.query(`CREATE TABLE IF NOT EXISTS group_budget_allowed (
     id SERIAL PRIMARY KEY,
     group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -200,29 +200,36 @@ async function isOwner(pool, groupId, userId) {
   return r.rows.length > 0;
 }
 
-// Per-User-Budget-Sperre bei verknuepften Gruppen-Budgets pruefen (ueber die
-// spending_group-ID). Liefert true, wenn der User ein NICHT-Admin-Mitglied ist
-// und in group_budget_denied steht. Owner/Admins werden nie gesperrt.
-async function isLinkedBudgetDenied(pool, spendingGroupId, userId) {
+// Per-User-Budget-Zugriff bei verknuepften Gruppen-Budgets: blockiert, wenn der
+// User ein NICHT-Admin-Mitglied ist und KEINE Freigabe (group_budget_allowed)
+// hat. Default = blockiert (kein Eintrag). Owner/Admins sind nie blockiert.
+async function isLinkedBudgetBlocked(pool, spendingGroupId, userId) {
   const r = await pool.query(
     `SELECT 1
        FROM spending_groups sg
        JOIN group_members gm ON gm.group_id = sg.group_id AND gm.user_id = $2
-       JOIN group_budget_denied d ON d.group_id = sg.group_id AND d.user_id = $2
       WHERE sg.id = $1 AND sg.group_id IS NOT NULL
-        AND gm.role NOT IN ('owner','admin')`,
+        AND gm.role NOT IN ('owner','admin')
+        AND NOT EXISTS (
+          SELECT 1 FROM group_budget_allowed a
+          WHERE a.group_id = sg.group_id AND a.user_id = $2
+        )`,
     [spendingGroupId, userId]
   );
   return r.rows.length > 0;
 }
 
 // Wie zuvor, aber direkt ueber die ECHTE Gruppen-ID (groups.id).
-async function isRealGroupBudgetDenied(pool, realGroupId, userId) {
+async function isRealGroupBudgetBlocked(pool, realGroupId, userId) {
   const r = await pool.query(
     `SELECT 1
        FROM group_members gm
-       JOIN group_budget_denied d ON d.group_id = gm.group_id AND d.user_id = gm.user_id
-      WHERE gm.group_id = $1 AND gm.user_id = $2 AND gm.role NOT IN ('owner','admin')`,
+      WHERE gm.group_id = $1 AND gm.user_id = $2
+        AND gm.role NOT IN ('owner','admin')
+        AND NOT EXISTS (
+          SELECT 1 FROM group_budget_allowed a
+          WHERE a.group_id = $1 AND a.user_id = $2
+        )`,
     [realGroupId, userId]
   );
   return r.rows.length > 0;
@@ -239,9 +246,9 @@ async function isAcceptedMemberOrOwner(pool, groupId, userId) {
     [groupId, userId]
   );
   if (r.rows.length === 0) return false;
-  // Pro-Nutzer-Sperre (verknuepftes Gruppen-Budget) ueberschreibt den rollen-
-  // basierten Zugriff — gesperrte Mitglieder kommen nicht mehr rein.
-  if (await isLinkedBudgetDenied(pool, groupId, userId)) return false;
+  // Verknuepftes Gruppen-Budget: Mitglieder ohne Freigabe haben standardmaessig
+  // KEINEN Zugriff (nur Owner/Admins oder explizit freigegebene Mitglieder).
+  if (await isLinkedBudgetBlocked(pool, groupId, userId)) return false;
   return true;
 }
 
@@ -273,11 +280,11 @@ async function loadGroupDetail(pool, groupId, userId) {
   const membersRes = isLinked
     ? await pool.query(
         `SELECT gm.id, gm.user_id, 'accepted' AS status, NULL::int AS invited_by, gm.joined_at, gm.role,
-                (d.user_id IS NULL OR gm.role IN ('owner','admin')) AS budget_allowed,
+                (a.user_id IS NOT NULL OR gm.role IN ('owner','admin')) AS budget_allowed,
                 u.name, u.email, u.avatar_color, u.avatar_url
          FROM group_members gm
          JOIN users u ON u.id = gm.user_id
-         LEFT JOIN group_budget_denied d ON d.group_id = gm.group_id AND d.user_id = gm.user_id
+         LEFT JOIN group_budget_allowed a ON a.group_id = gm.group_id AND a.user_id = gm.user_id
          WHERE gm.group_id = $1
          ORDER BY gm.joined_at ASC`,
         [group.linked_group_id]
@@ -419,7 +426,7 @@ module.exports = async function handler(req, res) {
       const isGroupAdmin = g.role === 'owner' || g.role === 'admin';
       // Pro-Nutzer-Sperre: Nicht-Admins ohne Budget-Zugriff bekommen eine
       // „gesperrt"-Antwort statt der Budget-Daten.
-      if (!isGroupAdmin && await isRealGroupBudgetDenied(pool, realGroupId, user.id)) {
+      if (!isGroupAdmin && await isRealGroupBudgetBlocked(pool, realGroupId, user.id)) {
         return res.json({ group: null, locked: true });
       }
 
@@ -491,17 +498,17 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ error: 'Owner/Admins haben immer Budget-Zugriff' });
       }
 
-      const allowed = req.body?.allowed !== false; // default: erlauben
+      const allowed = req.body?.allowed === true; // default: KEIN Zugriff
       if (allowed) {
         await pool.query(
-          'DELETE FROM group_budget_denied WHERE group_id = $1 AND user_id = $2',
-          [realGroupId, targetUserId]
+          `INSERT INTO group_budget_allowed (group_id, user_id, created_by)
+           VALUES ($1, $2, $3) ON CONFLICT (group_id, user_id) DO NOTHING`,
+          [realGroupId, targetUserId, user.id]
         );
       } else {
         await pool.query(
-          `INSERT INTO group_budget_denied (group_id, user_id, created_by)
-           VALUES ($1, $2, $3) ON CONFLICT (group_id, user_id) DO NOTHING`,
-          [realGroupId, targetUserId, user.id]
+          'DELETE FROM group_budget_allowed WHERE group_id = $1 AND user_id = $2',
+          [realGroupId, targetUserId]
         );
       }
 
@@ -581,9 +588,9 @@ module.exports = async function handler(req, res) {
                SELECT 1 FROM group_members gm
                WHERE gm.group_id = g.group_id AND gm.user_id = $1
                  AND (gm.role IN ('owner','admin')
-                   OR NOT EXISTS (
-                     SELECT 1 FROM group_budget_denied d
-                     WHERE d.group_id = g.group_id AND d.user_id = $1
+                   OR EXISTS (
+                     SELECT 1 FROM group_budget_allowed a
+                     WHERE a.group_id = g.group_id AND a.user_id = $1
                    ))
              ))
          ORDER BY g.created_at DESC`,
@@ -865,7 +872,7 @@ module.exports = async function handler(req, res) {
       } = req.body || {};
 
       // Gesperrte Mitglieder (Pro-User-Budget-Sperre) duerfen nichts aendern.
-      if (await isLinkedBudgetDenied(pool, groupId, user.id)) {
+      if (await isLinkedBudgetBlocked(pool, groupId, user.id)) {
         return res.status(403).json({ error: 'Kein Budget-Zugriff' });
       }
       // Berechtigung: eigener Eintrag oder Owner
@@ -933,7 +940,7 @@ module.exports = async function handler(req, res) {
     if (segments.length === 3 && (segments[1] === 'entries' || segments[1] === 'expenses') && req.method === 'DELETE') {
       const groupId = Number(segments[0]);
       const expenseId = Number(segments[2]);
-      if (await isLinkedBudgetDenied(pool, groupId, user.id)) {
+      if (await isLinkedBudgetBlocked(pool, groupId, user.id)) {
         return res.status(403).json({ error: 'Kein Budget-Zugriff' });
       }
       const owner = await isOwner(pool, groupId, user.id);
