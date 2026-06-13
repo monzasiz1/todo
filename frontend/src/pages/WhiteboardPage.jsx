@@ -26,8 +26,10 @@ import { api } from '../utils/api';
 
 const PEN_COLORS = ['#1f2937', '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#a855f7'];
 const PEN_SIZES = [2, 4, 8, 14];
-// Eraser hat eigene Größen (Diameter in World-Pixeln) — radius = size/2
-const ERASER_SIZES = [4, 8, 16, 32];
+// Eraser-Größen sind SCREEN-Pixel (Durchmesser) — der Radierer fühlt sich
+// damit bei jedem Zoom gleich an (wie bei Apple Notes/Freeform). Die
+// Umrechnung in Welt-Koordinaten passiert über den aktuellen Scale.
+const ERASER_SIZES = [12, 24, 40, 64];
 const MIN_SCALE = 0.2;
 const MAX_SCALE = 4;
 
@@ -71,62 +73,137 @@ function strokeBounds(stroke) {
   return (stroke._bounds = { minX, minY, maxX, maxY });
 }
 
-// Pixel-genauer Radierer: zerteilt einen Stroke an Stellen, an denen
-// der Eraser-Kreis ihn berührt — gibt 0..n Sub-Strokes zurück.
-// Originaler Stroke wird *nicht* mutiert.
-// tol = eraseRadius (KEIN halfPenWidth-Padding) — Cursor-Kreis = Erase-Zone.
+// Schnittpunkte (t in [0,1]) eines Segments A->B mit dem Eraser-Kreis.
+function circleSegmentTs(ex, ey, r, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay;
+  const a = dx * dx + dy * dy;
+  if (a === 0) return [];
+  const fx = ax - ex, fy = ay - ey;
+  const b = 2 * (fx * dx + fy * dy);
+  const c = fx * fx + fy * fy - r * r;
+  let disc = b * b - 4 * a * c;
+  if (disc < 0) return [];
+  disc = Math.sqrt(disc);
+  const out = [];
+  const t1 = (-b - disc) / (2 * a);
+  const t2 = (-b + disc) / (2 * a);
+  if (t1 >= 0 && t1 <= 1) out.push(t1);
+  if (t2 >= 0 && t2 <= 1 && t2 !== t1) out.push(t2);
+  return out;
+}
+
+// Pixel-genauer Radierer: zerteilt einen Stroke dort, wo der Eraser-Kreis
+// die SICHTBARE Tinte berührt. Originaler Stroke wird *nicht* mutiert.
+//
+// Apple-Verhalten:
+// - tol = eraseRadius + halbe Strichbreite -> radiert, sobald der Cursor-
+//   Kreis die Tinte überlappt (nicht erst die unsichtbare Mittellinie).
+// - Überlebende Teilstücke werden EXAKT an der Kreisgrenze beschnitten
+//   (Schnittpunkt-Interpolation) statt am nächsten Roh-Punkt -> saubere,
+//   glatte Radier-Kanten ohne Ausfransen.
 function splitStrokeByEraser(stroke, ex, ey, eraseRadius) {
-  const tol = eraseRadius;
+  const tol = eraseRadius + (Number(stroke.size) || 3) / 2;
   const tol2 = tol * tol;
   const pts = stroke.points || [];
 
-  // Schneller Bounds-Reject
+  // Schneller Bounds-Reject (inkl. Tintenbreite)
   const b = strokeBounds(stroke);
   if (ex + tol < b.minX || ex - tol > b.maxX || ey + tol < b.minY || ey - tol > b.maxY) {
     return { changed: false, parts: [stroke] };
   }
 
+  const inside = (p) => {
+    const dx = p.x - ex, dy = p.y - ey;
+    return dx * dx + dy * dy < tol2;
+  };
+  const lerp = (a2, b2, t) => ({ x: a2.x + (b2.x - a2.x) * t, y: a2.y + (b2.y - a2.y) * t });
+
   if (pts.length <= 1) {
-    if (pts.length === 1) {
-      const dx = pts[0].x - ex, dy = pts[0].y - ey;
-      if (dx * dx + dy * dy < tol2) return { changed: true, parts: [] };
-    }
+    if (pts.length === 1 && inside(pts[0])) return { changed: true, parts: [] };
     return { changed: false, parts: [stroke] };
   }
 
-  // Markiere Punkte/Segmente, die im Eraser-Radius liegen
   const ranges = [];
   let current = [];
-  for (let i = 0; i < pts.length; i += 1) {
+  const closeRange = () => {
+    if (current.length >= 2) ranges.push(current);
+    current = [];
+  };
+
+  let changed = false;
+  let prev = pts[0];
+  let prevIn = inside(prev);
+  if (prevIn) changed = true;
+  else current.push(prev);
+
+  for (let i = 1; i < pts.length; i += 1) {
     const p = pts[i];
-    const dpx = p.x - ex, dpy = p.y - ey;
-    let hit = (dpx * dpx + dpy * dpy) < tol2;
-    if (!hit && i > 0) {
-      const a = pts[i - 1];
-      if (distPointSegment(ex, ey, a.x, a.y, p.x, p.y) < tol) hit = true;
-    }
-    if (hit) {
-      if (current.length >= 2) ranges.push(current);
-      current = [];
-    } else {
+    const pIn = inside(p);
+
+    if (!prevIn && !pIn) {
+      // Beide Endpunkte draußen — Segment kann den Kreis trotzdem queren.
+      const ts = circleSegmentTs(ex, ey, tol, prev.x, prev.y, p.x, p.y);
+      if (ts.length === 2) {
+        changed = true;
+        current.push(lerp(prev, p, Math.min(ts[0], ts[1])));
+        closeRange();
+        current.push(lerp(prev, p, Math.max(ts[0], ts[1])));
+        current.push(p);
+      } else {
+        current.push(p);
+      }
+    } else if (!prevIn && pIn) {
+      // Eintritt in den Kreis: exakt an der Grenze kappen.
+      changed = true;
+      const ts = circleSegmentTs(ex, ey, tol, prev.x, prev.y, p.x, p.y);
+      current.push(lerp(prev, p, ts.length ? Math.min(...ts) : 0));
+      closeRange();
+    } else if (prevIn && !pIn) {
+      // Austritt aus dem Kreis: neues Teilstück startet an der Grenze.
+      changed = true;
+      const ts = circleSegmentTs(ex, ey, tol, prev.x, prev.y, p.x, p.y);
+      current.push(lerp(prev, p, ts.length ? Math.max(...ts) : 1));
       current.push(p);
+    } else {
+      // Beide drin — Segment wird komplett radiert.
+      changed = true;
     }
-  }
-  if (current.length >= 2) ranges.push(current);
 
-  // Keine Änderung wenn der einzige Range alle Punkte enthaelt
-  if (ranges.length === 1 && ranges[0].length === pts.length) {
-    return { changed: false, parts: [stroke] };
+    prev = p;
+    prevIn = pIn;
   }
+  closeRange();
 
-  // Neue Sub-Strokes aus den überlebenden Ranges erzeugen
+  if (!changed) return { changed: false, parts: [stroke] };
+
   const parts = ranges.map((range) => ({
-    id: `s_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+    id: makeId(),
     color: stroke.color,
     size: stroke.size,
     points: range,
   }));
   return { changed: true, parts };
+}
+
+// Objekt-Radierer (Apple: "Objekt löschen"): trifft der Eraser-Kreis die
+// sichtbare Tinte irgendwo, wird der GANZE Stroke entfernt.
+function strokeHitByEraser(stroke, ex, ey, eraseRadius) {
+  const tol = eraseRadius + (Number(stroke.size) || 3) / 2;
+  const b = strokeBounds(stroke);
+  if (ex + tol < b.minX || ex - tol > b.maxX || ey + tol < b.minY || ey - tol > b.maxY) {
+    return false;
+  }
+  const pts = stroke.points || [];
+  if (pts.length === 1) {
+    const dx = pts[0].x - ex, dy = pts[0].y - ey;
+    return dx * dx + dy * dy < tol * tol;
+  }
+  for (let i = 1; i < pts.length; i += 1) {
+    if (distPointSegment(ex, ey, pts[i - 1].x, pts[i - 1].y, pts[i].x, pts[i].y) < tol) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export default function WhiteboardPage() {
@@ -138,7 +215,19 @@ export default function WhiteboardPage() {
   const [tool, setTool] = useState('pen'); // 'pen' | 'eraser' | 'pan'
   const [color, setColor] = useState(PEN_COLORS[0]);
   const [penSize, setPenSize] = useState(4);
-  const [eraserSize, setEraserSize] = useState(4); // klein als Default → haargenau
+  const [eraserSize, setEraserSize] = useState(24); // mittlere Screen-Größe als Default
+  // Radierer-Modus wie bei Apple: 'pixel' schneidet exakt heraus,
+  // 'object' löscht den ganzen berührten Strich.
+  const [eraserMode, setEraserMode] = useState(() => {
+    try {
+      const v = localStorage.getItem('beequ.whiteboard.eraserMode');
+      if (v === 'pixel' || v === 'object') return v;
+    } catch { /* ignore */ }
+    return 'pixel';
+  });
+  useEffect(() => {
+    try { localStorage.setItem('beequ.whiteboard.eraserMode', eraserMode); } catch { /* ignore */ }
+  }, [eraserMode]);
   // Active size + setter abhaengig vom Tool
   const size = tool === 'eraser' ? eraserSize : penSize;
   const setSize = tool === 'eraser' ? setEraserSize : setPenSize;
@@ -365,11 +454,11 @@ export default function WhiteboardPage() {
     return () => canvas.removeEventListener('wheel', onWheel);
   }, [zoomAt]);
 
-  // Eraser-Radius im Welt-Koordinatensystem.
-  // Direkt: radius = eraserSize / 2 — was der User im Cursor-Kreis sieht,
-  // ist EXAKT der Bereich, der gelöscht wird (kein zusätzliches Padding).
+  // Eraser-Radius im Welt-Koordinatensystem. eraserSize ist ein SCREEN-
+  // Durchmesser → in Welt-Pixel = (size/2) / scale. So bleibt der Radierer
+  // bei jedem Zoom gleich groß auf dem Bildschirm (Apple-Verhalten).
   const eraserWorldRadius = useCallback(() => {
-    return Number(eraserSize) / 2;
+    return (Number(eraserSize) / 2) / scaleRef.current;
   }, [eraserSize]);
 
   // Cursor-Overlay auf Pointer-Position aktualisieren (Ref-basiert, kein Re-Render).
@@ -388,23 +477,31 @@ export default function WhiteboardPage() {
     el.style.transform = `translate3d(${localX - radiusScreen}px, ${localY - radiusScreen}px, 0)`;
   }, [eraserWorldRadius]);
 
-  // Pixel-Erase an einer Welt-Position: alle Strokes durchgehen, Treffer splitten.
+  // Erase an einer Welt-Position. 'object' löscht ganze Striche, 'pixel'
+  // schneidet exakt heraus.
   const eraseAt = useCallback((wx, wy) => {
     const radius = eraserWorldRadius();
     const list = strokesRef.current;
     let changed = false;
     const next = [];
-    for (let i = 0; i < list.length; i += 1) {
-      const res = splitStrokeByEraser(list[i], wx, wy, radius);
-      if (res.changed) changed = true;
-      for (let j = 0; j < res.parts.length; j += 1) next.push(res.parts[j]);
+    if (eraserMode === 'object') {
+      for (let i = 0; i < list.length; i += 1) {
+        if (strokeHitByEraser(list[i], wx, wy, radius)) changed = true;
+        else next.push(list[i]);
+      }
+    } else {
+      for (let i = 0; i < list.length; i += 1) {
+        const res = splitStrokeByEraser(list[i], wx, wy, radius);
+        if (res.changed) changed = true;
+        for (let j = 0; j < res.parts.length; j += 1) next.push(res.parts[j]);
+      }
     }
     if (changed) {
       strokesRef.current = next;
       redraw();
       forceRender((n) => n + 1);
     }
-  }, [eraserWorldRadius, redraw]);
+  }, [eraserWorldRadius, eraserMode, redraw]);
 
   // ── Pointer-Handling: Pen/Eraser/Pan + Pinch ─────────────────────
   const onPointerDown = useCallback((e) => {
@@ -776,28 +873,56 @@ export default function WhiteboardPage() {
               />
             ))}
           </div>
-          <div className="wb-tool-group wb-sizes" role="radiogroup" aria-label={tool === 'eraser' ? 'Eraser-Größe' : 'Strichstärke'}>
-            {currentSizes.map((s) => (
+          {tool === 'eraser' && (
+            <div className="wb-tool-group" role="radiogroup" aria-label="Radierer-Modus">
               <button
-                key={s}
                 type="button"
-                className={`wb-size ${size === s ? 'is-active' : ''}`}
-                onClick={() => setSize(s)}
-                aria-pressed={size === s}
-                title={tool === 'eraser' ? `Eraser ${s}px` : `Stärke ${s}px`}
+                className={`wb-btn ${eraserMode === 'pixel' ? 'is-active' : ''}`}
+                onClick={() => setEraserMode('pixel')}
+                aria-pressed={eraserMode === 'pixel'}
+                title="Pixel-Radierer — schneidet exakt heraus"
               >
-                <span
-                  className="wb-size-dot"
-                  style={{
-                    width: Math.min(20, s + 4),
-                    height: Math.min(20, s + 4),
-                    background: tool === 'eraser' ? 'transparent' : color,
-                    border: tool === 'eraser' ? '1.5px solid currentColor' : 'none',
-                    borderRadius: '50%',
-                  }}
-                />
+                <Eraser size={16} />
               </button>
-            ))}
+              <button
+                type="button"
+                className={`wb-btn ${eraserMode === 'object' ? 'is-active' : ''}`}
+                onClick={() => setEraserMode('object')}
+                aria-pressed={eraserMode === 'object'}
+                title="Objekt-Radierer — löscht ganze Striche"
+              >
+                <Square size={16} />
+              </button>
+            </div>
+          )}
+          <div className="wb-tool-group wb-sizes" role="radiogroup" aria-label={tool === 'eraser' ? 'Radierer-Größe' : 'Strichstärke'}>
+            {currentSizes.map((s) => {
+              // Vorschau-Punkt: Stift 1:1, Radierer proportional aber gedeckelt.
+              const dot = tool === 'eraser'
+                ? Math.round(8 + (s / 64) * 14) // 12px→~11, 64px→22
+                : Math.min(20, s + 4);
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  className={`wb-size ${size === s ? 'is-active' : ''}`}
+                  onClick={() => setSize(s)}
+                  aria-pressed={size === s}
+                  title={tool === 'eraser' ? `Radierer ${s}px` : `Stärke ${s}px`}
+                >
+                  <span
+                    className="wb-size-dot"
+                    style={{
+                      width: dot,
+                      height: dot,
+                      background: tool === 'eraser' ? 'transparent' : color,
+                      border: tool === 'eraser' ? '1.5px solid currentColor' : 'none',
+                      borderRadius: '50%',
+                    }}
+                  />
+                </button>
+              );
+            })}
           </div>
           <div className="wb-tool-group">
             <button className="wb-btn" onClick={() => zoomAt(1 / 1.2, null)} title="Verkleinern">
