@@ -163,7 +163,10 @@ export default function GroupsPage() {
       {showUpgrade && (
         <UpgradeModal feature="groups" onClose={() => setShowUpgrade(false)} />
       )}
-      <AnimatePresence mode="wait">
+      {/* Kein mode="wait": sonst kann ein hängender Exit (z.B. der Detail-
+          Ansicht) verhindern, dass die nächste View gemountet wird → leerer
+          Bildschirm beim Zurückgehen zur Gruppenübersicht. */}
+      <AnimatePresence>
         {view === 'list' && (
           <GroupList
             key="list"
