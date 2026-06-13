@@ -524,6 +524,13 @@ body:has(.help-chat) {
   overscroll-behavior: none;
 }
 
+/* Slide-in-Gruppenchat (mobil, Vollbild): globalen Mobile-Header ausblenden,
+   sonst kollidieren BeeQu-Logo + Action-Pills mit dem Chat-Header-Titel. */
+body:has(.gchat-panel:not(.gchat-page-mode)) .mobile-header,
+body:has(.gchat-panel:not(.gchat-page-mode)) .mobile-header-scrim {
+  display: none !important;
+}
+
 a {
   color: inherit;
   text-decoration: none;
