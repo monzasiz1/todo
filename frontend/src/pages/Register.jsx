@@ -208,7 +208,7 @@ export default function Register() {
 
           <div className="bq-auth-form-head">
             <h1>Konto erstellen</h1>
-            <p>Kostenlos starten — keine Kreditkarte nötig</p>
+            <p>Kostenlos starten</p>
           </div>
 
           {error && (

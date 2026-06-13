@@ -1106,7 +1106,7 @@ export default function LandingPage() {
                       <>
                         <div className="lp-auth-head">
                           <h1>Konto erstellen</h1>
-                          <p>Kostenlos starten — keine Kreditkarte nötig</p>
+                          <p>Kostenlos starten</p>
                         </div>
                         {registerError && (
                           <div className="lp-auth-error"><AlertCircle size={15} /><span>{registerError}</span></div>
