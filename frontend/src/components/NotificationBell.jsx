@@ -198,18 +198,22 @@ export default function NotificationBell() {
 
       {createPortal(
       <AnimatePresence>
+        {/* Backdrop und Panel müssen DIREKTE Kinder von AnimatePresence sein
+            (kein umschließendes Fragment) — sonst mountet/animiert das Panel
+            sporadisch nicht und es bleibt nur der Backdrop sichtbar. */}
         {open && (
-          <>
-            {/* Abdunkelnder Backdrop (nur Mobile sichtbar) — Tipp schließt */}
-            <motion.div
-              key="notif-backdrop"
-              className="notif-backdrop"
-              onClick={() => setOpen(false)}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.18 }}
-            />
+          /* Abdunkelnder Backdrop (nur Mobile sichtbar) — Tipp schließt */
+          <motion.div
+            key="notif-backdrop"
+            className="notif-backdrop"
+            onClick={() => setOpen(false)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+          />
+        )}
+        {open && (
           <motion.div
             key="notif-dropdown"
             className={`notif-dropdown${isSheet ? ' notif-sheet' : ''}`}
@@ -351,7 +355,6 @@ export default function NotificationBell() {
               </>
             )}
           </motion.div>
-          </>
         )}
       </AnimatePresence>,
       document.body
