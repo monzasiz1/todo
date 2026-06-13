@@ -1658,7 +1658,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
             </div>
             {showEmojiPicker && (
               <div ref={emojiPickerRef} className="task-detail-emoji-picker">
-                {['💬', '👍', '✅', '🔥', '🙏', '🎉', '📌', '🤝'].map((emoji) => (
+                {['👍', '❤️', '😊', '😂', '🥳', '🎉', '🔥', '✅', '❌', '🙏', '👏', '💪', '🚀', '⭐', '✨', '💡', '📌', '⏰', '👀', '🤝', '🙌', '💬', '❓', '😅'].map((emoji) => (
                   <button key={emoji} type="button" className="task-detail-emoji-btn" onClick={() => { setCommentText(commentText + emoji); setShowEmojiPicker(false); }} title={emoji}>{emoji}</button>
                 ))}
               </div>
