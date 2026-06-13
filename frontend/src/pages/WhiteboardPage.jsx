@@ -73,118 +73,6 @@ function strokeBounds(stroke) {
   return (stroke._bounds = { minX, minY, maxX, maxY });
 }
 
-// Schnittpunkte (t in [0,1]) eines Segments A->B mit dem Eraser-Kreis.
-function circleSegmentTs(ex, ey, r, ax, ay, bx, by) {
-  const dx = bx - ax, dy = by - ay;
-  const a = dx * dx + dy * dy;
-  if (a === 0) return [];
-  const fx = ax - ex, fy = ay - ey;
-  const b = 2 * (fx * dx + fy * dy);
-  const c = fx * fx + fy * fy - r * r;
-  let disc = b * b - 4 * a * c;
-  if (disc < 0) return [];
-  disc = Math.sqrt(disc);
-  const out = [];
-  const t1 = (-b - disc) / (2 * a);
-  const t2 = (-b + disc) / (2 * a);
-  if (t1 >= 0 && t1 <= 1) out.push(t1);
-  if (t2 >= 0 && t2 <= 1 && t2 !== t1) out.push(t2);
-  return out;
-}
-
-// Pixel-genauer Radierer: zerteilt einen Stroke dort, wo der Eraser-Kreis
-// die SICHTBARE Tinte berührt. Originaler Stroke wird *nicht* mutiert.
-//
-// Apple-Verhalten:
-// - tol = eraseRadius + halbe Strichbreite -> radiert, sobald der Cursor-
-//   Kreis die Tinte überlappt (nicht erst die unsichtbare Mittellinie).
-// - Überlebende Teilstücke werden EXAKT an der Kreisgrenze beschnitten
-//   (Schnittpunkt-Interpolation) statt am nächsten Roh-Punkt -> saubere,
-//   glatte Radier-Kanten ohne Ausfransen.
-function splitStrokeByEraser(stroke, ex, ey, eraseRadius) {
-  const tol = eraseRadius + (Number(stroke.size) || 3) / 2;
-  const tol2 = tol * tol;
-  const pts = stroke.points || [];
-
-  // Schneller Bounds-Reject (inkl. Tintenbreite)
-  const b = strokeBounds(stroke);
-  if (ex + tol < b.minX || ex - tol > b.maxX || ey + tol < b.minY || ey - tol > b.maxY) {
-    return { changed: false, parts: [stroke] };
-  }
-
-  const inside = (p) => {
-    const dx = p.x - ex, dy = p.y - ey;
-    return dx * dx + dy * dy < tol2;
-  };
-  const lerp = (a2, b2, t) => ({ x: a2.x + (b2.x - a2.x) * t, y: a2.y + (b2.y - a2.y) * t });
-
-  if (pts.length <= 1) {
-    if (pts.length === 1 && inside(pts[0])) return { changed: true, parts: [] };
-    return { changed: false, parts: [stroke] };
-  }
-
-  const ranges = [];
-  let current = [];
-  const closeRange = () => {
-    if (current.length >= 2) ranges.push(current);
-    current = [];
-  };
-
-  let changed = false;
-  let prev = pts[0];
-  let prevIn = inside(prev);
-  if (prevIn) changed = true;
-  else current.push(prev);
-
-  for (let i = 1; i < pts.length; i += 1) {
-    const p = pts[i];
-    const pIn = inside(p);
-
-    if (!prevIn && !pIn) {
-      // Beide Endpunkte draußen — Segment kann den Kreis trotzdem queren.
-      const ts = circleSegmentTs(ex, ey, tol, prev.x, prev.y, p.x, p.y);
-      if (ts.length === 2) {
-        changed = true;
-        current.push(lerp(prev, p, Math.min(ts[0], ts[1])));
-        closeRange();
-        current.push(lerp(prev, p, Math.max(ts[0], ts[1])));
-        current.push(p);
-      } else {
-        current.push(p);
-      }
-    } else if (!prevIn && pIn) {
-      // Eintritt in den Kreis: exakt an der Grenze kappen.
-      changed = true;
-      const ts = circleSegmentTs(ex, ey, tol, prev.x, prev.y, p.x, p.y);
-      current.push(lerp(prev, p, ts.length ? Math.min(...ts) : 0));
-      closeRange();
-    } else if (prevIn && !pIn) {
-      // Austritt aus dem Kreis: neues Teilstück startet an der Grenze.
-      changed = true;
-      const ts = circleSegmentTs(ex, ey, tol, prev.x, prev.y, p.x, p.y);
-      current.push(lerp(prev, p, ts.length ? Math.max(...ts) : 1));
-      current.push(p);
-    } else {
-      // Beide drin — Segment wird komplett radiert.
-      changed = true;
-    }
-
-    prev = p;
-    prevIn = pIn;
-  }
-  closeRange();
-
-  if (!changed) return { changed: false, parts: [stroke] };
-
-  const parts = ranges.map((range) => ({
-    id: makeId(),
-    color: stroke.color,
-    size: stroke.size,
-    points: range,
-  }));
-  return { changed: true, parts };
-}
-
 // Objekt-Radierer (Apple: "Objekt löschen"): trifft der Eraser-Kreis die
 // sichtbare Tinte irgendwo, wird der GANZE Stroke entfernt.
 function strokeHitByEraser(stroke, ex, ey, eraseRadius) {
@@ -209,7 +97,8 @@ function strokeHitByEraser(stroke, ex, ey, eraseRadius) {
 export default function WhiteboardPage() {
   const navigate = useNavigate();
   const wrapRef = useRef(null);
-  const canvasRef = useRef(null);
+  const canvasRef = useRef(null);   // Tinte (oben, transparent)
+  const bgCanvasRef = useRef(null); // Hintergrund (unten: Fill + Raster)
 
   // Tool-State
   const [tool, setTool] = useState('pen'); // 'pen' | 'eraser' | 'pan'
@@ -286,77 +175,79 @@ export default function WhiteboardPage() {
   // Ref-basiert, um Re-Renders pro Move zu vermeiden.
   const eraserCursorRef = useRef(null);
 
-  // ── Canvas-Resize + DPR-aware ─────────────────────────────────────
+  // ── Canvas-Resize + DPR-aware (beide Layer gleich groß) ───────────
   const setupCanvasSize = useCallback(() => {
     const canvas = canvasRef.current;
     const wrap = wrapRef.current;
     if (!canvas || !wrap) return;
     const dpr = window.devicePixelRatio || 1;
     const rect = wrap.getBoundingClientRect();
-    canvas.width = Math.floor(rect.width * dpr);
-    canvas.height = Math.floor(rect.height * dpr);
-    canvas.style.width = `${rect.width}px`;
-    canvas.style.height = `${rect.height}px`;
-    const ctx = canvas.getContext('2d');
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    for (const c of [bgCanvasRef.current, canvas]) {
+      if (!c) continue;
+      c.width = Math.floor(rect.width * dpr);
+      c.height = Math.floor(rect.height * dpr);
+      c.style.width = `${rect.width}px`;
+      c.style.height = `${rect.height}px`;
+      c.getContext('2d').setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
   }, []);
 
   // ── Render-Loop ──────────────────────────────────────────────────
+  // Zwei Layer: Hintergrund (bgCanvas) + Tinte (canvas). Der Radierer
+  // entfernt mit globalCompositeOperation 'destination-out' echte Pixel
+  // aus der Tinten-Ebene — dadurch scheint der Hintergrund durch und es
+  // wird pixelgenau (auch nur die halbe Strichbreite) radiert, wie bei Apple.
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
+    const bgCanvas = bgCanvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
     const w = canvas.width / dpr;
     const h = canvas.height / dpr;
-    ctx.clearRect(0, 0, w, h);
 
-    // Hintergrund-Template (subtil) — dark-mode-aware + Paper-Color
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    let bgFill;
-    let patternColor;
-    if (paper === 'blue') {
-      // Blueprint-Look: helles Blau (light) bzw. tiefes Marineblau (dark)
-      bgFill = isDark ? '#0c1f3a' : '#e9f2ff';
-      patternColor = isDark ? 'rgba(160, 200, 255, 0.14)' : 'rgba(20, 70, 160, 0.16)';
-    } else {
-      // Pure White / Neutral Dark
-      bgFill = isDark ? '#1a1a1a' : '#ffffff';
-      patternColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
-    }
-    ctx.save();
-    ctx.fillStyle = bgFill;
-    ctx.fillRect(0, 0, w, h);
-    const step = 40 * scaleRef.current;
-    if (bg === 'grid' && step > 8) {
-      ctx.strokeStyle = patternColor;
-      ctx.lineWidth = 1;
-      const offsetX = ((panRef.current.x % step) + step) % step;
-      const offsetY = ((panRef.current.y % step) + step) % step;
-      ctx.beginPath();
-      for (let x = offsetX; x < w; x += step) {
-        ctx.moveTo(x, 0); ctx.lineTo(x, h);
+    // ── Hintergrund-Layer ──
+    if (bgCanvas) {
+      const bctx = bgCanvas.getContext('2d');
+      bctx.clearRect(0, 0, w, h);
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      let bgFill, patternColor;
+      if (paper === 'blue') {
+        bgFill = isDark ? '#0c1f3a' : '#e9f2ff';
+        patternColor = isDark ? 'rgba(160, 200, 255, 0.14)' : 'rgba(20, 70, 160, 0.16)';
+      } else {
+        bgFill = isDark ? '#1a1a1a' : '#ffffff';
+        patternColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
       }
-      for (let y = offsetY; y < h; y += step) {
-        ctx.moveTo(0, y); ctx.lineTo(w, y);
-      }
-      ctx.stroke();
-    } else if (bg === 'dots' && step > 8) {
-      ctx.fillStyle = patternColor;
-      const dotRadius = Math.max(0.8, Math.min(1.8, scaleRef.current));
-      const offsetX = ((panRef.current.x % step) + step) % step;
-      const offsetY = ((panRef.current.y % step) + step) % step;
-      for (let x = offsetX; x < w; x += step) {
-        for (let y = offsetY; y < h; y += step) {
-          ctx.beginPath();
-          ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
-          ctx.fill();
+      bctx.fillStyle = bgFill;
+      bctx.fillRect(0, 0, w, h);
+      const step = 40 * scaleRef.current;
+      if (bg === 'grid' && step > 8) {
+        bctx.strokeStyle = patternColor;
+        bctx.lineWidth = 1;
+        const offsetX = ((panRef.current.x % step) + step) % step;
+        const offsetY = ((panRef.current.y % step) + step) % step;
+        bctx.beginPath();
+        for (let x = offsetX; x < w; x += step) { bctx.moveTo(x, 0); bctx.lineTo(x, h); }
+        for (let y = offsetY; y < h; y += step) { bctx.moveTo(0, y); bctx.lineTo(w, y); }
+        bctx.stroke();
+      } else if (bg === 'dots' && step > 8) {
+        bctx.fillStyle = patternColor;
+        const dotRadius = Math.max(0.8, Math.min(1.8, scaleRef.current));
+        const offsetX = ((panRef.current.x % step) + step) % step;
+        const offsetY = ((panRef.current.y % step) + step) % step;
+        for (let x = offsetX; x < w; x += step) {
+          for (let y = offsetY; y < h; y += step) {
+            bctx.beginPath();
+            bctx.arc(x, y, dotRadius, 0, Math.PI * 2);
+            bctx.fill();
+          }
         }
       }
     }
-    ctx.restore();
 
-    // Strokes (in Welt-Coords; via setTransform skalieren wir)
+    // ── Tinten-Layer (transparent) ──
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, w, h);
     ctx.save();
     ctx.translate(panRef.current.x, panRef.current.y);
     ctx.scale(scaleRef.current, scaleRef.current);
@@ -366,7 +257,14 @@ export default function WhiteboardPage() {
     const drawStroke = (s) => {
       const pts = s.points;
       if (!pts || pts.length < 2) return;
-      ctx.strokeStyle = s.color;
+      if (s.erase) {
+        // Pixel-Radierer: zieht exakt die überfahrene Fläche ab.
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.strokeStyle = 'rgba(0,0,0,1)';
+      } else {
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = s.color;
+      }
       ctx.lineWidth = s.size;
       ctx.beginPath();
       ctx.moveTo(pts[0].x, pts[0].y);
@@ -379,6 +277,7 @@ export default function WhiteboardPage() {
     strokesRef.current.forEach(drawStroke);
     if (drawingRef.current) drawStroke(drawingRef.current);
 
+    ctx.globalCompositeOperation = 'source-over';
     ctx.restore();
   }, [bg, paper]);
 
@@ -402,6 +301,7 @@ export default function WhiteboardPage() {
           id: String(s.id),
           color: s.color || '#1f2937',
           size: Number(s.size) || 3,
+          erase: s.erase === true,
           points: Array.isArray(s.points) ? s.points : [],
         }));
         redraw();
@@ -477,23 +377,21 @@ export default function WhiteboardPage() {
     el.style.transform = `translate3d(${localX - radiusScreen}px, ${localY - radiusScreen}px, 0)`;
   }, [eraserWorldRadius]);
 
-  // Erase an einer Welt-Position. 'object' löscht ganze Striche, 'pixel'
-  // schneidet exakt heraus.
-  const eraseAt = useCallback((wx, wy) => {
+  // Objekt-Radierer: löscht ganze (sichtbare Pen-)Striche unter dem Cursor.
+  // Getroffene IDs werden in der Session gesammelt → Batch-Delete am Ende.
+  const eraseObjectsAt = useCallback((wx, wy) => {
     const radius = eraserWorldRadius();
     const list = strokesRef.current;
+    const sess = eraserSessionRef.current;
     let changed = false;
     const next = [];
-    if (eraserMode === 'object') {
-      for (let i = 0; i < list.length; i += 1) {
-        if (strokeHitByEraser(list[i], wx, wy, radius)) changed = true;
-        else next.push(list[i]);
-      }
-    } else {
-      for (let i = 0; i < list.length; i += 1) {
-        const res = splitStrokeByEraser(list[i], wx, wy, radius);
-        if (res.changed) changed = true;
-        for (let j = 0; j < res.parts.length; j += 1) next.push(res.parts[j]);
+    for (let i = 0; i < list.length; i += 1) {
+      const s = list[i];
+      if (!s.erase && strokeHitByEraser(s, wx, wy, radius)) {
+        changed = true;
+        if (sess) sess.deleted.add(s.id);
+      } else {
+        next.push(s);
       }
     }
     if (changed) {
@@ -501,7 +399,7 @@ export default function WhiteboardPage() {
       redraw();
       forceRender((n) => n + 1);
     }
-  }, [eraserWorldRadius, eraserMode, redraw]);
+  }, [eraserWorldRadius, redraw]);
 
   // ── Pointer-Handling: Pen/Eraser/Pan + Pinch ─────────────────────
   const onPointerDown = useCallback((e) => {
@@ -535,12 +433,21 @@ export default function WhiteboardPage() {
     const world = screenToWorld(e.clientX, e.clientY);
 
     if (tool === 'eraser') {
-      // Pixel-genauer Radierer: Session starten — alle IDs jetzt sind
-      // serverseitig bekannt; was am Ende fehlt -> API-Delete, was neu da ist -> API-Create.
-      const startIds = new Set();
-      for (const s of strokesRef.current) startIds.add(s.id);
-      eraserSessionRef.current = { startIds, lastWorld: world };
-      eraseAt(world.x, world.y);
+      if (eraserMode === 'object') {
+        // Objekt-Radierer: ganze Striche löschen, Session sammelt IDs.
+        eraserSessionRef.current = { mode: 'object', deleted: new Set(), lastWorld: world };
+        eraseObjectsAt(world.x, world.y);
+      } else {
+        // Pixel-Radierer: wie ein Strich, aber mit erase-Flag (destination-out).
+        // Welt-Breite = Screen-Größe / scale → auf dem Bildschirm = Cursor-Kreis.
+        drawingRef.current = {
+          id: makeId(),
+          color: '#000000',
+          size: Math.max(1, Number(eraserSize) / scaleRef.current),
+          erase: true,
+          points: [world],
+        };
+      }
       return;
     }
 
@@ -551,7 +458,7 @@ export default function WhiteboardPage() {
       size,
       points: [world],
     };
-  }, [tool, color, size, screenToWorld, redraw]);
+  }, [tool, color, size, eraserMode, eraserSize, screenToWorld, eraseObjectsAt]);
 
   const onPointerMove = useCallback((e) => {
     if (activePointersRef.current.has(e.pointerId)) {
@@ -593,27 +500,28 @@ export default function WhiteboardPage() {
       return;
     }
 
-    // Eraser-Drag: an jedem Punkt + Zwischenpunkte (damit schnelle Bewegungen
-    // keine Lücken hinterlassen) erasen.
-    if (tool === 'eraser' && eraserSessionRef.current) {
+    // Objekt-Radierer-Drag: mit Zwischenpunkten, damit schnelle Bewegungen
+    // keine Striche überspringen.
+    if (tool === 'eraser' && eraserMode === 'object' && eraserSessionRef.current) {
       const world = screenToWorld(e.clientX, e.clientY);
       const last = eraserSessionRef.current.lastWorld;
       if (last) {
         const dx = world.x - last.x, dy = world.y - last.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        const step = eraserWorldRadius() * 0.6; // überlappende Schritte
+        const step = Math.max(1, eraserWorldRadius() * 0.6);
         const steps = Math.max(1, Math.floor(dist / step));
         for (let i = 1; i <= steps; i += 1) {
           const t = i / steps;
-          eraseAt(last.x + dx * t, last.y + dy * t);
+          eraseObjectsAt(last.x + dx * t, last.y + dy * t);
         }
       } else {
-        eraseAt(world.x, world.y);
+        eraseObjectsAt(world.x, world.y);
       }
       eraserSessionRef.current.lastWorld = world;
       return;
     }
 
+    // Pen ODER Pixel-Radierer: Punkt an den aktuellen Stroke anhängen.
     if (drawingRef.current) {
       const world = screenToWorld(e.clientX, e.clientY);
       const pts = drawingRef.current.points;
@@ -625,7 +533,7 @@ export default function WhiteboardPage() {
       pts.push(world);
       redraw();
     }
-  }, [redraw, screenToWorld, tool, eraseAt, eraserWorldRadius, updateEraserCursor]);
+  }, [redraw, screenToWorld, tool, eraserMode, eraseObjectsAt, eraserWorldRadius, updateEraserCursor]);
 
   const onPointerUp = useCallback((e) => {
     const canvas = canvasRef.current;
@@ -634,45 +542,31 @@ export default function WhiteboardPage() {
     if (activePointersRef.current.size < 2) pinchRef.current = null;
     panGestureRef.current = null;
 
-    // Eraser-Session beenden: Diff vs. Start-IDs → Delete entfallener,
-    // Create neuer Sub-Strokes. Batched, damit nicht pro Pointermove
-    // ein API-Call rausgeht.
+    // Objekt-Radierer-Session beenden: gelöschte Striche per Batch entfernen.
     if (eraserSessionRef.current) {
-      const { startIds } = eraserSessionRef.current;
+      const { deleted } = eraserSessionRef.current;
       eraserSessionRef.current = null;
-      const currentIds = new Set();
-      for (const s of strokesRef.current) currentIds.add(s.id);
-      const toDelete = [];
-      for (const id of startIds) {
-        if (!currentIds.has(id)) toDelete.push(id);
-      }
-      const toCreate = strokesRef.current.filter((s) => !startIds.has(s.id));
-      if (toDelete.length > 0 || toCreate.length > 0) {
+      if (deleted && deleted.size > 0) {
         setSaving(true);
-        const ops = [];
-        for (const id of toDelete) {
-          ops.push(api.deleteWhiteboardStroke(id).catch((err) => {
+        Promise.all(
+          [...deleted].map((id) => api.deleteWhiteboardStroke(id).catch((err) => {
             console.warn('[Whiteboard] eraser delete failed:', err?.message || err);
-          }));
-        }
-        for (const stroke of toCreate) {
-          ops.push(api.createWhiteboardStroke({
-            id: stroke.id,
-            color: stroke.color,
-            size: stroke.size,
-            points: stroke.points,
-          }).catch((err) => {
-            console.warn('[Whiteboard] eraser create failed:', err?.message || err);
-          }));
-        }
-        Promise.all(ops).finally(() => setSaving(false));
+          }))
+        ).finally(() => setSaving(false));
       }
       return;
     }
 
-    if (drawingRef.current && drawingRef.current.points.length >= 2) {
-      const stroke = drawingRef.current;
+    // Pen ODER Pixel-Radierer-Strich abschließen.
+    if (drawingRef.current) {
+      let stroke = drawingRef.current;
       drawingRef.current = null;
+      // Einzel-Tap (1 Punkt): winzigen zweiten Punkt ergänzen, damit ein
+      // Punkt-Klecks (bzw. Radier-Punkt) entsteht und persistiert werden kann.
+      if (stroke.points.length === 1) {
+        const p = stroke.points[0];
+        stroke = { ...stroke, points: [p, { x: p.x + 0.1, y: p.y + 0.1 }] };
+      }
       strokesRef.current = [...strokesRef.current, stroke];
       redraw();
       forceRender((n) => n + 1);
@@ -682,11 +576,10 @@ export default function WhiteboardPage() {
         color: stroke.color,
         size: stroke.size,
         points: stroke.points,
+        erase: stroke.erase === true,
       })
         .catch((err) => console.warn('[Whiteboard] create failed:', err?.message || err))
         .finally(() => setSaving(false));
-    } else {
-      drawingRef.current = null;
     }
   }, [redraw]);
 
@@ -717,12 +610,14 @@ export default function WhiteboardPage() {
   // (mit Padding) und triggert einen Download. 2× DPR für crispe Schrift.
   const handleExportPng = useCallback(() => {
     const strokes = strokesRef.current;
+    // Bounding-Box nur aus sichtbarer Tinte (Radierer-Striche zählen nicht).
+    const inkStrokes = strokes.filter((s) => !s.erase);
     let minX, minY, maxX, maxY;
-    if (strokes.length === 0) {
+    if (inkStrokes.length === 0) {
       minX = 0; minY = 0; maxX = 800; maxY = 600;
     } else {
       minX = Infinity; minY = Infinity; maxX = -Infinity; maxY = -Infinity;
-      for (const s of strokes) {
+      for (const s of inkStrokes) {
         const b = strokeBounds(s);
         const half = (Number(s.size) || 3) / 2;
         if (b.minX - half < minX) minX = b.minX - half;
@@ -783,20 +678,38 @@ export default function WhiteboardPage() {
       }
     }
 
-    // Strokes
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+    // Tinte auf eigener transparenter Ebene (Radierer via destination-out),
+    // danach über den Hintergrund kopieren — sonst würde der Radierer auch
+    // den Hintergrund "durchlöchern".
+    const ink = document.createElement('canvas');
+    ink.width = ex.width;
+    ink.height = ex.height;
+    const ictx = ink.getContext('2d');
+    ictx.scale(dpr, dpr);
+    ictx.translate(-minX, -minY);
+    ictx.lineCap = 'round';
+    ictx.lineJoin = 'round';
     for (const s of strokes) {
       if (!s.points || s.points.length < 2) continue;
-      ctx.strokeStyle = s.color || '#1f2937';
-      ctx.lineWidth = Number(s.size) || 3;
-      ctx.beginPath();
-      ctx.moveTo(s.points[0].x, s.points[0].y);
-      for (let i = 1; i < s.points.length; i += 1) {
-        ctx.lineTo(s.points[i].x, s.points[i].y);
+      if (s.erase) {
+        ictx.globalCompositeOperation = 'destination-out';
+        ictx.strokeStyle = 'rgba(0,0,0,1)';
+      } else {
+        ictx.globalCompositeOperation = 'source-over';
+        ictx.strokeStyle = s.color || '#1f2937';
       }
-      ctx.stroke();
+      ictx.lineWidth = Number(s.size) || 3;
+      ictx.beginPath();
+      ictx.moveTo(s.points[0].x, s.points[0].y);
+      for (let i = 1; i < s.points.length; i += 1) {
+        ictx.lineTo(s.points[i].x, s.points[i].y);
+      }
+      ictx.stroke();
     }
+    ictx.globalCompositeOperation = 'source-over';
+    // Ink-Layer (Device-Pixel) unskaliert über den Hintergrund legen.
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(ink, 0, 0);
 
     ex.toBlob((blob) => {
       if (!blob) return;
@@ -968,10 +881,18 @@ export default function WhiteboardPage() {
       </header>
 
       <div ref={wrapRef} className="wb-canvas-wrap">
+        {/* Hintergrund-Layer (Fill + Raster) — Tinte liegt darüber, der
+            Radierer macht die Tinte transparent und lässt dies durchscheinen. */}
+        <canvas
+          ref={bgCanvasRef}
+          className="wb-canvas wb-canvas-bg"
+          aria-hidden="true"
+          style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
+        />
         <canvas
           ref={canvasRef}
           className="wb-canvas"
-          style={{ cursor, touchAction: 'none' }}
+          style={{ cursor, touchAction: 'none', position: 'relative' }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}

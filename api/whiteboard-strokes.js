@@ -24,6 +24,9 @@ async function ensureTable(pool) {
         created_at  TIMESTAMP NOT NULL DEFAULT NOW()
       )
     `);
+    // Raster-Radierer: Eraser-Strokes werden wie normale Striche gespeichert,
+    // aber beim Rendern via destination-out abgezogen.
+    await pool.query("ALTER TABLE whiteboard_strokes ADD COLUMN IF NOT EXISTS erase BOOLEAN NOT NULL DEFAULT false");
     await pool.query('CREATE INDEX IF NOT EXISTS idx_whiteboard_strokes_user_created ON whiteboard_strokes (user_id, created_at ASC)');
     ensuredAt = now;
   } catch (err) {
@@ -59,7 +62,9 @@ function sanitizeColor(color) {
 function sanitizeSize(size) {
   const n = Number(size);
   if (!Number.isFinite(n)) return 3;
-  return Math.max(1, Math.min(40, n));
+  // Obergrenze großzügig: Eraser-Strokes werden in Welt-Pixeln gespeichert
+  // und können beim Rauszoomen deutlich größer als ein Stift sein.
+  return Math.max(1, Math.min(5000, n));
 }
 
 module.exports = async function handler(req, res) {
@@ -81,7 +86,7 @@ module.exports = async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const { rows } = await pool.query(
-        'SELECT id, color, size, points, EXTRACT(EPOCH FROM created_at) * 1000 AS created_at FROM whiteboard_strokes WHERE user_id = $1 ORDER BY created_at ASC',
+        'SELECT id, color, size, points, erase, EXTRACT(EPOCH FROM created_at) * 1000 AS created_at FROM whiteboard_strokes WHERE user_id = $1 ORDER BY created_at ASC',
         [userId]
       );
       return res.json({ strokes: rows });
@@ -101,12 +106,13 @@ module.exports = async function handler(req, res) {
       if (points.length < 2) return res.status(400).json({ error: 'mindestens 2 Punkte' });
       const color = sanitizeColor(body.color);
       const size = sanitizeSize(body.size);
+      const erase = body.erase === true;
       try {
         await pool.query(
-          `INSERT INTO whiteboard_strokes (id, user_id, color, size, points)
-           VALUES ($1, $2, $3, $4, $5::jsonb)
+          `INSERT INTO whiteboard_strokes (id, user_id, color, size, points, erase)
+           VALUES ($1, $2, $3, $4, $5::jsonb, $6)
            ON CONFLICT (id) DO NOTHING`,
-          [id, userId, color, size, JSON.stringify(points)]
+          [id, userId, color, size, JSON.stringify(points), erase]
         );
         return res.json({ ok: true });
       } catch (err) {
