@@ -20,11 +20,11 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Pencil, Eraser, Hand, Trash2, ZoomIn, ZoomOut, Type, Save,
-  Grid3x3, Grip, Square, Download, FileText, BookOpen,
+  Grid3x3, Grip, Square, Download, FileText, BookOpen, Undo2, Redo2,
 } from 'lucide-react';
 import { api } from '../utils/api';
 
-const PEN_COLORS = ['#1f2937', '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#a855f7'];
+const PEN_COLORS = ['#1f2937', '#ffffff', '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#a855f7'];
 const PEN_SIZES = [2, 4, 8, 14];
 // Eraser-Größen sind SCREEN-Pixel (Durchmesser) — der Radierer fühlt sich
 // damit bei jedem Zoom gleich an (wie bei Apple Notes/Freeform). Die
@@ -174,6 +174,21 @@ export default function WhiteboardPage() {
   // Eraser-Cursor-Overlay: zeigt exakt den Eraser-Radius als Kreis am Pointer.
   // Ref-basiert, um Re-Renders pro Move zu vermeiden.
   const eraserCursorRef = useRef(null);
+
+  // ── Undo/Redo ─────────────────────────────────────────────────────
+  // Jede Aktion ist invertierbar:
+  //   { type:'add',    strokes:[...] } Strich(e) hinzugefügt (Stift / Pixel-Radierer)
+  //   { type:'remove', strokes:[...] } ganze Striche gelöscht (Objekt-Radierer)
+  //   { type:'clear',  strokes:[...] } alles geleert
+  const undoStackRef = useRef([]);
+  const redoStackRef = useRef([]);
+  const [histTick, setHistTick] = useState(0); // refresht nur die Undo/Redo-Buttons
+  const pushHistory = useCallback((action) => {
+    undoStackRef.current.push(action);
+    if (undoStackRef.current.length > 100) undoStackRef.current.shift();
+    redoStackRef.current = [];
+    setHistTick((n) => n + 1);
+  }, []);
 
   // ── Canvas-Resize + DPR-aware (beide Layer gleich groß) ───────────
   const setupCanvasSize = useCallback(() => {
@@ -389,7 +404,7 @@ export default function WhiteboardPage() {
       const s = list[i];
       if (!s.erase && strokeHitByEraser(s, wx, wy, radius)) {
         changed = true;
-        if (sess) sess.deleted.add(s.id);
+        if (sess && !sess.removed.some((r) => r.id === s.id)) sess.removed.push(s);
       } else {
         next.push(s);
       }
@@ -434,8 +449,8 @@ export default function WhiteboardPage() {
 
     if (tool === 'eraser') {
       if (eraserMode === 'object') {
-        // Objekt-Radierer: ganze Striche löschen, Session sammelt IDs.
-        eraserSessionRef.current = { mode: 'object', deleted: new Set(), lastWorld: world };
+        // Objekt-Radierer: ganze Striche löschen, Session sammelt die Objekte.
+        eraserSessionRef.current = { mode: 'object', removed: [], lastWorld: world };
         eraseObjectsAt(world.x, world.y);
       } else {
         // Pixel-Radierer: wie ein Strich, aber mit erase-Flag (destination-out).
@@ -544,12 +559,13 @@ export default function WhiteboardPage() {
 
     // Objekt-Radierer-Session beenden: gelöschte Striche per Batch entfernen.
     if (eraserSessionRef.current) {
-      const { deleted } = eraserSessionRef.current;
+      const { removed } = eraserSessionRef.current;
       eraserSessionRef.current = null;
-      if (deleted && deleted.size > 0) {
+      if (removed && removed.length > 0) {
+        pushHistory({ type: 'remove', strokes: removed });
         setSaving(true);
         Promise.all(
-          [...deleted].map((id) => api.deleteWhiteboardStroke(id).catch((err) => {
+          removed.map((s) => api.deleteWhiteboardStroke(s.id).catch((err) => {
             console.warn('[Whiteboard] eraser delete failed:', err?.message || err);
           }))
         ).finally(() => setSaving(false));
@@ -570,6 +586,7 @@ export default function WhiteboardPage() {
       strokesRef.current = [...strokesRef.current, stroke];
       redraw();
       forceRender((n) => n + 1);
+      pushHistory({ type: 'add', strokes: [stroke] });
       setSaving(true);
       api.createWhiteboardStroke({
         id: stroke.id,
@@ -581,13 +598,15 @@ export default function WhiteboardPage() {
         .catch((err) => console.warn('[Whiteboard] create failed:', err?.message || err))
         .finally(() => setSaving(false));
     }
-  }, [redraw]);
+  }, [redraw, pushHistory]);
 
   // ── Clear All ────────────────────────────────────────────────────
   const handleClear = useCallback(async () => {
     if (strokesRef.current.length === 0) return;
-    const ok = window.confirm('Whiteboard komplett leeren? Diese Aktion kann nicht rückgängig gemacht werden.');
+    const ok = window.confirm('Whiteboard komplett leeren? Du kannst es mit Rückgängig wiederherstellen.');
     if (!ok) return;
+    const before = strokesRef.current;
+    pushHistory({ type: 'clear', strokes: before });
     strokesRef.current = [];
     redraw();
     forceRender((n) => n + 1);
@@ -596,7 +615,78 @@ export default function WhiteboardPage() {
     } catch (err) {
       console.warn('[Whiteboard] clear failed:', err?.message || err);
     }
+  }, [redraw, pushHistory]);
+
+  // ── Undo / Redo ───────────────────────────────────────────────────
+  // Persistenz best-effort; Striche behalten ihre IDs, daher sind Create/
+  // Delete idempotent (ON CONFLICT DO NOTHING serverseitig).
+  const persistCreate = (s) => api.createWhiteboardStroke({
+    id: s.id, color: s.color, size: s.size, points: s.points, erase: s.erase === true,
+  }).catch((err) => console.warn('[Whiteboard] undo create failed:', err?.message || err));
+  const persistDelete = (id) => api.deleteWhiteboardStroke(id)
+    .catch((err) => console.warn('[Whiteboard] undo delete failed:', err?.message || err));
+
+  const undo = useCallback(() => {
+    const action = undoStackRef.current.pop();
+    if (!action) return;
+    const ops = [];
+    if (action.type === 'add') {
+      // hinzugefügte Striche wieder entfernen
+      const ids = new Set(action.strokes.map((s) => s.id));
+      strokesRef.current = strokesRef.current.filter((s) => !ids.has(s.id));
+      action.strokes.forEach((s) => ops.push(persistDelete(s.id)));
+    } else if (action.type === 'remove' || action.type === 'clear') {
+      // gelöschte/geleerte Striche wiederherstellen
+      const existing = new Set(strokesRef.current.map((s) => s.id));
+      const restore = action.strokes.filter((s) => !existing.has(s.id));
+      strokesRef.current = [...strokesRef.current, ...restore];
+      restore.forEach((s) => ops.push(persistCreate(s)));
+    }
+    redoStackRef.current.push(action);
+    setHistTick((n) => n + 1);
+    redraw();
+    forceRender((n) => n + 1);
+    if (ops.length) { setSaving(true); Promise.all(ops).finally(() => setSaving(false)); }
   }, [redraw]);
+
+  const redo = useCallback(() => {
+    const action = redoStackRef.current.pop();
+    if (!action) return;
+    const ops = [];
+    if (action.type === 'add') {
+      const existing = new Set(strokesRef.current.map((s) => s.id));
+      const re = action.strokes.filter((s) => !existing.has(s.id));
+      strokesRef.current = [...strokesRef.current, ...re];
+      re.forEach((s) => ops.push(persistCreate(s)));
+    } else if (action.type === 'remove' || action.type === 'clear') {
+      const ids = new Set(action.strokes.map((s) => s.id));
+      strokesRef.current = strokesRef.current.filter((s) => !ids.has(s.id));
+      action.strokes.forEach((s) => ops.push(persistDelete(s.id)));
+    }
+    undoStackRef.current.push(action);
+    setHistTick((n) => n + 1);
+    redraw();
+    forceRender((n) => n + 1);
+    if (ops.length) { setSaving(true); Promise.all(ops).finally(() => setSaving(false)); }
+  }, [redraw]);
+
+  // Tastatur: Ctrl/Cmd+Z = Rückgängig, Ctrl/Cmd+Shift+Z bzw. Ctrl+Y = Wiederholen.
+  useEffect(() => {
+    const onKey = (e) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod) return;
+      const k = e.key.toLowerCase();
+      if (k === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) redo(); else undo();
+      } else if (k === 'y') {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [undo, redo]);
 
   const handleResetView = useCallback(() => {
     panRef.current = { x: 0, y: 0 };
@@ -779,6 +869,7 @@ export default function WhiteboardPage() {
               <button
                 key={c}
                 type="button"
+                data-color={c}
                 className={`wb-color ${color === c ? 'is-active' : ''}`}
                 style={{ background: c }}
                 onClick={() => setColor(c)}
@@ -836,6 +927,26 @@ export default function WhiteboardPage() {
                 </button>
               );
             })}
+          </div>
+          <div className="wb-tool-group">
+            <button
+              className="wb-btn"
+              onClick={undo}
+              disabled={undoStackRef.current.length === 0}
+              title="Rückgängig (Strg/⌘+Z)"
+              aria-label="Rückgängig"
+            >
+              <Undo2 size={16} />
+            </button>
+            <button
+              className="wb-btn"
+              onClick={redo}
+              disabled={redoStackRef.current.length === 0}
+              title="Wiederholen (Strg/⌘+Umschalt+Z)"
+              aria-label="Wiederholen"
+            >
+              <Redo2 size={16} />
+            </button>
           </div>
           <div className="wb-tool-group">
             <button className="wb-btn" onClick={() => zoomAt(1 / 1.2, null)} title="Verkleinern">

@@ -217,6 +217,9 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
+/* Weißer Swatch braucht einen sichtbaren Rand (sonst weiß auf hell unsichtbar) */
+.wb-color[data-color="#ffffff"] { border-color: rgba(15, 23, 42, 0.3); }
+html[data-theme="dark"] .wb-color[data-color="#ffffff"] { border-color: rgba(255, 255, 255, 0.5); }
 .wb-color:hover {
   transform: scale(1.10);
   box-shadow:
