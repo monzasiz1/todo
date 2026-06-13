@@ -117,6 +117,14 @@ export default function PricingPage() {
     if (targetPlanId === planId || loading) return;
     setErrorMsg(null);
 
+    // Wer bereits ein bezahltes Abo hat, wechselt den Plan (egal ob höher,
+    // niedriger oder zu Free) NICHT über einen neuen Checkout — sonst entstünde
+    // ein zweites Abo. Solche Wechsel laufen über das Stripe-Portal, das die
+    // anteilige Verrechnung (Proration) und Kündigung sauber übernimmt.
+    if (hasPaidPlan) {
+      return handleManageSubscription();
+    }
+
     if (targetPlanId === 'free') {
       setLoading('free');
       try {
@@ -273,9 +281,11 @@ export default function PricingPage() {
                   ? p.id === 'free' ? 'Wird gewechselt…' : 'Checkout wird gestartet…'
                   : isCurrent
                     ? 'Aktueller Plan'
-                    : p.id === 'free'
-                      ? 'Zu Free wechseln'
-                      : `${p.label} wählen`}
+                    : hasPaidPlan
+                      ? 'Plan wechseln'
+                      : p.id === 'free'
+                        ? 'Zu Free wechseln'
+                        : `${p.label} wählen`}
               </button>
             </motion.div>
           );

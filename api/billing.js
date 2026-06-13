@@ -233,6 +233,25 @@ async function handleCheckout(req, res) {
 
   const pool = getPool();
   await ensureSchema(pool);
+
+  // Schutz vor Zweit-Abo: Wer bereits ein aktives Abo hat, darf KEIN neues
+  // Checkout starten (sonst zwei parallele Subscriptions). Plan-Wechsel
+  // (hoch/runter) laufen über das Customer-Portal mit Proration.
+  const subRow = await pool.query(
+    `SELECT plan, stripe_subscription_id FROM users WHERE id = $1`,
+    [user.id]
+  );
+  const cur = subRow.rows[0] || {};
+  const hasActiveSub = !!cur.stripe_subscription_id
+    && (cur.plan === 'pro' || cur.plan === 'team');
+  if (hasActiveSub) {
+    return res.status(409).json({
+      error: 'Du hast bereits ein aktives Abo. Bitte wechsle deinen Plan über „Abo verwalten".',
+      code: 'subscription_exists',
+      use_portal: true,
+    });
+  }
+
   const customerId = await ensureCustomer(pool, user);
 
   const stripe = getStripe();
