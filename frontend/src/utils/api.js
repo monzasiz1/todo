@@ -1036,19 +1036,24 @@ export const api = {
 
   // Whiteboard Strokes
   getWhiteboardStrokes: () => request('/whiteboard-strokes'),
+  // keepalive: true → der Request überlebt das Schließen/Wegwischen der App,
+  // sodass ein direkt vor dem Beenden gezeichneter Strich zuverlässig ankommt.
   createWhiteboardStroke: (stroke) =>
     request('/whiteboard-strokes', {
       method: 'POST',
+      keepalive: true,
       body: JSON.stringify({ action: 'create', ...stroke }),
     }),
   deleteWhiteboardStroke: (id) =>
     request('/whiteboard-strokes', {
       method: 'POST',
+      keepalive: true,
       body: JSON.stringify({ action: 'delete', id }),
     }),
   clearWhiteboardStrokes: () =>
     request('/whiteboard-strokes', {
       method: 'POST',
+      keepalive: true,
       body: JSON.stringify({ action: 'clear' }),
     }),
 };

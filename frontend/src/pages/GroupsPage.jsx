@@ -336,9 +336,21 @@ function GroupDetailLoadingSkeleton({ onBack }) {
 function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick, onSearchGroupsClick }) {
   const [query, setQuery] = useState('');
   const tasks = useTaskStore((s) => s.tasks);
+  const fetchTasks = useTaskStore((s) => s.fetchTasks);
   const { fetchGroups } = useGroupStore();
   const [invitations, setInvitations] = useState([]);
   const [invBusy, setInvBusy] = useState({});
+
+  // Die "X heute"-Zähler und das nächste Team-Event werden aus den Tasks
+  // berechnet. Wenn man direkt auf die Gruppen-Seite kommt (ohne vorher das
+  // Dashboard geöffnet zu haben), sind die Tasks evtl. noch nicht geladen →
+  // dann einmal laden, damit die Zahlen stimmen.
+  useEffect(() => {
+    if ((tasks || []).length === 0) {
+      fetchTasks({ dashboard: 'true', limit: '300', horizon_days: '42', completed_lookback_days: '30' });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadInvitations = () => {
     api.getMyGroupRequests()
