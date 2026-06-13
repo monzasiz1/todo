@@ -1070,3 +1070,57 @@
   }
   .lp-marquee-track { animation: none; }
 }
+
+/* ============================================================
+   SEKTIONS-ÜBERGÄNGE — Trennlinien, sanfte Band-Flächen,
+   Scroll-Reveal der Überschriften (so wirken die Sektionen als
+   eigene Bereiche statt alles flach auf dem Hintergrund)
+   ============================================================ */
+.lp-section,
+.lp-ai,
+.lp-pricing,
+.lp-climate,
+.lp-dl,
+.lp-final { position: relative; }
+
+/* zentrierte Licht-Trennlinie am oberen Rand jeder Sektion */
+.lp-section::before,
+.lp-ai::before,
+.lp-pricing::before,
+.lp-climate::before,
+.lp-dl::before,
+.lp-final::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(1080px, 90%);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.14), transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* dezente, alternierende Band-Fläche hebt jede zweite Sektion sanft ab */
+.lp-section,
+.lp-climate {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.028) 0%, rgba(255, 255, 255, 0.01) 42%, transparent 100%);
+}
+
+/* Scroll-getriebene Einblendung der Sektions-Überschriften.
+   Nur in Browsern mit Scroll-Timeline-Support (sonst einfach sichtbar)
+   und nur ohne "reduzierte Bewegung". */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .lp-section-head {
+      animation: lp-head-reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 4% entry 42%;
+    }
+    @keyframes lp-head-reveal {
+      from { opacity: 0; transform: translateY(34px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  }
+}
