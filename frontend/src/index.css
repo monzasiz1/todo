@@ -34182,7 +34182,7 @@ html[data-theme="dark"] .gs-discover-skeleton {
 .bq-group-card-chip-today strong { color: var(--bq-g-color); }
 
 .bq-group-card-event {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 8px;
   padding: 7px 11px;
@@ -34191,7 +34191,7 @@ html[data-theme="dark"] .gs-discover-skeleton {
   border-radius: 10px;
   font-size: 0.84rem;
   color: var(--text, #0F172A);
-  width: max-content;
+  width: 100%;
   max-width: 100%;
   overflow: hidden;
 }
@@ -34205,13 +34205,17 @@ html[data-theme="dark"] .gs-discover-skeleton {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 200px;
+  /* Schrumpft und zeigt Ellipsis, damit die Uhrzeit (when) immer Platz hat */
+  flex: 1 1 auto;
+  min-width: 0;
 }
 .bq-group-card-event-when {
   color: var(--text-secondary);
   font-weight: 500;
   font-size: 0.78rem;
   flex-shrink: 0;
+  white-space: nowrap;
+  margin-left: auto;
 }
 .bq-group-card-event.is-placeholder {
   background: transparent;
@@ -34334,7 +34338,7 @@ html[data-theme="dark"] .gs-discover-skeleton {
   .bq-group-card-chips { gap: 5px; }
   .bq-group-card-chip { padding: 3px 8px; font-size: 0.72rem; }
   .bq-group-card-event { padding: 6px 9px; font-size: 0.8rem; }
-  .bq-group-card-event-title { max-width: 140px; }
+  .bq-group-card-event-when { font-size: 0.74rem; }
   .bq-group-card-bar { width: 4px; }
 
   /* Mehr Luft unten, damit letzte Karte nicht direkt an der Bottom-Nav klebt */
