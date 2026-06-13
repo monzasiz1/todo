@@ -163,10 +163,12 @@ export default function GroupsPage() {
       {showUpgrade && (
         <UpgradeModal feature="groups" onClose={() => setShowUpgrade(false)} />
       )}
-      {/* Kein mode="wait": sonst kann ein hängender Exit (z.B. der Detail-
-          Ansicht) verhindern, dass die nächste View gemountet wird → leerer
-          Bildschirm beim Zurückgehen zur Gruppenübersicht. */}
-      <AnimatePresence>
+      {/* Bewusst OHNE AnimatePresence: sonst rendern beim Umschalten beide
+          Views gleichzeitig im Fluss → sie stapeln sich und springen
+          ("katastrophale" Öffnen-Animationen). Ohne AnimatePresence
+          verschwindet die alte Ansicht sofort und die neue spielt nur ihre
+          saubere Enter-Animation (initial→animate). */}
+      <>
         {view === 'list' && (
           <GroupList
             key="list"
@@ -232,7 +234,7 @@ export default function GroupsPage() {
             onBack={() => setView('list')}
           />
         )}
-      </AnimatePresence>
+      </>
     </div>
   );
 }
@@ -779,7 +781,7 @@ function CreateGroup({ onBack, onCreate }) {
   };
 
   return (
-    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22, ease: 'easeOut' }}>
       <div className="group-sub-header">
         <button className="group-back-btn" onClick={onBack}><ArrowLeft size={20} /></button>
         <h2>Neue Gruppe</h2>
@@ -979,7 +981,7 @@ function JoinGroup({ onBack, onJoin }) {
   };
 
   return (
-    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22, ease: 'easeOut' }}>
       <div className="group-sub-header">
         <button className="group-back-btn" onClick={onBack}><ArrowLeft size={20} /></button>
         <h2>Gruppe beitreten</h2>
