@@ -362,9 +362,21 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
     const vv = window.visualViewport;
     if (!vv) return undefined;
     const root = document.documentElement;
+    let prevH = vv.height;
     const apply = () => {
       root.style.setProperty('--gchat-vv-top', `${Math.round(vv.offsetTop)}px`);
       root.style.setProperty('--gchat-vv-h', `${Math.round(vv.height)}px`);
+      // Tastatur ist gerade aufgegangen (sichtbare Höhe schrumpft deutlich)
+      // → ans Ende scrollen, damit die LETZTE Nachricht über der Tastatur
+      // sichtbar bleibt. Nur bei Schrumpfen, damit Hochscrollen weiter geht.
+      const shrank = vv.height < prevH - 80;
+      prevH = vv.height;
+      if (shrank) {
+        requestAnimationFrame(() => {
+          const cont = messagesEndRef.current?.closest('.gchat-messages');
+          if (cont) cont.scrollTop = cont.scrollHeight;
+        });
+      }
     };
     apply();
     vv.addEventListener('resize', apply);
