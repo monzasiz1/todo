@@ -1,12 +1,17 @@
 ﻿import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
 import './styles/theme-dark.css';
 import './styles/whiteboard.css';
 import './styles/platform-android.css';
 import { initTheme } from './utils/theme';
 import { purgeAuthQueueEntries } from './utils/offlineQueue';
+import { installChunkErrorRecovery } from './utils/recover';
+
+// Auto-Wiederherstellung bei veralteten Chunks/Cache (weiße Seite nach Deploy).
+installChunkErrorRecovery();
 
 // Theme so früh wie möglich anwenden, um FOUC (Flash of Unstyled Theme) zu vermeiden.
 initTheme();
@@ -95,7 +100,9 @@ window.addEventListener('error', (event) => {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </React.StrictMode>
 );
 
