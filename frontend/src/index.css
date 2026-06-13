@@ -6633,15 +6633,31 @@ body.cal-is-dragging * {
   /* Main Content */
   .app-main {
     margin-left: 0;
-    padding: 72px 16px 90px;
-    padding-top: calc(72px + env(safe-area-inset-top, 0px));
-    padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+    /* Seitenränder respektieren die Safe-Area (Notch/abgerundete Ecken im
+       Querformat) und bleiben sonst bei angenehmen 18px. */
+    padding: 72px max(18px, env(safe-area-inset-right, 0px)) 90px max(18px, env(safe-area-inset-left, 0px));
+    padding-top: calc(70px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
     max-width: 100%;
     overflow-x: hidden;
   }
 
   .app-content-shell {
     max-width: 100%;
+  }
+
+  /* App-like: jeder Seitenwechsel blendet den Inhalt sanft ein (von unten).
+     fill-mode 'backwards' statt 'both' — sonst bliebe ein transform haengen,
+     der einen Containing-Block fuer position:fixed-Modals erzeugt. */
+  .app-route-view {
+    animation: app-route-in 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+  }
+  @keyframes app-route-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .app-route-view { animation: none; }
   }
 
   /* Page Header */

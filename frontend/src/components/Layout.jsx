@@ -9,7 +9,6 @@ import { Menu, X, MessageCircle } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import ReminderChecker from './ReminderChecker';
 import FocusTimerPin from './FocusTimerPin';
-import UpgradeGate from './UpgradeGate';
 import { lockScroll, unlockScroll } from '../utils/scrollLock';
 import { useGroupStore } from '../store/groupStore';
 import '../styles/shared-spending.css';
@@ -120,11 +119,11 @@ export default function Layout() {
     <div className={`app-layout ${sidebarOpen ? 'sidebar-active' : ''} ${isFullBleedRoute ? 'full-bleed-route' : ''}`}>
       <PremiumBackground />
       {/* Scroll-Fade oben: verdunkelt Inhalte die unter den Header laufen */}
-      {!isFullBleedRoute && !chatOpen && <div className="mobile-header-scrim" />}
+      {!isWhiteboardRoute && <div className="mobile-header-scrim" />}
 
-      {/* Mobile Header — auf Full-Bleed-Routen (Chat, Whiteboard) und im
-          geöffneten Gruppen-Chat-Panel ausgeblendet (haben eigenen Header). */}
-      {!isFullBleedRoute && !chatOpen && (
+      {/* Mobile Header — nur auf Whiteboard ausgeblendet (eigener Header).
+          Auf Chat bleibt der Mobile-Header sichtbar. */}
+      {!isWhiteboardRoute && (
       <div className="mobile-header">
         <div className="mobile-header-logo">
             <img src="/icons/icon.png" alt="BeeQu" className="mobile-brand-mark" />
@@ -169,7 +168,11 @@ export default function Layout() {
       {/* Main Content */}
       <main className={`app-main ${sidebarCollapsed ? 'desktop-sidebar-collapsed' : ''}`}>
         <div className={`app-content-shell ${isNotesRoute ? 'notes-full-width' : ''} ${isCalendarRoute ? 'calendar-full-width' : ''}`}>
-          <Outlet />
+          {/* key = pathname → der Seiteninhalt remountet beim Tab-Wechsel und
+              spielt die Einblend-Animation neu ab (native-App-Gefühl). */}
+          <div key={location.pathname} className="app-route-view">
+            <Outlet />
+          </div>
         </div>
       </main>
 
@@ -192,9 +195,6 @@ export default function Layout() {
           </Suspense>
         )}
       </AnimatePresence>
-
-      {/* Plan-Gate: zentrale Upgrade-Modal bei 402/upgrade_required vom Server */}
-      <UpgradeGate />
 
       {/* Toast Notifications */}
       <FeedbackToast />
