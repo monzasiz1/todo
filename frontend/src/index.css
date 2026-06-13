@@ -34296,34 +34296,62 @@ html[data-theme="dark"] .gs-discover-skeleton {
 
 /* Phone */
 @media (max-width: 640px) {
-  .bq-groups { gap: 14px; }
+  /* ── Kompaktere, dichtere Gruppen-Übersicht auf dem Handy ── */
+  .bq-groups { gap: 10px; margin-bottom: 28px; }
 
+  /* Bento: zwei kompakte Zahl-Kacheln nebeneinander, Event-Karte volle Breite */
   .bq-groups-bento {
-    grid-template-columns: 1fr;
-    gap: 10px;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
   }
-  .bq-groups-bento-card { padding: 14px 16px; }
-  .bq-groups-bento-card.is-members { grid-column: auto; }
-  .bq-groups-bento-num strong { font-size: 1.5rem; }
-  .bq-groups-bento-num .bq-groups-bento-eventtitle { font-size: 1rem; }
+  .bq-groups-bento-card {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+  .bq-groups-bento-card::before { display: none; } /* dünner Top-Gradient weg → ruhiger */
+  .bq-groups-bento-icon { width: 30px; height: 30px; border-radius: 9px; }
+  .bq-groups-bento-num strong { font-size: 1.3rem; }
+  .bq-groups-bento-num span { font-size: 0.7rem; }
+  /* Fußzeile der beiden Zahl-Kacheln ausblenden → halbe Höhe */
+  .bq-groups-bento-card.is-primary .bq-groups-bento-foot,
+  .bq-groups-bento-card.is-members .bq-groups-bento-foot { display: none; }
+  /* Event-Karte über die volle Breite, mit Datum-Fußzeile */
+  .bq-groups-bento-card.is-event {
+    grid-column: 1 / -1;
+    grid-template-columns: auto 1fr;
+  }
+  .bq-groups-bento-card.is-event .bq-groups-bento-foot { grid-column: 1 / -1; }
+  .bq-groups-bento-num .bq-groups-bento-eventtitle { font-size: 0.95rem; }
+  .bq-groups-bento-foot { font-size: 0.72rem; }
 
+  /* Quick-Actions: 3 kompakte Icon-Buttons nebeneinander, Untertitel weg */
   .bq-groups-actions {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, 1fr);
     gap: 8px;
   }
   .bq-groups-action.is-primary { grid-column: auto; }
-  .bq-groups-action { padding: 12px 14px; }
-  .bq-groups-action-ico { width: 34px; height: 34px; }
+  .bq-groups-action {
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 8px;
+    text-align: center;
+  }
+  .bq-groups-action-ico { width: 32px; height: 32px; }
+  .bq-groups-action-text { align-items: center; }
+  .bq-groups-action-text strong { font-size: 0.78rem; line-height: 1.15; }
+  .bq-groups-action-text small { display: none; } /* Untertitel raus → kompakt */
 
-  .bq-groups-search { padding: 9px 12px; }
+  .bq-groups-search { padding: 8px 12px; }
 
   /* Group cards: avatar bleibt links, Inhalt stacked, Arrow absolute */
   .bq-group-card {
     grid-template-columns: auto 1fr;
-    gap: 12px;
-    padding: 13px 14px;
-    padding-left: 18px;
-    padding-right: 40px;
+    gap: 11px;
+    padding: 11px 12px;
+    padding-left: 16px;
+    padding-right: 38px;
   }
   .bq-group-card-arrow {
     position: absolute;
