@@ -262,16 +262,26 @@ export const useAuthStore = create((set) => ({
     }
   },
 
-  logout: () => {
-    // Best-effort detach before token is removed.
+  logout: async () => {
     const tokenBeforeLogout = localStorage.getItem('token');
-    detachCurrentPushSubscription(tokenBeforeLogout);
+
+    // Push-Abmeldung ABWARTEN, bevor wir navigieren. Wird die ServiceWorker-/
+    // PushManager-Operation mitten in einer harten Navigation abgebrochen,
+    // kann der Electron-/Chromium-Renderer abstürzen (STATUS_ACCESS_VIOLATION).
+    // Timeout-gekappt, damit Logout nie hängen bleibt.
+    try {
+      await Promise.race([
+        detachCurrentPushSubscription(tokenBeforeLogout),
+        new Promise((r) => setTimeout(r, 1500)),
+      ]);
+    } catch { /* best-effort */ }
 
     clearApiCacheForCurrentUser();
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     clearLocalAppCaches();
     set({ user: null, token: null });
+
     const isPwa = window.matchMedia('(display-mode: standalone)').matches
       || window.navigator.standalone === true;
     const isElectron = typeof window !== 'undefined' && !!window.electronApp;
@@ -279,7 +289,15 @@ export const useAuthStore = create((set) => ({
       && !!window.Capacitor
       && (typeof window.Capacitor.isNativePlatform !== 'function'
         || window.Capacitor.isNativePlatform());
-    window.location.href = (isPwa || isElectron || isCapacitor) ? '/app/login' : '/';
+    const target = (isPwa || isElectron || isCapacitor) ? '/app/login' : '/';
+
+    // Navigation auf den nächsten Tick verschieben + replace(): die Storage-/
+    // SW-Arbeit ist dann abgeschlossen und kollidiert nicht mit dem
+    // Document-Teardown (vermeidet Renderer-Crash beim Logout).
+    setTimeout(() => {
+      try { window.location.replace(target); }
+      catch { window.location.href = target; }
+    }, 0);
   },
 
   // setUser MERGEt in den bestehenden User statt ihn komplett zu ersetzen.
