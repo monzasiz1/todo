@@ -6646,20 +6646,6 @@ body.cal-is-dragging * {
     max-width: 100%;
   }
 
-  /* App-like: jeder Seitenwechsel blendet den Inhalt sanft ein (von unten).
-     fill-mode 'backwards' statt 'both' — sonst bliebe ein transform haengen,
-     der einen Containing-Block fuer position:fixed-Modals erzeugt. */
-  .app-route-view {
-    animation: app-route-in 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
-  }
-  @keyframes app-route-in {
-    from { opacity: 0; transform: translateY(10px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .app-route-view { animation: none; }
-  }
-
   /* Page Header */
   .page-header {
     margin-bottom: 20px;

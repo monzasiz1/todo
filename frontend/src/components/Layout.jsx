@@ -168,11 +168,7 @@ export default function Layout() {
       {/* Main Content */}
       <main className={`app-main ${sidebarCollapsed ? 'desktop-sidebar-collapsed' : ''}`}>
         <div className={`app-content-shell ${isNotesRoute ? 'notes-full-width' : ''} ${isCalendarRoute ? 'calendar-full-width' : ''}`}>
-          {/* key = pathname → der Seiteninhalt remountet beim Tab-Wechsel und
-              spielt die Einblend-Animation neu ab (native-App-Gefühl). */}
-          <div key={location.pathname} className="app-route-view">
-            <Outlet />
-          </div>
+          <Outlet />
         </div>
       </main>
 
