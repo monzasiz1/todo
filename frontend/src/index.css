@@ -26212,6 +26212,46 @@ body.gchat-resizing * {
 .gchat-bubble.own .gchat-pin-btn.active { color: #FFCC00; }
 
 /* Smart replies */
+/* ── Nur-Lesezugriff-Hinweis (statt Eingabeleiste) ── */
+.gchat-readonly-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 10px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+  padding: 14px 16px;
+  background: color-mix(in srgb, var(--warning, #FF9500) 12%, var(--card-solid, #1B2236));
+  border: 1px solid color-mix(in srgb, var(--warning, #FF9500) 32%, transparent);
+  border-radius: 14px;
+  flex-shrink: 0;
+}
+.gchat-readonly-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--warning, #FF9500) 20%, transparent);
+  color: var(--warning, #FF9500);
+}
+.gchat-readonly-texts {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.gchat-readonly-texts strong {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.gchat-readonly-texts span {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--text-secondary, #8E8E93);
+}
+
 .gchat-smart-replies {
   display: flex;
   gap: 6px;
