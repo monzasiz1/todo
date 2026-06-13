@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { Bell, BellRing, X, Clock, Users, CheckCircle2, Sparkles, Settings, ArrowLeft, RefreshCw, AlertCircle, Wifi, WifiOff } from 'lucide-react';
 import { useNotificationStore } from '../store/notificationStore';
 import { formatDistanceToNow, parseISO } from 'date-fns';
@@ -55,6 +55,7 @@ export default function NotificationBell() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pos, setPos] = useState(null);
   const [isSheet, setIsSheet] = useState(false); // Mobile = Bottom-Sheet
+  const dragControls = useDragControls();
   const ref = useRef(null);
   const dropdownRef = useRef(null);
   const pollRef = useRef(null);
@@ -220,9 +221,24 @@ export default function NotificationBell() {
             transition={isSheet
               ? { type: 'tween', duration: 0.26, ease: [0.22, 0.61, 0.36, 1] }
               : { duration: 0.15 }}
+            drag={isSheet ? 'y' : false}
+            dragListener={false}
+            dragControls={dragControls}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.6 }}
+            onDragEnd={(_e, info) => {
+              if (info.offset.y > 110 || info.velocity.y > 600) setOpen(false);
+            }}
           >
-            {/* Header */}
-            <div className="notif-header">
+            {/* Header — auf dem Sheet zugleich Greif-/Wischbereich zum
+                Schließen (Buttons ausgenommen, Liste bleibt scrollbar). */}
+            <div
+              className="notif-header"
+              onPointerDown={(e) => {
+                if (isSheet && !e.target.closest('button')) dragControls.start(e);
+              }}
+              style={isSheet ? { touchAction: 'none', cursor: 'grab' } : undefined}
+            >
               {view === 'settings' && (
                 <button className="notif-back" onClick={() => setView('list')}><ArrowLeft size={16} /></button>
               )}
