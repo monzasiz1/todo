@@ -54,6 +54,7 @@ export default function NotificationBell() {
   const [view, setView] = useState('list');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pos, setPos] = useState(null);
+  const [isSheet, setIsSheet] = useState(false); // Mobile = Bottom-Sheet
   const ref = useRef(null);
   const dropdownRef = useRef(null);
   const pollRef = useRef(null);
@@ -111,8 +112,9 @@ export default function NotificationBell() {
       if (!bellEl) return;
       const rect = bellEl.getBoundingClientRect();
       const isMobile = window.matchMedia('(max-width: 1024px)').matches;
+      setIsSheet(isMobile);
       if (isMobile) {
-        setPos({ top: rect.bottom + 8 });
+        setPos({}); // Position kommt per CSS (Bottom-Sheet)
       } else if (ref.current.closest('.sidebar-notif-row')) {
         setPos({ top: rect.top, left: rect.right + 8 });
       } else {
@@ -196,14 +198,28 @@ export default function NotificationBell() {
       {createPortal(
       <AnimatePresence>
         {open && (
+          <>
+            {/* Abdunkelnder Backdrop (nur Mobile sichtbar) — Tipp schließt */}
+            <motion.div
+              key="notif-backdrop"
+              className="notif-backdrop"
+              onClick={() => setOpen(false)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+            />
           <motion.div
-            className="notif-dropdown"
+            key="notif-dropdown"
+            className={`notif-dropdown${isSheet ? ' notif-sheet' : ''}`}
             ref={dropdownRef}
             style={pos ? { top: pos.top, left: pos.left, right: pos.right } : undefined}
-            initial={{ opacity: 0, y: -8, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.95 }}
-            transition={{ duration: 0.15 }}
+            initial={isSheet ? { y: '100%' } : { opacity: 0, y: -8, scale: 0.95 }}
+            animate={isSheet ? { y: 0 } : { opacity: 1, y: 0, scale: 1 }}
+            exit={isSheet ? { y: '100%' } : { opacity: 0, y: -8, scale: 0.95 }}
+            transition={isSheet
+              ? { type: 'tween', duration: 0.26, ease: [0.22, 0.61, 0.36, 1] }
+              : { duration: 0.15 }}
           >
             {/* Header */}
             <div className="notif-header">
@@ -319,6 +335,7 @@ export default function NotificationBell() {
               </>
             )}
           </motion.div>
+          </>
         )}
       </AnimatePresence>,
       document.body

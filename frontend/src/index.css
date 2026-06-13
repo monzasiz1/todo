@@ -19859,20 +19859,47 @@ html[data-theme="dark"] .group-role-chip.role-member {
   margin-top: 2px;
 }
 
+/* Backdrop hinter dem Benachrichtigungs-Panel — nur auf Mobile sichtbar.
+   Auf Desktop schließt der Klick-außerhalb-Handler, kein Dim nötig. */
+.notif-backdrop { display: none; }
+
 @media (max-width: 1024px) {
-  /* Schwebende Karte mit Rändern statt randlos unter dem Header — app-like. */
-  .notif-dropdown {
+  .notif-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 10290;
+    background: rgba(8, 11, 20, 0.5);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+
+  /* Bottom-Sheet: von unten eingeschoben, passt zum Sheet-Muster der App. */
+  .notif-dropdown.notif-sheet {
     position: fixed !important;
-    top: calc(env(safe-area-inset-top, 0px) + 62px) !important;
-    bottom: auto !important;
-    left: 10px !important;
-    right: 10px !important;
-    width: auto !important;
+    top: auto !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
     max-width: none !important;
-    max-height: min(72vh, calc(100dvh - env(safe-area-inset-top, 0px) - 150px)) !important;
-    border-radius: 20px !important;
-    border: 1px solid var(--border) !important;
-    box-shadow: 0 20px 56px rgba(0, 0, 0, 0.45) !important;
+    max-height: 85dvh !important;
+    border: none !important;
+    border-top: 1px solid var(--border) !important;
+    border-radius: 22px 22px 0 0 !important;
+    box-shadow: 0 -16px 50px rgba(0, 0, 0, 0.5) !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  /* Drag-Handle oben am Sheet */
+  .notif-dropdown.notif-sheet::before {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border-strong, rgba(255, 255, 255, 0.22));
+    margin: 8px auto 2px;
+    flex-shrink: 0;
   }
 }
 
