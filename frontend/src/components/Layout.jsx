@@ -119,11 +119,11 @@ export default function Layout() {
     <div className={`app-layout ${sidebarOpen ? 'sidebar-active' : ''} ${isFullBleedRoute ? 'full-bleed-route' : ''}`}>
       <PremiumBackground />
       {/* Scroll-Fade oben: verdunkelt Inhalte die unter den Header laufen */}
-      {!isWhiteboardRoute && <div className="mobile-header-scrim" />}
+      {!isFullBleedRoute && <div className="mobile-header-scrim" />}
 
-      {/* Mobile Header — nur auf Whiteboard ausgeblendet (eigener Header).
-          Auf Chat bleibt der Mobile-Header sichtbar. */}
-      {!isWhiteboardRoute && (
+      {/* Mobile Header — auf Full-Bleed-Routen (Chat, Whiteboard) ausgeblendet,
+          die haben ihren eigenen Header. */}
+      {!isFullBleedRoute && (
       <div className="mobile-header">
         <div className="mobile-header-logo">
             <img src="/icons/icon.png" alt="BeeQu" className="mobile-brand-mark" />

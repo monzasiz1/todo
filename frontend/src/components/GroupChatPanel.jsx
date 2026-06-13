@@ -354,6 +354,29 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // ── Mobile-Tastatur: Panel an den sichtbaren Bereich (visualViewport)
+  // pinnen, statt die ganze Seite hochscrollen zu lassen. Das Eingabefeld
+  // sitzt so direkt über der Tastatur, der Rest bleibt an Ort und Stelle. ──
+  useEffect(() => {
+    if (!pageMode) return undefined;
+    const vv = window.visualViewport;
+    if (!vv) return undefined;
+    const root = document.documentElement;
+    const apply = () => {
+      root.style.setProperty('--gchat-vv-top', `${Math.round(vv.offsetTop)}px`);
+      root.style.setProperty('--gchat-vv-h', `${Math.round(vv.height)}px`);
+    };
+    apply();
+    vv.addEventListener('resize', apply);
+    vv.addEventListener('scroll', apply);
+    return () => {
+      vv.removeEventListener('resize', apply);
+      vv.removeEventListener('scroll', apply);
+      root.style.removeProperty('--gchat-vv-top');
+      root.style.removeProperty('--gchat-vv-h');
+    };
+  }, [pageMode]);
+
   useEffect(() => () => {
     clearTimeout(undoTimerRef.current);
     clearTimeout(conflictTimerRef.current);

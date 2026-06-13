@@ -28205,14 +28205,16 @@ body.gchat-resizing * {
 @media (max-width: 1024px) {
   .gchat-panel.gchat-page-mode {
     position: fixed;
-    /* Panel-Hintergrund deckt den ganzen Screen inkl. hinter Notch/Island;
-       der Header-Inhalt wird per padding-top unter die Safe-Area gelegt. */
-    inset-block-start: 0;
+    /* An den sichtbaren Bereich (visualViewport) gepinnt: bei offener Tastatur
+       schrumpft das Panel auf die sichtbare Höhe, das Eingabefeld bleibt
+       direkt über der Tastatur — die Seite scrollt NICHT hoch. Fallback
+       100dvh/top:0, falls visualViewport nicht unterstützt wird. */
+    top: var(--gchat-vv-top, 0px);
     left: 0;
     right: 0;
-    bottom: 0;
+    bottom: auto;
     width: 100%;
-    height: auto;
+    height: var(--gchat-vv-h, 100dvh);
     min-height: 0;
     border-radius: 0;
     box-shadow: none;
