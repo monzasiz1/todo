@@ -54,7 +54,12 @@ export default function NotificationBell() {
   const [view, setView] = useState('list');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pos, setPos] = useState(null);
-  const [isSheet, setIsSheet] = useState(false); // Mobile = Bottom-Sheet
+  // Mobile = Bottom-Sheet. Schon beim ersten Render korrekt bestimmen, damit
+  // das Panel mit dem richtigen initial/animate mountet (sonst bleibt es beim
+  // ersten Öffnen unsichtbar — nur der Backdrop war zu sehen).
+  const [isSheet, setIsSheet] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1024px)').matches
+  );
   const dragControls = useDragControls();
   const ref = useRef(null);
   const dropdownRef = useRef(null);
@@ -219,9 +224,9 @@ export default function NotificationBell() {
             className={`notif-dropdown${isSheet ? ' notif-sheet' : ''}`}
             ref={dropdownRef}
             style={pos ? { top: pos.top, left: pos.left, right: pos.right } : undefined}
-            initial={isSheet ? { y: '100%' } : { opacity: 0, y: -8, scale: 0.95 }}
-            animate={isSheet ? { y: 0 } : { opacity: 1, y: 0, scale: 1 }}
-            exit={isSheet ? { y: '100%' } : { opacity: 0, y: -8, scale: 0.95 }}
+            initial={isSheet ? { y: '100%', opacity: 1 } : { opacity: 0, y: -8, scale: 0.95 }}
+            animate={isSheet ? { y: 0, opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+            exit={isSheet ? { y: '100%', opacity: 1 } : { opacity: 0, y: -8, scale: 0.95 }}
             transition={isSheet
               ? { type: 'tween', duration: 0.26, ease: [0.22, 0.61, 0.36, 1] }
               : { duration: 0.15 }}
