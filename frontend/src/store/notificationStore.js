@@ -57,6 +57,17 @@ function getLastSeenAt() {
   } catch { return 0; }
 }
 
+// Pro-Gruppe "Chat zuletzt gelesen"-Zeitstempel (für den roten Badge am
+// Chat-Icon). { [groupId]: epochMs }
+const CHAT_READS_KEY = 'beequ_chat_reads_v1';
+function getChatReads() {
+  try {
+    const raw = localStorage.getItem(CHAT_READS_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch { return {}; }
+}
+
 const NATIVE_PUSH_TOKEN_KEY = 'beequ_native_push_token_v1';
 let nativePushHandlersInstalled = false;
 
@@ -160,6 +171,7 @@ const useNotificationStore = create((set, get) => ({
   notifications: notifCached?.notifications ?? [],
   loading: false,
   lastSeenAt: getLastSeenAt(),
+  chatReads: getChatReads(),
   prefs: notifCached?.prefs ?? { reminder: true, daily_tasks: true, engagement: true, team_task: true, group_message: true },
 
   // Mark all current notifications as seen
@@ -167,6 +179,26 @@ const useNotificationStore = create((set, get) => ({
     const now = Date.now();
     set({ lastSeenAt: now });
     try { localStorage.setItem('notif_last_seen', String(now)); } catch {}
+  },
+
+  // Chat einer Gruppe als gelesen markieren (beim Öffnen des Chats).
+  markChatRead: (groupId) => {
+    if (groupId == null) return;
+    const next = { ...get().chatReads, [String(groupId)]: Date.now() };
+    set({ chatReads: next });
+    try { localStorage.setItem(CHAT_READS_KEY, JSON.stringify(next)); } catch {}
+  },
+
+  // Gibt es ungelesene Chat-Nachrichten? Basis: group_message-Benachrichtigungen
+  // (haben group_id + sent_at), die neuer sind als der zuletzt-gelesen-Stempel
+  // der jeweiligen Gruppe.
+  hasUnreadChat: () => {
+    const { notifications, chatReads } = get();
+    return (notifications || []).some((n) => {
+      if (n.type !== 'group_message') return false;
+      const readAt = chatReads[String(n.group_id)] || 0;
+      return new Date(n.sent_at).getTime() > readAt;
+    });
   },
 
   // Get only unseen notifications

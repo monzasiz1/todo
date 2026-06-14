@@ -11,6 +11,7 @@ import { useGroupStore } from '../store/groupStore';
 import { useAuthStore } from '../store/authStore';
 import { useTaskStore } from '../store/taskStore';
 import { useStatusStore } from '../store/statusStore';
+import { useNotificationStore } from '../store/notificationStore';
 import { api } from '../utils/api';
 import AvatarBadge from './AvatarBadge';
 
@@ -276,6 +277,8 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
     try {
       const data = await api.getGroupMessages(selectedGroupId);
       setMessages(data.messages || []);
+      // Chat dieser Gruppe als gelesen markieren → roter Badge am Chat-Icon weg.
+      try { useNotificationStore.getState().markChatRead(selectedGroupId); } catch { /* ignore */ }
     } catch {
       // silently ignore poll errors
     }

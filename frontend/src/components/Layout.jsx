@@ -11,6 +11,7 @@ import ReminderChecker from './ReminderChecker';
 import FocusTimerPin from './FocusTimerPin';
 import { lockScroll, unlockScroll } from '../utils/scrollLock';
 import { useGroupStore } from '../store/groupStore';
+import { useNotificationStore } from '../store/notificationStore';
 import '../styles/shared-spending.css';
 
 // On-Demand: erst beim Oeffnen laden, reduziert initiales App-Bundle.
@@ -32,6 +33,12 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  // Roter Badge am Chat-Icon: ungelesene group_message-Benachrichtigungen,
+  // die neuer sind als der "zuletzt gelesen"-Stempel der jeweiligen Gruppe.
+  const chatUnread = useNotificationStore((s) =>
+    (s.notifications || []).some((n) => n.type === 'group_message'
+      && new Date(n.sent_at).getTime() > (s.chatReads?.[String(n.group_id)] || 0))
+  );
   // Sobald der Chat einmal geoeffnet wurde, bleibt das Panel gemountet -
   // so spielt der Exit-Animation-Cycle korrekt und der Lazy-Import laed
   // erst beim ersten Klick.
@@ -143,6 +150,7 @@ export default function Layout() {
             title="Gruppen-Chat"
           >
             <MessageCircle size={20} />
+            {chatUnread && <span className="gchat-unread-badge" aria-label="Ungelesene Nachrichten" />}
           </button>
           <button className="hamburger" onClick={() => setSidebarOpen(!sidebarOpen)}>
             {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
@@ -221,6 +229,7 @@ export default function Layout() {
           title="Gruppen-Chat öffnen"
         >
           <MessageCircle size={22} />
+          {chatUnread && <span className="gchat-unread-badge" aria-label="Ungelesene Nachrichten" />}
         </button>
       )}
 
