@@ -26637,24 +26637,17 @@ body.gchat-resizing * {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Roter Punkt-Badge für ungelesene Chat-Nachrichten (wie bei den
-   Benachrichtigungen) — am Chat-Icon (Mobile-Trigger + FAB). */
+/* Roter Badge für ungelesene Chat-Nachrichten — identisch in Größe/Position
+   zum Benachrichtigungs-Badge (.notif-badge: 16px, top/right 4px). */
 .gchat-unread-badge {
   position: absolute;
-  top: 7px;
-  right: 7px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
+  top: 4px;
+  right: 4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 8px;
   background: #FF3B30;
-  border: 2px solid var(--card-solid, #1B2236);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
   pointer-events: none;
-}
-.gchat-fab .gchat-unread-badge {
-  top: 6px;
-  right: 6px;
-  border-color: #fff;
 }
 .gchat-mobile-trigger:hover, .gchat-mobile-trigger:active {
   background: var(--bg);
