@@ -1239,6 +1239,12 @@ function GroupDetail({ groupId, onBack }) {
     () => visibleGroupTasks.filter((t) => t.completed || isEventEnded(t)).slice().sort(sortDesc),
     [visibleGroupTasks]
   );
+  // Letzte Einträge: die zuletzt zur Gruppe hinzugefügten Termine/Aufgaben
+  // (Activity-Feed). Sortiert nach added_to_group_at bzw. created_at, neueste zuerst.
+  const recentEntries = useMemo(() => {
+    const ts = (t) => new Date(t.added_to_group_at || t.created_at || 0).getTime();
+    return [...visibleGroupTasks].sort((a, b) => ts(b) - ts(a)).slice(0, 5);
+  }, [visibleGroupTasks]);
   const categoryOptions = useMemo(() => {
     const map = new Map();
     groupTasks.forEach((task) => {
@@ -1416,6 +1422,45 @@ function GroupDetail({ groupId, onBack }) {
               {can('create_tasks') ? <Plus size={16} /> : <Shield size={14} />} Eintrag hinzufügen
             </button>
           </div>
+
+          {/* ── Letzte Einträge: kompakter Activity-Feed der zuletzt
+                hinzugefügten Termine/Aufgaben ── */}
+          {recentEntries.length > 0 && (
+            <div className="group-recent">
+              <div className="group-recent-head">
+                <span className="group-recent-head-ic"><Activity size={15} /></span>
+                <strong>Letzte Einträge</strong>
+              </div>
+              <div className="group-recent-list">
+                {recentEntries.map((t) => {
+                  const isEvent = t.type === 'event';
+                  const accent = t.group_category_color || (isEvent ? '#5856D6' : '#007AFF');
+                  const addedRel = relativeFromNow(t.added_to_group_at || t.created_at);
+                  return (
+                    <div key={t.id} className="group-recent-item">
+                      <span className="group-recent-type" style={{ background: `${accent}1f`, color: accent }}>
+                        {isEvent ? <CalendarClock size={15} /> : <ListTodo size={15} />}
+                      </span>
+                      <div className="group-recent-body">
+                        <span className="group-recent-title">{t.title}</span>
+                        <span className="group-recent-meta">
+                          <span className="group-recent-kind">{isEvent ? 'Termin' : 'Aufgabe'}</span>
+                          {t.group_category_name && (
+                            <span className="group-recent-cat" style={{ color: accent }}>
+                              <span className="group-recent-dot" style={{ background: accent }} />
+                              {t.group_category_name}
+                            </span>
+                          )}
+                          {t.creator_name && <span className="group-recent-by">von {String(t.creator_name).split(' ')[0]}</span>}
+                        </span>
+                      </div>
+                      {addedRel && <span className="group-recent-time">{addedRel}</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {visibleGroupTasks.length === 0 ? (
             <div className="group-empty-tab">
