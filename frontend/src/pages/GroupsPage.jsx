@@ -1,5 +1,6 @@
-import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
+import { useOpenTask } from '../hooks/useOpenTask';
 import { useGroupStore } from '../store/groupStore';
 import { useAuthStore } from '../store/authStore';
 import { useTaskStore } from '../store/taskStore';
@@ -21,6 +22,8 @@ import AvatarBadge from '../components/AvatarBadge';
 import { usePlan } from '../hooks/usePlan';
 import UpgradeModal from '../components/UpgradeModal';
 import GroupBudgetPanel from '../components/GroupBudgetPanel';
+
+const TaskDetailModal = lazy(() => import('../components/TaskDetailModal'));
 
 const GROUP_COLORS = [
   '#007AFF', '#5856D6', '#34C759', '#FF9500', '#FF3B30',
@@ -1037,6 +1040,7 @@ function GroupDetail({ groupId, onBack }) {
   const addToast = useTaskStore((s) => s.addToast);
   const fetchTasks = useTaskStore((s) => s.fetchTasks);
   const restoreDismissedTask = useTaskStore((s) => s.restoreDismissedTask);
+  const { detailTask, openTask, closeTask } = useOpenTask();
   const [tab, setTab] = useState('tasks'); // 'tasks' | 'members' | 'settings'
   const [showAddTask, setShowAddTask] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -1437,7 +1441,18 @@ function GroupDetail({ groupId, onBack }) {
                   const accent = t.group_category_color || (isEvent ? '#5856D6' : '#007AFF');
                   const addedRel = relativeFromNow(t.added_to_group_at || t.created_at);
                   return (
-                    <div key={t.id} className="group-recent-item">
+                    <button
+                      type="button"
+                      key={t.id}
+                      className="group-recent-item"
+                      onClick={() => openTask({
+                        ...t,
+                        group_id: t.group_id || currentGroup?.id,
+                        group_name: t.group_name || currentGroup?.name,
+                        group_color: t.group_color || currentGroup?.color,
+                        group_image_url: t.group_image_url || currentGroup?.image_url,
+                      })}
+                    >
                       <span className="group-recent-type" style={{ background: `${accent}1f`, color: accent }}>
                         {isEvent ? <CalendarClock size={15} /> : <ListTodo size={15} />}
                       </span>
@@ -1455,7 +1470,7 @@ function GroupDetail({ groupId, onBack }) {
                         </span>
                       </div>
                       {addedRel && <span className="group-recent-time">{addedRel}</span>}
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -1944,6 +1959,18 @@ function GroupDetail({ groupId, onBack }) {
             />
           </div>
         </>
+      )}
+
+      {/* Detailansicht — geöffnet aus dem "Letzte Einträge"-Feed */}
+      {detailTask && (
+        <Suspense fallback={null}>
+          <TaskDetailModal
+            task={detailTask}
+            onClose={closeTask}
+            onUpdated={() => { closeTask(); fetchGroup(groupId); }}
+            hidePrivateShareInfo
+          />
+        </Suspense>
       )}
     </motion.div>
   );

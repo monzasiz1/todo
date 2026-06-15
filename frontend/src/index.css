@@ -16516,11 +16516,19 @@ html[data-theme="dark"] .group-role-chip.role-member {
   display: flex;
   align-items: center;
   gap: 11px;
+  width: 100%;
   padding: 9px 8px;
+  border: none;
+  background: none;
   border-radius: 11px;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
   transition: background 0.15s ease;
 }
 .group-recent-item:hover { background: rgba(127, 127, 127, 0.06); }
+.group-recent-item:active { background: rgba(127, 127, 127, 0.1); }
 .group-recent-item + .group-recent-item { border-top: 1px solid var(--border); }
 .group-recent-type {
   display: inline-flex;
