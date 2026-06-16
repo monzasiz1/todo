@@ -16511,37 +16511,60 @@ html[data-theme="dark"] .group-role-chip.role-member {
   flex-shrink: 0;
 }
 .group-recent-head strong { font-size: 0.95rem; font-weight: 700; color: var(--text); }
-.group-recent-list { display: flex; flex-direction: column; gap: 2px; }
+.group-recent-list { display: flex; flex-direction: column; gap: 4px; }
 .group-recent-item {
+  --gr-accent: #007AFF;
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 12px;
   width: 100%;
-  padding: 9px 8px;
-  border: none;
+  padding: 10px 14px 10px 12px;
+  border: 1px solid transparent;
   background: none;
-  border-radius: 11px;
+  border-radius: 13px;
   text-align: left;
   font: inherit;
   color: inherit;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
 }
-.group-recent-item:hover { background: rgba(127, 127, 127, 0.06); }
-.group-recent-item:active { background: rgba(127, 127, 127, 0.1); }
-.group-recent-item + .group-recent-item { border-top: 1px solid var(--border); }
+/* farbiger Akzent-Balken links (erscheint beim Hover) */
+.group-recent-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--gr-accent);
+  opacity: 0;
+  transition: opacity 0.16s ease;
+}
+.group-recent-item:hover {
+  background: color-mix(in srgb, var(--gr-accent) 7%, transparent);
+  border-color: color-mix(in srgb, var(--gr-accent) 22%, transparent);
+  transform: translateX(2px);
+}
+.group-recent-item:hover::before { opacity: 1; }
+.group-recent-item:active { transform: translateX(2px) scale(0.995); }
+
 .group-recent-type {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
   flex-shrink: 0;
+  color: var(--gr-accent);
+  background: color-mix(in srgb, var(--gr-accent) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gr-accent) 28%, transparent);
 }
-.group-recent-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.group-recent-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .group-recent-title {
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   font-weight: 600;
   color: var(--text);
   overflow: hidden;
@@ -16552,21 +16575,49 @@ html[data-theme="dark"] .group-role-chip.role-member {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 4px 10px;
+  gap: 6px 8px;
   font-size: 0.76rem;
   color: var(--text-secondary);
 }
-.group-recent-kind { font-weight: 600; }
-.group-recent-cat { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; }
-.group-recent-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+/* "Termin"/"Aufgabe"-Pill */
+.group-recent-kind {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+.group-recent-kind.is-event { background: rgba(88,86,214,0.16); color: #8b85f5; }
+.group-recent-kind.is-task  { background: rgba(0,122,255,0.16); color: #4da3ff; }
+/* Kategorie-Pill in Akzentfarbe */
+.group-recent-cat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: var(--gr-accent);
+  background: color-mix(in srgb, var(--gr-accent) 12%, transparent);
+}
+.group-recent-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; background: var(--gr-accent); }
+/* Ersteller: Avatar + Vorname */
+.group-recent-by { display: inline-flex; align-items: center; gap: 5px; color: var(--text-secondary); }
 .group-recent-time {
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   color: var(--text-tertiary);
   white-space: nowrap;
   flex-shrink: 0;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(127, 127, 127, 0.08);
 }
+.group-recent-chevron { color: var(--text-tertiary); flex-shrink: 0; opacity: 0.5; transition: transform 0.16s ease, opacity 0.16s ease; }
+.group-recent-item:hover .group-recent-chevron { opacity: 1; transform: translateX(2px); color: var(--gr-accent); }
 @media (max-width: 520px) {
   .group-recent-time { display: none; }
+  .group-recent-chevron { display: none; }
 }
 
 /* --- Add Task Button --- */

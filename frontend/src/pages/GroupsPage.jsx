@@ -1445,6 +1445,7 @@ function GroupDetail({ groupId, onBack }) {
                       type="button"
                       key={t.id}
                       className="group-recent-item"
+                      style={{ '--gr-accent': accent }}
                       onClick={() => openTask({
                         ...t,
                         group_id: t.group_id || currentGroup?.id,
@@ -1453,23 +1454,36 @@ function GroupDetail({ groupId, onBack }) {
                         group_image_url: t.group_image_url || currentGroup?.image_url,
                       })}
                     >
-                      <span className="group-recent-type" style={{ background: `${accent}1f`, color: accent }}>
-                        {isEvent ? <CalendarClock size={15} /> : <ListTodo size={15} />}
+                      <span className="group-recent-type">
+                        {isEvent ? <CalendarClock size={16} /> : <ListTodo size={16} />}
                       </span>
                       <div className="group-recent-body">
                         <span className="group-recent-title">{t.title}</span>
                         <span className="group-recent-meta">
-                          <span className="group-recent-kind">{isEvent ? 'Termin' : 'Aufgabe'}</span>
+                          <span className={`group-recent-kind ${isEvent ? 'is-event' : 'is-task'}`}>
+                            {isEvent ? 'Termin' : 'Aufgabe'}
+                          </span>
                           {t.group_category_name && (
-                            <span className="group-recent-cat" style={{ color: accent }}>
-                              <span className="group-recent-dot" style={{ background: accent }} />
+                            <span className="group-recent-cat">
+                              <span className="group-recent-dot" />
                               {t.group_category_name}
                             </span>
                           )}
-                          {t.creator_name && <span className="group-recent-by">von {String(t.creator_name).split(' ')[0]}</span>}
+                          {t.creator_name && (
+                            <span className="group-recent-by">
+                              <AvatarBadge
+                                name={t.creator_name}
+                                color={t.creator_color || '#007AFF'}
+                                avatarUrl={t.creator_avatar_url}
+                                size={18}
+                              />
+                              {String(t.creator_name).split(' ')[0]}
+                            </span>
+                          )}
                         </span>
                       </div>
                       {addedRel && <span className="group-recent-time">{addedRel}</span>}
+                      <ChevronRight size={15} className="group-recent-chevron" />
                     </button>
                   );
                 })}
