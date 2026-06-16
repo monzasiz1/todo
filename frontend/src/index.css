@@ -7482,6 +7482,9 @@ body.cal-is-dragging * {
     padding: 8px;
     box-shadow: 0 4px 10px rgba(36, 54, 94, 0.16);
     z-index: 2;
+    /* Inhalt sauber innerhalb der Box halten (kein Überlaufen bei kurzen
+       Terminen); Resize-Handles ragen bewusst nicht hinaus. */
+    overflow: hidden;
   }
 
   .mobile-day-event strong {

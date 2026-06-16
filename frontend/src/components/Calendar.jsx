@@ -2479,13 +2479,15 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   {t.group_id && <AvatarBadge name={t.group_name} color={t.group_color || '#5856D6'} avatarUrl={t.group_image_url} size={11} />}
                   <strong className="cal-event-title-text">{t.title}</strong>
                 </div>
-                <span className="cal-event-time-row">
-                  {t.time?.slice(0, 5)}{t.time_end ? `-${t.time_end.slice(0, 5)}` : ''}
-                  {t.group_category_name && !doneOrEnded && <span className="cal-event-cat-inline"> · {t.group_category_name}</span>}
-                </span>
-                {t.completed && <span className="mobile-day-event-ended">Erledigt</span>}
-                {!t.completed && ended && <span className="mobile-day-event-ended">Beendet</span>}
-                {(t.date_end && t.date_end !== t.date) && (
+                {height >= 30 && (
+                  <span className="cal-event-time-row">
+                    {t.time?.slice(0, 5)}{t.time_end ? `-${t.time_end.slice(0, 5)}` : ''}
+                    {t.group_category_name && !doneOrEnded && <span className="cal-event-cat-inline"> · {t.group_category_name}</span>}
+                  </span>
+                )}
+                {height >= 50 && t.completed && <span className="mobile-day-event-ended">Erledigt</span>}
+                {height >= 50 && !t.completed && ended && <span className="mobile-day-event-ended">Beendet</span>}
+                {height >= 66 && (t.date_end && t.date_end !== t.date) && (
                   <span style={{ fontSize: 10, opacity: 0.8 }}>
                     {format(parseISO(t.date?.substring(0,10)), 'd.M.')} – {format(parseISO(t.date_end.substring(0,10)), 'd.M.')}
                   </span>
