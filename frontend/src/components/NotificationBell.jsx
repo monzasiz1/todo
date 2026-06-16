@@ -28,6 +28,10 @@ const SETTINGS_CONFIG = [
 
 function getTarget(notification) {
   const { type, task_id, group_id } = notification;
+  // Neue Gruppen-Aufgaben/Termine: direkt den Eintrag öffnen (nicht die Gruppe).
+  if ((type === 'team_task' || type === 'team_task_created') && task_id) {
+    return `/app/calendar?task=${task_id}`;
+  }
   if (type === 'group_message' || type === 'team_task' || type === 'team_task_created') {
     return group_id ? `/app/groups?group=${group_id}` : '/app/groups';
   }
