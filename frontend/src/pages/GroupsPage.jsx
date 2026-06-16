@@ -1041,7 +1041,7 @@ function GroupDetail({ groupId, onBack }) {
   const fetchTasks = useTaskStore((s) => s.fetchTasks);
   const restoreDismissedTask = useTaskStore((s) => s.restoreDismissedTask);
   const { detailTask, openTask, closeTask } = useOpenTask();
-  const [recentOpen, setRecentOpen] = useState(true); // "Letzte Einträge" ein-/ausklappbar
+  const [recentOpen, setRecentOpen] = useState(false); // "Letzte Einträge" ein-/ausklappbar, Standard: eingeklappt
   const [tab, setTab] = useState('tasks'); // 'tasks' | 'members' | 'settings'
   const [showAddTask, setShowAddTask] = useState(false);
   const [copied, setCopied] = useState(false);
