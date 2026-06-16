@@ -16514,44 +16514,43 @@ html[data-theme="dark"] .group-role-chip.role-member {
   flex-shrink: 0;
 }
 .group-recent-head strong { font-size: 0.95rem; font-weight: 700; color: var(--text); }
-.group-recent-list { display: flex; flex-direction: column; gap: 4px; }
+.group-recent-list { display: flex; flex-direction: column; }
 .group-recent-item {
-  --gr-accent: #007AFF;
+  --gr-accent: #4da3ff;
   position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 10px 14px 10px 12px;
-  border: 1px solid transparent;
+  padding: 11px 14px 11px 13px;
+  border: none;
   background: none;
-  border-radius: 13px;
+  border-radius: 9px;
   text-align: left;
   font: inherit;
   color: inherit;
   cursor: pointer;
-  transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+  transition: background 0.16s ease;
 }
-/* farbiger Akzent-Balken links (erscheint beim Hover) */
+/* Trennlinie zwischen den Einträgen */
+.group-recent-item + .group-recent-item { border-top: 1px solid var(--border); }
+/* farbiger Akzent-Balken links (Typ-Farbe), erscheint beim Hover */
 .group-recent-item::before {
   content: '';
   position: absolute;
   left: 0;
-  top: 12px;
-  bottom: 12px;
+  top: 11px;
+  bottom: 11px;
   width: 3px;
   border-radius: 3px;
   background: var(--gr-accent);
   opacity: 0;
   transition: opacity 0.16s ease;
 }
-.group-recent-item:hover {
-  background: color-mix(in srgb, var(--gr-accent) 7%, transparent);
-  border-color: color-mix(in srgb, var(--gr-accent) 22%, transparent);
-  transform: translateX(2px);
-}
+/* Neutraler Hover (kein Akzent-Rot) */
+.group-recent-item:hover { background: rgba(127, 127, 127, 0.07); }
 .group-recent-item:hover::before { opacity: 1; }
-.group-recent-item:active { transform: translateX(2px) scale(0.995); }
+.group-recent-item:active { background: rgba(127, 127, 127, 0.12); }
 
 .group-recent-type {
   display: inline-flex;

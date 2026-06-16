@@ -1438,14 +1438,17 @@ function GroupDetail({ groupId, onBack }) {
               <div className="group-recent-list">
                 {recentEntries.map((t) => {
                   const isEvent = t.type === 'event';
-                  const accent = t.group_category_color || (isEvent ? '#5856D6' : '#007AFF');
+                  // Icon/Akzent folgt dem TYP (lila=Termin, blau=Aufgabe) – nicht
+                  // der Kategorie. Die Kategorie behält ihre eigene Farbe.
+                  const typeColor = isEvent ? '#8b85f5' : '#4da3ff';
+                  const catColor = t.group_category_color || typeColor;
                   const addedRel = relativeFromNow(t.added_to_group_at || t.created_at);
                   return (
                     <button
                       type="button"
                       key={t.id}
                       className="group-recent-item"
-                      style={{ '--gr-accent': accent }}
+                      style={{ '--gr-accent': typeColor }}
                       onClick={() => openTask({
                         ...t,
                         group_id: t.group_id || currentGroup?.id,
@@ -1464,8 +1467,8 @@ function GroupDetail({ groupId, onBack }) {
                             {isEvent ? 'Termin' : 'Aufgabe'}
                           </span>
                           {t.group_category_name && (
-                            <span className="group-recent-cat">
-                              <span className="group-recent-dot" />
+                            <span className="group-recent-cat" style={{ color: catColor, background: `${catColor}1f` }}>
+                              <span className="group-recent-dot" style={{ background: catColor }} />
                               {t.group_category_name}
                             </span>
                           )}
