@@ -16500,8 +16500,30 @@ html[data-theme="dark"] .group-role-chip.role-member {
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
   margin-bottom: 10px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
 }
+.group-recent-head-count {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(127, 127, 127, 0.12);
+}
+.group-recent-head-chevron {
+  margin-left: auto;
+  color: var(--text-tertiary);
+  transition: transform 0.2s ease;
+}
+.group-recent-head.is-open .group-recent-head-chevron { transform: rotate(180deg); }
+.group-recent-head:not(.is-open) { margin-bottom: 0; }
 .group-recent-head-ic {
   display: inline-flex;
   align-items: center;

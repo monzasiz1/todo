@@ -1041,6 +1041,7 @@ function GroupDetail({ groupId, onBack }) {
   const fetchTasks = useTaskStore((s) => s.fetchTasks);
   const restoreDismissedTask = useTaskStore((s) => s.restoreDismissedTask);
   const { detailTask, openTask, closeTask } = useOpenTask();
+  const [recentOpen, setRecentOpen] = useState(true); // "Letzte Einträge" ein-/ausklappbar
   const [tab, setTab] = useState('tasks'); // 'tasks' | 'members' | 'settings'
   const [showAddTask, setShowAddTask] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -1431,10 +1432,18 @@ function GroupDetail({ groupId, onBack }) {
                 hinzugefügten Termine/Aufgaben ── */}
           {recentEntries.length > 0 && (
             <div className="group-recent">
-              <div className="group-recent-head">
+              <button
+                type="button"
+                className={`group-recent-head${recentOpen ? ' is-open' : ''}`}
+                onClick={() => setRecentOpen((v) => !v)}
+                aria-expanded={recentOpen}
+              >
                 <span className="group-recent-head-ic"><Activity size={15} /></span>
                 <strong>Letzte Einträge</strong>
-              </div>
+                <span className="group-recent-head-count">{recentEntries.length}</span>
+                <ChevronDown size={16} className="group-recent-head-chevron" />
+              </button>
+              {recentOpen && (
               <div className="group-recent-list">
                 {recentEntries.map((t) => {
                   const isEvent = t.type === 'event';
@@ -1491,6 +1500,7 @@ function GroupDetail({ groupId, onBack }) {
                   );
                 })}
               </div>
+              )}
             </div>
           )}
 
