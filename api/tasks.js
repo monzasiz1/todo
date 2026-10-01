@@ -2,7 +2,6 @@ const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
 const { cacheManager } = require('./_lib/cache');
 const { sendPushToUser } = require('./_lib/pushService');
-const { getUserPlan, canUseFeature, paymentRequired } = require('./_lib/plans');
 
 const REMINDER_GRACE_WINDOW = '6 hours';
 const EVENT_REMINDER_OFFSET = '5 hours';
@@ -69,13 +68,13 @@ async function canEditGroupTask(pool, taskId, userId) {
   for (const g of groups.rows) {
     if (g.role === 'owner' || g.role === 'admin') continue;
     if (!isOwn) {
-      return { allowed: false, reason: 'not_admin', message: 'Nur Admins können fremde Gruppen-Tasks bearbeiten' };
+      return { allowed: false, reason: 'not_admin', message: 'Nur Admins koennen fremde Gruppen-Tasks bearbeiten' };
     }
     if (typeof getEffectivePerms === 'function') {
       try {
         const eff = await getEffectivePerms(pool, g.group_id, userId);
         if (eff && eff.perms && !eff.perms.edit_own_tasks) {
-          return { allowed: false, reason: 'no_perm', message: 'Eigene Gruppen-Tasks bearbeiten ist für deine Rolle gesperrt' };
+          return { allowed: false, reason: 'no_perm', message: 'Eigene Gruppen-Tasks bearbeiten ist fuer deine Rolle gesperrt' };
         }
       } catch (err) {
         console.warn('[tasks] getEffectivePerms failed:', err.message);
@@ -1140,7 +1139,7 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ error: 'Termine können nicht als erledigt markiert werden' });
       }
 
-      // Gruppen-Rolle/Permissions prüfen
+      // Gruppen-Rolle/Permissions pruefen
       const toggleCheck = await canEditGroupTask(pool, taskId, user.id);
       if (!toggleCheck.allowed) {
         return res.status(403).json({ error: toggleCheck.message || 'Keine Berechtigung' });
@@ -1171,76 +1170,6 @@ module.exports = async function handler(req, res) {
       // via virtual expansion — no chain-creation needed for recurring tasks.
       // We only cache-invalidate so the dashboard refreshes.
       await cacheManager.invalidateByEvent(String(user.id), 'task_updated');
-
-      // ── „Papa hat ‚Einkaufen' erledigt" ──────────────────────────────────
-      // Wenn eine geteilte oder Gruppen-Aufgabe abgehakt wird, bekommen die
-      // anderen Beteiligten (Owner, ausgewählte Nutzer, Gruppenmitglieder,
-      // bei visibility='shared' auch Freunde) eine Benachrichtigung — außer
-      // die Person, die sie selbst erledigt hat. Best-effort, blockiert die
-      // Antwort nicht durch Fehler.
-      if (toggled.completed === true) {
-        try {
-          const actorRow = await pool.query('SELECT name FROM users WHERE id = $1', [user.id]);
-          const actorName = actorRow.rows[0]?.name || 'Jemand';
-          const taskTitle = toggled.title || 'Aufgabe';
-
-          const recipients = await pool.query(
-            `WITH ctx AS (
-               -- Gruppenmitglieder der Gruppe(n), in der die Aufgabe liegt
-               SELECT gm.user_id, gt.group_id, grp.name AS group_name, true AS in_group
-               FROM group_tasks gt
-               JOIN group_members gm ON gm.group_id = gt.group_id
-               JOIN groups grp ON grp.id = gt.group_id
-               WHERE gt.task_id = $1
-               UNION ALL
-               -- gezielt geteilte Nutzer (visibility='selected_users')
-               SELECT tp.user_id, NULL::int, NULL::text, false
-               FROM task_permissions tp
-               WHERE tp.task_id = $1 AND tp.can_view = true
-               UNION ALL
-               -- mit allen Freunden geteilt (visibility='shared')
-               SELECT CASE WHEN f.user_id = t.user_id THEN f.friend_id ELSE f.user_id END,
-                      NULL::int, NULL::text, false
-               FROM tasks t
-               JOIN friends f ON f.status = 'accepted'
-                 AND (f.user_id = t.user_id OR f.friend_id = t.user_id)
-               WHERE t.id = $1 AND t.visibility = 'shared'
-               UNION ALL
-               -- Eigentümer der Aufgabe
-               SELECT t.user_id, NULL::int, NULL::text, false
-               FROM tasks t WHERE t.id = $1
-             )
-             SELECT user_id,
-                    MAX(group_id) AS group_id,
-                    MAX(group_name) AS group_name,
-                    bool_or(in_group) AS in_group
-             FROM ctx
-             WHERE user_id IS NOT NULL AND user_id <> $2
-             GROUP BY user_id`,
-            [taskId, user.id]
-          );
-
-          for (const r of recipients.rows) {
-            const inGroup = r.in_group && r.group_name;
-            await sendPushToUser(
-              r.user_id,
-              {
-                title: `${actorName} hat „${taskTitle}" erledigt`,
-                body: inGroup ? `Gruppe · ${r.group_name}` : 'Geteilte Aufgabe',
-                tag: `task-done-${taskId}`,
-                url: inGroup ? '/groups' : '/calendar',
-              },
-              'task_completed',
-              taskId,
-              r.group_id || null,
-              // Gruppen-Erledigungen folgen dem „Gruppen-Benachrichtigungen"-Schalter.
-              inGroup ? 'team_task' : null
-            ).catch(() => null);
-          }
-        } catch (notifyErr) {
-          console.error('[tasks] completion notify failed:', notifyErr.message);
-        }
-      }
 
       return res.json({ task: normalizeTaskRow(toggled), nextTask: null });
     } catch (err) {
@@ -1439,22 +1368,10 @@ module.exports = async function handler(req, res) {
         taskId = String(concreteRow.id);
       }
 
-      // Gruppen-Rolle/Permissions prüfen
+      // Gruppen-Rolle/Permissions pruefen
       const editCheck = await canEditGroupTask(pool, taskId, user.id);
       if (!editCheck.allowed) {
         return res.status(403).json({ error: editCheck.message || 'Keine Berechtigung' });
-      }
-
-      // Plan-Gate: Eine bestehende Aufgabe nachträglich wiederkehrend zu
-      // machen ist ebenfalls ein bezahltes Feature (sonst Umgehung des POST-Gates).
-      if (recurrence_rule) {
-        const planId = await getUserPlan(pool, user.id);
-        if (!canUseFeature(planId, 'recurringTasks')) {
-          return paymentRequired(res, {
-            feature: 'recurringTasks',
-            message: 'Wiederkehrende Aufgaben sind im Free-Plan nicht verfügbar. Upgrade auf Pro, um sie zu nutzen.',
-          });
-        }
       }
 
       // Only update fields that were explicitly sent in the request body.
@@ -1687,7 +1604,7 @@ module.exports = async function handler(req, res) {
         action = isOwner ? 'full' : 'dismiss';
       }
 
-      // Bei full-delete zusätzlich Gruppen-Rolle prüfen (edit_own_tasks).
+      // Bei full-delete zusaetzlich Gruppen-Rolle pruefen (edit_own_tasks).
       if (action === 'full') {
         const delCheck = await canEditGroupTask(pool, taskId, user.id);
         if (!delCheck.allowed) {
@@ -2463,18 +2380,6 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ error: 'Titel ist erforderlich' });
       }
 
-      // Plan-Gate: Wiederkehrende Aufgaben sind ein bezahltes Feature.
-      // Nur die Neuanlage wird geblockt — Bestand bleibt unberührt.
-      if (recurrence_rule) {
-        const planId = await getUserPlan(pool, user.id);
-        if (!canUseFeature(planId, 'recurringTasks')) {
-          return paymentRequired(res, {
-            feature: 'recurringTasks',
-            message: 'Wiederkehrende Aufgaben sind im Free-Plan nicht verfügbar. Upgrade auf Pro, um sie zu nutzen.',
-          });
-        }
-      }
-
       const taskType = type === 'event' ? 'event' : 'task';
 
       const collabEnabled = await getCollabEnabled(pool);
@@ -2497,7 +2402,7 @@ module.exports = async function handler(req, res) {
         }
         groupInfo = groupAccess.rows[0];
 
-        // Member-Permission prüfen: nur normale Member sind einschränkbar,
+        // Member-Permission pruefen: nur normale Member sind einschraenkbar,
         // Owner/Admin haben immer das Recht Tasks zu erstellen.
         if (groupInfo.my_role === 'member') {
           try {
@@ -2617,9 +2522,7 @@ module.exports = async function handler(req, res) {
             },
             'team_task_created',
             firstTask.id,
-            groupInfo.id,
-            // Folgt dem „Gruppen-Benachrichtigungen"-Schalter (team_task).
-            'team_task'
+            groupInfo.id
           ).catch(() => null);
         }
       }
