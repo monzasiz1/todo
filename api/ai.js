@@ -291,6 +291,21 @@ module.exports = async function handler(req, res) {
       return res.json({ parsed });
     } catch (err) {
       console.error('AI parse error:', err);
+      if (err?.message === 'MISTRAL_API_KEY nicht konfiguriert') {
+        return res.status(503).json({ error: 'KI-Dienst ist serverseitig nicht konfiguriert.' });
+      }
+      if (err?.status === 401 || err?.status === 403) {
+        return res.status(503).json({ error: 'KI-Dienst lehnt die Server-Anmeldung ab. Bitte API-Konfiguration prüfen.' });
+      }
+      if (err?.status === 429) {
+        return res.status(503).json({ error: 'KI-Dienst ist ausgelastet oder das Kontingent ist erschöpft. Bitte später erneut versuchen.' });
+      }
+      if (Number(err?.status) >= 500) {
+        return res.status(503).json({ error: 'KI-Dienst ist vorübergehend nicht verfügbar. Bitte später erneut versuchen.' });
+      }
+      if (err instanceof TypeError && /fetch/i.test(err.message)) {
+        return res.status(502).json({ error: 'KI-Dienst ist vom Server aus momentan nicht erreichbar.' });
+      }
       return res.status(500).json({ error: 'KI-Analyse fehlgeschlagen' });
     }
   }

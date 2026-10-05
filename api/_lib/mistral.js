@@ -166,7 +166,9 @@ JSON Format:
   });
 
   if (!response.ok) {
-    throw new Error(`Mistral API Fehler: ${response.status}`);
+    const error = new Error(`Mistral API Fehler: ${response.status}`);
+    error.status = response.status;
+    throw error;
   }
 
   const data = await response.json();
@@ -903,4 +905,3 @@ module.exports = {
   suggestNoteTagsWithAI,
   parseSpendingWithAI,
 };
-
