@@ -194,6 +194,8 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
   const [rsvpPopup, setRsvpPopup] = useState(null); // { msgId, type: 'yes'|'no' }
   const [showTaskPicker, setShowTaskPicker] = useState(false);
   const [taskPickerSearch, setTaskPickerSearch] = useState('');
+  const [taskPickerTasks, setTaskPickerTasks] = useState([]);
+  const [taskPickerLoading, setTaskPickerLoading] = useState(false);
   const taskPickerRef = useRef(null);
   const [followUpMsgId, setFollowUpMsgId] = useState(null);
   const [dragShareActive, setDragShareActive] = useState(false);
@@ -428,17 +430,41 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
     return () => document.removeEventListener('mousedown', handler);
   }, [showTaskPicker]);
 
+  useEffect(() => {
+    if (!showTaskPicker || !selectedGroupId) {
+      setTaskPickerTasks([]);
+      setTaskPickerLoading(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setTaskPickerTasks([]);
+    setTaskPickerLoading(true);
+    api.getGroup(selectedGroupId)
+      .then((data) => {
+        if (!cancelled) setTaskPickerTasks(data.tasks || []);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setTaskPickerTasks([]);
+        useTaskStore.getState().addToast(
+          err?.message || 'Gruppenaufgaben konnten nicht geladen werden.',
+          'error',
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setTaskPickerLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [showTaskPicker, selectedGroupId]);
+
   const filteredPickerTasks = useMemo(() => {
     const q = taskPickerSearch.toLowerCase().trim();
-    const gid = Number(selectedGroupId);
-    if (!gid) return [];
-    // Datenschutz: ausschliesslich Tasks DIESER Gruppe (keine privaten Tasks).
-    return (allTasks || [])
+    return (taskPickerTasks || [])
       .filter((t) => !t.deleted && !t.is_archived)
-      .filter((t) => t.group_id != null && Number(t.group_id) === gid)
       .filter((t) => !q || (t.title || '').toLowerCase().includes(q))
-      .slice(0, 30);
-  }, [allTasks, taskPickerSearch, selectedGroupId]);
+  }, [taskPickerTasks, taskPickerSearch]);
 
   useEffect(() => {
     let mounted = true;
@@ -1641,21 +1667,25 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
                         />
                       </div>
                       <div className="gchat-task-picker-list">
-                        {filteredPickerTasks.length === 0 && (
+                        {taskPickerLoading && (
+                          <div className="gchat-task-picker-empty">Aufgaben und Termine werden geladen…</div>
+                        )}
+                        {!taskPickerLoading && filteredPickerTasks.length === 0 && (
                           <div className="gchat-task-picker-empty">Keine Aufgaben gefunden</div>
                         )}
-                        {filteredPickerTasks.map((t) => (
+                        {!taskPickerLoading && filteredPickerTasks.map((t) => (
                           <button
                             key={t.id}
                             className="gchat-task-picker-item"
                             onClick={() => {
                               setShowTaskPicker(false);
                               setTaskPickerSearch('');
-                              shareDroppedTaskToChat(t.id);
+                              shareDroppedTaskToChat(t.id, selectedGroupId);
                             }}
                           >
                             <span className="gchat-task-picker-dot" style={{ background: t.color || '#4C7BD9' }} />
                             <span className="gchat-task-picker-title">{t.title || '(ohne Titel)'}</span>
+                            {t.type === 'event' && <span className="gchat-task-picker-date">Termin</span>}
                             {t.date && (
                               <span className="gchat-task-picker-date">
                                 {new Date(t.date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}
