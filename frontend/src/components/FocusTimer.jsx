@@ -105,22 +105,23 @@ export default function FocusTimer() {
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
   );
 
-  const handleSheetSwipeStart = (event) => {
-    if (!isMobileSheet || event.pointerType === 'mouse') return;
-    event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
+  const handleSheetTouchStart = (event) => {
+    const touch = event.touches[0];
+    if (!isMobileSheet || !touch) return;
     sheetSwipeRef.current = {
-      pointerId: event.pointerId,
-      startY: event.clientY,
+      startY: touch.clientY,
       startTime: performance.now(),
+      startedAtTop: event.currentTarget.scrollTop <= 0,
     };
   };
 
-  const handleSheetSwipeEnd = (event) => {
+  const handleSheetTouchEnd = (event) => {
     const swipe = sheetSwipeRef.current;
-    if (!swipe || swipe.pointerId !== event.pointerId) return;
+    const touch = event.changedTouches[0];
+    if (!swipe || !touch) return;
     sheetSwipeRef.current = null;
-    const distance = event.clientY - swipe.startY;
+    if (!swipe.startedAtTop) return;
+    const distance = touch.clientY - swipe.startY;
     const duration = Math.max(1, performance.now() - swipe.startTime);
     if (distance > 70 || (distance > 30 && distance / duration > 0.6)) {
       setOpen(false);
@@ -226,8 +227,28 @@ export default function FocusTimer() {
   // Body-class toggeln, damit BottomNav versteckt wird, wenn Picker offen ist
   useEffect(() => {
     if (!open) return undefined;
+    const body = document.body;
+    const scrollY = window.scrollY;
+    const previousStyles = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      width: body.style.width,
+      overflow: body.style.overflow,
+    };
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.left = '0';
+    body.style.right = '0';
+    body.style.width = '100%';
+    body.style.overflow = 'hidden';
     document.body.classList.add('focus-timer-modal-open');
-    return () => document.body.classList.remove('focus-timer-modal-open');
+    return () => {
+      document.body.classList.remove('focus-timer-modal-open');
+      Object.assign(body.style, previousStyles);
+      window.scrollTo(0, scrollY);
+    };
   }, [open]);
 
   const ensurePushSubscribed = useCallback(async () => {
@@ -416,6 +437,9 @@ export default function FocusTimer() {
               dragConstraints={{ top: 0, bottom: 0 }}
               dragElastic={{ top: 0, bottom: 0.6 }}
               dragDirectionLock
+              onTouchStart={handleSheetTouchStart}
+              onTouchEnd={handleSheetTouchEnd}
+              onTouchCancel={() => { sheetSwipeRef.current = null; }}
               onDragEnd={(_, info) => {
                 if (info.offset.y > 120 || info.velocity.y > 600) setOpen(false);
               }}
@@ -424,9 +448,6 @@ export default function FocusTimer() {
               <div
                 className="focus-timer-drag-handle"
                 aria-hidden="true"
-                onPointerDown={handleSheetSwipeStart}
-                onPointerUp={handleSheetSwipeEnd}
-                onPointerCancel={() => { sheetSwipeRef.current = null; }}
               />
               <div className="focus-timer-modal-head">
                 <div className="focus-timer-modal-title">
