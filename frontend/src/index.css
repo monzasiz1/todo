@@ -29547,7 +29547,7 @@ body.gchat-resizing * {
   }
 }
 
-/* Bottom-Sheet auf Mobile: unterhalb der Notch beginnen, auch wenn env() 0 liefert */
+/* Mobile-Bottom-Sheet unterhalb von Notch und App-Header verankern. */
 @media (max-width: 768px) {
   .focus-timer-modal-overlay {
     padding: 0 !important;
@@ -29556,7 +29556,7 @@ body.gchat-resizing * {
   }
   .focus-timer-modal {
     position: fixed !important;
-    top: max(44px, calc(env(safe-area-inset-top, 0px) + 8px)) !important;
+    top: max(100px, calc(env(safe-area-inset-top, 0px) + 56px)) !important;
     left: 0 !important;
     right: 0 !important;
     bottom: 0 !important;
@@ -29587,6 +29587,10 @@ body.gchat-resizing * {
     background: var(--border, rgba(0, 0, 0, 0.18));
     margin: 4px auto 12px;
     flex-shrink: 0;
+    cursor: grab;
+  }
+  .focus-timer-drag-handle {
+    touch-action: none;
     cursor: grab;
   }
   .focus-timer-drag-handle:active { cursor: grabbing; }
