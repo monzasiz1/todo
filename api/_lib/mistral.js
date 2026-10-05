@@ -275,7 +275,11 @@ JSON Format:
     }),
   });
 
-  if (!response.ok) throw new Error(`Mistral API Fehler: ${response.status}`);
+  if (!response.ok) {
+    const error = new Error(`Mistral API Fehler: ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
 
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content;
