@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { Timer, Play, Pause, RotateCcw, X, Bell, Sparkles } from 'lucide-react';
 import { api } from '../utils/api';
 import { useNotificationStore } from '../store/notificationStore';
@@ -97,16 +97,28 @@ const CONFETTI = Array.from({ length: 36 }).map((_, i) => {
 });
 
 export default function FocusTimer() {
+  const dragControls = useDragControls();
   const subscribePush = useNotificationStore((s) => s.subscribe);
   const subscribed    = useNotificationStore((s) => s.subscribed);
 
   const [open, setOpen] = useState(false);
+  const [isMobileSheet, setIsMobileSheet] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
+  );
   const [customMin, setCustomMin] = useState(25);
   const [label, setLabel] = useState('');
   const [now, setNow] = useState(() => Date.now());
   const [state, setState] = useState(() => loadState());
   const [showFinishOverlay, setShowFinishOverlay] = useState(false);
   const firedRef = useRef(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 768px)');
+    const updateMobileSheet = () => setIsMobileSheet(mediaQuery.matches);
+    updateMobileSheet();
+    mediaQuery.addEventListener('change', updateMobileSheet);
+    return () => mediaQuery.removeEventListener('change', updateMobileSheet);
+  }, []);
 
   // Re-hydrate from server (other devices / fresh tab)
   useEffect(() => {
@@ -378,6 +390,9 @@ export default function FocusTimer() {
               exit={{ y: '100%', opacity: 0 }}
               transition={{ type: 'spring', stiffness: 320, damping: 32 }}
               drag="y"
+              dragListener={!isMobileSheet}
+              dragControls={dragControls}
+              dragMomentum={false}
               dragConstraints={{ top: 0, bottom: 0 }}
               dragElastic={{ top: 0, bottom: 0.6 }}
               dragDirectionLock
@@ -386,7 +401,11 @@ export default function FocusTimer() {
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="focus-timer-drag-handle" aria-hidden="true" />
+              <div
+                className="focus-timer-drag-handle"
+                aria-hidden="true"
+                onPointerDown={(e) => dragControls.start(e)}
+              />
               <div className="focus-timer-modal-head">
                 <div className="focus-timer-modal-title">
                   <Timer size={18} />
