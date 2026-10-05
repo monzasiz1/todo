@@ -101,12 +101,46 @@ export default function FocusTimer() {
   const subscribed    = useNotificationStore((s) => s.subscribed);
 
   const [open, setOpen] = useState(false);
+  const [isMobileSheet, setIsMobileSheet] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
+  );
+
+  const handleSheetSwipeStart = (event) => {
+    if (!isMobileSheet || event.pointerType === 'mouse') return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    sheetSwipeRef.current = {
+      pointerId: event.pointerId,
+      startY: event.clientY,
+      startTime: performance.now(),
+    };
+  };
+
+  const handleSheetSwipeEnd = (event) => {
+    const swipe = sheetSwipeRef.current;
+    if (!swipe || swipe.pointerId !== event.pointerId) return;
+    sheetSwipeRef.current = null;
+    const distance = event.clientY - swipe.startY;
+    const duration = Math.max(1, performance.now() - swipe.startTime);
+    if (distance > 70 || (distance > 30 && distance / duration > 0.6)) {
+      setOpen(false);
+    }
+  };
   const [customMin, setCustomMin] = useState(25);
   const [label, setLabel] = useState('');
   const [now, setNow] = useState(() => Date.now());
   const [state, setState] = useState(() => loadState());
   const [showFinishOverlay, setShowFinishOverlay] = useState(false);
   const firedRef = useRef(false);
+  const sheetSwipeRef = useRef(null);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 768px)');
+    const updateMobileSheet = () => setIsMobileSheet(mediaQuery.matches);
+    updateMobileSheet();
+    mediaQuery.addEventListener('change', updateMobileSheet);
+    return () => mediaQuery.removeEventListener('change', updateMobileSheet);
+  }, []);
 
   // Re-hydrate from server (other devices / fresh tab)
   useEffect(() => {
@@ -377,7 +411,8 @@ export default function FocusTimer() {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: '100%', opacity: 0 }}
               transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-              drag="y"
+              drag={isMobileSheet ? false : 'y'}
+              dragMomentum={false}
               dragConstraints={{ top: 0, bottom: 0 }}
               dragElastic={{ top: 0, bottom: 0.6 }}
               dragDirectionLock
@@ -386,7 +421,13 @@ export default function FocusTimer() {
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="focus-timer-drag-handle" aria-hidden="true" />
+              <div
+                className="focus-timer-drag-handle"
+                aria-hidden="true"
+                onPointerDown={handleSheetSwipeStart}
+                onPointerUp={handleSheetSwipeEnd}
+                onPointerCancel={() => { sheetSwipeRef.current = null; }}
+              />
               <div className="focus-timer-modal-head">
                 <div className="focus-timer-modal-title">
                   <Timer size={18} />
