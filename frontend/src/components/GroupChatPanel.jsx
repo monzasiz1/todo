@@ -367,8 +367,14 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
     const root = document.documentElement;
     let prevH = vv.height;
     const apply = () => {
-      root.style.setProperty('--gchat-vv-top', `${Math.round(vv.offsetTop)}px`);
-      root.style.setProperty('--gchat-vv-h', `${Math.round(vv.height)}px`);
+      const keyboardOpen = window.innerHeight - vv.height > 120;
+      if (keyboardOpen) {
+        root.style.setProperty('--gchat-vv-top', `${Math.round(vv.offsetTop)}px`);
+        root.style.setProperty('--gchat-vv-h', `${Math.round(vv.height)}px`);
+      } else {
+        root.style.removeProperty('--gchat-vv-top');
+        root.style.removeProperty('--gchat-vv-h');
+      }
       // Tastatur ist gerade aufgegangen (sichtbare Höhe schrumpft deutlich)
       // → ans Ende scrollen, damit die LETZTE Nachricht über der Tastatur
       // sichtbar bleibt. Nur bei Schrumpfen, damit Hochscrollen weiter geht.
@@ -381,12 +387,15 @@ export default function GroupChatPanel({ open, onClose, pageMode = false }) {
         });
       }
     };
+    const handleViewportScroll = () => {
+      if (window.innerHeight - vv.height > 120) apply();
+    };
     apply();
     vv.addEventListener('resize', apply);
-    vv.addEventListener('scroll', apply);
+    vv.addEventListener('scroll', handleViewportScroll);
     return () => {
       vv.removeEventListener('resize', apply);
-      vv.removeEventListener('scroll', apply);
+      vv.removeEventListener('scroll', handleViewportScroll);
       root.style.removeProperty('--gchat-vv-top');
       root.style.removeProperty('--gchat-vv-h');
     };
