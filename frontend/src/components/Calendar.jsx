@@ -97,7 +97,7 @@ const normalizeCategoryKey = (value) => {
     .replace(/ß/g, 'ss');
 };
 
-const SHARED_WITH_ME_COLOR = '#FF9500';
+const SHARED_WITH_ME_COLOR = '#4C7BD9';
 
 const getVisiblePersonalCategoryColor = (task) => (
   task?.is_owner === false ? null : (task?.category_color || null)
@@ -306,7 +306,7 @@ const getTaskSource = (t) => {
     return {
       key: 'shared:with-me',
       name: 'Mit dir geteilt',
-      color: '#FF9500',
+      color: SHARED_WITH_ME_COLOR,
     };
   }
   if (t.category_id || t.category_name) {
@@ -337,7 +337,7 @@ const getCalendarSourceBadges = (task) => {
     sources.push({
       key: 'friend',
       name: task.creator_name || 'Freund',
-      color: task.creator_color || '#FF9500',
+      color: task.creator_color || SHARED_WITH_ME_COLOR,
       avatarUrl: task.creator_avatar_url || null,
     });
   }
