@@ -2,6 +2,7 @@ const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
 const { cacheManager } = require('./_lib/cache');
 const { sendPushToUser } = require('./_lib/pushService');
+const { getUserPlan, canUseFeature, paymentRequired } = require('./_lib/plans');
 
 const REMINDER_GRACE_WINDOW = '6 hours';
 const EVENT_REMINDER_OFFSET = '5 hours';
@@ -47,7 +48,7 @@ async function ensureLocationColumn(pool) {
 // Bei Tasks ohne Gruppen-Zuordnung: { allowed: true }.
 async function canEditGroupTask(pool, taskId, userId) {
   const taskRes = await pool.query('SELECT user_id FROM tasks WHERE id = $1', [taskId]);
-  if (!taskRes.rows.length) return { allowed: false, reason: 'not_found', message: 'Aufgabe nicht gefunden' };
+  if (!taskRes.rows.length) return { allowed: false, reason: 'not_found', message: 'Aufgabe nicht gefunden', isOwn: false };
   const isOwn = Number(taskRes.rows[0].user_id) === Number(userId);
   let groups;
   try {
@@ -60,28 +61,28 @@ async function canEditGroupTask(pool, taskId, userId) {
     );
   } catch (err) {
     console.warn('[tasks] canEditGroupTask membership lookup failed:', err.message);
-    return { allowed: true };
+    return { allowed: true, isOwn };
   }
-  if (!groups.rows.length) return { allowed: true };
+  if (!groups.rows.length) return { allowed: true, isOwn };
   let getEffectivePerms = null;
   try { ({ getEffectivePerms } = require('./groups')); } catch { /* ignore */ }
   for (const g of groups.rows) {
     if (g.role === 'owner' || g.role === 'admin') continue;
     if (!isOwn) {
-      return { allowed: false, reason: 'not_admin', message: 'Nur Admins koennen fremde Gruppen-Tasks bearbeiten' };
+      return { allowed: false, reason: 'not_admin', message: 'Nur Admins können fremde Gruppen-Tasks bearbeiten', isOwn };
     }
     if (typeof getEffectivePerms === 'function') {
       try {
         const eff = await getEffectivePerms(pool, g.group_id, userId);
         if (eff && eff.perms && !eff.perms.edit_own_tasks) {
-          return { allowed: false, reason: 'no_perm', message: 'Eigene Gruppen-Tasks bearbeiten ist fuer deine Rolle gesperrt' };
+          return { allowed: false, reason: 'no_perm', message: 'Eigene Gruppen-Tasks bearbeiten ist für deine Rolle gesperrt' };
         }
       } catch (err) {
         console.warn('[tasks] getEffectivePerms failed:', err.message);
       }
     }
   }
-  return { allowed: true };
+  return { allowed: true, isOwn };
 }
 
 function formatReminderDateForLog(value) {
@@ -138,21 +139,22 @@ function addDaysYMD(ymd, days) {
   return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate() };
 }
 
-function addMonthsYMD(ymd, months) {
+function addMonthsYMD(ymd, months, preferredDay = ymd.d) {
   let y = ymd.y;
   let m = ymd.m + (Number(months) || 0);
   while (m > 12) { m -= 12; y += 1; }
   while (m < 1)  { m += 12; y -= 1; }
   // Tag auf letzten Tag des Zielmonats clampen (kein Rollover Jan31 → Mär3).
-  const d = Math.min(ymd.d, daysInMonth(y, m));
+  const d = Math.min(preferredDay, daysInMonth(y, m));
   return { y, m, d };
 }
 
-function calcNextDate(currentDate, rule, interval) {
+function calcNextDate(currentDate, rule, interval, anchorDate = currentDate) {
   if (!currentDate || !rule) return null;
   const i = Math.max(1, Number(interval) || 1);
   const ymd = parseYMD(currentDate);
   if (!ymd) return null;
+  const anchorYmd = parseYMD(anchorDate) || ymd;
 
   switch (rule) {
     case 'daily': {
@@ -168,14 +170,14 @@ function calcNextDate(currentDate, rule, interval) {
       return formatYMD(r.y, r.m, r.d);
     }
     case 'monthly': {
-      const r = addMonthsYMD(ymd, i);
+      const r = addMonthsYMD(ymd, i, anchorYmd.d);
       return formatYMD(r.y, r.m, r.d);
     }
     case 'yearly': {
       const y = ymd.y + i;
       // Feb 29 → Feb 28 in Nicht-Schaltjahren.
-      const d = Math.min(ymd.d, daysInMonth(y, ymd.m));
-      return formatYMD(y, ymd.m, d);
+      const d = Math.min(anchorYmd.d, daysInMonth(y, anchorYmd.m));
+      return formatYMD(y, anchorYmd.m, d);
     }
     case 'weekdays': {
       // Genau einen Werktag (Mo–Fr) nach `currentDate`. `interval` wird
@@ -260,7 +262,7 @@ function expandRecurringTemplate(template, rangeStart, rangeEnd) {
     const interval = Math.max(1, Number(template.recurrence_interval) || 1);
 
     // Start from the first virtual occurrence (one step after template date).
-    let cursor = calcNextDate(templateDate, template.recurrence_rule, interval);
+    let cursor = calcNextDate(templateDate, template.recurrence_rule, interval, templateDate);
     if (!cursor) {
       console.warn(`[expandRecurringTemplate] template ${template.id}: calcNextDate liefert null`,
         { rule: template.recurrence_rule, interval, templateDate });
@@ -270,7 +272,7 @@ function expandRecurringTemplate(template, rangeStart, rangeEnd) {
     // Fast-forward bis erstmals >= startStr.
     let guard = 0;
     while (cursor < startStr && guard < 10000) {
-      const next = calcNextDate(cursor, template.recurrence_rule, interval);
+      const next = calcNextDate(cursor, template.recurrence_rule, interval, templateDate);
       if (!next || next <= cursor) break;
       cursor = next;
       guard++;
@@ -300,7 +302,7 @@ function expandRecurringTemplate(template, rangeStart, rangeEnd) {
           recurrence_parent_id: template.id,
         });
       }
-      const next = calcNextDate(cursor, template.recurrence_rule, interval);
+      const next = calcNextDate(cursor, template.recurrence_rule, interval, templateDate);
       if (!next || next <= cursor) break;
       cursor = next;
       guard++;
@@ -470,6 +472,19 @@ function mergeWithVirtual(concreteTasks, templates, rangeStart, rangeEnd, dismis
   });
 }
 
+function hidePersonalCategoryFromNonOwner(row, isExplicitNonOwner) {
+  // Friend-share must not leak the owner's private category or color.
+  // Group categories stay on group_category_* and are unchanged here.
+  if (!row || !isExplicitNonOwner || !['shared', 'selected_users'].includes(row.visibility)) return row;
+  return {
+    ...row,
+    category_id: null,
+    category_name: null,
+    category_color: null,
+    category_icon: null,
+  };
+}
+
 function normalizeTaskRow(row) {
   if (!row || typeof row !== 'object') return row;
 
@@ -478,7 +493,7 @@ function normalizeTaskRow(row) {
     ? (!(row.group_id && row.visibility === 'selected_users') || row.is_owner === true)
     : row.can_see_private_share_info === true;
 
-  return {
+  return hidePersonalCategoryFromNonOwner({
     ...row,
     teams_join_url: row.teams_join_url || null,
     teams_meeting_id: row.teams_meeting_id || null,
@@ -511,7 +526,7 @@ function normalizeTaskRow(row) {
     can_edit: row.can_edit === undefined || row.can_edit === null
       ? (row.is_owner === true)
       : row.can_edit === true,
-  };
+  }, row.is_owner === false);
 }
 
 function normalizeTaskRows(rows) {
@@ -520,7 +535,7 @@ function normalizeTaskRows(rows) {
 
 function buildDashboardCacheKey(userId, completedFilter, limit, horizonDays, completedLookbackDays) {
   const completedScope = completedFilter === null ? 'all' : String(completedFilter);
-  return `dashboard:v2:user:${userId}:${completedScope}:${limit}:h${horizonDays}:c${completedLookbackDays}`;
+  return `dashboard:v3:user:${userId}:${completedScope}:${limit}:h${horizonDays}:c${completedLookbackDays}`;
 }
 
 function buildDashboardOrderByClause() {
@@ -1014,7 +1029,8 @@ module.exports = async function handler(req, res) {
       // Try with collaboration visibility first
       try {
         result = await pool.query(
-          `SELECT t.id, t.user_id, t.title, t.time, t.reminder_at, t.completed,
+            `SELECT t.id, t.user_id, t.visibility, t.title, t.time, t.reminder_at, t.completed,
+              (t.user_id = $1) AS is_owner,
                   CASE
                     WHEN t.type = 'event' AND t.date IS NOT NULL
                       THEN ${EVENT_DUE_AT_SQL}
@@ -1139,7 +1155,7 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ error: 'Termine können nicht als erledigt markiert werden' });
       }
 
-      // Gruppen-Rolle/Permissions pruefen
+      // Gruppen-Rolle/Permissions prüfen
       const toggleCheck = await canEditGroupTask(pool, taskId, user.id);
       if (!toggleCheck.allowed) {
         return res.status(403).json({ error: toggleCheck.message || 'Keine Berechtigung' });
@@ -1170,6 +1186,76 @@ module.exports = async function handler(req, res) {
       // via virtual expansion — no chain-creation needed for recurring tasks.
       // We only cache-invalidate so the dashboard refreshes.
       await cacheManager.invalidateByEvent(String(user.id), 'task_updated');
+
+      // ── „Papa hat ‚Einkaufen' erledigt" ──────────────────────────────────
+      // Wenn eine geteilte oder Gruppen-Aufgabe abgehakt wird, bekommen die
+      // anderen Beteiligten (Owner, ausgewählte Nutzer, Gruppenmitglieder,
+      // bei visibility='shared' auch Freunde) eine Benachrichtigung — außer
+      // die Person, die sie selbst erledigt hat. Best-effort, blockiert die
+      // Antwort nicht durch Fehler.
+      if (toggled.completed === true) {
+        try {
+          const actorRow = await pool.query('SELECT name FROM users WHERE id = $1', [user.id]);
+          const actorName = actorRow.rows[0]?.name || 'Jemand';
+          const taskTitle = toggled.title || 'Aufgabe';
+
+          const recipients = await pool.query(
+            `WITH ctx AS (
+               -- Gruppenmitglieder der Gruppe(n), in der die Aufgabe liegt
+               SELECT gm.user_id, gt.group_id, grp.name AS group_name, true AS in_group
+               FROM group_tasks gt
+               JOIN group_members gm ON gm.group_id = gt.group_id
+               JOIN groups grp ON grp.id = gt.group_id
+               WHERE gt.task_id = $1
+               UNION ALL
+               -- gezielt geteilte Nutzer (visibility='selected_users')
+               SELECT tp.user_id, NULL::int, NULL::text, false
+               FROM task_permissions tp
+               WHERE tp.task_id = $1 AND tp.can_view = true
+               UNION ALL
+               -- mit allen Freunden geteilt (visibility='shared')
+               SELECT CASE WHEN f.user_id = t.user_id THEN f.friend_id ELSE f.user_id END,
+                      NULL::int, NULL::text, false
+               FROM tasks t
+               JOIN friends f ON f.status = 'accepted'
+                 AND (f.user_id = t.user_id OR f.friend_id = t.user_id)
+               WHERE t.id = $1 AND t.visibility = 'shared'
+               UNION ALL
+               -- Eigentümer der Aufgabe
+               SELECT t.user_id, NULL::int, NULL::text, false
+               FROM tasks t WHERE t.id = $1
+             )
+             SELECT user_id,
+                    MAX(group_id) AS group_id,
+                    MAX(group_name) AS group_name,
+                    bool_or(in_group) AS in_group
+             FROM ctx
+             WHERE user_id IS NOT NULL AND user_id <> $2
+             GROUP BY user_id`,
+            [taskId, user.id]
+          );
+
+          for (const r of recipients.rows) {
+            const inGroup = r.in_group && r.group_name;
+            await sendPushToUser(
+              r.user_id,
+              {
+                title: `${actorName} hat „${taskTitle}" erledigt`,
+                body: inGroup ? `Gruppe · ${r.group_name}` : 'Geteilte Aufgabe',
+                tag: `task-done-${taskId}`,
+                url: inGroup ? '/groups' : '/calendar',
+              },
+              'task_completed',
+              taskId,
+              r.group_id || null,
+              // Gruppen-Erledigungen folgen dem „Gruppen-Benachrichtigungen"-Schalter.
+              inGroup ? 'team_task' : null
+            ).catch(() => null);
+          }
+        } catch (notifyErr) {
+          console.error('[tasks] completion notify failed:', notifyErr.message);
+        }
+      }
 
       return res.json({ task: normalizeTaskRow(toggled), nextTask: null });
     } catch (err) {
@@ -1368,10 +1454,22 @@ module.exports = async function handler(req, res) {
         taskId = String(concreteRow.id);
       }
 
-      // Gruppen-Rolle/Permissions pruefen
+      // Gruppen-Rolle/Permissions prüfen
       const editCheck = await canEditGroupTask(pool, taskId, user.id);
       if (!editCheck.allowed) {
         return res.status(403).json({ error: editCheck.message || 'Keine Berechtigung' });
+      }
+
+      // Plan-Gate: Eine bestehende Aufgabe nachträglich wiederkehrend zu
+      // machen ist ebenfalls ein bezahltes Feature (sonst Umgehung des POST-Gates).
+      if (recurrence_rule) {
+        const planId = await getUserPlan(pool, user.id);
+        if (!canUseFeature(planId, 'recurringTasks')) {
+          return paymentRequired(res, {
+            feature: 'recurringTasks',
+            message: 'Wiederkehrende Aufgaben sind im Free-Plan nicht verfügbar. Upgrade auf Pro, um sie zu nutzen.',
+          });
+        }
       }
 
       // Only update fields that were explicitly sent in the request body.
@@ -1410,7 +1508,7 @@ module.exports = async function handler(req, res) {
         if (hasTime) addSet('time', time);
         if (hasTimeEnd) addSet('time_end', time_end || null);
         if (hasPriority) addSet('priority', priority);
-        if (hasCategoryId) addSet('category_id', category_id);
+        if (hasCategoryId && editCheck.isOwn === true) addSet('category_id', category_id);
         if (hasReminderAt) addSet('reminder_at', reminder_at);
         if (hasRecurrenceRule) addSet('recurrence_rule', recurrence_rule || null);
         if (hasRecurrenceInterval) addSet('recurrence_interval', recurrence_interval || 1);
@@ -1604,7 +1702,7 @@ module.exports = async function handler(req, res) {
         action = isOwner ? 'full' : 'dismiss';
       }
 
-      // Bei full-delete zusaetzlich Gruppen-Rolle pruefen (edit_own_tasks).
+      // Bei full-delete zusätzlich Gruppen-Rolle prüfen (edit_own_tasks).
       if (action === 'full') {
         const delCheck = await canEditGroupTask(pool, taskId, user.id);
         if (!delCheck.allowed) {
@@ -2380,6 +2478,18 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ error: 'Titel ist erforderlich' });
       }
 
+      // Plan-Gate: Wiederkehrende Aufgaben sind ein bezahltes Feature.
+      // Nur die Neuanlage wird geblockt — Bestand bleibt unberührt.
+      if (recurrence_rule) {
+        const planId = await getUserPlan(pool, user.id);
+        if (!canUseFeature(planId, 'recurringTasks')) {
+          return paymentRequired(res, {
+            feature: 'recurringTasks',
+            message: 'Wiederkehrende Aufgaben sind im Free-Plan nicht verfügbar. Upgrade auf Pro, um sie zu nutzen.',
+          });
+        }
+      }
+
       const taskType = type === 'event' ? 'event' : 'task';
 
       const collabEnabled = await getCollabEnabled(pool);
@@ -2402,7 +2512,7 @@ module.exports = async function handler(req, res) {
         }
         groupInfo = groupAccess.rows[0];
 
-        // Member-Permission pruefen: nur normale Member sind einschraenkbar,
+        // Member-Permission prüfen: nur normale Member sind einschränkbar,
         // Owner/Admin haben immer das Recht Tasks zu erstellen.
         if (groupInfo.my_role === 'member') {
           try {
@@ -2457,9 +2567,15 @@ module.exports = async function handler(req, res) {
       // Wenn keine Enddatum für Wiederholung angegeben: Standard 5 Jahre
       let recurrenceEnd = recurrence_end || null;
       if (recurrenceRule && !recurrenceEnd && date) {
-        const defaultEnd = new Date(date + 'T00:00:00');
-        defaultEnd.setFullYear(defaultEnd.getFullYear() + 5);
-        recurrenceEnd = defaultEnd.toISOString().split('T')[0];
+        const startYmd = parseYMD(date);
+        if (startYmd) {
+          const endYear = startYmd.y + 5;
+          recurrenceEnd = formatYMD(
+            endYear,
+            startYmd.m,
+            Math.min(startYmd.d, daysInMonth(endYear, startYmd.m))
+          );
+        }
       }
 
       // Virtual recurrence: store ONLY the template row.
@@ -2522,7 +2638,9 @@ module.exports = async function handler(req, res) {
             },
             'team_task_created',
             firstTask.id,
-            groupInfo.id
+            groupInfo.id,
+            // Folgt dem „Gruppen-Benachrichtigungen"-Schalter (team_task).
+            'team_task'
           ).catch(() => null);
         }
       }
