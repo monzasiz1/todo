@@ -74,20 +74,21 @@ function addDaysYMD(ymd, days) {
   return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate() };
 }
 
-function addMonthsYMD(ymd, months) {
+function addMonthsYMD(ymd, months, preferredDay = ymd.d) {
   let y = ymd.y;
   let m = ymd.m + (Number(months) || 0);
   while (m > 12) { m -= 12; y += 1; }
   while (m < 1)  { m += 12; y -= 1; }
-  const d = Math.min(ymd.d, daysInMonth(y, m));
+  const d = Math.min(preferredDay, daysInMonth(y, m));
   return { y, m, d };
 }
 
-function calcNextDate(currentDate, rule, interval) {
+function calcNextDate(currentDate, rule, interval, anchorDate = currentDate) {
   if (!currentDate || !rule) return null;
   const i = Math.max(1, Number(interval) || 1);
   const ymd = parseYMD(currentDate);
   if (!ymd) return null;
+  const anchorYmd = parseYMD(anchorDate) || ymd;
 
   switch (rule) {
     case 'daily': {
@@ -103,13 +104,13 @@ function calcNextDate(currentDate, rule, interval) {
       return formatYMD(r.y, r.m, r.d);
     }
     case 'monthly': {
-      const r = addMonthsYMD(ymd, i);
+      const r = addMonthsYMD(ymd, i, anchorYmd.d);
       return formatYMD(r.y, r.m, r.d);
     }
     case 'yearly': {
       const y = ymd.y + i;
-      const d = Math.min(ymd.d, daysInMonth(y, ymd.m));
-      return formatYMD(y, ymd.m, d);
+      const d = Math.min(anchorYmd.d, daysInMonth(y, anchorYmd.m));
+      return formatYMD(y, anchorYmd.m, d);
     }
     case 'weekdays': {
       let cur = addDaysYMD(ymd, 1);
@@ -184,7 +185,7 @@ function expandRecurringTemplate(template, rangeStart, rangeEnd) {
 
     const interval = Math.max(1, Number(template.recurrence_interval) || 1);
 
-    let cursor = calcNextDate(templateDate, template.recurrence_rule, interval);
+    let cursor = calcNextDate(templateDate, template.recurrence_rule, interval, templateDate);
     if (!cursor) {
       console.warn(`[expandRecurringTemplate] template ${template.id}: calcNextDate liefert null`,
         { rule: template.recurrence_rule, interval, templateDate });
@@ -193,7 +194,7 @@ function expandRecurringTemplate(template, rangeStart, rangeEnd) {
 
     let guard = 0;
     while (cursor < startStr && guard < 10000) {
-      const next = calcNextDate(cursor, template.recurrence_rule, interval);
+      const next = calcNextDate(cursor, template.recurrence_rule, interval, templateDate);
       if (!next || next <= cursor) break;
       cursor = next;
       guard++;
@@ -221,7 +222,7 @@ function expandRecurringTemplate(template, rangeStart, rangeEnd) {
           recurrence_parent_id: template.id,
         });
       }
-      const next = calcNextDate(cursor, template.recurrence_rule, interval);
+      const next = calcNextDate(cursor, template.recurrence_rule, interval, templateDate);
       if (!next || next <= cursor) break;
       cursor = next;
       guard++;
@@ -391,6 +392,19 @@ function mergeWithVirtual(concreteTasks, templates, rangeStart, rangeEnd, dismis
   });
 }
 
+function hidePersonalCategoryFromNonOwner(row, isExplicitNonOwner) {
+  // Friend-share must not leak the owner's private category or color.
+  // Group categories stay on group_category_* and are unchanged here.
+  if (!row || !isExplicitNonOwner || !['shared', 'selected_users'].includes(row.visibility)) return row;
+  return {
+    ...row,
+    category_id: null,
+    category_name: null,
+    category_color: null,
+    category_icon: null,
+  };
+}
+
 function normalizeTaskRow(row) {
   if (!row || typeof row !== 'object') return row;
 
@@ -399,7 +413,7 @@ function normalizeTaskRow(row) {
     ? (!(row.group_id && row.visibility === 'selected_users') || row.is_owner === true)
     : row.can_see_private_share_info === true;
 
-  return {
+  return hidePersonalCategoryFromNonOwner({
     ...row,
     teams_join_url: row.teams_join_url || null,
     teams_meeting_id: row.teams_meeting_id || null,
@@ -432,7 +446,7 @@ function normalizeTaskRow(row) {
     can_edit: row.can_edit === undefined || row.can_edit === null
       ? (row.is_owner === true)
       : row.can_edit === true,
-  };
+  }, row.is_owner === false);
 }
 
 function normalizeTaskRows(rows) {
@@ -441,7 +455,7 @@ function normalizeTaskRows(rows) {
 
 function buildDashboardCacheKey(userId, completedFilter, limit, horizonDays, completedLookbackDays) {
   const completedScope = completedFilter === null ? 'all' : String(completedFilter);
-  return `dashboard:v2:user:${userId}:${completedScope}:${limit}:h${horizonDays}:c${completedLookbackDays}`;
+  return `dashboard:v3:user:${userId}:${completedScope}:${limit}:h${horizonDays}:c${completedLookbackDays}`;
 }
 
 function buildDashboardOrderByClause() {
@@ -928,7 +942,8 @@ module.exports = async function handler(req, res) {
       // Try with collaboration visibility first
       try {
         result = await pool.query(
-          `SELECT t.id, t.user_id, t.title, t.time, t.reminder_at, t.completed,
+            `SELECT t.id, t.user_id, t.visibility, t.title, t.time, t.reminder_at, t.completed,
+              (t.user_id = $1) AS is_owner,
                   CASE
                     WHEN t.type = 'event' AND t.date IS NOT NULL
                       THEN ${EVENT_DUE_AT_SQL}
@@ -1306,7 +1321,12 @@ module.exports = async function handler(req, res) {
         if (hasTime) addSet('time', time);
         if (hasTimeEnd) addSet('time_end', time_end || null);
         if (hasPriority) addSet('priority', priority);
-        if (hasCategoryId) addSet('category_id', category_id);
+        if (hasCategoryId) {
+          const ownerCheck = await pool.query('SELECT user_id FROM tasks WHERE id = $1 LIMIT 1', [taskId]);
+          if (Number(ownerCheck.rows[0]?.user_id) === Number(user.id)) {
+            addSet('category_id', category_id);
+          }
+        }
         if (hasReminderAt) addSet('reminder_at', reminder_at);
         if (hasRecurrenceRule) addSet('recurrence_rule', recurrence_rule || null);
         if (hasRecurrenceInterval) addSet('recurrence_interval', recurrence_interval || 1);
@@ -2298,9 +2318,15 @@ module.exports = async function handler(req, res) {
       // Wenn keine Enddatum für Wiederholung angegeben: Standard 5 Jahre
       let recurrenceEnd = recurrence_end || null;
       if (recurrenceRule && !recurrenceEnd && date) {
-        const defaultEnd = new Date(date + 'T00:00:00');
-        defaultEnd.setFullYear(defaultEnd.getFullYear() + 5);
-        recurrenceEnd = defaultEnd.toISOString().split('T')[0];
+        const startYmd = parseYMD(date);
+        if (startYmd) {
+          const endYear = startYmd.y + 5;
+          recurrenceEnd = formatYMD(
+            endYear,
+            startYmd.m,
+            Math.min(startYmd.d, daysInMonth(endYear, startYmd.m))
+          );
+        }
       }
 
       // Virtual recurrence: store ONLY the template row.
