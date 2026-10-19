@@ -4,7 +4,7 @@ import { getAllQueued, removeQueued, incrementRetry } from '../utils/offlineQueu
 import { useGroupStore } from './groupStore';
 
 const TASK_CACHE_KEY = 'beequ_tasks_cache_v1';
-const TASK_RANGE_CACHE_KEY = 'beequ_tasks_range_cache_v1';
+const TASK_RANGE_CACHE_KEY = 'beequ_tasks_range_cache_v2';
 
 function getTasksCacheKey() {
   try {
