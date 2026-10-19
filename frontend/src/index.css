@@ -4452,28 +4452,6 @@ body.cal-is-dragging * {
     0 0 0 1px rgba(74, 214, 132, 0.48),
     0 0 14px rgba(60, 196, 113, 0.4),
     0 6px 14px rgba(36, 134, 77, 0.24);
-  animation: calGreenPulse 1.8s ease-in-out infinite;
-}
-
-@keyframes calGreenPulse {
-  0% {
-    box-shadow:
-      0 0 0 1px rgba(74, 214, 132, 0.45),
-      0 0 10px rgba(60, 196, 113, 0.25),
-      0 6px 14px rgba(36, 134, 77, 0.2);
-  }
-  50% {
-    box-shadow:
-      0 0 0 2px rgba(88, 224, 146, 0.7),
-      0 0 20px rgba(74, 214, 132, 0.6),
-      0 8px 16px rgba(36, 134, 77, 0.28);
-  }
-  100% {
-    box-shadow:
-      0 0 0 1px rgba(74, 214, 132, 0.45),
-      0 0 10px rgba(60, 196, 113, 0.25),
-      0 6px 14px rgba(36, 134, 77, 0.2);
-  }
 }
 
 /* ---- Week View (old list â€” kept for fallback) ---- */
