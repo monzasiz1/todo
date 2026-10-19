@@ -1662,7 +1662,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                           handleDayClick(d);
                         }}
                       >
-                        <CalendarSourceBadges task={t} size={13} />
+                        <CalendarSourceBadges task={t} size={10} />
                         {showTaskLabel && t.teams_join_url && <Video size={10} className="calendar-day-task-teams-icon" />}
                         {showTaskLabel && t.time && deviceType === 'desktop' && <span className="calendar-day-task-time">{t.time.slice(0, 5)}</span>}
                         {showTaskLabel && <span className="calendar-day-task-title">{t.title}</span>}
@@ -1917,7 +1917,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                           }}
                           onClick={(e) => { e.stopPropagation(); openCalendarEntry(t); }}
                         >
-                          <CalendarSourceBadges task={t} size={13} />
+                          <CalendarSourceBadges task={t} size={11} />
                           {t.teams_join_url && <Video size={11} className="calendar-inline-teams-icon" />}
                           <span className={doneOrOld ? 'cal-allday-strike' : ''}>{t.title}{isHolidayEntry(t) && ' (Feiertag)'}</span>
                           {ended && !t.completed && <span style={{ opacity: 0.75, marginLeft: 3 }}>· beendet</span>}
@@ -2075,7 +2075,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       }}
                     >
                       {t.teams_join_url && <Video size={12} className="calendar-event-teams-icon" />}
-                      <CalendarSourceBadges task={t} size={15} />
+                      <CalendarSourceBadges task={t} size={12} />
                       {!ended && (
                         <div
                           className="cal-resize-handle cal-resize-handle-top"
@@ -2347,7 +2347,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         onClick={(e) => { e.stopPropagation(); if (!wasDragging.current) openCalendarEntry(t); }}
                       >
                           {t.teams_join_url && <Video size={11} className="calendar-event-teams-icon mobile" />}
-                        <CalendarSourceBadges task={t} size={12} />
+                        <CalendarSourceBadges task={t} size={10} />
                         {!ended && (
                           <div
                             className="cal-resize-handle cal-resize-handle-top"
@@ -2534,7 +2534,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                 }}
               >
                 {t.teams_join_url && <Video size={11} className="calendar-event-teams-icon mobile" />}
-                <CalendarSourceBadges task={t} size={14} />
+                <CalendarSourceBadges task={t} size={11} />
                 {!ended && (
                   <div
                     className="cal-resize-handle cal-resize-handle-top"
