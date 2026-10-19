@@ -33,7 +33,6 @@ export default function CalendarPage() {
   const navigate = useNavigate();
   const fetchTasksRange = useTaskStore((s) => s.fetchTasksRange);
   const getCachedTasksRange = useTaskStore((s) => s.getCachedTasksRange);
-  const primeTasksRangeCache = useTaskStore((s) => s.primeTasksRangeCache);
   const cachedTasks = useTaskStore((s) => s.tasks);
   const [calendarTasks, setCalendarTasks] = useState(() => Array.isArray(cachedTasks) ? cachedTasks : []);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -59,7 +58,6 @@ export default function CalendarPage() {
     const localRangeTasks = cachedRangeTasks || filterTasksForRange(cachedTasks, normStart, normEnd);
     if (localRangeTasks.length > 0) {
       setCalendarTasks(localRangeTasks);
-      primeTasksRangeCache(normStart, normEnd, localRangeTasks);
     }
 
     try {
@@ -72,7 +70,7 @@ export default function CalendarPage() {
         inflightRangeKeyRef.current = '';
       }
     }
-  }, [cachedTasks, fetchTasksRange, getCachedTasksRange, primeTasksRangeCache]);
+  }, [cachedTasks, fetchTasksRange, getCachedTasksRange]);
 
   const handleTaskCreated = () => {
     if (visibleRange.start && visibleRange.end) {
