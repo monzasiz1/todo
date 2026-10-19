@@ -427,10 +427,20 @@ function mergeWithVirtual(concreteTasks, templates, rangeStart, rangeEnd, dismis
   // ausgeblendete Instanz wieder rein-rendern, weil die konkrete Reihe
   // vom dismissalFilter aus concreteTasks gefiltert wurde).
   const concreteKeys = new Set();
+  const seenConcreteKeys = new Set();
+  const uniqueConcreteTasks = [];
 
   for (const t of concreteTasks) {
+    if (!t) continue;
+    const dateStr = toIsoDateStr(t.date) || 'null';
+    const occurrenceKey = t.recurrence_parent_id
+      ? `series:${t.recurrence_parent_id}:${dateStr}`
+      : `task:${t.id}`;
+    if (seenConcreteKeys.has(occurrenceKey)) continue;
+    seenConcreteKeys.add(occurrenceKey);
+    uniqueConcreteTasks.push(t);
+
     if (t && t.recurrence_parent_id) {
-      const dateStr = toIsoDateStr(t.date) || 'null';
       concreteKeys.add(`${t.recurrence_parent_id}:${dateStr}`);
     }
   }
@@ -465,7 +475,7 @@ function mergeWithVirtual(concreteTasks, templates, rangeStart, rangeEnd, dismis
     }
   }
 
-  return [...concreteTasks, ...virtual].sort((a, b) => {
+  return [...uniqueConcreteTasks, ...virtual].sort((a, b) => {
     const da = toIsoDateStr(a && a.date ? a.date : '') || '';
     const db = toIsoDateStr(b && b.date ? b.date : '') || '';
     return da < db ? -1 : da > db ? 1 : 0;
