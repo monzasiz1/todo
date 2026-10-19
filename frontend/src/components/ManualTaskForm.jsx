@@ -430,22 +430,34 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
             <div className="task-edit-row manual-task-two-col">
               <div className="task-edit-field flex-1" style={{ marginBottom: 0 }}>
                 <label><Calendar size={14} /> Datum</label>
-                <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="task-edit-input" />
+                <div className="manual-task-clearable">
+                  <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="task-edit-input" />
+                  {date && <button type="button" className="manual-task-clear" onClick={() => setDate('')} aria-label="Datum zurücksetzen" title="Datum zurücksetzen"><X size={15} /></button>}
+                </div>
               </div>
               <div className="task-edit-field flex-1" style={{ marginBottom: 0 }}>
                 <label><Calendar size={14} /> Enddatum</label>
-                <input type="date" value={dateEnd} onChange={(e) => setDateEnd(e.target.value)} className="task-edit-input" />
+                <div className="manual-task-clearable">
+                  <input type="date" value={dateEnd} onChange={(e) => setDateEnd(e.target.value)} className="task-edit-input" />
+                  {dateEnd && <button type="button" className="manual-task-clear" onClick={() => setDateEnd('')} aria-label="Enddatum zurücksetzen" title="Enddatum zurücksetzen"><X size={15} /></button>}
+                </div>
               </div>
             </div>
 
             <div className="task-edit-row manual-task-two-col">
               <div className="task-edit-field flex-1" style={{ marginBottom: 0 }}>
                 <label><Clock size={14} /> Uhrzeit</label>
-                <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="task-edit-input" disabled={allDay} style={allDay ? { opacity: 0.35 } : {}} />
+                <div className="manual-task-clearable">
+                  <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="task-edit-input" disabled={allDay} style={allDay ? { opacity: 0.35 } : {}} />
+                  {time && !allDay && <button type="button" className="manual-task-clear" onClick={() => setTime('')} aria-label="Uhrzeit zurücksetzen" title="Uhrzeit zurücksetzen"><X size={15} /></button>}
+                </div>
               </div>
               <div className="task-edit-field flex-1" style={{ marginBottom: 0 }}>
                 <label><Clock size={14} /> Endzeit</label>
-                <input type="time" value={timeEnd} onChange={(e) => setTimeEnd(e.target.value)} className="task-edit-input" disabled={allDay} style={allDay ? { opacity: 0.35 } : {}} />
+                <div className="manual-task-clearable">
+                  <input type="time" value={timeEnd} onChange={(e) => setTimeEnd(e.target.value)} className="task-edit-input" disabled={allDay} style={allDay ? { opacity: 0.35 } : {}} />
+                  {timeEnd && !allDay && <button type="button" className="manual-task-clear" onClick={() => setTimeEnd('')} aria-label="Endzeit zurücksetzen" title="Endzeit zurücksetzen"><X size={15} /></button>}
+                </div>
               </div>
             </div>
 
@@ -525,12 +537,15 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
 
             <div className="task-edit-field" style={{ marginBottom: 0 }}>
               <label><Bell size={14} /> Erinnerung</label>
-              <input
-                type="datetime-local"
-                value={reminderAt}
-                onChange={(e) => setReminderAt(e.target.value)}
-                className="task-edit-input"
-              />
+              <div className="manual-task-clearable">
+                <input
+                  type="datetime-local"
+                  value={reminderAt}
+                  onChange={(e) => setReminderAt(e.target.value)}
+                  className="task-edit-input"
+                />
+                {reminderAt && <button type="button" className="manual-task-clear" onClick={() => setReminderAt('')} aria-label="Erinnerung zurücksetzen" title="Erinnerung zurücksetzen"><X size={15} /></button>}
+              </div>
             </div>
 
             <div className="task-edit-row manual-task-two-col">
@@ -544,7 +559,11 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
                 {canRecurring ? (
                   <select
                     value={recurrenceRule}
-                    onChange={(e) => setRecurrenceRule(e.target.value)}
+                    onChange={(e) => {
+                      const nextRule = e.target.value;
+                      setRecurrenceRule(nextRule);
+                      if (!nextRule) setRecurrenceEnd('');
+                    }}
                     className="task-edit-input task-edit-select"
                   >
                     {RECURRENCE_OPTIONS.map((item) => (
@@ -564,13 +583,16 @@ export default function ManualTaskForm({ onTaskCreated, defaultDate = null, embe
               </div>
               <div className="task-edit-field flex-1" style={{ marginBottom: 0 }}>
                 <label><Calendar size={14} /> Wiederholen bis</label>
-                <input
-                  type="date"
-                  value={recurrenceEnd}
-                  onChange={(e) => setRecurrenceEnd(e.target.value)}
-                  className="task-edit-input"
-                  disabled={!recurrenceRule}
-                />
+                <div className="manual-task-clearable">
+                  <input
+                    type="date"
+                    value={recurrenceEnd}
+                    onChange={(e) => setRecurrenceEnd(e.target.value)}
+                    className="task-edit-input"
+                    disabled={!recurrenceRule}
+                  />
+                  {recurrenceEnd && recurrenceRule && <button type="button" className="manual-task-clear" onClick={() => setRecurrenceEnd('')} aria-label="Wiederholungsende zurücksetzen" title="Wiederholungsende zurücksetzen"><X size={15} /></button>}
+                </div>
               </div>
             </div>
             {recurrenceRule && !recurrenceEnd && (
