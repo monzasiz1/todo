@@ -97,8 +97,22 @@ const normalizeCategoryKey = (value) => {
     .replace(/ß/g, 'ss');
 };
 
+const SHARED_WITH_ME_COLOR = '#FF9500';
+
+const getVisiblePersonalCategoryColor = (task) => (
+  task?.is_owner === false ? null : (task?.category_color || null)
+);
+
+const getTaskAccentColor = (task) => (
+  getVisiblePersonalCategoryColor(task)
+  || task?.group_category_color
+  || task?.group_color
+  || (task?.is_owner === false ? SHARED_WITH_ME_COLOR : '#4C7BD9')
+);
+
 const getEventGlowClass = (task) => {
   if (task?.type !== 'event') return '';
+  if (task?.is_owner === false) return 'cal-event-glow-default';
   const key = normalizeCategoryKey(task?.category_name);
   if (key.includes('arbeit')) return 'cal-event-glow-work';
   if (key.includes('persönlich')) return 'cal-event-glow-personal';
@@ -303,6 +317,58 @@ const getTaskSource = (t) => {
     };
   }
   return { key: 'default:persönlich', name: 'Persönlich', color: '#4C7BD9' };
+};
+
+const getCalendarSourceBadges = (task) => {
+  const sources = [];
+  const isOwner = task?.is_owner === true;
+  const isGroupMember = task?.is_group_member === true;
+
+  if ((task?.group_id || task?.group_name) && (isOwner || isGroupMember)) {
+    sources.push({
+      key: 'group',
+      name: task.group_name || 'Gruppe',
+      color: task.group_color || '#5856D6',
+      avatarUrl: task.group_image_url || null,
+    });
+  }
+
+  if (task?.is_owner === false && ['shared', 'selected_users'].includes(task.visibility)) {
+    sources.push({
+      key: 'friend',
+      name: task.creator_name || 'Freund',
+      color: task.creator_color || '#FF9500',
+      avatarUrl: task.creator_avatar_url || null,
+    });
+  }
+
+  return sources;
+};
+
+const getCalendarSourceClass = (task) => {
+  const sourceCount = getCalendarSourceBadges(task).length;
+  if (!sourceCount) return '';
+  return ` has-calendar-source${sourceCount > 1 ? ' has-multiple-calendar-sources' : ''}`;
+};
+
+const CalendarSourceBadges = ({ task, size = 15 }) => {
+  const sources = getCalendarSourceBadges(task);
+  if (!sources.length) return null;
+
+  return (
+    <span className="calendar-source-badges" aria-label={sources.map((source) => source.name).join(', ')}>
+      {sources.map((source) => (
+        <AvatarBadge
+          key={source.key}
+          className="calendar-source-avatar"
+          name={source.name}
+          color={source.color}
+          avatarUrl={source.avatarUrl}
+          size={size}
+        />
+      ))}
+    </span>
+  );
 };
 
 export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeChange, onTaskUpdated, onTaskCreated }) {
@@ -1522,10 +1588,9 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   {decoratedDayTasks.slice(0, maxVisiblePerCell).map(({ t, seg, assignedLane }, renderIdx) => {
                     const ended = isEventEnded(t, nowTs);
                     const isHolidayTask = isHolidayEntry(t);
-                    const categoryAccent = t.category_color || t.group_category_color;
                     const accentColor = ended
                       ? 'rgba(142,142,147,0.6)'
-                      : (categoryAccent || t.group_color || '#4C7BD9');
+                      : getTaskAccentColor(t);
                     let multiClass = '';
                     if (seg) {
                       if (seg.startIdx === seg.endIdx) multiClass = 'multi-day-single';
@@ -1558,7 +1623,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                     return (
                       <div
                         key={t.id}
-                        className={`calendar-day-task ${multiClass} ${t.completed ? 'completed' : ''} ${t.group_id ? 'group-task' : ''} ${ended ? 'ended-event' : ''} ${isHolidayTask ? 'holiday-entry' : ''} ${dragInfo?.task.id === t.id ? 'cal-dragging' : ''}${multiDayPct != null ? ' has-progress' : ''}`}
+                        className={`calendar-day-task ${multiClass} ${t.completed ? 'completed' : ''} ${t.group_id ? 'group-task' : ''} ${ended ? 'ended-event' : ''} ${isHolidayTask ? 'holiday-entry' : ''} ${dragInfo?.task.id === t.id ? 'cal-dragging' : ''}${multiDayPct != null ? ' has-progress' : ''}${getCalendarSourceClass(t)}`}
                         style={isMobile ? {
                           visibility: isHiddenSegment ? 'hidden' : 'visible',
                           pointerEvents: isHiddenSegment ? 'none' : 'auto',
@@ -1597,9 +1662,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                           handleDayClick(d);
                         }}
                       >
-                        {!isMobile && t.group_id && (
-                          <AvatarBadge name={t.group_name} color={t.group_color || '#5856D6'} avatarUrl={t.group_image_url} size={10} />
-                        )}
+                        <CalendarSourceBadges task={t} size={13} />
                         {showTaskLabel && t.teams_join_url && <Video size={10} className="calendar-day-task-teams-icon" />}
                         {showTaskLabel && t.time && deviceType === 'desktop' && <span className="calendar-day-task-time">{t.time.slice(0, 5)}</span>}
                         {showTaskLabel && <span className="calendar-day-task-title">{t.title}</span>}
@@ -1823,7 +1886,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         ? (seg.span === 1 ? 'allday-span-single' : 'allday-span-start')
                         : '';
 
-                      const accent = t.category_color || t.group_category_color || t.group_color || '#4C7BD9';
+                      const accent = getTaskAccentColor(t);
                       // Mehrtages-Termin: vergangene Tage anteilig grau
                       const multiDayProgress = (seg.isMultiDay && seg.span > 1 && !doneOrOld)
                         ? buildMultiDayBackground(
@@ -1841,7 +1904,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       return (
                         <button
                           key={t.id}
-                          className={`desktop-week-all-day-event ${spanClass}${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${t.completed ? ' completed' : ''}${multiDayPct != null ? ' has-progress' : ''}`}
+                          className={`desktop-week-all-day-event ${spanClass}${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${t.completed ? ' completed' : ''}${multiDayPct != null ? ' has-progress' : ''}${getCalendarSourceClass(t)}`}
                           style={{
                             background: doneOrOld ? 'rgba(142,142,147,0.4)' : (multiDayBg || accent),
                             position: 'absolute',
@@ -1854,6 +1917,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                           }}
                           onClick={(e) => { e.stopPropagation(); openCalendarEntry(t); }}
                         >
+                          <CalendarSourceBadges task={t} size={13} />
                           {t.teams_join_url && <Video size={11} className="calendar-inline-teams-icon" />}
                           <span className={doneOrOld ? 'cal-allday-strike' : ''}>{t.title}{isHolidayEntry(t) && ' (Feiertag)'}</span>
                           {ended && !t.completed && <span style={{ opacity: 0.75, marginLeft: 3 }}>· beendet</span>}
@@ -1985,13 +2049,13 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   const minDisplayHeight = 28;
                   const eventBg = doneOrEnded
                     ? 'rgba(142, 142, 147, 0.72)'
-                    : (t.group_category_color || t.category_color || t.group_color || '#4C7BD9');
+                    : (getTaskAccentColor(t));
                   const desktopWeekRenderKey = `${String(t.id)}_${taskStart}_${taskEnd}_${t.time || 'na'}_${t.time_end || 'na'}`;
 
                   return (
                     <div
                       key={desktopWeekRenderKey}
-                      className={`desktop-week-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${t.completed ? ' completed' : ''}${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
+                      className={`desktop-week-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${t.completed ? ' completed' : ''}${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}${getCalendarSourceClass(t)}`}
                       style={{
                         left: isSingleDay ? singleDayLeft : `calc((100% / 7) * ${startIdx} + 4px)`,
                         width: isSingleDay ? singleDayWidth : `calc((100% / 7) * ${spanDays} - 8px)`,
@@ -2011,6 +2075,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       }}
                     >
                       {t.teams_join_url && <Video size={12} className="calendar-event-teams-icon" />}
+                      <CalendarSourceBadges task={t} size={15} />
                       {!ended && (
                         <div
                           className="cal-resize-handle cal-resize-handle-top"
@@ -2024,7 +2089,6 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         />
                       )}
                       <div className="cal-event-header-row">
-                        {t.group_id && <AvatarBadge name={t.group_name} color={t.group_color || '#5856D6'} avatarUrl={t.group_image_url} size={11} />}
                         <span className="desktop-week-event-title">{t.title}</span>
                       </div>
                       <span className="desktop-week-event-time">
@@ -2143,7 +2207,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                       const ended = isEventEnded(t, nowTs);
                       const doneOrOld = t.completed || ended;
                       const spanWidth = seg.span > 1 ? `calc(${seg.span * 100}% + ${(seg.span - 1) * 8}px)` : undefined;
-                      const accent = t.category_color || t.group_category_color || t.group_color || '#4C7BD9';
+                      const accent = getTaskAccentColor(t);
                       const segStartStr = format(addDays(days[0], seg.startIdx), 'yyyy-MM-dd');
                       const segEndStr = format(addDays(days[0], seg.endIdx), 'yyyy-MM-dd');
                       const multiDayProgress = (seg.isMultiDay && seg.span > 1 && !doneOrOld)
@@ -2183,7 +2247,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         <div
                           key={`mwadt-${t.id}`}
                           className={`mobile-week-allday-pill${doneOrOld ? ' done' : ''}`}
-                          style={{ background: doneOrOld ? 'rgba(142,142,147,0.35)' : (t.category_color || t.group_category_color || t.group_color || '#4C7BD9') }}
+                          style={{ background: doneOrOld ? 'rgba(142,142,147,0.35)' : (getTaskAccentColor(t)) }}
                           onClick={(e) => { e.stopPropagation(); openCalendarEntry(t); }}
                         >
                           <span>{t.title}{isHolidayEntry(t) && ' (Feiertag)'}</span>
@@ -2266,13 +2330,13 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                     return (
                       <div
                         key={t.id}
-                        className={`mobile-week-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${t.completed ? ' completed' : ''}${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
+                        className={`mobile-week-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${t.completed ? ' completed' : ''}${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}${getCalendarSourceClass(t)}`}
                         style={{
                           top: `${top}px`, height: `${height}px`,
                           left: `calc(${lane * lanePercent}% + 1px)`,
                           width: `calc(${lanePercent}% - 2px)`,
                           right: 'auto',
-                          background: doneOrEnded ? 'rgba(142, 142, 147, 0.72)' : (t.category_color || t.group_category_color || t.group_color || '#4C7BD9'),
+                          background: doneOrEnded ? 'rgba(142, 142, 147, 0.72)' : (getTaskAccentColor(t)),
                           touchAction: 'none',
                         }}
                         onPointerDown={(e) => {
@@ -2283,6 +2347,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                         onClick={(e) => { e.stopPropagation(); if (!wasDragging.current) openCalendarEntry(t); }}
                       >
                           {t.teams_join_url && <Video size={11} className="calendar-event-teams-icon mobile" />}
+                        <CalendarSourceBadges task={t} size={12} />
                         {!ended && (
                           <div
                             className="cal-resize-handle cal-resize-handle-top"
@@ -2376,7 +2441,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
               const doneOrOld = t.completed || ended;
               const color    = doneOrOld
                 ? 'rgba(142,142,147,0.35)'
-                : (t.category_color || t.group_category_color || t.group_color || '#4C7BD9');
+                : (getTaskAccentColor(t));
               return (
                 <button
                   key={`adtop-${t.id}`}
@@ -2442,12 +2507,12 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
             const laneLeft = availableLeft + (lane * laneWidth);
             const mobileEventBg = doneOrEnded
               ? 'rgba(142, 142, 147, 0.72)'
-              : (t.group_category_color || t.category_color || t.group_color || '#4C7BD9');
+              : (getTaskAccentColor(t));
 
             return (
               <div
                 key={t.id}
-                className={`mobile-day-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${t.completed ? ' completed' : ''}${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}`}
+                className={`mobile-day-event${getEventGlowClass(t) ? ` ${getEventGlowClass(t)}` : ''}${ended ? ' ended-event' : ''}${t.completed ? ' completed' : ''}${dragInfo?.task.id === t.id || isResizingThis ? ' cal-dragging' : ''}${dropFeedback?.id === t.id ? ' cal-snap' : ''}${getCalendarSourceClass(t)}`}
                 style={{
                   left: `${laneLeft}%`,
                   width: `${laneWidth}%`,
@@ -2469,6 +2534,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                 }}
               >
                 {t.teams_join_url && <Video size={11} className="calendar-event-teams-icon mobile" />}
+                <CalendarSourceBadges task={t} size={14} />
                 {!ended && (
                   <div
                     className="cal-resize-handle cal-resize-handle-top"
@@ -2476,7 +2542,6 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
                   />
                 )}
                 <div className="cal-event-header-row">
-                  {t.group_id && <AvatarBadge name={t.group_name} color={t.group_color || '#5856D6'} avatarUrl={t.group_image_url} size={11} />}
                   <strong className="cal-event-title-text">{t.title}</strong>
                 </div>
                 {height >= 30 && (
@@ -2904,13 +2969,9 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
           opacity: 0.85,
           transform: 'rotate(2deg) scale(1.08)',
           maxWidth: 180,
-          background: (dragInfo.task.category_color || dragInfo.task.group_category_color)
-            ? `${(dragInfo.task.category_color || dragInfo.task.group_category_color)}25`
-            : dragInfo.task.group_id ? `${dragInfo.task.group_color || '#5856D6'}20` : 'var(--primary-bg)',
-          color: (dragInfo.task.category_color || dragInfo.task.group_category_color)
-            ? (dragInfo.task.category_color || dragInfo.task.group_category_color)
-            : dragInfo.task.group_id ? (dragInfo.task.group_color || '#5856D6') : 'var(--primary)',
-          borderLeft: `3px solid ${(dragInfo.task.category_color || dragInfo.task.group_category_color) || (dragInfo.task.group_id ? (dragInfo.task.group_color || '#5856D6') : 'var(--primary)')}`,
+          background: `${getTaskAccentColor(dragInfo.task)}25`,
+          color: getTaskAccentColor(dragInfo.task),
+          borderLeft: `3px solid ${getTaskAccentColor(dragInfo.task)}`,
 
           borderRadius: 4,
           padding: '3px 8px',
