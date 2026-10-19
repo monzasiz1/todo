@@ -52,6 +52,9 @@ async function runSchemaInit(rawQuery) {
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS notification_prefs JSONB DEFAULT '{"reminder":true,"daily_tasks":true,"engagement":true,"team_task":true,"group_message":true}'::jsonb`,
     // Task location (free-text Ort / Google-Maps Query)
     `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS location TEXT`,
+    // Wer die Aufgabe abgehakt hat (für Statistik-Gutschrift bei Gruppen-
+    // Aufgaben: belohnt wird der Abhaker, nicht der Ersteller).
+    `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completed_by INTEGER`,
 
     // Groups core
     `CREATE TABLE IF NOT EXISTS groups (

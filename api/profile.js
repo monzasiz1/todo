@@ -312,6 +312,18 @@ module.exports = async function handler(req, res) {
         publicUrl = await storage.uploadAvatarFromDataUri(user.id, avatar_url);
       } catch (e) {
         console.error('Avatar upload to Storage failed:', e?.message || e);
+        if (e?.message?.includes('Bild zu gross')) {
+          return res.status(400).json({ error: 'Bild zu groß (max. 2 MB)' });
+        }
+        if (e?.statusCode === 404) {
+          return res.status(500).json({ error: 'Der Supabase-Storage-Bucket "avatars" fehlt' });
+        }
+        if (e?.statusCode === 401 || e?.statusCode === 403) {
+          return res.status(500).json({ error: 'Supabase Storage verweigert den Zugriff; Storage-Key und Bucket-Berechtigungen prüfen' });
+        }
+        if (e?.statusCode) {
+          return res.status(502).json({ error: `Supabase Storage hat den Upload abgelehnt (HTTP ${e.statusCode})` });
+        }
         return res.status(500).json({ error: 'Avatar konnte nicht hochgeladen werden' });
       }
 
