@@ -58,7 +58,9 @@ async function uploadToBucket({ bucket, path, buffer, contentType, cacheControl 
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new Error(`Storage-Upload fehlgeschlagen (${res.status}): ${text}`);
+    const error = new Error(`Storage-Upload fehlgeschlagen (${res.status}): ${text}`);
+    error.statusCode = res.status;
+    throw error;
   }
   return res.json().catch(() => ({}));
 }

@@ -19,6 +19,21 @@ function toIsoDateStr(value) {
   return String(value).substring(0, 10);
 }
 
+function sanitizePersonalCategoryForViewer(tasks, userId) {
+  return (Array.isArray(tasks) ? tasks : []).map((row) => {
+    const isOwner = Number(row.user_id) === Number(userId);
+    if (isOwner) return { ...row, is_owner: true };
+    return {
+      ...row,
+      is_owner: false,
+      category_id: null,
+      category_name: null,
+      category_color: null,
+      category_icon: null,
+    };
+  });
+}
+
 function toDateOnly(value) {
   if (!value) return null;
   if (value instanceof Date) {
@@ -490,7 +505,7 @@ module.exports = async function handler(req, res) {
       return res.json({
         group: groupResult.rows[0],
         members: membersResult.rows,
-        tasks: tasksResult.rows,
+        tasks: sanitizePersonalCategoryForViewer(tasksResult.rows, user.id),
         myRole: membership.role,
         subgroups: subgroupsResult.rows,
       });
@@ -589,7 +604,7 @@ module.exports = async function handler(req, res) {
         [groupId, membership.role, user.id]
       );
 
-      return res.json({ tasks: result.rows });
+      return res.json({ tasks: sanitizePersonalCategoryForViewer(result.rows, user.id) });
     } catch (err) {
       console.error('List dismissed tasks error:', err);
       return res.status(500).json({ error: 'Fehler beim Laden entfernter Aufgaben' });
