@@ -3729,6 +3729,7 @@ input, textarea, select {
   height: 24px;
   border-radius: 50%;
   display: flex;
+  position: relative;
   align-items: center;
   justify-content: center;
   font-size: 12px;
@@ -3777,6 +3778,16 @@ input, textarea, select {
   transition: filter 0.1s;
   min-width: 0;
   max-width: 100%;
+}
+
+.calendar-day-task.has-calendar-source,
+.desktop-week-all-day-event.has-calendar-source {
+  padding-right: 22px;
+}
+
+.calendar-day-task.has-multiple-calendar-sources,
+.desktop-week-all-day-event.has-multiple-calendar-sources {
+  padding-right: 38px;
 }
 
 .calendar-day-task:hover {
@@ -10770,6 +10781,52 @@ body.cal-is-dragging * {
 .cal-event-cat-inline {
   opacity: 0.78;
   font-weight: 500;
+}
+
+.calendar-source-badges {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+  line-height: 0;
+}
+
+.mobile-day-event .calendar-source-badges {
+  display: inline-flex;
+  font-size: 0;
+  opacity: 1;
+}
+
+.calendar-source-avatar {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9), 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+.desktop-week-event.has-calendar-source {
+  padding-right: 27px;
+}
+
+.desktop-week-event.has-multiple-calendar-sources {
+  padding-right: 44px;
+}
+
+.mobile-week-event.has-calendar-source {
+  padding-right: 18px;
+}
+
+.mobile-week-event.has-multiple-calendar-sources {
+  padding-right: 32px;
+}
+
+.mobile-day-event.has-calendar-source {
+  padding-right: 28px;
+}
+
+.mobile-day-event.has-multiple-calendar-sources {
+  padding-right: 44px;
 }
 
 .cal-event-time-row {
@@ -29582,16 +29639,24 @@ body.gchat-resizing * {
   .focus-timer-drag-handle {
     display: block;
     width: 44px;
+    height: 28px;
+    position: relative;
+    margin: 0 auto 0;
+    flex-shrink: 0;
+    cursor: grab;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .focus-timer-drag-handle::before {
+    content: '';
+    position: absolute;
+    top: 4px;
+    left: 0;
+    width: 44px;
     height: 5px;
     border-radius: 999px;
     background: var(--border, rgba(0, 0, 0, 0.18));
-    margin: 4px auto 12px;
-    flex-shrink: 0;
-    cursor: grab;
-  }
-  .focus-timer-drag-handle {
-    touch-action: none;
-    cursor: grab;
   }
   .focus-timer-drag-handle:active { cursor: grabbing; }
   .focus-timer-modal-head { margin-bottom: 10px; }
