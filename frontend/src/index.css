@@ -3765,6 +3765,7 @@ input, textarea, select {
 
 .calendar-day-task {
   display: flex;
+  position: relative;
   align-items: center;
   gap: 3px;
   font-size: 0.62rem;
@@ -3782,12 +3783,12 @@ input, textarea, select {
 
 .calendar-day-task.has-calendar-source,
 .desktop-week-all-day-event.has-calendar-source {
-  padding-right: 22px;
+  padding-right: 16px;
 }
 
 .calendar-day-task.has-multiple-calendar-sources,
 .desktop-week-all-day-event.has-multiple-calendar-sources {
-  padding-right: 38px;
+  padding-right: 24px;
 }
 
 .calendar-day-task:hover {
@@ -10785,12 +10786,12 @@ body.cal-is-dragging * {
 
 .calendar-source-badges {
   position: absolute;
-  top: 2px;
-  right: 3px;
+  top: 1px;
+  right: 2px;
   z-index: 6;
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 0;
   pointer-events: none;
   line-height: 0;
 }
@@ -10805,28 +10806,32 @@ body.cal-is-dragging * {
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9), 0 1px 3px rgba(0, 0, 0, 0.25);
 }
 
+.calendar-source-avatar + .calendar-source-avatar {
+  margin-left: -3px;
+}
+
 .desktop-week-event.has-calendar-source {
-  padding-right: 27px;
+  padding-right: 19px;
 }
 
 .desktop-week-event.has-multiple-calendar-sources {
-  padding-right: 44px;
+  padding-right: 27px;
 }
 
 .mobile-week-event.has-calendar-source {
-  padding-right: 18px;
+  padding-right: 15px;
 }
 
 .mobile-week-event.has-multiple-calendar-sources {
-  padding-right: 32px;
+  padding-right: 23px;
 }
 
 .mobile-day-event.has-calendar-source {
-  padding-right: 28px;
+  padding-right: 18px;
 }
 
 .mobile-day-event.has-multiple-calendar-sources {
-  padding-right: 44px;
+  padding-right: 27px;
 }
 
 .cal-event-time-row {
@@ -28982,6 +28987,14 @@ body.gchat-resizing * {
     line-height: 1.25;
     border-radius: 3px;
     min-height: 16px;
+  }
+
+  .calendar-page-wrap .calendar-day-task.has-calendar-source {
+    padding-right: 16px;
+  }
+
+  .calendar-page-wrap .calendar-day-task.has-multiple-calendar-sources {
+    padding-right: 24px;
   }
 
   .calendar-page-wrap .calendar-day-number {
