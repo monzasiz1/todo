@@ -42,6 +42,12 @@ const WK_H     = 64;   // px per hour
 const MOBILE_BREAKPOINT = 768;
 const CALENDAR_DESKTOP_BREAKPOINT = 1180;
 const CALENDAR_WEEK_DEFAULT_BREAKPOINT = 1024;
+const isTabletTouchDevice = () => (
+  typeof window !== 'undefined'
+  && typeof navigator !== 'undefined'
+  && navigator.maxTouchPoints > 0
+  && Math.min(window.screen?.width || window.innerWidth, window.screen?.height || window.innerHeight) >= 600
+);
 const DEFAULT_HOLIDAY_COLOR = '#D92C2C';
 const CALENDAR_HOLIDAY_STATE_KEY = 'beequ_calendar_holiday_state';
 const CALENDAR_HOLIDAY_COLOR_KEY = 'beequ_calendar_holiday_color';
@@ -402,7 +408,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
   // â”€â”€ Debounced viewport state for tablet stability â”€â”€
   const [viewportState, setViewportState] = useState({
     isDesktop: window.innerWidth >= MOBILE_BREAKPOINT,
-    isWideDesktopCalendar: window.innerWidth >= CALENDAR_DESKTOP_BREAKPOINT
+    isWideDesktopCalendar: window.innerWidth >= CALENDAR_DESKTOP_BREAKPOINT,
+    isTabletTouch: isTabletTouchDevice(),
   });
   // Drag / Resize state
   const [dragInfo, setDragInfo] = useState(null);
@@ -819,7 +826,8 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
     debounce(() => {
       setViewportState({
         isDesktop: window.innerWidth >= MOBILE_BREAKPOINT,
-        isWideDesktopCalendar: window.innerWidth >= CALENDAR_DESKTOP_BREAKPOINT
+        isWideDesktopCalendar: window.innerWidth >= CALENDAR_DESKTOP_BREAKPOINT,
+        isTabletTouch: isTabletTouchDevice(),
       });
     }, 100), // Faster debounce (100ms) for all devices
     []
@@ -1116,12 +1124,12 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
 
   // â”€â”€ Touch Swipe-Navigation (Mobile + Tablet) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleSwipeTouchStart = (e) => {
-    if (deviceType === 'desktop') return;
+    if (!navigator.maxTouchPoints) return;
     swipeRef.current = { startX: e.touches[0].clientX, startY: e.touches[0].clientY };
   };
 
   const handleSwipeTouchEnd = (e) => {
-    if (deviceType === 'desktop') return;
+    if (!navigator.maxTouchPoints) return;
     const dx = e.changedTouches[0].clientX - swipeRef.current.startX;
     const dy = e.changedTouches[0].clientY - swipeRef.current.startY;
     // Nur als horizontaler Swipe werten wenn dx dominant und groÃŸ genug
@@ -2580,19 +2588,26 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
 
   // â”€â”€ Universal fullscreen toggle optimized for all devices â”€â”€
   const toggleCalendarFullscreen = useCallback(async () => {
-    if (isMobile) return; // Fullscreen not useful on mobile
+    if (isMobile && !viewportState.isTabletTouch) return;
     
     const element = calendarWrapperRef.current;
     if (!element) return;
 
     const activeFullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+    const isNativeFullscreen = activeFullscreenElement === element;
     
     try {
-      if (activeFullscreenElement === element) {
+      if (isCalendarFullscreen || isNativeFullscreen) {
+        if (!isNativeFullscreen) {
+          setIsCalendarFullscreen(false);
+          return;
+        }
         if (document.exitFullscreen) {
           await document.exitFullscreen();
         } else if (document.webkitExitFullscreen) {
           document.webkitExitFullscreen();
+        } else {
+          setIsCalendarFullscreen(false);
         }
         return;
       }
@@ -2600,12 +2615,15 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       if (element.requestFullscreen) {
         await element.requestFullscreen();
       } else if (element.webkitRequestFullscreen) {
-        element.webkitRequestFullscreen();
+        await element.webkitRequestFullscreen();
+      } else {
+        setIsCalendarFullscreen(true);
       }
     } catch {
-      // Ignore fullscreen rejections from browser policies.
+      // iOS/PWA may reject element fullscreen; the fixed-position CSS mode still works.
+      setIsCalendarFullscreen(true);
     }
-  }, [isMobile]);
+  }, [isMobile, isCalendarFullscreen, viewportState.isTabletTouch]);
 
   // â”€â”€ Get device-specific easing â”€â”€ 
   const getEasing = useCallback(() => {
@@ -2615,6 +2633,10 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
       default: return animProps.easingDesktop;
     }
   }, [deviceType, animProps]);
+
+  const calendarPortalTarget = isCalendarFullscreen && calendarWrapperRef.current
+    ? calendarWrapperRef.current
+    : document.body;
 
   return (
     <motion.div
@@ -2655,7 +2677,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
           </div>
 
           <div className="cal-header-controls">
-            {!isMobile && (
+            {(!isMobile || viewportState.isTabletTouch) && (
               <button
                 className={`calendar-fs-btn ${isCalendarFullscreen ? 'active' : ''}`}
                 onClick={toggleCalendarFullscreen}
@@ -2815,7 +2837,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
             </div>
           </motion.div>
         </div>,
-        document.body
+        calendarPortalTarget
       )}
 
       {showHolidaySettings && createPortal(
@@ -2919,7 +2941,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
             </footer>
           </motion.div>
         </div>,
-        document.body
+        calendarPortalTarget
       )}
 
       <CalendarImportModal
@@ -2947,7 +2969,7 @@ export default function Calendar({ onDayClick, tasks: tasksProp, onVisibleRangeC
             <button className={view === 'month' ? 'active' : ''} onClick={() => setView('month')}>Monat</button>
           </div>
         </div>,
-        document.body
+        calendarPortalTarget
       )}
 
       {detailTask && createPortal(
