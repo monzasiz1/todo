@@ -2,6 +2,7 @@ const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
 const { cacheManager } = require('./_lib/cache');
 const { sendPushToUser } = require('./_lib/pushService');
+const { broadcast: realtimeBroadcast } = require('./_lib/realtimeBroadcast');
 
 const REMINDER_GRACE_WINDOW = '6 hours';
 const EVENT_REMINDER_OFFSET = '5 hours';
@@ -349,10 +350,15 @@ function mergeWithVirtual(concreteTasks, templates, rangeStart, rangeEnd, dismis
   const concreteKeys = new Set();
   const seenConcreteKeys = new Set();
   const uniqueConcreteTasks = [];
+  const excludedKeys = dismissedKeys instanceof Set ? dismissedKeys : new Set();
 
   for (const t of concreteTasks) {
     if (!t) continue;
     const dateStr = toIsoDateStr(t.date) || 'null';
+    const seriesDateKey = t.recurrence_parent_id
+      ? `${t.recurrence_parent_id}:${dateStr}`
+      : null;
+    if (seriesDateKey && excludedKeys.has(seriesDateKey)) continue;
     const occurrenceKey = t.recurrence_parent_id
       ? `series:${t.recurrence_parent_id}:${dateStr}`
       : `task:${t.id}`;
@@ -613,6 +619,62 @@ const COLLAB_CACHE_TTL_MS = 5 * 60 * 1000;
 
 let dismissalsEnabledCache = null;
 let dismissalsEnabledCacheAt = 0;
+let recurrenceExceptionsSchemaReady = false;
+
+async function ensureRecurrenceExceptionsSchema(pool) {
+  if (recurrenceExceptionsSchemaReady) return;
+  await pool.query(`CREATE TABLE IF NOT EXISTS task_recurrence_exceptions (
+    recurrence_parent_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    occurrence_date DATE NOT NULL,
+    deleted_by INTEGER NOT NULL REFERENCES users(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (recurrence_parent_id, occurrence_date)
+  )`);
+  recurrenceExceptionsSchemaReady = true;
+}
+
+async function getRecurrenceExceptionKeys(pool, parentIds) {
+  const ids = [...new Set((parentIds || []).map(Number).filter(Number.isSafeInteger))];
+  if (!ids.length) return new Set();
+  await ensureRecurrenceExceptionsSchema(pool);
+  const result = await pool.query(
+    `SELECT recurrence_parent_id, occurrence_date
+       FROM task_recurrence_exceptions
+      WHERE recurrence_parent_id = ANY($1::int[])`,
+    [ids]
+  );
+  return new Set(result.rows.map((row) => `${row.recurrence_parent_id}:${toIsoDateStr(row.occurrence_date)}`));
+}
+
+async function notifyRecurringOccurrenceDeleted(pool, parentId, ownerId) {
+  const recipients = await pool.query(
+    `SELECT DISTINCT user_id FROM (
+       SELECT $2::int AS user_id
+       UNION ALL
+       SELECT tp.user_id FROM task_permissions tp
+        WHERE tp.task_id = $1 AND tp.can_view = true
+       UNION ALL
+       SELECT CASE WHEN f.user_id = $2 THEN f.friend_id ELSE f.user_id END AS user_id
+         FROM friends f
+        WHERE f.status = 'accepted'
+          AND ($2 = f.user_id OR $2 = f.friend_id)
+          AND EXISTS (SELECT 1 FROM tasks t WHERE t.id = $1 AND t.visibility = 'shared')
+       UNION ALL
+       SELECT gm.user_id
+         FROM group_tasks gt
+         JOIN group_members gm ON gm.group_id = gt.group_id
+        WHERE gt.task_id = $1
+     ) visible_users
+     WHERE user_id IS NOT NULL`,
+    [parentId, ownerId]
+  );
+  await Promise.all((recipients.rows || []).map(async ({ user_id: recipientId }) => {
+    await cacheManager.invalidateByEvent(String(recipientId), 'task_deleted').catch(() => {});
+    await realtimeBroadcast(`rt-tasks-${recipientId}`, 'task_changed', { change: 'recurrence_occurrence_deleted' }).catch((err) => {
+      console.error('[tasks] recurrence delete broadcast failed:', err.message);
+    });
+  }));
+}
 
 async function getDismissalsEnabled(pool) {
   const now = Date.now();
@@ -901,6 +963,17 @@ module.exports = async function handler(req, res) {
             dismissedKeys.add(`${row.recurrence_parent_id}:${dateStr}`);
           }
         } catch { /* ignore */ }
+      }
+
+      const recurrenceParentIds = [
+        ...(concreteResult.rows || []).map((row) => row.recurrence_parent_id),
+        ...(templateResult.rows || []).map((row) => row.id),
+      ].filter(Boolean);
+      try {
+        const exceptionKeys = await getRecurrenceExceptionKeys(pool, recurrenceParentIds);
+        for (const key of exceptionKeys) dismissedKeys.add(key);
+      } catch (exceptionError) {
+        console.error('[TASKS-RANGE] Recurrence exceptions could not be loaded:', exceptionError.message);
       }
 
       // 3. Merge concrete + virtual, deduplicating overrides
@@ -1471,9 +1544,49 @@ module.exports = async function handler(req, res) {
       let resolvedRawId = rawId;
       const virtual = parseVirtualId(rawId);
       if (virtual) {
+        if (mode === 'full') {
+          const parentId = Number(virtual.parentId);
+          if (!Number.isSafeInteger(parentId) || parentId <= 0) {
+            return res.status(400).json({ error: 'Ungültige Serien-ID' });
+          }
+          const parentResult = await pool.query(
+            'SELECT id, user_id FROM tasks WHERE id = $1 LIMIT 1',
+            [parentId]
+          );
+          const parent = parentResult.rows[0];
+          if (!parent) return res.status(404).json({ error: 'Serie nicht gefunden' });
+
+          const isOwner = Number(parent.user_id) === Number(user.id);
+          let isGroupAdmin = false;
+          if (!isOwner) {
+            const adminCheck = await pool.query(
+              `SELECT 1 FROM group_tasks gt
+                 JOIN group_members gm ON gm.group_id = gt.group_id
+                WHERE gt.task_id = $1 AND gm.user_id = $2 AND gm.role IN ('owner','admin')
+                LIMIT 1`,
+              [parentId, user.id]
+            );
+            isGroupAdmin = adminCheck.rowCount > 0;
+          }
+          if (!isOwner && !isGroupAdmin) {
+            return res.status(403).json({ error: 'Nur der Ersteller oder ein Gruppen-Admin kann dieses Vorkommen für alle löschen' });
+          }
+          const editCheck = await canEditGroupTask(pool, parentId, user.id);
+          if (!editCheck.allowed) return res.status(403).json({ error: editCheck.message || 'Keine Berechtigung' });
+
+          await ensureRecurrenceExceptionsSchema(pool);
+          await pool.query(
+            `INSERT INTO task_recurrence_exceptions (recurrence_parent_id, occurrence_date, deleted_by)
+             VALUES ($1, $2, $3)
+             ON CONFLICT (recurrence_parent_id, occurrence_date) DO NOTHING`,
+            [parentId, virtual.date, user.id]
+          );
+          await notifyRecurringOccurrenceDeleted(pool, parentId, parent.user_id);
+          return res.json({ success: true, action: 'full', recurrence_exception: true });
+        }
         if (mode !== 'dismiss') {
           return res.status(400).json({
-            error: 'Einzelne Wiederholungen können nur aus dem eigenen Kalender entfernt werden. Für endgültiges Löschen die Serie bearbeiten.',
+            error: 'Bitte zwischen „Aus meinem Kalender entfernen“ und „Für alle löschen“ wählen.',
           });
         }
         let concrete = null;
@@ -1492,7 +1605,7 @@ module.exports = async function handler(req, res) {
       if (!Number.isFinite(taskId)) return res.status(400).json({ error: 'Ungültige ID' });
 
       const ownerCheck = await pool.query(
-        'SELECT user_id FROM tasks WHERE id = $1',
+        'SELECT user_id, recurrence_parent_id, date FROM tasks WHERE id = $1',
         [taskId]
       );
       if (ownerCheck.rows.length === 0) {
@@ -1531,8 +1644,21 @@ module.exports = async function handler(req, res) {
       }
 
       if (action === 'full') {
+        const recurrenceParentId = Number(ownerCheck.rows[0].recurrence_parent_id);
+        if (Number.isSafeInteger(recurrenceParentId) && recurrenceParentId > 0) {
+          await ensureRecurrenceExceptionsSchema(pool);
+          await pool.query(
+            `INSERT INTO task_recurrence_exceptions (recurrence_parent_id, occurrence_date, deleted_by)
+             VALUES ($1, $2, $3)
+             ON CONFLICT (recurrence_parent_id, occurrence_date) DO NOTHING`,
+            [recurrenceParentId, toIsoDateStr(ownerCheck.rows[0].date), user.id]
+          );
+          await pool.query('DELETE FROM tasks WHERE id = $1', [taskId]);
+          await notifyRecurringOccurrenceDeleted(pool, recurrenceParentId, ownerCheck.rows[0].user_id);
+          return res.json({ success: true, action, recurrence_exception: true });
+        }
         // Cascade entfernt group_tasks, task_permissions, task_dismissals etc.
-        await pool.query('DELETE FROM tasks WHERE id = $1', [taskId]);
+        await pool.query('DELETE FROM tasks WHERE id = $1 OR recurrence_parent_id = $1', [taskId]);
       } else {
         // Dismiss: NUR Dismissal-Eintrag setzen. task_permissions bleibt erhalten,
         // sonst lässt sich der ursprüngliche Zugriff (selected_users) nicht
@@ -2109,6 +2235,13 @@ module.exports = async function handler(req, res) {
               }
             } catch { /* ignore */ }
           }
+
+          const recurrenceParentIds = [
+            ...(result.rows || []).map((row) => row.recurrence_parent_id),
+            ...(tplResult.rows || []).map((row) => row.id),
+          ].filter(Boolean);
+          const exceptionKeys = await getRecurrenceExceptionKeys(pool, recurrenceParentIds);
+          for (const key of exceptionKeys) dashDismissedKeys.add(key);
 
           // Merge concrete + virtual tasks
           mergedTasks = normalizeTaskRows(mergeWithVirtual(result.rows || [], tplResult.rows || [], dashWindowStart, horizonEndStr, dashDismissedKeys));
