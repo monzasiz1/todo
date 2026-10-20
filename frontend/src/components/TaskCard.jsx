@@ -642,7 +642,7 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
               Ganztägig
             </span>
           )}
-          {task.category_name && !isSharedGroupTask && (
+          {task.category_name && isOwnerResolved && (
             <span
               className="task-category-badge"
               style={{
@@ -719,8 +719,9 @@ function TaskCard({ task, index, disableLayout = false, showDashboardDateTile = 
       onClose={() => setDeleteChoiceOpen(false)}
       taskTitle={task.title}
       taskType={task.type}
-      canFullDelete={(isOwnerResolved || isGroupAdmin) && !String(task.id).startsWith('v_')}
+      canFullDelete={isOwnerResolved || isGroupAdmin}
       isOwner={isOwnerResolved}
+      isRecurringOccurrence={String(task.id).startsWith('v_')}
       onFullDelete={() => deleteTask(task.id, { mode: 'full' })}
       onDismiss={() => deleteTask(task.id, { mode: 'dismiss' })}
     />

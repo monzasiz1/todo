@@ -653,7 +653,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       const timeStr = task.time.slice(0, 5) + (task.time_end ? ` – ${task.time_end.slice(0, 5)}` : '');
       lines.push(`Uhrzeit: ${timeStr}`);
     }
-    if (task.category_name) lines.push(`Kategorie: ${task.category_name}`);
+    if (isOwnerResolved && task.category_name) lines.push(`Kategorie: ${task.category_name}`);
     if (task.priority) {
       const prioLabels = { low: 'Niedrig', medium: 'Mittel', high: 'Hoch', urgent: 'Dringend' };
       lines.push(`Priorität: ${prioLabels[task.priority] || task.priority}`);
@@ -1051,7 +1051,7 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
               <div className="task-detail-item-value" style={{ color: priority.color }}>{priority.label}</div>
             </div>
           </div>
-          {task.category_name && (
+          {isOwnerResolved && task.category_name && (
             <div className="task-detail-item">
               <div className="task-detail-item-icon" style={{ color: task.category_color || 'var(--primary)' }}><Tag size={18} /></div>
               <div>
@@ -1690,8 +1690,9 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
       onClose={() => setDeleteChoiceOpen(false)}
       taskTitle={task?.title}
       taskType={task?.type}
-      canFullDelete={(isOwnerResolved || isGroupAdminTask) && !String(task?.id || '').startsWith('v_')}
+      canFullDelete={isOwnerResolved || isGroupAdminTask}
       isOwner={isOwnerResolved}
+      isRecurringOccurrence={String(task?.id || '').startsWith('v_')}
       onFullDelete={() => { deleteTask(task.id, { mode: 'full' }); onClose(); }}
       onDismiss={() => { deleteTask(task.id, { mode: 'dismiss' }); onClose(); }}
     />
