@@ -25,6 +25,7 @@ export default function DeleteTaskChoiceModal({
   taskType,
   canFullDelete = true,
   isOwner = false,
+  isRecurringOccurrence = false,
 }) {
   const isEvent = taskType === 'event';
   const nounAcc = isEvent ? 'den Termin' : 'die Aufgabe';
@@ -66,7 +67,9 @@ export default function DeleteTaskChoiceModal({
               <p className="dt-choice-description">
                 {canFullDelete
                   ? (isOwner
-                      ? `Du kannst ${nounAcc} komplett löschen oder nur aus deinem eigenen Kalender entfernen.`
+                      ? (isRecurringOccurrence
+                          ? `Du kannst dieses Serien-Vorkommen für alle löschen oder nur aus deinem eigenen Kalender entfernen. Die übrigen Termine der Serie bleiben bestehen.`
+                          : `Du kannst ${nounAcc} komplett löschen oder nur aus deinem eigenen Kalender entfernen.`)
                       : `Als Gruppen-Admin kannst du wählen, wie ${nounAcc} entfernt werden soll.`)
                   : `Du kannst ${nounAcc} aus deinem Kalender entfernen.`}
               </p>
@@ -103,11 +106,15 @@ export default function DeleteTaskChoiceModal({
                   </span>
                   <span className="dt-choice-btn-content">
                     <span className="dt-choice-btn-label">
-                      {isEvent ? 'Termin komplett löschen' : 'Aufgabe komplett löschen'}
+                      {isRecurringOccurrence
+                        ? 'Dieses Vorkommen für alle löschen'
+                        : (isEvent ? 'Termin komplett löschen' : 'Aufgabe komplett löschen')}
                     </span>
                     <span className="dt-choice-btn-hint">
                       <AlertTriangle size={12} aria-hidden="true" />
-                      Endgültig — auch für alle anderen Mitglieder entfernt.
+                      {isRecurringOccurrence
+                        ? 'Nur dieses Datum wird für alle aus der Serie entfernt.'
+                        : 'Endgültig — auch für alle anderen Mitglieder entfernt.'}
                     </span>
                   </span>
                 </button>
