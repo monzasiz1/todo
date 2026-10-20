@@ -234,7 +234,8 @@ export function useRealtime({ userId, enabled = true } = {}) {
       const refetchTasks = debounce(async () => {
         try {
           const { useTaskStore } = await import('../store/taskStore');
-          await useTaskStore.getState().fetchTasks({}, { force: true });
+          await useTaskStore.getState().fetchTasks({ lite: 'true' }, { force: true });
+          window.dispatchEvent(new Event('beequ:tasks-changed'));
         } catch { /* ignore */ }
       }, 250);
 
@@ -248,6 +249,11 @@ export function useRealtime({ userId, enabled = true } = {}) {
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'group_tasks' },
+          () => refetchTasks()
+        )
+        .on(
+          'broadcast',
+          { event: 'task_changed' },
           () => refetchTasks()
         )
         .subscribe((status, err) => {
