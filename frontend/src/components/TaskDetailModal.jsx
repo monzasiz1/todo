@@ -874,9 +874,9 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
   const content = (
     <motion.div
       className={`task-detail-modal${pageMode ? ' task-detail-page-mode' : ''}${isMobile ? ' is-mobile-fullscreen' : ''}${!isEvent ? ' is-task-detail' : ''}`}
-      initial={isMobile ? { y: '100%' } : (pageMode ? { opacity: 0, x: 30 } : { opacity: 0, y: 24 })}
+      initial={isMobile ? { y: '100%' } : (pageMode ? { opacity: 0, x: 30 } : false)}
       animate={isMobile ? { y: pullOffset } : (pageMode ? { opacity: 1, x: 0 } : { opacity: 1, y: 0 })}
-      exit={isMobile ? { y: '100%' } : (pageMode ? {} : { opacity: 0, y: 16 })}
+      exit={isMobile ? { y: '100%' } : (pageMode ? {} : undefined)}
       transition={{
         type: 'tween',
         duration: isMobile ? (pullOffset > 0 ? 0 : 0.16) : (pageMode ? 0.22 : 0.2),
