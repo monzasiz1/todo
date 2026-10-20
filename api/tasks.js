@@ -2,7 +2,7 @@ const { getPool } = require('./_lib/db');
 const { verifyToken, cors } = require('./_lib/auth');
 const { cacheManager } = require('./_lib/cache');
 const { sendPushToUser } = require('./_lib/pushService');
-const { getUserPlan, canUseFeature, paymentRequired } = require('./_lib/plans');
+const { broadcast: realtimeBroadcast } = require('./_lib/realtimeBroadcast');
 
 const REMINDER_GRACE_WINDOW = '6 hours';
 const EVENT_REMINDER_OFFSET = '5 hours';
@@ -21,69 +21,6 @@ function resolveAppTimeZone(value) {
 const APP_TIME_ZONE = resolveAppTimeZone(process.env.APP_TIME_ZONE);
 // Keep local wall-clock semantics (DST-safe): convert local date+time to timestamptz first, then subtract offset.
 const EVENT_DUE_AT_SQL = `(((t.date::date + COALESCE(t.time, TIME '${EVENT_DEFAULT_START_TIME}'))::timestamp AT TIME ZONE '${APP_TIME_ZONE}') - INTERVAL '${EVENT_REMINDER_OFFSET}')`;
-
-// ─── Schema-Migration: tasks.location ─────────────────────────────────────
-// Wird einmalig pro Function-Instance + alle 5 Minuten ausgefuehrt, damit
-// ein vergessener Migration-Run nicht das Speichern von Standort-Daten
-// blockiert. ADD COLUMN IF NOT EXISTS ist idempotent.
-let locationColumnEnsuredAt = 0;
-const LOCATION_COLUMN_TTL_MS = 5 * 60 * 1000;
-async function ensureLocationColumn(pool) {
-  const now = Date.now();
-  if (now - locationColumnEnsuredAt < LOCATION_COLUMN_TTL_MS) return;
-  try {
-    await pool.query('ALTER TABLE tasks ADD COLUMN IF NOT EXISTS location TEXT');
-    locationColumnEnsuredAt = now;
-  } catch (err) {
-    console.warn('[tasks] ensureLocationColumn failed:', err.message);
-  }
-}
-
-// ─── Gruppen-Berechtigung pruefen ──────────────────────────────────────────
-// Liefert {allowed, reason, message}. Greift fuer Gruppen-Tasks:
-//   * Owner/Admin der Gruppe → immer erlaubt
-//   * Task-Owner UND Member  → benoetigt edit_own_tasks (per Custom-Rolle
-//                              oder Default member_permissions)
-//   * Nicht-Owner und Member → verboten (nur Admins editieren fremde Tasks)
-// Bei Tasks ohne Gruppen-Zuordnung: { allowed: true }.
-async function canEditGroupTask(pool, taskId, userId) {
-  const taskRes = await pool.query('SELECT user_id FROM tasks WHERE id = $1', [taskId]);
-  if (!taskRes.rows.length) return { allowed: false, reason: 'not_found', message: 'Aufgabe nicht gefunden', isOwn: false };
-  const isOwn = Number(taskRes.rows[0].user_id) === Number(userId);
-  let groups;
-  try {
-    groups = await pool.query(
-      `SELECT gt.group_id, gm.role
-         FROM group_tasks gt
-         JOIN group_members gm ON gm.group_id = gt.group_id AND gm.user_id = $2
-        WHERE gt.task_id = $1`,
-      [taskId, userId]
-    );
-  } catch (err) {
-    console.warn('[tasks] canEditGroupTask membership lookup failed:', err.message);
-    return { allowed: true, isOwn };
-  }
-  if (!groups.rows.length) return { allowed: true, isOwn };
-  let getEffectivePerms = null;
-  try { ({ getEffectivePerms } = require('./groups')); } catch { /* ignore */ }
-  for (const g of groups.rows) {
-    if (g.role === 'owner' || g.role === 'admin') continue;
-    if (!isOwn) {
-      return { allowed: false, reason: 'not_admin', message: 'Nur Admins können fremde Gruppen-Tasks bearbeiten', isOwn };
-    }
-    if (typeof getEffectivePerms === 'function') {
-      try {
-        const eff = await getEffectivePerms(pool, g.group_id, userId);
-        if (eff && eff.perms && !eff.perms.edit_own_tasks) {
-          return { allowed: false, reason: 'no_perm', message: 'Eigene Gruppen-Tasks bearbeiten ist für deine Rolle gesperrt' };
-        }
-      } catch (err) {
-        console.warn('[tasks] getEffectivePerms failed:', err.message);
-      }
-    }
-  }
-  return { allowed: true, isOwn };
-}
 
 function formatReminderDateForLog(value) {
   const reminderDate = new Date(value);
@@ -129,7 +66,6 @@ function formatYMD(y, m, d) {
 }
 
 function daysInMonth(y, m) {
-  // m is 1-indexed. Day 0 of next month = last day of this month.
   return new Date(Date.UTC(y, m, 0)).getUTCDate();
 }
 
@@ -144,7 +80,6 @@ function addMonthsYMD(ymd, months, preferredDay = ymd.d) {
   let m = ymd.m + (Number(months) || 0);
   while (m > 12) { m -= 12; y += 1; }
   while (m < 1)  { m += 12; y -= 1; }
-  // Tag auf letzten Tag des Zielmonats clampen (kein Rollover Jan31 → Mär3).
   const d = Math.min(preferredDay, daysInMonth(y, m));
   return { y, m, d };
 }
@@ -175,13 +110,10 @@ function calcNextDate(currentDate, rule, interval, anchorDate = currentDate) {
     }
     case 'yearly': {
       const y = ymd.y + i;
-      // Feb 29 → Feb 28 in Nicht-Schaltjahren.
       const d = Math.min(anchorYmd.d, daysInMonth(y, anchorYmd.m));
       return formatYMD(y, anchorYmd.m, d);
     }
     case 'weekdays': {
-      // Genau einen Werktag (Mo–Fr) nach `currentDate`. `interval` wird
-      // hier bewusst ignoriert (entspricht bisherigem Verhalten).
       let cur = addDaysYMD(ymd, 1);
       let guard = 0;
       while (guard < 10) {
@@ -197,18 +129,14 @@ function calcNextDate(currentDate, rule, interval, anchorDate = currentDate) {
   }
 }
 
-// Behalten für Aufrufer, die ein JS-Date wollen (auf Mitternacht lokal).
 function toDateOnly(value) {
   const ymd = parseYMD(value);
   if (!ymd) return null;
-  // Anchor auf local-midnight, damit getDate/getMonth in Aufruferlogik passen.
   return new Date(ymd.y, ymd.m - 1, ymd.d, 0, 0, 0, 0);
 }
 
 function formatDateOnly(dateObj) {
   if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) return null;
-  // Wichtig: getFullYear/getMonth/getDate (local), NICHT toISOString (UTC) —
-  // sonst kippt das Datum bei west-of-UTC Zeitzonen um einen Tag.
   return formatYMD(dateObj.getFullYear(), dateObj.getMonth() + 1, dateObj.getDate());
 }
 
@@ -229,8 +157,6 @@ function expandRecurringTemplate(template, rangeStart, rangeEnd) {
   if (!template || !template.recurrence_rule || !template.date) return [];
 
   try {
-    // 1. Range-Grenzen normalisieren (Caller darf Date, ISO-String,
-    //    YYYY-MM-DD oder sogar volle ISO mit Zeit übergeben).
     const startYmd = parseYMD(rangeStart);
     const endYmd   = parseYMD(rangeEnd);
     if (!startYmd || !endYmd) {
@@ -247,7 +173,6 @@ function expandRecurringTemplate(template, rangeStart, rangeEnd) {
     }
     const templateDate = formatYMD(templateYmd.y, templateYmd.m, templateYmd.d);
 
-    // recurrence_end normalisieren (pg liefert DATE als JS-Date → string-Compare wuerde schiefgehen).
     const recurrenceEndYmd = template.recurrence_end ? parseYMD(template.recurrence_end) : null;
     const recurrenceEndStr = recurrenceEndYmd
       ? formatYMD(recurrenceEndYmd.y, recurrenceEndYmd.m, recurrenceEndYmd.d)
@@ -261,7 +186,6 @@ function expandRecurringTemplate(template, rangeStart, rangeEnd) {
 
     const interval = Math.max(1, Number(template.recurrence_interval) || 1);
 
-    // Start from the first virtual occurrence (one step after template date).
     let cursor = calcNextDate(templateDate, template.recurrence_rule, interval, templateDate);
     if (!cursor) {
       console.warn(`[expandRecurringTemplate] template ${template.id}: calcNextDate liefert null`,
@@ -269,7 +193,6 @@ function expandRecurringTemplate(template, rangeStart, rangeEnd) {
       return [];
     }
 
-    // Fast-forward bis erstmals >= startStr.
     let guard = 0;
     while (cursor < startStr && guard < 10000) {
       const next = calcNextDate(cursor, template.recurrence_rule, interval, templateDate);
@@ -278,7 +201,6 @@ function expandRecurringTemplate(template, rangeStart, rangeEnd) {
       guard++;
     }
 
-    // Multi-day span offset (tz-sicher über UTC-Diff).
     const dateEndYmd = template.date_end ? parseYMD(template.date_end) : null;
     let spanDays = 0;
     if (dateEndYmd) {
@@ -287,7 +209,6 @@ function expandRecurringTemplate(template, rangeStart, rangeEnd) {
       spanDays = Math.max(0, Math.round((b - a) / 86400000));
     }
 
-    // Collect occurrences within [startStr, effectiveEnd].
     const result = [];
     guard = 0;
     while (cursor && cursor <= effectiveEnd && guard < 1000) {
@@ -429,10 +350,15 @@ function mergeWithVirtual(concreteTasks, templates, rangeStart, rangeEnd, dismis
   const concreteKeys = new Set();
   const seenConcreteKeys = new Set();
   const uniqueConcreteTasks = [];
+  const excludedKeys = dismissedKeys instanceof Set ? dismissedKeys : new Set();
 
   for (const t of concreteTasks) {
     if (!t) continue;
     const dateStr = toIsoDateStr(t.date) || 'null';
+    const seriesDateKey = t.recurrence_parent_id
+      ? `${t.recurrence_parent_id}:${dateStr}`
+      : null;
+    if (seriesDateKey && excludedKeys.has(seriesDateKey)) continue;
     const occurrenceKey = t.recurrence_parent_id
       ? `series:${t.recurrence_parent_id}:${dateStr}`
       : `task:${t.id}`;
@@ -626,18 +552,11 @@ async function enrichTaskVoteStats(pool, tasks) {
   const baseTaskIds = Array.from(baseTaskIdsSet);
   if (baseTaskIds.length === 0) return tasks;
 
-  // Bei Untergruppen-Tasks zaehlen nur Mitglieder der Untergruppe als
-  // stimmberechtigt - sonst wuerden alle Gruppen-Member als "unbeantwortet"
-  // angezeigt, obwohl der Task nur fuer die Untergruppe ist.
   const memberCountsRes = await pool.query(
     `SELECT gt.task_id, COUNT(DISTINCT gm.user_id)::int AS member_count
      FROM group_tasks gt
      JOIN group_members gm ON gm.group_id = gt.group_id
-     LEFT JOIN group_subgroup_members gsm
-       ON gsm.subgroup_id = gt.subgroup_id
-      AND gsm.user_id = gm.user_id
      WHERE gt.task_id = ANY($1::int[])
-       AND (gt.subgroup_id IS NULL OR gsm.user_id IS NOT NULL)
      GROUP BY gt.task_id`,
     [baseTaskIds]
   );
@@ -700,6 +619,62 @@ const COLLAB_CACHE_TTL_MS = 5 * 60 * 1000;
 
 let dismissalsEnabledCache = null;
 let dismissalsEnabledCacheAt = 0;
+let recurrenceExceptionsSchemaReady = false;
+
+async function ensureRecurrenceExceptionsSchema(pool) {
+  if (recurrenceExceptionsSchemaReady) return;
+  await pool.query(`CREATE TABLE IF NOT EXISTS task_recurrence_exceptions (
+    recurrence_parent_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    occurrence_date DATE NOT NULL,
+    deleted_by INTEGER NOT NULL REFERENCES users(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (recurrence_parent_id, occurrence_date)
+  )`);
+  recurrenceExceptionsSchemaReady = true;
+}
+
+async function getRecurrenceExceptionKeys(pool, parentIds) {
+  const ids = [...new Set((parentIds || []).map(Number).filter(Number.isSafeInteger))];
+  if (!ids.length) return new Set();
+  await ensureRecurrenceExceptionsSchema(pool);
+  const result = await pool.query(
+    `SELECT recurrence_parent_id, occurrence_date
+       FROM task_recurrence_exceptions
+      WHERE recurrence_parent_id = ANY($1::int[])`,
+    [ids]
+  );
+  return new Set(result.rows.map((row) => `${row.recurrence_parent_id}:${toIsoDateStr(row.occurrence_date)}`));
+}
+
+async function notifyRecurringOccurrenceDeleted(pool, parentId, ownerId) {
+  const recipients = await pool.query(
+    `SELECT DISTINCT user_id FROM (
+       SELECT $2::int AS user_id
+       UNION ALL
+       SELECT tp.user_id FROM task_permissions tp
+        WHERE tp.task_id = $1 AND tp.can_view = true
+       UNION ALL
+       SELECT CASE WHEN f.user_id = $2 THEN f.friend_id ELSE f.user_id END AS user_id
+         FROM friends f
+        WHERE f.status = 'accepted'
+          AND ($2 = f.user_id OR $2 = f.friend_id)
+          AND EXISTS (SELECT 1 FROM tasks t WHERE t.id = $1 AND t.visibility = 'shared')
+       UNION ALL
+       SELECT gm.user_id
+         FROM group_tasks gt
+         JOIN group_members gm ON gm.group_id = gt.group_id
+        WHERE gt.task_id = $1
+     ) visible_users
+     WHERE user_id IS NOT NULL`,
+    [parentId, ownerId]
+  );
+  await Promise.all((recipients.rows || []).map(async ({ user_id: recipientId }) => {
+    await cacheManager.invalidateByEvent(String(recipientId), 'task_deleted').catch(() => {});
+    await realtimeBroadcast(`rt-tasks-${recipientId}`, 'task_changed', { change: 'recurrence_occurrence_deleted' }).catch((err) => {
+      console.error('[tasks] recurrence delete broadcast failed:', err.message);
+    });
+  }));
+}
 
 async function getDismissalsEnabled(pool) {
   const now = Date.now();
@@ -990,6 +965,17 @@ module.exports = async function handler(req, res) {
         } catch { /* ignore */ }
       }
 
+      const recurrenceParentIds = [
+        ...(concreteResult.rows || []).map((row) => row.recurrence_parent_id),
+        ...(templateResult.rows || []).map((row) => row.id),
+      ].filter(Boolean);
+      try {
+        const exceptionKeys = await getRecurrenceExceptionKeys(pool, recurrenceParentIds);
+        for (const key of exceptionKeys) dismissedKeys.add(key);
+      } catch (exceptionError) {
+        console.error('[TASKS-RANGE] Recurrence exceptions could not be loaded:', exceptionError.message);
+      }
+
       // 3. Merge concrete + virtual, deduplicating overrides
       const merged = normalizeTaskRows(mergeWithVirtual(
         concreteResult.rows || [],
@@ -1165,12 +1151,6 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ error: 'Termine können nicht als erledigt markiert werden' });
       }
 
-      // Gruppen-Rolle/Permissions prüfen
-      const toggleCheck = await canEditGroupTask(pool, taskId, user.id);
-      if (!toggleCheck.allowed) {
-        return res.status(403).json({ error: toggleCheck.message || 'Keine Berechtigung' });
-      }
-
       // Owner, has edit permission, or is a member of the group this task belongs to
       const result = await pool.query(
         `UPDATE tasks SET completed = NOT completed, updated_at = NOW(), last_edited_by = $3
@@ -1196,76 +1176,6 @@ module.exports = async function handler(req, res) {
       // via virtual expansion — no chain-creation needed for recurring tasks.
       // We only cache-invalidate so the dashboard refreshes.
       await cacheManager.invalidateByEvent(String(user.id), 'task_updated');
-
-      // ── „Papa hat ‚Einkaufen' erledigt" ──────────────────────────────────
-      // Wenn eine geteilte oder Gruppen-Aufgabe abgehakt wird, bekommen die
-      // anderen Beteiligten (Owner, ausgewählte Nutzer, Gruppenmitglieder,
-      // bei visibility='shared' auch Freunde) eine Benachrichtigung — außer
-      // die Person, die sie selbst erledigt hat. Best-effort, blockiert die
-      // Antwort nicht durch Fehler.
-      if (toggled.completed === true) {
-        try {
-          const actorRow = await pool.query('SELECT name FROM users WHERE id = $1', [user.id]);
-          const actorName = actorRow.rows[0]?.name || 'Jemand';
-          const taskTitle = toggled.title || 'Aufgabe';
-
-          const recipients = await pool.query(
-            `WITH ctx AS (
-               -- Gruppenmitglieder der Gruppe(n), in der die Aufgabe liegt
-               SELECT gm.user_id, gt.group_id, grp.name AS group_name, true AS in_group
-               FROM group_tasks gt
-               JOIN group_members gm ON gm.group_id = gt.group_id
-               JOIN groups grp ON grp.id = gt.group_id
-               WHERE gt.task_id = $1
-               UNION ALL
-               -- gezielt geteilte Nutzer (visibility='selected_users')
-               SELECT tp.user_id, NULL::int, NULL::text, false
-               FROM task_permissions tp
-               WHERE tp.task_id = $1 AND tp.can_view = true
-               UNION ALL
-               -- mit allen Freunden geteilt (visibility='shared')
-               SELECT CASE WHEN f.user_id = t.user_id THEN f.friend_id ELSE f.user_id END,
-                      NULL::int, NULL::text, false
-               FROM tasks t
-               JOIN friends f ON f.status = 'accepted'
-                 AND (f.user_id = t.user_id OR f.friend_id = t.user_id)
-               WHERE t.id = $1 AND t.visibility = 'shared'
-               UNION ALL
-               -- Eigentümer der Aufgabe
-               SELECT t.user_id, NULL::int, NULL::text, false
-               FROM tasks t WHERE t.id = $1
-             )
-             SELECT user_id,
-                    MAX(group_id) AS group_id,
-                    MAX(group_name) AS group_name,
-                    bool_or(in_group) AS in_group
-             FROM ctx
-             WHERE user_id IS NOT NULL AND user_id <> $2
-             GROUP BY user_id`,
-            [taskId, user.id]
-          );
-
-          for (const r of recipients.rows) {
-            const inGroup = r.in_group && r.group_name;
-            await sendPushToUser(
-              r.user_id,
-              {
-                title: `${actorName} hat „${taskTitle}" erledigt`,
-                body: inGroup ? `Gruppe · ${r.group_name}` : 'Geteilte Aufgabe',
-                tag: `task-done-${taskId}`,
-                url: inGroup ? '/groups' : '/calendar',
-              },
-              'task_completed',
-              taskId,
-              r.group_id || null,
-              // Gruppen-Erledigungen folgen dem „Gruppen-Benachrichtigungen"-Schalter.
-              inGroup ? 'team_task' : null
-            ).catch(() => null);
-          }
-        } catch (notifyErr) {
-          console.error('[tasks] completion notify failed:', notifyErr.message);
-        }
-      }
 
       return res.json({ task: normalizeTaskRow(toggled), nextTask: null });
     } catch (err) {
@@ -1406,7 +1316,6 @@ module.exports = async function handler(req, res) {
       if (virtual) {
         const tpl = rows[0];
         if (!tpl.recurrence_rule) {
-          // ID war virtuell, aber Parent ist kein Recurrence-Template mehr → 404
           return res.status(404).json({ error: 'Nicht gefunden' });
         }
         const occDate = virtual.date;
@@ -1447,7 +1356,7 @@ module.exports = async function handler(req, res) {
   if (segments.length === 1 && segments[0] !== 'range' && segments[0] !== 'reorder' && req.method === 'PUT') {
     try {
       let taskId = segments[0];
-      const { title, description, location, date, date_end, time, time_end, priority, category_id, reminder_at,
+      const { title, description, date, date_end, time, time_end, priority, category_id, reminder_at,
               recurrence_rule, recurrence_interval, recurrence_end, type, enable_group_rsvp } = req.body;
       const taskType = type === 'event' ? 'event' : (type === 'task' ? 'task' : undefined);
       
@@ -1464,28 +1373,9 @@ module.exports = async function handler(req, res) {
         taskId = String(concreteRow.id);
       }
 
-      // Gruppen-Rolle/Permissions prüfen
-      const editCheck = await canEditGroupTask(pool, taskId, user.id);
-      if (!editCheck.allowed) {
-        return res.status(403).json({ error: editCheck.message || 'Keine Berechtigung' });
-      }
-
-      // Plan-Gate: Eine bestehende Aufgabe nachträglich wiederkehrend zu
-      // machen ist ebenfalls ein bezahltes Feature (sonst Umgehung des POST-Gates).
-      if (recurrence_rule) {
-        const planId = await getUserPlan(pool, user.id);
-        if (!canUseFeature(planId, 'recurringTasks')) {
-          return paymentRequired(res, {
-            feature: 'recurringTasks',
-            message: 'Wiederkehrende Aufgaben sind im Free-Plan nicht verfügbar. Upgrade auf Pro, um sie zu nutzen.',
-          });
-        }
-      }
-
       // Only update fields that were explicitly sent in the request body.
       const hasTitle = Object.prototype.hasOwnProperty.call(req.body, 'title');
       const hasDescription = Object.prototype.hasOwnProperty.call(req.body, 'description');
-      const hasLocation = Object.prototype.hasOwnProperty.call(req.body, 'location');
       const hasDate = Object.prototype.hasOwnProperty.call(req.body, 'date');
       const hasDateEnd = Object.prototype.hasOwnProperty.call(req.body, 'date_end');
       const hasTime = Object.prototype.hasOwnProperty.call(req.body, 'time');
@@ -1500,9 +1390,6 @@ module.exports = async function handler(req, res) {
       const hasEnableGroupRsvp = Object.prototype.hasOwnProperty.call(req.body, 'enable_group_rsvp');
 
       const runUpdate = async () => {
-        if (hasLocation) {
-          await ensureLocationColumn(pool);
-        }
         const setClauses = [];
         const values = [];
         const addSet = (clause, value) => {
@@ -1512,13 +1399,17 @@ module.exports = async function handler(req, res) {
 
         if (hasTitle) addSet('title', title);
         if (hasDescription) addSet('description', description);
-        if (hasLocation) addSet('location', (typeof location === 'string' ? location.trim() : '') || null);
         if (hasDate) addSet('date', date);
         if (hasDateEnd) addSet('date_end', date_end || null);
         if (hasTime) addSet('time', time);
         if (hasTimeEnd) addSet('time_end', time_end || null);
         if (hasPriority) addSet('priority', priority);
-        if (hasCategoryId && editCheck.isOwn === true) addSet('category_id', category_id);
+        if (hasCategoryId) {
+          const ownerCheck = await pool.query('SELECT user_id FROM tasks WHERE id = $1 LIMIT 1', [taskId]);
+          if (Number(ownerCheck.rows[0]?.user_id) === Number(user.id)) {
+            addSet('category_id', category_id);
+          }
+        }
         if (hasReminderAt) addSet('reminder_at', reminder_at);
         if (hasRecurrenceRule) addSet('recurrence_rule', recurrence_rule || null);
         if (hasRecurrenceInterval) addSet('recurrence_interval', recurrence_interval || 1);
@@ -1653,9 +1544,49 @@ module.exports = async function handler(req, res) {
       let resolvedRawId = rawId;
       const virtual = parseVirtualId(rawId);
       if (virtual) {
+        if (mode === 'full') {
+          const parentId = Number(virtual.parentId);
+          if (!Number.isSafeInteger(parentId) || parentId <= 0) {
+            return res.status(400).json({ error: 'Ungültige Serien-ID' });
+          }
+          const parentResult = await pool.query(
+            'SELECT id, user_id FROM tasks WHERE id = $1 LIMIT 1',
+            [parentId]
+          );
+          const parent = parentResult.rows[0];
+          if (!parent) return res.status(404).json({ error: 'Serie nicht gefunden' });
+
+          const isOwner = Number(parent.user_id) === Number(user.id);
+          let isGroupAdmin = false;
+          if (!isOwner) {
+            const adminCheck = await pool.query(
+              `SELECT 1 FROM group_tasks gt
+                 JOIN group_members gm ON gm.group_id = gt.group_id
+                WHERE gt.task_id = $1 AND gm.user_id = $2 AND gm.role IN ('owner','admin')
+                LIMIT 1`,
+              [parentId, user.id]
+            );
+            isGroupAdmin = adminCheck.rowCount > 0;
+          }
+          if (!isOwner && !isGroupAdmin) {
+            return res.status(403).json({ error: 'Nur der Ersteller oder ein Gruppen-Admin kann dieses Vorkommen für alle löschen' });
+          }
+          const editCheck = await canEditGroupTask(pool, parentId, user.id);
+          if (!editCheck.allowed) return res.status(403).json({ error: editCheck.message || 'Keine Berechtigung' });
+
+          await ensureRecurrenceExceptionsSchema(pool);
+          await pool.query(
+            `INSERT INTO task_recurrence_exceptions (recurrence_parent_id, occurrence_date, deleted_by)
+             VALUES ($1, $2, $3)
+             ON CONFLICT (recurrence_parent_id, occurrence_date) DO NOTHING`,
+            [parentId, virtual.date, user.id]
+          );
+          await notifyRecurringOccurrenceDeleted(pool, parentId, parent.user_id);
+          return res.json({ success: true, action: 'full', recurrence_exception: true });
+        }
         if (mode !== 'dismiss') {
           return res.status(400).json({
-            error: 'Einzelne Wiederholungen können nur aus dem eigenen Kalender entfernt werden. Für endgültiges Löschen die Serie bearbeiten.',
+            error: 'Bitte zwischen „Aus meinem Kalender entfernen“ und „Für alle löschen“ wählen.',
           });
         }
         let concrete = null;
@@ -1674,7 +1605,7 @@ module.exports = async function handler(req, res) {
       if (!Number.isFinite(taskId)) return res.status(400).json({ error: 'Ungültige ID' });
 
       const ownerCheck = await pool.query(
-        'SELECT user_id FROM tasks WHERE id = $1',
+        'SELECT user_id, recurrence_parent_id, date FROM tasks WHERE id = $1',
         [taskId]
       );
       if (ownerCheck.rows.length === 0) {
@@ -1712,17 +1643,22 @@ module.exports = async function handler(req, res) {
         action = isOwner ? 'full' : 'dismiss';
       }
 
-      // Bei full-delete zusätzlich Gruppen-Rolle prüfen (edit_own_tasks).
       if (action === 'full') {
-        const delCheck = await canEditGroupTask(pool, taskId, user.id);
-        if (!delCheck.allowed) {
-          return res.status(403).json({ error: delCheck.message || 'Keine Berechtigung' });
+        const recurrenceParentId = Number(ownerCheck.rows[0].recurrence_parent_id);
+        if (Number.isSafeInteger(recurrenceParentId) && recurrenceParentId > 0) {
+          await ensureRecurrenceExceptionsSchema(pool);
+          await pool.query(
+            `INSERT INTO task_recurrence_exceptions (recurrence_parent_id, occurrence_date, deleted_by)
+             VALUES ($1, $2, $3)
+             ON CONFLICT (recurrence_parent_id, occurrence_date) DO NOTHING`,
+            [recurrenceParentId, toIsoDateStr(ownerCheck.rows[0].date), user.id]
+          );
+          await pool.query('DELETE FROM tasks WHERE id = $1', [taskId]);
+          await notifyRecurringOccurrenceDeleted(pool, recurrenceParentId, ownerCheck.rows[0].user_id);
+          return res.json({ success: true, action, recurrence_exception: true });
         }
-      }
-
-      if (action === 'full') {
         // Cascade entfernt group_tasks, task_permissions, task_dismissals etc.
-        await pool.query('DELETE FROM tasks WHERE id = $1', [taskId]);
+        await pool.query('DELETE FROM tasks WHERE id = $1 OR recurrence_parent_id = $1', [taskId]);
       } else {
         // Dismiss: NUR Dismissal-Eintrag setzen. task_permissions bleibt erhalten,
         // sonst lässt sich der ursprüngliche Zugriff (selected_users) nicht
@@ -2300,6 +2236,13 @@ module.exports = async function handler(req, res) {
             } catch { /* ignore */ }
           }
 
+          const recurrenceParentIds = [
+            ...(result.rows || []).map((row) => row.recurrence_parent_id),
+            ...(tplResult.rows || []).map((row) => row.id),
+          ].filter(Boolean);
+          const exceptionKeys = await getRecurrenceExceptionKeys(pool, recurrenceParentIds);
+          for (const key of exceptionKeys) dashDismissedKeys.add(key);
+
           // Merge concrete + virtual tasks
           mergedTasks = normalizeTaskRows(mergeWithVirtual(result.rows || [], tplResult.rows || [], dashWindowStart, horizonEndStr, dashDismissedKeys));
         } catch (mergeErr) {
@@ -2369,13 +2312,6 @@ module.exports = async function handler(req, res) {
               WHERE gm3.user_id = $1 LIMIT 1) as my_group_role,
              gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url,
              gc.id as group_category_id, gc.name as group_category_name, gc.color as group_category_color,
-             gt.subgroup_id, gs.name as subgroup_name, gs.color as subgroup_color,
-             COALESCE((
-               SELECT json_agg(json_build_object('user_id', u2.id, 'name', u2.name, 'avatar_color', u2.avatar_color, 'avatar_url', u2.avatar_url))
-               FROM group_subgroup_members gsm_x
-               JOIN users u2 ON u2.id = gsm_x.user_id
-               WHERE gsm_x.subgroup_id = gt.subgroup_id
-             ), '[]'::json) as subgroup_members,
              gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color, gtc.avatar_url as group_task_creator_avatar_url,
              CASE
                WHEN t.visibility = 'selected_users' THEN (t.user_id = $1 OR COALESCE(tp.can_view, false))
@@ -2400,7 +2336,6 @@ module.exports = async function handler(req, res) {
            LEFT JOIN group_tasks gt ON gt.task_id = t.id
            LEFT JOIN groups grp ON grp.id = gt.group_id
            LEFT JOIN group_categories gc ON gc.id = gt.group_category_id
-           LEFT JOIN group_subgroups gs ON gs.id = gt.subgroup_id
            LEFT JOIN users gtc ON gtc.id = gt.created_by
            WHERE (t.user_id = $1
              OR (t.visibility = 'shared' AND EXISTS (
@@ -2426,13 +2361,6 @@ module.exports = async function handler(req, res) {
           `SELECT t.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
              gt.group_id, grp.name as group_name, grp.color as group_color, grp.image_url as group_image_url,
              gc.id as group_category_id, gc.name as group_category_name, gc.color as group_category_color,
-             gt.subgroup_id, gs.name as subgroup_name, gs.color as subgroup_color,
-             COALESCE((
-               SELECT json_agg(json_build_object('user_id', u2.id, 'name', u2.name, 'avatar_color', u2.avatar_color, 'avatar_url', u2.avatar_url))
-               FROM group_subgroup_members gsm_x
-               JOIN users u2 ON u2.id = gsm_x.user_id
-               WHERE gsm_x.subgroup_id = gt.subgroup_id
-             ), '[]'::json) as subgroup_members,
              gtc.name as group_task_creator_name, gtc.avatar_color as group_task_creator_color, gtc.avatar_url as group_task_creator_avatar_url,
              true as can_see_private_share_info,
              EXISTS (
@@ -2451,7 +2379,6 @@ module.exports = async function handler(req, res) {
            LEFT JOIN group_tasks gt ON gt.task_id = t.id
            LEFT JOIN groups grp ON grp.id = gt.group_id
            LEFT JOIN group_categories gc ON gc.id = gt.group_category_id
-           LEFT JOIN group_subgroups gs ON gs.id = gt.subgroup_id
            LEFT JOIN users gtc ON gtc.id = gt.created_by
            WHERE (t.user_id = $1
              OR EXISTS (
@@ -2481,23 +2408,11 @@ module.exports = async function handler(req, res) {
   // POST /api/tasks
   if (segments.length === 0 && req.method === 'POST') {
     try {
-      const { title, description, location, date, date_end, time, time_end, priority, category_id, reminder_at,
-              recurrence_rule, recurrence_interval, recurrence_end, group_id, group_category_id, subgroup_id,
+      const { title, description, date, date_end, time, time_end, priority, category_id, reminder_at,
+              recurrence_rule, recurrence_interval, recurrence_end, group_id, group_category_id,
               visibility, permissions, type, enable_group_rsvp } = req.body;
       if (!title) {
         return res.status(400).json({ error: 'Titel ist erforderlich' });
-      }
-
-      // Plan-Gate: Wiederkehrende Aufgaben sind ein bezahltes Feature.
-      // Nur die Neuanlage wird geblockt — Bestand bleibt unberührt.
-      if (recurrence_rule) {
-        const planId = await getUserPlan(pool, user.id);
-        if (!canUseFeature(planId, 'recurringTasks')) {
-          return paymentRequired(res, {
-            feature: 'recurringTasks',
-            message: 'Wiederkehrende Aufgaben sind im Free-Plan nicht verfügbar. Upgrade auf Pro, um sie zu nutzen.',
-          });
-        }
       }
 
       const taskType = type === 'event' ? 'event' : 'task';
@@ -2507,10 +2422,9 @@ module.exports = async function handler(req, res) {
 
       let groupInfo = null;
       let groupCategoryInfo = null;
-      let subgroupInfo = null;
       if (group_id) {
         const groupAccess = await pool.query(
-          `SELECT g.id, g.name, g.color, g.image_url, gm.role AS my_role
+          `SELECT g.id, g.name, g.color, g.image_url
            FROM groups g
            JOIN group_members gm ON gm.group_id = g.id
            WHERE g.id = $1 AND gm.user_id = $2
@@ -2521,22 +2435,6 @@ module.exports = async function handler(req, res) {
           return res.status(403).json({ error: 'Keine Berechtigung für diese Gruppe' });
         }
         groupInfo = groupAccess.rows[0];
-
-        // Member-Permission prüfen: nur normale Member sind einschränkbar,
-        // Owner/Admin haben immer das Recht Tasks zu erstellen.
-        if (groupInfo.my_role === 'member') {
-          try {
-            const { getEffectivePerms } = require('./groups');
-            if (typeof getEffectivePerms === 'function') {
-              const eff = await getEffectivePerms(pool, group_id, user.id);
-              if (eff && !eff.perms.create_tasks) {
-                return res.status(403).json({ error: 'Tasks erstellen ist fuer Mitglieder in dieser Gruppe gesperrt' });
-              }
-            }
-          } catch (permErr) {
-            console.error('group perms lookup failed:', permErr.message);
-          }
-        }
 
         if (group_category_id !== undefined && group_category_id !== null && String(group_category_id) !== '') {
           const groupCategoryResult = await pool.query(
@@ -2550,20 +2448,6 @@ module.exports = async function handler(req, res) {
             return res.status(400).json({ error: 'Ungültige Gruppenkategorie' });
           }
           groupCategoryInfo = groupCategoryResult.rows[0];
-        }
-
-        if (subgroup_id !== undefined && subgroup_id !== null && String(subgroup_id) !== '') {
-          const subgroupResult = await pool.query(
-            `SELECT id, name, color
-             FROM group_subgroups
-             WHERE id = $1 AND group_id = $2
-             LIMIT 1`,
-            [subgroup_id, group_id]
-          );
-          if (subgroupResult.rows.length === 0) {
-            return res.status(400).json({ error: 'Ungültige Untergruppe' });
-          }
-          subgroupInfo = subgroupResult.rows[0];
         }
       }
 
@@ -2592,17 +2476,12 @@ module.exports = async function handler(req, res) {
       // Occurrences are generated on-the-fly in range/dashboard queries.
       // (No more bulk INSERT of hundreds of child rows.)
 
-      const normalizedLocation = (typeof location === 'string' ? location.trim() : '') || null;
-      if (normalizedLocation) {
-        await ensureLocationColumn(pool);
-      }
-
       const result = await pool.query(
-        `INSERT INTO tasks (user_id, title, description, location, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order,
+        `INSERT INTO tasks (user_id, title, description, date, date_end, time, time_end, priority, category_id, reminder_at, sort_order,
         recurrence_rule, recurrence_interval, recurrence_end, visibility, type, enable_group_rsvp)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
          RETURNING *`,
-        [user.id, title, description || null, normalizedLocation, date || null, date_end || null, time || null, time_end || null,
+        [user.id, title, description || null, date || null, date_end || null, time || null, time_end || null,
          priority || 'medium', category_id || null, reminder_at || null,
         maxOrder.rows[0].next_order, recurrenceRule, recurrenceInterval, recurrenceEnd, finalVisibility, taskType, enable_group_rsvp === true]
       );
@@ -2623,10 +2502,10 @@ module.exports = async function handler(req, res) {
 
       if (groupInfo) {
         await pool.query(
-          `INSERT INTO group_tasks (group_id, task_id, created_by, group_category_id, subgroup_id)
-           VALUES ($1, $2, $3, $4, $5)
+          `INSERT INTO group_tasks (group_id, task_id, created_by, group_category_id)
+           VALUES ($1, $2, $3, $4)
            ON CONFLICT DO NOTHING`,
-          [groupInfo.id, firstTask.id, user.id, groupCategoryInfo?.id || null, subgroupInfo?.id || null]
+          [groupInfo.id, firstTask.id, user.id, groupCategoryInfo?.id || null]
         );
 
         // Immediate team notification for other members (log + push best-effort)
@@ -2648,9 +2527,7 @@ module.exports = async function handler(req, res) {
             },
             'team_task_created',
             firstTask.id,
-            groupInfo.id,
-            // Folgt dem „Gruppen-Benachrichtigungen"-Schalter (team_task).
-            'team_task'
+            groupInfo.id
           ).catch(() => null);
         }
       }
