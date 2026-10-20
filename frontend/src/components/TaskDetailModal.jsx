@@ -226,14 +226,12 @@ export default function TaskDetailModal({ task, onClose, onUpdated, pageMode = f
     };
   }, []);
 
-  // Notes beim Oeffnen der Task immer frisch laden. Wichtig: Team-Notes von
-  // anderen Usern koennen sonst wegen 30s-Cachefenster kurz fehlen.
+  // Notizen erst laden, wenn der Picker gebraucht wird. Beim bloßen Öffnen
+  // der Task-Details ist ein zusätzlicher Listen-Request unnötig.
   useEffect(() => {
-    if (!task?.id) return;
-    try { fetchNotesStore?.({ force: true }); } catch {}
-    // Nur beim Oeffnen pruefen – kein Loop wenn notesAll sich aendert
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [task?.id]);
+    if (!notePickerOpen) return;
+    fetchNotesStore?.({ maxAgeMs: 30000 });
+  }, [notePickerOpen, fetchNotesStore]);
 
   useEffect(() => {
     if (!isMobile || pageMode) return;
