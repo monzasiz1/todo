@@ -23,7 +23,10 @@ function generateToken(user) {
 }
 
 function cors(res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = res && res.req && res.req.headers && res.req.headers.origin;
+  const capacitorOrigin = origin === 'https://localhost' || origin === 'capacitor://localhost';
+  res.setHeader('Access-Control-Allow-Origin', capacitorOrigin ? origin : '*');
+  if (capacitorOrigin) res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
 }
