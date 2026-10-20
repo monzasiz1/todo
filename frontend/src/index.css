@@ -3551,23 +3551,59 @@ input, textarea, select {
   overflow: hidden;
 }
 
+.calendar-wrapper.calendar-is-fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 11000 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  resize: none !important;
+  background: var(--card-solid);
+}
+
 .calendar-wrapper:fullscreen .calendar-header,
-.calendar-wrapper:-webkit-full-screen .calendar-header {
+.calendar-wrapper:-webkit-full-screen .calendar-header,
+.calendar-wrapper.calendar-is-fullscreen .calendar-header {
   padding-top: calc(env(safe-area-inset-top, 0px) + 12px);
   padding-left: calc(env(safe-area-inset-left, 0px) + 14px);
   padding-right: calc(env(safe-area-inset-right, 0px) + 14px);
 }
 
 .calendar-wrapper:fullscreen .calendar-grid,
-.calendar-wrapper:-webkit-full-screen .calendar-grid {
+.calendar-wrapper:-webkit-full-screen .calendar-grid,
+.calendar-wrapper.calendar-is-fullscreen > .calendar-grid {
   flex: 1;
   min-height: 0;
   overflow: auto;
 }
 
 .calendar-wrapper:fullscreen .desktop-week-layout,
-.calendar-wrapper:-webkit-full-screen .desktop-week-layout {
+.calendar-wrapper:-webkit-full-screen .desktop-week-layout,
+.calendar-wrapper.calendar-is-fullscreen .desktop-week-layout {
   height: calc(100dvh - 94px);
+  min-height: 0;
+}
+
+.calendar-wrapper.calendar-is-fullscreen .mobile-week-grid-wrap,
+.calendar-wrapper.calendar-is-fullscreen .mobile-day-view {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.calendar-wrapper.calendar-is-fullscreen .mobile-week-grid-scroll,
+.calendar-wrapper.calendar-is-fullscreen .mobile-day-grid {
   min-height: 0;
 }
 
