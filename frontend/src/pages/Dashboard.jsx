@@ -498,7 +498,7 @@ export default function Dashboard() {
 
     // Load all tasks (open AND closed), let frontend filter do the rest
     fetchTasks({
-      dashboard: 'true',
+      lite: 'true',
       limit: DASHBOARD_FETCH_LIMIT,
       horizon_days: DASHBOARD_HORIZON_DAYS,
       completed_lookback_days: DASHBOARD_COMPLETED_LOOKBACK_DAYS,
@@ -508,7 +508,7 @@ export default function Dashboard() {
     const interval = setInterval(() => {
       if (!document.hidden) {
         fetchTasks({
-          dashboard: 'true',
+          lite: 'true',
           limit: DASHBOARD_FETCH_LIMIT,
           horizon_days: DASHBOARD_HORIZON_DAYS,
           completed_lookback_days: DASHBOARD_COMPLETED_LOOKBACK_DAYS,
@@ -518,7 +518,7 @@ export default function Dashboard() {
 
     const fetchDashboard = (opts = {}) => {
       fetchTasks({
-        dashboard: 'true',
+        lite: 'true',
         limit: DASHBOARD_FETCH_LIMIT,
         horizon_days: DASHBOARD_HORIZON_DAYS,
         completed_lookback_days: DASHBOARD_COMPLETED_LOOKBACK_DAYS,
@@ -861,7 +861,7 @@ export default function Dashboard() {
                   onTaskCreated={() => {
                     setShowManualModal(false);
                     fetchTasks({
-                      dashboard: 'true',
+                      lite: 'true',
                       limit: DASHBOARD_FETCH_LIMIT,
                       horizon_days: DASHBOARD_HORIZON_DAYS,
                       completed_lookback_days: DASHBOARD_COMPLETED_LOOKBACK_DAYS,

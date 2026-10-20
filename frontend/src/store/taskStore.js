@@ -352,7 +352,15 @@ export const useTaskStore = create((set, get) => ({
       return filteredTasks;
     } catch (err) {
       set({ error: err.message });
-      return [];
+      const startDay = String(start).slice(0, 10);
+      const endDay = String(end).slice(0, 10);
+      const cachedTasks = get().tasks.filter((task) => {
+        if (!task?.date) return false;
+        const taskStart = String(task.date).slice(0, 10);
+        const taskEnd = String(task.date_end || task.date).slice(0, 10);
+        return taskStart <= endDay && taskEnd >= startDay;
+      });
+      return stripPendingDeletes(cachedTasks);
     }
   },
 

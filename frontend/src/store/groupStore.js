@@ -2,6 +2,7 @@
 import { api } from '../utils/api';
 
 const GROUP_CACHE_KEY = 'beequ_groups_cache_v1';
+const groupsFetchPromises = new Map();
 
 function getGroupsCacheKey() {
   try {
@@ -50,6 +51,7 @@ function writeGroupCache(state) {
 }
 
 const cached = readGroupCache();
+let groupsFetchPromise = null;
 
 export const useGroupStore = create((set, get) => ({
   groups: cached?.groups || [],
@@ -62,13 +64,27 @@ export const useGroupStore = create((set, get) => ({
   loading: false,
 
   fetchGroups: async () => {
+    let scope = 'anon';
+    try { scope = (localStorage.getItem('token') || 'anon').slice(0, 24); } catch { /* use anon scope */ }
+    const inFlight = groupsFetchPromises.get(scope);
+    if (inFlight) return inFlight;
     set({ loading: get().groups.length === 0 });
-    try {
-      const data = await api.getGroups();
-      set({ groups: data.groups || [], loading: false });
-    } catch {
-      set({ loading: false });
-    }
+    let request;
+    request = (async () => {
+      try {
+        const data = await api.getGroups();
+        const nextGroups = data.groups || [];
+        set({ groups: nextGroups, loading: false });
+        return nextGroups;
+      } catch {
+        set({ loading: false });
+        return get().groups;
+      } finally {
+        if (groupsFetchPromises.get(scope) === request) groupsFetchPromises.delete(scope);
+      }
+    })();
+    groupsFetchPromises.set(scope, request);
+    return request;
   },
 
   createGroup: async (groupData) => {

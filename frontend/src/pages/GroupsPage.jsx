@@ -352,7 +352,7 @@ function GroupList({ groups, loading, onOpenGroup, onCreateClick, onJoinClick, o
   // dann einmal laden, damit die Zahlen stimmen.
   useEffect(() => {
     if ((tasks || []).length === 0) {
-      fetchTasks({ dashboard: 'true', limit: '300', horizon_days: '42', completed_lookback_days: '30' });
+      fetchTasks({ lite: 'true', limit: '300', horizon_days: '42', completed_lookback_days: '30' });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1026,7 +1026,7 @@ function JoinGroup({ onBack, onJoin }) {
 // Group Detail
 // ============================================
 const DASHBOARD_REFRESH_PARAMS = [
-  { dashboard: 'true', limit: '300', horizon_days: '42', completed_lookback_days: '30' },
+  { lite: 'true', limit: '300', horizon_days: '42', completed_lookback_days: '30' },
   { force: true },
 ];
 
