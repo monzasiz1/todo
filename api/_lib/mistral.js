@@ -4,7 +4,7 @@ async function parseTaskWithAI(input, options = {}) {
   const key = process.env.MISTRAL_API_KEY;
   if (!key) throw new Error('MISTRAL_API_KEY nicht konfiguriert');
 
-  const { groupNames = [], groupContext = null, categoryNames = [], knownLocations = [] } = options;
+  const { groupNames = [], groupContext = null } = options;
 
   const now = new Date();
   const days = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
@@ -41,17 +41,7 @@ Regeln:
 - Erkenne DATUMSBEREICHE: "vom 20. bis 24. April", "20.-24.04", "Montag bis Freitag" → setze date als Startdatum und date_end als Enddatum
 - Erkenne Uhrzeiten (18 Uhr, 14:30, nachmittags etc.)
 - Erkenne ZEITBEREICHE: "von 14 bis 16 Uhr", "9-12 Uhr", "14:00-15:30" → setze time als Startzeit und time_end als Endzeit
-- KATEGORIE: Wähle die am besten passende Kategorie.${categoryNames.length > 0 ? `
-  - Der Nutzer hat bereits diese Kategorien: ${categoryNames.join(', ')}.
-  - Bevorzuge IMMER eine bestehende Kategorie, wenn sie thematisch passt (auch fuzzy, z.B. "sport"/"laufen" → "Gesundheit" falls vorhanden). Gib den Namen EXAKT so zurück wie in der Liste.
-  - Nur wenn KEINE bestehende Kategorie passt, schlage eine neue, sinnvolle vor (z.B. Arbeit, Persönlich, Gesundheit, Finanzen, Einkaufen, Haushalt, Bildung, Soziales).` : `
-  - Nutze eine aus: Arbeit, Persönlich, Gesundheit, Finanzen, Einkaufen, Haushalt, Bildung, Soziales.`}
-- ORT/LOCATION erkennen: Wenn ein Ort, Treffpunkt, eine Adresse oder ein Raum genannt wird, extrahiere ihn als "location".
-  - Beispiele: "im Creative Space", "bei Dr. Müller", "Fitnessstudio McFit", "Büro", "Zuhause", "Rathausplatz 3", "Zoom", "online", "Stadion".
-  - Erkenne auch "bei", "im", "in der", "@", "Ort:", "Treffpunkt", "Adresse".
-  - Der Ort gehört NICHT in den Titel und NICHT in die Beschreibung — nur in "location".
-  - Wenn kein Ort erkennbar ist → location: null.${knownLocations.length > 0 ? `
-  - Häufig genutzte Orte des Nutzers (bevorzugt wiederverwenden bei passender Nennung): ${knownLocations.join(', ')}.` : ''}
+- Wähle eine passende Kategorie aus: Arbeit, Persönlich, Gesundheit, Finanzen, Einkaufen, Haushalt, Bildung, Soziales
 - Bestimme die Priorität: low, medium, high, urgent
 - Erkenne ob der Termin GANZTÄGIG ist:
   - "ganztägig", "den ganzen Tag", "ohne Uhrzeit", "all day", "Urlaub" (ohne Uhrzeit), Feiertage, mehrtägige Events ohne Uhrzeit → all_day: true, time: null, time_end: null
@@ -110,10 +100,7 @@ Beispiele:
 - "Einkaufen Milch Eier Butter Brot morgen" → title: "Einkaufen", description: "• Milch\\n• Eier\\n• Butter\\n• Brot", date: morgen, category: "Einkaufen"
 - "Kirmes vom 20. bis 24. April" → title: "Kirmes", date: "2026-04-20", date_end: "2026-04-24"
 - "Meeting morgen von 14 bis 16 Uhr" → title: "Meeting", date: morgen, time: "14:00", time_end: "16:00"
-- "Arzttermin Dienstag 10-11:30 Uhr Zahnarzt Dr. Müller" → title: "Arzttermin", description: "Zahnarzt Dr. Müller", date: Dienstag, time: "10:00", time_end: "11:30", category: "Gesundheit"
-- "Meeting morgen 14 Uhr im Creative Space" → type: "event", title: "Meeting", date: morgen, time: "14:00", location: "Creative Space", category: "Arbeit"
-- "Freitag 18:30 Fußballtraining im Stadion" → type: "event", title: "Fußballtraining", date: Freitag, time: "18:30", location: "Stadion", category: "Gesundheit"
-- "Zahnarzt bei Dr. Schmidt Mittwoch 9 Uhr" → type: "event", title: "Zahnarzt", date: Mittwoch, time: "09:00", location: "Dr. Schmidt", category: "Gesundheit"
+- "Arzttermin Dienstag 10-11:30 Uhr Zahnarzt Dr. Mueller" → title: "Arzttermin", description: "Zahnarzt Dr. Mueller", date: Dienstag, time: "10:00", time_end: "11:30"
 - "Einkaufen mit Melanie teilen" → title: "Einkaufen", share_with: ["Melanie"], category: "Einkaufen"
 - "Projekt für Max und Anna sichtbar machen morgen" → title: "Projekt", share_with: ["Max", "Anna"], date: morgen
 - "mit Melanie teilen Geburtstagsparty am Samstag" → title: "Geburtstagsparty", share_with: ["Melanie"], date: Samstag-Datum
@@ -134,7 +121,6 @@ JSON Format:
   "time": "HH:MM oder null",
   "time_end": "HH:MM oder null (nur bei Zeitbereichen)",
   "category": "string",
-  "location": "string oder null (Ort/Treffpunkt/Adresse, NICHT im Titel)",
   "priority": "low|medium|high|urgent",
   "hasReminder": true/false,
   "reminder_at": "YYYY-MM-DDTHH:MM:00 oder null (nur wenn hasReminder true)",
@@ -160,15 +146,13 @@ JSON Format:
         { role: 'user', content: input },
       ],
       temperature: 0.1,
-      max_tokens: 700,
+      max_tokens: 500,
       response_format: { type: 'json_object' },
     }),
   });
 
   if (!response.ok) {
-    const error = new Error(`Mistral API Fehler: ${response.status}`);
-    error.status = response.status;
-    throw error;
+    throw new Error(`Mistral API Fehler: ${response.status}`);
   }
 
   const data = await response.json();
@@ -187,7 +171,6 @@ JSON Format:
       time: parsed.time || null,
       time_end: parsed.time_end || null,
       category: parsed.category || 'Persönlich',
-      location: parsed.location || null,
       priority: parsed.priority || 'medium',
       hasReminder: parsed.hasReminder || false,
       reminder_at: parsed.reminder_at || null,
@@ -212,7 +195,6 @@ JSON Format:
       time: null,
       time_end: null,
       category: 'Persönlich',
-      location: null,
       priority: 'medium',
       hasReminder: false,
       reminder_at: null,
@@ -275,11 +257,7 @@ JSON Format:
     }),
   });
 
-  if (!response.ok) {
-    const error = new Error(`Mistral API Fehler: ${response.status}`);
-    error.status = response.status;
-    throw error;
-  }
+  if (!response.ok) throw new Error(`Mistral API Fehler: ${response.status}`);
 
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content;
@@ -495,14 +473,14 @@ async function parseChecklistWithAI(input) {
   const key = process.env.MISTRAL_API_KEY;
   if (!key) throw new Error('MISTRAL_API_KEY nicht konfiguriert');
 
-  const systemPrompt = `Du bist ein Assistent für Notizen. Deine Aufgabe: aus freiem Text eine abhakbare To-do-Liste erzeugen.
+  const systemPrompt = `Du bist ein Assistent fuer Notizen. Deine Aufgabe: aus freiem Text eine abhakbare To-do-Liste erzeugen.
 
 Regeln:
-- Erkenne Aufgaben/Artikel in Texten wie: "gemüse, äpfel, bananen", "bitte kaufen: Milch, Eier", "Packen: Shirt, Hose".
-- Entferne Füllwörter und gib kurze, klare Item-Texte aus.
+- Erkenne Aufgaben/Artikel in Texten wie: "gemuese, aepfel, bananen", "bitte kaufen: Milch, Eier", "Packen: Shirt, Hose".
+- Entferne Fuellwoerter und gib kurze, klare Item-Texte aus.
 - Liefere maximal 20 Items.
 - Erhalte die Reihenfolge aus dem Ursprungstext.
-- Wenn kein Listeninhalt erkennbar ist, gib items als leeres Array zurück.
+- Wenn kein Listeninhalt erkennbar ist, gib items als leeres Array zurueck.
 - Antworte NUR mit validem JSON.
 
 JSON Format:
@@ -560,352 +538,11 @@ JSON Format:
   }
 }
 
-// ── Notes AI: Zusammenfassung, Rewrite, Tag-Vorschlaege ────────────
-//
-// Inputs sind frei (Plain-Text oder simples HTML). Wir strippen Tags
-// auf der Server-Seite vor dem Prompt, damit der LLM nicht durch Markup
-// abgelenkt wird. Ergebnisse sind reiner Text/Listen — Markup wird im
-// Frontend (optional) wieder erzeugt.
-
-function stripHtmlForAi(input) {
-  return String(input || '')
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<\/(p|div|li|h[1-6]|br)>/gi, '\n')
-    .replace(/<br\s*\/?>(?:\s*)/gi, '\n')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/[ \t]+/g, ' ')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
-    .slice(0, 6000);
-}
-
-async function summarizeNoteWithAI(input) {
-  const key = process.env.MISTRAL_API_KEY;
-  if (!key) throw new Error('MISTRAL_API_KEY nicht konfiguriert');
-  const text = stripHtmlForAi(input);
-  if (!text) return { summary: '', confidence: 0.0 };
-
-  const systemPrompt = `Du fasst Notizen auf Deutsch zusammen.
-
-Regeln:
-- 2 bis 4 kurze Bulletpoints, jeweils maximal 1 Satz.
-- Behalte konkrete Fakten (Namen, Daten, Zahlen) bei.
-- Keine Floskeln, keine Wiederholungen, kein Markup.
-- Antworte NUR mit validem JSON.
-
-JSON Format:
-{
-  "summary": "string (Bullets durch \\n - getrennt)",
-  "confidence": 0.0-1.0
-}`;
-
-  const response = await fetch(MISTRAL_API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-    body: JSON.stringify({
-      model: 'mistral-small-latest',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: text },
-      ],
-      temperature: 0.2,
-      max_tokens: 400,
-      response_format: { type: 'json_object' },
-    }),
-  });
-  if (!response.ok) throw new Error(`Mistral API Fehler: ${response.status}`);
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error('Keine Antwort von Mistral');
-  try {
-    const parsed = JSON.parse(content);
-    return {
-      summary: String(parsed.summary || '').trim(),
-      confidence: Number(parsed.confidence) || 0.5,
-    };
-  } catch {
-    return { summary: '', confidence: 0.2 };
-  }
-}
-
-async function rewriteNoteWithAI(input, style = 'cleanup') {
-  const key = process.env.MISTRAL_API_KEY;
-  if (!key) throw new Error('MISTRAL_API_KEY nicht konfiguriert');
-  const text = stripHtmlForAi(input);
-  if (!text) return { rewritten: '', confidence: 0.0 };
-
-  const styleHint = {
-    cleanup: 'Behalte Inhalt und Tonalität, verbessere Grammatik, Rechtschreibung und Lesbarkeit. Keine Kürzungen.',
-    short: 'Kürze auf das Wesentliche (max 50 Prozent der Länge). Keine Fakten weglassen.',
-    formal: 'Schreibe sachlich und förmlich (Sie-Form, klare Sätze). Inhalt unverändert.',
-    casual: 'Schreibe locker und freundlich (Du-Form, kurze Sätze). Inhalt unverändert.',
-  }[style] || 'Behalte Inhalt und Tonalität, verbessere Grammatik und Lesbarkeit.';
-
-  const systemPrompt = `Du überarbeitest Notizen auf Deutsch.
-
-${styleHint}
-
-Regeln:
-- Antworte mit dem überarbeiteten Text als reiner Plain-Text.
-- KEIN Markdown, KEINE Anführungszeichen drumherum, KEINE Erklärung.
-- Behalte Absatz-Struktur (Leerzeilen).`;
-
-  const response = await fetch(MISTRAL_API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-    body: JSON.stringify({
-      model: 'mistral-small-latest',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: text },
-      ],
-      temperature: 0.3,
-      max_tokens: 1200,
-    }),
-  });
-  if (!response.ok) throw new Error(`Mistral API Fehler: ${response.status}`);
-  const data = await response.json();
-  const rewritten = data.choices?.[0]?.message?.content?.trim() || '';
-  return { rewritten, confidence: rewritten ? 0.8 : 0.0 };
-}
-
-function normalizeTag(tag) {
-  return String(tag || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9\-äöüß ]+/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 24);
-}
-
-function buildFallbackNoteTags(input, reason = 'fallback') {
-  const text = stripHtmlForAi(input);
-  if (!text) return { tags: [], confidence: 0.0, source: reason };
-
-  const stop = new Set([
-    'und', 'oder', 'aber', 'dass', 'das', 'der', 'die', 'den', 'dem', 'des', 'ein', 'eine',
-    'einer', 'einem', 'einen', 'ist', 'sind', 'war', 'waren', 'mit', 'für', 'auf', 'bei',
-    'von', 'vom', 'zum', 'zur', 'im', 'in', 'am', 'an', 'aus', 'als', 'auch', 'nicht',
-    'noch', 'nur', 'bitte', 'heute', 'morgen', 'gestern', 'dann', 'wenn', 'weil', 'über',
-    'unter', 'ohne', 'wie', 'ich', 'du', 'er', 'sie', 'es', 'wir', 'ihr', 'mein', 'dein',
-    'sein', 'ihr', 'unser', 'euer', 'todo', 'notiz', 'notizen', 'task', 'tasks',
-  ]);
-
-  const hashTags = [];
-  const hashRe = /#([a-z0-9äöüß\-]{2,24})/gi;
-  let m = hashRe.exec(text);
-  while (m) {
-    hashTags.push(normalizeTag(m[1]));
-    m = hashRe.exec(text);
-  }
-
-  const freq = new Map();
-  const words = text
-    .toLowerCase()
-    .replace(/[^a-z0-9äöüß\-\s]+/g, ' ')
-    .split(/\s+/)
-    .map((w) => w.trim())
-    .filter(Boolean);
-
-  for (const raw of words) {
-    const token = normalizeTag(raw);
-    if (token.length < 3 || /^\d+$/.test(token) || stop.has(token)) continue;
-    freq.set(token, (freq.get(token) || 0) + 1);
-  }
-
-  const ranked = [...freq.entries()]
-    .sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)
-    .map(([token]) => token);
-
-  const unique = [];
-  for (const t of [...hashTags, ...ranked]) {
-    if (!t || unique.includes(t)) continue;
-    unique.push(t);
-    if (unique.length >= 6) break;
-  }
-
-  return {
-    tags: unique,
-    confidence: unique.length > 0 ? 0.35 : 0.1,
-    source: reason,
-  };
-}
-
-async function suggestNoteTagsWithAI(input) {
-  const key = process.env.MISTRAL_API_KEY;
-  const text = stripHtmlForAi(input);
-  if (!text) return { tags: [], confidence: 0.0 };
-  if (!key) return buildFallbackNoteTags(text, 'missing_api_key');
-
-  const systemPrompt = `Du schlägst Tags für Notizen vor.
-
-Regeln:
-- 3 bis 6 kurze Tags (1-2 Worte, kleingeschrieben, Deutsch).
-- Themen-/Kategorie-orientiert (z. B. "einkauf", "projekt-x", "urlaub").
-- Keine Sonderzeichen ausser Bindestrich.
-- Antworte NUR mit validem JSON.
-
-JSON Format:
-{
-  "tags": ["string", ...],
-  "confidence": 0.0-1.0
-}`;
-
-  try {
-    const response = await fetch(MISTRAL_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-      body: JSON.stringify({
-        model: 'mistral-small-latest',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: text },
-        ],
-        temperature: 0.2,
-        max_tokens: 200,
-        response_format: { type: 'json_object' },
-      }),
-    });
-    if (!response.ok) throw new Error(`Mistral API Fehler: ${response.status}`);
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
-    if (!content) throw new Error('Keine Antwort von Mistral');
-    const parsed = JSON.parse(content);
-    const tags = Array.isArray(parsed.tags)
-      ? parsed.tags
-          .map((t) => normalizeTag(t))
-          .filter((t) => t.length >= 2 && t.length <= 24)
-          .slice(0, 6)
-      : [];
-    if (tags.length === 0) return buildFallbackNoteTags(text, 'ai_empty_tags');
-    return {
-      tags,
-      confidence: Number(parsed.confidence) || 0.5,
-    };
-  } catch (err) {
-    console.warn('suggestNoteTagsWithAI fallback aktiv:', err?.message || err);
-    return buildFallbackNoteTags(text, 'ai_error');
-  }
-}
-
-async function parseSpendingWithAI(input) {
-  const key = process.env.MISTRAL_API_KEY;
-  if (!key) throw new Error('MISTRAL_API_KEY nicht konfiguriert');
-
-  const systemPrompt = `Du bist ein Finanz-Assistent. Analysiere Freitext und extrahiere eine Einnahme oder Ausgabe.
-
-WICHTIG: Antworte NUR mit validem JSON-Objekt.
-
-JSON Format:
-{
-  "kind": "income" | "expense",
-  "category": "food" | "home" | "travel" | "free" | "salary" | "gift" | "side" | "other",
-  "amount": number,
-  "description": "string",
-  "recurrence": "none" | "monthly" | "quarterly" | "yearly",
-  "confidence": 0.0-1.0
-}
-
-Regeln:
-- kind = "income" bei: Gehalt, Lohn, Geschenk, Auszahlung, Erstattung, Verkauf, Nebenjob, Trinkgeld, Rente, Bonus, Zinsen, Dividende, BAföG, Stipendium.
-- kind = "expense" bei: Kauf, Rechnung, Miete, Einkauf, Restaurant, Tanken, Ticket, Hotel, sonst alles was Geld kostet.
-- Ausgaben-Kategorien:
-  - "food" = Essen, Trinken, Restaurant, Cafe, Supermarkt, Lieferdienst, Pizza, Bäcker
-  - "home" = Miete, Nebenkosten, Strom, Wasser, Internet, Möbel, Renovierung, Versicherung, Putzmittel
-  - "travel" = Tickets, Bahn, Flug, Hotel, Tanken, Taxi, Urlaub, Ausflug, Maut
-  - "free" = Freizeit, Kino, Konzert, Sport, Hobby, Streaming, Bücher, Spiele, Shopping, Kleidung
-- Einnahmen-Kategorien:
-  - "salary" = Gehalt, Lohn, monatliches Einkommen, Rente, BAföG
-  - "gift" = Geschenk, Trinkgeld, Spende
-  - "side" = Nebenjob, Verkauf, Freelance, Bonus, Provision
-  - "other" = alles andere Eingehende
-- amount: Zahl in Euro. Akzeptiere "10€", "10,50", "10.50", "ca 20". Falls unklar → 0.
-- description: kurze beschreibende Zeile, z.B. "Pizza Mario", "Wocheneinkauf REWE", "Gehalt Mai", "Tankfüllung". Lass den Betrag und das Wort "Euro" aus der Beschreibung weg.
-- recurrence: erkenne ob es sich um eine WIEDERKEHRENDE Zahlung handelt:
-  - "monatlich", "jeden Monat", "pro Monat", "p.M.", "monatl.", "Abo", "Miete", "Gehalt", "Strom", "Netflix", "Spotify", "Versicherung", "Handyvertrag", "Internet", "GEZ", "Rundfunk", "Fitnessstudio" → "monthly"
-  - "vierteljährlich", "quartalsweise", "alle 3 Monate", "alle drei Monate", "Q1/Q2/Q3/Q4" → "quarterly"
-  - "jährlich", "jedes Jahr", "p.a.", "pro Jahr", "Jahresbeitrag", "Versicherung jährlich" → "yearly"
-  - sonst → "none"
-- confidence: dein Sicherheitswert.
-
-Beispiele:
-- "25€ Pizza heute" → {"kind":"expense","category":"food","amount":25,"description":"Pizza","recurrence":"none","confidence":0.95}
-- "Wocheneinkauf REWE 87,50" → {"kind":"expense","category":"food","amount":87.50,"description":"Wocheneinkauf REWE","recurrence":"none","confidence":0.95}
-- "Tankfüllung 65" → {"kind":"expense","category":"travel","amount":65,"description":"Tankfüllung","recurrence":"none","confidence":0.9}
-- "Gehalt 2400" → {"kind":"income","category":"salary","amount":2400,"description":"Gehalt","recurrence":"monthly","confidence":0.95}
-- "Miete 850 monatlich" → {"kind":"expense","category":"home","amount":850,"description":"Miete","recurrence":"monthly","confidence":0.98}
-- "Netflix Abo 17,99" → {"kind":"expense","category":"free","amount":17.99,"description":"Netflix Abo","recurrence":"monthly","confidence":0.95}
-- "Versicherung 320 vierteljährlich" → {"kind":"expense","category":"home","amount":320,"description":"Versicherung","recurrence":"quarterly","confidence":0.95}
-- "GEZ alle 3 Monate 55,08" → {"kind":"expense","category":"home","amount":55.08,"description":"GEZ Rundfunkbeitrag","recurrence":"quarterly","confidence":0.95}
-- "KfZ-Versicherung 480 jährlich" → {"kind":"expense","category":"travel","amount":480,"description":"KfZ-Versicherung","recurrence":"yearly","confidence":0.95}
-- "Oma 50 geschenkt" → {"kind":"income","category":"gift","amount":50,"description":"Geschenk Oma","recurrence":"none","confidence":0.9}
-- "Konzertkarte Rammstein 89" → {"kind":"expense","category":"free","amount":89,"description":"Konzertkarte Rammstein","recurrence":"none","confidence":0.95}`;
-
-  const response = await fetch(MISTRAL_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${key}`,
-    },
-    body: JSON.stringify({
-      model: 'mistral-small-latest',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: String(input || '') },
-      ],
-      temperature: 0.1,
-      max_tokens: 200,
-      response_format: { type: 'json_object' },
-    }),
-  });
-
-  if (!response.ok) throw new Error(`Mistral API Fehler: ${response.status}`);
-
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error('Keine Antwort von Mistral');
-
-  try {
-    const parsed = JSON.parse(content);
-    const kind = parsed.kind === 'income' ? 'income' : 'expense';
-    const expenseCats = new Set(['food', 'home', 'travel', 'free']);
-    const incomeCats = new Set(['salary', 'gift', 'side', 'other']);
-    const validCats = kind === 'income' ? incomeCats : expenseCats;
-    const category = validCats.has(parsed.category) ? parsed.category : (kind === 'income' ? 'other' : 'free');
-    const validRecurrences = new Set(['none', 'monthly', 'quarterly', 'yearly']);
-    const recurrence = validRecurrences.has(parsed.recurrence) ? parsed.recurrence : 'none';
-    let amount = Number(parsed.amount);
-    if (!Number.isFinite(amount) || amount < 0) amount = 0;
-    amount = Math.round(amount * 100) / 100;
-    return {
-      kind,
-      category,
-      amount,
-      description: String(parsed.description || '').slice(0, 200).trim(),
-      recurrence,
-      confidence: Number(parsed.confidence) || 0.5,
-    };
-  } catch {
-    return { kind: 'expense', category: 'free', amount: 0, description: '', recurrence: 'none', confidence: 0.1 };
-  }
-}
-
 module.exports = {
   parseTaskWithAI,
   parsePermissionsWithAI,
   classifyIntentWithAI,
   answerCalendarQueryWithAI,
   parseChecklistWithAI,
-  summarizeNoteWithAI,
-  rewriteNoteWithAI,
-  suggestNoteTagsWithAI,
-  parseSpendingWithAI,
 };
+

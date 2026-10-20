@@ -27,15 +27,6 @@ async function runSchemaInit(rawQuery) {
       created_at TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(user_id, endpoint)
     )`,
-    `CREATE TABLE IF NOT EXISTS mobile_push_subscriptions (
-      id SERIAL PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      platform TEXT NOT NULL,
-      token TEXT NOT NULL,
-      device_info TEXT DEFAULT NULL,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      UNIQUE(user_id, platform, token)
-    )`,
     `CREATE TABLE IF NOT EXISTS notification_log (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -46,15 +37,11 @@ async function runSchemaInit(rawQuery) {
       sent_at TIMESTAMPTZ DEFAULT NOW()
     )`,
     `CREATE INDEX IF NOT EXISTS idx_push_sub_user ON push_subscriptions(user_id)`,
-    `CREATE INDEX IF NOT EXISTS idx_mobile_push_user ON mobile_push_subscriptions(user_id)`,
     `CREATE INDEX IF NOT EXISTS idx_notif_log_user_type ON notification_log(user_id, type, sent_at)`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ DEFAULT NOW()`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS notification_prefs JSONB DEFAULT '{"reminder":true,"daily_tasks":true,"engagement":true,"team_task":true,"group_message":true}'::jsonb`,
     // Task location (free-text Ort / Google-Maps Query)
     `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS location TEXT`,
-    // Wer die Aufgabe abgehakt hat (für Statistik-Gutschrift bei Gruppen-
-    // Aufgaben: belohnt wird der Abhaker, nicht der Ersteller).
-    `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completed_by INTEGER`,
 
     // Groups core
     `CREATE TABLE IF NOT EXISTS groups (
@@ -174,74 +161,6 @@ async function runSchemaInit(rawQuery) {
     )`,
     `CREATE INDEX IF NOT EXISTS idx_group_event_rsvps_message ON group_event_rsvps(message_id)`,
 
-    // Shared spending: gemeinsame Ausgaben-Gruppen mit Mitgliedern und Ausgaben.
-    `CREATE TABLE IF NOT EXISTS spending_groups (
-      id SERIAL PRIMARY KEY,
-      name VARCHAR(120) NOT NULL,
-      owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    )`,
-    `CREATE INDEX IF NOT EXISTS idx_spending_groups_owner ON spending_groups(owner_id)`,
-    `CREATE TABLE IF NOT EXISTS spending_members (
-      id SERIAL PRIMARY KEY,
-      spending_group_id INTEGER NOT NULL REFERENCES spending_groups(id) ON DELETE CASCADE,
-      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','accepted','declined')),
-      invited_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
-      joined_at TIMESTAMPTZ DEFAULT NOW(),
-      UNIQUE(spending_group_id, user_id)
-    )`,
-    `CREATE INDEX IF NOT EXISTS idx_spending_members_group ON spending_members(spending_group_id)`,
-    `CREATE INDEX IF NOT EXISTS idx_spending_members_user ON spending_members(user_id, status)`,
-    `CREATE TABLE IF NOT EXISTS spending_expenses (
-      id SERIAL PRIMARY KEY,
-      spending_group_id INTEGER NOT NULL REFERENCES spending_groups(id) ON DELETE CASCADE,
-      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      category VARCHAR(40) NOT NULL,
-      amount NUMERIC(10,2) NOT NULL CHECK (amount >= 0),
-      description TEXT DEFAULT '',
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    )`,
-    `ALTER TABLE spending_expenses ADD COLUMN IF NOT EXISTS kind VARCHAR(10) NOT NULL DEFAULT 'expense'`,
-    `ALTER TABLE spending_expenses ADD COLUMN IF NOT EXISTS recurrence VARCHAR(20) NOT NULL DEFAULT 'none'`,
-    `ALTER TABLE spending_expenses ADD COLUMN IF NOT EXISTS entry_date DATE`,
-    `ALTER TABLE spending_expenses ADD COLUMN IF NOT EXISTS recurrence_end DATE`,
-    // Backfill: entry_date aus created_at fuer alte Eintraege
-    `UPDATE spending_expenses SET entry_date = created_at::DATE WHERE entry_date IS NULL`,
-    `CREATE INDEX IF NOT EXISTS idx_spending_expenses_group ON spending_expenses(spending_group_id, created_at DESC)`,
-    `CREATE INDEX IF NOT EXISTS idx_spending_expenses_user ON spending_expenses(user_id)`,
-    `CREATE INDEX IF NOT EXISTS idx_spending_expenses_kind ON spending_expenses(spending_group_id, kind)`,
-    `CREATE INDEX IF NOT EXISTS idx_spending_expenses_recurrence ON spending_expenses(spending_group_id, recurrence)`,
-    // Pro-Monat Overrides fuer recurring Eintraege: skip, custom amount
-    `CREATE TABLE IF NOT EXISTS spending_overrides (
-      id SERIAL PRIMARY KEY,
-      entry_id INTEGER NOT NULL REFERENCES spending_expenses(id) ON DELETE CASCADE,
-      override_month CHAR(7) NOT NULL,
-      kind VARCHAR(20) NOT NULL DEFAULT 'skip' CHECK (kind IN ('skip', 'amount')),
-      amount NUMERIC(10,2),
-      created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      UNIQUE(entry_id, override_month)
-    )`,
-    `CREATE INDEX IF NOT EXISTS idx_spending_overrides_entry ON spending_overrides(entry_id, override_month)`,
-
-    // Custom Categories pro Gruppe (zusaetzlich zu den Preset-Kategorien)
-    `CREATE TABLE IF NOT EXISTS spending_custom_categories (
-      id SERIAL PRIMARY KEY,
-      spending_group_id INTEGER NOT NULL REFERENCES spending_groups(id) ON DELETE CASCADE,
-      kind VARCHAR(10) NOT NULL CHECK (kind IN ('income', 'expense')),
-      label VARCHAR(80) NOT NULL,
-      color VARCHAR(20) NOT NULL DEFAULT '#94A3B8',
-      created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    )`,
-    `CREATE INDEX IF NOT EXISTS idx_spending_custom_categories_group ON spending_custom_categories(spending_group_id, kind)`,
-
-    // Splits: optionale Aufteilung einer Buchung auf mehrere Mitglieder.
-    // NULL/leer = nur payer (user_id) traegt den gesamten Betrag.
-    // JSONB-Array: [{ user_id: 1, amount: 12.50 }, ...]  — summiert sich zu amount.
-    `ALTER TABLE spending_expenses ADD COLUMN IF NOT EXISTS split_amounts JSONB`,
-
     // Ensure required preference keys exist on older rows
     `UPDATE users
      SET notification_prefs = COALESCE(notification_prefs, '{}'::jsonb)
@@ -260,55 +179,6 @@ async function runSchemaInit(rawQuery) {
     } catch (err) {
       // Keep boot resilient: continue with best-effort schema healing.
       console.warn('[db] schema init statement failed:', err.message);
-    }
-  }
-}
-
-// Kritische Tabellen/Spalten, die für Push/Benachrichtigungen IMMER existieren
-// müssen — auch in Produktion, wo die volle runSchemaInit() aus Performance-
-// Gründen abgeschaltet ist. Alle Statements sind idempotent (IF NOT EXISTS) und
-// laufen einmalig pro Function-Instance, bevor irgendeine Query ausgeführt wird.
-const CRITICAL_SCHEMA_STATEMENTS = [
-  `CREATE TABLE IF NOT EXISTS push_subscriptions (
-      id SERIAL PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      endpoint TEXT NOT NULL,
-      keys_p256dh TEXT NOT NULL,
-      keys_auth TEXT NOT NULL,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      UNIQUE(user_id, endpoint)
-    )`,
-  `CREATE TABLE IF NOT EXISTS mobile_push_subscriptions (
-      id SERIAL PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      platform TEXT NOT NULL,
-      token TEXT NOT NULL,
-      device_info TEXT DEFAULT NULL,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      UNIQUE(user_id, platform, token)
-    )`,
-  `CREATE TABLE IF NOT EXISTS notification_log (
-      id SERIAL PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      type TEXT NOT NULL,
-      task_id INTEGER REFERENCES tasks(id) ON DELETE SET NULL,
-      title TEXT NOT NULL,
-      body TEXT NOT NULL,
-      sent_at TIMESTAMPTZ DEFAULT NOW()
-    )`,
-  `CREATE INDEX IF NOT EXISTS idx_push_sub_user ON push_subscriptions(user_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_mobile_push_user ON mobile_push_subscriptions(user_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_notif_log_user_type ON notification_log(user_id, type, sent_at)`,
-  `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ DEFAULT NOW()`,
-  `ALTER TABLE users ADD COLUMN IF NOT EXISTS notification_prefs JSONB DEFAULT '{"reminder":true,"daily_tasks":true,"engagement":true,"team_task":true,"group_message":true}'::jsonb`,
-];
-
-async function ensureCriticalSchema(rawQuery) {
-  for (const sql of CRITICAL_SCHEMA_STATEMENTS) {
-    try {
-      await rawQuery(sql);
-    } catch (err) {
-      console.warn('[db] critical schema statement failed:', err.message);
     }
   }
 }
@@ -355,16 +225,9 @@ function getPool() {
 
     const originalQuery = pool.query.bind(pool);
 
-    // Kritisches Notif-/Push-Schema läuft IMMER (auch Prod), die volle
-    // runSchemaInit nur außerhalb der Produktion. pool.query wartet unten auf
-    // schemaInitPromise, sodass die Push-Tabellen vor jeder Query existieren.
-    if (!schemaInitPromise) {
-      schemaInitPromise = (async () => {
-        await ensureCriticalSchema(originalQuery);
-        if (shouldRunSchemaInit()) {
-          await runSchemaInit(originalQuery);
-        }
-      })().catch((err) => {
+    // In production this is off by default to avoid extra DB load on cold starts.
+    if (shouldRunSchemaInit() && !schemaInitPromise) {
+      schemaInitPromise = runSchemaInit(originalQuery).catch((err) => {
         console.warn('[db] schema initialization failed:', err.message);
       });
     }
