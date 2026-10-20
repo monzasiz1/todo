@@ -101,7 +101,7 @@ function clearLocalAppCaches() {
         if (!key) continue;
 
         if ((userScope && key.includes(`:${userScope}`)) ||
-            key.startsWith('beequ_tasks_range_cache_v1:')) {
+            key.startsWith('beequ_tasks_range_cache_v')) {
           sessionStorage.removeItem(key);
         }
       }

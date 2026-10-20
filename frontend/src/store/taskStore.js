@@ -4,7 +4,7 @@ import { getAllQueued, removeQueued, incrementRetry } from '../utils/offlineQueu
 import { useGroupStore } from './groupStore';
 
 const TASK_CACHE_KEY = 'beequ_tasks_cache_v1';
-const TASK_RANGE_CACHE_KEY = 'beequ_tasks_range_cache_v2';
+const TASK_RANGE_CACHE_KEY = 'beequ_tasks_range_cache_v3';
 
 function getTasksCacheKey() {
   try {
@@ -26,6 +26,7 @@ function getTaskRangesCacheKey() {
 
 const TASK_RANGE_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
 const TASK_RANGE_CACHE_MAX_ENTRIES = 12;
+const TASK_RANGE_CACHE_PERSIST_MS = 90 * 24 * 60 * 60 * 1000;
 const QUICK_UNDO_FIELDS = new Set(['title', 'description', 'date', 'date_end', 'time', 'time_end', 'priority', 'category_id', 'reminder_at', 'type']);
 const pendingTaskDeletes = new Map();
 // Zusaetzliche IDs, die aktuell geloescht/dismissed werden (auch ohne Timer).
@@ -64,8 +65,7 @@ function writeCachedTasks(tasks) {
 
 function readCachedTaskRanges() {
   try {
-    if (typeof window === 'undefined' || !window.sessionStorage) return {};
-    const raw = sessionStorage.getItem(getTaskRangesCacheKey());
+    const raw = localStorage.getItem(getTaskRangesCacheKey());
     const parsed = raw ? JSON.parse(raw) : {};
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
 
@@ -75,7 +75,7 @@ function readCachedTaskRanges() {
         if (!entry || typeof entry !== 'object') return false;
         if (!Array.isArray(entry.tasks)) return false;
         if (typeof entry.fetchedAt !== 'number') return false;
-        return now - entry.fetchedAt <= TASK_RANGE_CACHE_MAX_AGE_MS;
+        return now - entry.fetchedAt <= TASK_RANGE_CACHE_PERSIST_MS;
       })
     );
   } catch {
@@ -85,12 +85,11 @@ function readCachedTaskRanges() {
 
 function writeCachedTaskRanges(rangeCache) {
   try {
-    if (typeof window === 'undefined' || !window.sessionStorage) return;
     const normalized = Object.entries(rangeCache || {})
       .filter(([, entry]) => entry && Array.isArray(entry.tasks) && typeof entry.fetchedAt === 'number')
       .sort((a, b) => b[1].fetchedAt - a[1].fetchedAt)
       .slice(0, TASK_RANGE_CACHE_MAX_ENTRIES);
-    sessionStorage.setItem(getTaskRangesCacheKey(), JSON.stringify(Object.fromEntries(normalized)));
+    localStorage.setItem(getTaskRangesCacheKey(), JSON.stringify(Object.fromEntries(normalized)));
   } catch {
     // ignore quota/security errors
   }
@@ -105,7 +104,7 @@ function buildNextRangeCache(prevCache, key, tasks) {
 
   return Object.fromEntries(
     Object.entries(next)
-      .filter(([, entry]) => now - (entry.fetchedAt || 0) <= TASK_RANGE_CACHE_MAX_AGE_MS)
+      .filter(([, entry]) => now - (entry.fetchedAt || 0) <= TASK_RANGE_CACHE_PERSIST_MS)
       .sort((a, b) => b[1].fetchedAt - a[1].fetchedAt)
       .slice(0, TASK_RANGE_CACHE_MAX_ENTRIES)
   );
@@ -354,13 +353,20 @@ export const useTaskStore = create((set, get) => ({
       set({ error: err.message });
       const startDay = String(start).slice(0, 10);
       const endDay = String(end).slice(0, 10);
-      const cachedTasks = get().tasks.filter((task) => {
+      const state = get();
+      const rangeTasks = Object.values(state.rangeCache || {}).flatMap((entry) => entry.tasks || []);
+      const cachedTasks = [...(state.tasks || []), ...rangeTasks].filter((task) => {
         if (!task?.date) return false;
         const taskStart = String(task.date).slice(0, 10);
         const taskEnd = String(task.date_end || task.date).slice(0, 10);
         return taskStart <= endDay && taskEnd >= startDay;
       });
-      return stripPendingDeletes(cachedTasks);
+      const uniqueTasks = new Map(cachedTasks.map((task) => [String(task.id), task]));
+      return stripPendingDeletes([...uniqueTasks.values()].sort((a, b) => {
+        const dateCompare = String(a.date).slice(0, 10).localeCompare(String(b.date).slice(0, 10));
+        if (dateCompare !== 0) return dateCompare;
+        return String(a.time || '').localeCompare(String(b.time || ''));
+      }));
     }
   },
 
